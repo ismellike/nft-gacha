@@ -22,9 +22,11 @@ contract GachaTreasury is IERC721Receiver, Ownable {
 
     mapping(Rarity => NFTItem[]) public treasury;
     mapping(Rarity => uint256) public rarityCount;
+    address public gachaContract;
 
     event NFTDeposited(address indexed collection, uint256 indexed tokenId, Rarity rarity);
     event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, Rarity rarity, address to);
+    event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
 
     constructor(address _owner) Ownable(_owner) {}
 
@@ -60,6 +62,23 @@ contract GachaTreasury is IERC721Receiver, Ownable {
         emit NFTWithdrawn(item.collection, item.tokenId, rarity, to);
     }
 
+    function sendNFTToWinner(Rarity rarity, uint256 index, address winner) external returns (NFTItem memory) {
+        require(msg.sender == gachaContract, "GachaTreasury: Only gacha contract can send NFTs to winners");
+        require(index < treasury[rarity].length, "GachaTreasury: Invalid index");
+        require(winner != address(0), "GachaTreasury: Invalid winner address");
+        
+        NFTItem memory item = treasury[rarity][index];
+        
+        treasury[rarity][index] = treasury[rarity][treasury[rarity].length - 1];
+        treasury[rarity].pop();
+        rarityCount[rarity]--;
+        
+        IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
+        
+        emit NFTWithdrawn(item.collection, item.tokenId, rarity, winner);
+        return item;
+    }
+
     function getTreasuryItems(Rarity rarity) external view returns (NFTItem[] memory) {
         return treasury[rarity];
     }
@@ -81,6 +100,12 @@ contract GachaTreasury is IERC721Receiver, Ownable {
                rarityCount[Rarity.Legendary];
     }
 
+    function setGachaContract(address _gachaContract) external onlyOwner {
+        require(_gachaContract != address(0), "GachaTreasury: Invalid gacha contract address");
+        address oldGacha = gachaContract;
+        gachaContract = _gachaContract;
+        emit GachaContractUpdated(oldGacha, _gachaContract);
+    }
 
     function onERC721Received(
         address, // operator

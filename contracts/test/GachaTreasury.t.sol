@@ -121,4 +121,51 @@ contract GachaTreasuryTest is Test {
         assertEq(items[0].tokenId, tokenId1);
         assertEq(uint8(items[0].rarity), uint8(GachaTreasury.Rarity.Uncommon));
     }
+
+    function testSetGachaContract() public {
+        address gachaAddress = address(0x123);
+        
+        vm.prank(owner);
+        vm.expectEmit(true, true, false, false);
+        emit GachaContractUpdated(address(0), gachaAddress);
+        treasury.setGachaContract(gachaAddress);
+        
+        assertEq(treasury.gachaContract(), gachaAddress);
+    }
+
+    function testSendNFTToWinner() public {
+        uint256 tokenId = nft.mint(owner);
+        address gachaAddress = address(0x123);
+        address winner = address(0x456);
+        
+        vm.startPrank(owner);
+        nft.approve(address(treasury), tokenId);
+        treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
+        treasury.setGachaContract(gachaAddress);
+        vm.stopPrank();
+        
+        vm.prank(gachaAddress);
+        GachaTreasury.NFTItem memory item = treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, winner);
+        
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0);
+        assertEq(nft.ownerOf(tokenId), winner);
+        assertEq(item.collection, address(nft));
+        assertEq(item.tokenId, tokenId);
+        assertEq(uint8(item.rarity), uint8(GachaTreasury.Rarity.Epic));
+    }
+
+    function testSendNFTToWinnerOnlyGacha() public {
+        uint256 tokenId = nft.mint(owner);
+        
+        vm.startPrank(owner);
+        nft.approve(address(treasury), tokenId);
+        treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
+        vm.stopPrank();
+        
+        vm.prank(user);
+        vm.expectRevert("GachaTreasury: Only gacha contract can send NFTs to winners");
+        treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, user);
+    }
+
+    event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
 }

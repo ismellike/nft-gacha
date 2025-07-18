@@ -3,14 +3,22 @@ pragma solidity ^0.8.27;
 
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IWavsServiceHandler} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
+import {Gacha} from "./Gacha.sol";
 
 contract RandomnessConsumer is IWavsServiceHandler {
     IWavsServiceManager private _serviceManager;
+    Gacha private _gacha;
+
+    struct WavsDrandPayload {
+        uint256 triggerId;
+        bytes32 randomness;
+    }
 
     event RandomnessReceived(bytes32 randomness);
 
-    constructor(IWavsServiceManager serviceManager) {
+    constructor(IWavsServiceManager serviceManager, Gacha gacha) {
         _serviceManager = serviceManager;
+        _gacha = gacha;
     }
 
     function getServiceManager() external view returns (address) {
@@ -23,8 +31,8 @@ contract RandomnessConsumer is IWavsServiceHandler {
     ) external {
         _serviceManager.validate(envelope, signatureData);
 
-        bytes32 randomness = abi.decode(envelope.payload, (bytes32));
+        WavsDrandPayload memory payload = abi.decode(envelope.payload, (WavsDrandPayload));
 
-        emit RandomnessReceived(randomness);
+        _gacha.fulfillRandomness(payload.triggerId, payload.randomness);
     }
 }
