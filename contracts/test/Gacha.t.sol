@@ -294,8 +294,104 @@ contract GachaTest is Test {
         assertEq(feeToken.balanceOf(address(gacha)), SPIN_FEE * 3);
     }
 
+    function testSpinBlockedWhenRarityEmpty() public {
+        // Remove all common NFTs to test blocking
+        vm.startPrank(owner);
+        for (uint i = 0; i < 10; i++) {
+            treasury.withdrawNFT(GachaTreasury.Rarity.Common, 0, owner);
+        }
+        vm.stopPrank();
+        
+        vm.startPrank(user1);
+        feeToken.approve(address(gacha), SPIN_FEE);
+        vm.expectRevert("Gacha: No Common NFTs available");
+        gacha.spin();
+        vm.stopPrank();
+    }
+
+    function testSpinAllowedWhenZeroWeightRarityEmpty() public {
+        // Set common weight to 0 and remove all common NFTs
+        vm.startPrank(owner);
+        gacha.setRarityWeights(0, 6000, 2000, 1500, 500); // No common weight
+        for (uint i = 0; i < 10; i++) {
+            treasury.withdrawNFT(GachaTreasury.Rarity.Common, 0, owner);
+        }
+        vm.stopPrank();
+        
+        // Should be able to spin since common weight is 0
+        vm.startPrank(user1);
+        feeToken.approve(address(gacha), SPIN_FEE);
+        uint256 triggerId = gacha.spin();
+        vm.stopPrank();
+        
+        assertEq(triggerId, 0);
+    }
+
+    function testRefundWhenSelectedRarityEmpty() public {
+        // First spin normally to get a triggerId
+        vm.startPrank(user1);
+        feeToken.approve(address(gacha), SPIN_FEE);
+        uint256 triggerId = gacha.spin();
+        vm.stopPrank();
+        
+        // Now remove the legendary NFT AFTER spinning but BEFORE fulfillment
+        vm.startPrank(owner);
+        treasury.withdrawNFT(GachaTreasury.Rarity.Legendary, 0, owner);
+        vm.stopPrank();
+        
+        uint256 userInitialBalance = feeToken.balanceOf(user1);
+        uint256 gachaInitialBalance = feeToken.balanceOf(address(gacha));
+        
+        // Use randomness that will select legendary (0-99 range for 1% legendary weight)
+        bytes32 randomness = bytes32(uint256(50)); // Will select legendary
+        
+        vm.prank(owner);
+        vm.expectEmit(true, true, false, true);
+        emit SpinRefunded(triggerId, user1, GachaTreasury.Rarity.Legendary, SPIN_FEE);
+        gacha.fulfillRandomness(triggerId, randomness);
+        
+        // Check refund was processed
+        assertEq(feeToken.balanceOf(user1), userInitialBalance + SPIN_FEE);
+        assertEq(feeToken.balanceOf(address(gacha)), gachaInitialBalance - SPIN_FEE);
+        
+        // Check request is still marked as fulfilled
+        (, bool fulfilled) = gacha.getSpinRequest(triggerId);
+        assertTrue(fulfilled);
+    }
+
+    function testRefundWithZeroFee() public {
+        // Deploy gacha with zero fee
+        Gacha zeroFeeGacha = new Gacha(owner, address(treasury), address(0), 0);
+        
+        vm.startPrank(owner);
+        treasury.setGachaContract(address(zeroFeeGacha));
+        vm.stopPrank();
+        
+        // First spin normally
+        vm.prank(user1);
+        uint256 triggerId = zeroFeeGacha.spin();
+        
+        // Now remove the legendary NFT AFTER spinning but BEFORE fulfillment
+        vm.startPrank(owner);
+        treasury.withdrawNFT(GachaTreasury.Rarity.Legendary, 0, owner);
+        vm.stopPrank();
+        
+        // Use randomness that will select legendary
+        bytes32 randomness = bytes32(uint256(50));
+        
+        vm.prank(owner);
+        vm.expectEmit(true, true, false, true);
+        emit SpinRefunded(triggerId, user1, GachaTreasury.Rarity.Legendary, 0);
+        zeroFeeGacha.fulfillRandomness(triggerId, randomness);
+        
+        // No token transfers should occur with zero fee
+        (, bool fulfilled) = zeroFeeGacha.getSpinRequest(triggerId);
+        assertTrue(fulfilled);
+    }
+
     event RandomnessRequested(uint256 indexed triggerId);
     event SpinCompleted(uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity rarity, address collection, uint256 tokenId);
+    event SpinRefunded(uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity selectedRarity, uint256 refundAmount);
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTokenUpdated(address oldToken, address newToken);
     event RarityWeightsUpdated(uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary);

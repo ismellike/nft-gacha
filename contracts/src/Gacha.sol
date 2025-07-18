@@ -34,6 +34,7 @@ contract Gacha is Ownable {
         address collection,
         uint256 tokenId
     );
+    event SpinRefunded(uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity selectedRarity, uint256 refundAmount);
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTokenUpdated(address oldToken, address newToken);
     event RarityWeightsUpdated(uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary);
@@ -46,6 +47,9 @@ contract Gacha is Ownable {
 
     function spin() external returns (uint256 triggerId) {
         require(spinFee == 0 || address(feeToken) != address(0), "Gacha: Fee token not set");
+        
+        // Check that all rarities with non-zero weights have at least one NFT
+        _validateTreasuryHasItems();
 
         if (spinFee > 0) {
             require(feeToken.transferFrom(msg.sender, address(this), spinFee), "Gacha: Fee payment failed");
@@ -56,6 +60,24 @@ contract Gacha is Ownable {
 
         emit RandomnessRequested(triggerId);
         return triggerId;
+    }
+
+    function _validateTreasuryHasItems() private view {
+        if (commonWeight > 0) {
+            require(treasury.getRarityCount(GachaTreasury.Rarity.Common) > 0, "Gacha: No Common NFTs available");
+        }
+        if (uncommonWeight > 0) {
+            require(treasury.getRarityCount(GachaTreasury.Rarity.Uncommon) > 0, "Gacha: No Uncommon NFTs available");
+        }
+        if (rareWeight > 0) {
+            require(treasury.getRarityCount(GachaTreasury.Rarity.Rare) > 0, "Gacha: No Rare NFTs available");
+        }
+        if (epicWeight > 0) {
+            require(treasury.getRarityCount(GachaTreasury.Rarity.Epic) > 0, "Gacha: No Epic NFTs available");
+        }
+        if (legendaryWeight > 0) {
+            require(treasury.getRarityCount(GachaTreasury.Rarity.Legendary) > 0, "Gacha: No Legendary NFTs available");
+        }
     }
 
     function fulfillRandomness(uint256 triggerId, bytes32 randomness) external onlyOwner {
@@ -70,7 +92,15 @@ contract Gacha is Ownable {
 
         // Check if treasury has NFTs of selected rarity
         uint256 availableCount = treasury.getRarityCount(selectedRarity);
-        require(availableCount > 0, "Gacha: No NFTs available for selected rarity");
+        
+        if (availableCount == 0) {
+            // Refund the user if selected rarity is empty
+            if (spinFee > 0) {
+                require(feeToken.transfer(request.requester, spinFee), "Gacha: Refund failed");
+            }
+            emit SpinRefunded(triggerId, request.requester, selectedRarity, spinFee);
+            return;
+        }
 
         // Select random NFT from the rarity pool
         uint256 selectedIndex = uint256(keccak256(abi.encode(randomness, selectedRarity))) % availableCount;
