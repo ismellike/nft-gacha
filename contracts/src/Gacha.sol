@@ -73,7 +73,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     constructor(address _owner, address _gachaServiceHandler, address _feeToken, uint256 _spinFee) Ownable(_owner) {
         if (_gachaServiceHandler == address(0)) revert InvalidServiceHandler();
         if (_spinFee > 0 && _feeToken == address(0)) revert InvalidFeeToken();
-        
+
         gachaServiceHandler = _gachaServiceHandler;
         treasury = new GachaTreasury(_owner, address(this));
         if (_feeToken != address(0)) {
@@ -86,7 +86,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     /// @return triggerId The unique identifier for this spin request
     function spin() external whenNotPaused nonReentrant returns (uint256 triggerId) {
         if (spinFee > 0 && address(feeToken) == address(0)) revert InvalidFeeToken();
-        
+
         // Check that all rarities with non-zero weights have at least one NFT
         _validateTreasuryHasItems();
 
@@ -239,13 +239,13 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     function getTreasuryAddress() external view returns (address) {
         return address(treasury);
     }
-    
+
     // Emergency functions
     function emergencyPause() external onlyOwner {
         _pause();
         emit EmergencyPause(msg.sender);
     }
-    
+
     function emergencyUnpause() external onlyOwner {
         _unpause();
         emit EmergencyUnpause(msg.sender);

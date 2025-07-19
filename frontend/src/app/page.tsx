@@ -1,17 +1,17 @@
+"use client";
+
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import type { NextPage } from "next";
-import Head from "next/head";
-import { 
-	Button, 
-	Card, 
-	CardBody, 
-	CardHeader, 
-	Chip, 
-	Progress
+import {
+	Button,
+	Card,
+	CardBody,
+	CardHeader,
+	Chip,
+	Progress,
 } from "@heroui/react";
 import { useState } from "react";
 
-const Home: NextPage = () => {
+export default function Home() {
 	const [isSpinning, setIsSpinning] = useState(false);
 	const [lastSpin, setLastSpin] = useState<string | null>(null);
 
@@ -29,20 +29,11 @@ const Home: NextPage = () => {
 		{ name: "Uncommon", percentage: 20, color: "primary", count: 892 },
 		{ name: "Rare", percentage: 6, color: "secondary", count: 156 },
 		{ name: "Epic", percentage: 3, color: "warning", count: 43 },
-		{ name: "Legendary", percentage: 1, color: "danger", count: 7 }
+		{ name: "Legendary", percentage: 1, color: "danger", count: 7 },
 	] as const;
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-			<Head>
-				<title>Spin-Fi - Provably Fair NFT Gacha</title>
-				<meta
-					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness"
-					name="description"
-				/>
-				<link href="/favicon.ico" rel="icon" />
-			</Head>
-
 			{/* Navigation */}
 			<nav className="flex justify-between items-center p-6 backdrop-blur-md bg-black/20 border-b border-white/10">
 				<div className="flex items-center space-x-2">
@@ -63,12 +54,13 @@ const Home: NextPage = () => {
 						<span className="text-white">NFT Gacha</span>
 					</h1>
 					<p className="text-xl text-gray-300 max-w-2xl mx-auto mb-8">
-						Every spin is cryptographically guaranteed - no hidden algorithms, no manipulation, 
-						just pure chance backed by decentralized infrastructure.
+						Every spin is cryptographically guaranteed - no hidden algorithms,
+						no manipulation, just pure chance backed by decentralized
+						infrastructure.
 					</p>
-					<Chip 
-						color="success" 
-						variant="dot" 
+					<Chip
+						color="success"
+						variant="dot"
 						size="lg"
 						className="text-green-400 bg-green-400/10"
 					>
@@ -83,7 +75,9 @@ const Home: NextPage = () => {
 						<Card className="spin-card-glow bg-black/40 border border-white/10">
 							<CardHeader className="pb-4">
 								<div className="flex justify-between items-center w-full">
-									<h2 className="text-2xl font-semibold text-white">Gacha Spinner</h2>
+									<h2 className="text-2xl font-semibold text-white">
+										Gacha Spinner
+									</h2>
 									<Chip color="primary" variant="flat">
 										Fee: 100 TOKENS
 									</Chip>
@@ -92,7 +86,9 @@ const Home: NextPage = () => {
 							<CardBody className="py-8">
 								<div className="flex flex-col items-center space-y-6">
 									{/* Spinner Visual */}
-									<div className={`w-48 h-48 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-yellow-500 p-1 ${isSpinning ? 'spin-wobble' : 'hover:scale-105 transition-transform'}`}>
+									<div
+										className={`w-48 h-48 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-yellow-500 p-1 ${isSpinning ? "spin-wobble" : "hover:scale-105 transition-transform"}`}
+									>
 										<div className="w-full h-full rounded-full bg-black/80 flex items-center justify-center">
 											<span className="text-6xl">🎰</span>
 										</div>
@@ -115,7 +111,8 @@ const Home: NextPage = () => {
 										<Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30">
 											<CardBody className="py-3">
 												<p className="text-center text-yellow-200">
-													🎉 Last spin: <span className="font-bold">{lastSpin}</span>
+													🎉 Last spin:{" "}
+													<span className="font-bold">{lastSpin}</span>
 												</p>
 											</CardBody>
 										</Card>
@@ -135,19 +132,15 @@ const Home: NextPage = () => {
 								{rarityStats.map((rarity) => (
 									<div key={rarity.name} className="space-y-2">
 										<div className="flex justify-between items-center">
-											<Chip 
-												color={rarity.color} 
-												variant="flat" 
-												size="sm"
-											>
+											<Chip color={rarity.color} variant="flat" size="sm">
 												{rarity.name}
 											</Chip>
 											<span className="text-sm text-gray-400">
 												{rarity.percentage}% ({rarity.count} items)
 											</span>
 										</div>
-										<Progress 
-											value={rarity.percentage} 
+										<Progress
+											value={rarity.percentage}
 											color={rarity.color}
 											size="sm"
 											className="max-w-full"
@@ -166,11 +159,14 @@ const Home: NextPage = () => {
 							<div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-2">
 								<span className="text-2xl">🔒</span>
 							</div>
-							<h3 className="text-xl font-semibold text-white">Cryptographically Secure</h3>
+							<h3 className="text-xl font-semibold text-white">
+								Cryptographically Secure
+							</h3>
 						</CardHeader>
 						<CardBody>
 							<p className="text-gray-300">
-								WAVS-DRAND provides verifiable randomness that cannot be manipulated or predicted.
+								WAVS-DRAND provides verifiable randomness that cannot be
+								manipulated or predicted.
 							</p>
 						</CardBody>
 					</Card>
@@ -180,11 +176,14 @@ const Home: NextPage = () => {
 							<div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-2">
 								<span className="text-2xl">⚡</span>
 							</div>
-							<h3 className="text-xl font-semibold text-white">Instant Results</h3>
+							<h3 className="text-xl font-semibold text-white">
+								Instant Results
+							</h3>
 						</CardHeader>
 						<CardBody>
 							<p className="text-gray-300">
-								Fast, efficient spins with immediate NFT delivery to your wallet.
+								Fast, efficient spins with immediate NFT delivery to your
+								wallet.
 							</p>
 						</CardBody>
 					</Card>
@@ -194,11 +193,14 @@ const Home: NextPage = () => {
 							<div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center mb-2">
 								<span className="text-2xl">💎</span>
 							</div>
-							<h3 className="text-xl font-semibold text-white">Curated Collections</h3>
+							<h3 className="text-xl font-semibold text-white">
+								Curated Collections
+							</h3>
 						</CardHeader>
 						<CardBody>
 							<p className="text-gray-300">
-								Premium NFT collections organized by rarity with transparent distribution.
+								Premium NFT collections organized by rarity with transparent
+								distribution.
 							</p>
 						</CardBody>
 					</Card>
@@ -242,6 +244,4 @@ const Home: NextPage = () => {
 			</footer>
 		</div>
 	);
-};
-
-export default Home;
+}

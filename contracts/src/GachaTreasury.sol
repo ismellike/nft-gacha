@@ -25,6 +25,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, ReentrancyGuard {
     // Constants
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
     uint256 public constant MAX_BATCH_WITHDRAW = 20;
+
     enum Rarity {
         Common,
         Uncommon,
@@ -42,7 +43,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, ReentrancyGuard {
     mapping(Rarity => NFTItem[]) public treasury;
     mapping(Rarity => uint256) public rarityCount;
     address public gachaContract;
-    
+
     // Duplicate protection
     mapping(address => mapping(uint256 => bool)) public depositedNFTs;
 
@@ -149,11 +150,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, ReentrancyGuard {
     }
 
     function getTotalItemsCount() external view returns (uint256) {
-        return rarityCount[Rarity.Common] + 
-               rarityCount[Rarity.Uncommon] + 
-               rarityCount[Rarity.Rare] + 
-               rarityCount[Rarity.Epic] + 
-               rarityCount[Rarity.Legendary];
+        return rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + rarityCount[Rarity.Rare]
+            + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
     }
 
     /// @notice Updates the authorized gacha contract address
@@ -170,64 +168,60 @@ contract GachaTreasury is IERC721Receiver, Ownable, ReentrancyGuard {
     /// @param collections Array of NFT collection addresses
     /// @param tokenIds Array of token IDs
     /// @param rarities Array of assigned rarities
-    function batchDepositNFT(
-        address[] calldata collections,
-        uint256[] calldata tokenIds,
-        Rarity[] calldata rarities
-    ) external onlyOwner nonReentrant {
+    function batchDepositNFT(address[] calldata collections, uint256[] calldata tokenIds, Rarity[] calldata rarities)
+        external
+        onlyOwner
+        nonReentrant
+    {
         uint256 length = collections.length;
         if (length != tokenIds.length || length != rarities.length) revert ArrayLengthMismatch();
         if (length == 0) revert EmptyArrays();
         if (length > MAX_BATCH_DEPOSIT) revert TooManyItems();
-        
+
         for (uint256 i; i < length;) {
             address collection = collections[i];
             uint256 tokenId = tokenIds[i];
             Rarity rarity = rarities[i];
-            
+
             if (collection == address(0)) revert InvalidCollectionAddress();
             if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
             if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
             if (IERC721(collection).ownerOf(tokenId) != msg.sender) revert NotNFTOwner();
-            
+
             IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
             depositedNFTs[collection][tokenId] = true;
-            
+
             treasury[rarity].push(NFTItem({collection: collection, tokenId: tokenId, rarity: rarity}));
             unchecked {
                 ++rarityCount[rarity];
                 ++i;
             }
-            
+
             emit NFTDeposited(collection, tokenId, rarity);
         }
-        
+
         emit BatchDeposited(length, rarities[0]);
     }
-    
+
     /// @notice Batch withdraw multiple NFTs of same rarity
     /// @param rarity Rarity tier to withdraw from
     /// @param indices Array of indices to withdraw
     /// @param to Recipient address
-    function batchWithdrawNFT(
-        Rarity rarity,
-        uint256[] calldata indices,
-        address to
-    ) external onlyOwner nonReentrant {
+    function batchWithdrawNFT(Rarity rarity, uint256[] calldata indices, address to) external onlyOwner nonReentrant {
         uint256 length = indices.length;
         if (length == 0) revert EmptyArrays();
         if (length > MAX_BATCH_WITHDRAW) revert TooManyItems();
         if (to == address(0)) revert InvalidRecipient();
-        
+
         // Sort indices in descending order to avoid index shifting issues
         uint256[] memory sortedIndices = _quickSort(indices);
-        
+
         for (uint256 i; i < length;) {
             uint256 index = sortedIndices[i];
             if (index >= treasury[rarity].length) revert InvalidIndex();
-            
+
             NFTItem memory item = treasury[rarity][index];
-            
+
             treasury[rarity][index] = treasury[rarity][treasury[rarity].length - 1];
             treasury[rarity].pop();
             unchecked {
@@ -235,15 +229,15 @@ contract GachaTreasury is IERC721Receiver, Ownable, ReentrancyGuard {
                 ++i;
             }
             depositedNFTs[item.collection][item.tokenId] = false;
-            
+
             IERC721(item.collection).safeTransferFrom(address(this), to, item.tokenId);
-            
+
             emit NFTWithdrawn(item.collection, item.tokenId, rarity, to);
         }
-        
+
         emit BatchWithdrawn(length, rarity, to);
     }
-    
+
     // Helper functions
     function _isValidNFTContract(address collection) private view returns (bool) {
         try IERC721(collection).supportsInterface(0x80ac58cd) returns (bool supported) {
@@ -252,37 +246,43 @@ contract GachaTreasury is IERC721Receiver, Ownable, ReentrancyGuard {
             return false;
         }
     }
-    
+
     /// @dev Optimized sorting for small arrays (up to 20 items)
     /// @param arr Array to sort in descending order
     /// @return sorted Sorted array in descending order
     function _quickSort(uint256[] calldata arr) private pure returns (uint256[] memory sorted) {
         uint256 length = arr.length;
         sorted = new uint256[](length);
-        
+
         for (uint256 i; i < length;) {
             sorted[i] = arr[i];
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
-        
+
         // Insertion sort for small arrays (most efficient for n <= 20)
         for (uint256 i = 1; i < length;) {
             uint256 key = sorted[i];
             uint256 j = i;
-            
+
             while (j > 0 && sorted[j - 1] < key) {
                 sorted[j] = sorted[j - 1];
-                unchecked { --j; }
+                unchecked {
+                    --j;
+                }
             }
             sorted[j] = key;
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
-    
+
     function isNFTDeposited(address collection, uint256 tokenId) external view returns (bool) {
         return depositedNFTs[collection][tokenId];
     }
-    
+
     /// @notice Required for receiving ERC721 tokens
     function onERC721Received(
         address, // operator
