@@ -20,17 +20,13 @@ contract GachaTest is Test {
     uint256 public constant SPIN_FEE = 100 * 10**18; // 100 tokens
 
     function setUp() public {
-        treasury = new GachaTreasury(owner);
         feeToken = new ERC20Mock();
-        gacha = new Gacha(owner, address(treasury), address(feeToken), SPIN_FEE);
+        gacha = new Gacha(owner, owner, address(feeToken), SPIN_FEE);
+        treasury = GachaTreasury(gacha.getTreasuryAddress());
         nft = new MockERC721("TestNFT", "TNFT");
         
         // Setup treasury with some NFTs (owner deposits directly)
         _setupTreasuryWithNFTs();
-        
-        // Set gacha contract address in treasury so it can send NFTs to winners
-        vm.prank(owner);
-        treasury.setGachaContract(address(gacha));
         
         // Give users some fee tokens
         feeToken.mint(user1, 1000 * 10**18);
@@ -146,7 +142,7 @@ contract GachaTest is Test {
 
     function testFulfillRandomnessInvalidTriggerId() public {
         vm.prank(owner);
-        vm.expectRevert("Gacha: Invalid trigger ID");
+        vm.expectRevert(abi.encodeWithSelector(Gacha.InvalidTriggerId.selector));
         gacha.fulfillRandomness(999, keccak256("test"));
     }
 
@@ -161,7 +157,7 @@ contract GachaTest is Test {
         vm.startPrank(owner);
         gacha.fulfillRandomness(triggerId, randomness);
         
-        vm.expectRevert("Gacha: Already fulfilled");
+        vm.expectRevert(abi.encodeWithSelector(Gacha.AlreadyFulfilled.selector));
         gacha.fulfillRandomness(triggerId, randomness);
         vm.stopPrank();
     }
@@ -243,7 +239,7 @@ contract GachaTest is Test {
 
     function testSetRarityWeightsInvalidSum() public {
         vm.prank(owner);
-        vm.expectRevert("Gacha: Weights must sum to TOTAL_WEIGHT");
+        vm.expectRevert(abi.encodeWithSelector(Gacha.WeightsMustSumToTotal.selector));
         gacha.setRarityWeights(4000, 3000, 2000, 800, 300); // Sum = 10100 != 10000
     }
 
@@ -267,7 +263,19 @@ contract GachaTest is Test {
 
     function testSpinWithZeroFee() public {
         // Deploy gacha with zero fee
-        Gacha zeroFeeGacha = new Gacha(owner, address(treasury), address(0), 0);
+        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0);
+        GachaTreasury zeroFeeGachaTreasury = GachaTreasury(zeroFeeGacha.getTreasuryAddress());
+        
+        // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
+        vm.startPrank(owner);
+        for (uint i = 0; i < 5; i++) {
+            uint256 tokenId = nft.mint(owner);
+            nft.approve(address(zeroFeeGachaTreasury), tokenId);
+            zeroFeeGachaTreasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
+        }
+        // Set weights to only Common (100%)
+        zeroFeeGacha.setRarityWeights(10000, 0, 0, 0, 0);
+        vm.stopPrank();
         
         vm.prank(user1);
         uint256 triggerId = zeroFeeGacha.spin();
@@ -304,7 +312,7 @@ contract GachaTest is Test {
         
         vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE);
-        vm.expectRevert("Gacha: No Common NFTs available");
+        vm.expectRevert(abi.encodeWithSelector(Gacha.NoNFTsAvailable.selector, GachaTreasury.Rarity.Common));
         gacha.spin();
         vm.stopPrank();
     }
@@ -361,27 +369,37 @@ contract GachaTest is Test {
 
     function testRefundWithZeroFee() public {
         // Deploy gacha with zero fee
-        Gacha zeroFeeGacha = new Gacha(owner, address(treasury), address(0), 0);
+        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0);
+        GachaTreasury zeroFeeGachaTreasury = GachaTreasury(zeroFeeGacha.getTreasuryAddress());
         
+        // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
         vm.startPrank(owner);
-        treasury.setGachaContract(address(zeroFeeGacha));
+        for (uint i = 0; i < 5; i++) {
+            uint256 tokenId = nft.mint(owner);
+            nft.approve(address(zeroFeeGachaTreasury), tokenId);
+            zeroFeeGachaTreasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
+        }
+        // Set weights to only Common (100%)
+        zeroFeeGacha.setRarityWeights(10000, 0, 0, 0, 0);
         vm.stopPrank();
         
         // First spin normally
         vm.prank(user1);
         uint256 triggerId = zeroFeeGacha.spin();
         
-        // Now remove the legendary NFT AFTER spinning but BEFORE fulfillment
+        // Now remove all common NFTs AFTER spinning but BEFORE fulfillment
         vm.startPrank(owner);
-        treasury.withdrawNFT(GachaTreasury.Rarity.Legendary, 0, owner);
+        for (uint i = 0; i < 5; i++) {
+            zeroFeeGachaTreasury.withdrawNFT(GachaTreasury.Rarity.Common, 0, owner);
+        }
         vm.stopPrank();
         
-        // Use randomness that will select legendary
-        bytes32 randomness = bytes32(uint256(50));
+        // Use any randomness since 100% weight is on Common
+        bytes32 randomness = bytes32(uint256(5000));
         
         vm.prank(owner);
         vm.expectEmit(true, true, false, true);
-        emit SpinRefunded(triggerId, user1, GachaTreasury.Rarity.Legendary, 0);
+        emit SpinRefunded(triggerId, user1, GachaTreasury.Rarity.Common, 0);
         zeroFeeGacha.fulfillRandomness(triggerId, randomness);
         
         // No token transfers should occur with zero fee

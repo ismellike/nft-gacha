@@ -12,7 +12,7 @@ contract GachaTreasuryTest is Test {
     address public user = address(0x2);
 
     function setUp() public {
-        treasury = new GachaTreasury(owner);
+        treasury = new GachaTreasury(owner, address(0));
         nft = new MockERC721("TestNFT", "TNFT");
     }
 
@@ -163,7 +163,7 @@ contract GachaTreasuryTest is Test {
         vm.stopPrank();
         
         vm.prank(user);
-        vm.expectRevert("GachaTreasury: Only gacha contract can send NFTs to winners");
+        vm.expectRevert("GachaTreasury: Only gacha contract allowed");
         treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, user);
     }
 
