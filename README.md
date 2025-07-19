@@ -1,32 +1,25 @@
 # NFT Gacha
 
-A decentralized NFT gacha system where users can spin for randomly distributed NFTs across different rarity tiers.
-
-## Overview
-
-- **Admin Controls**: Set spin costs and deposit NFTs into rarity pools
-- **Rarity System**: NFTs organized by rarity tiers with weighted probabilities  
-- **Provably Fair**: Uses WAVS-DRAND component providing `bytes32` randomness value
-- **Single Random Value**: One `bytes32` value determines both rarity tier and specific NFT
+A provably fair gacha system where every spin is cryptographically guaranteed - no hidden algorithms, no manipulation, just pure chance backed by decentralized infrastructure.
 
 ## How It Works
 
-1. **Setup**: Admins deposit NFTs into rarity pools and set spin cost
-2. **Spin**: Users pay cost, WAVS-DRAND provides single `bytes32` random value
-3. **Selection**: Random value determines rarity tier, then specific NFT within that tier
-4. **Transfer**: Selected NFT transferred to user
+1. **Admins curate** NFT collections by depositing them into rarity-based pools
+2. **Users spin** by paying a fixed fee in the designated ERC20 token  
+3. **WAVS-DRAND delivers** cryptographically secure randomness to select your NFT
+4. **Fair odds guaranteed** - 70% Common, 20% Uncommon, 6% Rare, 3% Epic, 1% Legendary
 
 ## Development
 
+### Smart Contracts
 ```bash
 cd contracts
-forge install
+pnpm install && forge install
 forge build
-forge test
 ```
 
-## Key Functions
-
-- `spin()`: Execute gacha spin with `bytes32` randomness
-- `depositNFT(address nftContract, uint256 tokenId, uint8 rarity)`: Add NFT to pool
-- `setSpinCost(uint256 cost)`: Update spin cost
+### Frontend
+```bash
+cd frontend
+pnpm install && pnpm dev
+```
