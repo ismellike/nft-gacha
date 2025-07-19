@@ -41,11 +41,11 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     uint256 public constant TOTAL_WEIGHT = 10000;
 
     // Rarity weights for selection (out of 10000 for precision)
-    uint256 public commonWeight = 7000; // 70%
-    uint256 public uncommonWeight = 2000; // 20%
-    uint256 public rareWeight = 600; // 6%
-    uint256 public epicWeight = 300; // 3%
-    uint256 public legendaryWeight = 100; // 1%
+    uint256 public commonWeight = 5500; // 55%
+    uint256 public uncommonWeight = 2500; // 25%
+    uint256 public rareWeight = 1200; // 12%
+    uint256 public epicWeight = 600; // 6%
+    uint256 public legendaryWeight = 200; // 2%
 
     event RandomnessRequested(uint256 indexed triggerId);
     event SpinCompleted(
