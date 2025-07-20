@@ -16,9 +16,9 @@ contract RandomnessConsumer is IWavsServiceHandler {
 
     event RandomnessReceived(bytes32 randomness);
 
-    constructor(IWavsServiceManager serviceManager, address feeToken, uint256 spinFee) {
+    constructor(IWavsServiceManager serviceManager, address feeToken, uint256 spinFee, address protocolAddress) {
         _serviceManager = serviceManager;
-        _gacha = new Gacha(msg.sender, address(this), feeToken, spinFee);
+        _gacha = new Gacha(msg.sender, address(this), feeToken, spinFee, protocolAddress);
     }
 
     function getServiceManager() external view returns (address) {

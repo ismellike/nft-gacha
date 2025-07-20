@@ -163,7 +163,7 @@ contract GachaTreasuryTest is Test {
         vm.stopPrank();
         
         vm.prank(user);
-        vm.expectRevert("GachaTreasury: Only gacha contract allowed");
+        vm.expectRevert(abi.encodeWithSelector(GachaTreasury.UnauthorizedGachaContract.selector));
         treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, user);
     }
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {Test} from "forge-std/Test.sol";
 import {Gacha} from "../src/Gacha.sol";
 import {GachaTreasury} from "../src/GachaTreasury.sol";
+import {GachaRewardsManager} from "../src/GachaRewardsManager.sol";
 import {MockERC721} from "../src/MockERC721.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
@@ -21,8 +22,18 @@ contract GachaTest is Test {
 
     function setUp() public {
         feeToken = new ERC20Mock();
-        gacha = new Gacha(owner, owner, address(feeToken), SPIN_FEE);
+        
+        // Deploy contracts with proper ownership
+        vm.startPrank(owner);
+        gacha = new Gacha(owner, owner, address(feeToken), SPIN_FEE, address(0x999));
         treasury = GachaTreasury(gacha.getTreasuryAddress());
+        
+        // Setup the rewards system
+        GachaRewardsManager rewardsManager = gacha.rewardsManager();
+        treasury.setRewardsManager(address(rewardsManager));
+        rewardsManager.deployAllRarityTokens();
+        vm.stopPrank();
+        
         nft = new MockERC721("TestNFT", "TNFT");
         
         // Setup treasury with some NFTs (owner deposits directly)
@@ -203,11 +214,11 @@ contract GachaTest is Test {
     function testGetRarityWeights() public view {
         (uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary) = gacha.getRarityWeights();
         
-        assertEq(common, 7000);  // 70%
-        assertEq(uncommon, 2000); // 20%
-        assertEq(rare, 600);      // 6%
-        assertEq(epic, 300);      // 3%
-        assertEq(legendary, 100); // 1%
+        assertEq(common, 5500);  // 55%
+        assertEq(uncommon, 2500); // 25%
+        assertEq(rare, 1200);     // 12%
+        assertEq(epic, 600);      // 6%
+        assertEq(legendary, 200); // 2%
         assertEq(common + uncommon + rare + epic + legendary, 10000);
     }
 
@@ -263,7 +274,7 @@ contract GachaTest is Test {
 
     function testSpinWithZeroFee() public {
         // Deploy gacha with zero fee
-        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0);
+        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(0x999));
         GachaTreasury zeroFeeGachaTreasury = GachaTreasury(zeroFeeGacha.getTreasuryAddress());
         
         // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
@@ -369,7 +380,7 @@ contract GachaTest is Test {
 
     function testRefundWithZeroFee() public {
         // Deploy gacha with zero fee
-        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0);
+        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(0x999));
         GachaTreasury zeroFeeGachaTreasury = GachaTreasury(zeroFeeGacha.getTreasuryAddress());
         
         // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
