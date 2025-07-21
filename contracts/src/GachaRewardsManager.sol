@@ -6,45 +6,42 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {RarityDividendToken} from "./RarityDividendToken.sol";
+import {RarityDividendTracker} from "./RarityDividendTracker.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {Gacha} from "./Gacha.sol";
 
 /// @title GachaRewardsManager - Factory and Manager for Rarity Dividend Tokens
-/// @notice Deploys and manages 5 separate dividend tokens (one per rarity)
-/// @dev Handles fee distribution from gacha spins to appropriate rarity tokens
+/// @notice Distributes gacha spin fees to rarity dividend trackers based on rarity weights
 contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
-    
+
     // Custom errors
     error InvalidGachaContract();
     error InvalidTreasuryContract();
     error InvalidProtocolAddress();
     error InvalidFeeToken();
-    error NoFeesToDistribute();
-    error InvalidRarity();
-    error TokenNotDeployed();
     error InvalidWeights();
+    error TokenNotDeployed();
+    error NoFundsToWithdraw();
     error UnauthorizedGachaContract();
     error UnauthorizedTreasuryContract();
-    error NoFundsToWithdraw();
-    error InvalidAddress();
 
     // Constants
     uint256 public constant REWARDS_PERCENTAGE = 9000; // 90% to rewards
     uint256 public constant PROTOCOL_PERCENTAGE = 1000; // 10% to protocol
     uint256 public constant PERCENTAGE_DENOMINATOR = 10000;
 
-    // Contract references
+    // References
     Gacha public gachaContract;
     GachaTreasury public immutable treasuryContract;
     IERC20 public immutable feeToken;
     address public protocolAddress;
 
-    // Rarity dividend tokens mapping
-    mapping(GachaTreasury.Rarity => RarityDividendToken) public rarityTokens;
+    // Trackers per rarity
+    mapping(GachaTreasury.Rarity => RarityDividendTracker) public rarityTokens;
+    mapping(GachaTreasury.Rarity => uint256) public rarityMultipliers;
 
-    // Fee distribution tracking
+    // Stats
     uint256 public totalFeesDistributed;
     uint256 public totalProtocolFees;
 
@@ -53,7 +50,8 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     event FeesDistributed(uint256 totalAmount, uint256 rewardsAmount, uint256 protocolAmount);
     event RarityFundsDistributed(GachaTreasury.Rarity indexed rarity, uint256 amount);
     event ProtocolAddressUpdated(address indexed oldProtocol, address indexed newProtocol);
-    event DepositApproved(address indexed depositor, GachaTreasury.Rarity rarity, uint256 tokensIssued);
+    event DepositRecorded(address indexed depositor, GachaTreasury.Rarity indexed rarity);
+    event NFTWonRecorded(address indexed depositor, GachaTreasury.Rarity indexed rarity);
 
     modifier onlyGachaContract() {
         if (msg.sender != address(gachaContract)) revert UnauthorizedGachaContract();
@@ -75,7 +73,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         if (_treasuryContract == address(0)) revert InvalidTreasuryContract();
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
-        // Allow _feeToken to be address(0) for zero-fee scenarios
+        // Note: _feeToken can be address(0) for zero-fee gacha systems
 
         gachaContract = Gacha(_gachaContract);
         treasuryContract = GachaTreasury(_treasuryContract);
@@ -83,211 +81,183 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         if (_feeToken != address(0)) {
             feeToken = IERC20(_feeToken);
         }
+
+        // Set default rarity multipliers (in basis points)
+        rarityMultipliers[GachaTreasury.Rarity.Common] = 10000; // 1.0x
+        rarityMultipliers[GachaTreasury.Rarity.Uncommon] = 12000; // 1.2x
+        rarityMultipliers[GachaTreasury.Rarity.Rare] = 15000; // 1.5x
+        rarityMultipliers[GachaTreasury.Rarity.Epic] = 20000; // 2.0x
+        rarityMultipliers[GachaTreasury.Rarity.Legendary] = 30000; // 3.0x
     }
 
-    /// @notice Deploys dividend tokens for all 5 rarities
+    /// @notice Deploys dividend trackers for all 5 rarities
     function deployAllRarityTokens() external onlyOwner {
-        _deployRarityToken(GachaTreasury.Rarity.Common, "Common Gacha Rewards", "CGR");
-        _deployRarityToken(GachaTreasury.Rarity.Uncommon, "Uncommon Gacha Rewards", "UGR");
-        _deployRarityToken(GachaTreasury.Rarity.Rare, "Rare Gacha Rewards", "RGR");
-        _deployRarityToken(GachaTreasury.Rarity.Epic, "Epic Gacha Rewards", "EGR");
-        _deployRarityToken(GachaTreasury.Rarity.Legendary, "Legendary Gacha Rewards", "LGR");
+        _deployRarityToken(GachaTreasury.Rarity.Common);
+        _deployRarityToken(GachaTreasury.Rarity.Uncommon);
+        _deployRarityToken(GachaTreasury.Rarity.Rare);
+        _deployRarityToken(GachaTreasury.Rarity.Epic);
+        _deployRarityToken(GachaTreasury.Rarity.Legendary);
     }
 
-    /// @notice Deploys a dividend token for a specific rarity
-    /// @param rarity The rarity to deploy token for
-    /// @param name Token name
-    /// @param symbol Token symbol
-    function _deployRarityToken(GachaTreasury.Rarity rarity, string memory name, string memory symbol) private {
-        RarityDividendToken token = new RarityDividendToken(
-            name, 
-            symbol, 
-            owner(), 
-            rarity, 
-            address(feeToken),
-            address(this) // Set this manager as initial authorized distributor
-        );
-
+    function _deployRarityToken(GachaTreasury.Rarity rarity) private {
+        RarityDividendTracker token = new RarityDividendTracker(address(feeToken), address(treasuryContract), rarity);
+        // Note: token is deployed with this contract as owner, transfer ownership in separate call after setup
+        token.setRewardsManager(address(this));
+        token.transferOwnership(owner());
         rarityTokens[rarity] = token;
-
         emit RarityTokenDeployed(rarity, address(token));
     }
 
-    /// @notice Called by treasury when a deposit is approved - mints reward tokens
-    /// @param depositor Address that made the deposit
-    /// @param rarity Rarity of the approved deposit
-    function recordApprovedDeposit(address depositor, GachaTreasury.Rarity rarity) external onlyTreasuryContract {
-        if (depositor == address(0)) revert InvalidAddress();
-        RarityDividendToken token = rarityTokens[rarity];
-        if (address(token) == address(0)) revert TokenNotDeployed();
-
-        // Mint 1 token per approved deposit
-        token.mint(depositor, 1 ether); // 1 token with 18 decimals
-
-        emit DepositApproved(depositor, rarity, 1 ether);
+    /// @notice Updates the reward multiplier for a given rarity
+    /// @param rarity The rarity to update
+    /// @param multiplierBps The multiplier in basis points (e.g., 10000 = 1.0x, 15000 = 1.5x)
+    function setRarityMultiplier(GachaTreasury.Rarity rarity, uint256 multiplierBps) external onlyOwner {
+        if (multiplierBps == 0) revert InvalidWeights();
+        rarityMultipliers[rarity] = multiplierBps;
     }
 
-    /// @notice Distributes spin fees to rarity tokens based on gacha weights
-    /// @param totalFeeAmount Total fee amount from spin
+    /// @notice Distributes a spin fee to all rarity trackers based on weights
     function distributeSpinRewards(uint256 totalFeeAmount) external onlyGachaContract nonReentrant {
-        if (totalFeeAmount == 0) return;
+        if (totalFeeAmount == 0 || address(feeToken) == address(0)) return;
 
         uint256 rewardsAmount = (totalFeeAmount * REWARDS_PERCENTAGE) / PERCENTAGE_DENOMINATOR;
         uint256 protocolAmount = totalFeeAmount - rewardsAmount;
 
-        // Get rarity weights from gacha contract
         (uint256 commonWeight, uint256 uncommonWeight, uint256 rareWeight, uint256 epicWeight, uint256 legendaryWeight)
         = gachaContract.getRarityWeights();
 
-        uint256 totalWeight = commonWeight + uncommonWeight + rareWeight + epicWeight + legendaryWeight;
-        
-        // Protect against division by zero
-        if (totalWeight == 0) revert InvalidWeights();
+        // Apply multipliers
+        uint256[5] memory baseWeights = [commonWeight, uncommonWeight, rareWeight, epicWeight, legendaryWeight];
+        uint256[5] memory effectiveWeights;
+        uint256 totalEffectiveWeight;
 
-        // Distribute rewards proportionally to each rarity based on weights
-        _distributeToRarity(GachaTreasury.Rarity.Common, rewardsAmount, commonWeight, totalWeight);
-        _distributeToRarity(GachaTreasury.Rarity.Uncommon, rewardsAmount, uncommonWeight, totalWeight);
-        _distributeToRarity(GachaTreasury.Rarity.Rare, rewardsAmount, rareWeight, totalWeight);
-        _distributeToRarity(GachaTreasury.Rarity.Epic, rewardsAmount, epicWeight, totalWeight);
-        _distributeToRarity(GachaTreasury.Rarity.Legendary, rewardsAmount, legendaryWeight, totalWeight);
+        for (uint8 i = 0; i < 5; i++) {
+            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            uint256 base = baseWeights[i];
+            uint256 multiplier = rarityMultipliers[rarity];
 
-        // Send protocol fee
-        if (protocolAmount > 0 && address(feeToken) != address(0)) {
+            if (base > 0 && multiplier > 0) {
+                effectiveWeights[i] = (base * multiplier) / PERCENTAGE_DENOMINATOR;
+                totalEffectiveWeight += effectiveWeights[i];
+            }
+        }
+
+        if (totalEffectiveWeight == 0) revert InvalidWeights();
+
+        // Distribute to each rarity proportionally
+        for (uint8 i = 0; i < 5; i++) {
+            if (effectiveWeights[i] == 0) continue;
+
+            uint256 amount = (rewardsAmount * effectiveWeights[i]) / totalEffectiveWeight;
+            if (amount == 0) continue;
+
+            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            RarityDividendTracker token = rarityTokens[rarity];
+            if (address(token) == address(0)) revert TokenNotDeployed();
+
+            feeToken.safeIncreaseAllowance(address(token), amount);
+            token.distributeFunds(amount);
+
+            emit RarityFundsDistributed(rarity, amount);
+        }
+
+        // Protocol fee
+        if (protocolAmount > 0) {
             feeToken.safeTransfer(protocolAddress, protocolAmount);
             totalProtocolFees += protocolAmount;
         }
 
         totalFeesDistributed += totalFeeAmount;
-
         emit FeesDistributed(totalFeeAmount, rewardsAmount, protocolAmount);
     }
 
-    /// @notice Distributes funds to a specific rarity token
-    /// @param rarity Rarity to distribute to
-    /// @param totalRewards Total rewards amount to distribute
-    /// @param rarityWeight Weight for this rarity
-    /// @param totalWeight Total weight across all rarities
-    function _distributeToRarity(
-        GachaTreasury.Rarity rarity,
-        uint256 totalRewards,
-        uint256 rarityWeight,
-        uint256 totalWeight
-    ) private {
-        if (rarityWeight == 0) return;
 
-        RarityDividendToken token = rarityTokens[rarity];
-        if (address(token) == address(0)) return; // Skip if token not deployed
-        if (token.totalSupply() == 0) return; // Skip if no token holders
+    /// @notice Claim all available rewards across all rarities
+    function claimAllRewards() external whenNotPaused nonReentrant {
+        bool claimed = false;
 
-        uint256 rarityAmount = (totalRewards * rarityWeight) / totalWeight;
-        if (rarityAmount == 0) return;
-
-        // Only distribute if fee token exists
-        if (address(feeToken) != address(0)) {
-            // Approve token contract to spend funds, then let it pull via distributeFunds
-            feeToken.safeIncreaseAllowance(address(token), rarityAmount);
-            token.distributeFunds(rarityAmount);
-        }
-
-        emit RarityFundsDistributed(rarity, rarityAmount);
-    }
-
-    /// @notice Gets the dividend token address for a rarity
-    /// @param rarity Rarity to get token for
-    /// @return tokenAddress Address of the rarity token
-    function getRarityToken(GachaTreasury.Rarity rarity) external view returns (address tokenAddress) {
-        return address(rarityTokens[rarity]);
-    }
-
-    /// @notice Gets all rarity token addresses
-    /// @return tokens Array of token addresses [Common, Uncommon, Rare, Epic, Legendary]
-    function getAllRarityTokens() external view returns (address[5] memory tokens) {
         for (uint256 i = 0; i < 5; i++) {
-            tokens[i] = address(rarityTokens[GachaTreasury.Rarity(i)]);
+            RarityDividendTracker token = rarityTokens[GachaTreasury.Rarity(i)];
+            if (address(token) != address(0)) {
+                try token.withdrawFunds() {
+                    claimed = true;
+                } catch {
+                    // continue silently
+                }
+            }
         }
+
+        if (!claimed) revert NoFundsToWithdraw();
     }
 
-    /// @notice Gets user's total claimable rewards across all rarities
-    /// @param user User address
-    /// @return totalClaimable Total claimable amount across all rarity tokens
+    /// @notice View user's total withdrawable rewards across all rarities
     function getUserTotalClaimableRewards(address user) external view returns (uint256 totalClaimable) {
-        if (user == address(0)) return 0;
         for (uint256 i = 0; i < 5; i++) {
-            RarityDividendToken token = rarityTokens[GachaTreasury.Rarity(i)];
+            RarityDividendTracker token = rarityTokens[GachaTreasury.Rarity(i)];
             if (address(token) != address(0)) {
                 totalClaimable += token.withdrawableFundsOf(user);
             }
         }
     }
 
-    /// @notice Gets user's claimable rewards for a specific rarity
-    /// @param user User address
-    /// @param rarity Rarity to check
-    /// @return claimable Claimable amount for the rarity
-    function getUserRarityClaimableRewards(address user, GachaTreasury.Rarity rarity)
-        external
-        view
-        returns (uint256 claimable)
-    {
-        if (user == address(0)) return 0;
-        RarityDividendToken token = rarityTokens[rarity];
+    /// @notice View user's withdrawable for a specific rarity
+    function getUserRarityClaimableRewards(address user, GachaTreasury.Rarity rarity) external view returns (uint256) {
+        RarityDividendTracker token = rarityTokens[rarity];
         if (address(token) == address(0)) return 0;
         return token.withdrawableFundsOf(user);
     }
 
-    /// @notice Allows users to claim all rewards across all rarities
-    function claimAllRewards() external whenNotPaused nonReentrant {
-        uint256 totalClaimed = 0;
-        
-        for (uint256 i = 0; i < 5; i++) {
-            RarityDividendToken token = rarityTokens[GachaTreasury.Rarity(i)];
-            if (address(token) != address(0)) {
-                uint256 withdrawable = token.withdrawableFundsOf(msg.sender);
-                if (withdrawable > 0) {
-                    uint256 balanceBefore = feeToken.balanceOf(msg.sender);
-                    
-                    // Try withdraw and catch any reverts to handle precision issues
-                    try token.withdrawFunds() {
-                        uint256 balanceAfter = feeToken.balanceOf(msg.sender);
-                        totalClaimed += (balanceAfter - balanceBefore);
-                    } catch {
-                        // Continue if this token has precision issues
-                    }
-                }
-            }
-        }
-        
-        if (totalClaimed == 0) revert NoFundsToWithdraw();
+    function getRarityToken(GachaTreasury.Rarity rarity) external view returns (address) {
+        return address(rarityTokens[rarity]);
     }
 
-    /// @notice Updates protocol address
-    /// @param _protocolAddress New protocol address
+    function getAllRarityTokens() external view returns (address[5] memory tokens) {
+        for (uint256 i = 0; i < 5; i++) {
+            tokens[i] = address(rarityTokens[GachaTreasury.Rarity(i)]);
+        }
+    }
+
     function setProtocolAddress(address _protocolAddress) external onlyOwner {
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
-        address oldProtocol = protocolAddress;
+        address old = protocolAddress;
         protocolAddress = _protocolAddress;
-        emit ProtocolAddressUpdated(oldProtocol, _protocolAddress);
+        emit ProtocolAddressUpdated(old, _protocolAddress);
     }
 
-    /// @notice Emergency pause function
+    /// @notice Called by treasury when an NFT deposit is approved
+    /// @param depositor Address of the user who deposited the NFT
+    /// @param rarity The rarity of the approved NFT deposit
+    function recordApprovedDeposit(address depositor, uint8 rarity) external onlyTreasuryContract {
+        GachaTreasury.Rarity rarityEnum = GachaTreasury.Rarity(rarity);
+        RarityDividendTracker token = rarityTokens[rarityEnum];
+        if (address(token) != address(0)) {
+            token.updateCorrection(depositor);
+        }
+        emit DepositRecorded(depositor, rarityEnum);
+    }
+
+    /// @notice Called by treasury when an NFT is won by a user
+    /// @param depositor Address of the original depositor (loses dividend rights)
+    /// @param rarity The rarity of the won NFT
+    function recordNFTWon(address depositor, uint8 rarity) external onlyTreasuryContract {
+        GachaTreasury.Rarity rarityEnum = GachaTreasury.Rarity(rarity);
+        RarityDividendTracker token = rarityTokens[rarityEnum];
+        if (address(token) != address(0)) {
+            token.updateCorrection(depositor);
+        }
+        emit NFTWonRecorded(depositor, rarityEnum);
+    }
+
     function emergencyPause() external onlyOwner {
         _pause();
     }
 
-    /// @notice Emergency unpause function
     function emergencyUnpause() external onlyOwner {
         _unpause();
     }
 
-    /// @notice Emergency function to recover tokens (not fee token)
-    /// @param token Token address (address(0) for ETH)
-    /// @param amount Amount to recover
     function emergencyRecoverTokens(address token, uint256 amount) external onlyOwner {
-        if (token == address(feeToken)) revert InvalidFeeToken();
-        if (token == address(0)) {
-            payable(owner()).transfer(amount);
-        } else {
-            IERC20(token).safeTransfer(owner(), amount);
-        }
+        if (address(feeToken) != address(0) && token == address(feeToken)) revert InvalidFeeToken();
+        IERC20(token).safeTransfer(owner(), amount);
     }
 }

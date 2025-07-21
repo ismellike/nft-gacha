@@ -47,11 +47,11 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     uint256 public constant TOTAL_WEIGHT = 10000;
 
     // Rarity weights for selection (out of 10000 for precision)
-    uint256 public commonWeight = 5500; // 55%
-    uint256 public uncommonWeight = 2500; // 25%
-    uint256 public rareWeight = 1200; // 12%
-    uint256 public epicWeight = 600; // 6%
-    uint256 public legendaryWeight = 200; // 2%
+    uint256 public commonWeight = 7000; // 70%
+    uint256 public uncommonWeight = 2000; // 20%
+    uint256 public rareWeight = 600; // 6%
+    uint256 public epicWeight = 300; // 3%
+    uint256 public legendaryWeight = 100; // 1%
 
     event RandomnessRequested(uint256 indexed triggerId);
     event SpinCompleted(
@@ -181,16 +181,17 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     function _selectRarity(bytes32 randomness) private view returns (GachaTreasury.Rarity) {
         uint256 roll = uint256(randomness) % TOTAL_WEIGHT;
 
-        if (roll < legendaryWeight) {
-            return GachaTreasury.Rarity.Legendary;
-        } else if (roll < legendaryWeight + epicWeight) {
-            return GachaTreasury.Rarity.Epic;
-        } else if (roll < legendaryWeight + epicWeight + rareWeight) {
-            return GachaTreasury.Rarity.Rare;
-        } else if (roll < legendaryWeight + epicWeight + rareWeight + uncommonWeight) {
-            return GachaTreasury.Rarity.Uncommon;
-        } else {
+        // Select rarity from most common to rarest (cumulative probabilities)
+        if (roll < commonWeight) {
             return GachaTreasury.Rarity.Common;
+        } else if (roll < commonWeight + uncommonWeight) {
+            return GachaTreasury.Rarity.Uncommon;
+        } else if (roll < commonWeight + uncommonWeight + rareWeight) {
+            return GachaTreasury.Rarity.Rare;
+        } else if (roll < commonWeight + uncommonWeight + rareWeight + epicWeight) {
+            return GachaTreasury.Rarity.Epic;
+        } else {
+            return GachaTreasury.Rarity.Legendary;
         }
     }
 

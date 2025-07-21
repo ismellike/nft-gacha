@@ -214,11 +214,11 @@ contract GachaTest is Test {
     function testGetRarityWeights() public view {
         (uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary) = gacha.getRarityWeights();
         
-        assertEq(common, 5500);  // 55%
-        assertEq(uncommon, 2500); // 25%
-        assertEq(rare, 1200);     // 12%
-        assertEq(epic, 600);      // 6%
-        assertEq(legendary, 200); // 2%
+        assertEq(common, 7000);  // 70%
+        assertEq(uncommon, 2000); // 20%
+        assertEq(rare, 600);      // 6%
+        assertEq(epic, 300);      // 3%
+        assertEq(legendary, 100); // 1%
         assertEq(common + uncommon + rare + epic + legendary, 10000);
     }
 
@@ -361,8 +361,8 @@ contract GachaTest is Test {
         uint256 userInitialBalance = feeToken.balanceOf(user1);
         uint256 gachaInitialBalance = feeToken.balanceOf(address(gacha));
         
-        // Use randomness that will select legendary (0-99 range for 1% legendary weight)
-        bytes32 randomness = bytes32(uint256(50)); // Will select legendary
+        // Use randomness that will select legendary (9900-9999 range for 1% legendary weight)
+        bytes32 randomness = bytes32(uint256(9950)); // Will select legendary
         
         vm.prank(owner);
         vm.expectEmit(true, true, false, true);

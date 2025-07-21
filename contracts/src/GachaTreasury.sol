@@ -41,9 +41,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     }
 
     struct NFTItem {
-        address collection;  // 20 bytes
-        Rarity rarity;      // 1 byte  
-        uint256 tokenId;    // 32 bytes (separate slot)
+        address collection; // 20 bytes
+        address depositor; // 20 bytes (new slot)
+        Rarity rarity; // 1 byte
+        uint256 tokenId; // 32 bytes (new slot)
     }
 
     enum PendingDepositStatus {
@@ -53,13 +54,13 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     }
 
     struct PendingDeposit {
-        address depositor;              // 20 bytes
-        Rarity proposedRarity;          // 1 byte
-        PendingDepositStatus status;    // 1 byte
+        address depositor; // 20 bytes
+        Rarity proposedRarity; // 1 byte
+        PendingDepositStatus status; // 1 byte
         // 10 bytes remaining in slot
-        address collection;             // 20 bytes (new slot)
-        uint256 tokenId;               // 32 bytes (new slot)
-        uint256 timestamp;             // 32 bytes (new slot)
+        address collection; // 20 bytes (new slot)
+        uint256 tokenId; // 32 bytes (new slot)
+        uint256 timestamp; // 32 bytes (new slot)
     }
 
     mapping(Rarity => NFTItem[]) public treasury;
@@ -105,7 +106,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @param collection NFT collection address
     /// @param tokenId Token ID to deposit
     /// @param rarity Assigned rarity for the NFT
-    function depositNFT(address collection, uint256 tokenId, Rarity rarity) external onlyOwner whenNotPaused nonReentrant {
+    function depositNFT(address collection, uint256 tokenId, Rarity rarity)
+        external
+        onlyOwner
+        whenNotPaused
+        nonReentrant
+    {
         if (collection == address(0)) revert InvalidCollectionAddress();
         if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
         if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
@@ -114,7 +120,9 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
         depositedNFTs[collection][tokenId] = true;
 
-        treasury[rarity].push(NFTItem({collection: collection, tokenId: tokenId, rarity: rarity}));
+        treasury[rarity].push(
+            NFTItem({collection: collection, depositor: msg.sender, tokenId: tokenId, rarity: rarity})
+        );
         unchecked {
             ++rarityCount[rarity];
         }
@@ -169,6 +177,14 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             --rarityCount[rarity];
         }
         depositedNFTs[item.collection][item.tokenId] = false;
+
+        // Burn dividend tokens from the original depositor
+        if (rewardsManager != address(0)) {
+            (bool success,) = rewardsManager.call(
+                abi.encodeWithSignature("recordNFTWon(address,uint8)", item.depositor, uint8(rarity))
+            );
+            success; // Silence unused variable warning
+        }
 
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
@@ -246,7 +262,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @notice Owner approves a pending deposit
     /// @param pendingId ID of the pending deposit
     /// @param finalRarity Final rarity assigned by owner (can differ from proposed)
-    function approvePendingDeposit(uint256 pendingId, Rarity finalRarity) external onlyOwner whenNotPaused nonReentrant {
+    function approvePendingDeposit(uint256 pendingId, Rarity finalRarity)
+        external
+        onlyOwner
+        whenNotPaused
+        nonReentrant
+    {
         PendingDeposit storage deposit = pendingDeposits[pendingId];
 
         if (deposit.depositor == address(0)) revert PendingDepositNotFound();
@@ -259,7 +280,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         // Add to treasury
         treasury[finalRarity].push(
-            NFTItem({collection: deposit.collection, tokenId: deposit.tokenId, rarity: finalRarity})
+            NFTItem({
+                collection: deposit.collection,
+                depositor: deposit.depositor,
+                tokenId: deposit.tokenId,
+                rarity: finalRarity
+            })
         );
 
         unchecked {
@@ -289,7 +315,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @notice Owner denies a pending deposit and returns NFT
     /// @param pendingId ID of the pending deposit
     /// @param reason Reason for denial
-    function denyPendingDeposit(uint256 pendingId, string calldata reason) external onlyOwner whenNotPaused nonReentrant {
+    function denyPendingDeposit(uint256 pendingId, string calldata reason)
+        external
+        onlyOwner
+        whenNotPaused
+        nonReentrant
+    {
         PendingDeposit storage deposit = pendingDeposits[pendingId];
 
         if (deposit.depositor == address(0)) revert PendingDepositNotFound();
@@ -394,7 +425,9 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
             depositedNFTs[collection][tokenId] = true;
 
-            treasury[rarity].push(NFTItem({collection: collection, tokenId: tokenId, rarity: rarity}));
+            treasury[rarity].push(
+                NFTItem({collection: collection, depositor: msg.sender, tokenId: tokenId, rarity: rarity})
+            );
             unchecked {
                 ++rarityCount[rarity];
                 ++i;
@@ -414,7 +447,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @param rarity Rarity tier to withdraw from
     /// @param indices Array of indices to withdraw
     /// @param to Recipient address
-    function batchWithdrawNFT(Rarity rarity, uint256[] calldata indices, address to) external onlyOwner whenNotPaused nonReentrant {
+    function batchWithdrawNFT(Rarity rarity, uint256[] calldata indices, address to)
+        external
+        onlyOwner
+        whenNotPaused
+        nonReentrant
+    {
         uint256 length = indices.length;
         if (length == 0) revert EmptyArrays();
         if (length > MAX_BATCH_WITHDRAW) revert TooManyItems();
