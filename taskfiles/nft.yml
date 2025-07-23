@@ -1,0 +1,38 @@
+version: '3'
+
+vars:
+  # Use the first WAVS Anvil chain (port 8548)
+  ANVIL_PORT: 8548
+  CONTRACTS_DIR: ./contracts
+
+tasks:
+  mint:
+    desc: Mint additional NFT using deployed MockERC721 contract
+    dir: "{{.CONTRACTS_DIR}}"
+    cmds:
+      - |
+        if [ -z "$NFT_CONTRACT_ADDRESS" ]; then
+          echo "NFT_CONTRACT_ADDRESS environment variable is required"
+          echo "Deploy contracts first with 'task contracts:deploy'"
+          exit 1
+        fi
+        if [ -z "$MINT_TO_ADDRESS" ]; then
+          echo "MINT_TO_ADDRESS environment variable is required"
+          exit 1
+        fi
+        
+        # Check if WAVS chain is running
+        if ! nc -z localhost {{.ANVIL_PORT}}; then
+          echo "❌ WAVS chain not running on port {{.ANVIL_PORT}}"
+          echo "Start it with: task anvil:start"
+          exit 1
+        fi
+        
+        echo "Minting NFT to $MINT_TO_ADDRESS on WAVS chain..."
+        cast send $NFT_CONTRACT_ADDRESS "mint(address)" $MINT_TO_ADDRESS \
+          --rpc-url http://localhost:{{.ANVIL_PORT}} \
+          --private-key $PRIVATE_KEY
+        echo "✅ NFT minted!"
+    preconditions:
+      - sh: '[ -n "$PRIVATE_KEY" ]'
+        msg: "PRIVATE_KEY environment variable is required"

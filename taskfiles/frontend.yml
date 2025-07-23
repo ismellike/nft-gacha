@@ -1,0 +1,39 @@
+version: '3'
+
+vars:
+  FRONTEND_DIR: ./frontend
+
+tasks:
+  install:
+    desc: Install frontend dependencies
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - pnpm install
+
+  dev:
+    desc: Start frontend development server
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - pnpm dev
+    deps: [install]
+
+  build:
+    desc: Build frontend for production
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - pnpm build
+    deps: [install]
+
+  codegen:
+    desc: Generate TypeScript types from smart contracts
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - |
+        if [ ! -d "../contracts/out" ]; then
+          echo "❌ Contracts not built. Run 'task contracts:build' first"
+          exit 1
+        fi
+        echo "🔄 Generating TypeScript types from contracts..."
+        pnpm codegen
+        echo "✅ TypeScript contract types generated in src/generated.ts"
+    deps: [install]

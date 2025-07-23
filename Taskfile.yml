@@ -1,0 +1,17 @@
+version: "3"
+
+silent: true
+
+dotenv: [".env", ".env.local"]
+
+includes:
+  anvil:
+    taskfile: ./taskfiles/anvil.yml
+  nft:
+    taskfile: ./taskfiles/nft.yml
+  contracts:
+    taskfile: ./taskfiles/contracts.yml
+  frontend:
+    taskfile: ./taskfiles/frontend.yml
+  backend:
+    taskfile: ./taskfiles/backend.yml
