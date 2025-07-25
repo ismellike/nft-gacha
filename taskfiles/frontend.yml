@@ -37,3 +37,25 @@ tasks:
         pnpm codegen
         echo "✅ TypeScript contract types generated in src/generated.ts"
     deps: [install]
+
+  sync-env:
+    desc: Port .env.local from root to frontend with NEXT_PUBLIC_ prefixes
+    cmds:
+      - |
+        if [ ! -f ".env.local" ]; then
+          echo "❌ No .env.local found in root directory"
+          exit 1
+        fi
+        echo "🔄 Porting environment variables from root to frontend..."
+        # Read root .env.local and convert to NEXT_PUBLIC_ prefixed vars
+        while IFS='=' read -r key value; do
+          # Skip empty lines and comments
+          if [[ -z "$key" || "$key" == \#* ]]; then
+            continue
+          fi
+          # Add NEXT_PUBLIC_ prefix for client-accessible vars
+          echo "NEXT_PUBLIC_${key}=${value}" >> "{{.FRONTEND_DIR}}/.env.local.tmp"
+        done < .env.local
+        # Replace the frontend .env.local
+        mv "{{.FRONTEND_DIR}}/.env.local.tmp" "{{.FRONTEND_DIR}}/.env.local"
+        echo "✅ Environment variables synced to frontend/.env.local"

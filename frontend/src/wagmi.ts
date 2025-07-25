@@ -8,6 +8,7 @@ import {
 	sepolia,
 	localhost,
 } from "wagmi/chains";
+import { env } from "./env";
 
 // WAVS local chain configuration
 const wavsLocal = {
@@ -28,7 +29,7 @@ export const config = (() => {
 
 	_config = getDefaultConfig({
 		appName: "Spin-Fi",
-		projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "test",
+		projectId: env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
 		chains: [
 			wavsLocal,
 			mainnet,
@@ -36,7 +37,7 @@ export const config = (() => {
 			optimism,
 			arbitrum,
 			base,
-			...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true" ? [sepolia] : []),
+			...(env.NEXT_PUBLIC_ENABLE_TESTNETS ? [sepolia] : []),
 		],
 		ssr: true,
 	});
