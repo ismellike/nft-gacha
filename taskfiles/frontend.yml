@@ -39,17 +39,17 @@ tasks:
     deps: [install]
 
   sync-env:
-    desc: Port .env.local from root to frontend/.env.development with NEXT_PUBLIC_ prefixes
+    desc: Port .env.local from root to frontend/.env.local with NEXT_PUBLIC_ prefixes
     cmds:
       - |
         if [ ! -f ".env.local" ]; then
           echo "❌ No .env.local found in root directory"
           exit 1
         fi
-        echo "🔄 Porting environment variables from root to frontend/.env.development..."
+        echo "🔄 Porting environment variables from root to frontend/.env.local..."
 
-        # Create or empty the frontend/.env.development file
-        : > "{{.FRONTEND_DIR}}/.env.development"
+        # Create or empty the frontend/.env.local file
+        : > "{{.FRONTEND_DIR}}/.env.local"
 
         # Process the .env.local file (handle both literal \n and actual newlines)
         while IFS='=' read -r key value; do
@@ -58,7 +58,7 @@ tasks:
             continue
           fi
           # Add NEXT_PUBLIC_ prefix for client-accessible vars
-          echo "NEXT_PUBLIC_${key}=${value}" >> "{{.FRONTEND_DIR}}/.env.development"
+          echo "NEXT_PUBLIC_${key}=${value}" >> "{{.FRONTEND_DIR}}/.env.local"
         done < <(cat .env.local | sed 's/\\n/\n/g')
 
-        echo "✅ Environment variables synced to frontend/.env.development"
+        echo "✅ Environment variables synced to frontend/.env.local"
