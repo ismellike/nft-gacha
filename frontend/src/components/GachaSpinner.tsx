@@ -10,6 +10,7 @@ import {
 } from "wagmi";
 import { formatUnits } from "viem";
 import { env } from "../env";
+import { Rarity, RARITY_CONFIG, getRarityConfig } from "../lib/rarityConfig";
 import {
 	useReadGachaSpinFee,
 	useReadGachaGetRarityWeights,
@@ -24,20 +25,12 @@ import {
 	useReadTestTokenNonces,
 } from "../generated";
 
-// Rarity enum mapping
-enum Rarity {
-	Common = 0,
-	Uncommon = 1,
-	Rare = 2,
-	Epic = 3,
-	Legendary = 4,
-}
-
 export default function GachaSpinner() {
 	const { address: userAddress, isConnected } = useAccount();
 	const chainId = useChainId();
 	const [lastSpin, setLastSpin] = useState<string | null>(null);
 	const [permitDeadline, setPermitDeadline] = useState<bigint | null>(null);
+	const [usedSignature, setUsedSignature] = useState<string | null>(null);
 
 	// Gacha contract data
 	const { data: spinFee } = useReadGachaSpinFee({
@@ -106,7 +99,7 @@ export default function GachaSpinner() {
 		},
 	);
 
-	const { data: tokenNonce } = useReadTestTokenNonces({
+	const { data: tokenNonce, refetch: refetchNonce } = useReadTestTokenNonces({
 		address: feeToken,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!(feeToken && userAddress) },
@@ -164,34 +157,34 @@ export default function GachaSpinner() {
 
 	const rarityStats = [
 		{
-			name: "Common",
+			rarity: Rarity.Common,
+			...getRarityConfig(Rarity.Common),
 			percentage: getRarityPercentage(0),
 			count: Number(commonCount || 0),
-			bgGradient: "from-zinc-600 to-zinc-700",
 		},
 		{
-			name: "Uncommon",
+			rarity: Rarity.Uncommon,
+			...getRarityConfig(Rarity.Uncommon),
 			percentage: getRarityPercentage(1),
 			count: Number(uncommonCount || 0),
-			bgGradient: "from-green-500 to-emerald-600",
 		},
 		{
-			name: "Rare",
+			rarity: Rarity.Rare,
+			...getRarityConfig(Rarity.Rare),
 			percentage: getRarityPercentage(2),
 			count: Number(rareCount || 0),
-			bgGradient: "from-blue-500 to-purple-600",
 		},
 		{
-			name: "Epic",
+			rarity: Rarity.Epic,
+			...getRarityConfig(Rarity.Epic),
 			percentage: getRarityPercentage(3),
 			count: Number(epicCount || 0),
-			bgGradient: "from-purple-500 to-pink-600",
 		},
 		{
-			name: "Legendary",
+			rarity: Rarity.Legendary,
+			...getRarityConfig(Rarity.Legendary),
 			percentage: getRarityPercentage(4),
 			count: Number(legendaryCount || 0),
-			bgGradient: "from-orange-500 to-red-600",
 		},
 	] as const;
 
@@ -265,14 +258,16 @@ export default function GachaSpinner() {
 			setLastSpin("Epic NFT #1337");
 			// Refetch balance after successful spin
 			refetchBalance();
+			// Refetch nonce for next permit
+			refetchNonce();
 			// Reset permit deadline
 			setPermitDeadline(null);
 		}
-	}, [isSpinWithPermitSuccess, refetchBalance]);
+	}, [isSpinWithPermitSuccess, refetchBalance, refetchNonce]);
 
 	// Handle permit signature completion
 	useEffect(() => {
-		if (signature && spinFee && feeToken && permitDeadline) {
+		if (signature && spinFee && feeToken && permitDeadline && signature !== usedSignature) {
 			try {
 				// Parse signature hex string into r, s, v components
 				const sig = signature.slice(2); // remove 0x
@@ -285,6 +280,9 @@ export default function GachaSpinner() {
 					v += 27;
 				}
 
+				// Mark signature as used
+				setUsedSignature(signature);
+
 				spinWithPermit({
 					address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
 					args: [permitDeadline, v, r, s],
@@ -293,7 +291,7 @@ export default function GachaSpinner() {
 				console.error("Error calling spinWithPermit:", error);
 			}
 		}
-	}, [signature, spinFee, feeToken, permitDeadline, spinWithPermit]);
+	}, [signature, spinFee, feeToken, permitDeadline, usedSignature, spinWithPermit]);
 
 	// Error handling
 	const hasError =
@@ -463,19 +461,20 @@ export default function GachaSpinner() {
 					<CardBody className="space-y-4">
 						{rarityStats.map((rarity) => (
 							<div key={rarity.name} className="group relative">
-								{/* Glow effect */}
+								{/* Enhanced glow effect */}
 								<div
-									className={`absolute inset-0 bg-gradient-to-r ${rarity.bgGradient} rounded-xl blur-lg opacity-0 group-hover:opacity-30 transition-all duration-500 scale-95 group-hover:scale-100`}
+									className={`absolute inset-0 bg-gradient-to-r ${rarity.bgGradient} rounded-xl blur-lg opacity-0 group-hover:opacity-40 transition-all duration-500 scale-95 group-hover:scale-100 ${rarity.glowColor}`}
 								></div>
 
-								{/* Main card */}
-								<div className="relative bg-content2/10 backdrop-blur-xl border border-white/10 rounded-xl p-4 hover:bg-content2/20 transition-all duration-300 group-hover:border-white/20">
+								{/* Main card with rarity-specific styling */}
+								<div className={`relative bg-content2/10 backdrop-blur-xl border ${rarity.borderColor} hover:${rarity.borderColor.replace('/50', '/80')} rounded-xl p-4 hover:bg-content2/20 transition-all duration-300 group-hover:shadow-lg ${rarity.glowColor}`}>
 									{/* Header with rarity name and stats */}
 									<div className="flex justify-between items-center mb-3">
 										<div
 											className={`px-3 py-1.5 rounded-lg bg-gradient-to-r ${rarity.bgGradient} shadow-lg`}
 										>
-											<span className="text-sm font-bold text-white drop-shadow-sm">
+											<span className="text-sm font-bold text-white drop-shadow-sm flex items-center gap-1">
+												<span>{rarity.emoji}</span>
 												{rarity.name}
 											</span>
 										</div>
@@ -485,7 +484,7 @@ export default function GachaSpinner() {
 											>
 												{rarity.percentage}%
 											</div>
-											<div className="text-xs text-foreground/60 font-medium">
+											<div className={`text-xs font-medium ${rarity.textColor}`}>
 												{rarity.count} items
 											</div>
 										</div>
@@ -498,10 +497,17 @@ export default function GachaSpinner() {
 												className={`h-full bg-gradient-to-r ${rarity.bgGradient} rounded-full shadow-lg transition-all duration-1000 ease-out relative overflow-hidden`}
 												style={{ width: `${rarity.percentage}%` }}
 											>
-												{/* Shimmer effect */}
-												<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+												{/* Enhanced shimmer effect */}
+												<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
 											</div>
 										</div>
+									</div>
+
+									{/* Rarity description */}
+									<div className="mt-2 text-center">
+										<span className={`text-xs ${rarity.textColor} font-medium`}>
+											{rarity.description}
+										</span>
 									</div>
 								</div>
 							</div>

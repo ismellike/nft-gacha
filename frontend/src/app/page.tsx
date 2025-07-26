@@ -1,6 +1,7 @@
 "use client";
 
 import GachaSpinner from "../components/GachaSpinner";
+import RarityShowcase from "../components/RarityShowcase";
 
 export default function Home() {
 	return (
@@ -39,6 +40,11 @@ export default function Home() {
 
 				{/* Main Spin Section */}
 				<GachaSpinner />
+
+				{/* Rarity Showcase Section */}
+				<div className="mt-32">
+					<RarityShowcase />
+				</div>
 			</main>
 		</div>
 	);
