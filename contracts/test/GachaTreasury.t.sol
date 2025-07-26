@@ -3,17 +3,18 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {GachaTreasury} from "../src/GachaTreasury.sol";
-import {MockERC721} from "../src/MockERC721.sol";
+import {SimpleERC721} from "../src/SimpleERC721.sol";
 
 contract GachaTreasuryTest is Test {
     GachaTreasury public treasury;
-    MockERC721 public nft;
+    SimpleERC721 public nft;
     address public owner = address(0x1);
     address public user = address(0x2);
 
     function setUp() public {
         treasury = new GachaTreasury(owner, address(0));
-        nft = new MockERC721("TestNFT", "TNFT");
+        vm.prank(owner);
+        nft = new SimpleERC721("TestNFT", "TNFT");
     }
 
     function testDeployment() public view {
@@ -124,12 +125,12 @@ contract GachaTreasuryTest is Test {
 
     function testSetGachaContract() public {
         address gachaAddress = address(0x123);
-        
+
         vm.prank(owner);
         vm.expectEmit(true, true, false, false);
         emit GachaContractUpdated(address(0), gachaAddress);
         treasury.setGachaContract(gachaAddress);
-        
+
         assertEq(treasury.gachaContract(), gachaAddress);
     }
 
@@ -137,16 +138,16 @@ contract GachaTreasuryTest is Test {
         uint256 tokenId = nft.mint(owner);
         address gachaAddress = address(0x123);
         address winner = address(0x456);
-        
+
         vm.startPrank(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
         treasury.setGachaContract(gachaAddress);
         vm.stopPrank();
-        
+
         vm.prank(gachaAddress);
         GachaTreasury.NFTItem memory item = treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, winner);
-        
+
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0);
         assertEq(nft.ownerOf(tokenId), winner);
         assertEq(item.collection, address(nft));
@@ -156,12 +157,12 @@ contract GachaTreasuryTest is Test {
 
     function testSendNFTToWinnerOnlyGacha() public {
         uint256 tokenId = nft.mint(owner);
-        
+
         vm.startPrank(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
         vm.stopPrank();
-        
+
         vm.prank(user);
         vm.expectRevert(abi.encodeWithSelector(GachaTreasury.UnauthorizedGachaContract.selector));
         treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, user);

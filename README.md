@@ -25,6 +25,7 @@ cd nft-gacha-new
 task backend:start      # Launch WAVS infrastructure
 task contracts:deploy   # Deploy gacha system (50 NFTs across 5 rarities)
 task frontend:codegen   # Generate TypeScript bindings
+task frontend:sync-env  # Sync .env files with frontend
 task frontend:dev       # Start frontend at http://localhost:3000
 ```
 

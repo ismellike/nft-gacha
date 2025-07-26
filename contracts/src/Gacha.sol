@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
@@ -85,13 +86,12 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         address _protocolAddress
     ) Ownable(_owner) {
         if (_gachaServiceHandler == address(0)) revert InvalidServiceHandler();
-        if (_spinFee > 0 && _feeToken == address(0)) revert InvalidFeeToken();
+        if (_spinFee == 0) revert InvalidFeeToken();
+        if (_feeToken == address(0)) revert InvalidFeeToken();
 
         gachaServiceHandler = _gachaServiceHandler;
         treasury = new GachaTreasury(_owner, address(this));
-        if (_feeToken != address(0)) {
-            feeToken = IERC20(_feeToken);
-        }
+        feeToken = IERC20(_feeToken);
         spinFee = _spinFee;
 
         // Create rewards manager
@@ -109,6 +109,36 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         _validateTreasuryHasItems();
 
         if (spinFee > 0) {
+            feeToken.safeTransferFrom(msg.sender, address(this), spinFee);
+        }
+
+        triggerId = _nextTriggerId++;
+        spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false});
+
+        emit RandomnessRequested(triggerId);
+        return triggerId;
+    }
+
+    /// @notice Initiates a gacha spin using permit for gasless approval
+    /// @param deadline The deadline for the permit signature
+    /// @param v The recovery id of the signature
+    /// @param r Half of the ECDSA signature pair
+    /// @param s Half of the ECDSA signature pair
+    /// @return triggerId The unique identifier for this spin request
+    function spinWithPermit(
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external whenNotPaused nonReentrant returns (uint256 triggerId) {
+        if (spinFee > 0 && address(feeToken) == address(0)) revert InvalidFeeToken();
+
+        // Check that all rarities with non-zero weights have at least one NFT
+        _validateTreasuryHasItems();
+
+        if (spinFee > 0) {
+            // Use permit to approve the fee transfer
+            IERC20Permit(address(feeToken)).permit(msg.sender, address(this), spinFee, deadline, v, r, s);
             feeToken.safeTransferFrom(msg.sender, address(this), spinFee);
         }
 
@@ -196,12 +226,14 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     }
 
     function setSpinFee(uint256 _newFee) external onlyOwner {
+        if (_newFee == 0) revert InvalidFeeToken();
         uint256 oldFee = spinFee;
         spinFee = _newFee;
         emit FeeUpdated(oldFee, _newFee);
     }
 
     function setFeeToken(address _newFeeToken) external onlyOwner {
+        if (_newFeeToken == address(0)) revert InvalidFeeToken();
         address oldToken = address(feeToken);
         feeToken = IERC20(_newFeeToken);
         emit FeeTokenUpdated(oldToken, _newFeeToken);

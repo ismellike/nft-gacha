@@ -66,7 +66,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     mapping(Rarity => NFTItem[]) public treasury;
     mapping(Rarity => uint256) public rarityCount;
     address public gachaContract;
-    address public rewardsManager;
+    address public treasuryRewardsManager;
 
     // Duplicate protection
     mapping(address => mapping(uint256 => bool)) public depositedNFTs;
@@ -179,8 +179,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         depositedNFTs[item.collection][item.tokenId] = false;
 
         // Burn dividend tokens from the original depositor
-        if (rewardsManager != address(0)) {
-            (bool success,) = rewardsManager.call(
+        if (treasuryRewardsManager != address(0)) {
+            (bool success,) = treasuryRewardsManager.call(
                 abi.encodeWithSignature("recordNFTWon(address,uint8)", item.depositor, uint8(rarity))
             );
             success; // Silence unused variable warning
@@ -297,8 +297,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         userTotalDeposits[deposit.depositor]++;
 
         // Notify rewards manager to mint reward tokens
-        if (rewardsManager != address(0)) {
-            (bool success,) = rewardsManager.call(
+        if (treasuryRewardsManager != address(0)) {
+            (bool success,) = treasuryRewardsManager.call(
                 abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", deposit.depositor, uint8(finalRarity))
             );
             success; // Silence unused variable warning
@@ -555,13 +555,13 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    /// @notice Sets the rewards manager address
-    /// @param _rewardsManager New rewards manager address
-    function setRewardsManager(address _rewardsManager) external onlyOwner {
-        if (_rewardsManager == address(0)) revert InvalidRewardsManager();
-        address oldRewardsManager = rewardsManager;
-        rewardsManager = _rewardsManager;
-        emit RewardsManagerUpdated(oldRewardsManager, _rewardsManager);
+    /// @notice Sets the treasury rewards manager address
+    /// @param _treasuryRewardsManager New treasury rewards manager address
+    function setTreasuryRewardsManager(address _treasuryRewardsManager) external onlyOwner {
+        if (_treasuryRewardsManager == address(0)) revert InvalidRewardsManager();
+        address oldRewardsManager = treasuryRewardsManager;
+        treasuryRewardsManager = _treasuryRewardsManager;
+        emit RewardsManagerUpdated(oldRewardsManager, _treasuryRewardsManager);
     }
 
     /// @notice Emergency pause function

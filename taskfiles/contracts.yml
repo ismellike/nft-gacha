@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 includes:
   backend:
@@ -33,7 +33,7 @@ tasks:
           echo "Start it with: task anvil:start"
           exit 1
         fi
-        
+
         echo "🚀 Deploying Gacha system using Forge script..."
         forge script script/DeployLocal.s.sol:DeployLocal \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
@@ -43,3 +43,55 @@ tasks:
       - sh: '[ -n "$PRIVATE_KEY" ]'
         msg: "PRIVATE_KEY environment variable is required"
     deps: [build]
+
+  mint-tokens:
+    desc: Mint test tokens for development (requires TEST_TOKEN_ADDRESS env var)
+    dir: "{{.CONTRACTS_DIR}}"
+    cmds:
+      - |
+        # Check if WAVS chain is running
+        if ! nc -z localhost {{.ANVIL_PORT}}; then
+          echo "❌ WAVS chain not running on port {{.ANVIL_PORT}}"
+          echo "Start it with: task anvil:start"
+          exit 1
+        fi
+
+        # Check if TEST_TOKEN_ADDRESS is set
+        if [ -z "$TEST_TOKEN_ADDRESS" ]; then
+          echo "❌ TEST_TOKEN_ADDRESS environment variable is required"
+          echo "Deploy contracts first with: task contracts:deploy"
+          exit 1
+        fi
+
+        echo "💰 Minting 1000 TEST tokens to your address..."
+        cast send $TEST_TOKEN_ADDRESS \
+          "faucet()" \
+          --rpc-url http://localhost:{{.ANVIL_PORT}} \
+          --private-key $PRIVATE_KEY
+
+        echo "✅ Tokens minted successfully!"
+        echo "Check your balance with: cast call $TEST_TOKEN_ADDRESS 'balanceOf(address)' $(cast wallet address --private-key $PRIVATE_KEY) --rpc-url http://localhost:{{.ANVIL_PORT}}"
+    preconditions:
+      - sh: '[ -n "$PRIVATE_KEY" ]'
+        msg: "PRIVATE_KEY environment variable is required"
+
+  mint-tokens-to:
+    desc: "Mint test tokens to address specified in USER_ADDRESS env var"
+    dir: "{{.CONTRACTS_DIR}}"
+    cmds:
+      - |
+        echo "💰 Minting 100,000 TEST tokens to $USER_ADDRESS..."
+        forge script script/MintTestTokens.s.sol:MintTestTokens \
+          --rpc-url http://localhost:{{.ANVIL_PORT}} \
+          --broadcast \
+          --private-key $PRIVATE_KEY
+
+  mint-eth-to:
+    desc: "Mint testnet ETH to address specified in USER_ADDRESS env var"
+    dir: "{{.CONTRACTS_DIR}}"
+    cmds:
+      - |
+        echo "💰 Minting 10 ETH to $USER_ADDRESS..."
+        cast send --value 10ether $USER_ADDRESS \
+          --rpc-url http://localhost:{{.ANVIL_PORT}} \
+          --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80

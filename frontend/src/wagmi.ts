@@ -13,11 +13,11 @@ import { env } from "./env";
 // WAVS local chain configuration
 const wavsLocal = {
 	...localhost,
-	id: 31337,
-	name: 'WAVS Local',
+	id: 17000,
+	name: "WAVS Local",
 	rpcUrls: {
-		default: { http: ['http://localhost:8548'] },
-		public: { http: ['http://localhost:8548'] },
+		default: { http: ["http://localhost:8548"] },
+		public: { http: ["http://localhost:8548"] },
 	},
 } as const;
 
@@ -29,17 +29,9 @@ export const config = (() => {
 
 	_config = getDefaultConfig({
 		appName: "Spin-Fi",
-		projectId: env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
-		chains: [
-			wavsLocal,
-			mainnet,
-			polygon,
-			optimism,
-			arbitrum,
-			base,
-			...(env.NEXT_PUBLIC_ENABLE_TESTNETS ? [sepolia] : []),
-		],
-		ssr: true,
+		projectId: env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "placeholder",
+		chains: [wavsLocal],
+		ssr: false,
 	});
 
 	return _config;
