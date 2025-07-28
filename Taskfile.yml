@@ -6,15 +6,19 @@ dotenv: [".env", ".env.local"]
 
 includes:
   anvil:
-    taskfile: ./taskfiles/anvil.yml
+    taskfile: ./taskfile/anvil.yml
   nft:
-    taskfile: ./taskfiles/nft.yml
+    taskfile: ./taskfile/nft.yml
   contracts:
-    taskfile: ./taskfiles/contracts.yml
+    taskfile: ./taskfile/contracts.yml
   frontend:
-    taskfile: ./taskfiles/frontend.yml
+    taskfile: ./taskfile/frontend.yml
   backend:
-    taskfile: ./taskfiles/backend.yml
+    taskfile: ./taskfile/backend.yml
+  middleware:
+    taskfile: ./taskfile/middleware.yml
+  cli:
+    taskfile: ./taskfile/cli.yml
 
 tasks:
   bootstrap:
@@ -22,6 +26,12 @@ tasks:
       - |
         task backend:start 
         task contracts:deploy
+        task bootstrap-avs
         task frontend:codegen
         task frontend:sync-env
         task frontend:dev
+
+  bootstrap-avs:
+    dir: "avs"
+    cmds:
+      - task bootstrap

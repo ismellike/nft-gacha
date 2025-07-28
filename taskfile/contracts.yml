@@ -38,10 +38,10 @@ tasks:
         forge script script/DeployLocal.s.sol:DeployLocal \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
           --broadcast \
-          --private-key $PRIVATE_KEY
+          --private-key $DEPLOYER_PRIVATE_KEY
     preconditions:
-      - sh: '[ -n "$PRIVATE_KEY" ]'
-        msg: "PRIVATE_KEY environment variable is required"
+      - sh: '[ -n "$DEPLOYER_PRIVATE_KEY" ]'
+        msg: "DEPLOYER_PRIVATE_KEY environment variable is required"
     deps: [build]
 
   mint-tokens:
@@ -67,13 +67,13 @@ tasks:
         cast send $TEST_TOKEN_ADDRESS \
           "faucet()" \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
-          --private-key $PRIVATE_KEY
+          --private-key $DEPLOYER_PRIVATE_KEY
 
         echo "✅ Tokens minted successfully!"
-        echo "Check your balance with: cast call $TEST_TOKEN_ADDRESS 'balanceOf(address)' $(cast wallet address --private-key $PRIVATE_KEY) --rpc-url http://localhost:{{.ANVIL_PORT}}"
+        echo "Check your balance with: cast call $TEST_TOKEN_ADDRESS 'balanceOf(address)' $(cast wallet address --private-key $DEPLOYER_PRIVATE_KEY) --rpc-url http://localhost:{{.ANVIL_PORT}}"
     preconditions:
-      - sh: '[ -n "$PRIVATE_KEY" ]'
-        msg: "PRIVATE_KEY environment variable is required"
+      - sh: '[ -n "$DEPLOYER_PRIVATE_KEY" ]'
+        msg: "DEPLOYER_PRIVATE_KEY environment variable is required"
 
   mint-tokens-to:
     desc: "Mint test tokens to address specified in USER_ADDRESS env var"
@@ -84,7 +84,7 @@ tasks:
         forge script script/MintTestTokens.s.sol:MintTestTokens \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
           --broadcast \
-          --private-key $PRIVATE_KEY
+          --private-key $DEPLOYER_PRIVATE_KEY
 
   mint-eth-to:
     desc: "Mint testnet ETH to address specified in USER_ADDRESS env var"

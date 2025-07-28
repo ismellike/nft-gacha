@@ -11,7 +11,7 @@ import {TestToken} from "../src/TestToken.sol";
 
 contract DeployLocal is Script {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
         console.log("Deploying contracts with account:", deployer);
