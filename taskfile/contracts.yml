@@ -45,37 +45,6 @@ tasks:
     deps: [build]
 
   mint-tokens:
-    desc: Mint test tokens for development (requires TEST_TOKEN_ADDRESS env var)
-    dir: "{{.CONTRACTS_DIR}}"
-    cmds:
-      - |
-        # Check if WAVS chain is running
-        if ! nc -z localhost {{.ANVIL_PORT}}; then
-          echo "❌ WAVS chain not running on port {{.ANVIL_PORT}}"
-          echo "Start it with: task anvil:start"
-          exit 1
-        fi
-
-        # Check if TEST_TOKEN_ADDRESS is set
-        if [ -z "$TEST_TOKEN_ADDRESS" ]; then
-          echo "❌ TEST_TOKEN_ADDRESS environment variable is required"
-          echo "Deploy contracts first with: task contracts:deploy"
-          exit 1
-        fi
-
-        echo "💰 Minting 1000 TEST tokens to your address..."
-        cast send $TEST_TOKEN_ADDRESS \
-          "faucet()" \
-          --rpc-url http://localhost:{{.ANVIL_PORT}} \
-          --private-key $DEPLOYER_PRIVATE_KEY
-
-        echo "✅ Tokens minted successfully!"
-        echo "Check your balance with: cast call $TEST_TOKEN_ADDRESS 'balanceOf(address)' $(cast wallet address --private-key $DEPLOYER_PRIVATE_KEY) --rpc-url http://localhost:{{.ANVIL_PORT}}"
-    preconditions:
-      - sh: '[ -n "$DEPLOYER_PRIVATE_KEY" ]'
-        msg: "DEPLOYER_PRIVATE_KEY environment variable is required"
-
-  mint-tokens-to:
     desc: "Mint test tokens to address specified in USER_ADDRESS env var"
     dir: "{{.CONTRACTS_DIR}}"
     cmds:
@@ -86,7 +55,7 @@ tasks:
           --broadcast \
           --private-key $DEPLOYER_PRIVATE_KEY
 
-  mint-eth-to:
+  mint-eth:
     desc: "Mint testnet ETH to address specified in USER_ADDRESS env var"
     dir: "{{.CONTRACTS_DIR}}"
     cmds:
