@@ -1909,6 +1909,89 @@ export const gachaRewardsManagerAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GachaServiceHandler
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const gachaServiceHandlerAbi = [
+  {
+    type: 'constructor',
+    inputs: [
+      {
+        name: 'serviceManager',
+        internalType: 'contract IWavsServiceManager',
+        type: 'address',
+      },
+      { name: 'feeToken', internalType: 'address', type: 'address' },
+      { name: 'spinFee', internalType: 'uint256', type: 'uint256' },
+      { name: 'protocolAddress', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getGacha',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getGachaTreasury',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getServiceManager',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'envelope',
+        internalType: 'struct IWavsServiceHandler.Envelope',
+        type: 'tuple',
+        components: [
+          { name: 'eventId', internalType: 'bytes20', type: 'bytes20' },
+          { name: 'ordering', internalType: 'bytes12', type: 'bytes12' },
+          { name: 'payload', internalType: 'bytes', type: 'bytes' },
+        ],
+      },
+      {
+        name: 'signatureData',
+        internalType: 'struct IWavsServiceHandler.SignatureData',
+        type: 'tuple',
+        components: [
+          { name: 'signers', internalType: 'address[]', type: 'address[]' },
+          { name: 'signatures', internalType: 'bytes[]', type: 'bytes[]' },
+          { name: 'referenceBlock', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    name: 'handleSignedEnvelope',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'randomness',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+    ],
+    name: 'RandomnessReceived',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GachaTreasury
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -6781,6 +6864,84 @@ export const useWatchGachaRewardsManagerUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
     eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaServiceHandlerAbi}__
+ */
+export const useReadGachaServiceHandlerContract =
+  /*#__PURE__*/ createUseReadContract({ abi: gachaServiceHandlerAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaServiceHandlerAbi}__ and `functionName` set to `"getGacha"`
+ */
+export const useReadGachaServiceHandlerGetGacha =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaServiceHandlerAbi,
+    functionName: 'getGacha',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaServiceHandlerAbi}__ and `functionName` set to `"getGachaTreasury"`
+ */
+export const useReadGachaServiceHandlerGetGachaTreasury =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaServiceHandlerAbi,
+    functionName: 'getGachaTreasury',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaServiceHandlerAbi}__ and `functionName` set to `"getServiceManager"`
+ */
+export const useReadGachaServiceHandlerGetServiceManager =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaServiceHandlerAbi,
+    functionName: 'getServiceManager',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaServiceHandlerAbi}__
+ */
+export const useWriteGachaServiceHandlerContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: gachaServiceHandlerAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaServiceHandlerAbi}__ and `functionName` set to `"handleSignedEnvelope"`
+ */
+export const useWriteGachaServiceHandlerHandleSignedEnvelope =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaServiceHandlerAbi,
+    functionName: 'handleSignedEnvelope',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaServiceHandlerAbi}__
+ */
+export const useSimulateGachaServiceHandlerContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: gachaServiceHandlerAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaServiceHandlerAbi}__ and `functionName` set to `"handleSignedEnvelope"`
+ */
+export const useSimulateGachaServiceHandlerHandleSignedEnvelope =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaServiceHandlerAbi,
+    functionName: 'handleSignedEnvelope',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaServiceHandlerAbi}__
+ */
+export const useWatchGachaServiceHandlerContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: gachaServiceHandlerAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaServiceHandlerAbi}__ and `eventName` set to `"RandomnessReceived"`
+ */
+export const useWatchGachaServiceHandlerRandomnessReceived =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaServiceHandlerAbi,
+    eventName: 'RandomnessReceived',
   })
 
 /**

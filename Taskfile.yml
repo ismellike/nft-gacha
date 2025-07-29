@@ -25,7 +25,6 @@ tasks:
     cmds:
       - |
         task backend:start 
-        task contracts:deploy
         task bootstrap-avs
         task frontend:codegen
         task frontend:sync-env

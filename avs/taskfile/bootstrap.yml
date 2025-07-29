@@ -6,6 +6,14 @@ includes:
     flatten: true
 
 tasks:
+  contracts:
+    desc: "Deploy contracts with WAVS service manager address"
+    vars:
+      WAVS_SERVICE_MANAGER_ADDRESS:
+        sh: task get-service-manager-address
+    cmds:
+      - cd "{{.REPO_ROOT}}" && task contracts:deploy WAVS_SERVICE_MANAGER_ADDRESS="{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
+
   build-service:
     desc: "Build service configuration"
     deps: [clean-service]

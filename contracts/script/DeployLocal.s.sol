@@ -2,10 +2,11 @@
 pragma solidity ^0.8.27;
 
 import {Script, console} from "forge-std/Script.sol";
-import {RandomnessConsumer} from "../src/GachaServiceHandler.sol";
+import {GachaServiceHandler} from "../src/GachaServiceHandler.sol";
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {Gacha} from "../src/Gacha.sol";
 import {GachaTreasury} from "../src/GachaTreasury.sol";
+import {GachaRewardsManager} from "../src/GachaRewardsManager.sol";
 import {SimpleERC721} from "../src/SimpleERC721.sol";
 import {TestToken} from "../src/TestToken.sol";
 
@@ -28,15 +29,24 @@ contract DeployLocal is Script {
         testToken.mint(deployer, 1000000 * 10 ** testToken.decimals()); // 1M tokens
         console.log("Minted 1,000,000 TEST tokens to deployer");
 
-        // For local testing, we'll create a mock service manager
-        // In production, this would be the actual WAVS service manager address
-        IWavsServiceManager mockServiceManager =
-            IWavsServiceManager(address(0x1234567890123456789012345678901234567890));
+        // Read WAVS service manager address from AVS deployment JSON
+        address wavsServiceManagerAddress;
+        try vm.envAddress("WAVS_SERVICE_MANAGER_ADDRESS") {
+            wavsServiceManagerAddress = vm.envAddress("WAVS_SERVICE_MANAGER_ADDRESS");
+            console.log("Using WAVS Service Manager from env:", wavsServiceManagerAddress);
+        } catch {
+            // Fallback to reading from JSON file
+            string memory avsDeployJson = vm.readFile("../avs/.project-output/chain-1/wavs_drand/avs_deploy.json");
+            wavsServiceManagerAddress = vm.parseJsonAddress(avsDeployJson, ".addresses.WavsServiceManager");
+            console.log("Using WAVS Service Manager from JSON:", wavsServiceManagerAddress);
+        }
 
-        // Deploy GachaServiceHandler (RandomnessConsumer)
+        IWavsServiceManager wavsServiceManager = IWavsServiceManager(wavsServiceManagerAddress);
+
+        // Deploy GachaServiceHandler
         console.log("Deploying GachaServiceHandler...");
-        RandomnessConsumer serviceHandler = new RandomnessConsumer(
-            mockServiceManager,
+        GachaServiceHandler serviceHandler = new GachaServiceHandler(
+            wavsServiceManager,
             address(testToken), // Use test token as fee token
             100 * 10 ** testToken.decimals(), // 100 TEST tokens as spin fee
             deployer // Protocol address
@@ -52,6 +62,20 @@ contract DeployLocal is Script {
 
         Gacha gacha = Gacha(gachaAddress);
         GachaTreasury treasury = GachaTreasury(treasuryAddress);
+
+        // Get the rewards manager and set up rarity dividend tokens
+        address rewardsManagerAddress = address(gacha.rewardsManager());
+        console.log("RewardsManager deployed to:", rewardsManagerAddress);
+
+        // Deploy all rarity dividend tracker tokens
+        console.log("Deploying rarity dividend tracker tokens...");
+        gacha.rewardsManager().deployAllRarityTokens();
+        console.log("All rarity dividend tracker tokens deployed");
+
+        // Set rewards manager on treasury
+        console.log("Setting rewards manager on treasury...");
+        treasury.setTreasuryRewardsManager(rewardsManagerAddress);
+        console.log("Rewards manager set on treasury");
 
         // Deploy NFT collections for different rarities
         console.log("\\n=== Deploying NFT Collections ===");
@@ -164,6 +188,7 @@ contract DeployLocal is Script {
         console.log("GachaServiceHandler:    ", address(serviceHandler));
         console.log("Gacha Contract:         ", gachaAddress);
         console.log("Treasury Contract:      ", treasuryAddress);
+        console.log("RewardsManager Contract:", rewardsManagerAddress);
         console.log("Common NFT:             ", address(commonNFT));
         console.log("Uncommon NFT:           ", address(uncommonNFT));
         console.log("Rare NFT:               ", address(rareNFT));
@@ -188,6 +213,9 @@ contract DeployLocal is Script {
                 "\n",
                 "TREASURY_CONTRACT_ADDRESS=",
                 vm.toString(treasuryAddress),
+                "\n",
+                "REWARDS_MANAGER_ADDRESS=",
+                vm.toString(rewardsManagerAddress),
                 "\n",
                 "TEST_TOKEN_ADDRESS=",
                 vm.toString(address(testToken)),

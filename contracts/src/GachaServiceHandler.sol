@@ -5,7 +5,7 @@ import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServic
 import {IWavsServiceHandler} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
 import {Gacha} from "./Gacha.sol";
 
-contract RandomnessConsumer is IWavsServiceHandler {
+contract GachaServiceHandler is IWavsServiceHandler {
     IWavsServiceManager private _serviceManager;
     Gacha private _gacha;
 
