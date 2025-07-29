@@ -896,7 +896,8 @@ export const gachaAbi = [
       },
       { name: '_feeToken', internalType: 'address', type: 'address' },
       { name: '_spinFee', internalType: 'uint256', type: 'uint256' },
-      { name: '_protocolAddress', internalType: 'address', type: 'address' },
+      { name: '_treasury', internalType: 'address', type: 'address' },
+      { name: '_rewardsManager', internalType: 'address', type: 'address' },
     ],
     stateMutability: 'nonpayable',
   },
@@ -1069,6 +1070,15 @@ export const gachaAbi = [
       { name: '_legendaryWeight', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'setRarityWeights',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_rewardsManager', internalType: 'address', type: 'address' },
+    ],
+    name: 'setRewardsManager',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -1411,7 +1421,9 @@ export const gachaAbi = [
   { type: 'error', inputs: [], name: 'FeeWithdrawalFailed' },
   { type: 'error', inputs: [], name: 'InvalidFeeToken' },
   { type: 'error', inputs: [], name: 'InvalidRecipient' },
+  { type: 'error', inputs: [], name: 'InvalidRewardsManager' },
   { type: 'error', inputs: [], name: 'InvalidServiceHandler' },
+  { type: 'error', inputs: [], name: 'InvalidTreasuryContract' },
   { type: 'error', inputs: [], name: 'InvalidTriggerId' },
   { type: 'error', inputs: [], name: 'NoFeesToWithdraw' },
   {
@@ -1921,9 +1933,7 @@ export const gachaServiceHandlerAbi = [
         internalType: 'contract IWavsServiceManager',
         type: 'address',
       },
-      { name: 'feeToken', internalType: 'address', type: 'address' },
-      { name: 'spinFee', internalType: 'uint256', type: 'uint256' },
-      { name: 'protocolAddress', internalType: 'address', type: 'address' },
+      { name: 'gachaAddress', internalType: 'address', type: 'address' },
     ],
     stateMutability: 'nonpayable',
   },
@@ -4089,89 +4099,6 @@ export const pausableAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// RandomnessConsumer
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const randomnessConsumerAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      {
-        name: 'serviceManager',
-        internalType: 'contract IWavsServiceManager',
-        type: 'address',
-      },
-      { name: 'feeToken', internalType: 'address', type: 'address' },
-      { name: 'spinFee', internalType: 'uint256', type: 'uint256' },
-      { name: 'protocolAddress', internalType: 'address', type: 'address' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getGacha',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getGachaTreasury',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getServiceManager',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'envelope',
-        internalType: 'struct IWavsServiceHandler.Envelope',
-        type: 'tuple',
-        components: [
-          { name: 'eventId', internalType: 'bytes20', type: 'bytes20' },
-          { name: 'ordering', internalType: 'bytes12', type: 'bytes12' },
-          { name: 'payload', internalType: 'bytes', type: 'bytes' },
-        ],
-      },
-      {
-        name: 'signatureData',
-        internalType: 'struct IWavsServiceHandler.SignatureData',
-        type: 'tuple',
-        components: [
-          { name: 'signers', internalType: 'address[]', type: 'address[]' },
-          { name: 'signatures', internalType: 'bytes[]', type: 'bytes[]' },
-          { name: 'referenceBlock', internalType: 'uint32', type: 'uint32' },
-        ],
-      },
-    ],
-    name: 'handleSignedEnvelope',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'randomness',
-        internalType: 'bytes32',
-        type: 'bytes32',
-        indexed: false,
-      },
-    ],
-    name: 'RandomnessReceived',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // RarityDividendTracker
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -6117,6 +6044,15 @@ export const useWriteGachaSetRarityWeights =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setRewardsManager"`
+ */
+export const useWriteGachaSetRewardsManager =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaAbi,
+    functionName: 'setRewardsManager',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setSpinFee"`
  */
 export const useWriteGachaSetSpinFee = /*#__PURE__*/ createUseWriteContract({
@@ -6224,6 +6160,15 @@ export const useSimulateGachaSetRarityWeights =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaAbi,
     functionName: 'setRarityWeights',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setRewardsManager"`
+ */
+export const useSimulateGachaSetRewardsManager =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaAbi,
+    functionName: 'setRewardsManager',
   })
 
 /**
@@ -8784,84 +8729,6 @@ export const useWatchPausableUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: pausableAbi,
     eventName: 'Unpaused',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link randomnessConsumerAbi}__
- */
-export const useReadRandomnessConsumerContract =
-  /*#__PURE__*/ createUseReadContract({ abi: randomnessConsumerAbi })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link randomnessConsumerAbi}__ and `functionName` set to `"getGacha"`
- */
-export const useReadRandomnessConsumerGetGacha =
-  /*#__PURE__*/ createUseReadContract({
-    abi: randomnessConsumerAbi,
-    functionName: 'getGacha',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link randomnessConsumerAbi}__ and `functionName` set to `"getGachaTreasury"`
- */
-export const useReadRandomnessConsumerGetGachaTreasury =
-  /*#__PURE__*/ createUseReadContract({
-    abi: randomnessConsumerAbi,
-    functionName: 'getGachaTreasury',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link randomnessConsumerAbi}__ and `functionName` set to `"getServiceManager"`
- */
-export const useReadRandomnessConsumerGetServiceManager =
-  /*#__PURE__*/ createUseReadContract({
-    abi: randomnessConsumerAbi,
-    functionName: 'getServiceManager',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link randomnessConsumerAbi}__
- */
-export const useWriteRandomnessConsumerContract =
-  /*#__PURE__*/ createUseWriteContract({ abi: randomnessConsumerAbi })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link randomnessConsumerAbi}__ and `functionName` set to `"handleSignedEnvelope"`
- */
-export const useWriteRandomnessConsumerHandleSignedEnvelope =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: randomnessConsumerAbi,
-    functionName: 'handleSignedEnvelope',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link randomnessConsumerAbi}__
- */
-export const useSimulateRandomnessConsumerContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: randomnessConsumerAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link randomnessConsumerAbi}__ and `functionName` set to `"handleSignedEnvelope"`
- */
-export const useSimulateRandomnessConsumerHandleSignedEnvelope =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: randomnessConsumerAbi,
-    functionName: 'handleSignedEnvelope',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link randomnessConsumerAbi}__
- */
-export const useWatchRandomnessConsumerContract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: randomnessConsumerAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link randomnessConsumerAbi}__ and `eventName` set to `"RandomnessReceived"`
- */
-export const useWatchRandomnessConsumerRandomnessReceived =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: randomnessConsumerAbi,
-    eventName: 'RandomnessReceived',
   })
 
 /**

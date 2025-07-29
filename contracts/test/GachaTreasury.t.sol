@@ -12,7 +12,9 @@ contract GachaTreasuryTest is Test {
     address public user = address(0x2);
 
     function setUp() public {
-        treasury = new GachaTreasury(owner, address(0));
+        // Use a mock gacha address for testing
+        address mockGacha = address(0x999);
+        treasury = new GachaTreasury(owner, mockGacha);
         vm.prank(owner);
         nft = new SimpleERC721("TestNFT", "TNFT");
     }
@@ -24,9 +26,8 @@ contract GachaTreasuryTest is Test {
     }
 
     function testDepositNFT() public {
-        uint256 tokenId = nft.mint(owner);
-
         vm.startPrank(owner);
+        uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
         vm.stopPrank();
@@ -37,11 +38,10 @@ contract GachaTreasuryTest is Test {
     }
 
     function testDepositMultipleRarities() public {
+        vm.startPrank(owner);
         uint256 commonTokenId = nft.mint(owner);
         uint256 rareTokenId = nft.mint(owner);
         uint256 legendaryTokenId = nft.mint(owner);
-
-        vm.startPrank(owner);
         nft.approve(address(treasury), commonTokenId);
         nft.approve(address(treasury), rareTokenId);
         nft.approve(address(treasury), legendaryTokenId);
@@ -58,9 +58,8 @@ contract GachaTreasuryTest is Test {
     }
 
     function testWithdrawNFT() public {
-        uint256 tokenId = nft.mint(owner);
-
         vm.startPrank(owner);
+        uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
 
@@ -72,6 +71,7 @@ contract GachaTreasuryTest is Test {
     }
 
     function testOnlyOwnerCanDeposit() public {
+        vm.prank(owner);
         uint256 tokenId = nft.mint(user);
 
         vm.startPrank(user);
@@ -82,9 +82,8 @@ contract GachaTreasuryTest is Test {
     }
 
     function testOnlyOwnerCanWithdraw() public {
-        uint256 tokenId = nft.mint(owner);
-
         vm.startPrank(owner);
+        uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
         vm.stopPrank();
@@ -105,10 +104,9 @@ contract GachaTreasuryTest is Test {
     }
 
     function testGetTreasuryItems() public {
+        vm.startPrank(owner);
         uint256 tokenId1 = nft.mint(owner);
         uint256 tokenId2 = nft.mint(owner);
-
-        vm.startPrank(owner);
         nft.approve(address(treasury), tokenId1);
         nft.approve(address(treasury), tokenId2);
 
@@ -128,14 +126,17 @@ contract GachaTreasuryTest is Test {
 
         vm.prank(owner);
         vm.expectEmit(true, true, false, false);
-        emit GachaContractUpdated(address(0), gachaAddress);
+        emit GachaContractUpdated(address(0x999), gachaAddress); // Use the mock gacha address from setUp
         treasury.setGachaContract(gachaAddress);
 
         assertEq(treasury.gachaContract(), gachaAddress);
     }
 
     function testSendNFTToWinner() public {
+        vm.startPrank(owner);
         uint256 tokenId = nft.mint(owner);
+        vm.stopPrank();
+        
         address gachaAddress = address(0x123);
         address winner = address(0x456);
 
@@ -156,9 +157,8 @@ contract GachaTreasuryTest is Test {
     }
 
     function testSendNFTToWinnerOnlyGacha() public {
-        uint256 tokenId = nft.mint(owner);
-
         vm.startPrank(owner);
+        uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
         vm.stopPrank();

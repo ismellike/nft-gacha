@@ -35,7 +35,6 @@ tasks:
 
         WORKFLOW_ID=$(task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow add | jq -r .workflow_id)
 
-        # Configure workflow
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow trigger --id ${WORKFLOW_ID} set-evm --chain-name {{.TRIGGER_CHAIN}} --address ${GACHA_CONTRACT_ADDRESS} --event-hash {{.RANDOMNESS_REQUESTED_EVENT_HASH}}
           
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id ${WORKFLOW_ID} set-aggregator --url {{.WAVS_AGGREGATOR_ENDPOINT}} --address ${GACHA_SERVICE_HANDLER_ADDRESS} --chain-name {{.SUBMIT_CHAIN}}

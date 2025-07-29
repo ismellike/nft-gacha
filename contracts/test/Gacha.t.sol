@@ -23,13 +23,32 @@ contract GachaTest is Test {
     function setUp() public {
         feeToken = new ERC20Mock();
 
-        // Deploy contracts with proper ownership
+        // Simplified approach for testing - deploy in correct order
         vm.startPrank(owner);
-        gacha = new Gacha(owner, owner, address(feeToken), SPIN_FEE, address(0x999));
-        treasury = GachaTreasury(gacha.getTreasuryAddress());
-
+        
+        // Deploy treasury first (will update gacha address later)
+        treasury = new GachaTreasury(owner, address(0x998)); // temp address
+        
+        // Deploy a temporary rewards manager just to satisfy gacha constructor
+        GachaRewardsManager tempRewardsManager = new GachaRewardsManager(
+            owner, address(this), address(treasury), owner, address(feeToken)
+        );
+        
+        // Deploy gacha with temp rewards manager (using test contract as service handler for simplicity)
+        gacha = new Gacha(owner, address(this), address(feeToken), SPIN_FEE, address(treasury), address(tempRewardsManager));
+        
+        // Update treasury to recognize the real gacha contract
+        treasury.setGachaContract(address(gacha));
+        
+        // Now deploy the real rewards manager with the correct gacha address
+        GachaRewardsManager rewardsManager = new GachaRewardsManager(
+            owner, address(gacha), address(treasury), owner, address(feeToken)
+        );
+        
+        // Update gacha to use the correct rewards manager
+        gacha.setRewardsManager(address(rewardsManager));
+        
         // Setup the rewards system
-        GachaRewardsManager rewardsManager = gacha.rewardsManager();
         treasury.setTreasuryRewardsManager(address(rewardsManager));
         rewardsManager.deployAllRarityTokens();
         vm.stopPrank();
@@ -132,7 +151,7 @@ contract GachaTest is Test {
         uint256 initialUserNFTBalance = nft.balanceOf(user1);
         bytes32 randomness = keccak256("test_randomness");
 
-        vm.prank(owner);
+        // Call fulfillRandomness as the service handler (test contract)
         gacha.fulfillRandomness(triggerId, randomness);
 
         (address requester, bool fulfilled) = gacha.getSpinRequest(triggerId);
@@ -148,12 +167,12 @@ contract GachaTest is Test {
         vm.stopPrank();
 
         vm.prank(user2);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(Gacha.UnauthorizedServiceHandler.selector));
         gacha.fulfillRandomness(triggerId, keccak256("test"));
     }
 
     function testFulfillRandomnessInvalidTriggerId() public {
-        vm.prank(owner);
+        // Call as service handler (test contract)
         vm.expectRevert(abi.encodeWithSelector(Gacha.InvalidTriggerId.selector));
         gacha.fulfillRandomness(999, keccak256("test"));
     }
@@ -166,12 +185,11 @@ contract GachaTest is Test {
 
         bytes32 randomness = keccak256("test_randomness");
 
-        vm.startPrank(owner);
+        // Call as service handler (test contract)
         gacha.fulfillRandomness(triggerId, randomness);
 
         vm.expectRevert(abi.encodeWithSelector(Gacha.AlreadyFulfilled.selector));
         gacha.fulfillRandomness(triggerId, randomness);
-        vm.stopPrank();
     }
 
     function testSetSpinFee() public {
@@ -275,8 +293,13 @@ contract GachaTest is Test {
 
     function testSpinWithZeroFee() public {
         // Deploy gacha with zero fee
-        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(0x999));
-        GachaTreasury zeroFeeGachaTreasury = GachaTreasury(zeroFeeGacha.getTreasuryAddress());
+        // Deploy minimal treasury and rewards manager for zero fee test
+        GachaTreasury zeroTreasury = new GachaTreasury(owner, address(0x997));
+        GachaRewardsManager zeroRewards = new GachaRewardsManager(
+            owner, address(0x997), address(zeroTreasury), owner, address(0)
+        );
+        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury), address(zeroRewards));
+        GachaTreasury zeroFeeGachaTreasury = zeroTreasury;
 
         // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
         vm.startPrank(owner);
@@ -365,7 +388,7 @@ contract GachaTest is Test {
         // Use randomness that will select legendary (9900-9999 range for 1% legendary weight)
         bytes32 randomness = bytes32(uint256(9950)); // Will select legendary
 
-        vm.prank(owner);
+        // Call as service handler (test contract)
         vm.expectEmit(true, true, false, true);
         emit SpinRefunded(triggerId, user1, GachaTreasury.Rarity.Legendary, SPIN_FEE);
         gacha.fulfillRandomness(triggerId, randomness);
@@ -381,8 +404,13 @@ contract GachaTest is Test {
 
     function testRefundWithZeroFee() public {
         // Deploy gacha with zero fee
-        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(0x999));
-        GachaTreasury zeroFeeGachaTreasury = GachaTreasury(zeroFeeGacha.getTreasuryAddress());
+        // Deploy minimal treasury and rewards manager for zero fee test
+        GachaTreasury zeroTreasury2 = new GachaTreasury(owner, address(0x996));
+        GachaRewardsManager zeroRewards2 = new GachaRewardsManager(
+            owner, address(0x996), address(zeroTreasury2), owner, address(0)
+        );
+        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury2), address(zeroRewards2));
+        GachaTreasury zeroFeeGachaTreasury = zeroTreasury2;
 
         // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
         vm.startPrank(owner);

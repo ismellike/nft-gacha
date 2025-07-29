@@ -16,9 +16,9 @@ contract GachaServiceHandler is IWavsServiceHandler {
 
     event RandomnessReceived(bytes32 randomness);
 
-    constructor(IWavsServiceManager serviceManager, address feeToken, uint256 spinFee, address protocolAddress) {
+    constructor(IWavsServiceManager serviceManager, address gachaAddress) {
         _serviceManager = serviceManager;
-        _gacha = new Gacha(msg.sender, address(this), feeToken, spinFee, protocolAddress);
+        _gacha = Gacha(gachaAddress);
     }
 
     function getServiceManager() external view returns (address) {

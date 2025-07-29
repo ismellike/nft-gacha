@@ -31,16 +31,7 @@ tasks:
       WAVS_SERVICE_MANAGER_ADDRESS: "{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
     cmds:
       - |
-        # Check if WAVS chain is running
-        if ! nc -z localhost {{.ANVIL_PORT}}; then
-          echo "❌ WAVS chain not running on port {{.ANVIL_PORT}}"
-          echo "Start it with: task anvil:start"
-          exit 1
-        fi
-
-        echo "🚀 Deploying Gacha system using Forge script..."
-
-        forge script script/DeployLocal.s.sol:DeployLocal \
+        forge script script/DeployDirectLocal.s.sol:DeployDirectLocal \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
           --broadcast \
           --private-key $DEPLOYER_PRIVATE_KEY
@@ -68,4 +59,4 @@ tasks:
         echo "💰 Minting 10 ETH to $USER_ADDRESS..."
         cast send --value 10ether $USER_ADDRESS \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
-          --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+          --private-key $DEPLOYER_PRIVATE_KEY

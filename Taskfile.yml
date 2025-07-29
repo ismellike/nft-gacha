@@ -21,7 +21,17 @@ includes:
     taskfile: ./taskfile/cli.yml
 
 tasks:
+  clean-env:
+    desc: Clean .env.local file to ensure fresh addresses
+    cmds:
+      - |
+        if [ -f .env.local ]; then
+          rm .env.local
+          echo "🧹 Removed old .env.local file"
+        fi
+
   bootstrap:
+    deps: [clean-env]
     cmds:
       - |
         task backend:start 

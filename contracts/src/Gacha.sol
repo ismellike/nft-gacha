@@ -29,6 +29,8 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     error WeightsMustSumToTotal();
     error NoNFTsAvailable(GachaTreasury.Rarity rarity);
     error UnauthorizedServiceHandler();
+    error InvalidTreasuryContract();
+    error InvalidRewardsManager();
 
     struct SpinRequest {
         address requester;
@@ -83,19 +85,21 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         address _gachaServiceHandler,
         address _feeToken,
         uint256 _spinFee,
-        address _protocolAddress
+        address _treasury,
+        address _rewardsManager
     ) Ownable(_owner) {
         if (_gachaServiceHandler == address(0)) revert InvalidServiceHandler();
-        if (_spinFee == 0) revert InvalidFeeToken();
-        if (_feeToken == address(0)) revert InvalidFeeToken();
+        // Allow zero fee with zero address fee token, but not zero fee with non-zero token
+        if (_spinFee == 0 && _feeToken != address(0)) revert InvalidFeeToken();
+        if (_spinFee > 0 && _feeToken == address(0)) revert InvalidFeeToken();
+        if (_treasury == address(0)) revert InvalidTreasuryContract();
+        if (_rewardsManager == address(0)) revert InvalidRewardsManager();
 
         gachaServiceHandler = _gachaServiceHandler;
-        treasury = new GachaTreasury(_owner, address(this));
+        treasury = GachaTreasury(_treasury);
         feeToken = IERC20(_feeToken);
         spinFee = _spinFee;
-
-        // Create rewards manager
-        rewardsManager = new GachaRewardsManager(_owner, address(this), address(treasury), _protocolAddress, _feeToken);
+        rewardsManager = GachaRewardsManager(_rewardsManager);
 
         // Note: Treasury owner needs to call setRewardsManager separately after deployment
     }
@@ -313,5 +317,12 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     function emergencyUnpause() external onlyOwner {
         _unpause();
         emit EmergencyUnpause(msg.sender);
+    }
+
+    /// @notice Update rewards manager address (for testing/emergency purposes)
+    /// @dev Only owner can call this function
+    function setRewardsManager(address _rewardsManager) external onlyOwner {
+        if (_rewardsManager == address(0)) revert InvalidRewardsManager();
+        rewardsManager = GachaRewardsManager(_rewardsManager);
     }
 }
