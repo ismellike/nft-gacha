@@ -1,36 +1,55 @@
 "use client";
 
 import { Card, CardBody, CardHeader } from "@heroui/react";
+import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { 
 	useReadGachaTreasuryGetRarityCount,
 	useReadGachaGetRarityWeights 
 } from "../generated";
 import { env } from "../env";
+import RarityShowcaseModal from "./RarityShowcaseModal";
 
-export default function RarityBreakdown() {
-	// Rarity counts from treasury
-	const { data: commonCount } = useReadGachaTreasuryGetRarityCount({
+export interface RarityBreakdownRef {
+	refreshCounts: () => void;
+}
+
+const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
+	const [selectedRarity, setSelectedRarity] = useState<Rarity | null>(null);
+	const [isModalOpen, setIsModalOpen] = useState(false);
+
+	const handleRarityClick = (rarity: Rarity) => {
+		setSelectedRarity(rarity);
+		setIsModalOpen(true);
+	};
+
+	const handleModalClose = () => {
+		setIsModalOpen(false);
+		setSelectedRarity(null);
+	};
+
+	// Rarity counts from treasury with refetch functions
+	const { data: commonCount, refetch: refetchCommonCount } = useReadGachaTreasuryGetRarityCount({
 		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 		args: [Rarity.Common],
 	});
 
-	const { data: uncommonCount } = useReadGachaTreasuryGetRarityCount({
+	const { data: uncommonCount, refetch: refetchUncommonCount } = useReadGachaTreasuryGetRarityCount({
 		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 		args: [Rarity.Uncommon],
 	});
 
-	const { data: rareCount } = useReadGachaTreasuryGetRarityCount({
+	const { data: rareCount, refetch: refetchRareCount } = useReadGachaTreasuryGetRarityCount({
 		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 		args: [Rarity.Rare],
 	});
 
-	const { data: epicCount } = useReadGachaTreasuryGetRarityCount({
+	const { data: epicCount, refetch: refetchEpicCount } = useReadGachaTreasuryGetRarityCount({
 		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 		args: [Rarity.Epic],
 	});
 
-	const { data: legendaryCount } = useReadGachaTreasuryGetRarityCount({
+	const { data: legendaryCount, refetch: refetchLegendaryCount } = useReadGachaTreasuryGetRarityCount({
 		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 		args: [Rarity.Legendary],
 	});
@@ -39,6 +58,18 @@ export default function RarityBreakdown() {
 	const { data: rarityWeights } = useReadGachaGetRarityWeights({
 		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
 	});
+
+	// Expose refresh function to parent component
+	useImperativeHandle(ref, () => ({
+		refreshCounts: () => {
+			console.log('🔄 Refreshing rarity counts after spin completion');
+			refetchCommonCount();
+			refetchUncommonCount();
+			refetchRareCount();
+			refetchEpicCount();
+			refetchLegendaryCount();
+		}
+	}));
 
 	// Convert rarity weights to percentages (weights are in basis points, total 10000)
 	const getRarityPercentage = (index: number): number => {
@@ -88,14 +119,18 @@ export default function RarityBreakdown() {
 			</CardHeader>
 			<CardBody className="space-y-4">
 				{rarityStats.map((rarity) => (
-					<div key={rarity.name} className="group relative">
+					<div 
+						key={rarity.name} 
+						className="group relative cursor-pointer"
+						onClick={() => handleRarityClick(rarity.rarity)}
+					>
 						{/* Enhanced glow effect */}
 						<div
 							className={`absolute inset-0 bg-gradient-to-r ${rarity.bgGradient} rounded-xl blur-lg opacity-0 group-hover:opacity-40 transition-all duration-500 scale-95 group-hover:scale-100 ${rarity.glowColor}`}
 						></div>
 
 						{/* Main card with rarity-specific styling */}
-						<div className={`relative bg-content2/10 backdrop-blur-xl border ${rarity.borderColor} hover:${rarity.borderColor.replace('/50', '/80')} rounded-xl p-4 hover:bg-content2/20 transition-all duration-300 group-hover:shadow-lg ${rarity.glowColor}`}>
+						<div className={`relative bg-content2/10 backdrop-blur-xl border ${rarity.borderColor} hover:${rarity.borderColor.replace('/50', '/80')} rounded-xl p-4 hover:bg-content2/20 transition-all duration-300 group-hover:shadow-lg ${rarity.glowColor} group-hover:scale-[1.02] active:scale-[0.98]`}>
 							{/* Header with rarity name and stats */}
 							<div className="flex justify-between items-center mb-3">
 								<div
@@ -132,15 +167,29 @@ export default function RarityBreakdown() {
 							</div>
 
 							{/* Rarity description */}
-							<div className="mt-2 text-center">
+							<div className="mt-2 flex justify-between items-center">
 								<span className={`text-xs ${rarity.textColor} font-medium`}>
 									{rarity.description}
+								</span>
+								<span className="text-xs text-foreground/50">
+									Click to view NFTs →
 								</span>
 							</div>
 						</div>
 					</div>
 				))}
 			</CardBody>
+
+			{/* Rarity Showcase Modal */}
+			<RarityShowcaseModal
+				isOpen={isModalOpen}
+				onClose={handleModalClose}
+				rarity={selectedRarity}
+			/>
 		</Card>
 	);
-}
+});
+
+RarityBreakdown.displayName = 'RarityBreakdown';
+
+export default RarityBreakdown;

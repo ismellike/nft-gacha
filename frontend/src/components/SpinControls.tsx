@@ -22,25 +22,19 @@ import {
 	useReadTestTokenNonces,
 	gachaAbi,
 } from "../generated";
+import { GachaSpinState } from "../hooks/useGachaSpin";
 
 interface SpinControlsProps {
-	isWaitingForRandomness: boolean;
-	onSpinStart: () => void;
-	onSpinComplete: (triggerId: bigint) => void;
+	gachaSpin: GachaSpinState;
 }
 
-export default function SpinControls({ 
-	isWaitingForRandomness, 
-	onSpinStart,
-	onSpinComplete 
-}: SpinControlsProps) {
+export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 	const { address: userAddress, isConnected } = useAccount();
 	const chainId = useChainId();
 	const [permitDeadline, setPermitDeadline] = useState<bigint | null>(null);
 	const [usedSignature, setUsedSignature] = useState<string | null>(null);
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
 	const [localSpinning, setLocalSpinning] = useState(false);
-	const [hasActiveTransaction, setHasActiveTransaction] = useState(false);
 
 	// Gacha contract data
 	const { data: spinFee } = useReadGachaSpinFee({
@@ -111,7 +105,7 @@ export default function SpinControls({
 	// Enhanced state management with clear priorities
 	const isSigningPermit = isSignaturePending;
 	const isProcessingTransaction = isSpinWithPermitPending || isSpinWithPermitConfirming;
-	const isSpinning = localSpinning || isProcessingTransaction || (isWaitingForRandomness && hasActiveTransaction);
+	const isSpinning = localSpinning || isProcessingTransaction || gachaSpin.isWaitingForRandomness;
 	
 	// Enhanced debug logging
 	useEffect(() => {
@@ -120,22 +114,20 @@ export default function SpinControls({
 			isProcessingTransaction,
 			isSpinWithPermitPending,
 			isSpinWithPermitConfirming,
-			isWaitingForRandomness,
+			isWaitingForRandomness: gachaSpin.isWaitingForRandomness,
 			localSpinning,
-			hasActiveTransaction,
 			isSpinning,
 			buttonText: getButtonText()
 		});
-	}, [isSigningPermit, isProcessingTransaction, isSpinWithPermitPending, isSpinWithPermitConfirming, isWaitingForRandomness, localSpinning, hasActiveTransaction, isSpinning]);
+	}, [isSigningPermit, isProcessingTransaction, isSpinWithPermitPending, isSpinWithPermitConfirming, gachaSpin.isWaitingForRandomness, localSpinning, isSpinning]);
 
 	// Reset local spinning when parent indicates waiting is done
 	useEffect(() => {
-		if (!isWaitingForRandomness && localSpinning && hasActiveTransaction) {
-			console.log('🏁 Parent indicates spin finished, resetting local spinning state');
+		if (!gachaSpin.isWaitingForRandomness && localSpinning) {
+			console.log('🏁 Spin finished, resetting local spinning state');
 			setLocalSpinning(false);
-			setHasActiveTransaction(false);
 		}
-	}, [isWaitingForRandomness, localSpinning, hasActiveTransaction]);
+	}, [gachaSpin.isWaitingForRandomness, localSpinning]);
 	const hasSufficientBalance = spinFee && tokenBalance ? tokenBalance >= spinFee : false;
 	const canSpin = isConnected && spinFee && hasSufficientBalance && !paused;
 
@@ -160,8 +152,8 @@ export default function SpinControls({
 		// Then check transaction processing states
 		if (isProcessingTransaction) return "Spinning...";
 		
-		// Only show awaiting randomness if we have an active transaction AND parent confirms waiting
-		if (isWaitingForRandomness && hasActiveTransaction && !isSigningPermit && !isProcessingTransaction) {
+		// Show awaiting randomness whenever parent confirms we're waiting
+		if (gachaSpin.isWaitingForRandomness && !isSigningPermit && !isProcessingTransaction) {
 			return "Awaiting Randomness...";
 		}
 		
@@ -187,9 +179,8 @@ export default function SpinControls({
 			feeToken,
 			spinFee,
 			tokenNonce,
-			isWaitingForRandomness,
-			localSpinning,
-			hasActiveTransaction
+			isWaitingForRandomness: gachaSpin.isWaitingForRandomness,
+			localSpinning
 		});
 		
 		// CRITICAL: Only allow new spins if we're not already processing one
@@ -218,17 +209,15 @@ export default function SpinControls({
 			// FIRST: Reset all previous state immediately
 			console.log('🔄 Starting new spin - resetting all state');
 			setLocalSpinning(false);
-			setHasActiveTransaction(false);
 			setProcessedTxHash(null);
 			setUsedSignature(null); // Reset signature usage
-			onSpinStart(); // Notify parent to reset its state
+			gachaSpin.startSpin(); // Notify hook to reset its state
 			
 			// Small delay to ensure state is reset
 			await new Promise(resolve => setTimeout(resolve, 50));
 			
 			// NOW: Set up new spin state
 			setLocalSpinning(true);
-			setHasActiveTransaction(true);
 			
 			// Create permit signature
 			const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now
@@ -264,7 +253,6 @@ export default function SpinControls({
 			console.error("Error in spin click handler:", error);
 			// Reset state on error
 			setLocalSpinning(false);
-			setHasActiveTransaction(false);
 		}
 	};
 
@@ -298,7 +286,7 @@ export default function SpinControls({
 			
 			if (triggerId !== null) {
 				console.log('✅ Found trigger ID in receipt:', triggerId);
-				onSpinComplete(triggerId);
+				gachaSpin.completeSpin(triggerId);
 				setProcessedTxHash(spinWithPermitTxHash); // Mark as processed
 				// Keep localSpinning true until randomness is fulfilled
 			}
@@ -310,7 +298,7 @@ export default function SpinControls({
 			// Reset permit deadline
 			setPermitDeadline(null);
 		}
-	}, [isSpinWithPermitSuccess, spinReceiptData, spinWithPermitTxHash, processedTxHash, refetchBalance, refetchNonce, onSpinComplete]);
+	}, [isSpinWithPermitSuccess, spinReceiptData, spinWithPermitTxHash, processedTxHash, refetchBalance, refetchNonce, gachaSpin]);
 
 	// Handle permit signature completion with better error handling
 	useEffect(() => {
@@ -340,7 +328,6 @@ export default function SpinControls({
 				console.error("Error calling spinWithPermit:", error);
 				// Reset state on error
 				setLocalSpinning(false);
-				setHasActiveTransaction(false);
 			}
 		}
 	}, [signature, spinFee, feeToken, permitDeadline, usedSignature, spinWithPermit]);
@@ -358,7 +345,6 @@ export default function SpinControls({
 				signatureError
 			});
 			setLocalSpinning(false);
-			setHasActiveTransaction(false);
 		}
 	}, [hasError, spinWithPermitError, spinWithPermitReceiptError, signatureError]);
 
