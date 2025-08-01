@@ -34,6 +34,7 @@ tasks:
         forge script script/DeployDirectLocal.s.sol:DeployDirectLocal \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
           --broadcast \
+          --skip-simulation \
           --private-key $DEPLOYER_PRIVATE_KEY
     preconditions:
       - sh: '[ -n "$DEPLOYER_PRIVATE_KEY" ]'
@@ -49,6 +50,7 @@ tasks:
         forge script script/MintTestTokens.s.sol:MintTestTokens \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
           --broadcast \
+          --skip-simulation \
           --private-key $DEPLOYER_PRIVATE_KEY
 
   mint-eth:
@@ -56,7 +58,7 @@ tasks:
     dir: "{{.CONTRACTS_DIR}}"
     cmds:
       - |
-        echo "💰 Minting 10 ETH to $USER_ADDRESS..."
-        cast send --value 10ether $USER_ADDRESS \
+        echo "💰 Minting 1 ETH to $USER_ADDRESS..."
+        cast send --value 1ether $USER_ADDRESS \
           --rpc-url http://localhost:{{.ANVIL_PORT}} \
           --private-key $DEPLOYER_PRIVATE_KEY

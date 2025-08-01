@@ -5,8 +5,6 @@ silent: true
 dotenv: [".env", ".env.local"]
 
 includes:
-  anvil:
-    taskfile: ./taskfile/anvil.yml
   nft:
     taskfile: ./taskfile/nft.yml
   contracts:
