@@ -1,81 +1,178 @@
-# 🎲 NFT Gacha System
+# ⚡ NFT Gacha System
 
-> **The future of fair NFT distribution is here.** A provably fair, decentralized gacha platform where every spin is cryptographically guaranteed and every participant earns rewards.
+<div align="center">
 
-## ✨ Why This Matters
+**Provably Fair • Cryptographically Guaranteed • Elegantly Simple**
 
-NFT distribution has been broken from the start. Fixed-price mints lack excitement, Dutch auctions favor the wealthy, and traditional raffles can be manipulated. But what if collecting NFTs could be thrilling, fair, and rewarding for everyone involved?
+*Every spin is backed by decentralized randomness. No hidden algorithms, no manipulation—just pure randomness powered by WAVS-DRAND infrastructure.*
 
-- **🎲 Pure Excitement**: The thrill of not knowing what rarity you'll get until the moment it's revealed
-- **🔒 Cryptographically Fair**: WAVS-DRAND ensures every outcome is genuinely random and verifiable
-- **💰 Sustainable Rewards**: Contributors earn ongoing dividends, creating lasting value beyond initial sales
-- **⚖️ Transparent Odds**: No hidden mechanics - all probabilities and economics are on-chain
-- **🎮 Engaging Experience**: Turn NFT acquisition into an interactive game that people actually want to play
+</div>
+
+---
+
+## ✨ Core Features
+
+<table>
+<tr>
+<td width="50%">
+
+**🎲 Pure Randomness**  
+WAVS-DRAND powered cryptographic randomness ensures every spin is genuinely fair and verifiable on-chain.
+
+</td>
+<td width="50%">
+
+**⚡ Instant Reveals**  
+Smooth glassmorphism animations create an engaging, game-fi experience with immediate NFT reveals.
+
+</td>
+</tr>
+<tr>
+<td>
+
+**💎 Transparent Odds**  
+All rarity weights and probabilities are publicly visible—no hidden mechanics or manipulation possible.
+
+</td>
+<td>
+
+**🔄 Automatic Refunds**  
+If a selected rarity pool is empty, participants receive instant refunds without manual intervention.
+
+</td>
+</tr>
+</table>
 
 ## 🚀 Quick Start
 
-Get the complete gacha system running locally in under 5 minutes:
+<div align="center">
+
+### **Launch the complete gacha system in 3 steps**
+
+</div>
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd nft-gacha-new
+# 1. Clone and setup
+git clone <repo-url> && cd nft-gacha-new
 
-# Start the complete development environment
-task backend:start      # Launch WAVS infrastructure
-task contracts:deploy   # Deploy gacha system (50 NFTs across 5 rarities)
-task frontend:codegen   # Generate TypeScript bindings
-task frontend:sync-env  # Sync .env files with frontend
-task frontend:dev       # Start frontend at http://localhost:3000
+# 2. Configure environment (important!)
+cp .env.example .env
+# Edit .env with your wallet keys and settings
+
+# 3. Bootstrap everything
+task bootstrap
 ```
 
-That's it! You now have a fully functional NFT gacha system with:
-- 🎯 **50 NFTs** ready for spinning (10 per rarity tier)
-- 🔗 **Smart contracts** deployed to local WAVS chain
-- 🌐 **Frontend interface** for wallet connections and spins
-- ⚡ **Real randomness** via WAVS-DRAND integration
+<div align="center">
 
-## 🎮 How It Works
+**🎯 Complete System Ready** • **⚡ WAVS Infrastructure** • **🌐 Game-Fi Interface**
 
-### **For Players**
-1. **Connect Wallet** and approve token spending
-2. **Pay Spin Fee** to participate in the gacha
-3. **Get Fair Results** via cryptographic randomness
-4. **Receive NFT** from the selected rarity pool
-5. **Automatic Refund** if selected rarity is empty
+*Navigate to `http://localhost:3000` to start spinning*
 
-### **For NFT Contributors** 
-1. **Submit NFTs** with proposed rarity classification
-2. **Earn Dividends** from 90% of all spin fees automatically
-3. **Benefit from Multipliers** - rarer NFTs earn 3x more rewards
-4. **Build Passive Income** as the platform grows
+**⚠️ Don't forget to update your `.env` file before running `task bootstrap`**
 
-### **For Administrators**
-1. **Curate Quality** by approving/denying NFT submissions
-2. **Configure Economics** - adjust fees, weights, and multipliers
-3. **Monitor Health** with built-in treasury analytics
-4. **Emergency Controls** to pause if needed
+</div>
 
-## 📊 Proven Economics
+## 🎮 System Flow
 
-### **Rarity Distribution** 
+<div align="center">
+
+### **Three-Layer Architecture**
+
+</div>
+
+<table>
+<tr>
+<th width="33%" align="center">🎲 Players</th>
+<th width="33%" align="center">💎 Contributors</th>
+<th width="33%" align="center">⚙️ Administrators</th>
+</tr>
+<tr>
+<td valign="top">
+
+**Connect & Spin**
+- Link wallet via RainbowKit
+- Approve token spending  
+- Pay entry fee & spin
+- Receive random NFT
+- Get refunds if pools empty
+
+</td>
+<td valign="top">
+
+**Earn Dividends**
+- Submit NFTs by rarity
+- Receive 90% of spin fees
+- Benefit from rarity multipliers
+- Build passive income streams
+- Withdraw rewards anytime
+
+</td>
+<td valign="top">
+
+**Curate & Configure**
+- Approve/deny submissions
+- Adjust economic parameters
+- Monitor treasury health
+- Emergency pause controls
+- Analytics dashboard
+
+</td>
+</tr>
+</table>
+
+## 📊 Transparent Economics
+
+<div align="center">
+
+### **Mathematically Balanced • Cryptographically Fair**
+
+</div>
+
+<table>
+<tr>
+<th width="50%" align="center">🎲 Rarity Weights</th>
+<th width="50%" align="center">💰 Reward Distribution</th>
+</tr>
+<tr>
+<td valign="top">
+
 ```
-🎲 Every spin (0-9999):
-├── 0-6999   (70%) → Common NFTs    💚
-├── 7000-8999 (20%) → Uncommon NFTs  💙
-├── 9000-9599 (6%)  → Rare NFTs     💜  
-├── 9600-9899 (3%)  → Epic NFTs     🧡
-└── 9900-9999 (1%)  → Legendary NFTs ⭐
+Every spin (0-9999):
+
+💚  0-6999  (70%)  Common
+💙  7000-8999 (20%)  Uncommon  
+💜  9000-9599 (6%)   Rare
+🧡  9600-9899 (3%)   Epic
+⭐  9900-9999 (1%)   Legendary
 ```
 
-### **Reward System**
+</td>
+<td valign="top">
+
 ```
-💰 Every 100 token spin:
-├── 90 tokens → NFT Contributors
-│   ├── Common holders: 1.0x multiplier
-│   ├── Uncommon holders: 1.2x multiplier
-│   ├── Rare holders: 1.5x multiplier
-│   ├── Epic holders: 2.0x multiplier
-│   └── Legendary holders: 3.0x multiplier
-└── 10 tokens → Protocol Treasury
+Per 100 token spin:
+
+90 tokens → Contributors
+├─ 1.0x  Common holders
+├─ 1.2x  Uncommon holders  
+├─ 1.5x  Rare holders
+├─ 2.0x  Epic holders
+└─ 3.0x  Legendary holders
+
+10 tokens → Protocol
 ```
+
+</td>
+</tr>
+</table>
+
+---
+
+<div align="center">
+
+**Built with Game-Fi Elegance • Powered by Cryptographic Truth**
+
+*Experience the future of fair NFT distribution*
+
+</div>

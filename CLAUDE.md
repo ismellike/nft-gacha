@@ -31,11 +31,13 @@ The system consists of three main contracts:
 
 ### Frontend (`/frontend`)
 
-Next.js application with:
-- RainbowKit for wallet connections
-- Wagmi for Ethereum interactions
-- TypeScript for type safety
-- Biome for linting and formatting
+Next.js application with game-fi glassmorphism design system:
+- **Design Language**: Glassmorphism with `backdrop-blur-xl` effects, transparent borders (`border-white/20`), and gradient backgrounds
+- **Color Scheme**: Warning/orange gradients (`from-warning to-orange-400`) with content1/background transparency layers
+- **Animation Style**: Smooth spring animations with floating/breathing effects using Framer Motion
+- **Component Styling**: Cards use `bg-content1/20 backdrop-blur-xl` with `shadow-2xl` and rounded corners
+- **Interactive Elements**: Hover states with scale transforms and gradient shifts
+- **Tech Stack**: RainbowKit for wallet connections, Wagmi for Ethereum interactions, TypeScript for type safety
 
 ## Development Commands
 
@@ -56,9 +58,7 @@ forge snapshot                 # Gas usage snapshots
 ```bash
 cd frontend
 pnpm install                   # Install dependencies
-pnpm dev                       # Start development server
-pnpm build                     # Build for production
-pnpm start                     # Start production server
+tsc                           # Type check (preferred for development)
 pnpm lint                      # Run linter
 pnpm format                    # Format code
 ```
@@ -71,12 +71,39 @@ pnpm format                    # Format code
 - **WAVS Solidity**: Integration with WAVS randomness service
 
 ### Frontend
-- **Next.js 15**: React framework
-- **RainbowKit**: Wallet connection UI
-- **Wagmi**: React hooks for Ethereum
+- **Next.js 15**: React framework with App Router
+- **RainbowKit**: Wallet connection UI with glassmorphism theming
+- **Wagmi**: React hooks for Ethereum interactions
 - **Viem**: TypeScript Ethereum library
+- **Framer Motion**: Animation library for smooth transitions
+- **HeroUI**: Component library styled with glassmorphism design system
 
 ## Development Notes
+
+### Frontend Design System
+
+#### Glassmorphism Theme
+- **Background Layers**: Use `bg-content1/20` to `bg-content1/40` with `backdrop-blur-xl`
+- **Borders**: Consistent `border-white/20` or `border-white/30` for subtle definition
+- **Shadows**: Apply `shadow-xl` or `shadow-2xl` for depth
+- **Inner Highlights**: Add `from-white/10 to-transparent` gradient overlays for glass effect
+
+#### Color Palette
+- **Primary**: Warning/orange gradients (`from-warning to-orange-400`)
+- **Backgrounds**: Layered transparency (`from-background/95 to-background/80`)
+- **Accents**: Content1 variants (`from-content1/40 via-background/95 to-content1/30`)
+
+#### Animation Patterns
+- **Hover States**: Scale transforms `whileHover={{ scale: 1.02 }}` with spring transitions
+- **Loading**: Breathing animations with opacity and scale changes
+- **Reveals**: Spring animations with stagger delays for sequential reveals
+- **Interactive**: Pulse effects on buttons and floating animations for cards
+
+#### Component Standards
+- **Cards**: `bg-content1/20 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20`
+- **Buttons**: Glassmorphism with gradient backgrounds and hover state transitions
+- **Modals**: Full-screen `bg-background/95 backdrop-blur-xl` with centered content
+- **Icons**: Contained in glassmorphism containers with inner light effects
 
 ### Contract Architecture Patterns
 - Uses custom errors for gas efficiency

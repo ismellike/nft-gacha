@@ -123,7 +123,7 @@ export default function NFTRevealModal({
 	return (
 		<AnimatePresence>
 			<motion.div
-				className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md"
+				className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-xl"
 				variants={backdropVariants}
 				initial="hidden"
 				animate="visible"
@@ -204,103 +204,127 @@ export default function NFTRevealModal({
 							>
 								{/* Digital Vault Opening Sequence */}
 								<div className="relative w-80 h-80 flex items-center justify-center">
-									{/* Hexagonal Frame */}
+									{/* Circular Glassmorphism Frame */}
 									<motion.div
-										className="absolute inset-0"
-										style={{
-											clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)",
+										className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-br from-content1/30 via-warning/20 to-content1/30 backdrop-blur-xl border border-white/20 shadow-2xl"
+										animate={{
+											boxShadow: [
+												"0 0 30px rgba(255, 165, 0, 0.3), inset 0 0 30px rgba(255, 255, 255, 0.1)",
+												"0 0 60px rgba(255, 165, 0, 0.5), inset 0 0 40px rgba(255, 255, 255, 0.2)",
+												"0 0 30px rgba(255, 165, 0, 0.3), inset 0 0 30px rgba(255, 255, 255, 0.1)",
+											],
 										}}
-									>
-										<motion.div
-											className="w-full h-full bg-gradient-to-br from-warning/20 via-orange-400/30 to-warning/20 backdrop-blur-sm border-2 border-warning/40"
-											animate={{
-												boxShadow: [
-													"0 0 20px rgba(255, 165, 0, 0.3)",
-													"0 0 40px rgba(255, 165, 0, 0.5)",
-													"0 0 20px rgba(255, 165, 0, 0.3)",
-												],
-											}}
-											transition={{
-												duration: 2,
-												repeat: Infinity,
-												ease: "easeInOut",
-											}}
-										/>
-									</motion.div>
+										transition={{
+											duration: 3,
+											repeat: Infinity,
+											ease: "easeInOut",
+										}}
+									/>
+									
+									{/* Outer rotating ring */}
+									<motion.div
+										className="absolute inset-4 w-72 h-72 rounded-full border-2 border-warning/30"
+										animate={{ rotate: 360 }}
+										transition={{
+											duration: 8,
+											repeat: Infinity,
+											ease: "linear",
+										}}
+									/>
+									
+									{/* Inner counter-rotating ring */}
+									<motion.div
+										className="absolute inset-8 w-64 h-64 rounded-full border border-warning/20"
+										animate={{ rotate: -360 }}
+										transition={{
+											duration: 12,
+											repeat: Infinity,
+											ease: "linear",
+										}}
+									/>
 
-									{/* Progress Bars */}
-									<div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
-										{[...Array(5)].map((_, i) => (
+									{/* Data Loading Progress Bars */}
+									<div className="absolute inset-0 flex flex-col items-center justify-center space-y-3">
+										{[...Array(4)].map((_, i) => (
 											<motion.div
 												key={i}
-												className="w-48 h-1 bg-foreground/10 rounded-full overflow-hidden"
-												initial={{ opacity: 0, width: 0 }}
-												animate={{ opacity: 1, width: "12rem" }}
-												transition={{ delay: i * 0.2, duration: 0.5 }}
+												className="w-40 h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/20"
+												initial={{ opacity: 0, scale: 0 }}
+												animate={{ opacity: 1, scale: 1 }}
+												transition={{ delay: i * 0.15, duration: 0.4 }}
 											>
 												<motion.div
-													className="h-full bg-gradient-to-r from-warning to-orange-400 rounded-full"
+													className="h-full bg-gradient-to-r from-warning via-orange-400 to-warning rounded-full shadow-lg"
 													initial={{ width: "0%" }}
 													animate={{ width: "100%" }}
 													transition={{
-														delay: i * 0.3 + 0.5,
-														duration: 1.5,
+														delay: i * 0.2 + 0.6,
+														duration: 1.8,
 														ease: "easeOut",
 														repeat: Infinity,
 														repeatType: "loop",
-														repeatDelay: 2,
+														repeatDelay: 1,
 													}}
 												/>
 											</motion.div>
 										))}
 									</div>
 
-									{/* Center Icon */}
+									{/* Center Digital Vault Icon */}
 									<motion.div
 										className="absolute inset-0 flex items-center justify-center"
 										animate={{
-											scale: [1, 1.1, 1],
-											opacity: [0.7, 1, 0.7],
+											scale: [1, 1.15, 1],
+											opacity: [0.8, 1, 0.8],
 										}}
 										transition={{
-											duration: 2,
+											duration: 2.5,
 											repeat: Infinity,
 											ease: "easeInOut",
 										}}
 									>
-										<svg
-											className="w-16 h-16 text-warning drop-shadow-lg"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-											/>
-										</svg>
+										{/* Glassmorphism icon container */}
+										<div className="relative w-20 h-20 bg-gradient-to-br from-content1/40 to-content1/20 backdrop-blur-xl border border-white/30 rounded-2xl flex items-center justify-center shadow-xl">
+											<div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl" />
+											<svg
+												className="w-10 h-10 text-warning drop-shadow-lg relative z-10"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+												strokeWidth={2.5}
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+												/>
+											</svg>
+										</div>
 									</motion.div>
 
-									{/* Corner Accents */}
-									{[0, 1, 2, 3, 4, 5].map((corner) => (
+									{/* Orbital Access Points */}
+									{[0, 1, 2, 3, 4, 5, 6, 7].map((point) => (
 										<motion.div
-											key={corner}
-											className="absolute w-3 h-3 bg-warning rounded-full"
+											key={point}
+											className="absolute w-2 h-2 bg-gradient-to-br from-warning to-orange-400 rounded-full shadow-lg"
 											style={{
-												left: `${50 + 45 * Math.cos((corner * Math.PI) / 3)}%`,
-												top: `${50 + 45 * Math.sin((corner * Math.PI) / 3)}%`,
+												left: `${50 + 42 * Math.cos((point * Math.PI) / 4)}%`,
+												top: `${50 + 42 * Math.sin((point * Math.PI) / 4)}%`,
 												transform: "translate(-50%, -50%)",
 											}}
 											animate={{
-												scale: [0.8, 1.2, 0.8],
-												opacity: [0.5, 1, 0.5],
+												scale: [0.6, 1.4, 0.6],
+												opacity: [0.4, 1, 0.4],
+												boxShadow: [
+													"0 0 5px rgba(255, 165, 0, 0.3)",
+													"0 0 15px rgba(255, 165, 0, 0.8)",
+													"0 0 5px rgba(255, 165, 0, 0.3)",
+												],
 											}}
 											transition={{
-												duration: 1.5,
+												duration: 2,
 												repeat: Infinity,
-												delay: corner * 0.2,
+												delay: point * 0.25,
 												ease: "easeInOut",
 											}}
 										/>
@@ -369,30 +393,33 @@ export default function NFTRevealModal({
 
 									{/* Main NFT Card */}
 									<motion.div
-										className="relative w-96 h-[28rem] bg-gradient-to-br from-background/95 to-background/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden"
+										className="relative w-96 h-[28rem] bg-gradient-to-br from-content1/40 via-background/95 to-content1/30 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden"
 										whileHover={{ scale: 1.02 }}
 										transition={{ type: "spring", stiffness: 300 }}
 									>
+										{/* Inner glassmorphism layer */}
+										<div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl pointer-events-none" />
 										{/* Close Button */}
 										<motion.button
 											onClick={onClose}
-											className="absolute top-4 right-4 z-20 w-8 h-8 bg-background/80 hover:bg-background/90 rounded-full border border-white/20 shadow-lg backdrop-blur-sm flex items-center justify-center group"
+											className="absolute top-4 right-4 z-20 w-10 h-10 bg-gradient-to-br from-content1/60 to-content1/40 hover:from-content1/80 hover:to-content1/60 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group"
 											whileHover={{ scale: 1.1 }}
 											whileTap={{ scale: 0.95 }}
 											initial={{ opacity: 0, scale: 0 }}
 											animate={{ opacity: 1, scale: 1 }}
 											transition={{ delay: 0.5 }}
 										>
+											<div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl" />
 											<svg
-												className="w-4 h-4 text-foreground/70 group-hover:text-foreground transition-colors"
+												className="w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors relative z-10"
 												fill="none"
 												stroke="currentColor"
 												viewBox="0 0 24 24"
+												strokeWidth={2.5}
 											>
 												<path
 													strokeLinecap="round"
 													strokeLinejoin="round"
-													strokeWidth={2}
 													d="M6 18L18 6M6 6l12 12"
 												/>
 											</svg>
@@ -411,9 +438,10 @@ export default function NFTRevealModal({
 													animate={{ opacity: [0.3, 0.6, 0.3] }}
 													transition={{ duration: 2, repeat: Infinity }}
 												/>
-												<div className="relative px-6 py-3 bg-gradient-to-br from-background/90 to-background/70 backdrop-blur-xl rounded-2xl border border-white/30 shadow-xl">
+												<div className="relative px-6 py-3 bg-gradient-to-br from-content1/50 via-background/90 to-content1/40 backdrop-blur-xl rounded-2xl border border-white/30 shadow-xl">
+													<div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent rounded-2xl" />
 													<span
-														className={`${rarityConfig.textColor} font-bold text-xl flex items-center gap-3`}
+														className={`${rarityConfig.textColor} font-bold text-xl flex items-center gap-3 relative z-10`}
 													>
 														<motion.span
 															className="text-2xl"
@@ -448,7 +476,8 @@ export default function NFTRevealModal({
 												<div
 													className={`relative w-48 h-48 bg-gradient-to-br ${rarityConfig.bgGradient} rounded-2xl flex items-center justify-center border-2 border-white/40 shadow-xl`}
 												>
-													<div className="absolute inset-2 bg-gradient-to-br from-background/95 to-background/80 rounded-xl backdrop-blur-xl"></div>
+													<div className="absolute inset-2 bg-gradient-to-br from-content1/60 via-background/95 to-content1/40 rounded-xl backdrop-blur-xl"></div>
+													<div className="absolute inset-2 bg-gradient-to-br from-white/20 to-transparent rounded-xl"></div>
 
 													{/* Animated Crystal */}
 													<motion.div
