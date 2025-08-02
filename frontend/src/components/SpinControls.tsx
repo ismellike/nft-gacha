@@ -22,19 +22,23 @@ import {
 	useReadTestTokenNonces,
 	gachaAbi,
 } from "../generated";
-import { GachaSpinState } from "../hooks/useGachaSpin";
+import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
+import type { UseGachaSpinMachineReturn } from "../hooks/useGachaSpinMachine";
 
 interface SpinControlsProps {
-	gachaSpin: GachaSpinState;
+	gachaSpin: UseGachaSpinMachineReturn;
 }
 
-export default function SpinControls({ gachaSpin }: SpinControlsProps) {
+export default function SpinControls({
+	gachaSpin,
+}: SpinControlsProps) {
 	const { address: userAddress, isConnected } = useAccount();
 	const chainId = useChainId();
+
+	// Local state for permit handling
 	const [permitDeadline, setPermitDeadline] = useState<bigint | null>(null);
 	const [usedSignature, setUsedSignature] = useState<string | null>(null);
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
-	const [localSpinning, setLocalSpinning] = useState(false);
 
 	// Gacha contract data
 	const { data: spinFee } = useReadGachaSpinFee({
@@ -65,11 +69,13 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: tokenBalance, refetch: refetchBalance } = useReadErc20BalanceOf({
-		address: feeToken,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!(feeToken && userAddress) },
-	});
+	const { data: tokenBalance, refetch: refetchBalance } = useReadErc20BalanceOf(
+		{
+			address: feeToken,
+			args: userAddress ? [userAddress] : undefined,
+			query: { enabled: !!(feeToken && userAddress) },
+		},
+	);
 
 	const { data: tokenNonce, refetch: refetchNonce } = useReadTestTokenNonces({
 		address: feeToken,
@@ -102,93 +108,92 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 		hash: spinWithPermitTxHash,
 	});
 
-	// Enhanced state management with clear priorities
-	const isSigningPermit = isSignaturePending;
-	const isProcessingTransaction = isSpinWithPermitPending || isSpinWithPermitConfirming;
-	const isSpinning = localSpinning || isProcessingTransaction || gachaSpin.isWaitingForRandomness;
-	
-	// Enhanced debug logging
-	useEffect(() => {
-		console.log('🎛️ SpinControls state:', {
-			isSigningPermit,
-			isProcessingTransaction,
-			isSpinWithPermitPending,
-			isSpinWithPermitConfirming,
-			isWaitingForRandomness: gachaSpin.isWaitingForRandomness,
-			localSpinning,
-			isSpinning,
-			buttonText: getButtonText()
-		});
-	}, [isSigningPermit, isProcessingTransaction, isSpinWithPermitPending, isSpinWithPermitConfirming, gachaSpin.isWaitingForRandomness, localSpinning, isSpinning]);
-
-	// Reset local spinning when parent indicates waiting is done
-	useEffect(() => {
-		if (!gachaSpin.isWaitingForRandomness && localSpinning) {
-			console.log('🏁 Spin finished, resetting local spinning state');
-			setLocalSpinning(false);
-		}
-	}, [gachaSpin.isWaitingForRandomness, localSpinning]);
-	const hasSufficientBalance = spinFee && tokenBalance ? tokenBalance >= spinFee : false;
-	const canSpin = isConnected && spinFee && hasSufficientBalance && !paused;
+	// Derived state from state machine
+	const isProcessingTransaction =
+		isSpinWithPermitPending || isSpinWithPermitConfirming;
+	const hasSufficientBalance =
+		spinFee && tokenBalance ? tokenBalance >= spinFee : false;
+	const canSpin =
+		isConnected &&
+		spinFee &&
+		hasSufficientBalance &&
+		!paused &&
+		gachaSpin.isIdle;
 
 	// Formatted values
-	const formattedBalance = tokenBalance && tokenDecimals
-		? formatUnits(tokenBalance, tokenDecimals)
-		: "0";
+	const formattedBalance =
+		tokenBalance && tokenDecimals
+			? formatUnits(tokenBalance, tokenDecimals)
+			: "0";
 
 	const formatSpinFee = () => {
 		if (!spinFee || !tokenDecimals) return "Loading...";
 		return `${formatUnits(spinFee, tokenDecimals)} ${tokenSymbol || "TOKENS"}`;
 	};
 
-	// Enhanced button text logic with clear state priorities
+	// Enhanced button text logic using state machine states
 	const getButtonText = () => {
 		if (!isConnected) return "Connect Wallet";
 		if (paused) return "Contract Paused";
-		
-		// Critical: Check signing permit state first
-		if (isSigningPermit) return "Sign Permit...";
-		
-		// Then check transaction processing states
-		if (isProcessingTransaction) return "Spinning...";
-		
-		// Show awaiting randomness whenever parent confirms we're waiting
-		if (gachaSpin.isWaitingForRandomness && !isSigningPermit && !isProcessingTransaction) {
-			return "Awaiting Randomness...";
-		}
-		
-		// Standard validation checks
+
+		// State machine states
+		if (gachaSpin.isError)
+			return gachaSpin.canRetry ? "Retry Spin" : "Reset & Try Again";
+		if (isSignaturePending) return "Sign Permit...";
+		if (isProcessingTransaction) return "Confirming Transaction...";
+		if (gachaSpin.isSpinning) return "Preparing Spin...";
+		if (gachaSpin.isWaitingForFulfillment) return "Awaiting Randomness...";
+		if (gachaSpin.isRevealing) return "Revealing NFT...";
+
+		// Validation checks
 		if (!hasSufficientBalance) return "Insufficient Balance";
 		if (tokenNonce === undefined) return "Loading...";
-		
+
 		return "SPIN NOW";
 	};
 
 	const getButtonColor = () => {
 		if (!isConnected) return "primary";
 		if (paused || !hasSufficientBalance) return "danger";
+		if (gachaSpin.isError) return "warning";
 		return "warning";
 	};
 
-	// Enhanced button click handler with better state management
+	const isButtonDisabled = () => {
+		return (
+			!isConnected ||
+			paused ||
+			!canSpin ||
+			isSignaturePending ||
+			isProcessingTransaction ||
+			gachaSpin.isSpinning ||
+			gachaSpin.isWaitingForFulfillment ||
+			tokenNonce === undefined
+		);
+	};
+
+	// Enhanced button click handler
 	const onSpinClick = async () => {
-		console.log('🎯 Spin button clicked', {
+		console.log("🎯 [SpinControls] Spin button clicked", {
+			state: gachaSpin.state,
 			isConnected,
 			canSpin,
 			userAddress,
 			feeToken,
 			spinFee,
 			tokenNonce,
-			isWaitingForRandomness: gachaSpin.isWaitingForRandomness,
-			localSpinning
 		});
-		
-		// CRITICAL: Only allow new spins if we're not already processing one
-		if (isSpinning || isSigningPermit) {
-			console.log('⚠️ Already processing a spin, ignoring click');
+
+		// Handle retry for error state
+		if (gachaSpin.isError) {
+			if (gachaSpin.canRetry) {
+				gachaSpin.retry();
+			} else {
+				gachaSpin.reset();
+			}
 			return;
 		}
-		
+
 		// Validate spin conditions
 		if (
 			!isConnected ||
@@ -198,32 +203,19 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 			!spinFee ||
 			tokenNonce === undefined
 		) {
-			console.log('❌ Spin conditions not met', {
-				isConnected, canSpin, userAddress: !!userAddress, 
-				feeToken: !!feeToken, spinFee: !!spinFee, tokenNonce
-			});
+			console.log("❌ [SpinControls] Spin conditions not met");
 			return;
 		}
 
 		try {
-			// FIRST: Reset all previous state immediately
-			console.log('🔄 Starting new spin - resetting all state');
-			setLocalSpinning(false);
-			setProcessedTxHash(null);
-			setUsedSignature(null); // Reset signature usage
-			gachaSpin.startSpin(); // Notify hook to reset its state
-			
-			// Small delay to ensure state is reset
-			await new Promise(resolve => setTimeout(resolve, 50));
-			
-			// NOW: Set up new spin state
-			setLocalSpinning(true);
-			
+			// Start the spin in the state machine
+			gachaSpin.startSpin();
+
 			// Create permit signature
 			const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now
 			setPermitDeadline(deadline);
 
-			console.log('📝 Requesting permit signature...');
+			console.log("📝 [SpinControls] Requesting permit signature...");
 			signTypedData({
 				domain: {
 					name: tokenName,
@@ -250,62 +242,25 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 				},
 			});
 		} catch (error) {
-			console.error("Error in spin click handler:", error);
-			// Reset state on error
-			setLocalSpinning(false);
+			console.error("[SpinControls] Error in spin click handler:", error);
+			gachaSpin.reset();
 		}
 	};
 
-	// Effects
+	// Handle permit signature completion
 	useEffect(() => {
-		if (isSpinWithPermitSuccess && spinReceiptData && spinWithPermitTxHash && 
-			processedTxHash !== spinWithPermitTxHash) {
-			
-			console.log('📋 Processing spin transaction receipt:', spinWithPermitTxHash);
-			
-			// Extract trigger ID from RandomnessRequested event in transaction logs
-			let triggerId: bigint | null = null;
-			
-			for (const log of spinReceiptData.logs) {
-				try {
-					const decoded = decodeEventLog({
-						abi: gachaAbi,
-						data: log.data,
-						topics: log.topics,
-					});
-					
-					if (decoded.eventName === 'RandomnessRequested') {
-						triggerId = decoded.args.triggerId as bigint;
-						break;
-					}
-				} catch (error) {
-					// Skip logs that can't be decoded with our ABI
-					continue;
-				}
-			}
-			
-			if (triggerId !== null) {
-				console.log('✅ Found trigger ID in receipt:', triggerId);
-				gachaSpin.completeSpin(triggerId);
-				setProcessedTxHash(spinWithPermitTxHash); // Mark as processed
-				// Keep localSpinning true until randomness is fulfilled
-			}
-			
-			// Refetch balance after successful spin
-			refetchBalance();
-			// Refetch nonce for next permit
-			refetchNonce();
-			// Reset permit deadline
-			setPermitDeadline(null);
-		}
-	}, [isSpinWithPermitSuccess, spinReceiptData, spinWithPermitTxHash, processedTxHash, refetchBalance, refetchNonce, gachaSpin]);
-
-	// Handle permit signature completion with better error handling
-	useEffect(() => {
-		if (signature && spinFee && feeToken && permitDeadline && signature !== usedSignature) {
+		if (
+			signature &&
+			spinFee &&
+			feeToken &&
+			permitDeadline &&
+			signature !== usedSignature
+		) {
 			try {
-				console.log('✅ Permit signature received, submitting transaction...');
-				
+				console.log(
+					"✅ [SpinControls] Permit signature received, submitting transaction...",
+				);
+
 				// Parse signature hex string into r, s, v components
 				const sig = signature.slice(2); // remove 0x
 				const r = `0x${sig.slice(0, 64)}` as `0x${string}`;
@@ -325,28 +280,86 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 					args: [permitDeadline, v, r, s],
 				});
 			} catch (error) {
-				console.error("Error calling spinWithPermit:", error);
-				// Reset state on error
-				setLocalSpinning(false);
+				console.error("[SpinControls] Error calling spinWithPermit:", error);
+				gachaSpin.reset();
 			}
 		}
-	}, [signature, spinFee, feeToken, permitDeadline, usedSignature, spinWithPermit]);
+	}, [
+		signature,
+		spinFee,
+		feeToken,
+		permitDeadline,
+		usedSignature,
+		spinWithPermit,
+		gachaSpin,
+	]);
 
-
-	// Enhanced error handling with state reset
-	const hasError = spinWithPermitError || spinWithPermitReceiptError || signatureError;
-	
-	// Reset state on errors
+	// Handle transaction receipt
 	useEffect(() => {
-		if (hasError) {
-			console.error('❌ Transaction error detected, resetting state:', {
-				spinWithPermitError,
-				spinWithPermitReceiptError,
-				signatureError
-			});
-			setLocalSpinning(false);
+		if (
+			isSpinWithPermitSuccess &&
+			spinReceiptData &&
+			spinWithPermitTxHash &&
+			processedTxHash !== spinWithPermitTxHash
+		) {
+			console.log(
+				"📋 [SpinControls] Processing spin transaction receipt:",
+				spinWithPermitTxHash,
+			);
+
+			// Extract trigger ID from RandomnessRequested event in transaction logs
+			let triggerId: bigint | null = null;
+
+			for (const log of spinReceiptData.logs) {
+				try {
+					const decoded = decodeEventLog({
+						abi: gachaAbi,
+						data: log.data,
+						topics: log.topics,
+					});
+
+					if (decoded.eventName === "RandomnessRequested") {
+						triggerId = decoded.args.triggerId as bigint;
+						break;
+					}
+				} catch (error) {
+					// Skip logs that can't be decoded with our ABI
+					continue;
+				}
+			}
+
+			if (triggerId !== null) {
+				console.log(
+					"✅ [SpinControls] Found trigger ID in receipt:",
+					triggerId,
+				);
+				gachaSpin.confirmTransaction(triggerId);
+				setProcessedTxHash(spinWithPermitTxHash); // Mark as processed
+			}
+
+			// Refetch balance after successful spin
+			refetchBalance();
+			// Refetch nonce for next permit
+			refetchNonce();
+			// Reset permit deadline
+			setPermitDeadline(null);
 		}
-	}, [hasError, spinWithPermitError, spinWithPermitReceiptError, signatureError]);
+	}, [
+		isSpinWithPermitSuccess,
+		spinReceiptData,
+		spinWithPermitTxHash,
+		processedTxHash,
+		refetchBalance,
+		refetchNonce,
+		gachaSpin,
+	]);
+
+	// Enhanced error handling
+	const hasError =
+		spinWithPermitError ||
+		spinWithPermitReceiptError ||
+		signatureError ||
+		gachaSpin.isError;
 
 	return (
 		<Card className="bg-content1/20 backdrop-blur-xl border border-white/10 shadow-2xl">
@@ -377,11 +390,15 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 			</CardHeader>
 			<CardBody className="py-16">
 				<div className="flex flex-col items-center space-y-10">
-					{/* Enhanced Spinner Visual */}
+					{/* Enhanced Spinner Visual with State Machine States */}
 					<div className="relative group">
 						{/* Outer glow rings */}
 						<div
-							className={`absolute inset-0 w-64 h-64 rounded-full ${isSpinning ? "animate-pulse" : ""}`}
+							className={`absolute inset-0 w-64 h-64 rounded-full ${
+								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+									? "animate-pulse"
+									: ""
+							}`}
 						>
 							<div
 								className="w-full h-full rounded-full border-2 border-warning/20 animate-spin"
@@ -389,7 +406,11 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 							></div>
 						</div>
 						<div
-							className={`absolute inset-2 w-60 h-60 rounded-full ${isSpinning ? "animate-pulse" : ""}`}
+							className={`absolute inset-2 w-60 h-60 rounded-full ${
+								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+									? "animate-pulse"
+									: ""
+							}`}
 						>
 							<div
 								className="w-full h-full rounded-full border border-warning/10 animate-spin"
@@ -400,9 +421,15 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 							></div>
 						</div>
 
-						{/* Main spinner */}
+						{/* Main spinner with enhanced state-based styling */}
 						<div
-							className={`relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-orange-500 p-3 ${isSpinning ? "spin-wobble" : "hover:scale-105 transition-all duration-300"} shadow-2xl shadow-warning/20`}
+							className={`relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-orange-500 p-3 shadow-2xl shadow-warning/20 ${
+								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+									? "spin-wobble"
+									: gachaSpin.isError
+										? "animate-bounce"
+										: "hover:scale-105 transition-all duration-300"
+							}`}
 						>
 							{/* Inner glass surface */}
 							<div className="w-full h-full rounded-full bg-gradient-to-br from-background/95 to-background/80 backdrop-blur-xl flex items-center justify-center border border-warning/30 relative overflow-hidden">
@@ -412,7 +439,7 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 								{/* Logo */}
 								<div className="relative z-10 filter drop-shadow-2xl">
 									<svg
-										className="w-20 h-20 text-warning drop-shadow-lg"
+										className="w-20 h-20 drop-shadow-lg text-warning"
 										viewBox="227 210 589 590"
 										xmlns="http://www.w3.org/2000/svg"
 									>
@@ -432,6 +459,16 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 						</div>
 					</div>
 
+					{/* Error Display Only */}
+					{gachaSpin.isError && (
+						<div className="text-center p-4 bg-danger/10 border border-danger/20 rounded-lg">
+							<p className="text-danger text-sm mb-2">{gachaSpin.error}</p>
+							<p className="text-xs text-foreground/60">
+								Retry attempts: {gachaSpin.retryCount}/5
+							</p>
+						</div>
+					)}
+
 					{/* User balance display */}
 					{isConnected && (
 						<div className="text-center">
@@ -442,8 +479,10 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 						</div>
 					)}
 
-					{/* Error display */}
-					{hasError && (
+					{/* Error display for transaction errors */}
+					{(spinWithPermitError ||
+						spinWithPermitReceiptError ||
+						signatureError) && (
 						<div className="text-center p-4 bg-danger/10 border border-danger/20 rounded-lg">
 							<p className="text-danger text-sm">
 								Transaction failed. Please try again.
@@ -457,9 +496,13 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 						className="px-20 py-5 text-xl font-medium tracking-wide"
 						color={getButtonColor()}
 						variant="shadow"
-						isLoading={isSpinning || isSigningPermit}
+						isLoading={
+							isSignaturePending ||
+							isProcessingTransaction ||
+							gachaSpin.isSpinning
+						}
 						onPress={onSpinClick}
-						isDisabled={!isConnected || paused || isSpinning || isSigningPermit}
+						isDisabled={isButtonDisabled()}
 					>
 						{getButtonText()}
 					</Button>

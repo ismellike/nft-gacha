@@ -68,4 +68,5 @@ export const RARITY_CONFIG = {
 
 export const getRarityConfig = (rarity: Rarity) => RARITY_CONFIG[rarity];
 
-export const getAllRarities = () => Object.values(Rarity).filter(v => typeof v === 'number') as Rarity[];
+export const getAllRarities = () =>
+	Object.values(Rarity).filter((v) => typeof v === "number") as Rarity[];

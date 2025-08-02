@@ -208,6 +208,16 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         return rarityCount[rarity];
     }
 
+    /// @notice Gets all rarity counts in a single call to reduce RPC usage
+    /// @return counts Array of rarity counts [Common, Uncommon, Rare, Epic, Legendary]
+    function getAllRarityCounts() external view returns (uint256[5] memory counts) {
+        counts[0] = rarityCount[Rarity.Common];
+        counts[1] = rarityCount[Rarity.Uncommon];
+        counts[2] = rarityCount[Rarity.Rare];
+        counts[3] = rarityCount[Rarity.Epic];
+        counts[4] = rarityCount[Rarity.Legendary];
+    }
+
     function getTotalItemsCount() external view returns (uint256) {
         return rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + rarityCount[Rarity.Rare]
             + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];

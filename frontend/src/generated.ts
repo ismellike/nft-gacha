@@ -2130,6 +2130,15 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getAllRarityCounts',
+    outputs: [
+      { name: 'counts', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'pendingId', internalType: 'uint256', type: 'uint256' }],
     name: 'getPendingDeposit',
     outputs: [
@@ -6930,6 +6939,15 @@ export const useReadGachaTreasuryGachaContract =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'gachaContract',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllRarityCounts"`
+ */
+export const useReadGachaTreasuryGetAllRarityCounts =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getAllRarityCounts',
   })
 
 /**

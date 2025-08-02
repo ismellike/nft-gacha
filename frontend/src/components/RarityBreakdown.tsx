@@ -3,9 +3,9 @@
 import { Card, CardBody, CardHeader } from "@heroui/react";
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { 
-	useReadGachaTreasuryGetRarityCount,
-	useReadGachaGetRarityWeights 
+import {
+	useReadGachaTreasuryGetAllRarityCounts,
+	useReadGachaGetRarityWeights,
 } from "../generated";
 import { env } from "../env";
 import RarityShowcaseModal from "./RarityShowcaseModal";
@@ -28,31 +28,11 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		setSelectedRarity(null);
 	};
 
-	// Rarity counts from treasury with refetch functions
-	const { data: commonCount, refetch: refetchCommonCount } = useReadGachaTreasuryGetRarityCount({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
-		args: [Rarity.Common],
-	});
-
-	const { data: uncommonCount, refetch: refetchUncommonCount } = useReadGachaTreasuryGetRarityCount({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
-		args: [Rarity.Uncommon],
-	});
-
-	const { data: rareCount, refetch: refetchRareCount } = useReadGachaTreasuryGetRarityCount({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
-		args: [Rarity.Rare],
-	});
-
-	const { data: epicCount, refetch: refetchEpicCount } = useReadGachaTreasuryGetRarityCount({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
-		args: [Rarity.Epic],
-	});
-
-	const { data: legendaryCount, refetch: refetchLegendaryCount } = useReadGachaTreasuryGetRarityCount({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
-		args: [Rarity.Legendary],
-	});
+	// Batch fetch all rarity counts in single RPC call
+	const { data: allRarityCounts, refetch: refetchAllRarityCounts } =
+		useReadGachaTreasuryGetAllRarityCounts({
+			address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+		});
 
 	// Rarity weights from gacha contract
 	const { data: rarityWeights } = useReadGachaGetRarityWeights({
@@ -62,13 +42,9 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	// Expose refresh function to parent component
 	useImperativeHandle(ref, () => ({
 		refreshCounts: () => {
-			console.log('🔄 Refreshing rarity counts after spin completion');
-			refetchCommonCount();
-			refetchUncommonCount();
-			refetchRareCount();
-			refetchEpicCount();
-			refetchLegendaryCount();
-		}
+			console.log("🔄 Refreshing rarity counts after spin completion");
+			refetchAllRarityCounts();
+		},
 	}));
 
 	// Convert rarity weights to percentages (weights are in basis points, total 10000)
@@ -82,31 +58,31 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 			rarity: Rarity.Common,
 			...getRarityConfig(Rarity.Common),
 			percentage: getRarityPercentage(0),
-			count: Number(commonCount || 0),
+			count: Number(allRarityCounts?.[0] || 0),
 		},
 		{
 			rarity: Rarity.Uncommon,
 			...getRarityConfig(Rarity.Uncommon),
 			percentage: getRarityPercentage(1),
-			count: Number(uncommonCount || 0),
+			count: Number(allRarityCounts?.[1] || 0),
 		},
 		{
 			rarity: Rarity.Rare,
 			...getRarityConfig(Rarity.Rare),
 			percentage: getRarityPercentage(2),
-			count: Number(rareCount || 0),
+			count: Number(allRarityCounts?.[2] || 0),
 		},
 		{
 			rarity: Rarity.Epic,
 			...getRarityConfig(Rarity.Epic),
 			percentage: getRarityPercentage(3),
-			count: Number(epicCount || 0),
+			count: Number(allRarityCounts?.[3] || 0),
 		},
 		{
 			rarity: Rarity.Legendary,
 			...getRarityConfig(Rarity.Legendary),
 			percentage: getRarityPercentage(4),
-			count: Number(legendaryCount || 0),
+			count: Number(allRarityCounts?.[4] || 0),
 		},
 	] as const;
 
@@ -119,8 +95,8 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 			</CardHeader>
 			<CardBody className="space-y-4">
 				{rarityStats.map((rarity) => (
-					<div 
-						key={rarity.name} 
+					<div
+						key={rarity.name}
 						className="group relative cursor-pointer"
 						onClick={() => handleRarityClick(rarity.rarity)}
 					>
@@ -130,7 +106,9 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 						></div>
 
 						{/* Main card with rarity-specific styling */}
-						<div className={`relative bg-content2/10 backdrop-blur-xl border ${rarity.borderColor} hover:${rarity.borderColor.replace('/50', '/80')} rounded-xl p-4 hover:bg-content2/20 transition-all duration-300 group-hover:shadow-lg ${rarity.glowColor} group-hover:scale-[1.02] active:scale-[0.98]`}>
+						<div
+							className={`relative bg-content2/10 backdrop-blur-xl border ${rarity.borderColor} hover:${rarity.borderColor.replace("/50", "/80")} rounded-xl p-4 hover:bg-content2/20 transition-all duration-300 group-hover:shadow-lg ${rarity.glowColor} group-hover:scale-[1.02] active:scale-[0.98]`}
+						>
 							{/* Header with rarity name and stats */}
 							<div className="flex justify-between items-center mb-3">
 								<div
@@ -190,6 +168,6 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	);
 });
 
-RarityBreakdown.displayName = 'RarityBreakdown';
+RarityBreakdown.displayName = "RarityBreakdown";
 
 export default RarityBreakdown;

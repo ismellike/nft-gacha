@@ -180,7 +180,8 @@ a {
 }
 
 @keyframes float {
-	0%, 100% {
+	0%,
+	100% {
 		transform: translateY(0px) rotate(0deg);
 		opacity: 0;
 	}
@@ -246,7 +247,8 @@ a {
 }
 
 @keyframes floatGentle {
-	0%, 100% {
+	0%,
+	100% {
 		transform: translateY(0px) scale(1);
 		opacity: 0.6;
 	}
@@ -257,7 +259,8 @@ a {
 }
 
 @keyframes sparkle {
-	0%, 100% {
+	0%,
+	100% {
 		opacity: 0;
 		transform: scale(0);
 	}
@@ -290,17 +293,21 @@ a {
 }
 
 @keyframes glow {
-	0%, 100% {
+	0%,
+	100% {
 		box-shadow: 0 0 20px currentColor;
 	}
 	50% {
-		box-shadow: 0 0 40px currentColor, 0 0 60px currentColor;
+		box-shadow:
+			0 0 40px currentColor,
+			0 0 60px currentColor;
 	}
 }
 
 /* Floating animation with more natural movement */
 @keyframes floatNatural {
-	0%, 100% {
+	0%,
+	100% {
 		transform: translateY(0px) rotate(0deg);
 	}
 	25% {
@@ -316,7 +323,8 @@ a {
 
 /* Enhanced gacha spinner animations */
 @keyframes orbitalFloat {
-	0%, 100% {
+	0%,
+	100% {
 		transform: translateY(0px) scale(1);
 	}
 	33% {
@@ -328,13 +336,16 @@ a {
 }
 
 @keyframes crystalPulse {
-	0%, 100% {
+	0%,
+	100% {
 		transform: scale(1) rotate(0deg);
 		box-shadow: 0 0 20px rgba(255, 193, 7, 0.3);
 	}
 	50% {
 		transform: scale(1.1) rotate(2deg);
-		box-shadow: 0 0 30px rgba(255, 193, 7, 0.6), 0 0 40px rgba(255, 193, 7, 0.3);
+		box-shadow:
+			0 0 30px rgba(255, 193, 7, 0.6),
+			0 0 40px rgba(255, 193, 7, 0.3);
 	}
 }
 
@@ -355,7 +366,8 @@ a {
 
 /* Rarity ring glow animations */
 @keyframes rarityGlow {
-	0%, 100% {
+	0%,
+	100% {
 		opacity: 0.2;
 		filter: blur(0px);
 	}

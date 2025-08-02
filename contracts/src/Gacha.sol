@@ -15,7 +15,7 @@ import {GachaRewardsManager} from "./GachaRewardsManager.sol";
 /// @dev Uses external randomness service for fair distribution
 contract Gacha is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
-    
+
     // Custom errors for gas efficiency
     error InvalidFeeToken();
     error InvalidServiceHandler();
@@ -129,12 +129,12 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     /// @param r Half of the ECDSA signature pair
     /// @param s Half of the ECDSA signature pair
     /// @return triggerId The unique identifier for this spin request
-    function spinWithPermit(
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external whenNotPaused nonReentrant returns (uint256 triggerId) {
+    function spinWithPermit(uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256 triggerId)
+    {
         if (spinFee > 0 && address(feeToken) == address(0)) revert InvalidFeeToken();
 
         // Check that all rarities with non-zero weights have at least one NFT
@@ -200,14 +200,14 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         // Select random NFT from the rarity pool
         uint256 selectedIndex = uint256(keccak256(abi.encode(randomness, selectedRarity))) % availableCount;
 
-        // Send NFT from treasury to requester
-        GachaTreasury.NFTItem memory selectedNFT =
-            treasury.sendNFTToWinner(selectedRarity, selectedIndex, request.requester);
-
         // Distribute rewards from spin fee
         if (spinFee > 0) {
             _distributeSpinRewards();
         }
+
+        // Send NFT from treasury to requester
+        GachaTreasury.NFTItem memory selectedNFT =
+            treasury.sendNFTToWinner(selectedRarity, selectedIndex, request.requester);
 
         emit SpinCompleted(triggerId, request.requester, selectedRarity, selectedNFT.collection, selectedNFT.tokenId);
     }

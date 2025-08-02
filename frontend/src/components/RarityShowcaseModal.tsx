@@ -1,23 +1,21 @@
 "use client";
 
-import { 
-	Modal, 
-	ModalContent, 
-	ModalHeader, 
-	ModalBody, 
-	ModalFooter, 
-	Button, 
-	Card, 
-	CardBody, 
-	Image, 
+import {
+	Modal,
+	ModalContent,
+	ModalHeader,
+	ModalBody,
+	ModalFooter,
+	Button,
+	Card,
+	CardBody,
+	Image,
 	Chip,
-	Spinner
+	Spinner,
 } from "@heroui/react";
 import { env } from "../env";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import {
-	useReadGachaTreasuryGetTreasuryItems,
-} from "../generated";
+import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
 
 // NFT Item type matching the contract
 interface NFTItem {
@@ -33,13 +31,17 @@ interface RarityShowcaseModalProps {
 	rarity: Rarity | null;
 }
 
-export default function RarityShowcaseModal({ 
-	isOpen, 
-	onClose, 
-	rarity 
+export default function RarityShowcaseModal({
+	isOpen,
+	onClose,
+	rarity,
 }: RarityShowcaseModalProps) {
 	// Fetch NFTs for the selected rarity
-	const { data: nftItems, isLoading, error } = useReadGachaTreasuryGetTreasuryItems({
+	const {
+		data: nftItems,
+		isLoading,
+		error,
+	} = useReadGachaTreasuryGetTreasuryItems({
 		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 		args: rarity !== null ? [rarity] : undefined,
 		query: { enabled: rarity !== null && isOpen },
@@ -64,8 +66,8 @@ export default function RarityShowcaseModal({
 	const formattedItems = formatNFTItems(nftItems);
 
 	return (
-		<Modal 
-			isOpen={isOpen} 
+		<Modal
+			isOpen={isOpen}
 			onClose={onClose}
 			size="5xl"
 			scrollBehavior="inside"
@@ -98,22 +100,30 @@ export default function RarityShowcaseModal({
 						)}
 					</div>
 					<p className="text-sm text-foreground/70 font-normal">
-						{rarityConfig.description} • {rarityConfig.dropRate} drop rate
+						{rarityConfig.description}
 					</p>
 				</ModalHeader>
-				
+
 				<ModalBody>
 					{isLoading ? (
 						<div className="flex flex-col items-center justify-center py-20">
-							<Spinner 
-								size="lg" 
+							<Spinner
+								size="lg"
 								color="primary"
 								classNames={{
-									circle1: rarityConfig.borderColor.replace('border-', 'border-t-'),
-									circle2: rarityConfig.borderColor.replace('border-', 'border-b-'),
+									circle1: rarityConfig.borderColor.replace(
+										"border-",
+										"border-t-",
+									),
+									circle2: rarityConfig.borderColor.replace(
+										"border-",
+										"border-b-",
+									),
 								}}
 							/>
-							<p className="text-foreground/70 mt-4">Loading {rarityConfig.name} NFTs...</p>
+							<p className="text-foreground/70 mt-4">
+								Loading {rarityConfig.name} NFTs...
+							</p>
 						</div>
 					) : error ? (
 						<div className="text-center py-20">
@@ -132,7 +142,8 @@ export default function RarityShowcaseModal({
 								No NFTs Available
 							</h4>
 							<p className="text-foreground/70">
-								There are currently no NFTs in the {rarityConfig.name} rarity tier.
+								There are currently no NFTs in the {rarityConfig.name} rarity
+								tier.
 							</p>
 						</div>
 					) : (
@@ -140,7 +151,7 @@ export default function RarityShowcaseModal({
 							{formattedItems.map((item, index) => (
 								<Card
 									key={`${item.collection}-${item.tokenId}`}
-									className={`group bg-content2/10 backdrop-blur-xl border ${rarityConfig.borderColor} hover:${rarityConfig.borderColor.replace('/50', '/80')} transition-all duration-300 hover:shadow-lg ${rarityConfig.glowColor}`}
+									className={`group bg-content2/10 backdrop-blur-xl border ${rarityConfig.borderColor} hover:${rarityConfig.borderColor.replace("/50", "/80")} transition-all duration-300 hover:shadow-lg ${rarityConfig.glowColor}`}
 								>
 									<CardBody className="p-0">
 										{/* NFT Image */}
@@ -165,25 +176,33 @@ export default function RarityShowcaseModal({
 												</Chip>
 											</div>
 											{/* Rarity glow overlay */}
-											<div className={`absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-300 bg-gradient-to-br ${rarityConfig.bgGradient}`}></div>
+											<div
+												className={`absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-300 bg-gradient-to-br ${rarityConfig.bgGradient}`}
+											></div>
 										</div>
 
 										{/* NFT Details */}
 										<div className="p-3">
-											<h5 className={`font-semibold ${rarityConfig.textColor} mb-2 text-sm`}>
+											<h5
+												className={`font-semibold ${rarityConfig.textColor} mb-2 text-sm`}
+											>
 												NFT #{item.tokenId}
 											</h5>
 											<div className="space-y-1 text-xs">
 												<div className="flex justify-between">
-													<span className="text-foreground/60">Collection:</span>
+													<span className="text-foreground/60">
+														Collection:
+													</span>
 													<span className="text-foreground font-mono">
-														{item.collection.slice(0, 6)}...{item.collection.slice(-4)}
+														{item.collection.slice(0, 6)}...
+														{item.collection.slice(-4)}
 													</span>
 												</div>
 												<div className="flex justify-between">
 													<span className="text-foreground/60">Depositor:</span>
 													<span className="text-foreground font-mono">
-														{item.depositor.slice(0, 6)}...{item.depositor.slice(-4)}
+														{item.depositor.slice(0, 6)}...
+														{item.depositor.slice(-4)}
 													</span>
 												</div>
 											</div>
@@ -194,11 +213,11 @@ export default function RarityShowcaseModal({
 						</div>
 					)}
 				</ModalBody>
-				
+
 				<ModalFooter>
-					<Button 
-						color="primary" 
-						variant="light" 
+					<Button
+						color="primary"
+						variant="light"
 						onPress={onClose}
 						className="hover:bg-primary/10"
 					>
