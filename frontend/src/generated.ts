@@ -1567,6 +1567,17 @@ export const gachaRewardsManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getGlobalAnalytics',
+    outputs: [
+      { name: 'totalSpins', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalFees', internalType: 'uint256', type: 'uint256' },
+      { name: 'protocolFees', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       {
         name: 'rarity',
@@ -1576,6 +1587,17 @@ export const gachaRewardsManagerAbi = [
     ],
     name: 'getRarityToken',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserAnalytics',
+    outputs: [
+      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimable', internalType: 'uint256', type: 'uint256' },
+      { name: 'spinCount', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -1712,6 +1734,13 @@ export const gachaRewardsManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'totalSpinCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
     name: 'transferOwnership',
     outputs: [],
@@ -1724,6 +1753,20 @@ export const gachaRewardsManagerAbi = [
     outputs: [
       { name: '', internalType: 'contract GachaTreasury', type: 'address' },
     ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userSpinCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userTotalRewardsClaimed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -1882,6 +1925,14 @@ export const gachaRewardsManagerAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+    ],
+    name: 'SpinRecorded',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
       {
         name: 'account',
         internalType: 'address',
@@ -1890,6 +1941,20 @@ export const gachaRewardsManagerAbi = [
       },
     ],
     name: 'Unpaused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'UserRewardsClaimed',
   },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
@@ -6407,12 +6472,30 @@ export const useReadGachaRewardsManagerGetAllRarityTokens =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getGlobalAnalytics"`
+ */
+export const useReadGachaRewardsManagerGetGlobalAnalytics =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getGlobalAnalytics',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getRarityToken"`
  */
 export const useReadGachaRewardsManagerGetRarityToken =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
     functionName: 'getRarityToken',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getUserAnalytics"`
+ */
+export const useReadGachaRewardsManagerGetUserAnalytics =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getUserAnalytics',
   })
 
 /**
@@ -6497,12 +6580,39 @@ export const useReadGachaRewardsManagerTotalProtocolFees =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"totalSpinCount"`
+ */
+export const useReadGachaRewardsManagerTotalSpinCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'totalSpinCount',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"treasuryContract"`
  */
 export const useReadGachaRewardsManagerTreasuryContract =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
     functionName: 'treasuryContract',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"userSpinCount"`
+ */
+export const useReadGachaRewardsManagerUserSpinCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'userSpinCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"userTotalRewardsClaimed"`
+ */
+export const useReadGachaRewardsManagerUserTotalRewardsClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'userTotalRewardsClaimed',
   })
 
 /**
@@ -6812,12 +6922,30 @@ export const useWatchGachaRewardsManagerRarityTokenDeployed =
   })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"SpinRecorded"`
+ */
+export const useWatchGachaRewardsManagerSpinRecorded =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaRewardsManagerAbi,
+    eventName: 'SpinRecorded',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"Unpaused"`
  */
 export const useWatchGachaRewardsManagerUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
     eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"UserRewardsClaimed"`
+ */
+export const useWatchGachaRewardsManagerUserRewardsClaimed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaRewardsManagerAbi,
+    eventName: 'UserRewardsClaimed',
   })
 
 /**

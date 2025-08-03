@@ -53,7 +53,7 @@ If a selected rarity pool is empty, participants receive instant refunds without
 
 ```bash
 # 1. Clone and setup
-git clone <repo-url> && cd nft-gacha-new
+git clone <repo-url> && cd nft-gacha
 
 # 2. Configure environment (important!)
 cp .env.example .env

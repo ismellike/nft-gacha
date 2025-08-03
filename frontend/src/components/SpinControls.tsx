@@ -8,6 +8,9 @@ import {
 	useSignTypedData,
 	useChainId,
 } from "wagmi";
+import { cn, glassmorphism, colors, components } from "../lib/theme";
+import { GlassCard, GlassButton, GlassBadge, TokenFeeDisplay } from "./ui";
+import { ThemedIcon } from "../lib/icons";
 import { formatUnits, decodeEventLog } from "viem";
 import { env } from "../env";
 import {
@@ -362,35 +365,24 @@ export default function SpinControls({
 		gachaSpin.isError;
 
 	return (
-		<Card className="bg-content1/20 backdrop-blur-xl border border-white/10 shadow-2xl">
-			<CardHeader className="pb-8">
+		<GlassCard
+			header={
 				<div className="flex justify-between items-center w-full">
-					<h2 className="text-3xl font-light text-foreground tracking-tight">
+					<h2 className={components.header.main}>
 						Gacha Spinner
 					</h2>
-					<div className="relative group">
-						<div className="absolute inset-0 bg-gradient-to-r from-warning/30 to-orange-500/30 rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
-						<div className="relative bg-gradient-to-r from-warning/20 to-orange-500/20 backdrop-blur-xl border border-warning/30 rounded-xl px-4 py-2 shadow-xl">
-							<div className="flex items-center space-x-2">
-								<span className="text-xs font-medium text-warning/80 uppercase tracking-wide">
-									Entry Fee
-								</span>
-							</div>
-							<div className="flex items-center space-x-1 mt-1">
-								<span className="text-xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-									{formatSpinFee()}
-								</span>
-								<div className="w-5 h-5 bg-gradient-to-br from-warning to-orange-400 rounded-full flex items-center justify-center ml-1">
-									<span className="text-xs">💰</span>
-								</div>
-							</div>
-						</div>
-					</div>
+					<TokenFeeDisplay
+						address={feeToken}
+						name={tokenName}
+						symbol={tokenSymbol}
+						amount={formatSpinFee()}
+					/>
 				</div>
-			</CardHeader>
-			<CardBody className="py-16">
+			}
+		>
+			<div className="py-16">
 				<div className="flex flex-col items-center space-y-10">
-					{/* Enhanced Spinner Visual with State Machine States */}
+					{/* Enhanced Spinner Visual with Lottie Animation */}
 					<div className="relative group">
 						{/* Outer glow rings */}
 						<div
@@ -423,20 +415,21 @@ export default function SpinControls({
 
 						{/* Main spinner with enhanced state-based styling */}
 						<div
-							className={`relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-orange-500 p-3 shadow-2xl shadow-warning/20 ${
+							className={cn(
+								"relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-orange-500 p-3 shadow-2xl shadow-warning/20",
 								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
 									? "spin-wobble"
 									: gachaSpin.isError
 										? "animate-bounce"
 										: "hover:scale-105 transition-all duration-300"
-							}`}
+							)}
 						>
 							{/* Inner glass surface */}
 							<div className="w-full h-full rounded-full bg-gradient-to-br from-background/95 to-background/80 backdrop-blur-xl flex items-center justify-center border border-warning/30 relative overflow-hidden">
 								{/* Shimmer effect */}
 								<div className="absolute inset-0 bg-gradient-to-r from-transparent via-warning/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1500"></div>
 
-								{/* Logo */}
+								{/* Spin-Fi Logo */}
 								<div className="relative z-10 filter drop-shadow-2xl">
 									<svg
 										className="w-20 h-20 drop-shadow-lg text-warning"
@@ -461,53 +454,64 @@ export default function SpinControls({
 
 					{/* Error Display Only */}
 					{gachaSpin.isError && (
-						<div className="text-center p-4 bg-danger/10 border border-danger/20 rounded-lg">
-							<p className="text-danger text-sm mb-2">{gachaSpin.error}</p>
-							<p className="text-xs text-foreground/60">
-								Retry attempts: {gachaSpin.retryCount}/5
-							</p>
-						</div>
+						<GlassBadge variant="danger" className="text-center p-4">
+							<div>
+								<p className="text-sm mb-2">{gachaSpin.error}</p>
+								<p className="text-xs opacity-60">
+									Retry attempts: {gachaSpin.retryCount}/5
+								</p>
+							</div>
+						</GlassBadge>
 					)}
 
 					{/* User balance display */}
 					{isConnected && (
-						<div className="text-center">
-							<p className="text-sm text-foreground/70">Your Balance</p>
-							<p className="text-lg font-semibold text-foreground">
-								{formattedBalance} {tokenSymbol || "TOKENS"}
-							</p>
-						</div>
+						<GlassBadge variant="info">
+							<div className="text-center">
+								<p className={cn("text-sm", colors.text.muted)}>Your Balance</p>
+								<p className={cn("text-lg font-semibold", colors.text.primary)}>
+									{formattedBalance} {tokenSymbol || "TOKENS"}
+								</p>
+							</div>
+						</GlassBadge>
 					)}
 
 					{/* Error display for transaction errors */}
 					{(spinWithPermitError ||
 						spinWithPermitReceiptError ||
 						signatureError) && (
-						<div className="text-center p-4 bg-danger/10 border border-danger/20 rounded-lg">
-							<p className="text-danger text-sm">
+						<GlassBadge variant="danger" className="text-center p-4">
+							<p className="text-sm">
 								Transaction failed. Please try again.
 							</p>
-						</div>
+						</GlassBadge>
 					)}
 
 					{/* Spin Button */}
-					<Button
+					<GlassButton
+						variant={getButtonColor() === "primary" ? "primary" : getButtonColor() === "danger" ? "danger" : "secondary"}
 						size="lg"
-						className="px-20 py-5 text-xl font-medium tracking-wide"
-						color={getButtonColor()}
-						variant="shadow"
+						className="px-20 py-5 text-xl tracking-wide"
 						isLoading={
 							isSignaturePending ||
 							isProcessingTransaction ||
 							gachaSpin.isSpinning
 						}
-						onPress={onSpinClick}
+						loadingText={
+							isSignaturePending ? "Sign Permit..." :
+							isProcessingTransaction ? "Confirming..." :
+							gachaSpin.isSpinning ? "Preparing..." :
+							gachaSpin.isWaitingForFulfillment ? "Awaiting..." :
+							"Processing..."
+						}
+						onClick={onSpinClick}
 						isDisabled={isButtonDisabled()}
+						animate={true}
 					>
 						{getButtonText()}
-					</Button>
+					</GlassButton>
 				</div>
-			</CardBody>
-		</Card>
+			</div>
+		</GlassCard>
 	);
 }

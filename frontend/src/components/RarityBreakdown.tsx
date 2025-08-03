@@ -1,8 +1,9 @@
 "use client";
 
-import { Card, CardBody, CardHeader } from "@heroui/react";
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
+import { components } from "../lib/theme";
+import { GlassCard } from "./ui";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
@@ -87,13 +88,17 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	] as const;
 
 	return (
-		<Card className="bg-content1/20 backdrop-blur-xl h-full border border-white/10 shadow-2xl">
-			<CardHeader className="pb-6">
-				<h3 className="text-2xl font-light text-foreground tracking-tight">
+		<GlassCard
+			className="h-full"
+			variant="base"
+			animate={false}
+			header={
+				<h3 className={components.header.secondary}>
 					Drop Rates
 				</h3>
-			</CardHeader>
-			<CardBody className="space-y-4">
+			}
+		>
+			<div className="space-y-4">
 				{rarityStats.map((rarity) => (
 					<div
 						key={rarity.name}
@@ -102,12 +107,12 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 					>
 						{/* Enhanced glow effect */}
 						<div
-							className={`absolute inset-0 bg-gradient-to-r ${rarity.bgGradient} rounded-xl blur-lg opacity-0 group-hover:opacity-40 transition-all duration-500 scale-95 group-hover:scale-100 ${rarity.glowColor}`}
+							className={`absolute inset-1 bg-gradient-to-r ${rarity.bgGradient} rounded-xl blur-md opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${rarity.glowColor}`}
 						></div>
 
 						{/* Main card with rarity-specific styling */}
 						<div
-							className={`relative bg-content2/10 backdrop-blur-xl border ${rarity.borderColor} hover:${rarity.borderColor.replace("/50", "/80")} rounded-xl p-4 hover:bg-content2/20 transition-all duration-300 group-hover:shadow-lg ${rarity.glowColor} group-hover:scale-[1.02] active:scale-[0.98]`}
+							className={`relative bg-content2/10 backdrop-blur-xl border ${rarity.borderColor} hover:${rarity.borderColor.replace("/50", "/80")} rounded-xl p-4 hover:bg-content2/20 transition-colors duration-300 shadow-md ${rarity.glowColor}`}
 						>
 							{/* Header with rarity name and stats */}
 							<div className="flex justify-between items-center mb-3">
@@ -156,7 +161,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 						</div>
 					</div>
 				))}
-			</CardBody>
+			</div>
 
 			{/* Rarity Showcase Modal */}
 			<RarityShowcaseModal
@@ -164,7 +169,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 				onClose={handleModalClose}
 				rarity={selectedRarity}
 			/>
-		</Card>
+		</GlassCard>
 	);
 });
 

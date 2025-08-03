@@ -44,6 +44,9 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     // Stats
     uint256 public totalFeesDistributed;
     uint256 public totalProtocolFees;
+    uint256 public totalSpinCount;
+    mapping(address => uint256) public userTotalRewardsClaimed;
+    mapping(address => uint256) public userSpinCount;
 
     // Events
     event RarityTokenDeployed(GachaTreasury.Rarity indexed rarity, address indexed tokenAddress);
@@ -52,6 +55,8 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     event ProtocolAddressUpdated(address indexed oldProtocol, address indexed newProtocol);
     event DepositRecorded(address indexed depositor, GachaTreasury.Rarity indexed rarity);
     event NFTWonRecorded(address indexed depositor, GachaTreasury.Rarity indexed rarity);
+    event UserRewardsClaimed(address indexed user, uint256 amount);
+    event SpinRecorded(address indexed user);
 
     modifier onlyGachaContract() {
         if (msg.sender != address(gachaContract)) revert UnauthorizedGachaContract();
@@ -120,6 +125,10 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     function distributeSpinRewards(uint256 totalFeeAmount) external onlyGachaContract nonReentrant {
         if (totalFeeAmount == 0 || address(feeToken) == address(0)) return;
 
+        // Track spin statistics
+        totalSpinCount++;
+        // Note: We don't track individual user spins here as gacha contract doesn't pass user info
+
         uint256 rewardsAmount = (totalFeeAmount * REWARDS_PERCENTAGE) / PERCENTAGE_DENOMINATOR;
         uint256 protocolAmount = totalFeeAmount - rewardsAmount;
 
@@ -171,23 +180,31 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         emit FeesDistributed(totalFeeAmount, rewardsAmount, protocolAmount);
     }
 
-
     /// @notice Claim all available rewards across all rarities
     function claimAllRewards() external whenNotPaused nonReentrant {
         bool claimed = false;
+        uint256 totalClaimed = 0;
 
         for (uint256 i = 0; i < 5; i++) {
             RarityDividendTracker token = rarityTokens[GachaTreasury.Rarity(i)];
             if (address(token) != address(0)) {
-                try token.withdrawFunds() {
-                    claimed = true;
-                } catch {
-                    // continue silently
+                uint256 claimable = token.withdrawableFundsOf(msg.sender);
+                if (claimable > 0) {
+                    try token.withdrawFunds() {
+                        claimed = true;
+                        totalClaimed += claimable;
+                    } catch {
+                        // continue silently
+                    }
                 }
             }
         }
 
         if (!claimed) revert NoFundsToWithdraw();
+
+        // Track user rewards claimed
+        userTotalRewardsClaimed[msg.sender] += totalClaimed;
+        emit UserRewardsClaimed(msg.sender, totalClaimed);
     }
 
     /// @notice View user's total withdrawable rewards across all rarities
@@ -259,5 +276,38 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     function emergencyRecoverTokens(address token, uint256 amount) external onlyOwner {
         if (address(feeToken) != address(0) && token == address(feeToken)) revert InvalidFeeToken();
         IERC20(token).safeTransfer(owner(), amount);
+    }
+
+    /// @notice Get analytics data for dashboard
+    /// @param user User address to get analytics for
+    /// @return totalClaimed Total rewards claimed by user
+    /// @return totalClaimable Current claimable rewards
+    /// @return spinCount Number of spins by user (if tracked)
+    function getUserAnalytics(address user)
+        external
+        view
+        returns (uint256 totalClaimed, uint256 totalClaimable, uint256 spinCount)
+    {
+        totalClaimed = userTotalRewardsClaimed[user];
+        
+        // Calculate total claimable rewards across all rarities
+        for (uint256 i = 0; i < 5; i++) {
+            RarityDividendTracker token = rarityTokens[GachaTreasury.Rarity(i)];
+            if (address(token) != address(0)) {
+                totalClaimable += token.withdrawableFundsOf(user);
+            }
+        }
+        
+        spinCount = userSpinCount[user];
+    }
+
+    /// @notice Get global analytics data
+    /// @return totalSpins Total number of spins
+    /// @return totalFees Total fees distributed
+    /// @return protocolFees Total protocol fees collected
+    function getGlobalAnalytics() external view returns (uint256 totalSpins, uint256 totalFees, uint256 protocolFees) {
+        totalSpins = totalSpinCount;
+        totalFees = totalFeesDistributed;
+        protocolFees = totalProtocolFees;
     }
 }

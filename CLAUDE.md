@@ -58,7 +58,7 @@ forge snapshot                 # Gas usage snapshots
 ```bash
 cd frontend
 pnpm install                   # Install dependencies
-tsc                           # Type check (preferred for development)
+pnpm tsc                           # Type check (preferred for development)
 pnpm lint                      # Run linter
 pnpm format                    # Format code
 ```

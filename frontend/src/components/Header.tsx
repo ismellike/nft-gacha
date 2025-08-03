@@ -1,12 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn, glassmorphism, colors, components } from "../lib/theme";
+import { ThemedIcon } from "../lib/icons";
 
 export function Header() {
+	const pathname = usePathname();
+
+	const navItems = [
+		{ href: "/", label: "Gacha Spinner", icon: "dice" },
+		{ href: "/rewards", label: "Rewards", icon: "coins" },
+	];
+
 	return (
-		<nav className="flex justify-between items-center p-6 bg-content1/30 backdrop-blur-xl border-b border-divider/50 shadow-lg">
-			<div className="flex items-center space-x-3">
-				<div className="w-10 h-10 bg-gradient-to-r from-primary to-warning rounded-lg flex items-center justify-center border border-warning/20">
+		<nav className={cn("flex justify-between items-center p-6", glassmorphism.nav.base)}>
+			<div className="flex items-center space-x-8">
+				<Link href="/" className="flex items-center space-x-3 group">
+					<div className={cn(
+						"w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform duration-200",
+						colors.gradients.secondary,
+						colors.borders.accent
+					)}>
 					<svg
 						className="w-6 h-6 text-warning"
 						viewBox="227 210 589 590"
@@ -23,11 +41,61 @@ export function Header() {
 							transform="translate(480,318)"
 						/>
 					</svg>
+					</div>
+					<h1 className={cn(
+						"text-2xl font-bold tracking-tight transition-all duration-200",
+						colors.gradients.secondaryText,
+						"group-hover:from-warning group-hover:to-orange-400"
+					)}>
+						Spin-Fi
+					</h1>
+				</Link>
+
+				{/* Navigation Items */}
+				<div className="hidden md:flex items-center space-x-2">
+					{navItems.map((item) => {
+						const isActive = pathname === item.href;
+						return (
+							<Link key={item.href} href={item.href}>
+								<motion.div
+									className={cn(
+										"relative px-4 py-2 rounded-xl transition-all duration-300",
+										isActive
+											? `${colors.gradients.primaryGlow} backdrop-blur-xl ${colors.borders.accent} shadow-lg shadow-warning/20`
+											: `hover:bg-content1/20 hover:backdrop-blur-xl border border-transparent hover:${colors.borders.subtle} hover:shadow-md`
+									)}
+									whileHover={{ scale: 1.02, y: -1 }}
+									whileTap={{ scale: 0.98 }}
+									transition={{ type: "spring", stiffness: 400, damping: 17 }}
+								>
+									<div className="flex items-center space-x-2">
+										<ThemedIcon 
+											name={item.icon} 
+											size="md"
+											variant={isActive ? "accent" : "default"}
+										/>
+										<span className={cn(
+											"font-medium",
+											isActive ? colors.text.accent : `${colors.text.secondary} hover:${colors.text.primary}`
+										)}>
+											{item.label}
+										</span>
+									</div>
+									{isActive && (
+										<motion.div
+											layoutId="activeTab"
+											className={cn("absolute inset-0 rounded-xl", colors.gradients.primaryGlow)}
+											initial={false}
+											transition={{ type: "spring", stiffness: 500, damping: 30 }}
+										/>
+									)}
+								</motion.div>
+							</Link>
+						);
+					})}
 				</div>
-				<h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-warning bg-clip-text text-transparent tracking-tight">
-					Spin-Fi
-				</h1>
 			</div>
+
 			<ConnectButton />
 		</nav>
 	);
