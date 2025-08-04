@@ -157,7 +157,7 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
     "Loading...";
 
   const handleExplore = () => {
-    router.push(`/gacha?id=${gacha.id}`);
+    router.push(`/gacha?id=${gacha.id}&section=spin`);
   };
 
   return (

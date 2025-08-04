@@ -8,6 +8,7 @@ import { formatUnits } from "viem";
 import GachaSpinner from "../../components/GachaSpinner";
 import { GachaWhitelist } from "../../components/GachaWhitelist";
 import { UserNFTModal } from "../../components/UserNFTModal";
+import { AdminControls } from "../../components/AdminControls";
 import { ThemedIcon } from "../../lib/icons";
 import { GlassCard, GlassButton, GlassBadge } from "../../components/ui";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";
@@ -19,7 +20,10 @@ import {
   useReadErc20Decimals,
   useReadErc20Symbol,
   useWriteGachaRewardsManagerClaimAllRewards,
-  useReadGachaFeeToken
+  useReadGachaFeeToken,
+  useReadGachaOwner,
+  useReadGachaTreasuryOwner,
+  useReadGachaRewardsManagerOwner
 } from "../../generated";
 import { env } from "../../env";
 import { RARITY_CONFIG, Rarity } from "../../lib/rarityConfig";
@@ -37,10 +41,39 @@ export default function GachaDetailPage() {
   const searchParams = useSearchParams();
   const { address: userAddress, isConnected } = useAccount();
   const [showDepositModal, setShowDepositModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'spin' | 'whitelist' | 'rewards'>('spin');
-
   const gachaId = searchParams.get('id');
+  const sectionParam = searchParams.get('section');
+  const validSections = ['spin', 'whitelist', 'rewards', 'admin'] as const;
+  type ValidSection = typeof validSections[number];
+  
+  // Determine active tab from URL or default to 'spin'
+  const activeTab: ValidSection = validSections.includes(sectionParam as ValidSection) 
+    ? (sectionParam as ValidSection) 
+    : 'spin';
+
   const gacha = gachaId ? getGachaConfig(gachaId) : null;
+
+  // Owner checks for admin access
+  const { data: gachaOwner } = useReadGachaOwner({
+    address: gacha?.address as `0x${string}`,
+    query: { enabled: !!gacha },
+  });
+  
+  const { data: treasuryOwner } = useReadGachaTreasuryOwner({
+    address: gacha?.treasuryAddress as `0x${string}`,
+    query: { enabled: !!gacha },
+  });
+  
+  const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
+    address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
+    query: { enabled: !!gacha },
+  });
+
+  const isOwner = userAddress && (
+    userAddress === gachaOwner ||
+    userAddress === treasuryOwner || 
+    userAddress === rewardsOwner
+  );
 
   // Contract reads for rewards functionality
   const { data: feeToken } = useReadGachaFeeToken({
@@ -159,6 +192,34 @@ export default function GachaDetailPage() {
     },
   ];
 
+  // Handle tab navigation via URL
+  const handleTabChange = (section: ValidSection) => {
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    newSearchParams.set('section', section);
+    router.push(`/gacha?${newSearchParams.toString()}`, { scroll: false });
+  };
+
+  // Redirect to spin tab if trying to access admin without permissions
+  useEffect(() => {
+    if (activeTab === 'admin' && isConnected && gachaOwner && treasuryOwner && rewardsOwner && !isOwner) {
+      handleTabChange('spin');
+    }
+  }, [activeTab, isConnected, isOwner, gachaOwner, treasuryOwner, rewardsOwner, handleTabChange]);
+
+  // Update document title based on active section
+  useEffect(() => {
+    if (gacha) {
+      const sectionTitles = {
+        spin: 'Spin & Play',
+        whitelist: 'Collections',
+        rewards: 'My Rewards',
+        admin: 'Admin Controls'
+      };
+      const sectionTitle = sectionTitles[activeTab];
+      document.title = `${gacha.title} - ${sectionTitle} | Spin-Fi`;
+    }
+  }, [gacha, activeTab]);
+
   // Handle claim success
   useEffect(() => {
     if (isClaimSuccess) {
@@ -265,22 +326,30 @@ export default function GachaDetailPage() {
             <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
               <TabButton
                 active={activeTab === 'spin'}
-                onClick={() => setActiveTab('spin')}
+                onClick={() => handleTabChange('spin')}
                 icon="zap"
                 label="Spin & Play"
               />
               <TabButton
                 active={activeTab === 'whitelist'}
-                onClick={() => setActiveTab('whitelist')}
+                onClick={() => handleTabChange('whitelist')}
                 icon="folder-open"
                 label="Collections"
               />
               <TabButton
                 active={activeTab === 'rewards'}
-                onClick={() => setActiveTab('rewards')}
+                onClick={() => handleTabChange('rewards')}
                 icon="gift"
                 label="My Rewards"
               />
+              {isOwner && (
+                <TabButton
+                  active={activeTab === 'admin'}
+                  onClick={() => handleTabChange('admin')}
+                  icon="settings"
+                  label="Admin"
+                />
+              )}
             </div>
           </GlassCard>
         </motion.div>
@@ -302,6 +371,10 @@ export default function GachaDetailPage() {
                 gachaAddress={gacha.address}
               />
             </div>
+          )}
+
+          {activeTab === 'admin' && gacha && (
+            <AdminControls gacha={gacha} />
           )}
 
           {activeTab === 'rewards' && (

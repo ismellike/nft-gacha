@@ -17,9 +17,13 @@ import {
   useWriteGachaEmergencyUnpause,
   useReadGachaPaused
 } from "@/generated";
-import { env } from "@/env";
 import { formatUnits, parseUnits } from "viem";
 import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
+import type { GachaConfig } from "@/lib/gacha-config";
+
+interface AdminControlsProps {
+  gacha: GachaConfig;
+}
 
 interface AdminSection {
   id: string;
@@ -67,22 +71,22 @@ const adminSections: AdminSection[] = [
   }
 ];
 
-export default function AdminPage() {
+export function AdminControls({ gacha }: AdminControlsProps) {
   const { address: userAddress, isConnected } = useAccount();
   const [activeSection, setActiveSection] = useState("rates");
   const [isOwnerChecked, setIsOwnerChecked] = useState(false);
   
   // Owner checks
   const { data: gachaOwner } = useReadGachaOwner({
-    address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+    address: gacha.address as `0x${string}`,
   });
   
   const { data: treasuryOwner } = useReadGachaTreasuryOwner({
-    address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+    address: gacha.treasuryAddress as `0x${string}`,
   });
   
   const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
-    address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
+    address: process.env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as `0x${string}`,
   });
 
   const isOwner = userAddress && (
@@ -99,14 +103,14 @@ export default function AdminPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="flex items-center justify-center min-h-[400px]">
         <GlassCard className="p-12 text-center max-w-md">
           <ThemedIcon name="wallet" size="xl" className="mx-auto mb-6 text-warning" />
           <h2 className="text-2xl font-bold text-foreground mb-4">
             Connect Your Wallet
           </h2>
           <p className="text-foreground/70 mb-6">
-            Please connect your wallet to access the admin panel.
+            Please connect your wallet to access admin controls for this gacha.
           </p>
         </GlassCard>
       </div>
@@ -115,158 +119,144 @@ export default function AdminPage() {
 
   if (isOwnerChecked && !isOwner) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="flex items-center justify-center min-h-[400px]">
         <GlassCard className="p-12 text-center max-w-md">
           <ThemedIcon name="shield-check" size="xl" className="mx-auto mb-6 text-danger" />
           <h2 className="text-2xl font-bold text-foreground mb-4">
             Access Denied
           </h2>
           <p className="text-foreground/70 mb-6">
-            You are not authorized to access the admin panel. Only contract owners can view this page.
+            You are not authorized to access admin controls for this gacha. Only contract owners can access these settings.
           </p>
-          <GlassButton 
-            variant="secondary" 
-            onClick={() => window.history.back()}
-          >
-            <ThemedIcon name="arrow-left" size="sm" />
-            Go Back
-          </GlassButton>
         </GlassCard>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-12"
-        >
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-warning to-orange-400 rounded-xl flex items-center justify-center shadow-lg shadow-warning/30">
-              <ThemedIcon name="settings" size="lg" className="text-black" />
-            </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                Admin Control Panel
-              </h1>
-              <p className="text-foreground/70">
-                Manage contracts, rates, and system operations
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <GlassBadge variant="success">
-              <ThemedIcon name="shield-check" size="sm" />
-              <span className="ml-1">Authorized Owner</span>
-            </GlassBadge>
-            <GlassBadge variant="info">
-              <span className="font-mono text-xs">
-                {userAddress?.slice(0, 6)}...{userAddress?.slice(-4)}
-              </span>
-            </GlassBadge>
-          </div>
-        </motion.div>
+    <div className="space-y-8">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-center"
+      >
+        <h2 className="text-4xl font-light mb-4 tracking-tight">
+          <span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
+            Admin Controls
+          </span>
+        </h2>
+        <p className="text-xl text-foreground/70 max-w-3xl mx-auto leading-relaxed font-light">
+          Manage settings and operations for {gacha.title}
+        </p>
+        
+        <div className="flex items-center justify-center gap-3 mt-6">
+          <GlassBadge variant="success">
+            <ThemedIcon name="shield-check" size="sm" />
+            <span className="ml-1">Authorized Owner</span>
+          </GlassBadge>
+          <GlassBadge variant="info">
+            <span className="font-mono text-xs">
+              {userAddress?.slice(0, 6)}...{userAddress?.slice(-4)}
+            </span>
+          </GlassBadge>
+        </div>
+      </motion.div>
 
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="lg:col-span-1"
-          >
-            <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">
-                Control Sections
-              </h3>
-              <div className="space-y-2">
-                {adminSections.map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => setActiveSection(section.id)}
-                    className={`w-full text-left p-3 rounded-xl transition-all duration-200 ${
-                      activeSection === section.id
-                        ? "bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 shadow-lg shadow-warning/10"
-                        : "hover:bg-content1/20 hover:border-white/10 border border-transparent"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <ThemedIcon 
-                          name={section.icon} 
-                          size="md" 
-                          variant={activeSection === section.id ? "accent" : "default"}
-                        />
-                        <div>
-                          <div className="font-medium text-foreground text-sm">
-                            {section.title}
-                          </div>
-                          <div className="text-xs text-foreground/60">
-                            {section.description}
-                          </div>
+      <div className="grid lg:grid-cols-4 gap-8">
+        {/* Sidebar Navigation */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="lg:col-span-1"
+        >
+          <GlassCard className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Control Sections
+            </h3>
+            <div className="space-y-2">
+              {adminSections.map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`w-full text-left p-3 rounded-xl transition-all duration-200 ${
+                    activeSection === section.id
+                      ? "bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 shadow-lg shadow-warning/10"
+                      : "hover:bg-content1/20 hover:border-white/10 border border-transparent"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <ThemedIcon 
+                        name={section.icon} 
+                        size="md" 
+                        variant={activeSection === section.id ? "accent" : "default"}
+                      />
+                      <div>
+                        <div className="font-medium text-foreground text-sm">
+                          {section.title}
+                        </div>
+                        <div className="text-xs text-foreground/60">
+                          {section.description}
                         </div>
                       </div>
-                      {section.badge && (
-                        <GlassBadge 
-                          variant={
-                            section.badge === "Critical" ? "danger" :
-                            section.badge === "Emergency" ? "warning" :
-                            section.badge === "Pending" ? "primary" : "info"
-                          }
-                          size="xs"
-                        >
-                          {section.badge}
-                        </GlassBadge>
-                      )}
                     </div>
-                  </button>
-                ))}
-              </div>
-            </GlassCard>
-          </motion.div>
+                    {section.badge && (
+                      <GlassBadge 
+                        variant={
+                          section.badge === "Critical" ? "danger" :
+                          section.badge === "Emergency" ? "warning" :
+                          section.badge === "Pending" ? "primary" : "info"
+                        }
+                        size="xs"
+                      >
+                        {section.badge}
+                      </GlassBadge>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </GlassCard>
+        </motion.div>
 
-          {/* Main Content */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="lg:col-span-3"
-          >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeSection}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-              >
-                {activeSection === "rates" && <RarityRatesSection />}
-                {activeSection === "fees" && <SpinFeesSection />}
-                {activeSection === "whitelist" && <WhitelistSection />}
-                {activeSection === "deposits" && <DepositsSection />}
-                {activeSection === "emergency" && <EmergencySection />}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        </div>
+        {/* Main Content */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="lg:col-span-3"
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+            >
+              {activeSection === "rates" && <RarityRatesSection gacha={gacha} />}
+              {activeSection === "fees" && <SpinFeesSection gacha={gacha} />}
+              {activeSection === "whitelist" && <WhitelistSection />}
+              {activeSection === "deposits" && <DepositsSection />}
+              {activeSection === "emergency" && <EmergencySection gacha={gacha} />}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
       </div>
     </div>
   );
 }
 
 // Individual Admin Sections
-function RarityRatesSection() {
+function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
   const [weights, setWeights] = useState([7000, 2000, 600, 300, 100]);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const { data: currentWeights } = useReadGachaGetRarityWeights({
-    address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+    address: gacha.address as `0x${string}`,
   });
 
   const { writeContract: setRarityWeights, isPending } = useWriteGachaSetRarityWeights();
@@ -290,7 +280,7 @@ function RarityRatesSection() {
     if (!isValidTotal) return;
     
     setRarityWeights({
-      address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+      address: gacha.address as `0x${string}`,
       args: weights.map((w: number) => BigInt(w)) as [bigint, bigint, bigint, bigint, bigint]
     });
   };
@@ -373,11 +363,11 @@ function RarityRatesSection() {
   );
 }
 
-function SpinFeesSection() {
+function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
   const [newFee, setNewFee] = useState("");
   
   const { data: currentFee } = useReadGachaSpinFee({
-    address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+    address: gacha.address as `0x${string}`,
   });
 
   const { writeContract: setSpinFee, isPending } = useWriteGachaSetSpinFee();
@@ -388,7 +378,7 @@ function SpinFeesSection() {
     try {
       const feeInWei = parseUnits(newFee, 18);
       setSpinFee({
-        address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+        address: gacha.address as `0x${string}`,
         args: [feeInWei]
       });
     } catch (error) {
@@ -507,9 +497,9 @@ function DepositsSection() {
   );
 }
 
-function EmergencySection() {
+function EmergencySection({ gacha }: { gacha: GachaConfig }) {
   const { data: isPaused } = useReadGachaPaused({
-    address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+    address: gacha.address as `0x${string}`,
   });
 
   const { writeContract: pauseContract, isPending: isPausing } = useWriteGachaEmergencyPause();
@@ -517,13 +507,13 @@ function EmergencySection() {
 
   const handlePause = () => {
     pauseContract({
-      address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+      address: gacha.address as `0x${string}`,
     });
   };
 
   const handleUnpause = () => {
     unpauseContract({
-      address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+      address: gacha.address as `0x${string}`,
     });
   };
 

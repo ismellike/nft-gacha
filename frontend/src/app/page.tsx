@@ -148,7 +148,7 @@ export default function LandingPage() {
               </GlassButton>
             </Link>
             
-            <Link href="/gacha?id=pudgy-penguins">
+            <Link href="/gacha?id=epic-heroes&section=spin">
               <GlassButton 
                 variant="secondary" 
                 size="lg" 

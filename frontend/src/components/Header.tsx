@@ -5,48 +5,16 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAccount } from "wagmi";
 import { cn, glassmorphism, colors, components } from "../lib/theme";
 import { ThemedIcon } from "../lib/icons";
-import { 
-  useReadGachaOwner,
-  useReadGachaTreasuryOwner,
-  useReadGachaRewardsManagerOwner
-} from "../generated";
-import { env } from "../env";
 
 export function Header() {
 	const pathname = usePathname();
-	const { address: userAddress } = useAccount();
 
-	// Owner checks
-	const { data: gachaOwner } = useReadGachaOwner({
-		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
-	});
-	
-	const { data: treasuryOwner } = useReadGachaTreasuryOwner({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
-	});
-	
-	const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
-		address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-	});
-
-	const isOwner = userAddress && (
-		userAddress === gachaOwner ||
-		userAddress === treasuryOwner || 
-		userAddress === rewardsOwner
-	);
-
-	const baseNavItems = [
+	const navItems = [
 		{ href: "/", label: "Home", icon: "home" },
 		{ href: "/discover", label: "Discover", icon: "dice" },
 	];
-
-	const navItems = isOwner ? [
-		...baseNavItems,
-		{ href: "/admin", label: "Admin", icon: "settings" }
-	] : baseNavItems;
 
 	return (
 		<nav className={cn("flex justify-between items-center p-6", glassmorphism.nav.base)}>
