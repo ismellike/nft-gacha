@@ -38,36 +38,31 @@ const adminSections: AdminSection[] = [
     id: "rates",
     title: "Rarity Rates",
     description: "Configure drop rates for each rarity tier",
-    icon: "dice",
-    badge: "Critical"
+    icon: "dice"
   },
   {
     id: "fees", 
     title: "Spin Fees",
     description: "Set the cost for each gacha spin",
-    icon: "coins",
-    badge: "Economy"
+    icon: "coins"
   },
   {
     id: "whitelist",
     title: "Collection Whitelist", 
     description: "Manage approved NFT collections",
-    icon: "shield-check",
-    badge: "Security"
+    icon: "shield-check"
   },
   {
     id: "deposits",
     title: "Pending Deposits",
     description: "Review and approve NFT deposits",
-    icon: "folder-open",
-    badge: "Pending"
+    icon: "folder-open"
   },
   {
     id: "emergency",
     title: "Emergency Controls",
     description: "Pause/unpause contract operations",
-    icon: "zap",
-    badge: "Emergency"
+    icon: "zap"
   }
 ];
 
@@ -203,18 +198,6 @@ export function AdminControls({ gacha }: AdminControlsProps) {
                         </div>
                       </div>
                     </div>
-                    {section.badge && (
-                      <GlassBadge 
-                        variant={
-                          section.badge === "Critical" ? "danger" :
-                          section.badge === "Emergency" ? "warning" :
-                          section.badge === "Pending" ? "primary" : "info"
-                        }
-                        size="xs"
-                      >
-                        {section.badge}
-                      </GlassBadge>
-                    )}
                   </div>
                 </button>
               ))}
@@ -355,8 +338,10 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
           isLoading={isPending}
           loadingText="Updating..."
         >
-          <ThemedIcon name="check" size="sm" />
-          Save Changes
+          <div className="flex items-center gap-2">
+            <ThemedIcon name="check" size="sm" />
+            Save Changes
+          </div>
         </GlassButton>
       </div>
     </GlassCard>
@@ -438,8 +423,10 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
             isLoading={isPending}
             loadingText="Updating..."
           >
-            <ThemedIcon name="coins" size="sm" />
-            Update Fee
+            <div className="flex items-center gap-2">
+              <ThemedIcon name="coins" size="sm" />
+              Update Fee
+            </div>
           </GlassButton>
         </div>
       </div>
@@ -559,8 +546,10 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
               loadingText="Pausing..."
               className="flex-1"
             >
-              <ThemedIcon name="x-circle" size="md" />
-              Pause Contract
+              <div className="flex items-center gap-2">
+                <ThemedIcon name="x-circle" size="md" />
+                Pause Contract
+              </div>
             </GlassButton>
           ) : (
             <GlassButton
@@ -571,8 +560,10 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
               loadingText="Unpausing..."
               className="flex-1"
             >
-              <ThemedIcon name="check" size="md" />
-              Unpause Contract
+              <div className="flex items-center gap-2">
+                <ThemedIcon name="check" size="md" />
+                Unpause Contract
+              </div>
             </GlassButton>
           )}
         </div>
