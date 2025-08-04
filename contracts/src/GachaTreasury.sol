@@ -225,6 +225,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         treasury[rarity].pop();
         unchecked {
             --rarityCount[rarity];
+            --userDepositCounts[item.depositor][rarity];
+            --userTotalDeposits[item.depositor];
         }
         depositedNFTs[item.collection][item.tokenId] = false;
 

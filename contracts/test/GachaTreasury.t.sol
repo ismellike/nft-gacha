@@ -164,6 +164,10 @@ contract GachaTreasuryTest is Test {
         treasury.setGachaContract(gachaAddress);
         vm.stopPrank();
 
+        // Check initial deposit counts
+        assertEq(treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic), 1, "Should have 1 deposit before win");
+        assertEq(treasury.getUserTotalDepositCount(owner), 1, "Should have 1 total deposit before win");
+
         vm.prank(gachaAddress);
         GachaTreasury.NFTItem memory item = treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, winner);
 
@@ -172,6 +176,10 @@ contract GachaTreasuryTest is Test {
         assertEq(item.collection, address(nft));
         assertEq(item.tokenId, tokenId);
         assertEq(uint8(item.rarity), uint8(GachaTreasury.Rarity.Epic));
+        
+        // Verify user deposit counts decreased
+        assertEq(treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic), 0, "Should have 0 deposits after win");
+        assertEq(treasury.getUserTotalDepositCount(owner), 0, "Should have 0 total deposits after win");
     }
 
     function testSendNFTToWinnerOnlyGacha() public {
