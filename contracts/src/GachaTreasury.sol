@@ -27,6 +27,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     error CannotDepositSameNFTTwice();
     error InvalidRewardsManager();
     error UnauthorizedGachaContract();
+    error CollectionNotWhitelisted();
+    error CollectionAlreadyWhitelisted();
+    error CollectionNotInWhitelist();
+    error EmptyWhitelist();
 
     // Constants
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -81,6 +85,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
     mapping(address => uint256) public userTotalDeposits;
 
+    // Collection whitelist
+    mapping(address => bool) public whitelistedCollections;
+    address[] public whitelistedCollectionsList;
+
     event NFTDeposited(address indexed collection, uint256 indexed tokenId, Rarity rarity);
     event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, Rarity rarity, address to);
     event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
@@ -92,6 +100,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     event PendingDepositApproved(uint256 indexed pendingId, address indexed depositor, Rarity finalRarity);
     event PendingDepositDenied(uint256 indexed pendingId, address indexed depositor, string reason);
     event RewardsManagerUpdated(address indexed oldRewards, address indexed newRewards);
+    event CollectionWhitelisted(address indexed collection);
+    event CollectionRemovedFromWhitelist(address indexed collection);
 
     modifier onlyGacha() {
         if (msg.sender != gachaContract) revert UnauthorizedGachaContract();
@@ -113,6 +123,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         nonReentrant
     {
         if (collection == address(0)) revert InvalidCollectionAddress();
+        if (!whitelistedCollections[collection]) revert CollectionNotWhitelisted();
         if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
         if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
         if (IERC721(collection).ownerOf(tokenId) != msg.sender) revert NotNFTOwner();
@@ -244,6 +255,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         returns (uint256 pendingId)
     {
         if (collection == address(0)) revert InvalidCollectionAddress();
+        if (!whitelistedCollections[collection]) revert CollectionNotWhitelisted();
         if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
         if (userPendingDeposits[msg.sender][tokenId] != 0) revert CannotDepositSameNFTTwice();
         if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
@@ -428,6 +440,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             Rarity rarity = rarities[i];
 
             if (collection == address(0)) revert InvalidCollectionAddress();
+            if (!whitelistedCollections[collection]) revert CollectionNotWhitelisted();
             if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
             if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
             if (IERC721(collection).ownerOf(tokenId) != msg.sender) revert NotNFTOwner();
@@ -582,6 +595,68 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @notice Emergency unpause function
     function emergencyUnpause() external onlyOwner {
         _unpause();
+    }
+
+    // ============ WHITELIST MANAGEMENT ============
+
+    /// @notice Adds a collection to the whitelist
+    /// @param collection Collection address to whitelist
+    function addToWhitelist(address collection) external onlyOwner {
+        if (collection == address(0)) revert InvalidCollectionAddress();
+        if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
+        if (whitelistedCollections[collection]) revert CollectionAlreadyWhitelisted();
+
+        whitelistedCollections[collection] = true;
+        whitelistedCollectionsList.push(collection);
+
+        emit CollectionWhitelisted(collection);
+    }
+
+    /// @notice Removes a collection from the whitelist
+    /// @param collection Collection address to remove from whitelist
+    function removeFromWhitelist(address collection) external onlyOwner {
+        if (!whitelistedCollections[collection]) revert CollectionNotInWhitelist();
+
+        whitelistedCollections[collection] = false;
+
+        // Remove from the array
+        for (uint256 i = 0; i < whitelistedCollectionsList.length; i++) {
+            if (whitelistedCollectionsList[i] == collection) {
+                whitelistedCollectionsList[i] = whitelistedCollectionsList[whitelistedCollectionsList.length - 1];
+                whitelistedCollectionsList.pop();
+                break;
+            }
+        }
+
+        emit CollectionRemovedFromWhitelist(collection);
+    }
+
+    /// @notice Checks if a collection is whitelisted
+    /// @param collection Collection address to check
+    /// @return isWhitelisted True if collection is whitelisted
+    function isCollectionWhitelisted(address collection) external view returns (bool isWhitelisted) {
+        return whitelistedCollections[collection];
+    }
+
+    /// @notice Gets all whitelisted collections
+    /// @return collections Array of whitelisted collection addresses
+    function getWhitelistedCollections() external view returns (address[] memory collections) {
+        return whitelistedCollectionsList;
+    }
+
+    /// @notice Gets the number of whitelisted collections
+    /// @return count Number of whitelisted collections
+    function getWhitelistLength() external view returns (uint256 count) {
+        return whitelistedCollectionsList.length;
+    }
+
+    /// @notice Checks if the gacha system is available (whitelist not empty and has NFTs)
+    /// @return available True if gacha can operate
+    function isGachaAvailable() external view returns (bool available) {
+        if (whitelistedCollectionsList.length == 0) return false;
+        uint256 totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] 
+            + rarityCount[Rarity.Rare] + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
+        return totalItems > 0;
     }
 
     /// @notice Required for receiving ERC721 tokens

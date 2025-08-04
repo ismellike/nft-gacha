@@ -5,23 +5,55 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAccount } from "wagmi";
 import { cn, glassmorphism, colors, components } from "../lib/theme";
 import { ThemedIcon } from "../lib/icons";
+import { 
+  useReadGachaOwner,
+  useReadGachaTreasuryOwner,
+  useReadGachaRewardsManagerOwner
+} from "../generated";
+import { env } from "../env";
 
 export function Header() {
 	const pathname = usePathname();
+	const { address: userAddress } = useAccount();
 
-	const navItems = [
-		{ href: "/", label: "Gacha Spinner", icon: "dice" },
-		{ href: "/rewards", label: "Rewards", icon: "coins" },
+	// Owner checks
+	const { data: gachaOwner } = useReadGachaOwner({
+		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+	});
+	
+	const { data: treasuryOwner } = useReadGachaTreasuryOwner({
+		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+	});
+	
+	const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
+		address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
+	});
+
+	const isOwner = userAddress && (
+		userAddress === gachaOwner ||
+		userAddress === treasuryOwner || 
+		userAddress === rewardsOwner
+	);
+
+	const baseNavItems = [
+		{ href: "/", label: "Home", icon: "home" },
+		{ href: "/discover", label: "Discover", icon: "dice" },
 	];
+
+	const navItems = isOwner ? [
+		...baseNavItems,
+		{ href: "/admin", label: "Admin", icon: "settings" }
+	] : baseNavItems;
 
 	return (
 		<nav className={cn("flex justify-between items-center p-6", glassmorphism.nav.base)}>
 			<div className="flex items-center space-x-8">
 				<Link href="/" className="flex items-center space-x-3 group">
 					<div className={cn(
-						"w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform duration-200",
+						"w-10 h-10 rounded-lg flex items-center justify-center group-hover:shadow-lg group-hover:shadow-warning/30 transition-all duration-200",
 						colors.gradients.secondary,
 						colors.borders.accent
 					)}>
@@ -54,7 +86,7 @@ export function Header() {
 				{/* Navigation Items */}
 				<div className="hidden md:flex items-center space-x-2">
 					{navItems.map((item) => {
-						const isActive = pathname === item.href;
+						const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 						return (
 							<Link key={item.href} href={item.href}>
 								<motion.div
@@ -62,10 +94,8 @@ export function Header() {
 										"relative px-4 py-2 rounded-xl transition-all duration-300",
 										isActive
 											? `${colors.gradients.primaryGlow} backdrop-blur-xl ${colors.borders.accent} shadow-lg shadow-warning/20`
-											: `hover:bg-content1/20 hover:backdrop-blur-xl border border-transparent hover:${colors.borders.subtle} hover:shadow-md`
+											: `hover:bg-content1/20 hover:backdrop-blur-xl border border-transparent hover:${colors.borders.subtle} hover:shadow-lg hover:shadow-warning/10`
 									)}
-									whileHover={{ scale: 1.02, y: -1 }}
-									whileTap={{ scale: 0.98 }}
 									transition={{ type: "spring", stiffness: 400, damping: 17 }}
 								>
 									<div className="flex items-center space-x-2">

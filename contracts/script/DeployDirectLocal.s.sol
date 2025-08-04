@@ -135,13 +135,30 @@ contract DeployDirectLocal is Script {
         console.log("Epic NFT:        ", address(epicNFT));
         console.log("Legendary NFT:   ", address(legendaryNFT));
 
+        // Whitelist all NFT collections
+        console.log("\\n=== Whitelisting NFT Collections ===");
+        treasury.addToWhitelist(address(commonNFT));
+        treasury.addToWhitelist(address(uncommonNFT));
+        treasury.addToWhitelist(address(rareNFT));
+        treasury.addToWhitelist(address(epicNFT));
+        treasury.addToWhitelist(address(legendaryNFT));
+        
+        console.log("Whitelisted 5 NFT collections");
+        console.log("Gacha Available: ", treasury.isGachaAvailable()); // Should be false (no NFTs yet)
+
         // Mint and deposit NFTs
         console.log("\\n=== Minting and Depositing NFTs ===");
-        _depositNFTs(treasury, commonNFT, GachaTreasury.Rarity.Common, 10);
-        _depositNFTs(treasury, uncommonNFT, GachaTreasury.Rarity.Uncommon, 10);
-        _depositNFTs(treasury, rareNFT, GachaTreasury.Rarity.Rare, 10);
-        _depositNFTs(treasury, epicNFT, GachaTreasury.Rarity.Epic, 10);
-        _depositNFTs(treasury, legendaryNFT, GachaTreasury.Rarity.Legendary, 10);
+        _depositNFTs(treasury, commonNFT, GachaTreasury.Rarity.Common, 10, deployer);
+        _depositNFTs(treasury, uncommonNFT, GachaTreasury.Rarity.Uncommon, 10, deployer);
+        _depositNFTs(treasury, rareNFT, GachaTreasury.Rarity.Rare, 10, deployer);
+        _depositNFTs(treasury, epicNFT, GachaTreasury.Rarity.Epic, 10, deployer);
+        _depositNFTs(treasury, legendaryNFT, GachaTreasury.Rarity.Legendary, 10, deployer);
+
+        // Verify gacha is now available
+        console.log("\\n=== Gacha System Status ===");
+        console.log("Whitelist Length:    ", treasury.getWhitelistLength());
+        console.log("Gacha Available:     ", treasury.isGachaAvailable()); // Should be true now
+        console.log("Total NFTs:          ", treasury.getTotalItemsCount());
 
         vm.stopBroadcast();
 
@@ -161,14 +178,15 @@ contract DeployDirectLocal is Script {
         GachaTreasury treasury,
         SimpleERC721 nftContract,
         GachaTreasury.Rarity rarity,
-        uint256 count
+        uint256 count,
+        address deployer
     ) internal {
         address[] memory tokens = new address[](count);
         uint256[] memory tokenIds = new uint256[](count);
         GachaTreasury.Rarity[] memory rarities = new GachaTreasury.Rarity[](count);
 
         for (uint256 i = 0; i < count; i++) {
-            uint256 tokenId = nftContract.mint(msg.sender);
+            uint256 tokenId = nftContract.mint(deployer);
             tokens[i] = address(nftContract);
             tokenIds[i] = tokenId;
             rarities[i] = rarity;
@@ -225,7 +243,8 @@ contract DeployDirectLocal is Script {
                 "RARE_TRACKER_ADDRESS=", vm.toString(rareTracker), "\n",
                 "EPIC_TRACKER_ADDRESS=", vm.toString(epicTracker), "\n",
                 "LEGENDARY_TRACKER_ADDRESS=", vm.toString(legendaryTracker), "\n",
-                "WAVS_CHAIN_RPC_URL=http://localhost:8548\n"
+                "WAVS_CHAIN_RPC_URL=http://localhost:8548\n",
+                "# All NFT collections above are whitelisted in the treasury\n"
             )
         );
 

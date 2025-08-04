@@ -27,6 +27,9 @@ contract GachaTreasuryTest is Test {
 
     function testDepositNFT() public {
         vm.startPrank(owner);
+        // First whitelist the collection
+        treasury.addToWhitelist(address(nft));
+        
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
@@ -39,6 +42,9 @@ contract GachaTreasuryTest is Test {
 
     function testDepositMultipleRarities() public {
         vm.startPrank(owner);
+        // First whitelist the collection
+        treasury.addToWhitelist(address(nft));
+        
         uint256 commonTokenId = nft.mint(owner);
         uint256 rareTokenId = nft.mint(owner);
         uint256 legendaryTokenId = nft.mint(owner);
@@ -59,6 +65,9 @@ contract GachaTreasuryTest is Test {
 
     function testWithdrawNFT() public {
         vm.startPrank(owner);
+        // First whitelist the collection
+        treasury.addToWhitelist(address(nft));
+        
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
@@ -83,6 +92,9 @@ contract GachaTreasuryTest is Test {
 
     function testOnlyOwnerCanWithdraw() public {
         vm.startPrank(owner);
+        // First whitelist the collection
+        treasury.addToWhitelist(address(nft));
+        
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
@@ -105,6 +117,9 @@ contract GachaTreasuryTest is Test {
 
     function testGetTreasuryItems() public {
         vm.startPrank(owner);
+        // First whitelist the collection
+        treasury.addToWhitelist(address(nft));
+        
         uint256 tokenId1 = nft.mint(owner);
         uint256 tokenId2 = nft.mint(owner);
         nft.approve(address(treasury), tokenId1);
@@ -134,6 +149,9 @@ contract GachaTreasuryTest is Test {
 
     function testSendNFTToWinner() public {
         vm.startPrank(owner);
+        // First whitelist the collection
+        treasury.addToWhitelist(address(nft));
+        
         uint256 tokenId = nft.mint(owner);
         vm.stopPrank();
         
@@ -158,6 +176,9 @@ contract GachaTreasuryTest is Test {
 
     function testSendNFTToWinnerOnlyGacha() public {
         vm.startPrank(owner);
+        // First whitelist the collection
+        treasury.addToWhitelist(address(nft));
+        
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
@@ -168,5 +189,141 @@ contract GachaTreasuryTest is Test {
         treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, user);
     }
 
+    // ============ WHITELIST TESTS ============
+
+    function testAddToWhitelist() public {
+        vm.startPrank(owner);
+        vm.expectEmit(true, false, false, false);
+        emit CollectionWhitelisted(address(nft));
+        treasury.addToWhitelist(address(nft));
+        vm.stopPrank();
+
+        assertTrue(treasury.isCollectionWhitelisted(address(nft)));
+        assertEq(treasury.getWhitelistLength(), 1);
+        
+        address[] memory whitelisted = treasury.getWhitelistedCollections();
+        assertEq(whitelisted.length, 1);
+        assertEq(whitelisted[0], address(nft));
+    }
+
+    function testAddToWhitelistOnlyOwner() public {
+        vm.prank(user);
+        vm.expectRevert();
+        treasury.addToWhitelist(address(nft));
+    }
+
+    function testAddToWhitelistRevertAlreadyWhitelisted() public {
+        vm.startPrank(owner);
+        treasury.addToWhitelist(address(nft));
+        
+        vm.expectRevert(abi.encodeWithSelector(GachaTreasury.CollectionAlreadyWhitelisted.selector));
+        treasury.addToWhitelist(address(nft));
+        vm.stopPrank();
+    }
+
+    function testAddToWhitelistRevertInvalidCollection() public {
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(GachaTreasury.InvalidCollectionAddress.selector));
+        treasury.addToWhitelist(address(0));
+    }
+
+    function testRemoveFromWhitelist() public {
+        vm.startPrank(owner);
+        treasury.addToWhitelist(address(nft));
+        
+        vm.expectEmit(true, false, false, false);
+        emit CollectionRemovedFromWhitelist(address(nft));
+        treasury.removeFromWhitelist(address(nft));
+        vm.stopPrank();
+
+        assertFalse(treasury.isCollectionWhitelisted(address(nft)));
+        assertEq(treasury.getWhitelistLength(), 0);
+        
+        address[] memory whitelisted = treasury.getWhitelistedCollections();
+        assertEq(whitelisted.length, 0);
+    }
+
+    function testRemoveFromWhitelistOnlyOwner() public {
+        vm.prank(owner);
+        treasury.addToWhitelist(address(nft));
+
+        vm.prank(user);
+        vm.expectRevert();
+        treasury.removeFromWhitelist(address(nft));
+    }
+
+    function testRemoveFromWhitelistRevertNotInWhitelist() public {
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(GachaTreasury.CollectionNotInWhitelist.selector));
+        treasury.removeFromWhitelist(address(nft));
+    }
+
+    function testDepositRevertCollectionNotWhitelisted() public {
+        vm.startPrank(owner);
+        uint256 tokenId = nft.mint(owner);
+        nft.approve(address(treasury), tokenId);
+        
+        vm.expectRevert(abi.encodeWithSelector(GachaTreasury.CollectionNotWhitelisted.selector));
+        treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
+        vm.stopPrank();
+    }
+
+    function testSubmitPendingDepositRevertCollectionNotWhitelisted() public {
+        vm.prank(owner);
+        uint256 tokenId = nft.mint(user);
+
+        vm.startPrank(user);
+        nft.approve(address(treasury), tokenId);
+        
+        vm.expectRevert(abi.encodeWithSelector(GachaTreasury.CollectionNotWhitelisted.selector));
+        treasury.submitPendingDeposit(address(nft), tokenId, GachaTreasury.Rarity.Common);
+        vm.stopPrank();
+    }
+
+    function testIsGachaAvailable() public {
+        // Initially should be false (empty whitelist)
+        assertFalse(treasury.isGachaAvailable());
+
+        vm.startPrank(owner);
+        // Add to whitelist but no NFTs
+        treasury.addToWhitelist(address(nft));
+        assertFalse(treasury.isGachaAvailable()); // Still false, no NFTs
+
+        // Add an NFT
+        uint256 tokenId = nft.mint(owner);
+        nft.approve(address(treasury), tokenId);
+        treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
+        
+        // Now should be true
+        assertTrue(treasury.isGachaAvailable());
+
+        // Remove from whitelist
+        treasury.removeFromWhitelist(address(nft));
+        assertFalse(treasury.isGachaAvailable()); // Should be false again
+        vm.stopPrank();
+    }
+
+    function testMultipleCollectionsWhitelist() public {
+        vm.prank(owner);
+        SimpleERC721 nft2 = new SimpleERC721("TestNFT2", "TNFT2");
+
+        vm.startPrank(owner);
+        treasury.addToWhitelist(address(nft));
+        treasury.addToWhitelist(address(nft2));
+        vm.stopPrank();
+
+        assertEq(treasury.getWhitelistLength(), 2);
+        assertTrue(treasury.isCollectionWhitelisted(address(nft)));
+        assertTrue(treasury.isCollectionWhitelisted(address(nft2)));
+
+        address[] memory whitelisted = treasury.getWhitelistedCollections();
+        assertEq(whitelisted.length, 2);
+        assertTrue(whitelisted[0] == address(nft) || whitelisted[0] == address(nft2));
+        assertTrue(whitelisted[1] == address(nft) || whitelisted[1] == address(nft2));
+        assertTrue(whitelisted[0] != whitelisted[1]);
+    }
+
     event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
+    event CollectionWhitelisted(address indexed collection);
+    event CollectionRemovedFromWhitelist(address indexed collection);
 }

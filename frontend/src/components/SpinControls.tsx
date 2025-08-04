@@ -23,6 +23,7 @@ import {
 	useReadErc20Name,
 	useReadErc20BalanceOf,
 	useReadTestTokenNonces,
+	useReadGachaTreasuryIsGachaAvailable,
 	gachaAbi,
 } from "../generated";
 import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
@@ -54,6 +55,10 @@ export default function SpinControls({
 
 	const { data: feeToken } = useReadGachaFeeToken({
 		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+	});
+
+	const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
+		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 	});
 
 	// ERC20 token data
@@ -121,6 +126,7 @@ export default function SpinControls({
 		spinFee &&
 		hasSufficientBalance &&
 		!paused &&
+		isGachaAvailable &&
 		gachaSpin.isIdle;
 
 	// Formatted values
@@ -138,6 +144,7 @@ export default function SpinControls({
 	const getButtonText = () => {
 		if (!isConnected) return "Connect Wallet";
 		if (paused) return "Contract Paused";
+		if (isGachaAvailable === false) return "Gacha Unavailable";
 
 		// State machine states
 		if (gachaSpin.isError)
@@ -157,7 +164,7 @@ export default function SpinControls({
 
 	const getButtonColor = () => {
 		if (!isConnected) return "primary";
-		if (paused || !hasSufficientBalance) return "danger";
+		if (paused || !hasSufficientBalance || isGachaAvailable === false) return "danger";
 		if (gachaSpin.isError) return "warning";
 		return "warning";
 	};
@@ -183,8 +190,13 @@ export default function SpinControls({
 			canSpin,
 			userAddress,
 			feeToken,
-			spinFee,
-			tokenNonce,
+			spinFee: spinFee?.toString(),
+			tokenNonce: tokenNonce?.toString(),
+			hasSufficientBalance,
+			paused,
+			isGachaAvailable,
+			tokenBalance: tokenBalance?.toString(),
+			gachaContract: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
 		});
 
 		// Handle retry for error state
@@ -206,7 +218,22 @@ export default function SpinControls({
 			!spinFee ||
 			tokenNonce === undefined
 		) {
-			console.log("❌ [SpinControls] Spin conditions not met");
+			console.log("❌ [SpinControls] Spin conditions not met:", {
+				isConnected,
+				canSpin,
+				userAddress: !!userAddress,
+				feeToken: !!feeToken,
+				spinFee: !!spinFee,
+				tokenNonce: tokenNonce !== undefined,
+				individual_checks: {
+					not_connected: !isConnected,
+					cannot_spin: !canSpin,
+					no_user_address: !userAddress,
+					no_fee_token: !feeToken,
+					no_spin_fee: !spinFee,
+					no_token_nonce: tokenNonce === undefined,
+				}
+			});
 			return;
 		}
 
@@ -421,7 +448,7 @@ export default function SpinControls({
 									? "spin-wobble"
 									: gachaSpin.isError
 										? "animate-bounce"
-										: "hover:scale-105 transition-all duration-300"
+										: "hover:shadow-3xl hover:shadow-warning/30 transition-all duration-300"
 							)}
 						>
 							{/* Inner glass surface */}
@@ -459,6 +486,18 @@ export default function SpinControls({
 								<p className="text-sm mb-2">{gachaSpin.error}</p>
 								<p className="text-xs opacity-60">
 									Retry attempts: {gachaSpin.retryCount}/5
+								</p>
+							</div>
+						</GlassBadge>
+					)}
+
+					{/* Gacha Unavailable Warning */}
+					{isConnected && isGachaAvailable === false && (
+						<GlassBadge variant="warning" className="text-center p-4">
+							<div>
+								<p className="text-sm mb-2">Gacha System Unavailable</p>
+								<p className="text-xs opacity-60">
+									No whitelisted collections or NFTs available for spinning
 								</p>
 							</div>
 						</GlassBadge>

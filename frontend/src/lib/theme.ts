@@ -9,7 +9,7 @@ export const glassmorphism = {
   card: {
     base: "bg-content1/20 backdrop-blur-xl border border-white/10 shadow-2xl",
     hover: "hover:bg-content1/30 hover:border-white/20 hover:shadow-3xl transition-all duration-300",
-    interactive: "cursor-pointer transform hover:scale-[1.02] transition-all duration-200"
+    interactive: "cursor-pointer transition-all duration-200"
   },
   
   // Navigation variants
@@ -82,8 +82,8 @@ export const animations = {
   
   // Interaction animations
   interaction: {
-    hover: "hover:scale-105 transition-all duration-300",
-    press: "active:scale-95 transition-all duration-150",
+    hover: "transition-all duration-300",
+    press: "transition-all duration-150",
     bounce: "animate-bounce"
   }
 } as const;

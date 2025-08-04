@@ -67,6 +67,9 @@ contract GachaTest is Test {
     function _setupTreasuryWithNFTs() private {
         vm.startPrank(owner);
 
+        // First whitelist the NFT collection
+        treasury.addToWhitelist(address(nft));
+
         // Mint and deposit NFTs of different rarities directly to treasury
         for (uint256 i = 0; i < 10; i++) {
             uint256 tokenId = nft.mint(owner);
@@ -303,6 +306,8 @@ contract GachaTest is Test {
 
         // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
         vm.startPrank(owner);
+        // First whitelist the NFT collection
+        zeroFeeGachaTreasury.addToWhitelist(address(nft));
         for (uint256 i = 0; i < 5; i++) {
             uint256 tokenId = nft.mint(owner);
             nft.approve(address(zeroFeeGachaTreasury), tokenId);
@@ -414,6 +419,8 @@ contract GachaTest is Test {
 
         // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
         vm.startPrank(owner);
+        // First whitelist the NFT collection
+        zeroFeeGachaTreasury.addToWhitelist(address(nft));
         for (uint256 i = 0; i < 5; i++) {
             uint256 tokenId = nft.mint(owner);
             nft.approve(address(zeroFeeGachaTreasury), tokenId);

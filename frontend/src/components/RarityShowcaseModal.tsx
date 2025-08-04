@@ -159,7 +159,7 @@ export default function RarityShowcaseModal({
 											<Image
 												src={item.imageUrl}
 												alt={`NFT ${item.tokenId}`}
-												className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
+												className="w-full h-36 object-cover transition-all duration-300"
 												loading="lazy"
 											/>
 											<div className="absolute top-2 right-2">

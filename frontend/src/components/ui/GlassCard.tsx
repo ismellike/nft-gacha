@@ -36,7 +36,7 @@ export function GlassCard({
       "focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
     ),
     highlight: "border-warning/30 bg-gradient-to-r from-warning/10 to-orange-400/10 shadow-xl shadow-warning/10",
-    floating: "shadow-xl shadow-black/20 hover:shadow-2xl hover:shadow-black/30 transform hover:-translate-y-1"
+    floating: "shadow-xl shadow-black/20 hover:shadow-2xl hover:shadow-black/30"
   };
 
   const paddingClasses = {
@@ -58,8 +58,6 @@ export function GlassCard({
   const CardComponent = animate ? motion(Card) : Card;
 
   const motionProps = animate ? {
-    whileHover: variant === "interactive" ? { scale: 1.02, y: -2 } : { scale: 1.01 },
-    whileTap: { scale: 0.98 },
     transition: { type: "spring" as const, stiffness: 400, damping: 17 }
   } : {};
 

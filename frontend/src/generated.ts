@@ -2095,6 +2095,13 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'collection', internalType: 'address', type: 'address' }],
+    name: 'addToWhitelist',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'pendingId', internalType: 'uint256', type: 'uint256' },
       {
@@ -2358,6 +2365,36 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getWhitelistLength',
+    outputs: [{ name: 'count', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getWhitelistedCollections',
+    outputs: [
+      { name: 'collections', internalType: 'address[]', type: 'address[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'collection', internalType: 'address', type: 'address' }],
+    name: 'isCollectionWhitelisted',
+    outputs: [{ name: 'isWhitelisted', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'isGachaAvailable',
+    outputs: [{ name: 'available', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
@@ -2436,6 +2473,13 @@ export const gachaTreasuryAbi = [
     name: 'rarityCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'collection', internalType: 'address', type: 'address' }],
+    name: 'removeFromWhitelist',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2574,6 +2618,20 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'whitelistedCollections',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'whitelistedCollectionsList',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       {
         name: 'rarity',
@@ -2625,6 +2683,32 @@ export const gachaTreasuryAbi = [
       { name: 'to', internalType: 'address', type: 'address', indexed: false },
     ],
     name: 'BatchWithdrawn',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'CollectionRemovedFromWhitelist',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'CollectionWhitelisted',
   },
   {
     type: 'event',
@@ -2849,7 +2933,11 @@ export const gachaTreasuryAbi = [
   },
   { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
   { type: 'error', inputs: [], name: 'CannotDepositSameNFTTwice' },
+  { type: 'error', inputs: [], name: 'CollectionAlreadyWhitelisted' },
+  { type: 'error', inputs: [], name: 'CollectionNotInWhitelist' },
+  { type: 'error', inputs: [], name: 'CollectionNotWhitelisted' },
   { type: 'error', inputs: [], name: 'EmptyArrays' },
+  { type: 'error', inputs: [], name: 'EmptyWhitelist' },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'InvalidCollectionAddress' },
@@ -7169,6 +7257,42 @@ export const useReadGachaTreasuryGetUserTotalDepositCount =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getWhitelistLength"`
+ */
+export const useReadGachaTreasuryGetWhitelistLength =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getWhitelistLength',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getWhitelistedCollections"`
+ */
+export const useReadGachaTreasuryGetWhitelistedCollections =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getWhitelistedCollections',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"isCollectionWhitelisted"`
+ */
+export const useReadGachaTreasuryIsCollectionWhitelisted =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'isCollectionWhitelisted',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"isGachaAvailable"`
+ */
+export const useReadGachaTreasuryIsGachaAvailable =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'isGachaAvailable',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"isNFTDeposited"`
  */
 export const useReadGachaTreasuryIsNftDeposited =
@@ -7282,10 +7406,37 @@ export const useReadGachaTreasuryUserTotalDeposits =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"whitelistedCollections"`
+ */
+export const useReadGachaTreasuryWhitelistedCollections =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'whitelistedCollections',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"whitelistedCollectionsList"`
+ */
+export const useReadGachaTreasuryWhitelistedCollectionsList =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'whitelistedCollectionsList',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__
  */
 export const useWriteGachaTreasuryContract =
   /*#__PURE__*/ createUseWriteContract({ abi: gachaTreasuryAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"addToWhitelist"`
+ */
+export const useWriteGachaTreasuryAddToWhitelist =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'addToWhitelist',
+  })
 
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"approvePendingDeposit"`
@@ -7348,6 +7499,15 @@ export const useWriteGachaTreasuryEmergencyUnpause =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
     functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"removeFromWhitelist"`
+ */
+export const useWriteGachaTreasuryRemoveFromWhitelist =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'removeFromWhitelist',
   })
 
 /**
@@ -7420,6 +7580,15 @@ export const useSimulateGachaTreasuryContract =
   /*#__PURE__*/ createUseSimulateContract({ abi: gachaTreasuryAbi })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"addToWhitelist"`
+ */
+export const useSimulateGachaTreasuryAddToWhitelist =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'addToWhitelist',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"approvePendingDeposit"`
  */
 export const useSimulateGachaTreasuryApprovePendingDeposit =
@@ -7480,6 +7649,15 @@ export const useSimulateGachaTreasuryEmergencyUnpause =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"removeFromWhitelist"`
+ */
+export const useSimulateGachaTreasuryRemoveFromWhitelist =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'removeFromWhitelist',
   })
 
 /**
@@ -7567,6 +7745,24 @@ export const useWatchGachaTreasuryBatchWithdrawn =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
     eventName: 'BatchWithdrawn',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"CollectionRemovedFromWhitelist"`
+ */
+export const useWatchGachaTreasuryCollectionRemovedFromWhitelist =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'CollectionRemovedFromWhitelist',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"CollectionWhitelisted"`
+ */
+export const useWatchGachaTreasuryCollectionWhitelisted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'CollectionWhitelisted',
   })
 
 /**

@@ -1,77 +1,84 @@
 /**
  * Icon utilities and mappings for the application
- * Uses Lucide React for consistent, beautiful icons
+ * Uses Heroicons React for consistent, beautiful icons
  */
 
 import React from 'react';
 import {
-  Dice6,
-  Coins,
-  Wallet,
-  Settings,
-  TrendingUp,
-  Trophy,
-  Gem,
-  Star,
-  Sparkles,
-  Crown,
-  Gift,
-  Zap,
-  RefreshCw,
-  X,
-  Check,
-  AlertTriangle,
-  Info,
-  ExternalLink,
-  Copy,
-  Eye,
-  EyeOff,
-  ChevronRight,
-  ChevronLeft,
-  ChevronUp,
-  ChevronDown,
-  Menu,
-  Home,
-  User,
-  Search,
-  Filter,
-  SortAsc,
-  SortDesc,
-  Calendar,
-  Clock,
-  ArrowRight,
-  ArrowLeft,
-  ArrowUp,
-  ArrowDown,
-  Plus,
-  Minus,
-  MoreHorizontal,
-  MoreVertical,
-  Download,
-  Upload,
-  Share,
-  Heart,
-  Bookmark,
-  Flag,
-  MessageCircle,
-  Bell,
-  BellOff,
-  Volume2,
-  VolumeX,
-  Play,
-  Pause,
-  Square,
-  SkipForward,
-  SkipBack,
-  Repeat,
-  Shuffle,
-  Maximize,
-  Minimize,
-  RotateCcw,
-  RotateCw,
-  Loader2,
-  type LucideIcon
-} from 'lucide-react';
+  CubeIcon as Dice6,
+  CurrencyDollarIcon as Coins,
+  WalletIcon as Wallet,
+  CogIcon as Settings,
+  ChartBarIcon as TrendingUp,
+  TrophyIcon as Trophy,
+  GiftIcon as Gem,
+  StarIcon as Star,
+  SparklesIcon as Sparkles,
+  StarIcon as Crown,
+  GiftIcon as Gift,
+  BoltIcon as Zap,
+  ArrowPathIcon as RefreshCw,
+  XMarkIcon as X,
+  CheckIcon as Check,
+  ExclamationTriangleIcon as AlertTriangle,
+  InformationCircleIcon as Info,
+  ArrowTopRightOnSquareIcon as ExternalLink,
+  ClipboardIcon as Copy,
+  EyeIcon as Eye,
+  EyeSlashIcon as EyeOff,
+  ChevronRightIcon as ChevronRight,
+  ChevronLeftIcon as ChevronLeft,
+  ChevronUpIcon as ChevronUp,
+  ChevronDownIcon as ChevronDown,
+  Bars3Icon as Menu,
+  HomeIcon as Home,
+  UserIcon as User,
+  MagnifyingGlassIcon as Search,
+  FunnelIcon as Filter,
+  BarsArrowUpIcon as SortAsc,
+  BarsArrowDownIcon as SortDesc,
+  CalendarIcon as Calendar,
+  ClockIcon as Clock,
+  ArrowRightIcon as ArrowRight,
+  ArrowLeftIcon as ArrowLeft,
+  ArrowUpIcon as ArrowUp,
+  ArrowDownIcon as ArrowDown,
+  PlusIcon as Plus,
+  MinusIcon as Minus,
+  EllipsisHorizontalIcon as MoreHorizontal,
+  EllipsisVerticalIcon as MoreVertical,
+  ArrowDownTrayIcon as Download,
+  ArrowUpTrayIcon as Upload,
+  ShareIcon as Share,
+  HeartIcon as Heart,
+  BookmarkIcon as Bookmark,
+  FlagIcon as Flag,
+  ChatBubbleLeftIcon as MessageCircle,
+  BellIcon as Bell,
+  BellSlashIcon as BellOff,
+  SpeakerWaveIcon as Volume2,
+  SpeakerXMarkIcon as VolumeX,
+  PlayIcon as Play,
+  PauseIcon as Pause,
+  StopIcon as Square,
+  ForwardIcon as SkipForward,
+  BackwardIcon as SkipBack,
+  ArrowPathRoundedSquareIcon as Repeat,
+  ArrowsRightLeftIcon as Shuffle,
+  ArrowsPointingOutIcon as Maximize,
+  ArrowsPointingInIcon as Minimize,
+  ArrowPathIcon as RotateCcw,
+  ArrowPathIcon as RotateCw,
+  ArrowPathIcon as Loader2,
+  FolderOpenIcon as FolderOpen
+} from '@heroicons/react/24/outline';
+
+export type HeroIcon = React.ForwardRefExoticComponent<
+  Omit<React.SVGProps<SVGSVGElement>, "ref"> & {
+    title?: string | undefined;
+    titleId?: string | undefined;
+  } & React.RefAttributes<SVGSVGElement>
+>;
 
 // Icon size configurations
 export const iconSizes = {
@@ -102,7 +109,8 @@ export function Icon({
   const iconSize = typeof size === 'number' ? size : iconSizes[size];
   
   return React.cloneElement(children, {
-    size: iconSize,
+    width: iconSize,
+    height: iconSize,
     strokeWidth,
     className: `transition-colors duration-200 ${className}`
   } as any);
@@ -162,7 +170,8 @@ export const actionIcons = {
   bookmark: Bookmark,
   flag: Flag,
   more: MoreHorizontal,
-  moreVertical: MoreVertical
+  moreVertical: MoreVertical,
+  'folder-open': FolderOpen
 } as const;
 
 // Navigation/movement icons
@@ -200,7 +209,7 @@ export const mediaIcons = {
 } as const;
 
 // Utility functions for common icon patterns
-export const getIconByName = (name: string): LucideIcon | null => {
+export const getIconByName = (name: string): HeroIcon | null => {
   const allIcons = {
     ...navigationIcons,
     ...gachaIcons,
@@ -226,7 +235,7 @@ export const ThemedIcon = ({
   size?: IconSize | number;
   className?: string;
   variant?: 'default' | 'muted' | 'accent' | 'success' | 'warning' | 'danger';
-} & Omit<React.ComponentProps<LucideIcon>, 'size'>) => {
+} & Omit<React.ComponentProps<HeroIcon>, 'width' | 'height'>) => {
   const IconComponent = getIconByName(name);
   
   if (!IconComponent) {
@@ -247,7 +256,8 @@ export const ThemedIcon = ({
   
   return (
     <IconComponent
-      size={iconSize}
+      width={iconSize}
+      height={iconSize}
       className={`${variantClasses[variant]} ${className}`}
       {...props}
     />
@@ -277,5 +287,6 @@ export {
   Copy,
   Eye,
   EyeOff,
-  Loader2
+  Loader2,
+  FolderOpen
 };

@@ -56,7 +56,6 @@ export function GlassBadge({
   const BadgeComponent = animate ? motion.div : "div";
 
   const motionProps = animate ? {
-    whileHover: { scale: 1.05 },
     transition: { type: "spring" as const, stiffness: 400, damping: 17 }
   } : {};
 
