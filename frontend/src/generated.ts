@@ -2064,6 +2064,8 @@ export const gachaServiceHandlerAbi = [
     ],
     name: 'RandomnessReceived',
   },
+  { type: 'error', inputs: [], name: 'InvalidGachaAddress' },
+  { type: 'error', inputs: [], name: 'InvalidServiceManager' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -36,8 +36,6 @@ tasks:
         task bootstrap-avs
         task frontend:codegen
         task frontend:sync-env
-        task contracts:mint-eth
-        task contracts:mint-tokens
         task frontend:dev
 
   bootstrap-avs:

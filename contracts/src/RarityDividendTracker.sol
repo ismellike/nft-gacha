@@ -27,7 +27,7 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
 
     mapping(address => int256) private pointsCorrection;
     mapping(address => uint256) private withdrawnFunds;
-    
+
     // Address of the rewards manager that can call updateCorrection
     address public rewardsManager;
 
@@ -74,24 +74,24 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
 
     function accumulativeFundsOf(address account) public view returns (uint256) {
         uint256 shares = treasury.getUserDepositCount(account, rarity);
-        
+
         // Prevent overflow by checking if multiplication would overflow
         if (shares > 0 && pointsPerShare > type(uint256).max / shares) {
             return 0; // Return 0 on overflow to prevent revert
         }
-        
+
         int256 corrected = int256(pointsPerShare * shares) + pointsCorrection[account];
         return corrected < 0 ? 0 : uint256(corrected) / pointsMultiplier;
     }
 
     function updateCorrection(address account) external {
         if (msg.sender != rewardsManager && msg.sender != owner()) revert UnauthorizedCaller();
-        
+
         // This method should be called when treasury deposit counts change
         // We need to preserve the user's already-earned dividends while updating their share count
         uint256 currentWithdrawable = withdrawableFundsOf(account);
         uint256 newShares = treasury.getUserDepositCount(account, rarity);
-        
+
         // Set correction so that:
         // accumulativeFundsOf = (pointsPerShare * newShares + pointsCorrection) / pointsMultiplier
         // withdrawableFundsOf = accumulativeFundsOf - withdrawnFunds = currentWithdrawable

@@ -41,24 +41,3 @@ tasks:
         msg: "DEPLOYER_PRIVATE_KEY environment variable is required"
     deps: [build]
 
-  mint-tokens:
-    desc: "Mint test tokens to address specified in USER_ADDRESS env var"
-    dir: "{{.CONTRACTS_DIR}}"
-    cmds:
-      - |
-        echo "💰 Minting 100,000 TEST tokens to $USER_ADDRESS..."
-        forge script script/MintTestTokens.s.sol:MintTestTokens \
-          --rpc-url http://localhost:{{.ANVIL_PORT}} \
-          --broadcast \
-          --skip-simulation \
-          --private-key $DEPLOYER_PRIVATE_KEY
-
-  mint-eth:
-    desc: "Mint testnet ETH to address specified in USER_ADDRESS env var"
-    dir: "{{.CONTRACTS_DIR}}"
-    cmds:
-      - |
-        echo "💰 Minting 1 ETH to $USER_ADDRESS..."
-        cast send --value 1ether $USER_ADDRESS \
-          --rpc-url http://localhost:{{.ANVIL_PORT}} \
-          --private-key $DEPLOYER_PRIVATE_KEY

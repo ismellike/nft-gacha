@@ -289,7 +289,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         returns (uint256 totalClaimed, uint256 totalClaimable, uint256 spinCount)
     {
         totalClaimed = userTotalRewardsClaimed[user];
-        
+
         // Calculate total claimable rewards across all rarities
         for (uint256 i = 0; i < 5; i++) {
             RarityDividendTracker token = rarityTokens[GachaTreasury.Rarity(i)];
@@ -297,7 +297,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
                 totalClaimable += token.withdrawableFundsOf(user);
             }
         }
-        
+
         spinCount = userSpinCount[user];
     }
 

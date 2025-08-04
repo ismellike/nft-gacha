@@ -10,13 +10,16 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {GachaRewardsManager} from "./GachaRewardsManager.sol";
 
-/// @title Gacha - NFT Gacha Game Contract
-/// @notice Manages gacha spins with weighted rarity system
-/// @dev Uses external randomness service for fair distribution
+/**
+ * @title Gacha - NFT Gacha Game Contract
+ * @notice Manages gacha spins with weighted rarity system using provably fair randomness
+ * @dev Uses external WAVS randomness service for fair distribution
+ * @author NFT Gacha Team
+ */
 contract Gacha is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    // Custom errors for gas efficiency
+    /// @notice Custom errors for gas efficiency and clarity
     error InvalidFeeToken();
     error InvalidServiceHandler();
     error FeePaymentFailed();
@@ -32,31 +35,40 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     error InvalidTreasuryContract();
     error InvalidRewardsManager();
 
+    /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
         address requester;
+        /// @dev Address that initiated the spin
         bool fulfilled;
     }
+    /// @dev Whether the spin has been completed
 
-    GachaTreasury public treasury;
+    /// @notice Core contract interfaces and addresses
+    GachaTreasury public immutable treasury;
     IERC20 public feeToken;
-    uint256 public spinFee;
-    uint256 private _nextTriggerId;
-    address public gachaServiceHandler;
     GachaRewardsManager public rewardsManager;
+    address public gachaServiceHandler;
 
+    /// @notice Fee configuration
+    uint256 public spinFee;
+
+    /// @notice Internal state
+    uint256 private _nextTriggerId;
     mapping(uint256 => SpinRequest) public spinRequests;
 
-    // Constants
-    uint256 public constant TOTAL_WEIGHT = 10000;
+    /// @notice Total weight constant for rarity calculations (basis points)
+    uint256 public constant TOTAL_WEIGHT = 10_000;
 
-    // Rarity weights for selection (out of 10000 for precision)
-    uint256 public commonWeight = 7000; // 70%
-    uint256 public uncommonWeight = 2000; // 20%
+    /// @notice Rarity weights for selection (out of 10,000 for precision)
+    uint256 public commonWeight = 7_000; // 70%
+    uint256 public uncommonWeight = 2_000; // 20%
     uint256 public rareWeight = 600; // 6%
     uint256 public epicWeight = 300; // 3%
     uint256 public legendaryWeight = 100; // 1%
 
+    /// @notice Events for tracking contract activity
     event RandomnessRequested(uint256 indexed triggerId);
+
     event SpinCompleted(
         uint256 indexed triggerId,
         address indexed requester,
@@ -64,22 +76,36 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         address collection,
         uint256 tokenId
     );
+
     event SpinRefunded(
         uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity selectedRarity, uint256 refundAmount
     );
+
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTokenUpdated(address oldToken, address newToken);
+
     event RarityWeightsUpdated(uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary);
+
     event GachaServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
     event EmergencyPause(address indexed admin);
     event EmergencyUnpause(address indexed admin);
     event RewardsDistributed(uint256 rewardsAmount);
 
+    /// @notice Restricts access to the authorized gacha service handler
     modifier onlyGachaServiceHandler() {
         if (msg.sender != gachaServiceHandler) revert UnauthorizedServiceHandler();
         _;
     }
 
+    /**
+     * @notice Initializes the Gacha contract with required dependencies
+     * @param _owner Address that will own the contract
+     * @param _gachaServiceHandler Address of the randomness service handler
+     * @param _feeToken Token used for spin fees (can be zero address for free spins)
+     * @param _spinFee Amount of tokens required per spin
+     * @param _treasury Address of the NFT treasury contract
+     * @param _rewardsManager Address of the rewards distribution contract
+     */
     constructor(
         address _owner,
         address _gachaServiceHandler,
@@ -88,20 +114,21 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         address _treasury,
         address _rewardsManager
     ) Ownable(_owner) {
+        // Validate critical addresses
         if (_gachaServiceHandler == address(0)) revert InvalidServiceHandler();
-        // Allow zero fee with zero address fee token, but not zero fee with non-zero token
-        if (_spinFee == 0 && _feeToken != address(0)) revert InvalidFeeToken();
-        if (_spinFee > 0 && _feeToken == address(0)) revert InvalidFeeToken();
         if (_treasury == address(0)) revert InvalidTreasuryContract();
         if (_rewardsManager == address(0)) revert InvalidRewardsManager();
 
-        gachaServiceHandler = _gachaServiceHandler;
+        // Validate fee configuration (allow zero fee with zero token for free spins)
+        if (_spinFee == 0 && _feeToken != address(0)) revert InvalidFeeToken();
+        if (_spinFee > 0 && _feeToken == address(0)) revert InvalidFeeToken();
+
+        // Set immutable and initial values
         treasury = GachaTreasury(_treasury);
+        gachaServiceHandler = _gachaServiceHandler;
         feeToken = IERC20(_feeToken);
         spinFee = _spinFee;
         rewardsManager = GachaRewardsManager(_rewardsManager);
-
-        // Note: Treasury owner needs to call setRewardsManager separately after deployment
     }
 
     /// @notice Initiates a gacha spin
@@ -229,15 +256,25 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice Updates the spin fee amount
+     * @param _newFee New fee amount in tokens
+     * @dev Only owner can call this function
+     */
     function setSpinFee(uint256 _newFee) external onlyOwner {
-        if (_newFee == 0) revert InvalidFeeToken();
+        if (_newFee == 0 && address(feeToken) != address(0)) revert InvalidFeeToken();
         uint256 oldFee = spinFee;
         spinFee = _newFee;
         emit FeeUpdated(oldFee, _newFee);
     }
 
+    /**
+     * @notice Updates the fee token contract
+     * @param _newFeeToken Address of the new fee token
+     * @dev Only owner can call this function. Cannot set to zero address if fee > 0
+     */
     function setFeeToken(address _newFeeToken) external onlyOwner {
-        if (_newFeeToken == address(0)) revert InvalidFeeToken();
+        if (_newFeeToken == address(0) && spinFee > 0) revert InvalidFeeToken();
         address oldToken = address(feeToken);
         feeToken = IERC20(_newFeeToken);
         emit FeeTokenUpdated(oldToken, _newFeeToken);

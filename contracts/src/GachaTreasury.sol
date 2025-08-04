@@ -7,11 +7,14 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/// @title GachaTreasury - NFT Treasury Management
-/// @notice Manages NFT storage and distribution for gacha system
-/// @dev Supports batch operations and rarity-based organization
+/**
+ * @title GachaTreasury - NFT Treasury Management
+ * @notice Manages NFT storage and distribution for gacha system with rarity-based organization
+ * @dev Supports batch operations, pending deposit system, and collection whitelisting
+ * @author NFT Gacha Team
+ */
 contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
-    // Custom errors for gas efficiency
+    /// @notice Custom errors for gas efficiency and clear error handling
     error InvalidCollectionAddress();
     error NFTAlreadyDeposited();
     error InvalidNFTContract();
@@ -32,83 +35,119 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     error CollectionNotInWhitelist();
     error EmptyWhitelist();
 
-    // Constants
+    /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
     uint256 public constant MAX_BATCH_WITHDRAW = 20;
 
+    /// @notice NFT rarity tiers for gacha distribution
     enum Rarity {
-        Common,
-        Uncommon,
-        Rare,
-        Epic,
-        Legendary
+        Common, // 0
+        Uncommon, // 1
+        Rare, // 2
+        Epic, // 3
+        Legendary // 4
+
     }
 
+    /// @notice Represents an NFT stored in the treasury
     struct NFTItem {
-        address collection; // 20 bytes
-        address depositor; // 20 bytes (new slot)
-        Rarity rarity; // 1 byte
-        uint256 tokenId; // 32 bytes (new slot)
+        address collection;
+        /// @dev NFT collection contract address (20 bytes)
+        address depositor;
+        /// @dev Original depositor address (20 bytes, new slot)
+        Rarity rarity;
+        /// @dev Assigned rarity tier (1 byte)
+        uint256 tokenId;
     }
+    /// @dev Token ID within the collection (32 bytes, new slot)
 
+    /// @notice Status of pending deposits awaiting admin approval
     enum PendingDepositStatus {
         Pending,
+        /// @dev Awaiting admin review
         Approved,
+        /// @dev Approved and added to treasury
         Denied
     }
+    /// @dev Denied and returned to depositor
 
+    /// @notice Represents a pending deposit submitted by users
     struct PendingDeposit {
-        address depositor; // 20 bytes
-        Rarity proposedRarity; // 1 byte
-        PendingDepositStatus status; // 1 byte
+        address depositor;
+        /// @dev User who submitted deposit (20 bytes)
+        Rarity proposedRarity;
+        /// @dev User's proposed rarity (1 byte)
+        PendingDepositStatus status;
+        /// @dev Current status (1 byte)
         // 10 bytes remaining in slot
-        address collection; // 20 bytes (new slot)
-        uint256 tokenId; // 32 bytes (new slot)
-        uint256 timestamp; // 32 bytes (new slot)
+        address collection;
+        /// @dev NFT collection address (20 bytes, new slot)
+        uint256 tokenId;
+        /// @dev Token ID (32 bytes, new slot)
+        uint256 timestamp;
     }
+    /// @dev Submission timestamp (32 bytes, new slot)
 
+    /// @notice Core treasury storage
     mapping(Rarity => NFTItem[]) public treasury;
+    /// @dev NFTs organized by rarity
     mapping(Rarity => uint256) public rarityCount;
-    address public gachaContract;
-    address public treasuryRewardsManager;
+    /// @dev Count of NFTs per rarity
 
-    // Duplicate protection
+    /// @notice Contract addresses
+    address public gachaContract;
+    /// @dev Authorized gacha contract
+    address public treasuryRewardsManager;
+    /// @dev Rewards distribution contract
+
+    /// @notice Duplicate protection
     mapping(address => mapping(uint256 => bool)) public depositedNFTs;
 
-    // Pending deposits system
+    /// @notice Pending deposits system
     mapping(uint256 => PendingDeposit) public pendingDeposits;
-    mapping(address => mapping(uint256 => uint256)) public userPendingDeposits; // user => tokenId => pendingId
+    mapping(address => mapping(uint256 => uint256)) public userPendingDeposits;
+    /// @dev user => tokenId => pendingId
     uint256 public nextPendingId = 1;
     uint256[] public pendingDepositIds;
 
-    // User deposit tracking for rewards
+    /// @notice User deposit tracking for rewards
     mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
     mapping(address => uint256) public userTotalDeposits;
 
-    // Collection whitelist
+    /// @notice Collection whitelist management
     mapping(address => bool) public whitelistedCollections;
     address[] public whitelistedCollectionsList;
 
+    /// @notice Events for tracking treasury operations
     event NFTDeposited(address indexed collection, uint256 indexed tokenId, Rarity rarity);
     event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, Rarity rarity, address to);
     event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
     event BatchDeposited(uint256 count, Rarity rarity);
     event BatchWithdrawn(uint256 count, Rarity rarity, address to);
+
     event PendingDepositSubmitted(
         uint256 indexed pendingId, address indexed depositor, address collection, uint256 tokenId, Rarity proposedRarity
     );
+
     event PendingDepositApproved(uint256 indexed pendingId, address indexed depositor, Rarity finalRarity);
     event PendingDepositDenied(uint256 indexed pendingId, address indexed depositor, string reason);
     event RewardsManagerUpdated(address indexed oldRewards, address indexed newRewards);
     event CollectionWhitelisted(address indexed collection);
     event CollectionRemovedFromWhitelist(address indexed collection);
 
+    /// @notice Restricts access to the authorized gacha contract
     modifier onlyGacha() {
         if (msg.sender != gachaContract) revert UnauthorizedGachaContract();
         _;
     }
 
+    /**
+     * @notice Initializes the treasury with owner and gacha contract
+     * @param _owner Address that will own the treasury contract
+     * @param _gachaContract Address of the authorized gacha contract
+     */
     constructor(address _owner, address _gachaContract) Ownable(_owner) {
+        if (_gachaContract == address(0)) revert InvalidGachaContract();
         gachaContract = _gachaContract;
     }
 
@@ -654,8 +693,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @return available True if gacha can operate
     function isGachaAvailable() external view returns (bool available) {
         if (whitelistedCollectionsList.length == 0) return false;
-        uint256 totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] 
-            + rarityCount[Rarity.Rare] + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
+        uint256 totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + rarityCount[Rarity.Rare]
+            + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
         return totalItems > 0;
     }
 

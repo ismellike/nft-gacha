@@ -29,7 +29,7 @@ contract GachaTreasuryTest is Test {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
-        
+
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
@@ -44,7 +44,7 @@ contract GachaTreasuryTest is Test {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
-        
+
         uint256 commonTokenId = nft.mint(owner);
         uint256 rareTokenId = nft.mint(owner);
         uint256 legendaryTokenId = nft.mint(owner);
@@ -67,7 +67,7 @@ contract GachaTreasuryTest is Test {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
-        
+
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
@@ -94,7 +94,7 @@ contract GachaTreasuryTest is Test {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
-        
+
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
@@ -119,7 +119,7 @@ contract GachaTreasuryTest is Test {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
-        
+
         uint256 tokenId1 = nft.mint(owner);
         uint256 tokenId2 = nft.mint(owner);
         nft.approve(address(treasury), tokenId1);
@@ -151,10 +151,10 @@ contract GachaTreasuryTest is Test {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
-        
+
         uint256 tokenId = nft.mint(owner);
         vm.stopPrank();
-        
+
         address gachaAddress = address(0x123);
         address winner = address(0x456);
 
@@ -178,7 +178,7 @@ contract GachaTreasuryTest is Test {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
-        
+
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
@@ -200,7 +200,7 @@ contract GachaTreasuryTest is Test {
 
         assertTrue(treasury.isCollectionWhitelisted(address(nft)));
         assertEq(treasury.getWhitelistLength(), 1);
-        
+
         address[] memory whitelisted = treasury.getWhitelistedCollections();
         assertEq(whitelisted.length, 1);
         assertEq(whitelisted[0], address(nft));
@@ -215,7 +215,7 @@ contract GachaTreasuryTest is Test {
     function testAddToWhitelistRevertAlreadyWhitelisted() public {
         vm.startPrank(owner);
         treasury.addToWhitelist(address(nft));
-        
+
         vm.expectRevert(abi.encodeWithSelector(GachaTreasury.CollectionAlreadyWhitelisted.selector));
         treasury.addToWhitelist(address(nft));
         vm.stopPrank();
@@ -230,7 +230,7 @@ contract GachaTreasuryTest is Test {
     function testRemoveFromWhitelist() public {
         vm.startPrank(owner);
         treasury.addToWhitelist(address(nft));
-        
+
         vm.expectEmit(true, false, false, false);
         emit CollectionRemovedFromWhitelist(address(nft));
         treasury.removeFromWhitelist(address(nft));
@@ -238,7 +238,7 @@ contract GachaTreasuryTest is Test {
 
         assertFalse(treasury.isCollectionWhitelisted(address(nft)));
         assertEq(treasury.getWhitelistLength(), 0);
-        
+
         address[] memory whitelisted = treasury.getWhitelistedCollections();
         assertEq(whitelisted.length, 0);
     }
@@ -262,7 +262,7 @@ contract GachaTreasuryTest is Test {
         vm.startPrank(owner);
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
-        
+
         vm.expectRevert(abi.encodeWithSelector(GachaTreasury.CollectionNotWhitelisted.selector));
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
         vm.stopPrank();
@@ -274,7 +274,7 @@ contract GachaTreasuryTest is Test {
 
         vm.startPrank(user);
         nft.approve(address(treasury), tokenId);
-        
+
         vm.expectRevert(abi.encodeWithSelector(GachaTreasury.CollectionNotWhitelisted.selector));
         treasury.submitPendingDeposit(address(nft), tokenId, GachaTreasury.Rarity.Common);
         vm.stopPrank();
@@ -293,7 +293,7 @@ contract GachaTreasuryTest is Test {
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
         treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
-        
+
         // Now should be true
         assertTrue(treasury.isGachaAvailable());
 
