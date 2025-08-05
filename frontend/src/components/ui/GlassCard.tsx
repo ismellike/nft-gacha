@@ -1,17 +1,17 @@
 /**
  * Reusable Glass Card Component
- * Implements consistent glassmorphism styling with variants and smooth interactions
+ * Implements glassmorphism styling using HeroUI's custom variants system
  */
 
 import { Card, CardBody, CardHeader } from "@heroui/react";
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
-import { cn, glassmorphism, animations } from "../../lib/theme";
+import { glassCard } from "../../lib/theme-config";
 
 interface GlassCardProps {
   children: ReactNode;
   header?: ReactNode;
-  variant?: "base" | "interactive" | "highlight" | "floating";
+  variant?: "base" | "interactive" | "highlight" | "floating" | "error" | "success";
   className?: string;
   animate?: boolean;
   onClick?: () => void;
@@ -27,53 +27,34 @@ export function GlassCard({
   onClick,
   padding = "md"
 }: GlassCardProps) {
-  const baseClasses = glassmorphism.card.base;
-  const variantClasses = {
-    base: "",
-    interactive: cn(
-      glassmorphism.card.hover, 
-      glassmorphism.card.interactive,
-      "focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
-    ),
-    highlight: "border-warning/30 bg-gradient-to-r from-warning/10 to-orange-400/10 shadow-xl shadow-warning/10",
-    floating: "shadow-xl shadow-black/20 hover:shadow-2xl hover:shadow-black/30"
-  };
-
-  const paddingClasses = {
-    none: "",
-    sm: "p-4",
-    md: "p-6", 
-    lg: "p-8"
-  };
-
-  const cardClasses = cn(
-    baseClasses,
-    variantClasses[variant],
-    paddingClasses[padding],
-    "transition-all duration-300",
-    onClick && "cursor-pointer",
-    className
-  );
+  // Generate classes using our custom variant system
+  const cardStyles = glassCard({
+    variant,
+    padding,
+    animate,
+    className,
+  });
 
   const CardComponent = animate ? motion(Card) : Card;
 
   const motionProps = animate ? {
+    whileHover: { scale: 1.02 },
     transition: { type: "spring" as const, stiffness: 400, damping: 17 }
   } : {};
 
   return (
     <CardComponent 
-      className={cardClasses} 
+      className={cardStyles} 
       isPressable={!!onClick}
       onPress={onClick}
       {...motionProps}
     >
       {header && (
-        <CardHeader className={cn("pb-6", padding === "none" && "p-6 pb-0")}>
+        <CardHeader className={padding === "none" ? "p-6 pb-0" : "pb-6"}>
           {header}
         </CardHeader>
       )}
-      <CardBody className={cn(padding === "none" ? "p-6" : "", header ? "pt-0" : "")}>
+      <CardBody className={header ? "pt-0" : ""}>
         {children}
       </CardBody>
     </CardComponent>

@@ -31,6 +31,8 @@ module.exports = {
 	darkMode: "class",
 	plugins: [
 		heroui({
+			addCommonColors: false,
+			defaultTheme: "dark",
 			themes: {
 				dark: {
 					extend: "dark",
@@ -118,6 +120,29 @@ module.exports = {
 							950: "#450a0a",
 							DEFAULT: "#ef4444",
 							foreground: "#ffffff",
+						},
+					},
+				},
+			},
+			layout: {
+				boxShadow: {
+					small: "0 2px 12px 0 rgba(0, 0, 0, 0.16)",
+					medium: "0 4px 20px 0 rgba(0, 0, 0, 0.2)",
+					large: "0 8px 30px 0 rgba(0, 0, 0, 0.24)",
+				},
+				borderRadius: {
+					small: "8px",
+					medium: "12px",
+					large: "16px",
+				},
+			},
+			themes: {
+				dark: {
+					layout: {
+						boxShadow: {
+							small: "0 2px 12px 0 rgba(0, 0, 0, 0.4)",
+							medium: "0 4px 20px 0 rgba(0, 0, 0, 0.5)",
+							large: "0 8px 30px 0 rgba(0, 0, 0, 0.6)",
 						},
 					},
 				},

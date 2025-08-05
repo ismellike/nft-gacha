@@ -10,7 +10,7 @@ import { GachaWhitelist } from "../../components/GachaWhitelist";
 import { UserNFTModal } from "../../components/UserNFTModal";
 import { AdminControls } from "../../components/AdminControls";
 import { ThemedIcon } from "../../lib/icons";
-import { GlassCard, GlassButton, GlassBadge } from "../../components/ui";
+import { GlassCard, GlassButton, GlassBadge, StatsGridSkeleton, RarityBreakdownSkeleton, GachaBreadcrumb } from "../../components/ui";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";
 import { 
   useReadGachaRewardsManagerGetUserTotalClaimableRewards,
@@ -41,6 +41,8 @@ export default function GachaDetailPage() {
   const searchParams = useSearchParams();
   const { address: userAddress, isConnected } = useAccount();
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [optimisticClaim, setOptimisticClaim] = useState(false);
+  const [optimisticClaimedAmount, setOptimisticClaimedAmount] = useState<bigint | null>(null);
   const gachaId = searchParams.get('id');
   const sectionParam = searchParams.get('section');
   const validSections = ['spin', 'whitelist', 'rewards', 'admin'] as const;
@@ -90,19 +92,19 @@ export default function GachaDetailPage() {
     query: { enabled: !!feeToken },
   });
 
-  const { data: userAnalytics, refetch: refetchUserAnalytics } = useReadGachaRewardsManagerGetUserAnalytics({
+  const { data: userAnalytics, refetch: refetchUserAnalytics, isLoading: isUserAnalyticsLoading } = useReadGachaRewardsManagerGetUserAnalytics({
     address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
     args: userAddress ? [userAddress] : undefined,
     query: { enabled: !!userAddress },
   });
 
-  const { data: totalClaimable, refetch: refetchClaimable } = useReadGachaRewardsManagerGetUserTotalClaimableRewards({
+  const { data: totalClaimable, refetch: refetchClaimable, isLoading: isTotalClaimableLoading } = useReadGachaRewardsManagerGetUserTotalClaimableRewards({
     address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
     args: userAddress ? [userAddress] : undefined,
     query: { enabled: !!userAddress },
   });
 
-  const { data: depositCounts } = useReadGachaTreasuryGetUserAllDepositCounts({
+  const { data: depositCounts, isLoading: isDepositCountsLoading } = useReadGachaTreasuryGetUserAllDepositCounts({
     address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
     args: userAddress ? [userAddress] : undefined,
     query: { enabled: !!userAddress },
@@ -199,6 +201,39 @@ export default function GachaDetailPage() {
     router.push(`/gacha?${newSearchParams.toString()}`, { scroll: false });
   };
 
+  // Handle keyboard navigation for tabs
+  const handleTabKeyDown = (e: React.KeyboardEvent, currentTab: ValidSection) => {
+    const tabs = validSections.filter(section => 
+      section !== 'admin' || isOwner
+    );
+    const currentIndex = tabs.indexOf(currentTab);
+    
+    let nextIndex = currentIndex;
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        nextIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+        break;
+      case 'Home':
+        e.preventDefault();
+        nextIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        nextIndex = tabs.length - 1;
+        break;
+      default:
+        return;
+    }
+    
+    handleTabChange(tabs[nextIndex]);
+  };
+
   // Redirect to spin tab if trying to access admin without permissions
   useEffect(() => {
     if (activeTab === 'admin' && isConnected && gachaOwner && treasuryOwner && rewardsOwner && !isOwner) {
@@ -223,16 +258,36 @@ export default function GachaDetailPage() {
   // Handle claim success
   useEffect(() => {
     if (isClaimSuccess) {
+      // Reset optimistic state on success
+      setOptimisticClaim(false);
+      setOptimisticClaimedAmount(null);
       refetchUserAnalytics();
       refetchClaimable();
     }
   }, [isClaimSuccess, refetchUserAnalytics, refetchClaimable]);
 
+  // Reset optimistic state on error
+  useEffect(() => {
+    if (claimError) {
+      setOptimisticClaim(false);
+      setOptimisticClaimedAmount(null);
+    }
+  }, [claimError]);
+
   const handleClaimRewards = () => {
-    if (!userAddress) return;
+    if (!userAddress || !totalClaimable) return;
+    
+    // Set optimistic state
+    setOptimisticClaim(true);
+    setOptimisticClaimedAmount(totalClaimable);
+    
     claimRewards({
       address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
     });
+  };
+
+  const retryClaimRewards = () => {
+    handleClaimRewards();
   };
 
   if (!gachaId) {
@@ -244,7 +299,11 @@ export default function GachaDetailPage() {
           <p className="text-foreground/70 mb-6">
             Please provide a gacha ID in the URL parameters.
           </p>
-          <GlassButton variant="primary" onClick={() => router.push('/discover')}>
+          <GlassButton 
+            variant="primary" 
+            startIcon="arrow-left"
+            onClick={() => router.push('/discover')}
+          >
             Back to Discovery
           </GlassButton>
         </GlassCard>
@@ -261,7 +320,11 @@ export default function GachaDetailPage() {
           <p className="text-foreground/70 mb-6">
             The gacha "{gachaId}" is not recognized or configured.
           </p>
-          <GlassButton variant="primary" onClick={() => router.push('/discover')}>
+          <GlassButton 
+            variant="primary" 
+            startIcon="arrow-left"
+            onClick={() => router.push('/discover')}
+          >
             Back to Discovery
           </GlassButton>
         </GlassCard>
@@ -277,16 +340,15 @@ export default function GachaDetailPage() {
           className="mb-12 lg:mb-16"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
         >
           <div className="flex items-center gap-4 mb-8 lg:mb-12">
             <GlassButton 
               variant="secondary" 
               size="md"
+              startIcon="arrow-left"
               onClick={() => router.push('/discover')}
-              className="flex items-center gap-3"
             >
-              <ThemedIcon name="arrow-left" size="sm" />
               <span className="hidden sm:inline">Back to Discovery</span>
               <span className="sm:hidden">Back</span>
             </GlassButton>
@@ -323,22 +385,29 @@ export default function GachaDetailPage() {
           transition={{ delay: 0.2, duration: 0.6 }}
         >
           <GlassCard variant="base" className="p-3 lg:p-4">
-            <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
+            <div 
+              role="tablist" 
+              aria-label="Gacha navigation tabs"
+              className="flex flex-col sm:flex-row gap-3 lg:gap-4"
+            >
               <TabButton
                 active={activeTab === 'spin'}
                 onClick={() => handleTabChange('spin')}
+                onKeyDown={(e) => handleTabKeyDown(e, 'spin')}
                 icon="zap"
                 label="Spin & Play"
               />
               <TabButton
                 active={activeTab === 'whitelist'}
                 onClick={() => handleTabChange('whitelist')}
+                onKeyDown={(e) => handleTabKeyDown(e, 'whitelist')}
                 icon="folder-open"
                 label="Collections"
               />
               <TabButton
                 active={activeTab === 'rewards'}
                 onClick={() => handleTabChange('rewards')}
+                onKeyDown={(e) => handleTabKeyDown(e, 'rewards')}
                 icon="gift"
                 label="My Rewards"
               />
@@ -346,6 +415,7 @@ export default function GachaDetailPage() {
                 <TabButton
                   active={activeTab === 'admin'}
                   onClick={() => handleTabChange('admin')}
+                  onKeyDown={(e) => handleTabKeyDown(e, 'admin')}
                   icon="settings"
                   label="Admin"
                 />
@@ -362,11 +432,22 @@ export default function GachaDetailPage() {
           transition={{ duration: 0.4 }}
         >
           {activeTab === 'spin' && (
-            <GachaSpinner />
+            <div 
+              role="tabpanel" 
+              id="tabpanel-spin-&-play"
+              aria-labelledby="tab-spin-&-play"
+            >
+              <GachaSpinner />
+            </div>
           )}
 
           {activeTab === 'whitelist' && (
-            <div className="space-y-12 lg:space-y-16">
+            <div 
+              role="tabpanel" 
+              id="tabpanel-collections"
+              aria-labelledby="tab-collections"
+              className="space-y-12 lg:space-y-16"
+            >
               <GachaWhitelist 
                 gachaAddress={gacha.address}
               />
@@ -374,11 +455,22 @@ export default function GachaDetailPage() {
           )}
 
           {activeTab === 'admin' && gacha && (
-            <AdminControls gacha={gacha} />
+            <div 
+              role="tabpanel" 
+              id="tabpanel-admin"
+              aria-labelledby="tab-admin"
+            >
+              <AdminControls gacha={gacha} />
+            </div>
           )}
 
           {activeTab === 'rewards' && (
-            <div className="space-y-8">
+            <div 
+              role="tabpanel" 
+              id="tabpanel-my-rewards"
+              aria-labelledby="tab-my-rewards"
+              className="space-y-8"
+            >
               {!isConnected ? (
                 <div className="flex items-center justify-center min-h-[400px]">
                   <GlassCard variant="base" className="p-8 text-center">
@@ -411,6 +503,9 @@ export default function GachaDetailPage() {
                   </motion.div>
 
                   {/* Summary Cards */}
+                  {isUserAnalyticsLoading || isTotalClaimableLoading || isDepositCountsLoading ? (
+                    <StatsGridSkeleton columns={3} />
+                  ) : (
                   <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Total Claimable */}
                     <motion.div
@@ -425,8 +520,18 @@ export default function GachaDetailPage() {
                               Available to Claim
                             </p>
                             <h3 className="text-3xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent mt-2">
-                              {formatTokenAmount(totalClaimable)} {tokenSymbol || "TOKENS"}
+                              {optimisticClaim ? "0" : formatTokenAmount(totalClaimable)} {tokenSymbol || "TOKENS"}
                             </h3>
+                            {optimisticClaim && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="text-xs text-success mt-1 flex items-center gap-1"
+                              >
+                                <ThemedIcon name="check" size="xs" />
+                                <span>Claiming {formatTokenAmount(optimisticClaimedAmount || BigInt(0))} {tokenSymbol}...</span>
+                              </motion.div>
+                            )}
                           </div>
                           <div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
                             <ThemedIcon name="coins" size="xl" variant="accent" />
@@ -482,8 +587,18 @@ export default function GachaDetailPage() {
                       </GlassCard>
                     </motion.div>
                   </div>
+                  )}
 
                   {/* Rarity Breakdown */}
+                  {isUserAnalyticsLoading || isTotalClaimableLoading || isDepositCountsLoading ? (
+                    <div className="bg-content1/20 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <div className="h-8 w-48 bg-content1/30 rounded animate-pulse"></div>
+                        <div className="h-12 w-32 bg-content1/30 rounded-xl animate-pulse"></div>
+                      </div>
+                      <RarityBreakdownSkeleton />
+                    </div>
+                  ) : (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -501,13 +616,14 @@ export default function GachaDetailPage() {
                             size="lg"
                             variant="primary"
                             className="w-full sm:w-auto"
-                            isLoading={isClaimPending}
-                            loadingText="Claiming..."
+                            isLoading={isClaimPending || optimisticClaim}
+                            loadingText={optimisticClaim ? "Processing..." : "Claiming..."}
                             onClick={handleClaimRewards}
-                            isDisabled={!totalClaimable || totalClaimable === BigInt(0)}
+                            isDisabled={!totalClaimable || totalClaimable === BigInt(0) || optimisticClaim}
                             animate={true}
+                            aria-label={`Claim ${formatTokenAmount(totalClaimable)} ${tokenSymbol} in rewards`}
                           >
-                            Claim All Rewards
+                            {optimisticClaim ? "Processing Claim..." : "Claim All Rewards"}
                           </GlassButton>
                         </div>
                       }
@@ -603,6 +719,7 @@ export default function GachaDetailPage() {
                       </div>
                     </GlassCard>
                   </motion.div>
+                  )}
 
                   {/* Error Display */}
                   <AnimatePresence>
@@ -611,12 +728,33 @@ export default function GachaDetailPage() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="fixed bottom-8 right-8 z-50"
+                        className="fixed bottom-8 right-8 z-50 max-w-sm"
                       >
                         <GlassCard variant="base" className="bg-danger/10 border border-danger/20 shadow-xl backdrop-blur-xl p-4">
-                          <p className="text-danger text-sm">
-                            Failed to claim rewards. Please try again.
-                          </p>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <ThemedIcon name="x-circle" size="sm" className="text-danger" />
+                                <h4 className="font-semibold text-danger text-sm">
+                                  Transaction Failed
+                                </h4>
+                              </div>
+                              <p className="text-danger/80 text-sm mb-3">
+                                Failed to claim rewards. This could be due to network issues or insufficient gas.
+                              </p>
+                              <div className="flex gap-2">
+                                <GlassButton
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={retryClaimRewards}
+                                  isDisabled={isClaimPending}
+                                  aria-label="Retry claiming rewards"
+                                >
+                                  Retry
+                                </GlassButton>
+                              </div>
+                            </div>
+                          </div>
                         </GlassCard>
                       </motion.div>
                     )}
@@ -645,17 +783,24 @@ function TabButton({
   active, 
   onClick, 
   icon, 
-  label 
+  label,
+  onKeyDown
 }: { 
   active: boolean;
   onClick: () => void;
   icon: string;
   label: string;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 sm:flex-initial flex items-center justify-center sm:justify-start gap-2 lg:gap-3 px-3 sm:px-4 lg:px-6 py-3 lg:py-4 rounded-xl lg:rounded-2xl transition-all duration-300 ${
+      onKeyDown={onKeyDown}
+      role="tab"
+      aria-selected={active}
+      aria-controls={`tabpanel-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      tabIndex={active ? 0 : -1}
+      className={`flex-1 sm:flex-initial flex items-center justify-center sm:justify-start gap-2 lg:gap-3 px-3 sm:px-4 lg:px-6 py-3 lg:py-4 rounded-xl lg:rounded-2xl transition-all duration-300 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background ${
         active 
           ? 'bg-gradient-to-r from-warning to-orange-400 text-black shadow-[0_0_12px_rgba(255,191,0,0.4),0_0_24px_rgba(255,191,0,0.15)] drop-shadow-sm font-bold' 
           : 'bg-content1/20 text-foreground/70 hover:bg-content1/30 hover:text-foreground hover:shadow-[0_0_8px_rgba(255,255,255,0.12),0_0_16px_rgba(255,255,255,0.06)] shadow-[0_0_4px_rgba(255,255,255,0.02)] backdrop-blur-xl'

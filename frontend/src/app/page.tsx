@@ -138,13 +138,11 @@ export default function LandingPage() {
               <GlassButton 
                 variant="primary" 
                 size="lg" 
+                startIcon="coins"
                 className="min-w-56 h-14 text-lg font-semibold"
                 animate={true}
               >
-                <div className="flex items-center gap-2">
-                  <ThemedIcon name="coins" size="md" />
-                  <span>Deposit & Earn</span>
-                </div>
+                Deposit & Earn
               </GlassButton>
             </Link>
             
@@ -152,13 +150,11 @@ export default function LandingPage() {
               <GlassButton 
                 variant="secondary" 
                 size="lg" 
+                startIcon="dice"
                 className="min-w-56 h-14 text-lg"
                 animate={true}
               >
-                <div className="flex items-center gap-2">
-                  <ThemedIcon name="dice" size="md" />
-                  <span>Start Spinning</span>
-                </div>
+                Start Spinning
               </GlassButton>
             </Link>
           </motion.div>
@@ -269,7 +265,7 @@ export default function LandingPage() {
                   <div className="relative z-10">
                     <div className="flex items-center justify-center gap-3 mb-4">
                       <h3 className="text-xl font-bold text-foreground">{feature.title}</h3>
-                      <GlassBadge variant="primary" size="xs" className="text-xs">
+                      <GlassBadge variant="primary" size="sm" className="text-xs">
                         {feature.stats}
                       </GlassBadge>
                     </div>
@@ -352,12 +348,10 @@ export default function LandingPage() {
                       variant="primary" 
                       size="lg"
                       className="min-w-64 h-16 text-xl font-bold"
+                      startIcon="coins"
                       animate={true}
                     >
-                      <div className="flex items-center gap-3">
-                        <ThemedIcon name="coins" size="lg" />
-                        <span>Start Earning Now</span>
-                      </div>
+                      Start Earning Now
                     </GlassButton>
                   </Link>
                   

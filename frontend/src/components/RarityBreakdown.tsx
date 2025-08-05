@@ -2,7 +2,7 @@
 
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { components } from "../lib/theme";
+import { glassTypography } from "../lib/theme-config";
 import { GlassCard } from "./ui";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
@@ -93,7 +93,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 			variant="base"
 			animate={false}
 			header={
-				<h3 className={components.header.secondary}>
+				<h3 className={glassTypography({ variant: "secondaryHeading" })}>
 					Drop Rates
 				</h3>
 			}

@@ -19,6 +19,7 @@ import {
   BoltIcon as Zap,
   ArrowPathIcon as RefreshCw,
   XMarkIcon as X,
+  XCircleIcon as XCircle,
   CheckIcon as Check,
   ExclamationTriangleIcon as AlertTriangle,
   InformationCircleIcon as Info,
@@ -70,7 +71,10 @@ import {
   ArrowPathIcon as RotateCcw,
   ArrowPathIcon as RotateCw,
   ArrowPathIcon as Loader2,
-  FolderOpenIcon as FolderOpen
+  FolderOpenIcon as FolderOpen,
+  ArchiveBoxIcon as Archive,
+  ShieldCheckIcon as ShieldCheck,
+  LinkIcon as Link
 } from '@heroicons/react/24/outline';
 
 export type HeroIcon = React.ForwardRefExoticComponent<
@@ -153,6 +157,7 @@ export const rarityIcons = {
 // UI action icons
 export const actionIcons = {
   close: X,
+  'x-circle': XCircle,
   check: Check,
   refresh: RefreshCw,
   search: Search,
@@ -164,6 +169,7 @@ export const actionIcons = {
   download: Download,
   upload: Upload,
   external: ExternalLink,
+  link: Link,
   eye: Eye,
   eyeOff: EyeOff,
   heart: Heart,
@@ -171,7 +177,11 @@ export const actionIcons = {
   flag: Flag,
   more: MoreHorizontal,
   moreVertical: MoreVertical,
-  'folder-open': FolderOpen
+  'folder-open': FolderOpen,
+  archive: Archive,
+  'shield-check': ShieldCheck,
+  plus: Plus,
+  clock: Clock
 } as const;
 
 // Navigation/movement icons
@@ -182,6 +192,7 @@ export const directionIcons = {
   down: ChevronDown,
   arrowRight: ArrowRight,
   arrowLeft: ArrowLeft,
+  'arrow-left': ArrowLeft,
   arrowUp: ArrowUp,
   arrowDown: ArrowDown
 } as const;
@@ -192,6 +203,7 @@ export const statusIcons = {
   success: Check,
   error: AlertTriangle,
   warning: AlertTriangle,
+  'alert-triangle': AlertTriangle,
   info: Info
 } as const;
 
@@ -280,6 +292,7 @@ export {
   Zap,
   RefreshCw,
   X,
+  XCircle,
   Check,
   AlertTriangle,
   Info,
@@ -288,5 +301,10 @@ export {
   Eye,
   EyeOff,
   Loader2,
-  FolderOpen
+  FolderOpen,
+  Archive,
+  ShieldCheck,
+  Link,
+  Plus,
+  Clock
 };

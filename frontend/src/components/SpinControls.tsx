@@ -8,7 +8,8 @@ import {
 	useSignTypedData,
 	useChainId,
 } from "wagmi";
-import { cn, glassmorphism, colors, components } from "../lib/theme";
+import { cn } from "../lib/theme";
+import { glassTypography, glassStatus } from "../lib/theme-config";
 import { GlassCard, GlassButton, GlassBadge, TokenFeeDisplay } from "./ui";
 import { ThemedIcon } from "../lib/icons";
 import { formatUnits, decodeEventLog } from "viem";
@@ -395,7 +396,7 @@ export default function SpinControls({
 		<GlassCard
 			header={
 				<div className="flex justify-between items-center w-full">
-					<h2 className={components.header.main}>
+					<h2 className={glassTypography({ variant: "mainHeading" })}>
 						Gacha Spinner
 					</h2>
 					<TokenFeeDisplay
@@ -507,8 +508,8 @@ export default function SpinControls({
 					{isConnected && (
 						<GlassBadge variant="info">
 							<div className="text-center">
-								<p className={cn("text-sm", colors.text.muted)}>Your Balance</p>
-								<p className={cn("text-lg font-semibold", colors.text.primary)}>
+								<p className={glassTypography({ variant: "bodyMuted" })}>Your Balance</p>
+								<p className={cn("text-lg font-semibold", glassTypography({ variant: "body" }))}>
 									{formattedBalance} {tokenSymbol || "TOKENS"}
 								</p>
 							</div>

@@ -1,6 +1,6 @@
 /**
- * Centralized theme configuration and design tokens for the NFT Gacha application
- * Provides consistent glassmorphism styling and color schemes
+ * Legacy theme utilities - maintained for backward compatibility
+ * New components should use the HeroUI custom variants system in theme-config.ts
  */
 
 // Design tokens for glassmorphism effects

@@ -15,7 +15,7 @@ import {
 } from "../generated";
 import { env } from "../env";
 import { ThemedIcon } from "../lib/icons";
-import { GlassCard, GlassButton, GlassBadge } from "./ui";
+import { GlassCard, GlassButton, GlassBadge, GachaCardSkeleton } from "./ui";
 import { getAllActiveGachas, formatGachaAddress, type GachaConfig } from "../lib/gacha-config";
 
 interface GachaInfo extends GachaConfig {
@@ -119,32 +119,32 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
   const router = useRouter();
 
   // Fetch gacha-specific data
-  const { data: isAvailable } = useReadGachaTreasuryIsGachaAvailable({
+  const { data: isAvailable, isLoading: isAvailableLoading } = useReadGachaTreasuryIsGachaAvailable({
     address: gacha.treasuryAddress as `0x${string}`,
   });
 
-  const { data: whitelistedCollections } = useReadGachaTreasuryGetWhitelistedCollections({
+  const { data: whitelistedCollections, isLoading: isCollectionsLoading } = useReadGachaTreasuryGetWhitelistedCollections({
     address: gacha.treasuryAddress as `0x${string}`,
   });
 
-  const { data: rarityCounts } = useReadGachaTreasuryGetAllRarityCounts({
+  const { data: rarityCounts, isLoading: isRarityCountsLoading } = useReadGachaTreasuryGetAllRarityCounts({
     address: gacha.treasuryAddress as `0x${string}`,
   });
 
-  const { data: spinFee } = useReadGachaSpinFee({
+  const { data: spinFee, isLoading: isSpinFeeLoading } = useReadGachaSpinFee({
     address: gacha.address as `0x${string}`,
   });
 
-  const { data: feeToken } = useReadGachaFeeToken({
+  const { data: feeToken, isLoading: isFeeTokenLoading } = useReadGachaFeeToken({
     address: gacha.address as `0x${string}`,
   });
 
-  const { data: feeTokenSymbol } = useReadErc20Symbol({
+  const { data: feeTokenSymbol, isLoading: isFeeTokenSymbolLoading } = useReadErc20Symbol({
     address: feeToken,
     query: { enabled: !!feeToken }
   });
 
-  const { data: feeTokenDecimals } = useReadErc20Decimals({
+  const { data: feeTokenDecimals, isLoading: isFeeTokenDecimalsLoading } = useReadErc20Decimals({
     address: feeToken,
     query: { enabled: !!feeToken }
   });
@@ -159,6 +159,13 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
   const handleExplore = () => {
     router.push(`/gacha?id=${gacha.id}&section=spin`);
   };
+
+  // Show skeleton while essential data is loading
+  const isLoading = isAvailableLoading || isRarityCountsLoading || isSpinFeeLoading;
+  
+  if (isLoading) {
+    return <GachaCardSkeleton />;
+  }
 
   return (
     <GlassCard 
@@ -177,8 +184,12 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
                 {gacha.title}
               </h3>
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${isAvailable ? 'bg-green-400' : 'bg-red-400'} shadow-lg`}></div>
+                <div 
+                  className={`w-3 h-3 rounded-full ${isAvailable ? 'bg-green-400' : 'bg-red-400'} shadow-lg`}
+                  aria-hidden="true"
+                ></div>
                 <span className="text-white/90 text-sm font-medium drop-shadow">
+                  <span className="sr-only">Status: </span>
                   {isAvailable ? 'Active' : 'Unavailable'}
                 </span>
               </div>
@@ -227,7 +238,6 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
           <div className="text-sm font-medium text-foreground/80">NFT Distribution</div>
           <div className="grid grid-cols-5 gap-1">
             {rarityCounts?.map((count, index) => {
-              const rarityNames = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'];
               const rarityColors = ['bg-gray-400', 'bg-green-400', 'bg-blue-400', 'bg-purple-400', 'bg-yellow-400'];
               return (
                 <div key={index} className="text-center">
@@ -249,6 +259,8 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
             className="w-full"
             onClick={handleExplore}
             animate={true}
+            aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} NFTs available`}
+            data-testid={`explore-gacha-${gacha.id}`}
           >
             <div className="flex items-center justify-center gap-2">
               <ThemedIcon name="eye" size="sm" />

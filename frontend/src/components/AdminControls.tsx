@@ -333,15 +333,13 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
         </GlassButton>
         <GlassButton
           variant="primary"
+          startIcon="check"
           onClick={handleSave}
           isDisabled={!isValidTotal}
           isLoading={isPending}
           loadingText="Updating..."
         >
-          <div className="flex items-center gap-2">
-            <ThemedIcon name="check" size="sm" />
-            Save Changes
-          </div>
+          Save Changes
         </GlassButton>
       </div>
     </GlassCard>
@@ -418,15 +416,13 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
           </GlassButton>
           <GlassButton
             variant="primary"
+            startIcon="coins"
             onClick={handleSave}
             isDisabled={!newFee}
             isLoading={isPending}
             loadingText="Updating..."
           >
-            <div className="flex items-center gap-2">
-              <ThemedIcon name="coins" size="sm" />
-              Update Fee
-            </div>
+            Update Fee
           </GlassButton>
         </div>
       </div>
@@ -541,29 +537,25 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
             <GlassButton
               variant="danger"
               size="lg"
+              startIcon="x-circle"
               onClick={handlePause}
               isLoading={isPausing}
               loadingText="Pausing..."
               className="flex-1"
             >
-              <div className="flex items-center gap-2">
-                <ThemedIcon name="x-circle" size="md" />
-                Pause Contract
-              </div>
+              Pause Contract
             </GlassButton>
           ) : (
             <GlassButton
               variant="primary"
               size="lg"
+              startIcon="check"
               onClick={handleUnpause}
               isLoading={isUnpausing}
               loadingText="Unpausing..."
               className="flex-1"
             >
-              <div className="flex items-center gap-2">
-                <ThemedIcon name="check" size="md" />
-                Unpause Contract
-              </div>
+              Unpause Contract
             </GlassButton>
           )}
         </div>

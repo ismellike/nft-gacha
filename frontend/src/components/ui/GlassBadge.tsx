@@ -1,16 +1,16 @@
 /**
  * Reusable Glass Badge Component
- * Implements consistent badge styling with variants and smooth animations
+ * Implements glassmorphism styling using HeroUI's custom variants system
  */
 
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
-import { cn, glassmorphism, colors } from "../../lib/theme";
+import { glassBadge } from "../../lib/theme-config";
 
 interface GlassBadgeProps {
   children: ReactNode;
-  variant?: "primary" | "info" | "success" | "warning" | "danger";
-  size?: "xs" | "sm" | "md" | "lg";
+  variant?: "primary" | "secondary" | "info" | "success" | "warning" | "danger";
+  size?: "sm" | "md" | "lg";
   className?: string;
   animate?: boolean;
   glow?: boolean;
@@ -26,41 +26,27 @@ export function GlassBadge({
   glow = false,
   pulse = false
 }: GlassBadgeProps) {
-  const variantClasses = {
-    primary: `${glassmorphism.card.base} bg-gradient-to-r from-warning/20 to-orange-400/20 border-warning/30 text-warning`,
-    info: `${glassmorphism.card.base} border-white/20 text-foreground/80`,
-    success: `${glassmorphism.card.base} border-success/30 bg-success/10 text-success`,
-    warning: `${glassmorphism.card.base} border-warning/30 bg-warning/10 text-warning`,
-    danger: `${glassmorphism.card.base} border-danger/30 bg-danger/10 text-danger`
-  };
-
-  const sizeClasses = {
-    xs: "px-2 py-1 text-xs rounded-md",
-    sm: "px-2 py-1 text-xs rounded-lg",
-    md: "px-4 py-2 text-sm rounded-xl",
-    lg: "px-6 py-3 text-base rounded-xl"
-  };
-
-  const glowClasses = glow ? "shadow-xl shadow-current/30" : "";
-  const pulseClasses = pulse ? "animate-pulse" : "";
-
-  const badgeClasses = cn(
-    "inline-flex items-center font-medium transition-all duration-300",
-    variantClasses[variant],
-    sizeClasses[size],
-    glowClasses,
-    pulseClasses,
-    className
-  );
+  // Generate classes using our custom variant system
+  const badgeStyles = glassBadge({
+    variant,
+    size,
+    className: [
+      glow && "shadow-xl shadow-current/30",
+      pulse && "animate-pulse",
+      className,
+    ].filter(Boolean).join(" "),
+  });
 
   const BadgeComponent = animate ? motion.div : "div";
 
   const motionProps = animate ? {
+    initial: { scale: 0.95, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
     transition: { type: "spring" as const, stiffness: 400, damping: 17 }
   } : {};
 
   return (
-    <BadgeComponent className={badgeClasses} {...motionProps}>
+    <BadgeComponent className={badgeStyles} {...motionProps}>
       {children}
     </BadgeComponent>
   );
