@@ -16,7 +16,17 @@ export function Header() {
 		{ href: "/discover", label: "Discover", icon: "dice" },
 	];
 
-	const { nav, logo, logoIcon, logoText, navItems: navItemsClass, navItem, navItemContent, navItemText, activeIndicator } = glassNavigation();
+	const {
+		nav,
+		logo,
+		logoIcon,
+		logoText,
+		navItems: navItemsClass,
+		navItem,
+		navItemContent,
+		navItemText,
+		activeIndicator,
+	} = glassNavigation();
 
 	return (
 		<nav className={nav()}>
@@ -40,15 +50,16 @@ export function Header() {
 							/>
 						</svg>
 					</div>
-					<h1 className={logoText()}>
-						Spin-Fi
-					</h1>
+					<h1 className={logoText()}>Spin-Fi</h1>
 				</Link>
 
 				{/* Navigation Items */}
 				<div className={navItemsClass()}>
 					{navItems.map((item) => {
-						const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+						const isActive =
+							item.href === "/"
+								? pathname === "/"
+								: pathname.startsWith(item.href);
 						const itemState = isActive ? "active" : "inactive";
 						const navStyles = glassNavigation({ itemState });
 
@@ -59,8 +70,8 @@ export function Header() {
 									transition={{ type: "spring", stiffness: 400, damping: 17 }}
 								>
 									<div className={navItemContent()}>
-										<ThemedIcon 
-											name={item.icon} 
+										<ThemedIcon
+											name={item.icon}
 											size="md"
 											variant={isActive ? "accent" : "default"}
 										/>
@@ -73,7 +84,11 @@ export function Header() {
 											layoutId="activeTab"
 											className={navStyles.activeIndicator()}
 											initial={false}
-											transition={{ type: "spring", stiffness: 500, damping: 30 }}
+											transition={{
+												type: "spring",
+												stiffness: 500,
+												damping: 30,
+											}}
 										/>
 									)}
 								</motion.div>

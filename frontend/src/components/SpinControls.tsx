@@ -34,9 +34,7 @@ interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
 }
 
-export default function SpinControls({
-	gachaSpin,
-}: SpinControlsProps) {
+export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 	const { address: userAddress, isConnected } = useAccount();
 	const chainId = useChainId();
 
@@ -165,7 +163,8 @@ export default function SpinControls({
 
 	const getButtonColor = () => {
 		if (!isConnected) return "primary";
-		if (paused || !hasSufficientBalance || isGachaAvailable === false) return "danger";
+		if (paused || !hasSufficientBalance || isGachaAvailable === false)
+			return "danger";
 		if (gachaSpin.isError) return "warning";
 		return "warning";
 	};
@@ -233,7 +232,7 @@ export default function SpinControls({
 					no_fee_token: !feeToken,
 					no_spin_fee: !spinFee,
 					no_token_nonce: tokenNonce === undefined,
-				}
+				},
 			});
 			return;
 		}
@@ -449,7 +448,7 @@ export default function SpinControls({
 									? "spin-wobble"
 									: gachaSpin.isError
 										? "animate-bounce"
-										: "hover:shadow-3xl hover:shadow-warning/30 transition-all duration-300"
+										: "hover:shadow-3xl hover:shadow-warning/30 transition-all duration-300",
 							)}
 						>
 							{/* Inner glass surface */}
@@ -508,8 +507,15 @@ export default function SpinControls({
 					{isConnected && (
 						<GlassBadge variant="info">
 							<div className="text-center">
-								<p className={glassTypography({ variant: "bodyMuted" })}>Your Balance</p>
-								<p className={cn("text-lg font-semibold", glassTypography({ variant: "body" }))}>
+								<p className={glassTypography({ variant: "bodyMuted" })}>
+									Your Balance
+								</p>
+								<p
+									className={cn(
+										"text-lg font-semibold",
+										glassTypography({ variant: "body" }),
+									)}
+								>
 									{formattedBalance} {tokenSymbol || "TOKENS"}
 								</p>
 							</div>
@@ -521,15 +527,19 @@ export default function SpinControls({
 						spinWithPermitReceiptError ||
 						signatureError) && (
 						<GlassBadge variant="danger" className="text-center p-4">
-							<p className="text-sm">
-								Transaction failed. Please try again.
-							</p>
+							<p className="text-sm">Transaction failed. Please try again.</p>
 						</GlassBadge>
 					)}
 
 					{/* Spin Button */}
 					<GlassButton
-						variant={getButtonColor() === "primary" ? "primary" : getButtonColor() === "danger" ? "danger" : "secondary"}
+						variant={
+							getButtonColor() === "primary"
+								? "primary"
+								: getButtonColor() === "danger"
+									? "danger"
+									: "secondary"
+						}
 						size="lg"
 						className="px-20 py-5 text-xl tracking-wide"
 						isLoading={
@@ -538,11 +548,15 @@ export default function SpinControls({
 							gachaSpin.isSpinning
 						}
 						loadingText={
-							isSignaturePending ? "Sign Permit..." :
-							isProcessingTransaction ? "Confirming..." :
-							gachaSpin.isSpinning ? "Preparing..." :
-							gachaSpin.isWaitingForFulfillment ? "Awaiting..." :
-							"Processing..."
+							isSignaturePending
+								? "Sign Permit..."
+								: isProcessingTransaction
+									? "Confirming..."
+									: gachaSpin.isSpinning
+										? "Preparing..."
+										: gachaSpin.isWaitingForFulfillment
+											? "Awaiting..."
+											: "Processing..."
 						}
 						onClick={onSpinClick}
 						isDisabled={isButtonDisabled()}

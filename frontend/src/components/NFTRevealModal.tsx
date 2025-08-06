@@ -119,7 +119,6 @@ export default function NFTRevealModal({
 		},
 	};
 
-
 	return (
 		<AnimatePresence>
 			<motion.div
@@ -220,7 +219,7 @@ export default function NFTRevealModal({
 											ease: "easeInOut",
 										}}
 									/>
-									
+
 									{/* Outer rotating ring */}
 									<motion.div
 										className="absolute inset-4 w-72 h-72 rounded-full border-2 border-warning/30"
@@ -231,7 +230,7 @@ export default function NFTRevealModal({
 											ease: "linear",
 										}}
 									/>
-									
+
 									{/* Inner counter-rotating ring */}
 									<motion.div
 										className="absolute inset-8 w-64 h-64 rounded-full border border-warning/20"
@@ -344,7 +343,7 @@ export default function NFTRevealModal({
 									}}
 								>
 									<div className="text-center space-y-2">
-										<motion.p 
+										<motion.p
 											className="text-xl font-semibold text-warning tracking-wide"
 											animate={{
 												opacity: [0.8, 1, 0.8],
@@ -355,15 +354,17 @@ export default function NFTRevealModal({
 												ease: "easeInOut",
 											}}
 										>
-											{phase === ANIMATION_PHASES.SPINNING && "Accessing Digital Vault..."}
+											{phase === ANIMATION_PHASES.SPINNING &&
+												"Accessing Digital Vault..."}
 										</motion.p>
-										<motion.p 
+										<motion.p
 											className="text-sm text-foreground/60 font-mono"
 											initial={{ opacity: 0 }}
 											animate={{ opacity: 1 }}
 											transition={{ delay: 1 }}
 										>
-											{phase === ANIMATION_PHASES.SPINNING && "DECRYPTING REWARD DATA..."}
+											{phase === ANIMATION_PHASES.SPINNING &&
+												"DECRYPTING REWARD DATA..."}
 										</motion.p>
 									</div>
 								</motion.div>
@@ -545,7 +546,6 @@ export default function NFTRevealModal({
 							</motion.div>
 						)}
 					</AnimatePresence>
-
 				</div>
 			</motion.div>
 		</AnimatePresence>

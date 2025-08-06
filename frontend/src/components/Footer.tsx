@@ -12,7 +12,8 @@ export function Footer() {
 							Spin-Fi Gacha
 						</h3>
 						<p className="text-foreground/70 font-light leading-relaxed">
-							The future of fair NFT distribution. Every spin is provably random with complete transparency.
+							The future of fair NFT distribution. Every spin is provably random
+							with complete transparency.
 						</p>
 					</div>
 
@@ -43,7 +44,8 @@ export function Footer() {
 							Ready to Spin?
 						</h4>
 						<p className="text-foreground/70 font-light leading-relaxed">
-							Experience the next generation of NFT gacha with complete fairness and transparency.
+							Experience the next generation of NFT gacha with complete fairness
+							and transparency.
 						</p>
 						<div className="flex justify-center md:justify-start">
 							<div className="bg-gradient-to-r from-warning/20 to-orange-500/20 backdrop-blur-xl border border-warning/30 rounded-xl px-4 py-2 shadow-lg">

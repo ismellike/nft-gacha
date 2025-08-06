@@ -95,7 +95,11 @@ a {
 }
 
 .theme-gradient-primary-glow {
-	background: linear-gradient(to right, rgba(234, 179, 8, 0.2), rgba(251, 146, 60, 0.2));
+	background: linear-gradient(
+		to right,
+		rgba(234, 179, 8, 0.2),
+		rgba(251, 146, 60, 0.2)
+	);
 }
 
 .theme-border-subtle {

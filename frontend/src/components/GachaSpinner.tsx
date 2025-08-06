@@ -32,9 +32,7 @@ export default function GachaSpinner() {
 			<div className="grid lg:grid-cols-2 gap-16 items-start">
 				{/* Left Column - Spin Controls */}
 				<div className="space-y-8">
-					<SpinControls
-						gachaSpin={gachaSpin}
-					/>
+					<SpinControls gachaSpin={gachaSpin} />
 
 					{/* Last Spin Result - Only show when not revealing */}
 					{!gachaSpin.isRevealing && gachaSpin.spinResult && (
