@@ -963,6 +963,15 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'getAverageRarityValues',
+    outputs: [
+      { name: 'averageValues', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'getRarityWeights',
     outputs: [
       { name: '', internalType: 'uint256', type: 'uint256' },
@@ -986,8 +995,26 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'getTotalValueLocked',
+    outputs: [
+      { name: 'totalValueUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'getTreasuryAddress',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTreasuryDistribution',
+    outputs: [
+      { name: 'distribution', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -1367,6 +1394,12 @@ export const gachaAbi = [
         type: 'uint256',
         indexed: false,
       },
+      {
+        name: 'appraisedPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
     name: 'SpinCompleted',
   },
@@ -1456,6 +1489,187 @@ export const gachaAbi = [
   },
   { type: 'error', inputs: [], name: 'UnauthorizedServiceHandler' },
   { type: 'error', inputs: [], name: 'WeightsMustSumToTotal' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GachaConfig
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const gachaConfigAbi = [
+  {
+    type: 'constructor',
+    inputs: [{ name: '_owner', internalType: 'address', type: 'address' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAllPriceRanges',
+    outputs: [
+      {
+        name: 'ranges',
+        internalType: 'struct GachaConfig.PriceRange[5]',
+        type: 'tuple[5]',
+        components: [
+          { name: 'minPriceUSD', internalType: 'uint256', type: 'uint256' },
+          { name: 'maxPriceUSD', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaConfig.Rarity',
+        type: 'uint8',
+      },
+    ],
+    name: 'getPriceRange',
+    outputs: [
+      { name: 'minPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxPrice', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'priceUSD', internalType: 'uint256', type: 'uint256' }],
+    name: 'getRarityByPrice',
+    outputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaConfig.Rarity',
+        type: 'uint8',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'enum GachaConfig.Rarity', type: 'uint8' },
+    ],
+    name: 'priceRanges',
+    outputs: [
+      { name: 'minPriceUSD', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxPriceUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaConfig.Rarity',
+        type: 'uint8',
+      },
+      { name: 'minPriceUSD', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxPriceUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'setPriceRange',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'validatePriceRanges',
+    outputs: [{ name: 'isValid', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaConfig.Rarity',
+        type: 'uint8',
+        indexed: true,
+      },
+      {
+        name: 'oldMinPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'oldMaxPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newMinPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newMaxPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'PriceRangeUpdated',
+  },
+  { type: 'error', inputs: [], name: 'InvalidPriceRange' },
+  { type: 'error', inputs: [], name: 'OverlappingPriceRanges' },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2069,6 +2283,89 @@ export const gachaServiceHandlerAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GachaServiceHandlerV2
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const gachaServiceHandlerV2Abi = [
+  {
+    type: 'constructor',
+    inputs: [
+      {
+        name: 'serviceManager',
+        internalType: 'contract IWavsServiceManager',
+        type: 'address',
+      },
+      { name: 'gachaAddress', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getGacha',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getGachaTreasury',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getServiceManager',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'envelope',
+        internalType: 'struct IWavsServiceHandler.Envelope',
+        type: 'tuple',
+        components: [
+          { name: 'eventId', internalType: 'bytes20', type: 'bytes20' },
+          { name: 'ordering', internalType: 'bytes12', type: 'bytes12' },
+          { name: 'payload', internalType: 'bytes', type: 'bytes' },
+        ],
+      },
+      {
+        name: 'signatureData',
+        internalType: 'struct IWavsServiceHandler.SignatureData',
+        type: 'tuple',
+        components: [
+          { name: 'signers', internalType: 'address[]', type: 'address[]' },
+          { name: 'signatures', internalType: 'bytes[]', type: 'bytes[]' },
+          { name: 'referenceBlock', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    name: 'handleSignedEnvelope',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'randomness',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+    ],
+    name: 'RandomnessReceived',
+  },
+  { type: 'error', inputs: [], name: 'InvalidGachaAddress' },
+  { type: 'error', inputs: [], name: 'InvalidServiceManager' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GachaTreasury
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2078,6 +2375,7 @@ export const gachaTreasuryAbi = [
     inputs: [
       { name: '_owner', internalType: 'address', type: 'address' },
       { name: '_gachaContract', internalType: 'address', type: 'address' },
+      { name: '_appraisalContract', internalType: 'address', type: 'address' },
     ],
     stateMutability: 'nonpayable',
   },
@@ -2104,28 +2402,18 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'pendingId', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'finalRarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+    inputs: [],
+    name: 'appraisalContract',
+    outputs: [
+      { name: '', internalType: 'contract NFTAppraisal', type: 'address' },
     ],
-    name: 'approvePendingDeposit',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [
       { name: 'collections', internalType: 'address[]', type: 'address[]' },
       { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
-      {
-        name: 'rarities',
-        internalType: 'enum GachaTreasury.Rarity[]',
-        type: 'uint8[]',
-      },
     ],
     name: 'batchDepositNFT',
     outputs: [],
@@ -2149,23 +2437,8 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'pendingId', internalType: 'uint256', type: 'uint256' },
-      { name: 'reason', internalType: 'string', type: 'string' },
-    ],
-    name: 'denyPendingDeposit',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
     ],
     name: 'depositNFT',
     outputs: [],
@@ -2205,36 +2478,15 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'getAllRarityCounts',
-    outputs: [
-      { name: 'counts', internalType: 'uint256[5]', type: 'uint256[5]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'pendingId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getPendingDeposit',
+    name: 'getAllPriceRanges',
     outputs: [
       {
-        name: 'deposit',
-        internalType: 'struct GachaTreasury.PendingDeposit',
-        type: 'tuple',
+        name: 'ranges',
+        internalType: 'struct GachaTreasury.PriceRange[5]',
+        type: 'tuple[5]',
         components: [
-          { name: 'depositor', internalType: 'address', type: 'address' },
-          {
-            name: 'proposedRarity',
-            internalType: 'enum GachaTreasury.Rarity',
-            type: 'uint8',
-          },
-          {
-            name: 'status',
-            internalType: 'enum GachaTreasury.PendingDepositStatus',
-            type: 'uint8',
-          },
-          { name: 'collection', internalType: 'address', type: 'address' },
-          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-          { name: 'timestamp', internalType: 'uint256', type: 'uint256' },
+          { name: 'minPriceUSD', internalType: 'uint256', type: 'uint256' },
+          { name: 'maxPriceUSD', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -2243,8 +2495,51 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'getPendingDepositIds',
-    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
+    name: 'getAllRarityCounts',
+    outputs: [
+      { name: 'counts', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getNFTCurrentRarity',
+    outputs: [
+      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+    ],
+    name: 'getPriceRange',
+    outputs: [
+      { name: 'minPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxPrice', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'priceUSD', internalType: 'uint256', type: 'uint256' }],
+    name: 'getRarityByPrice',
+    outputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+    ],
     stateMutability: 'view',
   },
   {
@@ -2286,12 +2581,14 @@ export const gachaTreasuryAbi = [
         components: [
           { name: 'collection', internalType: 'address', type: 'address' },
           { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
           {
             name: 'rarity',
             internalType: 'enum GachaTreasury.Rarity',
             type: 'uint8',
           },
-          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -2315,12 +2612,14 @@ export const gachaTreasuryAbi = [
         components: [
           { name: 'collection', internalType: 'address', type: 'address' },
           { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
           {
             name: 'rarity',
             internalType: 'enum GachaTreasury.Rarity',
             type: 'uint8',
           },
-          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -2347,15 +2646,6 @@ export const gachaTreasuryAbi = [
     ],
     name: 'getUserDepositCount',
     outputs: [{ name: 'count', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserPendingDeposits',
-    outputs: [
-      { name: 'userPendingIds', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
     stateMutability: 'view',
   },
   {
@@ -2407,8 +2697,33 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'nextPendingId',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'migrateNFTRarity',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'nftCurrentRarity',
+    outputs: [
+      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'nftToTreasuryIndex',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -2440,30 +2755,13 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'pendingDepositIds',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'pendingDeposits',
+    inputs: [
+      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+    ],
+    name: 'priceRanges',
     outputs: [
-      { name: 'depositor', internalType: 'address', type: 'address' },
-      {
-        name: 'proposedRarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-      {
-        name: 'status',
-        internalType: 'enum GachaTreasury.PendingDepositStatus',
-        type: 'uint8',
-      },
-      { name: 'collection', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      { name: 'timestamp', internalType: 'uint256', type: 'uint256' },
+      { name: 'minPriceUSD', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxPriceUSD', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -2510,15 +2808,26 @@ export const gachaTreasuryAbi = [
         components: [
           { name: 'collection', internalType: 'address', type: 'address' },
           { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
           {
             name: 'rarity',
             internalType: 'enum GachaTreasury.Rarity',
             type: 'uint8',
           },
-          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_appraisalContract', internalType: 'address', type: 'address' },
+    ],
+    name: 'setAppraisalContract',
+    outputs: [],
     stateMutability: 'nonpayable',
   },
   {
@@ -2534,6 +2843,21 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'minPriceUSD', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxPriceUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'setPriceRange',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
         name: '_treasuryRewardsManager',
         internalType: 'address',
         type: 'address',
@@ -2541,21 +2865,6 @@ export const gachaTreasuryAbi = [
     ],
     name: 'setTreasuryRewardsManager',
     outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'collection', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'proposedRarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-    ],
-    name: 'submitPendingDeposit',
-    outputs: [{ name: 'pendingId', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
@@ -2575,12 +2884,14 @@ export const gachaTreasuryAbi = [
     outputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'depositor', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
       {
         name: 'rarity',
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
       },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -2603,19 +2914,16 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'userPendingDeposits',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userTotalDeposits',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'userTotalDeposits',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    inputs: [],
+    name: 'validatePriceRanges',
+    outputs: [{ name: 'isValid', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
   {
@@ -2646,6 +2954,25 @@ export const gachaTreasuryAbi = [
     name: 'withdrawNFT',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldAppraisal',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newAppraisal',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'AppraisalContractUpdated',
   },
   {
     type: 'event',
@@ -2748,9 +3075,21 @@ export const gachaTreasuryAbi = [
         indexed: true,
       },
       {
+        name: 'depositor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
         name: 'rarity',
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'appraisedPrice',
+        internalType: 'uint256',
+        type: 'uint256',
         indexed: false,
       },
     ],
@@ -2778,7 +3117,7 @@ export const gachaTreasuryAbi = [
         type: 'uint8',
         indexed: false,
       },
-      { name: 'to', internalType: 'address', type: 'address', indexed: false },
+      { name: 'to', internalType: 'address', type: 'address', indexed: true },
     ],
     name: 'NFTWithdrawn',
   },
@@ -2819,87 +3158,74 @@ export const gachaTreasuryAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'pendingId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'depositor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'finalRarity',
+        name: 'rarity',
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
+        indexed: true,
+      },
+      {
+        name: 'oldMinPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'oldMaxPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newMinPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newMaxPrice',
+        internalType: 'uint256',
+        type: 'uint256',
         indexed: false,
       },
     ],
-    name: 'PendingDepositApproved',
+    name: 'PriceRangeUpdated',
   },
   {
     type: 'event',
     anonymous: false,
     inputs: [
-      {
-        name: 'pendingId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'depositor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'reason',
-        internalType: 'string',
-        type: 'string',
-        indexed: false,
-      },
-    ],
-    name: 'PendingDepositDenied',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'pendingId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'depositor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
       {
         name: 'collection',
         internalType: 'address',
         type: 'address',
-        indexed: false,
+        indexed: true,
       },
       {
         name: 'tokenId',
         internalType: 'uint256',
         type: 'uint256',
-        indexed: false,
+        indexed: true,
       },
       {
-        name: 'proposedRarity',
+        name: 'oldRarity',
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
         indexed: false,
       },
+      {
+        name: 'newRarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'newPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
-    name: 'PendingDepositSubmitted',
+    name: 'RarityMigrated',
   },
   {
     type: 'event',
@@ -2933,6 +3259,7 @@ export const gachaTreasuryAbi = [
     ],
     name: 'Unpaused',
   },
+  { type: 'error', inputs: [], name: 'AppraisalRequired' },
   { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
   { type: 'error', inputs: [], name: 'CannotDepositSameNFTTwice' },
   { type: 'error', inputs: [], name: 'CollectionAlreadyWhitelisted' },
@@ -2942,14 +3269,18 @@ export const gachaTreasuryAbi = [
   { type: 'error', inputs: [], name: 'EmptyWhitelist' },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'InvalidAppraisalContract' },
   { type: 'error', inputs: [], name: 'InvalidCollectionAddress' },
   { type: 'error', inputs: [], name: 'InvalidGachaContract' },
   { type: 'error', inputs: [], name: 'InvalidIndex' },
   { type: 'error', inputs: [], name: 'InvalidNFTContract' },
+  { type: 'error', inputs: [], name: 'InvalidPriceRange' },
   { type: 'error', inputs: [], name: 'InvalidRecipient' },
   { type: 'error', inputs: [], name: 'InvalidRewardsManager' },
   { type: 'error', inputs: [], name: 'NFTAlreadyDeposited' },
+  { type: 'error', inputs: [], name: 'NFTNotAppraised' },
   { type: 'error', inputs: [], name: 'NotNFTOwner' },
+  { type: 'error', inputs: [], name: 'OverlappingPriceRanges' },
   {
     type: 'error',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
@@ -2962,9 +3293,1409 @@ export const gachaTreasuryAbi = [
   },
   { type: 'error', inputs: [], name: 'PendingDepositAlreadyProcessed' },
   { type: 'error', inputs: [], name: 'PendingDepositNotFound' },
+  { type: 'error', inputs: [], name: 'RarityMigrationFailed' },
   { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
   { type: 'error', inputs: [], name: 'TooManyItems' },
   { type: 'error', inputs: [], name: 'UnauthorizedGachaContract' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GachaTreasuryV2
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const gachaTreasuryV2Abi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: '_owner', internalType: 'address', type: 'address' },
+      { name: '_gachaContract', internalType: 'address', type: 'address' },
+      { name: '_appraisalContract', internalType: 'address', type: 'address' },
+      { name: '_configContract', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'MAX_BATCH_DEPOSIT',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'MAX_BATCH_WITHDRAW',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'collection', internalType: 'address', type: 'address' }],
+    name: 'addToWhitelist',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'appraisalContract',
+    outputs: [
+      { name: '', internalType: 'contract NFTAppraisal', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collections', internalType: 'address[]', type: 'address[]' },
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'batchMigrateNFTRarity',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'configContract',
+    outputs: [
+      { name: '', internalType: 'contract GachaConfig', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'depositNFT',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'depositedNFTs',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyPause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyUnpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'gachaContract',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAllRarityCounts',
+    outputs: [
+      { name: 'counts', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getNFTCurrentRarity',
+    outputs: [
+      { name: '', internalType: 'enum GachaTreasuryV2.Rarity', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+      },
+    ],
+    name: 'getRarityCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTotalItemsCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+      },
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getTreasuryItem',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct GachaTreasuryV2.NFTItem',
+        type: 'tuple',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'rarity',
+            internalType: 'enum GachaTreasuryV2.Rarity',
+            type: 'uint8',
+          },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+      },
+    ],
+    name: 'getTreasuryItems',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct GachaTreasuryV2.NFTItem[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'rarity',
+            internalType: 'enum GachaTreasuryV2.Rarity',
+            type: 'uint8',
+          },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserAllDepositCounts',
+    outputs: [
+      { name: 'counts', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+      },
+    ],
+    name: 'getUserDepositCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserTotalDepositCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getWhitelistedCollections',
+    outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'collection', internalType: 'address', type: 'address' }],
+    name: 'isCollectionWhitelisted',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'isGachaAvailable',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'isNFTDeposited',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'migrateNFTRarity',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'nftCurrentRarity',
+    outputs: [
+      { name: '', internalType: 'enum GachaTreasuryV2.Rarity', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'nftToTreasuryIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'bytes', type: 'bytes' },
+    ],
+    name: 'onERC721Received',
+    outputs: [{ name: '', internalType: 'bytes4', type: 'bytes4' }],
+    stateMutability: 'pure',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'enum GachaTreasuryV2.Rarity', type: 'uint8' },
+    ],
+    name: 'rarityCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'collection', internalType: 'address', type: 'address' }],
+    name: 'removeFromWhitelist',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+      },
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+      { name: 'winner', internalType: 'address', type: 'address' },
+    ],
+    name: 'sendNFTToWinner',
+    outputs: [
+      {
+        name: 'item',
+        internalType: 'struct GachaTreasuryV2.NFTItem',
+        type: 'tuple',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'rarity',
+            internalType: 'enum GachaTreasuryV2.Rarity',
+            type: 'uint8',
+          },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_appraisalContract', internalType: 'address', type: 'address' },
+    ],
+    name: 'setAppraisalContract',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_configContract', internalType: 'address', type: 'address' },
+    ],
+    name: 'setConfigContract',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_gachaContract', internalType: 'address', type: 'address' },
+    ],
+    name: 'setGachaContract',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: '_treasuryRewardsManager',
+        internalType: 'address',
+        type: 'address',
+      },
+    ],
+    name: 'setTreasuryRewardsManager',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'enum GachaTreasuryV2.Rarity', type: 'uint8' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'treasury',
+    outputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'depositor', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+      },
+      { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'treasuryRewardsManager',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'enum GachaTreasuryV2.Rarity', type: 'uint8' },
+    ],
+    name: 'userDepositCounts',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userTotalDeposits',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'whitelistedCollections',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'whitelistedCollectionsList',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+      },
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+      { name: 'to', internalType: 'address', type: 'address' },
+    ],
+    name: 'withdrawNFT',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldAppraisal',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newAppraisal',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'AppraisalContractUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'CollectionRemovedFromWhitelist',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'CollectionWhitelisted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldConfig',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newConfig',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'ConfigContractUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldGacha',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newGacha',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'GachaContractUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'depositor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'appraisedPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'NFTDeposited',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      { name: 'to', internalType: 'address', type: 'address', indexed: true },
+    ],
+    name: 'NFTWithdrawn',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Paused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'oldRarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'newRarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'newPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RarityMigrated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldRewards',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newRewards',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'RewardsManagerUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Unpaused',
+  },
+  { type: 'error', inputs: [], name: 'AppraisalRequired' },
+  { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
+  { type: 'error', inputs: [], name: 'CollectionAlreadyWhitelisted' },
+  { type: 'error', inputs: [], name: 'CollectionNotInWhitelist' },
+  { type: 'error', inputs: [], name: 'CollectionNotWhitelisted' },
+  { type: 'error', inputs: [], name: 'EmptyArrays' },
+  { type: 'error', inputs: [], name: 'EmptyWhitelist' },
+  { type: 'error', inputs: [], name: 'EnforcedPause' },
+  { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'InvalidAppraisalContract' },
+  { type: 'error', inputs: [], name: 'InvalidCollectionAddress' },
+  { type: 'error', inputs: [], name: 'InvalidConfigContract' },
+  { type: 'error', inputs: [], name: 'InvalidGachaContract' },
+  { type: 'error', inputs: [], name: 'InvalidIndex' },
+  { type: 'error', inputs: [], name: 'InvalidNFTContract' },
+  { type: 'error', inputs: [], name: 'InvalidRecipient' },
+  { type: 'error', inputs: [], name: 'InvalidRewardsManager' },
+  { type: 'error', inputs: [], name: 'NFTAlreadyDeposited' },
+  { type: 'error', inputs: [], name: 'NFTNotAppraised' },
+  { type: 'error', inputs: [], name: 'NotNFTOwner' },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+  { type: 'error', inputs: [], name: 'RarityMigrationFailed' },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  { type: 'error', inputs: [], name: 'TooManyItems' },
+  { type: 'error', inputs: [], name: 'UnauthorizedGachaContract' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GachaV2
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const gachaV2Abi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: '_owner', internalType: 'address', type: 'address' },
+      {
+        name: '_gachaServiceHandler',
+        internalType: 'address',
+        type: 'address',
+      },
+      { name: '_feeToken', internalType: 'address', type: 'address' },
+      { name: '_spinFee', internalType: 'uint256', type: 'uint256' },
+      { name: '_treasury', internalType: 'address', type: 'address' },
+      { name: '_rewardsManager', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'TOTAL_WEIGHT',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'commonWeight',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyPause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyUnpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'epicWeight',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'feeToken',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'triggerId', internalType: 'uint256', type: 'uint256' },
+      { name: 'randomness', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'fulfillRandomness',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'gachaServiceHandler',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAverageRarityValues',
+    outputs: [
+      { name: 'averageValues', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getRarityWeights',
+    outputs: [
+      { name: '', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'triggerId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getSpinRequest',
+    outputs: [
+      { name: 'requester', internalType: 'address', type: 'address' },
+      { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTotalValueLocked',
+    outputs: [
+      { name: 'totalValueUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTreasuryAddress',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTreasuryDistribution',
+    outputs: [
+      { name: 'distribution', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'legendaryWeight',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'rareWeight',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'rewardsManager',
+    outputs: [
+      {
+        name: '',
+        internalType: 'contract GachaRewardsManager',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_newFeeToken', internalType: 'address', type: 'address' },
+    ],
+    name: 'setFeeToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: '_gachaServiceHandler',
+        internalType: 'address',
+        type: 'address',
+      },
+    ],
+    name: 'setGachaServiceHandler',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_commonWeight', internalType: 'uint256', type: 'uint256' },
+      { name: '_uncommonWeight', internalType: 'uint256', type: 'uint256' },
+      { name: '_rareWeight', internalType: 'uint256', type: 'uint256' },
+      { name: '_epicWeight', internalType: 'uint256', type: 'uint256' },
+      { name: '_legendaryWeight', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'setRarityWeights',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_rewardsManager', internalType: 'address', type: 'address' },
+    ],
+    name: 'setRewardsManager',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_newFee', internalType: 'uint256', type: 'uint256' }],
+    name: 'setSpinFee',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'spin',
+    outputs: [{ name: 'triggerId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'spinFee',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'spinRequests',
+    outputs: [
+      { name: 'requester', internalType: 'address', type: 'address' },
+      { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+      { name: 'v', internalType: 'uint8', type: 'uint8' },
+      { name: 'r', internalType: 'bytes32', type: 'bytes32' },
+      { name: 's', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'spinWithPermit',
+    outputs: [{ name: 'triggerId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'treasury',
+    outputs: [
+      { name: '', internalType: 'contract GachaTreasuryV2', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'uncommonWeight',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'to', internalType: 'address', type: 'address' }],
+    name: 'withdrawFees',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'admin',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'EmergencyPause',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'admin',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'EmergencyUnpause',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldToken',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+      {
+        name: 'newToken',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'FeeTokenUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'FeeUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldHandler',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newHandler',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'GachaServiceHandlerUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Paused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'triggerId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'RandomnessRequested',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'common',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'uncommon',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'rare',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'epic',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'legendary',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RarityWeightsUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'rewardsAmount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RewardsDistributed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'triggerId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'requester',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'appraisedPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'SpinCompleted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'triggerId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'requester',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'selectedRarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'refundAmount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'SpinRefunded',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Unpaused',
+  },
+  { type: 'error', inputs: [], name: 'AlreadyFulfilled' },
+  { type: 'error', inputs: [], name: 'EnforcedPause' },
+  { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'FeePaymentFailed' },
+  { type: 'error', inputs: [], name: 'FeeWithdrawalFailed' },
+  { type: 'error', inputs: [], name: 'InvalidFeeToken' },
+  { type: 'error', inputs: [], name: 'InvalidRecipient' },
+  { type: 'error', inputs: [], name: 'InvalidRewardsManager' },
+  { type: 'error', inputs: [], name: 'InvalidServiceHandler' },
+  { type: 'error', inputs: [], name: 'InvalidTreasuryContract' },
+  { type: 'error', inputs: [], name: 'InvalidTriggerId' },
+  { type: 'error', inputs: [], name: 'NoFeesToWithdraw' },
+  {
+    type: 'error',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasuryV2.Rarity',
+        type: 'uint8',
+      },
+    ],
+    name: 'NoNFTsAvailable',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  { type: 'error', inputs: [], name: 'RefundFailed' },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation',
+  },
+  { type: 'error', inputs: [], name: 'UnauthorizedServiceHandler' },
+  { type: 'error', inputs: [], name: 'WeightsMustSumToTotal' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4139,6 +5870,752 @@ export const iWavsServiceManagerAbi = [
   { type: 'error', inputs: [], name: 'InvalidSignatureBlock' },
   { type: 'error', inputs: [], name: 'InvalidSignatureLength' },
   { type: 'error', inputs: [], name: 'InvalidSignatureOrder' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// MockNFTAppraisal
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const mockNftAppraisalAbi = [
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'appraisalStatuses',
+    outputs: [
+      {
+        name: '',
+        internalType: 'enum MockNFTAppraisal.AppraisalStatus',
+        type: 'uint8',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'appraisedPrices',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getAppraisedPrice',
+    outputs: [
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'status',
+        internalType: 'enum MockNFTAppraisal.AppraisalStatus',
+        type: 'uint8',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'hasAppraisal',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'setMockAppraisal',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// NFTAppraisal
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const nftAppraisalAbi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: '_owner', internalType: 'address', type: 'address' },
+      { name: '_feeToken', internalType: 'address', type: 'address' },
+      { name: '_appraisalFee', internalType: 'uint256', type: 'uint256' },
+      { name: '_protocolAddress', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'appraisalFee',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'appraisals',
+    outputs: [
+      { name: 'requester', internalType: 'address', type: 'address' },
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'status',
+        internalType: 'enum NFTAppraisal.AppraisalStatus',
+        type: 'uint8',
+      },
+      { name: 'timestamp', internalType: 'uint256', type: 'uint256' },
+      { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'oracle', internalType: 'address', type: 'address' }],
+    name: 'authorizeOracle',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'authorizedOracles',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyPause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyUnpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'feeToken',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getAppraisal',
+    outputs: [
+      {
+        name: 'appraisal',
+        internalType: 'struct NFTAppraisal.Appraisal',
+        type: 'tuple',
+        components: [
+          { name: 'requester', internalType: 'address', type: 'address' },
+          { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'status',
+            internalType: 'enum NFTAppraisal.AppraisalStatus',
+            type: 'uint8',
+          },
+          { name: 'timestamp', internalType: 'uint256', type: 'uint256' },
+          { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getAppraisedPrice',
+    outputs: [
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'status',
+        internalType: 'enum NFTAppraisal.AppraisalStatus',
+        type: 'uint8',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAuthorizedOracles',
+    outputs: [
+      { name: 'oracles', internalType: 'address[]', type: 'address[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'hasAppraisal',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'oracle', internalType: 'address', type: 'address' }],
+    name: 'isAuthorizedOracle',
+    outputs: [{ name: 'isAuthorized', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'oracleList',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'overrideAppraisal',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'protocolAddress',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'requestAppraisal',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'oracle', internalType: 'address', type: 'address' }],
+    name: 'revokeOracle',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_newFee', internalType: 'uint256', type: 'uint256' }],
+    name: 'setAppraisalFee',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'setAppraisedPrice',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_newFeeToken', internalType: 'address', type: 'address' },
+    ],
+    name: 'setFeeToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_newProtocolAddress', internalType: 'address', type: 'address' },
+    ],
+    name: 'setProtocolAddress',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'priceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'oracle',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'AppraisalCompleted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'AppraisalFeeUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'oldPriceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newPriceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'AppraisalOverridden',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'requester',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'fee', internalType: 'uint256', type: 'uint256', indexed: false },
+    ],
+    name: 'AppraisalRequested',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldToken',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+      {
+        name: 'newToken',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'FeeTokenUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oracle',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OracleAuthorized',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oracle',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OracleRevoked',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Paused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'oldPriceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newPriceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'PriceUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldAddress',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+      {
+        name: 'newAddress',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'ProtocolAddressUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Unpaused',
+  },
+  { type: 'error', inputs: [], name: 'AppraisalAlreadyExists' },
+  { type: 'error', inputs: [], name: 'AppraisalFeeRequired' },
+  { type: 'error', inputs: [], name: 'AppraisalNotFound' },
+  { type: 'error', inputs: [], name: 'EnforcedPause' },
+  { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'FeePaymentFailed' },
+  { type: 'error', inputs: [], name: 'InvalidCollection' },
+  { type: 'error', inputs: [], name: 'InvalidFeeToken' },
+  { type: 'error', inputs: [], name: 'InvalidPrice' },
+  { type: 'error', inputs: [], name: 'InvalidProtocolAddress' },
+  { type: 'error', inputs: [], name: 'InvalidRecipient' },
+  { type: 'error', inputs: [], name: 'InvalidTokenId' },
+  { type: 'error', inputs: [], name: 'NoFeesToWithdraw' },
+  { type: 'error', inputs: [], name: 'OracleAlreadyAuthorized' },
+  { type: 'error', inputs: [], name: 'OracleNotAuthorized' },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation',
+  },
+  { type: 'error', inputs: [], name: 'UnauthorizedOracle' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// NFTAppraisalServiceHandler
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const nftAppraisalServiceHandlerAbi = [
+  {
+    type: 'constructor',
+    inputs: [
+      {
+        name: 'serviceManager',
+        internalType: 'contract IWavsServiceManager',
+        type: 'address',
+      },
+      { name: 'appraisalContract', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'checkAppraisal',
+    outputs: [
+      { name: 'exists', internalType: 'bool', type: 'bool' },
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getAppraisalContract',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getServiceManager',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'envelope',
+        internalType: 'struct IWavsServiceHandler.Envelope',
+        type: 'tuple',
+        components: [
+          { name: 'eventId', internalType: 'bytes20', type: 'bytes20' },
+          { name: 'ordering', internalType: 'bytes12', type: 'bytes12' },
+          { name: 'payload', internalType: 'bytes', type: 'bytes' },
+        ],
+      },
+      {
+        name: 'signatureData',
+        internalType: 'struct IWavsServiceHandler.SignatureData',
+        type: 'tuple',
+        components: [
+          { name: 'signers', internalType: 'address[]', type: 'address[]' },
+          { name: 'signatures', internalType: 'bytes[]', type: 'bytes[]' },
+          { name: 'referenceBlock', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    name: 'handleSignedEnvelope',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'priceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'requestId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+    ],
+    name: 'AppraisalDataReceived',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'priceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      { name: 'success', internalType: 'bool', type: 'bool', indexed: false },
+    ],
+    name: 'AppraisalProcessed',
+  },
+  { type: 'error', inputs: [], name: 'AppraisalProcessingFailed' },
+  { type: 'error', inputs: [], name: 'InvalidAppraisalContract' },
+  { type: 'error', inputs: [], name: 'InvalidAppraisalData' },
+  { type: 'error', inputs: [], name: 'InvalidServiceManager' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -6045,6 +8522,15 @@ export const useReadGachaGachaServiceHandler =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getAverageRarityValues"`
+ */
+export const useReadGachaGetAverageRarityValues =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getAverageRarityValues',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getRarityWeights"`
  */
 export const useReadGachaGetRarityWeights = /*#__PURE__*/ createUseReadContract(
@@ -6060,12 +8546,30 @@ export const useReadGachaGetSpinRequest = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getTotalValueLocked"`
+ */
+export const useReadGachaGetTotalValueLocked =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getTotalValueLocked',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getTreasuryAddress"`
  */
 export const useReadGachaGetTreasuryAddress =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaAbi,
     functionName: 'getTreasuryAddress',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getTreasuryDistribution"`
+ */
+export const useReadGachaGetTreasuryDistribution =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getTreasuryDistribution',
   })
 
 /**
@@ -6500,6 +9004,157 @@ export const useWatchGachaUnpaused = /*#__PURE__*/ createUseWatchContractEvent({
   abi: gachaAbi,
   eventName: 'Unpaused',
 })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaConfigAbi}__
+ */
+export const useReadGachaConfigContract = /*#__PURE__*/ createUseReadContract({
+  abi: gachaConfigAbi,
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"getAllPriceRanges"`
+ */
+export const useReadGachaConfigGetAllPriceRanges =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaConfigAbi,
+    functionName: 'getAllPriceRanges',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"getPriceRange"`
+ */
+export const useReadGachaConfigGetPriceRange =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaConfigAbi,
+    functionName: 'getPriceRange',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"getRarityByPrice"`
+ */
+export const useReadGachaConfigGetRarityByPrice =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaConfigAbi,
+    functionName: 'getRarityByPrice',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"owner"`
+ */
+export const useReadGachaConfigOwner = /*#__PURE__*/ createUseReadContract({
+  abi: gachaConfigAbi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"priceRanges"`
+ */
+export const useReadGachaConfigPriceRanges =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaConfigAbi,
+    functionName: 'priceRanges',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"validatePriceRanges"`
+ */
+export const useReadGachaConfigValidatePriceRanges =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaConfigAbi,
+    functionName: 'validatePriceRanges',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaConfigAbi}__
+ */
+export const useWriteGachaConfigContract = /*#__PURE__*/ createUseWriteContract(
+  { abi: gachaConfigAbi },
+)
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useWriteGachaConfigRenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaConfigAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"setPriceRange"`
+ */
+export const useWriteGachaConfigSetPriceRange =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaConfigAbi,
+    functionName: 'setPriceRange',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useWriteGachaConfigTransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaConfigAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaConfigAbi}__
+ */
+export const useSimulateGachaConfigContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: gachaConfigAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useSimulateGachaConfigRenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaConfigAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"setPriceRange"`
+ */
+export const useSimulateGachaConfigSetPriceRange =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaConfigAbi,
+    functionName: 'setPriceRange',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaConfigAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useSimulateGachaConfigTransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaConfigAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaConfigAbi}__
+ */
+export const useWatchGachaConfigContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: gachaConfigAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaConfigAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useWatchGachaConfigOwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaConfigAbi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaConfigAbi}__ and `eventName` set to `"PriceRangeUpdated"`
+ */
+export const useWatchGachaConfigPriceRangeUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaConfigAbi,
+    eventName: 'PriceRangeUpdated',
+  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__
@@ -7117,6 +9772,84 @@ export const useWatchGachaServiceHandlerRandomnessReceived =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__
+ */
+export const useReadGachaServiceHandlerV2Contract =
+  /*#__PURE__*/ createUseReadContract({ abi: gachaServiceHandlerV2Abi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__ and `functionName` set to `"getGacha"`
+ */
+export const useReadGachaServiceHandlerV2GetGacha =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaServiceHandlerV2Abi,
+    functionName: 'getGacha',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__ and `functionName` set to `"getGachaTreasury"`
+ */
+export const useReadGachaServiceHandlerV2GetGachaTreasury =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaServiceHandlerV2Abi,
+    functionName: 'getGachaTreasury',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__ and `functionName` set to `"getServiceManager"`
+ */
+export const useReadGachaServiceHandlerV2GetServiceManager =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaServiceHandlerV2Abi,
+    functionName: 'getServiceManager',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__
+ */
+export const useWriteGachaServiceHandlerV2Contract =
+  /*#__PURE__*/ createUseWriteContract({ abi: gachaServiceHandlerV2Abi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__ and `functionName` set to `"handleSignedEnvelope"`
+ */
+export const useWriteGachaServiceHandlerV2HandleSignedEnvelope =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaServiceHandlerV2Abi,
+    functionName: 'handleSignedEnvelope',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__
+ */
+export const useSimulateGachaServiceHandlerV2Contract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: gachaServiceHandlerV2Abi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__ and `functionName` set to `"handleSignedEnvelope"`
+ */
+export const useSimulateGachaServiceHandlerV2HandleSignedEnvelope =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaServiceHandlerV2Abi,
+    functionName: 'handleSignedEnvelope',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__
+ */
+export const useWatchGachaServiceHandlerV2Contract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: gachaServiceHandlerV2Abi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaServiceHandlerV2Abi}__ and `eventName` set to `"RandomnessReceived"`
+ */
+export const useWatchGachaServiceHandlerV2RandomnessReceived =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaServiceHandlerV2Abi,
+    eventName: 'RandomnessReceived',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__
  */
 export const useReadGachaTreasuryContract = /*#__PURE__*/ createUseReadContract(
@@ -7142,6 +9875,15 @@ export const useReadGachaTreasuryMaxBatchWithdraw =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"appraisalContract"`
+ */
+export const useReadGachaTreasuryAppraisalContract =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'appraisalContract',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"depositedNFTs"`
  */
 export const useReadGachaTreasuryDepositedNfTs =
@@ -7160,6 +9902,15 @@ export const useReadGachaTreasuryGachaContract =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllPriceRanges"`
+ */
+export const useReadGachaTreasuryGetAllPriceRanges =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getAllPriceRanges',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllRarityCounts"`
  */
 export const useReadGachaTreasuryGetAllRarityCounts =
@@ -7169,21 +9920,30 @@ export const useReadGachaTreasuryGetAllRarityCounts =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getPendingDeposit"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getNFTCurrentRarity"`
  */
-export const useReadGachaTreasuryGetPendingDeposit =
+export const useReadGachaTreasuryGetNftCurrentRarity =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
-    functionName: 'getPendingDeposit',
+    functionName: 'getNFTCurrentRarity',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getPendingDepositIds"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getPriceRange"`
  */
-export const useReadGachaTreasuryGetPendingDepositIds =
+export const useReadGachaTreasuryGetPriceRange =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
-    functionName: 'getPendingDepositIds',
+    functionName: 'getPriceRange',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getRarityByPrice"`
+ */
+export const useReadGachaTreasuryGetRarityByPrice =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getRarityByPrice',
   })
 
 /**
@@ -7241,15 +10001,6 @@ export const useReadGachaTreasuryGetUserDepositCount =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserPendingDeposits"`
- */
-export const useReadGachaTreasuryGetUserPendingDeposits =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserPendingDeposits',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserTotalDepositCount"`
  */
 export const useReadGachaTreasuryGetUserTotalDepositCount =
@@ -7304,12 +10055,21 @@ export const useReadGachaTreasuryIsNftDeposited =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nextPendingId"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftCurrentRarity"`
  */
-export const useReadGachaTreasuryNextPendingId =
+export const useReadGachaTreasuryNftCurrentRarity =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
-    functionName: 'nextPendingId',
+    functionName: 'nftCurrentRarity',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftToTreasuryIndex"`
+ */
+export const useReadGachaTreasuryNftToTreasuryIndex =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'nftToTreasuryIndex',
   })
 
 /**
@@ -7338,21 +10098,12 @@ export const useReadGachaTreasuryPaused = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"pendingDepositIds"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"priceRanges"`
  */
-export const useReadGachaTreasuryPendingDepositIds =
+export const useReadGachaTreasuryPriceRanges =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
-    functionName: 'pendingDepositIds',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"pendingDeposits"`
- */
-export const useReadGachaTreasuryPendingDeposits =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'pendingDeposits',
+    functionName: 'priceRanges',
   })
 
 /**
@@ -7390,21 +10141,21 @@ export const useReadGachaTreasuryUserDepositCounts =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userPendingDeposits"`
- */
-export const useReadGachaTreasuryUserPendingDeposits =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'userPendingDeposits',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userTotalDeposits"`
  */
 export const useReadGachaTreasuryUserTotalDeposits =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'userTotalDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"validatePriceRanges"`
+ */
+export const useReadGachaTreasuryValidatePriceRanges =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'validatePriceRanges',
   })
 
 /**
@@ -7441,15 +10192,6 @@ export const useWriteGachaTreasuryAddToWhitelist =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"approvePendingDeposit"`
- */
-export const useWriteGachaTreasuryApprovePendingDeposit =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'approvePendingDeposit',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"batchDepositNFT"`
  */
 export const useWriteGachaTreasuryBatchDepositNft =
@@ -7465,15 +10207,6 @@ export const useWriteGachaTreasuryBatchWithdrawNft =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
     functionName: 'batchWithdrawNFT',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"denyPendingDeposit"`
- */
-export const useWriteGachaTreasuryDenyPendingDeposit =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'denyPendingDeposit',
   })
 
 /**
@@ -7504,6 +10237,15 @@ export const useWriteGachaTreasuryEmergencyUnpause =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateNFTRarity"`
+ */
+export const useWriteGachaTreasuryMigrateNftRarity =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'migrateNFTRarity',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"removeFromWhitelist"`
  */
 export const useWriteGachaTreasuryRemoveFromWhitelist =
@@ -7531,6 +10273,15 @@ export const useWriteGachaTreasurySendNftToWinner =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setAppraisalContract"`
+ */
+export const useWriteGachaTreasurySetAppraisalContract =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setAppraisalContract',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setGachaContract"`
  */
 export const useWriteGachaTreasurySetGachaContract =
@@ -7540,21 +10291,21 @@ export const useWriteGachaTreasurySetGachaContract =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setPriceRange"`
+ */
+export const useWriteGachaTreasurySetPriceRange =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setPriceRange',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setTreasuryRewardsManager"`
  */
 export const useWriteGachaTreasurySetTreasuryRewardsManager =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
     functionName: 'setTreasuryRewardsManager',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"submitPendingDeposit"`
- */
-export const useWriteGachaTreasurySubmitPendingDeposit =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'submitPendingDeposit',
   })
 
 /**
@@ -7591,15 +10342,6 @@ export const useSimulateGachaTreasuryAddToWhitelist =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"approvePendingDeposit"`
- */
-export const useSimulateGachaTreasuryApprovePendingDeposit =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'approvePendingDeposit',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"batchDepositNFT"`
  */
 export const useSimulateGachaTreasuryBatchDepositNft =
@@ -7615,15 +10357,6 @@ export const useSimulateGachaTreasuryBatchWithdrawNft =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'batchWithdrawNFT',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"denyPendingDeposit"`
- */
-export const useSimulateGachaTreasuryDenyPendingDeposit =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'denyPendingDeposit',
   })
 
 /**
@@ -7654,6 +10387,15 @@ export const useSimulateGachaTreasuryEmergencyUnpause =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateNFTRarity"`
+ */
+export const useSimulateGachaTreasuryMigrateNftRarity =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'migrateNFTRarity',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"removeFromWhitelist"`
  */
 export const useSimulateGachaTreasuryRemoveFromWhitelist =
@@ -7681,6 +10423,15 @@ export const useSimulateGachaTreasurySendNftToWinner =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setAppraisalContract"`
+ */
+export const useSimulateGachaTreasurySetAppraisalContract =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setAppraisalContract',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setGachaContract"`
  */
 export const useSimulateGachaTreasurySetGachaContract =
@@ -7690,21 +10441,21 @@ export const useSimulateGachaTreasurySetGachaContract =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setPriceRange"`
+ */
+export const useSimulateGachaTreasurySetPriceRange =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setPriceRange',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setTreasuryRewardsManager"`
  */
 export const useSimulateGachaTreasurySetTreasuryRewardsManager =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'setTreasuryRewardsManager',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"submitPendingDeposit"`
- */
-export const useSimulateGachaTreasurySubmitPendingDeposit =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'submitPendingDeposit',
   })
 
 /**
@@ -7730,6 +10481,15 @@ export const useSimulateGachaTreasuryWithdrawNft =
  */
 export const useWatchGachaTreasuryContract =
   /*#__PURE__*/ createUseWatchContractEvent({ abi: gachaTreasuryAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"AppraisalContractUpdated"`
+ */
+export const useWatchGachaTreasuryAppraisalContractUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'AppraisalContractUpdated',
+  })
 
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"BatchDeposited"`
@@ -7813,30 +10573,21 @@ export const useWatchGachaTreasuryPaused =
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"PendingDepositApproved"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"PriceRangeUpdated"`
  */
-export const useWatchGachaTreasuryPendingDepositApproved =
+export const useWatchGachaTreasuryPriceRangeUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
-    eventName: 'PendingDepositApproved',
+    eventName: 'PriceRangeUpdated',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"PendingDepositDenied"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"RarityMigrated"`
  */
-export const useWatchGachaTreasuryPendingDepositDenied =
+export const useWatchGachaTreasuryRarityMigrated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
-    eventName: 'PendingDepositDenied',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"PendingDepositSubmitted"`
- */
-export const useWatchGachaTreasuryPendingDepositSubmitted =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: gachaTreasuryAbi,
-    eventName: 'PendingDepositSubmitted',
+    eventName: 'RarityMigrated',
   })
 
 /**
@@ -7854,6 +10605,1218 @@ export const useWatchGachaTreasuryRewardsManagerUpdated =
 export const useWatchGachaTreasuryUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
+    eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__
+ */
+export const useReadGachaTreasuryV2Contract =
+  /*#__PURE__*/ createUseReadContract({ abi: gachaTreasuryV2Abi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"MAX_BATCH_DEPOSIT"`
+ */
+export const useReadGachaTreasuryV2MaxBatchDeposit =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'MAX_BATCH_DEPOSIT',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"MAX_BATCH_WITHDRAW"`
+ */
+export const useReadGachaTreasuryV2MaxBatchWithdraw =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'MAX_BATCH_WITHDRAW',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"appraisalContract"`
+ */
+export const useReadGachaTreasuryV2AppraisalContract =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'appraisalContract',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"configContract"`
+ */
+export const useReadGachaTreasuryV2ConfigContract =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'configContract',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"depositedNFTs"`
+ */
+export const useReadGachaTreasuryV2DepositedNfTs =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'depositedNFTs',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"gachaContract"`
+ */
+export const useReadGachaTreasuryV2GachaContract =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'gachaContract',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getAllRarityCounts"`
+ */
+export const useReadGachaTreasuryV2GetAllRarityCounts =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getAllRarityCounts',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getNFTCurrentRarity"`
+ */
+export const useReadGachaTreasuryV2GetNftCurrentRarity =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getNFTCurrentRarity',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getRarityCount"`
+ */
+export const useReadGachaTreasuryV2GetRarityCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getRarityCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getTotalItemsCount"`
+ */
+export const useReadGachaTreasuryV2GetTotalItemsCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getTotalItemsCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getTreasuryItem"`
+ */
+export const useReadGachaTreasuryV2GetTreasuryItem =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getTreasuryItem',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getTreasuryItems"`
+ */
+export const useReadGachaTreasuryV2GetTreasuryItems =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getTreasuryItems',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getUserAllDepositCounts"`
+ */
+export const useReadGachaTreasuryV2GetUserAllDepositCounts =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getUserAllDepositCounts',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getUserDepositCount"`
+ */
+export const useReadGachaTreasuryV2GetUserDepositCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getUserDepositCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getUserTotalDepositCount"`
+ */
+export const useReadGachaTreasuryV2GetUserTotalDepositCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getUserTotalDepositCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"getWhitelistedCollections"`
+ */
+export const useReadGachaTreasuryV2GetWhitelistedCollections =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'getWhitelistedCollections',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"isCollectionWhitelisted"`
+ */
+export const useReadGachaTreasuryV2IsCollectionWhitelisted =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'isCollectionWhitelisted',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"isGachaAvailable"`
+ */
+export const useReadGachaTreasuryV2IsGachaAvailable =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'isGachaAvailable',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"isNFTDeposited"`
+ */
+export const useReadGachaTreasuryV2IsNftDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'isNFTDeposited',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"nftCurrentRarity"`
+ */
+export const useReadGachaTreasuryV2NftCurrentRarity =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'nftCurrentRarity',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"nftToTreasuryIndex"`
+ */
+export const useReadGachaTreasuryV2NftToTreasuryIndex =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'nftToTreasuryIndex',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"onERC721Received"`
+ */
+export const useReadGachaTreasuryV2OnErc721Received =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'onERC721Received',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"owner"`
+ */
+export const useReadGachaTreasuryV2Owner = /*#__PURE__*/ createUseReadContract({
+  abi: gachaTreasuryV2Abi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"paused"`
+ */
+export const useReadGachaTreasuryV2Paused = /*#__PURE__*/ createUseReadContract(
+  { abi: gachaTreasuryV2Abi, functionName: 'paused' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"rarityCount"`
+ */
+export const useReadGachaTreasuryV2RarityCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'rarityCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"treasury"`
+ */
+export const useReadGachaTreasuryV2Treasury =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'treasury',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"treasuryRewardsManager"`
+ */
+export const useReadGachaTreasuryV2TreasuryRewardsManager =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'treasuryRewardsManager',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"userDepositCounts"`
+ */
+export const useReadGachaTreasuryV2UserDepositCounts =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'userDepositCounts',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"userTotalDeposits"`
+ */
+export const useReadGachaTreasuryV2UserTotalDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'userTotalDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"whitelistedCollections"`
+ */
+export const useReadGachaTreasuryV2WhitelistedCollections =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'whitelistedCollections',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"whitelistedCollectionsList"`
+ */
+export const useReadGachaTreasuryV2WhitelistedCollectionsList =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'whitelistedCollectionsList',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__
+ */
+export const useWriteGachaTreasuryV2Contract =
+  /*#__PURE__*/ createUseWriteContract({ abi: gachaTreasuryV2Abi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"addToWhitelist"`
+ */
+export const useWriteGachaTreasuryV2AddToWhitelist =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'addToWhitelist',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"batchMigrateNFTRarity"`
+ */
+export const useWriteGachaTreasuryV2BatchMigrateNftRarity =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'batchMigrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"depositNFT"`
+ */
+export const useWriteGachaTreasuryV2DepositNft =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'depositNFT',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useWriteGachaTreasuryV2EmergencyPause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"emergencyUnpause"`
+ */
+export const useWriteGachaTreasuryV2EmergencyUnpause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"migrateNFTRarity"`
+ */
+export const useWriteGachaTreasuryV2MigrateNftRarity =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'migrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"removeFromWhitelist"`
+ */
+export const useWriteGachaTreasuryV2RemoveFromWhitelist =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'removeFromWhitelist',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useWriteGachaTreasuryV2RenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"sendNFTToWinner"`
+ */
+export const useWriteGachaTreasuryV2SendNftToWinner =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'sendNFTToWinner',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"setAppraisalContract"`
+ */
+export const useWriteGachaTreasuryV2SetAppraisalContract =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'setAppraisalContract',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"setConfigContract"`
+ */
+export const useWriteGachaTreasuryV2SetConfigContract =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'setConfigContract',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"setGachaContract"`
+ */
+export const useWriteGachaTreasuryV2SetGachaContract =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'setGachaContract',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"setTreasuryRewardsManager"`
+ */
+export const useWriteGachaTreasuryV2SetTreasuryRewardsManager =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'setTreasuryRewardsManager',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useWriteGachaTreasuryV2TransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"withdrawNFT"`
+ */
+export const useWriteGachaTreasuryV2WithdrawNft =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'withdrawNFT',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__
+ */
+export const useSimulateGachaTreasuryV2Contract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: gachaTreasuryV2Abi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"addToWhitelist"`
+ */
+export const useSimulateGachaTreasuryV2AddToWhitelist =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'addToWhitelist',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"batchMigrateNFTRarity"`
+ */
+export const useSimulateGachaTreasuryV2BatchMigrateNftRarity =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'batchMigrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"depositNFT"`
+ */
+export const useSimulateGachaTreasuryV2DepositNft =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'depositNFT',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useSimulateGachaTreasuryV2EmergencyPause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"emergencyUnpause"`
+ */
+export const useSimulateGachaTreasuryV2EmergencyUnpause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"migrateNFTRarity"`
+ */
+export const useSimulateGachaTreasuryV2MigrateNftRarity =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'migrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"removeFromWhitelist"`
+ */
+export const useSimulateGachaTreasuryV2RemoveFromWhitelist =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'removeFromWhitelist',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useSimulateGachaTreasuryV2RenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"sendNFTToWinner"`
+ */
+export const useSimulateGachaTreasuryV2SendNftToWinner =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'sendNFTToWinner',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"setAppraisalContract"`
+ */
+export const useSimulateGachaTreasuryV2SetAppraisalContract =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'setAppraisalContract',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"setConfigContract"`
+ */
+export const useSimulateGachaTreasuryV2SetConfigContract =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'setConfigContract',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"setGachaContract"`
+ */
+export const useSimulateGachaTreasuryV2SetGachaContract =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'setGachaContract',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"setTreasuryRewardsManager"`
+ */
+export const useSimulateGachaTreasuryV2SetTreasuryRewardsManager =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'setTreasuryRewardsManager',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useSimulateGachaTreasuryV2TransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `functionName` set to `"withdrawNFT"`
+ */
+export const useSimulateGachaTreasuryV2WithdrawNft =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryV2Abi,
+    functionName: 'withdrawNFT',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__
+ */
+export const useWatchGachaTreasuryV2Contract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: gachaTreasuryV2Abi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"AppraisalContractUpdated"`
+ */
+export const useWatchGachaTreasuryV2AppraisalContractUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'AppraisalContractUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"CollectionRemovedFromWhitelist"`
+ */
+export const useWatchGachaTreasuryV2CollectionRemovedFromWhitelist =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'CollectionRemovedFromWhitelist',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"CollectionWhitelisted"`
+ */
+export const useWatchGachaTreasuryV2CollectionWhitelisted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'CollectionWhitelisted',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"ConfigContractUpdated"`
+ */
+export const useWatchGachaTreasuryV2ConfigContractUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'ConfigContractUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"GachaContractUpdated"`
+ */
+export const useWatchGachaTreasuryV2GachaContractUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'GachaContractUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"NFTDeposited"`
+ */
+export const useWatchGachaTreasuryV2NftDeposited =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'NFTDeposited',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"NFTWithdrawn"`
+ */
+export const useWatchGachaTreasuryV2NftWithdrawn =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'NFTWithdrawn',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useWatchGachaTreasuryV2OwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"Paused"`
+ */
+export const useWatchGachaTreasuryV2Paused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'Paused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"RarityMigrated"`
+ */
+export const useWatchGachaTreasuryV2RarityMigrated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'RarityMigrated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"RewardsManagerUpdated"`
+ */
+export const useWatchGachaTreasuryV2RewardsManagerUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'RewardsManagerUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryV2Abi}__ and `eventName` set to `"Unpaused"`
+ */
+export const useWatchGachaTreasuryV2Unpaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryV2Abi,
+    eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__
+ */
+export const useReadGachaV2Contract = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"TOTAL_WEIGHT"`
+ */
+export const useReadGachaV2TotalWeight = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'TOTAL_WEIGHT',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"commonWeight"`
+ */
+export const useReadGachaV2CommonWeight = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'commonWeight',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"epicWeight"`
+ */
+export const useReadGachaV2EpicWeight = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'epicWeight',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"feeToken"`
+ */
+export const useReadGachaV2FeeToken = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'feeToken',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"gachaServiceHandler"`
+ */
+export const useReadGachaV2GachaServiceHandler =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaV2Abi,
+    functionName: 'gachaServiceHandler',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"getAverageRarityValues"`
+ */
+export const useReadGachaV2GetAverageRarityValues =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaV2Abi,
+    functionName: 'getAverageRarityValues',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"getRarityWeights"`
+ */
+export const useReadGachaV2GetRarityWeights =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaV2Abi,
+    functionName: 'getRarityWeights',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"getSpinRequest"`
+ */
+export const useReadGachaV2GetSpinRequest = /*#__PURE__*/ createUseReadContract(
+  { abi: gachaV2Abi, functionName: 'getSpinRequest' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"getTotalValueLocked"`
+ */
+export const useReadGachaV2GetTotalValueLocked =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaV2Abi,
+    functionName: 'getTotalValueLocked',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"getTreasuryAddress"`
+ */
+export const useReadGachaV2GetTreasuryAddress =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaV2Abi,
+    functionName: 'getTreasuryAddress',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"getTreasuryDistribution"`
+ */
+export const useReadGachaV2GetTreasuryDistribution =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaV2Abi,
+    functionName: 'getTreasuryDistribution',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"legendaryWeight"`
+ */
+export const useReadGachaV2LegendaryWeight =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaV2Abi,
+    functionName: 'legendaryWeight',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"owner"`
+ */
+export const useReadGachaV2Owner = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"paused"`
+ */
+export const useReadGachaV2Paused = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'paused',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"rareWeight"`
+ */
+export const useReadGachaV2RareWeight = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'rareWeight',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"rewardsManager"`
+ */
+export const useReadGachaV2RewardsManager = /*#__PURE__*/ createUseReadContract(
+  { abi: gachaV2Abi, functionName: 'rewardsManager' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"spinFee"`
+ */
+export const useReadGachaV2SpinFee = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'spinFee',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"spinRequests"`
+ */
+export const useReadGachaV2SpinRequests = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'spinRequests',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"treasury"`
+ */
+export const useReadGachaV2Treasury = /*#__PURE__*/ createUseReadContract({
+  abi: gachaV2Abi,
+  functionName: 'treasury',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"uncommonWeight"`
+ */
+export const useReadGachaV2UncommonWeight = /*#__PURE__*/ createUseReadContract(
+  { abi: gachaV2Abi, functionName: 'uncommonWeight' },
+)
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__
+ */
+export const useWriteGachaV2Contract = /*#__PURE__*/ createUseWriteContract({
+  abi: gachaV2Abi,
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useWriteGachaV2EmergencyPause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"emergencyUnpause"`
+ */
+export const useWriteGachaV2EmergencyUnpause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"fulfillRandomness"`
+ */
+export const useWriteGachaV2FulfillRandomness =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'fulfillRandomness',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useWriteGachaV2RenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setFeeToken"`
+ */
+export const useWriteGachaV2SetFeeToken = /*#__PURE__*/ createUseWriteContract({
+  abi: gachaV2Abi,
+  functionName: 'setFeeToken',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setGachaServiceHandler"`
+ */
+export const useWriteGachaV2SetGachaServiceHandler =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'setGachaServiceHandler',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setRarityWeights"`
+ */
+export const useWriteGachaV2SetRarityWeights =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'setRarityWeights',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setRewardsManager"`
+ */
+export const useWriteGachaV2SetRewardsManager =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'setRewardsManager',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setSpinFee"`
+ */
+export const useWriteGachaV2SetSpinFee = /*#__PURE__*/ createUseWriteContract({
+  abi: gachaV2Abi,
+  functionName: 'setSpinFee',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"spin"`
+ */
+export const useWriteGachaV2Spin = /*#__PURE__*/ createUseWriteContract({
+  abi: gachaV2Abi,
+  functionName: 'spin',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"spinWithPermit"`
+ */
+export const useWriteGachaV2SpinWithPermit =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'spinWithPermit',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useWriteGachaV2TransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaV2Abi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"withdrawFees"`
+ */
+export const useWriteGachaV2WithdrawFees = /*#__PURE__*/ createUseWriteContract(
+  { abi: gachaV2Abi, functionName: 'withdrawFees' },
+)
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__
+ */
+export const useSimulateGachaV2Contract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: gachaV2Abi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useSimulateGachaV2EmergencyPause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"emergencyUnpause"`
+ */
+export const useSimulateGachaV2EmergencyUnpause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"fulfillRandomness"`
+ */
+export const useSimulateGachaV2FulfillRandomness =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'fulfillRandomness',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useSimulateGachaV2RenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setFeeToken"`
+ */
+export const useSimulateGachaV2SetFeeToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'setFeeToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setGachaServiceHandler"`
+ */
+export const useSimulateGachaV2SetGachaServiceHandler =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'setGachaServiceHandler',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setRarityWeights"`
+ */
+export const useSimulateGachaV2SetRarityWeights =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'setRarityWeights',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setRewardsManager"`
+ */
+export const useSimulateGachaV2SetRewardsManager =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'setRewardsManager',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"setSpinFee"`
+ */
+export const useSimulateGachaV2SetSpinFee =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'setSpinFee',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"spin"`
+ */
+export const useSimulateGachaV2Spin = /*#__PURE__*/ createUseSimulateContract({
+  abi: gachaV2Abi,
+  functionName: 'spin',
+})
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"spinWithPermit"`
+ */
+export const useSimulateGachaV2SpinWithPermit =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'spinWithPermit',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useSimulateGachaV2TransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaV2Abi}__ and `functionName` set to `"withdrawFees"`
+ */
+export const useSimulateGachaV2WithdrawFees =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaV2Abi,
+    functionName: 'withdrawFees',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__
+ */
+export const useWatchGachaV2Contract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: gachaV2Abi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"EmergencyPause"`
+ */
+export const useWatchGachaV2EmergencyPause =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'EmergencyPause',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"EmergencyUnpause"`
+ */
+export const useWatchGachaV2EmergencyUnpause =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'EmergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"FeeTokenUpdated"`
+ */
+export const useWatchGachaV2FeeTokenUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'FeeTokenUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"FeeUpdated"`
+ */
+export const useWatchGachaV2FeeUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'FeeUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"GachaServiceHandlerUpdated"`
+ */
+export const useWatchGachaV2GachaServiceHandlerUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'GachaServiceHandlerUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useWatchGachaV2OwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"Paused"`
+ */
+export const useWatchGachaV2Paused = /*#__PURE__*/ createUseWatchContractEvent({
+  abi: gachaV2Abi,
+  eventName: 'Paused',
+})
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"RandomnessRequested"`
+ */
+export const useWatchGachaV2RandomnessRequested =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'RandomnessRequested',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"RarityWeightsUpdated"`
+ */
+export const useWatchGachaV2RarityWeightsUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'RarityWeightsUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"RewardsDistributed"`
+ */
+export const useWatchGachaV2RewardsDistributed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'RewardsDistributed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"SpinCompleted"`
+ */
+export const useWatchGachaV2SpinCompleted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'SpinCompleted',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"SpinRefunded"`
+ */
+export const useWatchGachaV2SpinRefunded =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
+    eventName: 'SpinRefunded',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaV2Abi}__ and `eventName` set to `"Unpaused"`
+ */
+export const useWatchGachaV2Unpaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaV2Abi,
     eventName: 'Unpaused',
   })
 
@@ -8942,6 +12905,632 @@ export const useWatchIWavsServiceManagerServiceUriUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: iWavsServiceManagerAbi,
     eventName: 'ServiceURIUpdated',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__
+ */
+export const useReadMockNftAppraisalContract =
+  /*#__PURE__*/ createUseReadContract({ abi: mockNftAppraisalAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"appraisalStatuses"`
+ */
+export const useReadMockNftAppraisalAppraisalStatuses =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'appraisalStatuses',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"appraisedPrices"`
+ */
+export const useReadMockNftAppraisalAppraisedPrices =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'appraisedPrices',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"getAppraisedPrice"`
+ */
+export const useReadMockNftAppraisalGetAppraisedPrice =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'getAppraisedPrice',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"hasAppraisal"`
+ */
+export const useReadMockNftAppraisalHasAppraisal =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'hasAppraisal',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__
+ */
+export const useWriteMockNftAppraisalContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: mockNftAppraisalAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"setMockAppraisal"`
+ */
+export const useWriteMockNftAppraisalSetMockAppraisal =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'setMockAppraisal',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__
+ */
+export const useSimulateMockNftAppraisalContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: mockNftAppraisalAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"setMockAppraisal"`
+ */
+export const useSimulateMockNftAppraisalSetMockAppraisal =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'setMockAppraisal',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__
+ */
+export const useReadNftAppraisalContract = /*#__PURE__*/ createUseReadContract({
+  abi: nftAppraisalAbi,
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"appraisalFee"`
+ */
+export const useReadNftAppraisalAppraisalFee =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'appraisalFee',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"appraisals"`
+ */
+export const useReadNftAppraisalAppraisals =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'appraisals',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"authorizedOracles"`
+ */
+export const useReadNftAppraisalAuthorizedOracles =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'authorizedOracles',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"feeToken"`
+ */
+export const useReadNftAppraisalFeeToken = /*#__PURE__*/ createUseReadContract({
+  abi: nftAppraisalAbi,
+  functionName: 'feeToken',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getAppraisal"`
+ */
+export const useReadNftAppraisalGetAppraisal =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getAppraisal',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getAppraisedPrice"`
+ */
+export const useReadNftAppraisalGetAppraisedPrice =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getAppraisedPrice',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getAuthorizedOracles"`
+ */
+export const useReadNftAppraisalGetAuthorizedOracles =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getAuthorizedOracles',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"hasAppraisal"`
+ */
+export const useReadNftAppraisalHasAppraisal =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'hasAppraisal',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"isAuthorizedOracle"`
+ */
+export const useReadNftAppraisalIsAuthorizedOracle =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'isAuthorizedOracle',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"oracleList"`
+ */
+export const useReadNftAppraisalOracleList =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'oracleList',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"owner"`
+ */
+export const useReadNftAppraisalOwner = /*#__PURE__*/ createUseReadContract({
+  abi: nftAppraisalAbi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"paused"`
+ */
+export const useReadNftAppraisalPaused = /*#__PURE__*/ createUseReadContract({
+  abi: nftAppraisalAbi,
+  functionName: 'paused',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"protocolAddress"`
+ */
+export const useReadNftAppraisalProtocolAddress =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'protocolAddress',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__
+ */
+export const useWriteNftAppraisalContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: nftAppraisalAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"authorizeOracle"`
+ */
+export const useWriteNftAppraisalAuthorizeOracle =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'authorizeOracle',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useWriteNftAppraisalEmergencyPause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"emergencyUnpause"`
+ */
+export const useWriteNftAppraisalEmergencyUnpause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"overrideAppraisal"`
+ */
+export const useWriteNftAppraisalOverrideAppraisal =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'overrideAppraisal',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useWriteNftAppraisalRenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"requestAppraisal"`
+ */
+export const useWriteNftAppraisalRequestAppraisal =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'requestAppraisal',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"revokeOracle"`
+ */
+export const useWriteNftAppraisalRevokeOracle =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'revokeOracle',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisalFee"`
+ */
+export const useWriteNftAppraisalSetAppraisalFee =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setAppraisalFee',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisedPrice"`
+ */
+export const useWriteNftAppraisalSetAppraisedPrice =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setAppraisedPrice',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setFeeToken"`
+ */
+export const useWriteNftAppraisalSetFeeToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setFeeToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setProtocolAddress"`
+ */
+export const useWriteNftAppraisalSetProtocolAddress =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setProtocolAddress',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useWriteNftAppraisalTransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__
+ */
+export const useSimulateNftAppraisalContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: nftAppraisalAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"authorizeOracle"`
+ */
+export const useSimulateNftAppraisalAuthorizeOracle =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'authorizeOracle',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useSimulateNftAppraisalEmergencyPause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"emergencyUnpause"`
+ */
+export const useSimulateNftAppraisalEmergencyUnpause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"overrideAppraisal"`
+ */
+export const useSimulateNftAppraisalOverrideAppraisal =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'overrideAppraisal',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useSimulateNftAppraisalRenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"requestAppraisal"`
+ */
+export const useSimulateNftAppraisalRequestAppraisal =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'requestAppraisal',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"revokeOracle"`
+ */
+export const useSimulateNftAppraisalRevokeOracle =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'revokeOracle',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisalFee"`
+ */
+export const useSimulateNftAppraisalSetAppraisalFee =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setAppraisalFee',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisedPrice"`
+ */
+export const useSimulateNftAppraisalSetAppraisedPrice =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setAppraisedPrice',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setFeeToken"`
+ */
+export const useSimulateNftAppraisalSetFeeToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setFeeToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setProtocolAddress"`
+ */
+export const useSimulateNftAppraisalSetProtocolAddress =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setProtocolAddress',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useSimulateNftAppraisalTransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__
+ */
+export const useWatchNftAppraisalContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: nftAppraisalAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"AppraisalCompleted"`
+ */
+export const useWatchNftAppraisalAppraisalCompleted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'AppraisalCompleted',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"AppraisalFeeUpdated"`
+ */
+export const useWatchNftAppraisalAppraisalFeeUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'AppraisalFeeUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"AppraisalOverridden"`
+ */
+export const useWatchNftAppraisalAppraisalOverridden =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'AppraisalOverridden',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"AppraisalRequested"`
+ */
+export const useWatchNftAppraisalAppraisalRequested =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'AppraisalRequested',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"FeeTokenUpdated"`
+ */
+export const useWatchNftAppraisalFeeTokenUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'FeeTokenUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"OracleAuthorized"`
+ */
+export const useWatchNftAppraisalOracleAuthorized =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'OracleAuthorized',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"OracleRevoked"`
+ */
+export const useWatchNftAppraisalOracleRevoked =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'OracleRevoked',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useWatchNftAppraisalOwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"Paused"`
+ */
+export const useWatchNftAppraisalPaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'Paused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"PriceUpdated"`
+ */
+export const useWatchNftAppraisalPriceUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'PriceUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"ProtocolAddressUpdated"`
+ */
+export const useWatchNftAppraisalProtocolAddressUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'ProtocolAddressUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"Unpaused"`
+ */
+export const useWatchNftAppraisalUnpaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__
+ */
+export const useReadNftAppraisalServiceHandlerContract =
+  /*#__PURE__*/ createUseReadContract({ abi: nftAppraisalServiceHandlerAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `functionName` set to `"checkAppraisal"`
+ */
+export const useReadNftAppraisalServiceHandlerCheckAppraisal =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalServiceHandlerAbi,
+    functionName: 'checkAppraisal',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `functionName` set to `"getAppraisalContract"`
+ */
+export const useReadNftAppraisalServiceHandlerGetAppraisalContract =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalServiceHandlerAbi,
+    functionName: 'getAppraisalContract',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `functionName` set to `"getServiceManager"`
+ */
+export const useReadNftAppraisalServiceHandlerGetServiceManager =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalServiceHandlerAbi,
+    functionName: 'getServiceManager',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__
+ */
+export const useWriteNftAppraisalServiceHandlerContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: nftAppraisalServiceHandlerAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `functionName` set to `"handleSignedEnvelope"`
+ */
+export const useWriteNftAppraisalServiceHandlerHandleSignedEnvelope =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalServiceHandlerAbi,
+    functionName: 'handleSignedEnvelope',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__
+ */
+export const useSimulateNftAppraisalServiceHandlerContract =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalServiceHandlerAbi,
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `functionName` set to `"handleSignedEnvelope"`
+ */
+export const useSimulateNftAppraisalServiceHandlerHandleSignedEnvelope =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalServiceHandlerAbi,
+    functionName: 'handleSignedEnvelope',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__
+ */
+export const useWatchNftAppraisalServiceHandlerContract =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalServiceHandlerAbi,
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `eventName` set to `"AppraisalDataReceived"`
+ */
+export const useWatchNftAppraisalServiceHandlerAppraisalDataReceived =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalServiceHandlerAbi,
+    eventName: 'AppraisalDataReceived',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `eventName` set to `"AppraisalProcessed"`
+ */
+export const useWatchNftAppraisalServiceHandlerAppraisalProcessed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalServiceHandlerAbi,
+    eventName: 'AppraisalProcessed',
   })
 
 /**

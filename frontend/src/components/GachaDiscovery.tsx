@@ -5,9 +5,10 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { formatUnits } from "viem";
 import { 
-  useReadGachaTreasuryGetWhitelistedCollections,
+  useReadGachaTreasuryGetTreasuryItems,
   useReadGachaTreasuryIsGachaAvailable,
   useReadGachaTreasuryGetAllRarityCounts,
+  useReadGachaTreasuryGetTotalItemsCount,
   useReadGachaSpinFee,
   useReadGachaFeeToken,
   useReadErc20Symbol,
@@ -20,7 +21,6 @@ import { getAllActiveGachas, formatGachaAddress, type GachaConfig } from "../lib
 
 interface GachaInfo extends GachaConfig {
   isAvailable: boolean;
-  whitelistedCollections: string[];
   totalNFTs: number;
   spinFee: string;
   feeTokenSymbol: string;
@@ -46,19 +46,19 @@ export default function GachaDiscovery() {
               Discover
             </span>
             <br />
-            <span className="text-foreground font-light">Epic Gachas</span>
+            <span className="text-foreground font-light">Card Collections</span>
           </h1>
           <p className="text-xl md:text-2xl text-foreground/70 max-w-4xl mx-auto mb-8 leading-relaxed font-light">
-            Explore our collection of provably fair gacha systems.
+            Explore our collection of provably fair trading card gacha systems.
             <br className="hidden sm:block" />
-            Each gacha features unique NFT collections with transparent rarity mechanics.
+            Each collection features authentic graded cards with transparent rarity mechanics.
           </p>
           
           {/* Platform Stats */}
           <div className="flex flex-wrap justify-center gap-8 mt-12">
             <div className="text-center">
               <div className="text-4xl font-bold text-warning mb-2">{gachas.length}</div>
-              <div className="text-sm text-foreground/60 uppercase tracking-wide">Active Gachas</div>
+              <div className="text-sm text-foreground/60 uppercase tracking-wide">Card Collections</div>
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold text-warning mb-2">100%</div>
@@ -97,9 +97,9 @@ export default function GachaDiscovery() {
                 <ThemedIcon name="plus" size="xl" className="text-warning" />
               </div>
               <div>
-                <h3 className="text-2xl font-medium text-foreground mb-3">More Gachas Coming Soon</h3>
+                <h3 className="text-2xl font-medium text-foreground mb-3">More Card Collections Coming Soon</h3>
                 <p className="text-foreground/70 max-w-2xl mx-auto">
-                  We're constantly adding new gacha experiences with unique themes, mechanics, and NFT collections. 
+                  We're constantly adding new trading card gacha experiences with unique themes, mechanics, and card collections. 
                   Stay tuned for more exciting opportunities!
                 </p>
               </div>
@@ -123,7 +123,7 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
     address: gacha.treasuryAddress as `0x${string}`,
   });
 
-  const { data: whitelistedCollections, isLoading: isCollectionsLoading } = useReadGachaTreasuryGetWhitelistedCollections({
+  const { data: totalItemsCount, isLoading: isTotalItemsLoading } = useReadGachaTreasuryGetTotalItemsCount({
     address: gacha.treasuryAddress as `0x${string}`,
   });
 
@@ -149,8 +149,7 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
     query: { enabled: !!feeToken }
   });
 
-  const totalNFTs = rarityCounts ? 
-    rarityCounts.reduce((sum, count) => sum + Number(count), 0) : 0;
+  const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
 
   const formattedSpinFee = spinFee && feeTokenDecimals && feeTokenSymbol ?
     `${formatUnits(spinFee, feeTokenDecimals)} ${feeTokenSymbol}` :
@@ -161,7 +160,7 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
   };
 
   // Show skeleton while essential data is loading
-  const isLoading = isAvailableLoading || isRarityCountsLoading || isSpinFeeLoading;
+  const isLoading = isAvailableLoading || isRarityCountsLoading || isSpinFeeLoading || isTotalItemsLoading;
   
   if (isLoading) {
     return <GachaCardSkeleton />;
@@ -199,7 +198,7 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
                 {totalNFTs}
               </div>
               <div className="text-white/80 text-xs uppercase tracking-wide">
-                NFTs Available
+                Cards Available
               </div>
             </div>
           </div>
@@ -217,10 +216,10 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-3 bg-content1/20 rounded-xl">
             <div className="text-lg font-bold text-foreground">
-              {whitelistedCollections?.length || 0}
+              {totalNFTs}
             </div>
             <div className="text-xs text-foreground/60 uppercase tracking-wide">
-              Collections
+              Total Cards
             </div>
           </div>
           <div className="text-center p-3 bg-content1/20 rounded-xl">
@@ -235,7 +234,7 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
 
         {/* Rarity Distribution Preview */}
         <div className="space-y-2">
-          <div className="text-sm font-medium text-foreground/80">NFT Distribution</div>
+          <div className="text-sm font-medium text-foreground/80">Card Distribution</div>
           <div className="grid grid-cols-5 gap-1">
             {rarityCounts?.map((count, index) => {
               const rarityColors = ['bg-gray-400', 'bg-green-400', 'bg-blue-400', 'bg-purple-400', 'bg-yellow-400'];
@@ -259,12 +258,12 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
             className="w-full"
             onClick={handleExplore}
             animate={true}
-            aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} NFTs available`}
+            aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
             data-testid={`explore-gacha-${gacha.id}`}
           >
             <div className="flex items-center justify-center gap-2">
               <ThemedIcon name="eye" size="sm" />
-              Explore Gacha
+              Explore Collection
             </div>
           </GlassButton>
           

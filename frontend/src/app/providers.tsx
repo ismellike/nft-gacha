@@ -7,7 +7,7 @@ import { HeroUIProvider } from "@heroui/react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { config } from "../wagmi";
 
-// Create QueryClient instance outside component to prevent recreation
+const queryClient = new QueryClient();
 
 const customDarkTheme = darkTheme({
 	accentColor: "#eab308",
@@ -18,8 +18,6 @@ const customDarkTheme = darkTheme({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-	const queryClient = new QueryClient();
-
 	return (
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>

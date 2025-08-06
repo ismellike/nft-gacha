@@ -177,7 +177,7 @@ export default function RarityShowcaseModal({
 											</div>
 											{/* Rarity glow overlay */}
 											<div
-												className={`absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-300 bg-gradient-to-br ${rarityConfig.bgGradient}`}
+												className={`absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-300 ${rarityConfig.bgGradient}`}
 											></div>
 										</div>
 

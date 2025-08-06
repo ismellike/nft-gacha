@@ -18,25 +18,25 @@ const features = [
   {
     icon: 'coins',
     title: 'Community-Funded Pools', 
-    description: 'Deposit your NFTs to earn yield while funding gacha pools. The community owns and operates the entire ecosystem.',
+    description: 'Deposit your graded cards to earn yield while funding gacha pools. The community owns and operates the entire ecosystem.',
     stats: 'Earn Yield'
   },
   {
     icon: 'gem',
     title: 'Deposit & Spin Model',
-    description: 'Contributors deposit NFTs by rarity, spinners pay fees. Fair distribution of rewards based on community participation.',
+    description: 'Contributors deposit cards by rarity, spinners pay fees. Fair distribution of rewards based on community participation.',
     stats: 'Community Owned'
   },
   {
     icon: 'trophy',
     title: 'Transparent Rewards',
-    description: 'All deposits and rewards are tracked on-chain. Contributors earn tokens based on their NFT deposits and rarity.',
+    description: 'All deposits and rewards are tracked on-chain. Contributors earn tokens based on their card deposits and rarity.',
     stats: 'On-Chain Tracking'
   }
 ];
 
 const stats = [
-  { value: '10,000+', label: 'NFTs Available' },
+  { value: '10,000+', label: 'Cards Available' },
   { value: '5', label: 'Rarity Levels' },
   { value: '100%', label: 'Fair Drops' },
   { value: '24/7', label: 'Available' }
@@ -122,8 +122,8 @@ export default function LandingPage() {
             className="text-lg md:text-xl lg:text-2xl text-foreground/70 mb-12 max-w-4xl mx-auto leading-relaxed"
           >
             Join the first{' '}
-            <span className="text-warning font-medium">community-owned</span> NFT gacha platform.
-            Deposit your NFTs to earn yield, or spin to discover rare collectibles. 
+            <span className="text-warning font-medium">community-owned</span> trading card gacha platform.
+            Deposit your cards to earn yield, or spin to discover rare graded Pokemon cards. 
             <span className="text-warning font-medium"> Fair rewards</span> for contributors and transparent mechanics for all.
           </motion.p>
 
@@ -134,27 +134,27 @@ export default function LandingPage() {
             transition={{ delay: 0.6, duration: 0.8 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
           >
-            <Link href="/discover">
+            <Link href="/gacha/?id=graded-pokemon&section=spin">
               <GlassButton 
                 variant="primary" 
                 size="lg" 
-                startIcon="coins"
+                startIcon="dice"
                 className="min-w-56 h-14 text-lg font-semibold"
                 animate={true}
               >
-                Deposit & Earn
+                Start Spinning
               </GlassButton>
             </Link>
             
-            <Link href="/gacha?id=epic-heroes&section=spin">
+            <Link href="/gacha?section=whitelist">
               <GlassButton 
                 variant="secondary" 
                 size="lg" 
-                startIcon="dice"
+                startIcon="coins"
                 className="min-w-56 h-14 text-lg"
                 animate={true}
               >
-                Start Spinning
+                Deposit & Earn
               </GlassButton>
             </Link>
           </motion.div>
@@ -234,7 +234,7 @@ export default function LandingPage() {
               <span className="text-foreground">Contribute</span>
             </h2>
             <p className="text-xl text-foreground/70 max-w-3xl mx-auto leading-relaxed">
-              The first community-owned gacha where NFT holders earn yield by contributing to the prize pools. 
+              The first community-owned gacha where card holders earn yield by contributing to the prize pools. 
               Fair rewards for depositors, transparent mechanics for spinners.
             </p>
           </motion.div>
@@ -291,7 +291,7 @@ export default function LandingPage() {
                   Rarity-Based Yield System
                 </h3>
                 <p className="text-foreground/70 mb-8 max-w-2xl mx-auto">
-                  Higher rarity NFT deposits earn more yield. Contributors are rewarded based on the scarcity and value they bring to the community.
+                  Higher rarity card deposits earn more yield. Contributors are rewarded based on the scarcity and value they bring to the community.
                 </p>
                 <div className="flex justify-center items-center gap-4 flex-wrap">
                   {['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'].map((rarity, index) => (
@@ -338,20 +338,20 @@ export default function LandingPage() {
                   </span>
                 </h2>
                 <p className="text-lg md:text-xl text-foreground/70 mb-10 max-w-3xl mx-auto leading-relaxed">
-                  Deposit your NFTs to earn yield, or spin to discover rare treasures. 
+                  Deposit your cards to earn yield, or spin to discover rare graded Pokemon cards. 
                   Built by the community, owned by the community, rewarding the community.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <Link href="/discover">
+                  <Link href="/gacha">
                     <GlassButton 
                       variant="primary" 
                       size="lg"
                       className="min-w-64 h-16 text-xl font-bold"
-                      startIcon="coins"
+                      startIcon="dice"
                       animate={true}
                     >
-                      Start Earning Now
+                      Enter Gacha Platform
                     </GlassButton>
                   </Link>
                   

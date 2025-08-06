@@ -11,9 +11,9 @@ import {GachaTreasury} from "./GachaTreasury.sol";
 import {GachaRewardsManager} from "./GachaRewardsManager.sol";
 
 /**
- * @title Gacha - NFT Gacha Game Contract
+ * @title Gacha - NFT Gacha Game Contract with Price-Based Treasury
  * @notice Manages gacha spins with weighted rarity system using provably fair randomness
- * @dev Uses external WAVS randomness service for fair distribution
+ * @dev Uses external WAVS randomness service for fair distribution with price-based treasury
  * @author NFT Gacha Team
  */
 contract Gacha is Ownable, Pausable, ReentrancyGuard {
@@ -37,11 +37,9 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
-        address requester;
-        /// @dev Address that initiated the spin
-        bool fulfilled;
+        address requester;      // Address that initiated the spin
+        bool fulfilled;         // Whether the spin has been completed
     }
-    /// @dev Whether the spin has been completed
 
     /// @notice Core contract interfaces and addresses
     GachaTreasury public immutable treasury;
@@ -74,7 +72,8 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         address indexed requester,
         GachaTreasury.Rarity rarity,
         address collection,
-        uint256 tokenId
+        uint256 tokenId,
+        uint256 appraisedPrice
     );
 
     event SpinRefunded(
@@ -236,7 +235,14 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         GachaTreasury.NFTItem memory selectedNFT =
             treasury.sendNFTToWinner(selectedRarity, selectedIndex, request.requester);
 
-        emit SpinCompleted(triggerId, request.requester, selectedRarity, selectedNFT.collection, selectedNFT.tokenId);
+        emit SpinCompleted(
+            triggerId, 
+            request.requester, 
+            selectedRarity, 
+            selectedNFT.collection, 
+            selectedNFT.tokenId,
+            selectedNFT.appraisedPrice  // Include appraised price in event
+        );
     }
 
     function _selectRarity(bytes32 randomness) private view returns (GachaTreasury.Rarity) {
@@ -362,4 +368,53 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         if (_rewardsManager == address(0)) revert InvalidRewardsManager();
         rewardsManager = GachaRewardsManager(_rewardsManager);
     }
+
+    // ============ PRICE-BASED TREASURY INTEGRATION ============
+
+    /**
+     * @notice Gets the expected rarity distribution based on current treasury contents
+     * @return distribution Array of rarity counts showing current treasury distribution
+     */
+    function getTreasuryDistribution() external view returns (uint256[5] memory distribution) {
+        return treasury.getAllRarityCounts();
+    }
+
+    /**
+     * @notice Gets the expected value (in USD) for each rarity tier based on current treasury
+     * @return averageValues Array of average USD values per rarity [Common, Uncommon, Rare, Epic, Legendary]
+     */
+    function getAverageRarityValues() external view returns (uint256[5] memory averageValues) {
+        for (uint256 i = 0; i < 5; i++) {
+            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(rarity);
+            
+            if (items.length == 0) {
+                averageValues[i] = 0;
+                continue;
+            }
+            
+            uint256 totalValue = 0;
+            for (uint256 j = 0; j < items.length; j++) {
+                totalValue += items[j].appraisedPrice;
+            }
+            
+            averageValues[i] = totalValue / items.length;
+        }
+    }
+
+    /**
+     * @notice Gets the total value locked in the treasury
+     * @return totalValueUSD Total USD value of all NFTs in treasury (scaled by 1e18)
+     */
+    function getTotalValueLocked() external view returns (uint256 totalValueUSD) {
+        for (uint256 i = 0; i < 5; i++) {
+            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(rarity);
+            
+            for (uint256 j = 0; j < items.length; j++) {
+                totalValueUSD += items[j].appraisedPrice;
+            }
+        }
+    }
+
 }

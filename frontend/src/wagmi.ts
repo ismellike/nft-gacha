@@ -1,14 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import {
-	arbitrum,
-	base,
-	mainnet,
-	optimism,
-	polygon,
-	sepolia,
-	localhost,
-} from "wagmi/chains";
-import { env } from "./env";
+import { localhost } from "wagmi/chains";
 
 // WAVS local chain configuration
 const wavsLocal = {
@@ -21,18 +12,9 @@ const wavsLocal = {
 	},
 } as const;
 
-// Create config once as a singleton to prevent multiple WalletConnect initializations
-let _config: ReturnType<typeof getDefaultConfig> | undefined;
-
-export const config = (() => {
-	if (_config) return _config;
-
-	_config = getDefaultConfig({
-		appName: "Spin-Fi",
-		projectId: env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "placeholder",
-		chains: [wavsLocal],
-		ssr: false,
-	});
-
-	return _config;
-})();
+export const config = getDefaultConfig({
+	appName: "Spin-Fi",
+	projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "placeholder",
+	chains: [wavsLocal],
+	ssr: false, // This is a SPA, no SSR
+});

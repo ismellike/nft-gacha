@@ -6,11 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
 import GachaSpinner from "../../components/GachaSpinner";
-import { GachaWhitelist } from "../../components/GachaWhitelist";
 import { UserNFTModal } from "../../components/UserNFTModal";
 import { AdminControls } from "../../components/AdminControls";
 import { ThemedIcon } from "../../lib/icons";
-import { GlassCard, GlassButton, GlassBadge, StatsGridSkeleton, RarityBreakdownSkeleton, GachaBreadcrumb } from "../../components/ui";
+import { GlassCard, GlassButton, StatsGridSkeleton, RarityBreakdownSkeleton } from "../../components/ui";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";
 import { 
   useReadGachaRewardsManagerGetUserTotalClaimableRewards,
@@ -43,9 +42,10 @@ export default function GachaDetailPage() {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [optimisticClaim, setOptimisticClaim] = useState(false);
   const [optimisticClaimedAmount, setOptimisticClaimedAmount] = useState<bigint | null>(null);
+  const [isRefetchingRewards, setIsRefetchingRewards] = useState(false);
   const gachaId = searchParams.get('id');
   const sectionParam = searchParams.get('section');
-  const validSections = ['spin', 'whitelist', 'rewards', 'admin'] as const;
+  const validSections = ['spin', 'rewards', 'admin'] as const;
   type ValidSection = typeof validSections[number];
   
   // Determine active tab from URL or default to 'spin'
@@ -104,38 +104,38 @@ export default function GachaDetailPage() {
     query: { enabled: !!userAddress },
   });
 
-  const { data: depositCounts, isLoading: isDepositCountsLoading } = useReadGachaTreasuryGetUserAllDepositCounts({
+  const { data: depositCounts, refetch: refetchDepositCounts, isLoading: isDepositCountsLoading } = useReadGachaTreasuryGetUserAllDepositCounts({
     address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
     args: userAddress ? [userAddress] : undefined,
     query: { enabled: !!userAddress },
   });
 
   // Individual rarity claimable amounts
-  const { data: commonClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+  const { data: commonClaimable, refetch: refetchCommonClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
     address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
     args: userAddress ? [userAddress, 0] : undefined,
     query: { enabled: !!userAddress },
   });
 
-  const { data: uncommonClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+  const { data: uncommonClaimable, refetch: refetchUncommonClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
     address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
     args: userAddress ? [userAddress, 1] : undefined,
     query: { enabled: !!userAddress },
   });
 
-  const { data: rareClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+  const { data: rareClaimable, refetch: refetchRareClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
     address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
     args: userAddress ? [userAddress, 2] : undefined,
     query: { enabled: !!userAddress },
   });
 
-  const { data: epicClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+  const { data: epicClaimable, refetch: refetchEpicClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
     address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
     args: userAddress ? [userAddress, 3] : undefined,
     query: { enabled: !!userAddress },
   });
 
-  const { data: legendaryClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+  const { data: legendaryClaimable, refetch: refetchLegendaryClaimable } = useReadGachaRewardsManagerGetUserRarityClaimableRewards({
     address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
     args: userAddress ? [userAddress, 4] : undefined,
     query: { enabled: !!userAddress },
@@ -246,7 +246,6 @@ export default function GachaDetailPage() {
     if (gacha) {
       const sectionTitles = {
         spin: 'Spin & Play',
-        whitelist: 'Collections',
         rewards: 'My Rewards',
         admin: 'Admin Controls'
       };
@@ -261,29 +260,89 @@ export default function GachaDetailPage() {
       // Reset optimistic state on success
       setOptimisticClaim(false);
       setOptimisticClaimedAmount(null);
-      refetchUserAnalytics();
-      refetchClaimable();
+      
+      // Refetch all rewards-related data with delay to ensure blockchain state is updated
+      const refetchAfterClaim = async () => {
+        // Small delay to ensure blockchain state is updated
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        try {
+          await Promise.allSettled([
+            refetchUserAnalytics(),
+            refetchClaimable(),
+            refetchDepositCounts(),
+            refetchCommonClaimable(),
+            refetchUncommonClaimable(),
+            refetchRareClaimable(),
+            refetchEpicClaimable(),
+            refetchLegendaryClaimable(),
+          ]);
+        } catch (error) {
+          console.warn('Some rewards data failed to refetch after claim:', error);
+        }
+      };
+      
+      refetchAfterClaim();
     }
-  }, [isClaimSuccess, refetchUserAnalytics, refetchClaimable]);
+  }, [isClaimSuccess, refetchUserAnalytics, refetchClaimable, refetchDepositCounts, refetchCommonClaimable, refetchUncommonClaimable, refetchRareClaimable, refetchEpicClaimable, refetchLegendaryClaimable]);
 
   // Reset optimistic state on error
   useEffect(() => {
     if (claimError) {
+      console.error('Claim rewards error:', claimError);
       setOptimisticClaim(false);
       setOptimisticClaimedAmount(null);
     }
   }, [claimError]);
 
+  // Refetch rewards data when switching to rewards tab
+  useEffect(() => {
+    if (activeTab === 'rewards' && userAddress) {
+      // Refetch all rewards-related data with better error handling
+      const refetchAllRewardsData = async () => {
+        setIsRefetchingRewards(true);
+        try {
+          await Promise.allSettled([
+            refetchUserAnalytics(),
+            refetchClaimable(),
+            refetchDepositCounts(),
+            refetchCommonClaimable(),
+            refetchUncommonClaimable(),
+            refetchRareClaimable(),
+            refetchEpicClaimable(),
+            refetchLegendaryClaimable(),
+          ]);
+        } catch (error) {
+          console.warn('Some rewards data failed to refetch:', error);
+        } finally {
+          setIsRefetchingRewards(false);
+        }
+      };
+      
+      refetchAllRewardsData();
+    }
+  }, [activeTab, userAddress, refetchUserAnalytics, refetchClaimable, refetchDepositCounts, refetchCommonClaimable, refetchUncommonClaimable, refetchRareClaimable, refetchEpicClaimable, refetchLegendaryClaimable]);
+
   const handleClaimRewards = () => {
-    if (!userAddress || !totalClaimable) return;
+    if (!userAddress || !totalClaimable || totalClaimable === BigInt(0)) {
+      console.warn('Cannot claim rewards: missing user address or no claimable amount');
+      return;
+    }
     
     // Set optimistic state
     setOptimisticClaim(true);
     setOptimisticClaimedAmount(totalClaimable);
     
-    claimRewards({
-      address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-    });
+    try {
+      claimRewards({
+        address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
+      });
+    } catch (error) {
+      console.error('Failed to initiate claim transaction:', error);
+      // Reset optimistic state on immediate error
+      setOptimisticClaim(false);
+      setOptimisticClaimedAmount(null);
+    }
   };
 
   const retryClaimRewards = () => {
@@ -398,13 +457,6 @@ export default function GachaDetailPage() {
                 label="Spin & Play"
               />
               <TabButton
-                active={activeTab === 'whitelist'}
-                onClick={() => handleTabChange('whitelist')}
-                onKeyDown={(e) => handleTabKeyDown(e, 'whitelist')}
-                icon="folder-open"
-                label="Collections"
-              />
-              <TabButton
                 active={activeTab === 'rewards'}
                 onClick={() => handleTabChange('rewards')}
                 onKeyDown={(e) => handleTabKeyDown(e, 'rewards')}
@@ -438,19 +490,6 @@ export default function GachaDetailPage() {
               aria-labelledby="tab-spin-&-play"
             >
               <GachaSpinner />
-            </div>
-          )}
-
-          {activeTab === 'whitelist' && (
-            <div 
-              role="tabpanel" 
-              id="tabpanel-collections"
-              aria-labelledby="tab-collections"
-              className="space-y-12 lg:space-y-16"
-            >
-              <GachaWhitelist 
-                gachaAddress={gacha.address}
-              />
             </div>
           )}
 
@@ -503,7 +542,7 @@ export default function GachaDetailPage() {
                   </motion.div>
 
                   {/* Summary Cards */}
-                  {isUserAnalyticsLoading || isTotalClaimableLoading || isDepositCountsLoading ? (
+                  {isUserAnalyticsLoading || isTotalClaimableLoading || isDepositCountsLoading || isRefetchingRewards ? (
                     <StatsGridSkeleton columns={3} />
                   ) : (
                   <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -590,7 +629,7 @@ export default function GachaDetailPage() {
                   )}
 
                   {/* Rarity Breakdown */}
-                  {isUserAnalyticsLoading || isTotalClaimableLoading || isDepositCountsLoading ? (
+                  {isUserAnalyticsLoading || isTotalClaimableLoading || isDepositCountsLoading || isRefetchingRewards ? (
                     <div className="bg-content1/20 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-6">
                       <div className="flex justify-between items-center mb-6">
                         <div className="h-8 w-48 bg-content1/30 rounded animate-pulse"></div>
@@ -619,7 +658,7 @@ export default function GachaDetailPage() {
                             isLoading={isClaimPending || optimisticClaim}
                             loadingText={optimisticClaim ? "Processing..." : "Claiming..."}
                             onClick={handleClaimRewards}
-                            isDisabled={!totalClaimable || totalClaimable === BigInt(0) || optimisticClaim}
+                            isDisabled={!totalClaimable || totalClaimable === BigInt(0) || optimisticClaim || isRefetchingRewards}
                             animate={true}
                             aria-label={`Claim ${formatTokenAmount(totalClaimable)} ${tokenSymbol} in rewards`}
                           >
@@ -740,7 +779,14 @@ export default function GachaDetailPage() {
                                 </h4>
                               </div>
                               <p className="text-danger/80 text-sm mb-3">
-                                Failed to claim rewards. This could be due to network issues or insufficient gas.
+                                {claimError?.message?.includes('insufficient funds') 
+                                  ? 'Insufficient funds for gas fees. Please add more ETH to your wallet.'
+                                  : claimError?.message?.includes('User rejected')
+                                  ? 'Transaction was rejected in your wallet.'
+                                  : claimError?.message?.includes('No rewards to claim')
+                                  ? 'No rewards available to claim at this time.'
+                                  : 'Failed to claim rewards. This could be due to network issues or insufficient gas.'
+                                }
                               </p>
                               <div className="flex gap-2">
                                 <GlassButton

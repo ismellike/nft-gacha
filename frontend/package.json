@@ -2,8 +2,9 @@
 	"name": "spin-fi",
 	"private": true,
 	"version": "0.1.0",
+	"type": "module",
 	"scripts": {
-		"dev": "next dev",
+		"dev": "next dev --turbo",
 		"build": "next build",
 		"export": "next build && next export",
 		"start": "next start",

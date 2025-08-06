@@ -1,7 +1,7 @@
-const { heroui } = require("@heroui/react");
+import { heroui } from "@heroui/react";
 
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
 	content: [
 		"./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
 		"./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -11,8 +11,8 @@ module.exports = {
 	theme: {
 		extend: {
 			fontFamily: {
-				spin: ["Inter", "system-ui", "sans-serif"],
-				"spin-mono": ["JetBrains Mono", "Fira Code", "monospace"],
+				spin: ["var(--font-inter)", "system-ui", "sans-serif"],
+				"spin-mono": ["var(--font-jetbrains-mono)", "Fira Code", "monospace"],
 			},
 			animation: {
 				"spin-slow": "spin 3s linear infinite",

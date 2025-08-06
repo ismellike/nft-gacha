@@ -7,6 +7,7 @@ import {Gacha} from "../src/Gacha.sol";
 import {GachaTreasury} from "../src/GachaTreasury.sol";
 import {GachaRewardsManager} from "../src/GachaRewardsManager.sol";
 import {GachaServiceHandler} from "../src/GachaServiceHandler.sol";
+import {NFTAppraisal} from "../src/NFTAppraisal.sol";
 import {TestToken} from "../src/TestToken.sol";
 import {SimpleERC721} from "../src/SimpleERC721.sol";
 
@@ -42,12 +43,26 @@ contract DeployDirectLocal is Script {
 
         console.log("\\n=== Deploying Gacha System Directly ===");
 
-        // Deploy treasury first with temporary gacha address
+        // Deploy NFT appraisal system first
+        console.log("Deploying NFTAppraisal...");
+        NFTAppraisal appraisalContract = new NFTAppraisal(
+            deployer,
+            address(testToken),
+            10 * 10 ** testToken.decimals(), // 10 TEST tokens appraisal fee
+            deployer // protocol address
+        );
+        console.log("NFTAppraisal deployed to:", address(appraisalContract));
+
+        // Deploy treasury with appraisal contract
         console.log("Deploying Treasury...");
-        GachaTreasury treasury = new GachaTreasury(deployer, address(0x1111));
+        GachaTreasury treasury = new GachaTreasury(
+            deployer,
+            address(0x1111), // temporary gacha address
+            address(appraisalContract)
+        );
         console.log("Treasury deployed to:", address(treasury));
 
-        // Deploy gacha first with temporary service handler and rewards manager
+        // Deploy gacha contract
         console.log("Deploying Gacha...");
         Gacha gacha = new Gacha(
             deployer,
@@ -119,38 +134,22 @@ contract DeployDirectLocal is Script {
         console.log("Treasury:        ", address(treasury));
         console.log("RewardsManager:  ", address(rewardsManager));
 
-        // Deploy test NFT collections
-        console.log("\\n=== Deploying Test NFT Collections ===");
-        SimpleERC721 commonNFT = new SimpleERC721("Common Heroes", "COMMON");
-        SimpleERC721 uncommonNFT = new SimpleERC721("Uncommon Heroes", "UNCOMMON");
-        SimpleERC721 rareNFT = new SimpleERC721("Rare Heroes", "RARE");
-        SimpleERC721 epicNFT = new SimpleERC721("Epic Heroes", "EPIC");
-        SimpleERC721 legendaryNFT = new SimpleERC721("Legendary Heroes", "LEGEND");
+        // Deploy single NFT collection
+        console.log("\\n=== Deploying Single NFT Collection ===");
+        SimpleERC721 pokemonNFT = new SimpleERC721("Graded Pokemon Cards", "GPOKE");
 
-        console.log("Common NFT:      ", address(commonNFT));
-        console.log("Uncommon NFT:    ", address(uncommonNFT));
-        console.log("Rare NFT:        ", address(rareNFT));
-        console.log("Epic NFT:        ", address(epicNFT));
-        console.log("Legendary NFT:   ", address(legendaryNFT));
+        console.log("Pokemon NFT:     ", address(pokemonNFT));
 
-        // Whitelist all NFT collections
-        console.log("\\n=== Whitelisting NFT Collections ===");
-        treasury.addToWhitelist(address(commonNFT));
-        treasury.addToWhitelist(address(uncommonNFT));
-        treasury.addToWhitelist(address(rareNFT));
-        treasury.addToWhitelist(address(epicNFT));
-        treasury.addToWhitelist(address(legendaryNFT));
+        // Whitelist the NFT collection
+        console.log("\\n=== Whitelisting NFT Collection ===");
+        treasury.addToWhitelist(address(pokemonNFT));
 
-        console.log("Whitelisted 5 NFT collections");
+        console.log("Whitelisted 1 NFT collection");
         console.log("Gacha Available: ", treasury.isGachaAvailable()); // Should be false (no NFTs yet)
 
-        // Mint and deposit NFTs
+        // Mint and deposit NFTs with different rarities based on appraisal values
         console.log("\\n=== Minting and Depositing NFTs ===");
-        _depositNFTs(treasury, commonNFT, GachaTreasury.Rarity.Common, 10, deployer);
-        _depositNFTs(treasury, uncommonNFT, GachaTreasury.Rarity.Uncommon, 10, deployer);
-        _depositNFTs(treasury, rareNFT, GachaTreasury.Rarity.Rare, 10, deployer);
-        _depositNFTs(treasury, epicNFT, GachaTreasury.Rarity.Epic, 10, deployer);
-        _depositNFTs(treasury, legendaryNFT, GachaTreasury.Rarity.Legendary, 10, deployer);
+        _depositNFTsWithRarity(treasury, appraisalContract, pokemonNFT, deployer);
 
         // Verify gacha is now available
         console.log("\\n=== Gacha System Status ===");
@@ -167,14 +166,9 @@ contract DeployDirectLocal is Script {
         _writeEnvFile(
             address(serviceHandler),
             address(gacha),
+            address(appraisalContract),
             address(treasury),
             address(rewardsManager),
-            address(testToken),
-            address(commonNFT),
-            address(uncommonNFT),
-            address(rareNFT),
-            address(epicNFT),
-            address(legendaryNFT),
             commonTracker,
             uncommonTracker,
             rareTracker,
@@ -185,28 +179,62 @@ contract DeployDirectLocal is Script {
         console.log("All contracts deployed and configured successfully");
     }
 
-    function _depositNFTs(
+    function _depositNFTsWithRarity(
         GachaTreasury treasury,
+        NFTAppraisal appraisalContract,
         SimpleERC721 nftContract,
-        GachaTreasury.Rarity rarity,
-        uint256 count,
         address deployer
     ) internal {
-        address[] memory tokens = new address[](count);
-        uint256[] memory tokenIds = new uint256[](count);
-        GachaTreasury.Rarity[] memory rarities = new GachaTreasury.Rarity[](count);
+        // Mint 50 tokens total: 10 of each rarity
+        uint256 totalTokens = 50;
+        address[] memory tokens = new address[](totalTokens);
+        uint256[] memory tokenIds = new uint256[](totalTokens);
 
-        for (uint256 i = 0; i < count; i++) {
-            uint256 tokenId = nftContract.mint(deployer);
-            tokens[i] = address(nftContract);
-            tokenIds[i] = tokenId;
-            rarities[i] = rarity;
+        uint256 tokenIndex = 0;
+
+        // Define rarity structure: 10 tokens each rarity
+        GachaTreasury.Rarity[5] memory rarities = [
+            GachaTreasury.Rarity.Common,
+            GachaTreasury.Rarity.Uncommon,
+            GachaTreasury.Rarity.Rare,
+            GachaTreasury.Rarity.Epic,
+            GachaTreasury.Rarity.Legendary
+        ];
+
+        // Mint 10 tokens for each rarity level
+        for (uint256 rarityIndex = 0; rarityIndex < 5; rarityIndex++) {
+            GachaTreasury.Rarity currentRarity = rarities[rarityIndex];
+            uint256 priceUSD = _getAppraisalPriceForRarity(currentRarity);
+
+            for (uint256 i = 0; i < 10; i++) {
+                uint256 tokenId = nftContract.mint(deployer);
+                tokens[tokenIndex] = address(nftContract);
+                tokenIds[tokenIndex] = tokenId;
+
+                // Set appraisal price based on rarity
+                appraisalContract.overrideAppraisal(address(nftContract), tokenId, priceUSD);
+
+                tokenIndex++;
+            }
+
+            console.log("Minted 10 tokens for rarity:", uint256(currentRarity));
+            console.log("Price per token: $", priceUSD / 1e18);
         }
 
+        // Approve and deposit all tokens at once
         nftContract.setApprovalForAll(address(treasury), true);
-        treasury.batchDepositNFT(tokens, tokenIds, rarities);
+        treasury.batchDepositNFT(tokens, tokenIds);
 
-        console.log("Deposited", count, "NFTs of rarity:", uint256(rarity));
+        console.log("Deposited", totalTokens, "NFTs from single contract with mixed rarities");
+    }
+
+    function _getAppraisalPriceForRarity(GachaTreasury.Rarity rarity) internal pure returns (uint256) {
+        if (rarity == GachaTreasury.Rarity.Common) return 50 * 1e18; // $50
+        if (rarity == GachaTreasury.Rarity.Uncommon) return 250 * 1e18; // $250
+        if (rarity == GachaTreasury.Rarity.Rare) return 1000 * 1e18; // $1000
+        if (rarity == GachaTreasury.Rarity.Epic) return 5000 * 1e18; // $5000
+        if (rarity == GachaTreasury.Rarity.Legendary) return 15000 * 1e18; // $15000
+        return 50 * 1e18; // Default to common
     }
 
     function _displayTreasuryStats(GachaTreasury treasury) internal view {
@@ -222,14 +250,9 @@ contract DeployDirectLocal is Script {
     function _writeEnvFile(
         address serviceHandler,
         address gacha,
+        address nftAppraisal,
         address treasury,
         address rewardsManager,
-        address testToken,
-        address commonNFT,
-        address uncommonNFT,
-        address rareNFT,
-        address epicNFT,
-        address legendaryNFT,
         address commonTracker,
         address uncommonTracker,
         address rareTracker,
@@ -245,29 +268,14 @@ contract DeployDirectLocal is Script {
                 "GACHA_CONTRACT_ADDRESS=",
                 vm.toString(gacha),
                 "\n",
+                "NFT_APPRAISAL_CONTRACT_ADDRESS=",
+                vm.toString(nftAppraisal),
+                "\n",
                 "TREASURY_CONTRACT_ADDRESS=",
                 vm.toString(treasury),
                 "\n",
                 "REWARDS_MANAGER_ADDRESS=",
                 vm.toString(rewardsManager),
-                "\n",
-                "TEST_TOKEN_ADDRESS=",
-                vm.toString(testToken),
-                "\n",
-                "COMMON_NFT_ADDRESS=",
-                vm.toString(commonNFT),
-                "\n",
-                "UNCOMMON_NFT_ADDRESS=",
-                vm.toString(uncommonNFT),
-                "\n",
-                "RARE_NFT_ADDRESS=",
-                vm.toString(rareNFT),
-                "\n",
-                "EPIC_NFT_ADDRESS=",
-                vm.toString(epicNFT),
-                "\n",
-                "LEGENDARY_NFT_ADDRESS=",
-                vm.toString(legendaryNFT),
                 "\n",
                 "COMMON_TRACKER_ADDRESS=",
                 vm.toString(commonTracker),
@@ -284,8 +292,7 @@ contract DeployDirectLocal is Script {
                 "LEGENDARY_TRACKER_ADDRESS=",
                 vm.toString(legendaryTracker),
                 "\n",
-                "WAVS_CHAIN_RPC_URL=http://localhost:8548\n",
-                "# All NFT collections above are whitelisted in the treasury\n"
+                "WAVS_CHAIN_RPC_URL=http://localhost:8548\n"
             )
         );
 

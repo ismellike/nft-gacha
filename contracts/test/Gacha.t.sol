@@ -7,12 +7,14 @@ import {GachaTreasury} from "../src/GachaTreasury.sol";
 import {GachaRewardsManager} from "../src/GachaRewardsManager.sol";
 import {SimpleERC721} from "../src/SimpleERC721.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {MockNFTAppraisal} from "./mocks/MockNFTAppraisal.sol";
 
 contract GachaTest is Test {
     Gacha public gacha;
     GachaTreasury public treasury;
     SimpleERC721 public nft;
     ERC20Mock public feeToken;
+    MockNFTAppraisal public mockAppraisal;
 
     address public owner = address(0x1);
     address public user1 = address(0x2);
@@ -26,8 +28,11 @@ contract GachaTest is Test {
         // Simplified approach for testing - deploy in correct order
         vm.startPrank(owner);
 
+        // Deploy mock appraisal contract
+        mockAppraisal = new MockNFTAppraisal();
+        
         // Deploy treasury first (will update gacha address later)
-        treasury = new GachaTreasury(owner, address(0x998)); // temp address
+        treasury = new GachaTreasury(owner, address(0x998), address(mockAppraisal)); // temp address
 
         // Deploy a temporary rewards manager just to satisfy gacha constructor
         GachaRewardsManager tempRewardsManager =
@@ -73,30 +78,40 @@ contract GachaTest is Test {
         for (uint256 i = 0; i < 10; i++) {
             uint256 tokenId = nft.mint(owner);
             nft.approve(address(treasury), tokenId);
-            treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
+            // Set mock appraisal for Common rarity ($50)
+            mockAppraisal.setMockAppraisal(address(nft), tokenId, 50 * 1e18);
+            treasury.depositNFT(address(nft), tokenId);
         }
 
         for (uint256 i = 0; i < 5; i++) {
             uint256 tokenId = nft.mint(owner);
             nft.approve(address(treasury), tokenId);
-            treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Uncommon);
+            // Set mock appraisal for Uncommon rarity ($250)
+            mockAppraisal.setMockAppraisal(address(nft), tokenId, 250 * 1e18);
+            treasury.depositNFT(address(nft), tokenId);
         }
 
         for (uint256 i = 0; i < 3; i++) {
             uint256 tokenId = nft.mint(owner);
             nft.approve(address(treasury), tokenId);
-            treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Rare);
+            // Set mock appraisal for Rare rarity ($1000)
+            mockAppraisal.setMockAppraisal(address(nft), tokenId, 1000 * 1e18);
+            treasury.depositNFT(address(nft), tokenId);
         }
 
         for (uint256 i = 0; i < 2; i++) {
             uint256 tokenId = nft.mint(owner);
             nft.approve(address(treasury), tokenId);
-            treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Epic);
+            // Set mock appraisal for Epic rarity ($5000)
+            mockAppraisal.setMockAppraisal(address(nft), tokenId, 5000 * 1e18);
+            treasury.depositNFT(address(nft), tokenId);
         }
 
         uint256 tokenId = nft.mint(owner);
         nft.approve(address(treasury), tokenId);
-        treasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Legendary);
+        // Set mock appraisal for Legendary rarity ($15000)
+        mockAppraisal.setMockAppraisal(address(nft), tokenId, 15000 * 1e18);
+        treasury.depositNFT(address(nft), tokenId);
 
         vm.stopPrank();
     }
@@ -118,11 +133,12 @@ contract GachaTest is Test {
         uint256 triggerId = gacha.spin();
         vm.stopPrank();
 
-        assertEq(triggerId, 0);
+        assertEq(triggerId, 0, "First spin should have triggerId 0");
         (address requester, bool fulfilled) = gacha.getSpinRequest(triggerId);
-        assertEq(requester, user1);
-        assertFalse(fulfilled);
-        assertEq(feeToken.balanceOf(address(gacha)), SPIN_FEE);
+        assertEq(requester, user1, "Requester should be user1");
+        assertFalse(fulfilled, "Spin should not be fulfilled yet");
+        // Exact fee amount: 100 tokens
+        assertEq(feeToken.balanceOf(address(gacha)), 100e18, "Gacha should hold exactly 100 tokens");
     }
 
     function testSpinWithoutApproval() public {
@@ -228,8 +244,9 @@ contract GachaTest is Test {
         vm.prank(owner);
         gacha.withdrawFees(owner);
 
-        assertEq(feeToken.balanceOf(address(gacha)), 0);
-        assertEq(feeToken.balanceOf(owner), ownerInitialBalance + SPIN_FEE);
+        assertEq(feeToken.balanceOf(address(gacha)), 0, "Gacha should have 0 tokens after withdrawal");
+        // Exact amount: owner's initial balance + 100 tokens
+        assertEq(feeToken.balanceOf(owner), ownerInitialBalance + 100e18, "Owner should receive exactly 100 tokens");
     }
 
     function testGetRarityWeights() public view {
@@ -296,7 +313,7 @@ contract GachaTest is Test {
     function testSpinWithZeroFee() public {
         // Deploy gacha with zero fee
         // Deploy minimal treasury and rewards manager for zero fee test
-        GachaTreasury zeroTreasury = new GachaTreasury(owner, address(0x997));
+        GachaTreasury zeroTreasury = new GachaTreasury(owner, address(0x997), address(mockAppraisal));
         GachaRewardsManager zeroRewards =
             new GachaRewardsManager(owner, address(0x997), address(zeroTreasury), owner, address(0));
         Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury), address(zeroRewards));
@@ -309,7 +326,8 @@ contract GachaTest is Test {
         for (uint256 i = 0; i < 5; i++) {
             uint256 tokenId = nft.mint(owner);
             nft.approve(address(zeroFeeGachaTreasury), tokenId);
-            zeroFeeGachaTreasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
+            mockAppraisal.setMockAppraisal(address(nft), tokenId, 50 * 1e18);
+            zeroFeeGachaTreasury.depositNFT(address(nft), tokenId);
         }
         // Set weights to only Common (100%)
         zeroFeeGacha.setRarityWeights(10000, 0, 0, 0, 0);
@@ -333,11 +351,12 @@ contract GachaTest is Test {
         uint256 triggerId3 = gacha.spin();
         vm.stopPrank();
 
-        assertEq(triggerId1, 0);
-        assertEq(triggerId2, 1);
-        assertEq(triggerId3, 2);
+        assertEq(triggerId1, 0, "First spin should have triggerId 0");
+        assertEq(triggerId2, 1, "Second spin should have triggerId 1");
+        assertEq(triggerId3, 2, "Third spin should have triggerId 2");
 
-        assertEq(feeToken.balanceOf(address(gacha)), SPIN_FEE * 3);
+        // Exact fee calculation: 3 * 100 = 300 tokens
+        assertEq(feeToken.balanceOf(address(gacha)), 300e18, "Gacha should hold exactly 300 tokens from 3 spins");
     }
 
     function testSpinBlockedWhenRarityEmpty() public {
@@ -393,22 +412,22 @@ contract GachaTest is Test {
 
         // Call as service handler (test contract)
         vm.expectEmit(true, true, false, true);
-        emit SpinRefunded(triggerId, user1, GachaTreasury.Rarity.Legendary, SPIN_FEE);
+        emit SpinRefunded(triggerId, user1, GachaTreasury.Rarity.Legendary, 100e18);
         gacha.fulfillRandomness(triggerId, randomness);
 
-        // Check refund was processed
-        assertEq(feeToken.balanceOf(user1), userInitialBalance + SPIN_FEE);
-        assertEq(feeToken.balanceOf(address(gacha)), gachaInitialBalance - SPIN_FEE);
+        // Check exact refund amounts
+        assertEq(feeToken.balanceOf(user1), userInitialBalance + 100e18, "User should be refunded exactly 100 tokens");
+        assertEq(feeToken.balanceOf(address(gacha)), gachaInitialBalance - 100e18, "Gacha balance should decrease by exactly 100 tokens");
 
         // Check request is still marked as fulfilled
         (, bool fulfilled) = gacha.getSpinRequest(triggerId);
-        assertTrue(fulfilled);
+        assertTrue(fulfilled, "Request should be marked as fulfilled even after refund");
     }
 
     function testRefundWithZeroFee() public {
         // Deploy gacha with zero fee
         // Deploy minimal treasury and rewards manager for zero fee test
-        GachaTreasury zeroTreasury2 = new GachaTreasury(owner, address(0x996));
+        GachaTreasury zeroTreasury2 = new GachaTreasury(owner, address(0x996), address(mockAppraisal));
         GachaRewardsManager zeroRewards2 =
             new GachaRewardsManager(owner, address(0x996), address(zeroTreasury2), owner, address(0));
         Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury2), address(zeroRewards2));
@@ -421,7 +440,8 @@ contract GachaTest is Test {
         for (uint256 i = 0; i < 5; i++) {
             uint256 tokenId = nft.mint(owner);
             nft.approve(address(zeroFeeGachaTreasury), tokenId);
-            zeroFeeGachaTreasury.depositNFT(address(nft), tokenId, GachaTreasury.Rarity.Common);
+            mockAppraisal.setMockAppraisal(address(nft), tokenId, 50 * 1e18);
+            zeroFeeGachaTreasury.depositNFT(address(nft), tokenId);
         }
         // Set weights to only Common (100%)
         zeroFeeGacha.setRarityWeights(10000, 0, 0, 0, 0);

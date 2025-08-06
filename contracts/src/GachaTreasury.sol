@@ -6,11 +6,12 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {NFTAppraisal} from "./NFTAppraisal.sol";
 
 /**
- * @title GachaTreasury - NFT Treasury Management
- * @notice Manages NFT storage and distribution for gacha system with rarity-based organization
- * @dev Supports batch operations, pending deposit system, and collection whitelisting
+ * @title GachaTreasury - Price-Based NFT Treasury Management
+ * @notice Manages NFT storage with automatic rarity assignment based on appraised USD values
+ * @dev Integrates with NFTAppraisal contract for price-based categorization
  * @author NFT Gacha Team
  */
 contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
@@ -34,6 +35,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     error CollectionAlreadyWhitelisted();
     error CollectionNotInWhitelist();
     error EmptyWhitelist();
+    error InvalidAppraisalContract();
+    error NFTNotAppraised();
+    error AppraisalRequired();
+    error RarityMigrationFailed();
+    error InvalidPriceRange();
+    error OverlappingPriceRanges();
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -49,44 +56,21 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     }
 
+    /// @notice Price range for a rarity tier
+    struct PriceRange {
+        uint256 minPriceUSD; // Minimum price in USD (scaled by 1e18)
+        uint256 maxPriceUSD; // Maximum price in USD (scaled by 1e18)
+    }
+
     /// @notice Represents an NFT stored in the treasury
     struct NFTItem {
-        address collection;
-        /// @dev NFT collection contract address (20 bytes)
-        address depositor;
-        /// @dev Original depositor address (20 bytes, new slot)
-        Rarity rarity;
-        /// @dev Assigned rarity tier (1 byte)
-        uint256 tokenId;
+        address collection; // NFT collection contract address
+        address depositor; // Original depositor address
+        uint256 tokenId; // Token ID within the collection
+        uint256 appraisedPrice; // USD price when deposited (scaled by 1e18)
+        Rarity rarity; // Current rarity tier based on price
+        uint256 depositTime; // When NFT was deposited
     }
-    /// @dev Token ID within the collection (32 bytes, new slot)
-
-    /// @notice Status of pending deposits awaiting admin approval
-    enum PendingDepositStatus {
-        Pending,
-        /// @dev Awaiting admin review
-        Approved,
-        /// @dev Approved and added to treasury
-        Denied
-    }
-    /// @dev Denied and returned to depositor
-
-    /// @notice Represents a pending deposit submitted by users
-    struct PendingDeposit {
-        address depositor;
-        /// @dev User who submitted deposit (20 bytes)
-        Rarity proposedRarity;
-        /// @dev User's proposed rarity (1 byte)
-        PendingDepositStatus status;
-        /// @dev Current status (1 byte)
-        // 10 bytes remaining in slot
-        address collection;
-        /// @dev NFT collection address (20 bytes, new slot)
-        uint256 tokenId;
-        /// @dev Token ID (32 bytes, new slot)
-        uint256 timestamp;
-    }
-    /// @dev Submission timestamp (32 bytes, new slot)
 
     /// @notice Core treasury storage
     mapping(Rarity => NFTItem[]) public treasury;
@@ -96,19 +80,16 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Contract addresses
     address public gachaContract;
-    /// @dev Authorized gacha contract
     address public treasuryRewardsManager;
-    /// @dev Rewards distribution contract
+    NFTAppraisal public appraisalContract;
 
-    /// @notice Duplicate protection
+    /// @notice Price ranges for each rarity tier
+    mapping(Rarity => PriceRange) public priceRanges;
+
+    /// @notice Duplicate protection and indexing
     mapping(address => mapping(uint256 => bool)) public depositedNFTs;
-
-    /// @notice Pending deposits system
-    mapping(uint256 => PendingDeposit) public pendingDeposits;
-    mapping(address => mapping(uint256 => uint256)) public userPendingDeposits;
-    /// @dev user => tokenId => pendingId
-    uint256 public nextPendingId = 1;
-    uint256[] public pendingDepositIds;
+    mapping(address => mapping(uint256 => uint256)) public nftToTreasuryIndex; // collection => tokenId => index in rarity array
+    mapping(address => mapping(uint256 => Rarity)) public nftCurrentRarity; // collection => tokenId => current rarity
 
     /// @notice User deposit tracking for rewards
     mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
@@ -119,21 +100,29 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     address[] public whitelistedCollectionsList;
 
     /// @notice Events for tracking treasury operations
-    event NFTDeposited(address indexed collection, uint256 indexed tokenId, Rarity rarity);
-    event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, Rarity rarity, address to);
+    event NFTDeposited(
+        address indexed collection,
+        uint256 indexed tokenId,
+        address indexed depositor,
+        Rarity rarity,
+        uint256 appraisedPrice
+    );
+    event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, Rarity rarity, address indexed to);
     event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
     event BatchDeposited(uint256 count, Rarity rarity);
     event BatchWithdrawn(uint256 count, Rarity rarity, address to);
 
-    event PendingDepositSubmitted(
-        uint256 indexed pendingId, address indexed depositor, address collection, uint256 tokenId, Rarity proposedRarity
+    event RarityMigrated(
+        address indexed collection, uint256 indexed tokenId, Rarity oldRarity, Rarity newRarity, uint256 newPrice
     );
 
-    event PendingDepositApproved(uint256 indexed pendingId, address indexed depositor, Rarity finalRarity);
-    event PendingDepositDenied(uint256 indexed pendingId, address indexed depositor, string reason);
+    event AppraisalContractUpdated(address indexed oldAppraisal, address indexed newAppraisal);
     event RewardsManagerUpdated(address indexed oldRewards, address indexed newRewards);
     event CollectionWhitelisted(address indexed collection);
     event CollectionRemovedFromWhitelist(address indexed collection);
+    event PriceRangeUpdated(
+        Rarity indexed rarity, uint256 oldMinPrice, uint256 oldMaxPrice, uint256 newMinPrice, uint256 newMaxPrice
+    );
 
     /// @notice Restricts access to the authorized gacha contract
     modifier onlyGacha() {
@@ -142,37 +131,85 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Initializes the treasury with owner and gacha contract
+     * @notice Initializes the treasury with required contracts and default price ranges
      * @param _owner Address that will own the treasury contract
      * @param _gachaContract Address of the authorized gacha contract
+     * @param _appraisalContract Address of the NFT appraisal contract
      */
-    constructor(address _owner, address _gachaContract) Ownable(_owner) {
+    constructor(address _owner, address _gachaContract, address _appraisalContract) Ownable(_owner) {
         if (_gachaContract == address(0)) revert InvalidGachaContract();
+        if (_appraisalContract == address(0)) revert InvalidAppraisalContract();
+
         gachaContract = _gachaContract;
+        appraisalContract = NFTAppraisal(_appraisalContract);
+
+        // Initialize default USD price ranges (scaled by 1e18)
+        // Common: $0 - $100
+        priceRanges[Rarity.Common] = PriceRange({minPriceUSD: 0, maxPriceUSD: 100 * 1e18});
+
+        // Uncommon: $100 - $500
+        priceRanges[Rarity.Uncommon] = PriceRange({minPriceUSD: 100 * 1e18, maxPriceUSD: 500 * 1e18});
+
+        // Rare: $500 - $2,000
+        priceRanges[Rarity.Rare] = PriceRange({minPriceUSD: 500 * 1e18, maxPriceUSD: 2000 * 1e18});
+
+        // Epic: $2,000 - $10,000
+        priceRanges[Rarity.Epic] = PriceRange({minPriceUSD: 2000 * 1e18, maxPriceUSD: 10000 * 1e18});
+
+        // Legendary: $10,000+
+        priceRanges[Rarity.Legendary] = PriceRange({
+            minPriceUSD: 10000 * 1e18,
+            maxPriceUSD: type(uint256).max // No upper limit for legendary
+        });
     }
 
-    /// @notice Deposits an NFT into the treasury
+    /// @notice Deposits an NFT into the treasury with automatic rarity assignment
     /// @param collection NFT collection address
     /// @param tokenId Token ID to deposit
-    /// @param rarity Assigned rarity for the NFT
-    function depositNFT(address collection, uint256 tokenId, Rarity rarity)
-        external
-        onlyOwner
-        whenNotPaused
-        nonReentrant
-    {
+    /// @dev Requires NFT to be appraised first, automatically assigns rarity based on price
+    function depositNFT(address collection, uint256 tokenId) external whenNotPaused nonReentrant {
         if (collection == address(0)) revert InvalidCollectionAddress();
         if (!whitelistedCollections[collection]) revert CollectionNotWhitelisted();
         if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
         if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
         if (IERC721(collection).ownerOf(tokenId) != msg.sender) revert NotNFTOwner();
 
-        IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
-        depositedNFTs[collection][tokenId] = true;
+        // Get appraised price
+        (uint256 priceUSD, NFTAppraisal.AppraisalStatus status) =
+            appraisalContract.getAppraisedPrice(collection, tokenId);
+        if (
+            priceUSD == 0
+                || (
+                    status != NFTAppraisal.AppraisalStatus.Completed && status != NFTAppraisal.AppraisalStatus.OwnerOverride
+                )
+        ) {
+            revert NFTNotAppraised();
+        }
 
-        treasury[rarity].push(
-            NFTItem({collection: collection, depositor: msg.sender, tokenId: tokenId, rarity: rarity})
-        );
+        // Determine rarity based on price
+        Rarity rarity = getRarityByPrice(priceUSD);
+
+        // Transfer NFT to treasury
+        IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
+
+        // Mark as deposited
+        depositedNFTs[collection][tokenId] = true;
+        nftCurrentRarity[collection][tokenId] = rarity;
+
+        // Create NFT item
+        NFTItem memory item = NFTItem({
+            collection: collection,
+            depositor: msg.sender,
+            tokenId: tokenId,
+            appraisedPrice: priceUSD,
+            rarity: rarity,
+            depositTime: block.timestamp
+        });
+
+        // Add to treasury
+        treasury[rarity].push(item);
+        nftToTreasuryIndex[collection][tokenId] = treasury[rarity].length - 1;
+
         unchecked {
             ++rarityCount[rarity];
         }
@@ -181,10 +218,84 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         userDepositCounts[msg.sender][rarity]++;
         userTotalDeposits[msg.sender]++;
 
-        emit NFTDeposited(collection, tokenId, rarity);
+        emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
     }
 
-    /// @notice Withdraws an NFT from the treasury
+    /// @notice Migrates an NFT to a new rarity tier based on updated appraisal
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID to migrate
+    /// @dev Can be called by anyone when appraisal price changes significantly
+    function migrateNFTRarity(address collection, uint256 tokenId) external whenNotPaused nonReentrant {
+        _migrateNFTRarity(collection, tokenId);
+    }
+
+    /// @dev Internal function to migrate NFT rarity
+    function _migrateNFTRarity(address collection, uint256 tokenId) internal {
+        if (!depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
+
+        // Get current and new appraised price
+        (uint256 newPriceUSD, NFTAppraisal.AppraisalStatus status) =
+            appraisalContract.getAppraisedPrice(collection, tokenId);
+        if (
+            newPriceUSD == 0
+                || (
+                    status != NFTAppraisal.AppraisalStatus.Completed && status != NFTAppraisal.AppraisalStatus.OwnerOverride
+                )
+        ) {
+            revert NFTNotAppraised();
+        }
+
+        Rarity currentRarity = nftCurrentRarity[collection][tokenId];
+
+        // Determine new rarity based on updated price
+        Rarity newRarity = getRarityByPrice(newPriceUSD);
+
+        // Only migrate if rarity actually changes
+        if (currentRarity == newRarity) return;
+
+        // Find and remove NFT from current rarity array
+        uint256 currentIndex = nftToTreasuryIndex[collection][tokenId];
+        NFTItem[] storage currentTreasury = treasury[currentRarity];
+
+        if (currentIndex >= currentTreasury.length) revert InvalidIndex();
+
+        NFTItem memory item = currentTreasury[currentIndex];
+
+        // Move last item to current position and pop
+        currentTreasury[currentIndex] = currentTreasury[currentTreasury.length - 1];
+        currentTreasury.pop();
+
+        // Update index for moved item
+        if (currentIndex < currentTreasury.length) {
+            NFTItem memory movedItem = currentTreasury[currentIndex];
+            nftToTreasuryIndex[movedItem.collection][movedItem.tokenId] = currentIndex;
+        }
+
+        unchecked {
+            --rarityCount[currentRarity];
+        }
+
+        // Update item with new price and rarity
+        item.appraisedPrice = newPriceUSD;
+        item.rarity = newRarity;
+
+        // Add to new rarity array
+        treasury[newRarity].push(item);
+        nftToTreasuryIndex[collection][tokenId] = treasury[newRarity].length - 1;
+        nftCurrentRarity[collection][tokenId] = newRarity;
+
+        unchecked {
+            ++rarityCount[newRarity];
+        }
+
+        // Update user deposit counts
+        userDepositCounts[item.depositor][currentRarity]--;
+        userDepositCounts[item.depositor][newRarity]++;
+
+        emit RarityMigrated(collection, tokenId, currentRarity, newRarity, newPriceUSD);
+    }
+
+    /// @notice Withdraws an NFT from the treasury (owner only)
     /// @param rarity Rarity tier to withdraw from
     /// @param index Index of NFT in the rarity array
     /// @param to Recipient address
@@ -194,12 +305,24 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         NFTItem memory item = treasury[rarity][index];
 
+        // Update treasury array
         treasury[rarity][index] = treasury[rarity][treasury[rarity].length - 1];
         treasury[rarity].pop();
+
+        // Update index mapping for moved item
+        if (index < treasury[rarity].length) {
+            NFTItem memory movedItem = treasury[rarity][index];
+            nftToTreasuryIndex[movedItem.collection][movedItem.tokenId] = index;
+        }
+
         unchecked {
             --rarityCount[rarity];
         }
+
+        // Clean up mappings
         depositedNFTs[item.collection][item.tokenId] = false;
+        delete nftToTreasuryIndex[item.collection][item.tokenId];
+        delete nftCurrentRarity[item.collection][item.tokenId];
 
         IERC721(item.collection).safeTransferFrom(address(this), to, item.tokenId);
 
@@ -221,16 +344,28 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         item = treasury[rarity][index];
 
+        // Update treasury array
         treasury[rarity][index] = treasury[rarity][treasury[rarity].length - 1];
         treasury[rarity].pop();
+
+        // Update index mapping for moved item
+        if (index < treasury[rarity].length) {
+            NFTItem memory movedItem = treasury[rarity][index];
+            nftToTreasuryIndex[movedItem.collection][movedItem.tokenId] = index;
+        }
+
         unchecked {
             --rarityCount[rarity];
             --userDepositCounts[item.depositor][rarity];
             --userTotalDeposits[item.depositor];
         }
-        depositedNFTs[item.collection][item.tokenId] = false;
 
-        // Burn dividend tokens from the original depositor
+        // Clean up mappings
+        depositedNFTs[item.collection][item.tokenId] = false;
+        delete nftToTreasuryIndex[item.collection][item.tokenId];
+        delete nftCurrentRarity[item.collection][item.tokenId];
+
+        // Notify rewards manager about NFT being won
         if (treasuryRewardsManager != address(0)) {
             (bool success,) = treasuryRewardsManager.call(
                 abi.encodeWithSignature("recordNFTWon(address,uint8)", item.depositor, uint8(rarity))
@@ -275,8 +410,6 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
     }
 
-    /// @notice Updates the authorized gacha contract address
-    /// @param _gachaContract New gacha contract address
     function setGachaContract(address _gachaContract) external onlyOwner {
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         address oldGacha = gachaContract;
@@ -284,201 +417,116 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         emit GachaContractUpdated(oldGacha, _gachaContract);
     }
 
-    /// @notice Public function for users to submit NFT deposits for approval
-    /// @param collection NFT collection address
-    /// @param tokenId Token ID to deposit
-    /// @param proposedRarity User's proposed rarity for the NFT
-    /// @return pendingId The ID of the pending deposit
-    function submitPendingDeposit(address collection, uint256 tokenId, Rarity proposedRarity)
-        external
-        whenNotPaused
-        nonReentrant
-        returns (uint256 pendingId)
-    {
-        if (collection == address(0)) revert InvalidCollectionAddress();
-        if (!whitelistedCollections[collection]) revert CollectionNotWhitelisted();
-        if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
-        if (userPendingDeposits[msg.sender][tokenId] != 0) revert CannotDepositSameNFTTwice();
-        if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
-        if (IERC721(collection).ownerOf(tokenId) != msg.sender) revert NotNFTOwner();
-
-        // Transfer NFT to this contract
-        IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
-
-        pendingId = nextPendingId++;
-
-        pendingDeposits[pendingId] = PendingDeposit({
-            depositor: msg.sender,
-            collection: collection,
-            tokenId: tokenId,
-            proposedRarity: proposedRarity,
-            status: PendingDepositStatus.Pending,
-            timestamp: block.timestamp
-        });
-
-        userPendingDeposits[msg.sender][tokenId] = pendingId;
-        pendingDepositIds.push(pendingId);
-
-        emit PendingDepositSubmitted(pendingId, msg.sender, collection, tokenId, proposedRarity);
+    function setAppraisalContract(address _appraisalContract) external onlyOwner {
+        if (_appraisalContract == address(0)) revert InvalidAppraisalContract();
+        address oldAppraisal = address(appraisalContract);
+        appraisalContract = NFTAppraisal(_appraisalContract);
+        emit AppraisalContractUpdated(oldAppraisal, _appraisalContract);
     }
 
-    /// @notice Owner approves a pending deposit
-    /// @param pendingId ID of the pending deposit
-    /// @param finalRarity Final rarity assigned by owner (can differ from proposed)
-    function approvePendingDeposit(uint256 pendingId, Rarity finalRarity)
-        external
-        onlyOwner
-        whenNotPaused
-        nonReentrant
-    {
-        PendingDeposit storage deposit = pendingDeposits[pendingId];
-
-        if (deposit.depositor == address(0)) revert PendingDepositNotFound();
-        if (deposit.status != PendingDepositStatus.Pending) revert PendingDepositAlreadyProcessed();
-
-        deposit.status = PendingDepositStatus.Approved;
-
-        // Mark as deposited to prevent duplicates
-        depositedNFTs[deposit.collection][deposit.tokenId] = true;
-
-        // Add to treasury
-        treasury[finalRarity].push(
-            NFTItem({
-                collection: deposit.collection,
-                depositor: deposit.depositor,
-                tokenId: deposit.tokenId,
-                rarity: finalRarity
-            })
-        );
-
-        unchecked {
-            ++rarityCount[finalRarity];
+    /**
+     * @notice Updates the price range for a specific rarity
+     * @param rarity The rarity tier to update
+     * @param minPriceUSD Minimum price in USD (scaled by 1e18)
+     * @param maxPriceUSD Maximum price in USD (scaled by 1e18)
+     */
+    function setPriceRange(Rarity rarity, uint256 minPriceUSD, uint256 maxPriceUSD) external onlyOwner {
+        if (minPriceUSD >= maxPriceUSD && maxPriceUSD != type(uint256).max) {
+            revert InvalidPriceRange();
         }
 
-        // Track user deposit counts for rewards
-        userDepositCounts[deposit.depositor][finalRarity]++;
-        userTotalDeposits[deposit.depositor]++;
+        PriceRange memory oldRange = priceRanges[rarity];
 
-        // Notify rewards manager to mint reward tokens
-        if (treasuryRewardsManager != address(0)) {
-            (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", deposit.depositor, uint8(finalRarity))
-            );
-            success; // Silence unused variable warning
+        priceRanges[rarity] = PriceRange({minPriceUSD: minPriceUSD, maxPriceUSD: maxPriceUSD});
+
+        emit PriceRangeUpdated(rarity, oldRange.minPriceUSD, oldRange.maxPriceUSD, minPriceUSD, maxPriceUSD);
+    }
+
+    /**
+     * @notice Gets the price range for a specific rarity
+     * @param rarity The rarity tier to query
+     * @return minPrice Minimum price in USD
+     * @return maxPrice Maximum price in USD
+     */
+    function getPriceRange(Rarity rarity) external view returns (uint256 minPrice, uint256 maxPrice) {
+        PriceRange memory range = priceRanges[rarity];
+        return (range.minPriceUSD, range.maxPriceUSD);
+    }
+
+    /**
+     * @notice Determines the rarity tier based on USD price
+     * @param priceUSD Price in USD (scaled by 1e18)
+     * @return rarity The appropriate rarity tier for the price
+     */
+    function getRarityByPrice(uint256 priceUSD) public view returns (Rarity rarity) {
+        // Check each rarity tier from most expensive to least expensive
+        for (uint256 i = uint256(Rarity.Legendary); i >= uint256(Rarity.Common); i--) {
+            Rarity currentRarity = Rarity(i);
+            PriceRange memory range = priceRanges[currentRarity];
+
+            if (priceUSD >= range.minPriceUSD && priceUSD <= range.maxPriceUSD) {
+                return currentRarity;
+            }
+
+            // Prevent underflow on the last iteration
+            if (i == 0) break;
         }
 
-        // Remove from pending list
-        _removePendingDepositId(pendingId);
-        delete userPendingDeposits[deposit.depositor][deposit.tokenId];
-
-        emit NFTDeposited(deposit.collection, deposit.tokenId, finalRarity);
-        emit PendingDepositApproved(pendingId, deposit.depositor, finalRarity);
+        // Default to Common if no range matches (shouldn't happen with proper configuration)
+        return Rarity.Common;
     }
 
-    /// @notice Owner denies a pending deposit and returns NFT
-    /// @param pendingId ID of the pending deposit
-    /// @param reason Reason for denial
-    function denyPendingDeposit(uint256 pendingId, string calldata reason)
-        external
-        onlyOwner
-        whenNotPaused
-        nonReentrant
-    {
-        PendingDeposit storage deposit = pendingDeposits[pendingId];
-
-        if (deposit.depositor == address(0)) revert PendingDepositNotFound();
-        if (deposit.status != PendingDepositStatus.Pending) revert PendingDepositAlreadyProcessed();
-
-        deposit.status = PendingDepositStatus.Denied;
-
-        // Return NFT to depositor
-        IERC721(deposit.collection).safeTransferFrom(address(this), deposit.depositor, deposit.tokenId);
-
-        // Remove from pending list
-        _removePendingDepositId(pendingId);
-        delete userPendingDeposits[deposit.depositor][deposit.tokenId];
-
-        emit PendingDepositDenied(pendingId, deposit.depositor, reason);
+    /**
+     * @notice Gets all price ranges in a single call
+     * @return ranges Array of price ranges [Common, Uncommon, Rare, Epic, Legendary]
+     */
+    function getAllPriceRanges() external view returns (PriceRange[5] memory ranges) {
+        ranges[0] = priceRanges[Rarity.Common];
+        ranges[1] = priceRanges[Rarity.Uncommon];
+        ranges[2] = priceRanges[Rarity.Rare];
+        ranges[3] = priceRanges[Rarity.Epic];
+        ranges[4] = priceRanges[Rarity.Legendary];
     }
 
-    /// @notice Gets all pending deposit IDs
-    /// @return Array of pending deposit IDs
-    function getPendingDepositIds() external view returns (uint256[] memory) {
-        return pendingDepositIds;
-    }
+    /**
+     * @notice Validates that price ranges don't overlap and are properly ordered
+     * @return isValid True if all ranges are valid and non-overlapping
+     */
+    function validatePriceRanges() external view returns (bool isValid) {
+        // Check that ranges are properly ordered and don't overlap
+        for (uint256 i = 0; i < 4; i++) {
+            Rarity currentRarity = Rarity(i);
+            Rarity nextRarity = Rarity(i + 1);
 
-    /// @notice Gets pending deposit details
-    /// @param pendingId ID of the pending deposit
-    /// @return deposit Pending deposit details
-    function getPendingDeposit(uint256 pendingId) external view returns (PendingDeposit memory deposit) {
-        return pendingDeposits[pendingId];
-    }
+            PriceRange memory currentRange = priceRanges[currentRarity];
+            PriceRange memory nextRange = priceRanges[nextRarity];
 
-    /// @notice Gets user's pending deposits
-    /// @param user Address to query
-    /// @return userPendingIds Array of pending deposit IDs for the user
-    function getUserPendingDeposits(address user) external view returns (uint256[] memory userPendingIds) {
-        if (user == address(0)) return userPendingIds; // Returns empty array
-        uint256 count = 0;
-
-        // First pass: count user's pending deposits
-        for (uint256 i = 0; i < pendingDepositIds.length; i++) {
-            uint256 pendingId = pendingDepositIds[i];
-            if (
-                pendingDeposits[pendingId].depositor == user
-                    && pendingDeposits[pendingId].status == PendingDepositStatus.Pending
-            ) {
-                count++;
+            // Current max should equal next min (or next min should be greater)
+            if (currentRange.maxPriceUSD > nextRange.minPriceUSD) {
+                return false;
             }
         }
 
-        // Second pass: collect user's pending deposit IDs
-        userPendingIds = new uint256[](count);
-        uint256 index = 0;
-        for (uint256 i = 0; i < pendingDepositIds.length; i++) {
-            uint256 pendingId = pendingDepositIds[i];
-            if (
-                pendingDeposits[pendingId].depositor == user
-                    && pendingDeposits[pendingId].status == PendingDepositStatus.Pending
-            ) {
-                userPendingIds[index] = pendingId;
-                index++;
-            }
-        }
-    }
-
-    /// @notice Helper function to remove pending deposit ID from array
-    /// @param pendingIdToRemove ID to remove from pending list
-    function _removePendingDepositId(uint256 pendingIdToRemove) private {
-        for (uint256 i = 0; i < pendingDepositIds.length; i++) {
-            if (pendingDepositIds[i] == pendingIdToRemove) {
-                pendingDepositIds[i] = pendingDepositIds[pendingDepositIds.length - 1];
-                pendingDepositIds.pop();
-                break;
-            }
-        }
+        return true;
     }
 
     // Batch operations
-    /// @notice Batch deposit multiple NFTs
+    /// @notice Batch deposit multiple NFTs with automatic rarity assignment
     /// @param collections Array of NFT collection addresses
     /// @param tokenIds Array of token IDs
-    /// @param rarities Array of assigned rarities
-    function batchDepositNFT(address[] calldata collections, uint256[] calldata tokenIds, Rarity[] calldata rarities)
+    function batchDepositNFT(address[] calldata collections, uint256[] calldata tokenIds)
         external
-        onlyOwner
         whenNotPaused
         nonReentrant
     {
         uint256 length = collections.length;
-        if (length != tokenIds.length || length != rarities.length) revert ArrayLengthMismatch();
+        if (length != tokenIds.length) revert ArrayLengthMismatch();
         if (length == 0) revert EmptyArrays();
         if (length > MAX_BATCH_DEPOSIT) revert TooManyItems();
 
         for (uint256 i; i < length;) {
             address collection = collections[i];
             uint256 tokenId = tokenIds[i];
-            Rarity rarity = rarities[i];
 
             if (collection == address(0)) revert InvalidCollectionAddress();
             if (!whitelistedCollections[collection]) revert CollectionNotWhitelisted();
@@ -486,12 +534,38 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             if (!_isValidNFTContract(collection)) revert InvalidNFTContract();
             if (IERC721(collection).ownerOf(tokenId) != msg.sender) revert NotNFTOwner();
 
+            // Get appraised price
+            (uint256 priceUSD, NFTAppraisal.AppraisalStatus status) =
+                appraisalContract.getAppraisedPrice(collection, tokenId);
+            if (
+                priceUSD == 0
+                    || (
+                        status != NFTAppraisal.AppraisalStatus.Completed
+                            && status != NFTAppraisal.AppraisalStatus.OwnerOverride
+                    )
+            ) {
+                revert NFTNotAppraised();
+            }
+
+            // Determine rarity based on price
+            Rarity rarity = getRarityByPrice(priceUSD);
+
             IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
             depositedNFTs[collection][tokenId] = true;
+            nftCurrentRarity[collection][tokenId] = rarity;
 
-            treasury[rarity].push(
-                NFTItem({collection: collection, depositor: msg.sender, tokenId: tokenId, rarity: rarity})
-            );
+            NFTItem memory item = NFTItem({
+                collection: collection,
+                depositor: msg.sender,
+                tokenId: tokenId,
+                appraisedPrice: priceUSD,
+                rarity: rarity,
+                depositTime: block.timestamp
+            });
+
+            treasury[rarity].push(item);
+            nftToTreasuryIndex[collection][tokenId] = treasury[rarity].length - 1;
+
             unchecked {
                 ++rarityCount[rarity];
                 ++i;
@@ -501,10 +575,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             userDepositCounts[msg.sender][rarity]++;
             userTotalDeposits[msg.sender]++;
 
-            emit NFTDeposited(collection, tokenId, rarity);
+            emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
         }
 
-        emit BatchDeposited(length, rarities[0]);
+        emit BatchDeposited(length, Rarity.Common); // Use a placeholder for the event
     }
 
     /// @notice Batch withdraw multiple NFTs of same rarity
@@ -592,6 +666,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         return depositedNFTs[collection][tokenId];
     }
 
+    function getNFTCurrentRarity(address collection, uint256 tokenId) external view returns (Rarity) {
+        return nftCurrentRarity[collection][tokenId];
+    }
+
     /// @notice Gets user's deposit count for a specific rarity
     /// @param user User address
     /// @param rarity Rarity to check
@@ -619,8 +697,6 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    /// @notice Sets the treasury rewards manager address
-    /// @param _treasuryRewardsManager New treasury rewards manager address
     function setTreasuryRewardsManager(address _treasuryRewardsManager) external onlyOwner {
         if (_treasuryRewardsManager == address(0)) revert InvalidRewardsManager();
         address oldRewardsManager = treasuryRewardsManager;
