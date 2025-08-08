@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardBody } from "@heroui/react";
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
+import { formatTokenAmount } from "../lib/utils";
 import {
 	useReadGachaRewardsManagerGetUserTotalClaimableRewards,
 	useReadGachaRewardsManagerGetUserRarityClaimableRewards,
@@ -117,22 +118,14 @@ export default function RewardsDashboard() {
 		error: claimError,
 	} = useWriteGachaRewardsManagerClaimAllRewards();
 
-	// Format token amounts with proper precision
-	const formatTokenAmount = (amount: bigint | undefined) => {
+	// Format token amounts with enhanced precision and clean display
+	const formatTokenAmountLocal = (amount: bigint | undefined) => {
 		if (!amount || !tokenDecimals) return "0";
-		const formattedAmount = formatUnits(amount, tokenDecimals);
-		const numAmount = parseFloat(formattedAmount);
-		
-		// Format with appropriate decimals - show up to 6 decimals but remove trailing zeros
-		if (numAmount === 0) return "0";
-		if (numAmount < 0.001) return numAmount.toFixed(8).replace(/\.?0+$/, '');
-		if (numAmount < 1) return numAmount.toFixed(6).replace(/\.?0+$/, '');
-		if (numAmount < 1000) return numAmount.toFixed(4).replace(/\.?0+$/, '');
-		
-		// For larger amounts, use thousand separators and 2-4 decimals
-		return numAmount.toLocaleString('en-US', {
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 2
+		return formatTokenAmount(amount, tokenDecimals, {
+			maxDecimals: 6,
+			minDecimals: 0,
+			useGrouping: true,
+			notation: 'standard'
 		});
 	};
 
@@ -140,35 +133,35 @@ export default function RewardsDashboard() {
 	const rarityRewards: RarityReward[] = [
 		{
 			rarity: RARITY_CONFIG[Rarity.Common].name,
-			amount: formatTokenAmount(commonClaimable),
+			amount: formatTokenAmountLocal(commonClaimable),
 			deposits: depositCounts ? Number(depositCounts[0]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Common].emoji,
 			color: RARITY_CONFIG[Rarity.Common].bgGradient,
 		},
 		{
 			rarity: RARITY_CONFIG[Rarity.Uncommon].name,
-			amount: formatTokenAmount(uncommonClaimable),
+			amount: formatTokenAmountLocal(uncommonClaimable),
 			deposits: depositCounts ? Number(depositCounts[1]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Uncommon].emoji,
 			color: RARITY_CONFIG[Rarity.Uncommon].bgGradient,
 		},
 		{
 			rarity: RARITY_CONFIG[Rarity.Rare].name,
-			amount: formatTokenAmount(rareClaimable),
+			amount: formatTokenAmountLocal(rareClaimable),
 			deposits: depositCounts ? Number(depositCounts[2]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Rare].emoji,
 			color: RARITY_CONFIG[Rarity.Rare].bgGradient,
 		},
 		{
 			rarity: RARITY_CONFIG[Rarity.Epic].name,
-			amount: formatTokenAmount(epicClaimable),
+			amount: formatTokenAmountLocal(epicClaimable),
 			deposits: depositCounts ? Number(depositCounts[3]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Epic].emoji,
 			color: RARITY_CONFIG[Rarity.Epic].bgGradient,
 		},
 		{
 			rarity: RARITY_CONFIG[Rarity.Legendary].name,
-			amount: formatTokenAmount(legendaryClaimable),
+			amount: formatTokenAmountLocal(legendaryClaimable),
 			deposits: depositCounts ? Number(depositCounts[4]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Legendary].emoji,
 			color: RARITY_CONFIG[Rarity.Legendary].bgGradient,
@@ -243,7 +236,7 @@ export default function RewardsDashboard() {
 									Available to Claim
 								</p>
 								<h3 className="text-3xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent mt-2">
-									{formatTokenAmount(totalClaimable)} {tokenSymbol || "TOKENS"}
+									{formatTokenAmountLocal(totalClaimable)} {tokenSymbol || "TOKENS"}
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
@@ -266,7 +259,7 @@ export default function RewardsDashboard() {
 									Total Claimed
 								</p>
 								<h3 className="text-3xl font-bold text-foreground mt-2">
-									{userAnalytics ? formatTokenAmount(userAnalytics[0]) : "0"}{" "}
+									{userAnalytics ? formatTokenAmountLocal(userAnalytics[0]) : "0"}{" "}
 									{tokenSymbol || "TOKENS"}
 								</h3>
 							</div>
@@ -492,7 +485,7 @@ export default function RewardsDashboard() {
 							<div>
 								<p className="text-2xl font-bold text-foreground">
 									{globalAnalytics
-										? formatTokenAmount(globalAnalytics[1])
+										? formatTokenAmountLocal(globalAnalytics[1])
 										: "0"}{" "}
 									{tokenSymbol}
 								</p>
@@ -501,7 +494,7 @@ export default function RewardsDashboard() {
 							<div>
 								<p className="text-2xl font-bold text-foreground">
 									{globalAnalytics
-										? formatTokenAmount(globalAnalytics[2])
+										? formatTokenAmountLocal(globalAnalytics[2])
 										: "0"}{" "}
 									{tokenSymbol}
 								</p>

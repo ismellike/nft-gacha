@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { formatUnits } from "viem";
+import { formatTokenAmount } from "../lib/utils";
 import {
 	useReadGachaTreasuryGetTreasuryItems,
 	useReadGachaTreasuryIsGachaAvailable,
@@ -174,7 +175,11 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
 
 	const formattedSpinFee =
 		spinFee && feeTokenDecimals && feeTokenSymbol
-			? `${formatUnits(spinFee, feeTokenDecimals)} ${feeTokenSymbol}`
+			? formatTokenAmount(spinFee, feeTokenDecimals, {
+					maxDecimals: 4,
+					suffix: ` ${feeTokenSymbol}`,
+					useGrouping: true
+				})
 			: "Loading...";
 
 	const handleExplore = () => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
-import { formatUnits } from "viem";
+import { formatTokenAmount } from "../../lib/utils";
 import GachaSpinner from "../../components/GachaSpinner";
 import { UserNFTModal } from "../../components/UserNFTModal";
 import { AdminControls } from "../../components/AdminControls";
@@ -175,45 +175,50 @@ export default function GachaDetailPage() {
 		error: claimError,
 	} = useWriteGachaRewardsManagerClaimAllRewards();
 
-	// Format token amounts
-	const formatTokenAmount = (amount: bigint | undefined) => {
+	// Format token amounts with enhanced precision and clean display
+	const formatTokenAmountLocal = (amount: bigint | undefined) => {
 		if (!amount || !tokenDecimals) return "0";
-		return formatUnits(amount, tokenDecimals);
+		return formatTokenAmount(amount, tokenDecimals, {
+			maxDecimals: 6,
+			minDecimals: 0,
+			useGrouping: true,
+			notation: 'standard'
+		});
 	};
 
 	// Prepare rarity rewards data using official config
 	const rarityRewards: RarityReward[] = [
 		{
 			rarity: RARITY_CONFIG[Rarity.Common].name,
-			amount: formatTokenAmount(commonClaimable),
+			amount: formatTokenAmountLocal(commonClaimable),
 			deposits: depositCounts ? Number(depositCounts[0]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Common].emoji,
 			color: RARITY_CONFIG[Rarity.Common].bgGradient,
 		},
 		{
 			rarity: RARITY_CONFIG[Rarity.Uncommon].name,
-			amount: formatTokenAmount(uncommonClaimable),
+			amount: formatTokenAmountLocal(uncommonClaimable),
 			deposits: depositCounts ? Number(depositCounts[1]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Uncommon].emoji,
 			color: RARITY_CONFIG[Rarity.Uncommon].bgGradient,
 		},
 		{
 			rarity: RARITY_CONFIG[Rarity.Rare].name,
-			amount: formatTokenAmount(rareClaimable),
+			amount: formatTokenAmountLocal(rareClaimable),
 			deposits: depositCounts ? Number(depositCounts[2]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Rare].emoji,
 			color: RARITY_CONFIG[Rarity.Rare].bgGradient,
 		},
 		{
 			rarity: RARITY_CONFIG[Rarity.Epic].name,
-			amount: formatTokenAmount(epicClaimable),
+			amount: formatTokenAmountLocal(epicClaimable),
 			deposits: depositCounts ? Number(depositCounts[3]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Epic].emoji,
 			color: RARITY_CONFIG[Rarity.Epic].bgGradient,
 		},
 		{
 			rarity: RARITY_CONFIG[Rarity.Legendary].name,
-			amount: formatTokenAmount(legendaryClaimable),
+			amount: formatTokenAmountLocal(legendaryClaimable),
 			deposits: depositCounts ? Number(depositCounts[4]) : 0,
 			emoji: RARITY_CONFIG[Rarity.Legendary].emoji,
 			color: RARITY_CONFIG[Rarity.Legendary].bgGradient,
@@ -659,7 +664,7 @@ export default function GachaDetailPage() {
 															<h3 className="text-3xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent mt-2">
 																{optimisticClaim
 																	? "0"
-																	: formatTokenAmount(totalClaimable)}{" "}
+																	: formatTokenAmountLocal(totalClaimable)}{" "}
 																{tokenSymbol || "TOKENS"}
 															</h3>
 															{optimisticClaim && (
@@ -671,7 +676,7 @@ export default function GachaDetailPage() {
 																	<ThemedIcon name="check" size="xs" />
 																	<span>
 																		Claiming{" "}
-																		{formatTokenAmount(
+																		{formatTokenAmountLocal(
 																			optimisticClaimedAmount || BigInt(0),
 																		)}{" "}
 																		{tokenSymbol}...
@@ -708,7 +713,7 @@ export default function GachaDetailPage() {
 															</p>
 															<h3 className="text-3xl font-bold text-foreground mt-2">
 																{userAnalytics
-																	? formatTokenAmount(userAnalytics[0])
+																	? formatTokenAmountLocal(userAnalytics[0])
 																	: "0"}{" "}
 																{tokenSymbol || "TOKENS"}
 															</h3>
@@ -806,7 +811,7 @@ export default function GachaDetailPage() {
 																isRefetchingRewards
 															}
 															animate={true}
-															aria-label={`Claim ${formatTokenAmount(totalClaimable)} ${tokenSymbol} in rewards`}
+															aria-label={`Claim ${formatTokenAmountLocal(totalClaimable)} ${tokenSymbol} in rewards`}
 														>
 															{optimisticClaim
 																? "Processing Claim..."
@@ -866,8 +871,7 @@ export default function GachaDetailPage() {
 																				<p
 																					className={`text-sm font-semibold bg-gradient-to-r ${rarity.color} bg-clip-text text-transparent`}
 																				>
-																					{parseFloat(rarity.amount).toFixed(2)}{" "}
-																					{tokenSymbol}
+																					{rarity.amount} {tokenSymbol}
 																				</p>
 																			</div>
 																		</div>
@@ -930,8 +934,7 @@ export default function GachaDetailPage() {
 																			<p
 																				className={`text-sm font-semibold bg-gradient-to-r ${rarity.color} bg-clip-text text-transparent`}
 																			>
-																				{parseFloat(rarity.amount).toFixed(2)}{" "}
-																				{tokenSymbol}
+																				{rarity.amount} {tokenSymbol}
 																			</p>
 																		</div>
 																	</div>

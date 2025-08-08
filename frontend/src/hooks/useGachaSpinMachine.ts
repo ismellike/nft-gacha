@@ -52,41 +52,15 @@ export function useGachaSpinMachine(
 		args: userAddress ? { requester: userAddress } : undefined,
 		enabled: Boolean(userAddress),
 		onLogs(logs) {
-			console.log(
-				"🎉 [useGachaSpinMachine] Received SpinCompleted event:",
-				logs,
-			);
-			console.log("🎯 [useGachaSpinMachine] Current state:", {
-				state: state.value,
-				context: state.context,
-				isWaitingForFulfillment: state.matches("waitingForFulfillment"),
-			});
+			if (!state.matches("waitingForFulfillment")) return;
 
 			for (const log of logs) {
 				const { triggerId, rarity, collection, tokenId } = log.args;
 
-				console.log("🔍 [useGachaSpinMachine] Checking event:", {
-					eventTriggerId: triggerId ? triggerId.toString() : "null",
-					contextTriggerId: state.context.triggerId
-						? (state.context.triggerId as bigint).toString()
-						: "null",
-					matches: triggerId === state.context.triggerId,
-				});
-
-				// Only process if this is the event we're waiting for and we're in the right state
-				if (
-					state.context.triggerId &&
-					triggerId === state.context.triggerId &&
-					state.matches("waitingForFulfillment")
-				) {
+				// Check if this is the event we're waiting for
+				if (triggerId === state.context.triggerId) {
 					// Convert rarity enum to string
-					const rarityNames = [
-						"Common",
-						"Uncommon",
-						"Rare",
-						"Epic",
-						"Legendary",
-					];
+					const rarityNames = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 					const rarityName = rarityNames[Number(rarity)] || "Unknown";
 
 					const result: SpinResult = {
@@ -95,18 +69,8 @@ export function useGachaSpinMachine(
 						tokenId: tokenId?.toString() || "",
 					};
 
-					console.log(
-						"🎯 [useGachaSpinMachine] Processing SpinCompleted event:",
-						result,
-					);
-
 					send({ type: "SPIN_FULFILLED", result });
-
-					// Call completion callback
-					if (onSpinComplete) {
-						onSpinComplete();
-					}
-
+					onSpinComplete?.();
 					break;
 				}
 			}
@@ -115,66 +79,34 @@ export function useGachaSpinMachine(
 
 	// Restore state from localStorage on mount/account change
 	useEffect(() => {
-		if (!userAddress || !publicClient) return;
+		if (!userAddress || !publicClient || !state.matches("idle")) return;
 
 		const storedTriggerId = loadFromStorage(userAddress);
-		if (storedTriggerId && state.matches("idle")) {
-			console.log(
-				"🔄 [useGachaSpinMachine] Restoring state from localStorage:",
-				storedTriggerId,
-			);
-			send({
-				type: "START_SPIN",
-				userAddress,
-				publicClient,
-			});
-			send({
-				type: "TRANSACTION_CONFIRMED",
-				triggerId: storedTriggerId,
-			});
+		if (storedTriggerId) {
+			send({ type: "START_SPIN", userAddress, publicClient });
+			send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
 		}
 	}, [userAddress, publicClient, state, send]);
 
 	// Actions
 	const startSpin = () => {
 		if (userAddress && publicClient) {
-			send({
-				type: "START_SPIN",
-				userAddress,
-				publicClient,
-			});
+			send({ type: "START_SPIN", userAddress, publicClient });
 		}
 	};
 
 	const confirmTransaction = (triggerId: bigint) => {
-		send({
-			type: "TRANSACTION_CONFIRMED",
-			triggerId,
-		});
+		send({ type: "TRANSACTION_CONFIRMED", triggerId });
 	};
 
 	const fulfillSpin = (result: SpinResult) => {
-		send({
-			type: "SPIN_FULFILLED",
-			result,
-		});
-
-		if (onSpinComplete) {
-			onSpinComplete();
-		}
+		send({ type: "SPIN_FULFILLED", result });
+		onSpinComplete?.();
 	};
 
-	const closeReveal = () => {
-		send({ type: "CLOSE_REVEAL" });
-	};
-
-	const retry = () => {
-		send({ type: "RETRY" });
-	};
-
-	const reset = () => {
-		send({ type: "RESET" });
-	};
+	const closeReveal = () => send({ type: "CLOSE_REVEAL" });
+	const retry = () => send({ type: "RETRY" });
+	const reset = () => send({ type: "RESET" });
 
 	// Derived state
 	const isIdle = state.matches("idle");

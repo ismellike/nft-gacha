@@ -128,12 +128,12 @@ contract GachaTest is Test {
         feeToken.approve(address(gacha), SPIN_FEE);
 
         vm.expectEmit(true, false, false, false);
-        emit RandomnessRequested(0);
+        emit RandomnessRequested(1);
 
         uint256 triggerId = gacha.spin();
         vm.stopPrank();
 
-        assertEq(triggerId, 0, "First spin should have triggerId 0");
+        assertEq(triggerId, 1, "First spin should have triggerId 1");
         (address requester, bool fulfilled) = gacha.getSpinRequest(triggerId);
         assertEq(requester, user1, "Requester should be user1");
         assertFalse(fulfilled, "Spin should not be fulfilled yet");
@@ -336,7 +336,7 @@ contract GachaTest is Test {
         vm.prank(user1);
         uint256 triggerId = zeroFeeGacha.spin();
 
-        assertEq(triggerId, 0);
+        assertEq(triggerId, 1);
         (address requester, bool fulfilled) = zeroFeeGacha.getSpinRequest(triggerId);
         assertEq(requester, user1);
         assertFalse(fulfilled);
@@ -351,9 +351,9 @@ contract GachaTest is Test {
         uint256 triggerId3 = gacha.spin();
         vm.stopPrank();
 
-        assertEq(triggerId1, 0, "First spin should have triggerId 0");
-        assertEq(triggerId2, 1, "Second spin should have triggerId 1");
-        assertEq(triggerId3, 2, "Third spin should have triggerId 2");
+        assertEq(triggerId1, 1, "First spin should have triggerId 1");
+        assertEq(triggerId2, 2, "Second spin should have triggerId 2");
+        assertEq(triggerId3, 3, "Third spin should have triggerId 3");
 
         // Exact fee calculation: 3 * 100 = 300 tokens
         assertEq(feeToken.balanceOf(address(gacha)), 300e18, "Gacha should hold exactly 300 tokens from 3 spins");
@@ -389,7 +389,7 @@ contract GachaTest is Test {
         uint256 triggerId = gacha.spin();
         vm.stopPrank();
 
-        assertEq(triggerId, 0);
+        assertEq(triggerId, 1);
     }
 
     function testRefundWhenSelectedRarityEmpty() public {

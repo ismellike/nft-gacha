@@ -128,6 +128,9 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         feeToken = IERC20(_feeToken);
         spinFee = _spinFee;
         rewardsManager = GachaRewardsManager(_rewardsManager);
+        
+        // Initialize trigger ID to start from 1 instead of 0
+        _nextTriggerId = 1;
     }
 
     /// @notice Initiates a gacha spin
