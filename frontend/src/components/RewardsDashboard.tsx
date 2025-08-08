@@ -117,10 +117,23 @@ export default function RewardsDashboard() {
 		error: claimError,
 	} = useWriteGachaRewardsManagerClaimAllRewards();
 
-	// Format token amounts
+	// Format token amounts with proper precision
 	const formatTokenAmount = (amount: bigint | undefined) => {
 		if (!amount || !tokenDecimals) return "0";
-		return formatUnits(amount, tokenDecimals);
+		const formattedAmount = formatUnits(amount, tokenDecimals);
+		const numAmount = parseFloat(formattedAmount);
+		
+		// Format with appropriate decimals - show up to 6 decimals but remove trailing zeros
+		if (numAmount === 0) return "0";
+		if (numAmount < 0.001) return numAmount.toFixed(8).replace(/\.?0+$/, '');
+		if (numAmount < 1) return numAmount.toFixed(6).replace(/\.?0+$/, '');
+		if (numAmount < 1000) return numAmount.toFixed(4).replace(/\.?0+$/, '');
+		
+		// For larger amounts, use thousand separators and 2-4 decimals
+		return numAmount.toLocaleString('en-US', {
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 2
+		});
 	};
 
 	// Prepare rarity rewards data using official config
@@ -368,7 +381,7 @@ export default function RewardsDashboard() {
 													<p
 														className={`text-sm font-semibold bg-gradient-to-r ${rarity.color} bg-clip-text text-transparent`}
 													>
-														{parseFloat(rarity.amount).toFixed(2)} {tokenSymbol}
+														{rarity.amount} {tokenSymbol}
 													</p>
 												</div>
 											</div>
@@ -426,7 +439,7 @@ export default function RewardsDashboard() {
 												<p
 													className={`text-sm font-semibold bg-gradient-to-r ${rarity.color} bg-clip-text text-transparent`}
 												>
-													{parseFloat(rarity.amount).toFixed(2)} {tokenSymbol}
+													{rarity.amount} {tokenSymbol}
 												</p>
 											</div>
 										</div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
+import { formatAddress, formatTokenId } from "../lib/utils";
 
 export interface SpinResult {
 	rarity: string;
@@ -517,11 +518,10 @@ export default function NFTRevealModal({
 												<h3
 													className={`text-2xl font-bold bg-gradient-to-r ${rarityConfig.bgGradient} bg-clip-text text-transparent`}
 												>
-													NFT #{nftResult.tokenId}
+													NFT {formatTokenId(nftResult.tokenId)}
 												</h3>
 												<p className="text-sm text-foreground/70 font-mono">
-													{nftResult.collection.slice(0, 6)}...
-													{nftResult.collection.slice(-4)}
+													{formatAddress(nftResult.collection)}
 												</p>
 											</motion.div>
 

@@ -18,6 +18,7 @@ import {
 	useReadGachaPaused,
 } from "@/generated";
 import { formatUnits, parseUnits } from "viem";
+import { formatTokenAmount, formatAddress, formatPercentage } from "@/lib/utils";
 import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
 import type { GachaConfig } from "@/lib/gacha-config";
 
@@ -162,7 +163,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 					</GlassBadge>
 					<GlassBadge variant="info">
 						<span className="font-mono text-xs">
-							{userAddress?.slice(0, 6)}...{userAddress?.slice(-4)}
+							{userAddress ? formatAddress(userAddress) : ''}
 						</span>
 					</GlassBadge>
 				</div>
@@ -310,7 +311,7 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 			<div className="grid md:grid-cols-2 gap-6 mb-8">
 				{weights.map((weight, index) => {
 					const rarity = Object.values(RARITY_CONFIG)[index];
-					const percentage = ((weight / 10000) * 100).toFixed(2);
+					const percentage = formatPercentage(weight / 100, 2, true);
 
 					return (
 						<div key={index} className="space-y-3">
@@ -322,7 +323,7 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 											{rarity.name}
 										</div>
 										<div className="text-sm text-foreground/60">
-											{percentage}% drop rate
+											{percentage} drop rate
 										</div>
 									</div>
 								</div>
@@ -413,7 +414,7 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 					</label>
 					<div className="bg-content1/10 border border-white/10 rounded-xl p-4">
 						<div className="text-2xl font-bold text-warning">
-							{currentFee ? formatUnits(currentFee, 18) : "0"} TOKENS
+							{currentFee ? formatTokenAmount(currentFee, 18, { maxDecimals: 4, suffix: ' TOKENS' }) : "0 TOKENS"}
 						</div>
 					</div>
 				</div>

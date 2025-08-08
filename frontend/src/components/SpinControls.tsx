@@ -13,6 +13,7 @@ import { glassTypography, glassStatus } from "../lib/theme-config";
 import { GlassCard, GlassButton, GlassBadge, TokenFeeDisplay } from "./ui";
 import { ThemedIcon } from "../lib/icons";
 import { formatUnits, decodeEventLog } from "viem";
+import { formatTokenAmount, formatCurrency } from "../lib/utils";
 import { env } from "../env";
 import {
 	useReadGachaSpinFee,
@@ -128,15 +129,18 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 		isGachaAvailable &&
 		gachaSpin.isIdle;
 
-	// Formatted values
+	// Formatted values using enhanced utilities
 	const formattedBalance =
 		tokenBalance && tokenDecimals
-			? formatUnits(tokenBalance, tokenDecimals)
+			? formatTokenAmount(tokenBalance, tokenDecimals, { 
+					maxDecimals: 4, 
+					useGrouping: true 
+				})
 			: "0";
 
 	const formatSpinFee = () => {
 		if (!spinFee || !tokenDecimals) return "Loading...";
-		return `${formatUnits(spinFee, tokenDecimals)} ${tokenSymbol || "TOKENS"}`;
+		return formatCurrency(spinFee, tokenDecimals, tokenSymbol || "TOKENS");
 	};
 
 	// Enhanced button text logic using state machine states

@@ -2,6 +2,7 @@
 
 import { Card, CardBody } from "@heroui/react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
+import { formatAddress, formatTokenId } from "../lib/utils";
 
 interface LastSpinResultProps {
 	result: {
@@ -43,10 +44,10 @@ export default function LastSpinResult({ result }: LastSpinResultProps) {
 							<p
 								className={`text-lg font-bold bg-gradient-to-r ${rarityConfig.bgGradient} bg-clip-text text-transparent`}
 							>
-								{result.rarity} NFT #{result.tokenId}
+								{result.rarity} NFT {formatTokenId(result.tokenId)}
 							</p>
-							<p className="text-xs text-foreground/60 mt-1">
-								{result.collection.slice(0, 6)}...{result.collection.slice(-4)}
+							<p className="text-xs text-foreground/60 mt-1 font-mono">
+								{formatAddress(result.collection)}
 							</p>
 						</div>
 						<div

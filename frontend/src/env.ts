@@ -5,6 +5,30 @@ const addressSchema = z
 	.string()
 	.transform((val): `0x${string}` => val as `0x${string}`);
 
+// Environment modes
+export type EnvMode = "LOCAL" | "TESTNET" | "MAINNET";
+
+// Detect current environment mode
+export const getEnvMode = (): EnvMode => {
+	const nodeEnv = process.env.NODE_ENV;
+	const envMode = process.env.NEXT_PUBLIC_ENV_MODE;
+	
+	// Explicit env mode takes precedence
+	if (envMode && ["LOCAL", "TESTNET", "MAINNET"].includes(envMode.toUpperCase())) {
+		return envMode.toUpperCase() as EnvMode;
+	}
+	
+	// Fallback to NODE_ENV detection
+	if (nodeEnv === "development") return "LOCAL";
+	if (nodeEnv === "test") return "TESTNET";
+	if (nodeEnv === "production") return "MAINNET";
+	
+	// Default fallback
+	return "LOCAL";
+};
+
+export const ENV_MODE = getEnvMode();
+
 // Environment variable schema with proper typing - all required
 const envSchema = z.object({
 	// Contract addresses - properly typed as `0x${string}`
