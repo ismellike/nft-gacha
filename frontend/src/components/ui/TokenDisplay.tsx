@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../lib/theme";
 import { ThemedIcon } from "../../lib/icons";
+import { getEnvMode } from "../../env";
 
 interface TokenDisplayProps {
 	address?: `0x${string}`;
@@ -42,9 +43,30 @@ const KNOWN_TOKEN_LOGOS: Record<string, string> = {
 	"1INCH": "https://cryptologos.cc/logos/1inch-1inch-logo.png",
 };
 
+// Check if this is a local/test token (common patterns)
+const isLocalOrTestToken = (address?: string, symbol?: string): boolean => {
+	if (!address && !symbol) return false;
+
+	// Check against known local RPC endpoints
+	const isLocalEnvironment = process.env.NODE_ENV === "development";
+
+	// Test token symbols (industry standard test token patterns)
+	const testSymbols = ["TEST"];
+	const isTestSymbol = symbol
+		? testSymbols.includes(symbol.toUpperCase())
+		: false;
+
+	return isLocalEnvironment || isTestSymbol;
+};
+
 // Token logo sources - in order of preference
 const getTokenLogoSources = (address?: string, symbol?: string): string[] => {
 	const sources: string[] = [];
+
+	// Skip external requests for local/test tokens to avoid console errors
+	if (isLocalOrTestToken(address, symbol)) {
+		return sources; // Return empty array to use fallback immediately
+	}
 
 	// Known token logos (highest priority)
 	if (symbol && KNOWN_TOKEN_LOGOS[symbol.toUpperCase()]) {
@@ -140,7 +162,14 @@ export function TokenDisplay({
 				setImageUrl(logoSources[sourceIndex]);
 				setImageError(false);
 			};
-			img.onerror = () => {
+			img.onerror = (e) => {
+				// Suppress error logging for known test tokens to keep console clean
+				if (!isLocalOrTestToken(address, symbol)) {
+					console.debug(
+						"Token image failed to load:",
+						logoSources[sourceIndex],
+					);
+				}
 				setCurrentSourceIndex(sourceIndex + 1);
 				tryLoadImage(sourceIndex + 1);
 			};
@@ -150,7 +179,7 @@ export function TokenDisplay({
 		tryLoadImage(0);
 	}, [logoSources]);
 
-	// Generate fallback initials from token name or symbol
+	// Generate fallback initials from token name or symbol (industry standard)
 	const getFallbackInitials = () => {
 		if (symbol && symbol.length >= 2) {
 			return symbol.substring(0, 2).toUpperCase();
@@ -165,30 +194,61 @@ export function TokenDisplay({
 		return "??";
 	};
 
+	// Generate deterministic gradient based on token address/symbol (like Uniswap)
+	const getFallbackGradient = () => {
+		const seed = address || symbol || name || "";
+		const hash = seed.split("").reduce((a, b) => {
+			a = (a << 5) - a + b.charCodeAt(0);
+			return a & a;
+		}, 0);
+
+		// Industry standard color combinations used by major DeFi apps
+		const gradients = [
+			"from-blue-400 to-blue-600",
+			"from-purple-400 to-purple-600",
+			"from-pink-400 to-pink-600",
+			"from-indigo-400 to-indigo-600",
+			"from-green-400 to-green-600",
+			"from-yellow-400 to-yellow-600",
+			"from-red-400 to-red-600",
+			"from-cyan-400 to-cyan-600",
+			"from-orange-400 to-orange-600",
+			"from-emerald-400 to-emerald-600",
+		];
+
+		return gradients[Math.abs(hash) % gradients.length];
+	};
+
 	const TokenImage = () => {
 		if (imageUrl && !imageError) {
 			return (
-				<img
-					src={imageUrl}
-					alt={`${name || symbol} logo`}
-					className={cn(config.image, "rounded-full object-cover")}
-					onError={() => setImageError(true)}
-				/>
+				<div className="relative">
+					<img
+						src={imageUrl}
+						alt={`${name || symbol} logo`}
+						className={cn(
+							config.image,
+							"rounded-full object-cover border-2 border-white/10 shadow-lg bg-gradient-to-br from-content1/20 to-content1/40",
+						)}
+						onError={() => setImageError(true)}
+					/>
+				</div>
 			);
 		}
 
-		// Fallback with initials or icon
+		// Fallback with initials and deterministic gradient (industry standard)
 		return (
 			<div
 				className={cn(
 					config.image,
-					"rounded-full bg-gradient-to-br from-content1/60 to-content1/40 backdrop-blur-xl border border-white/20 flex items-center justify-center",
+					"rounded-full flex items-center justify-center border-2 border-white/10 shadow-lg",
+					`bg-gradient-to-br ${getFallbackGradient()}`,
 				)}
 			>
 				{symbol || name ? (
 					<span
 						className={cn(
-							"font-bold text-foreground",
+							"font-bold text-white drop-shadow-sm",
 							size === "sm"
 								? "text-xs"
 								: size === "md"
@@ -202,6 +262,7 @@ export function TokenDisplay({
 					<ThemedIcon
 						name="coins"
 						size={size === "sm" ? "xs" : size === "md" ? "sm" : "md"}
+						className="text-white drop-shadow-sm"
 					/>
 				)}
 			</div>
@@ -224,11 +285,11 @@ export function TokenDisplay({
 				{showSymbol && symbol && (
 					<div
 						className={cn(
-							"text-foreground/70 truncate",
+							"text-foreground/70 truncate font-medium",
 							showName ? (size === "sm" ? "text-xs" : "text-sm") : config.text,
 						)}
 					>
-						{symbol}
+						{symbol.toUpperCase()}
 					</div>
 				)}
 

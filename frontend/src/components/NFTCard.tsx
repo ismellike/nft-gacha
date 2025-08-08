@@ -55,7 +55,8 @@ function AppraisalDisplay({
 		});
 
 	const isLoading = checkingAppraisal || loadingPrice;
-	const hasValidAppraisal = hasAppraisal && appraisalPrice && Number(appraisalPrice) > 0;
+	const hasValidAppraisal =
+		hasAppraisal && appraisalPrice && Number(appraisalPrice) > 0;
 
 	if (!hasValidAppraisal && !isLoading) {
 		return null;
@@ -212,7 +213,9 @@ function NFTImage({
 	}
 
 	return (
-		<div className={cn(classes.container, "relative overflow-hidden rounded-2xl")}>
+		<div
+			className={cn(classes.container, "relative overflow-hidden rounded-2xl")}
+		>
 			{isLoading && (
 				<div
 					className={cn(
@@ -356,7 +359,7 @@ export function NFTCard({
 					<h3 className="font-bold text-2xl bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
 						NFT {formatTokenId(tokenId)}
 					</h3>
-					
+
 					<div className="space-y-2">
 						<div className="text-sm text-foreground/60 uppercase tracking-wide">
 							Collection

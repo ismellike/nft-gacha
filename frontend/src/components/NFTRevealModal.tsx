@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { formatAddress, formatTokenId } from "../lib/utils";
 import { NFTRevealCard } from "./NFTCard";
 
 export interface SpinResult {

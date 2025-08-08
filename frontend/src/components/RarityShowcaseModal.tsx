@@ -15,7 +15,7 @@ import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
 import { NFTInventoryCard } from "./ui";
 
-// NFT Item type matching the contract  
+// NFT Item type matching the contract
 interface NFTItem {
 	collection: string;
 	depositor: string;
@@ -50,13 +50,15 @@ export default function RarityShowcaseModal({
 	const rarityConfig = getRarityConfig(rarity);
 
 	// Format NFT display data
-	const formattedItems = nftItems ? nftItems.map((item) => ({
-		collection: item.collection,
-		tokenId: item.tokenId.toString(),
-		depositor: item.depositor,
-		// Generate a placeholder image URL based on contract and tokenId
-		imageUrl: `https://via.placeholder.com/200x200/6366f1/ffffff?text=NFT%20${item.tokenId}`,
-	})) : [];
+	const formattedItems = nftItems
+		? nftItems.map((item) => ({
+				collection: item.collection,
+				tokenId: item.tokenId.toString(),
+				depositor: item.depositor,
+				// Generate a placeholder image URL based on contract and tokenId
+				imageUrl: `https://via.placeholder.com/200x200/6366f1/ffffff?text=NFT%20${item.tokenId}`,
+			}))
+		: [];
 
 	return (
 		<Modal
@@ -148,7 +150,9 @@ export default function RarityShowcaseModal({
 									tokenId={item.tokenId}
 									showAppraisal={true}
 									imageUrl={item.imageUrl}
-									appraisalContractAddress={env.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS}
+									appraisalContractAddress={
+										env.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS
+									}
 									animate={true}
 								/>
 							))}
