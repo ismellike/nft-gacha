@@ -4,17 +4,20 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { formatAddress, formatTokenId } from "../lib/utils";
+import { NFTRevealCard } from "./NFTCard";
 
 export interface SpinResult {
 	rarity: string;
 	collection: string;
 	tokenId: string;
+	imageUrl?: string;
 }
 
 interface NFTRevealModalProps {
 	isVisible: boolean;
 	nftResult: SpinResult;
 	onClose: () => void;
+	appraisalContractAddress?: `0x${string}`;
 }
 
 const ANIMATION_PHASES = {
@@ -30,6 +33,7 @@ export default function NFTRevealModal({
 	isVisible,
 	nftResult,
 	onClose,
+	appraisalContractAddress,
 }: NFTRevealModalProps) {
 	const [phase, setPhase] = useState<AnimationPhase>(
 		ANIMATION_PHASES.INITIALIZING,
@@ -382,166 +386,44 @@ export default function NFTRevealModal({
 								animate="visible"
 								exit="hidden"
 								style={{ perspective: 1000 }}
+								className="relative"
 							>
-								{/* Card Container */}
-								<div className="relative">
-									{/* Card Glow Effect */}
-									<motion.div
-										className={`absolute -inset-8 bg-gradient-to-r ${rarityConfig.bgGradient} rounded-3xl blur-2xl`}
-										initial={{ opacity: 0 }}
-										animate={{ opacity: [0, 0.6, 0.4] }}
-										transition={{ duration: 1, ease: "easeOut" }}
-									/>
-
-									{/* Main NFT Card */}
-									<motion.div
-										className="relative w-96 h-[28rem] bg-gradient-to-br from-content1/40 via-background/95 to-content1/30 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden"
-										whileHover={{ scale: 1.02 }}
-										transition={{ type: "spring", stiffness: 300 }}
+								{/* Close Button */}
+								<motion.button
+									onClick={onClose}
+									className="absolute top-4 right-4 z-30 w-12 h-12 bg-gradient-to-br from-content1/60 to-content1/40 hover:from-content1/80 hover:to-content1/60 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group"
+									whileHover={{ scale: 1.1 }}
+									whileTap={{ scale: 0.95 }}
+									initial={{ opacity: 0, scale: 0 }}
+									animate={{ opacity: 1, scale: 1 }}
+									transition={{ delay: 0.5 }}
+								>
+									<div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl" />
+									<svg
+										className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors relative z-10"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2.5}
 									>
-										{/* Inner glassmorphism layer */}
-										<div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl pointer-events-none" />
-										{/* Close Button */}
-										<motion.button
-											onClick={onClose}
-											className="absolute top-4 right-4 z-20 w-10 h-10 bg-gradient-to-br from-content1/60 to-content1/40 hover:from-content1/80 hover:to-content1/60 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group"
-											whileHover={{ scale: 1.1 }}
-											whileTap={{ scale: 0.95 }}
-											initial={{ opacity: 0, scale: 0 }}
-											animate={{ opacity: 1, scale: 1 }}
-											transition={{ delay: 0.5 }}
-										>
-											<div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl" />
-											<svg
-												className="w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors relative z-10"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-												strokeWidth={2.5}
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M6 18L18 6M6 6l12 12"
-												/>
-											</svg>
-										</motion.button>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M6 18L18 6M6 6l12 12"
+										/>
+									</svg>
+								</motion.button>
 
-										<div className="w-full h-full flex flex-col items-center justify-center space-y-6 p-8">
-											{/* Rarity Badge */}
-											<motion.div
-												className="relative"
-												initial={{ opacity: 0, y: -20 }}
-												animate={{ opacity: 1, y: 0 }}
-												transition={{ delay: 0.2 }}
-											>
-												<motion.div
-													className={`absolute -inset-4 bg-gradient-to-r ${rarityConfig.bgGradient} rounded-2xl blur-lg`}
-													animate={{ opacity: [0.3, 0.6, 0.3] }}
-													transition={{ duration: 2, repeat: Infinity }}
-												/>
-												<div className="relative px-6 py-3 bg-gradient-to-br from-content1/50 via-background/90 to-content1/40 backdrop-blur-xl rounded-2xl border border-white/30 shadow-xl">
-													<div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent rounded-2xl" />
-													<span
-														className={`${rarityConfig.textColor} font-bold text-xl flex items-center gap-3 relative z-10`}
-													>
-														<motion.span
-															className="text-2xl"
-															animate={{ scale: [1, 1.2, 1] }}
-															transition={{ duration: 1, delay: 0.3 }}
-														>
-															{rarityConfig.emoji}
-														</motion.span>
-														<span className="tracking-wide">
-															{nftResult.rarity}
-														</span>
-													</span>
-												</div>
-											</motion.div>
-
-											{/* NFT Crystal Visual */}
-											<motion.div
-												className="relative"
-												initial={{ opacity: 0, scale: 0 }}
-												animate={{ opacity: 1, scale: 1 }}
-												transition={{
-													delay: 0.4,
-													type: "spring",
-													stiffness: 100,
-												}}
-											>
-												<motion.div
-													className={`absolute -inset-6 bg-gradient-to-r ${rarityConfig.bgGradient} rounded-3xl blur-xl`}
-													animate={{ opacity: [0.2, 0.4, 0.2] }}
-													transition={{ duration: 3, repeat: Infinity }}
-												/>
-												<div
-													className={`relative w-48 h-48 bg-gradient-to-br ${rarityConfig.bgGradient} rounded-2xl flex items-center justify-center border-2 border-white/40 shadow-xl`}
-												>
-													<div className="absolute inset-2 bg-gradient-to-br from-content1/60 via-background/95 to-content1/40 rounded-xl backdrop-blur-xl"></div>
-													<div className="absolute inset-2 bg-gradient-to-br from-white/20 to-transparent rounded-xl"></div>
-
-													{/* Animated Crystal */}
-													<motion.div
-														className="relative z-10"
-														animate={{
-															y: [-2, 2, -2],
-														}}
-														transition={{
-															y: {
-																duration: 3,
-																repeat: Infinity,
-																ease: "easeInOut",
-															},
-														}}
-													>
-														<div
-															className={`w-20 h-20 bg-gradient-to-br ${rarityConfig.bgGradient} rounded-lg transform rotate-45 border-2 border-white/60 shadow-xl`}
-														>
-															<motion.div
-																className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent rounded-lg"
-																animate={{ opacity: [0.4, 0.8, 0.4] }}
-																transition={{ duration: 1.5, repeat: Infinity }}
-															/>
-														</div>
-													</motion.div>
-												</div>
-											</motion.div>
-
-											{/* NFT Details */}
-											<motion.div
-												className="text-center space-y-3"
-												initial={{ opacity: 0, y: 20 }}
-												animate={{ opacity: 1, y: 0 }}
-												transition={{ delay: 0.6 }}
-											>
-												<h3
-													className={`text-2xl font-bold bg-gradient-to-r ${rarityConfig.bgGradient} bg-clip-text text-transparent`}
-												>
-													NFT {formatTokenId(nftResult.tokenId)}
-												</h3>
-												<p className="text-sm text-foreground/70 font-mono">
-													{formatAddress(nftResult.collection)}
-												</p>
-											</motion.div>
-
-											{/* Success Message */}
-											<motion.div
-												className="text-center"
-												initial={{ opacity: 0, y: 20 }}
-												animate={{ opacity: 1, y: 0 }}
-												transition={{
-													delay: 0.8,
-													duration: 0.6,
-													ease: "easeOut",
-												}}
-											>
-												<p className="text-lg font-semibold text-warning tracking-wide">
-													Successfully Acquired
-												</p>
-											</motion.div>
-										</div>
-									</motion.div>
+								{/* NFT Card Container */}
+								<div className="relative">
+									<NFTRevealCard
+										collection={nftResult.collection}
+										tokenId={nftResult.tokenId}
+										imageUrl={nftResult.imageUrl}
+										showAppraisal={true}
+										appraisalContractAddress={appraisalContractAddress}
+										className="w-96"
+									/>
 								</div>
 							</motion.div>
 						)}

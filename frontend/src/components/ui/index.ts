@@ -17,3 +17,12 @@ export {
 	TabContentSkeleton,
 } from "./SkeletonLoader";
 export { Breadcrumb, GachaBreadcrumb } from "./Breadcrumb";
+
+// Re-export NFT components from parent components directory
+export {
+	NFTCard,
+	NFTInventoryCard,
+	NFTShowcaseCard,
+	NFTRevealCard,
+	type NFTCardProps,
+} from "../NFTCard";

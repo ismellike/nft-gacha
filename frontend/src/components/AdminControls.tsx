@@ -18,7 +18,11 @@ import {
 	useReadGachaPaused,
 } from "@/generated";
 import { formatUnits, parseUnits } from "viem";
-import { formatTokenAmount, formatAddress, formatPercentage } from "@/lib/utils";
+import {
+	formatTokenAmount,
+	formatAddress,
+	formatPercentage,
+} from "@/lib/utils";
 import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
 import type { GachaConfig } from "@/lib/gacha-config";
 
@@ -163,7 +167,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 					</GlassBadge>
 					<GlassBadge variant="info">
 						<span className="font-mono text-xs">
-							{userAddress ? formatAddress(userAddress) : ''}
+							{userAddress ? formatAddress(userAddress) : ""}
 						</span>
 					</GlassBadge>
 				</div>
@@ -414,7 +418,12 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 					</label>
 					<div className="bg-content1/10 border border-white/10 rounded-xl p-4">
 						<div className="text-2xl font-bold text-warning">
-							{currentFee ? formatTokenAmount(currentFee, 18, { maxDecimals: 4, suffix: ' TOKENS' }) : "0 TOKENS"}
+							{currentFee
+								? formatTokenAmount(currentFee, 18, {
+										maxDecimals: 4,
+										suffix: " TOKENS",
+									})
+								: "0 TOKENS"}
 						</div>
 					</div>
 				</div>

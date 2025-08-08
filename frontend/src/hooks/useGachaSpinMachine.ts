@@ -60,7 +60,13 @@ export function useGachaSpinMachine(
 				// Check if this is the event we're waiting for
 				if (triggerId === state.context.triggerId) {
 					// Convert rarity enum to string
-					const rarityNames = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
+					const rarityNames = [
+						"Common",
+						"Uncommon",
+						"Rare",
+						"Epic",
+						"Legendary",
+					];
 					const rarityName = rarityNames[Number(rarity)] || "Unknown";
 
 					const result: SpinResult = {

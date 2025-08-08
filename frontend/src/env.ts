@@ -12,17 +12,20 @@ export type EnvMode = "LOCAL" | "TESTNET" | "MAINNET";
 export const getEnvMode = (): EnvMode => {
 	const nodeEnv = process.env.NODE_ENV;
 	const envMode = process.env.NEXT_PUBLIC_ENV_MODE;
-	
+
 	// Explicit env mode takes precedence
-	if (envMode && ["LOCAL", "TESTNET", "MAINNET"].includes(envMode.toUpperCase())) {
+	if (
+		envMode &&
+		["LOCAL", "TESTNET", "MAINNET"].includes(envMode.toUpperCase())
+	) {
 		return envMode.toUpperCase() as EnvMode;
 	}
-	
+
 	// Fallback to NODE_ENV detection
 	if (nodeEnv === "development") return "LOCAL";
 	if (nodeEnv === "test") return "TESTNET";
 	if (nodeEnv === "production") return "MAINNET";
-	
+
 	// Default fallback
 	return "LOCAL";
 };
@@ -36,6 +39,7 @@ const envSchema = z.object({
 	NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS: addressSchema,
 	NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS: addressSchema,
 	NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS: addressSchema,
+	NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS: addressSchema,
 
 	// WAVS chain configuration
 	NEXT_PUBLIC_WAVS_CHAIN_RPC_URL: z.string(),
@@ -60,6 +64,8 @@ export const env = envSchema.parse({
 		process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 	NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS:
 		process.env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
+	NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS:
+		process.env.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS,
 	NEXT_PUBLIC_WAVS_CHAIN_RPC_URL: process.env.NEXT_PUBLIC_WAVS_CHAIN_RPC_URL,
 	NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:
 		process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,

@@ -178,7 +178,7 @@ function GachaCard({ gacha }: { gacha: GachaConfig }) {
 			? formatTokenAmount(spinFee, feeTokenDecimals, {
 					maxDecimals: 4,
 					suffix: ` ${feeTokenSymbol}`,
-					useGrouping: true
+					useGrouping: true,
 				})
 			: "Loading...";
 

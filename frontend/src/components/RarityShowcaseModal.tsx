@@ -7,17 +7,15 @@ import {
 	ModalBody,
 	ModalFooter,
 	Button,
-	Card,
-	CardBody,
-	Image,
 	Chip,
 	Spinner,
 } from "@heroui/react";
 import { env } from "../env";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
+import { NFTInventoryCard } from "./ui";
 
-// NFT Item type matching the contract
+// NFT Item type matching the contract  
 interface NFTItem {
 	collection: string;
 	depositor: string;
@@ -52,18 +50,13 @@ export default function RarityShowcaseModal({
 	const rarityConfig = getRarityConfig(rarity);
 
 	// Format NFT display data
-	const formatNFTItems = (items: readonly NFTItem[] | undefined) => {
-		if (!items) return [];
-		return items.map((item) => ({
-			collection: item.collection,
-			tokenId: item.tokenId.toString(),
-			depositor: item.depositor,
-			// Generate a placeholder image URL based on contract and tokenId
-			imageUrl: `https://via.placeholder.com/200x200/6366f1/ffffff?text=NFT%20${item.tokenId}`,
-		}));
-	};
-
-	const formattedItems = formatNFTItems(nftItems);
+	const formattedItems = nftItems ? nftItems.map((item) => ({
+		collection: item.collection,
+		tokenId: item.tokenId.toString(),
+		depositor: item.depositor,
+		// Generate a placeholder image URL based on contract and tokenId
+		imageUrl: `https://via.placeholder.com/200x200/6366f1/ffffff?text=NFT%20${item.tokenId}`,
+	})) : [];
 
 	return (
 		<Modal
@@ -148,67 +141,16 @@ export default function RarityShowcaseModal({
 						</div>
 					) : (
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-							{formattedItems.map((item, index) => (
-								<Card
+							{formattedItems.map((item) => (
+								<NFTInventoryCard
 									key={`${item.collection}-${item.tokenId}`}
-									className={`group bg-content2/10 backdrop-blur-xl border ${rarityConfig.borderColor} hover:${rarityConfig.borderColor.replace("/50", "/80")} transition-all duration-300 hover:shadow-lg ${rarityConfig.glowColor}`}
-								>
-									<CardBody className="p-0">
-										{/* NFT Image */}
-										<div className="relative overflow-hidden rounded-t-lg">
-											<Image
-												src={item.imageUrl}
-												alt={`NFT ${item.tokenId}`}
-												className="w-full h-36 object-cover transition-all duration-300"
-												loading="lazy"
-											/>
-											<div className="absolute top-2 right-2">
-												<Chip
-													color={rarityConfig.chipColor}
-													variant="solid"
-													size="sm"
-													className={`text-xs font-bold bg-gradient-to-r ${rarityConfig.bgGradient} text-white border-transparent`}
-												>
-													<span className="flex items-center gap-1">
-														<span>{rarityConfig.emoji}</span>
-														{rarityConfig.name}
-													</span>
-												</Chip>
-											</div>
-											{/* Rarity glow overlay */}
-											<div
-												className={`absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-300 ${rarityConfig.bgGradient}`}
-											></div>
-										</div>
-
-										{/* NFT Details */}
-										<div className="p-3">
-											<h5
-												className={`font-semibold ${rarityConfig.textColor} mb-2 text-sm`}
-											>
-												NFT #{item.tokenId}
-											</h5>
-											<div className="space-y-1 text-xs">
-												<div className="flex justify-between">
-													<span className="text-foreground/60">
-														Collection:
-													</span>
-													<span className="text-foreground font-mono">
-														{item.collection.slice(0, 6)}...
-														{item.collection.slice(-4)}
-													</span>
-												</div>
-												<div className="flex justify-between">
-													<span className="text-foreground/60">Depositor:</span>
-													<span className="text-foreground font-mono">
-														{item.depositor.slice(0, 6)}...
-														{item.depositor.slice(-4)}
-													</span>
-												</div>
-											</div>
-										</div>
-									</CardBody>
-								</Card>
+									collection={item.collection}
+									tokenId={item.tokenId}
+									showAppraisal={true}
+									imageUrl={item.imageUrl}
+									appraisalContractAddress={env.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS}
+									animate={true}
+								/>
 							))}
 						</div>
 					)}

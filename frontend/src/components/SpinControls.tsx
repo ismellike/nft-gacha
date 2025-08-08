@@ -132,9 +132,9 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 	// Formatted values using enhanced utilities
 	const formattedBalance =
 		tokenBalance && tokenDecimals
-			? formatTokenAmount(tokenBalance, tokenDecimals, { 
-					maxDecimals: 4, 
-					useGrouping: true 
+			? formatTokenAmount(tokenBalance, tokenDecimals, {
+					maxDecimals: 4,
+					useGrouping: true,
 				})
 			: "0";
 

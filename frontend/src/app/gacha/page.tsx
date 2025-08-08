@@ -182,7 +182,7 @@ export default function GachaDetailPage() {
 			maxDecimals: 6,
 			minDecimals: 0,
 			useGrouping: true,
-			notation: 'standard'
+			notation: "standard",
 		});
 	};
 

@@ -125,7 +125,7 @@ export default function RewardsDashboard() {
 			maxDecimals: 6,
 			minDecimals: 0,
 			useGrouping: true,
-			notation: 'standard'
+			notation: "standard",
 		});
 	};
 
@@ -236,7 +236,8 @@ export default function RewardsDashboard() {
 									Available to Claim
 								</p>
 								<h3 className="text-3xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent mt-2">
-									{formatTokenAmountLocal(totalClaimable)} {tokenSymbol || "TOKENS"}
+									{formatTokenAmountLocal(totalClaimable)}{" "}
+									{tokenSymbol || "TOKENS"}
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
@@ -259,7 +260,9 @@ export default function RewardsDashboard() {
 									Total Claimed
 								</p>
 								<h3 className="text-3xl font-bold text-foreground mt-2">
-									{userAnalytics ? formatTokenAmountLocal(userAnalytics[0]) : "0"}{" "}
+									{userAnalytics
+										? formatTokenAmountLocal(userAnalytics[0])
+										: "0"}{" "}
 									{tokenSymbol || "TOKENS"}
 								</h3>
 							</div>
