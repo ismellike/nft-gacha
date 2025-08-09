@@ -159,6 +159,7 @@ export default function RarityShowcaseModal({
 										contracts.appraisal!
 									}
 									animate={true}
+									rarity={rarity}
 								/>
 							))}
 						</div>

@@ -8,6 +8,7 @@ import {
 	useReadNftAppraisalGetAppraisedPrice,
 	useReadNftAppraisalHasAppraisal,
 } from "../generated";
+import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 
 export interface NFTCardProps {
 	collection: string;
@@ -19,6 +20,7 @@ export interface NFTCardProps {
 	imageUrl?: string;
 	animate?: boolean;
 	appraisalContractAddress: `0x${string}`;
+	rarity?: Rarity;
 }
 
 function AppraisalDisplay({
@@ -283,9 +285,13 @@ export function NFTCard({
 	imageUrl,
 	animate = true,
 	appraisalContractAddress,
+	rarity,
 }: NFTCardProps) {
 	const isCompact = variant === "compact";
 	const isInteractive = !!onClick;
+	
+	// Get rarity theming if provided
+	const rarityConfig = rarity ? getRarityConfig(rarity) : null;
 
 	const cardVariants = {
 		hover: animate
@@ -318,23 +324,34 @@ export function NFTCard({
 			<CardComponent
 				className={cn(
 					"relative group",
-					"bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden",
-					"hover:bg-white/10 hover:border-white/20 transition-all duration-500",
+					"backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden transition-all duration-500",
 					isInteractive && "cursor-pointer",
+					// Base styling or rarity-specific styling
+					rarityConfig
+						? `bg-gradient-to-br ${rarityConfig.bgGradient}/5 border ${rarityConfig.borderColor}/30 hover:${rarityConfig.bgGradient}/8`
+						: "bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20",
 					className,
 				)}
 				onClick={onClick}
 				{...motionProps}
 			>
 				{/* Glassmorphism layers */}
-				<div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/2 to-transparent" />
+				<div className={cn(
+					"absolute inset-0 bg-gradient-to-br to-transparent",
+					rarityConfig ? `${rarityConfig.bgGradient}/3 via-white/2` : "from-white/5 via-white/2"
+				)} />
 				<div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
 
 				<div className="relative z-10 p-4">
 					{/* Contract & Token ID - Top */}
 					<div className="flex items-center justify-between mb-3">
 						<div className="flex items-center gap-2">
-							<div className="w-2 h-2 bg-gradient-to-r from-warning to-orange-400 rounded-full animate-pulse shadow-sm" />
+							<div className={cn(
+								"w-2 h-2 rounded-full animate-pulse shadow-sm",
+								rarityConfig 
+									? `bg-gradient-to-r ${rarityConfig.bgGradient}/80`
+									: "bg-gradient-to-r from-warning to-orange-400"
+							)} />
 							<span className="text-xs font-mono text-white/60 uppercase tracking-wider">
 								{formatAddress(collection)}
 							</span>
@@ -372,23 +389,34 @@ export function NFTCard({
 		<CardComponent
 			className={cn(
 				"relative group",
-				"bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden",
-				"hover:bg-white/10 hover:border-white/20 transition-all duration-500",
+				"backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden transition-all duration-500",
 				isInteractive && "cursor-pointer",
+				// Base styling or rarity-specific styling
+				rarityConfig
+					? `bg-gradient-to-br ${rarityConfig.bgGradient}/5 border ${rarityConfig.borderColor}/30 hover:${rarityConfig.bgGradient}/8`
+					: "bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20",
 				className,
 			)}
 			onClick={onClick}
 			{...motionProps}
 		>
 			{/* Glassmorphism layers */}
-			<div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/2 to-transparent" />
+			<div className={cn(
+				"absolute inset-0 bg-gradient-to-br to-transparent",
+				rarityConfig ? `${rarityConfig.bgGradient}/3 via-white/2` : "from-white/5 via-white/2"
+			)} />
 			<div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
 
 			<div className="relative z-10 p-4">
 				{/* Contract & Token ID - Top */}
 				<div className="flex items-center justify-between mb-3">
 					<div className="flex items-center gap-2">
-						<div className="w-2 h-2 bg-gradient-to-r from-warning to-orange-400 rounded-full animate-pulse shadow-sm" />
+						<div className={cn(
+							"w-2 h-2 rounded-full animate-pulse shadow-sm",
+							rarityConfig 
+								? `bg-gradient-to-r ${rarityConfig.bgGradient}/80`
+								: "bg-gradient-to-r from-warning to-orange-400"
+						)} />
 						<span className="text-xs font-mono text-white/60 uppercase tracking-wider">
 							{formatAddress(collection)}
 						</span>

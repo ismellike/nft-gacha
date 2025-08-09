@@ -4,11 +4,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTRevealCard } from "./NFTCard";
-import { formatCurrency } from "../lib/utils";
-import {
-	useReadNftAppraisalHasAppraisal,
-	useReadNftAppraisalGetAppraisedPrice,
-} from "../generated";
 
 export interface SpinResult {
 	rarity: string;
@@ -62,9 +57,8 @@ export default function NFTRevealModal({
 
 	if (!isVisible) return null;
 
-	const rarityConfig = getRarityConfig(
-		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common,
-	);
+	const resultRarity = Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
+	const rarityConfig = getRarityConfig(resultRarity);
 
 	const backdropVariants = {
 		hidden: { opacity: 0 },
@@ -427,6 +421,7 @@ export default function NFTRevealModal({
 										showAppraisal={true}
 										appraisalContractAddress={appraisalContractAddress}
 										className="w-96"
+										rarity={resultRarity}
 									/>
 								</div>
 							</motion.div>
