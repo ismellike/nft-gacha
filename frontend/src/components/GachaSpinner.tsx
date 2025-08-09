@@ -6,9 +6,13 @@ import RarityBreakdown from "./RarityBreakdown";
 import LastSpinResult from "./LastSpinResult";
 import NFTRevealModal from "./NFTRevealModal";
 import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
+import { useGachaContracts } from "../hooks/useGachaContracts";
+import { useGachaId } from "../hooks/useGachaId";
 
 export default function GachaSpinner() {
 	const [refreshKey, setRefreshKey] = useState(0);
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
 
 	// Use the new state machine hook
 	const gachaSpin = useGachaSpinMachine();
@@ -16,7 +20,7 @@ export default function GachaSpinner() {
 	return (
 		<div className="space-y-16">
 			{/* NFT Reveal Modal */}
-			{gachaSpin.isRevealing && gachaSpin.spinResult && (
+			{gachaSpin.isRevealing && gachaSpin.spinResult && contracts.appraisal && (
 				<NFTRevealModal
 					isVisible={true}
 					nftResult={gachaSpin.spinResult}
@@ -25,6 +29,7 @@ export default function GachaSpinner() {
 						// Refresh rarity counts after reveal closes
 						setRefreshKey((prev) => prev + 1);
 					}}
+					appraisalContractAddress={contracts.appraisal}
 				/>
 			)}
 

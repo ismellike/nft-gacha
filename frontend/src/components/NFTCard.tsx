@@ -18,7 +18,7 @@ export interface NFTCardProps {
 	onClick?: () => void;
 	imageUrl?: string;
 	animate?: boolean;
-	appraisalContractAddress?: `0x${string}`;
+	appraisalContractAddress: `0x${string}`;
 }
 
 function AppraisalDisplay({
@@ -55,10 +55,13 @@ function AppraisalDisplay({
 		});
 
 	const isLoading = checkingAppraisal || loadingPrice;
-	const hasValidAppraisal = hasAppraisal && appraisalPrice && Number(appraisalPrice) > 0;
+	// getAppraisedPrice returns [priceUSD, status] - extract the price
+	const priceUSD = Array.isArray(appraisalPrice) ? appraisalPrice[0] : appraisalPrice;
+	const hasValidAppraisal = hasAppraisal && priceUSD && Number(priceUSD) > 0;
 	const hasError = appraisalCheckError || priceError;
+	
 
-	// Always show something for debugging purposes, even when there's no appraisal
+	// Show info when there's no appraisal available
 	const showDebugInfo = !hasValidAppraisal && !isLoading && !hasError;
 
 	return (
@@ -68,7 +71,7 @@ function AppraisalDisplay({
 			transition={{ duration: 0.3 }}
 			className={cn(
 				"backdrop-blur-xl border rounded-lg px-3 py-2 shadow-lg",
-				hasValidAppraisal 
+				hasValidAppraisal
 					? "bg-gradient-to-r from-success/20 to-emerald-500/20 border-success/30" 
 					: hasError
 					? "bg-gradient-to-r from-danger/20 to-red-500/20 border-danger/30"
@@ -81,7 +84,7 @@ function AppraisalDisplay({
 				<div className="flex items-center gap-2">
 					<div className={cn(
 						"w-2 h-2 rounded-full shadow-sm",
-						hasValidAppraisal 
+						hasValidAppraisal
 							? "bg-success shadow-success/50 animate-pulse" 
 							: hasError
 							? "bg-danger shadow-danger/50"
@@ -91,7 +94,7 @@ function AppraisalDisplay({
 					)} />
 					<span className={cn(
 						"font-medium uppercase tracking-wide text-xs",
-						hasValidAppraisal 
+						hasValidAppraisal
 							? "text-success/80" 
 							: hasError
 							? "text-danger/80"
@@ -104,7 +107,7 @@ function AppraisalDisplay({
 				</div>
 				<div className={cn(
 					"font-bold text-sm",
-					hasValidAppraisal 
+					hasValidAppraisal
 						? "text-success" 
 						: hasError
 						? "text-danger"
@@ -117,7 +120,7 @@ function AppraisalDisplay({
 							<motion.div
 								className={cn(
 									"w-4 h-4 border-2 rounded-full",
-									hasValidAppraisal 
+									hasValidAppraisal
 										? "border-success/30 border-t-success" 
 										: "border-content1/30 border-t-content1"
 								)}
@@ -127,8 +130,8 @@ function AppraisalDisplay({
 							<span className="text-foreground/60">Loading...</span>
 						</div>
 					) : hasValidAppraisal ? (
-						<span className="text-success font-bold">
-							{formatCurrency(appraisalPrice?.toString() || "0", 18, "USD")}
+						<span className="text-white font-bold drop-shadow-sm">
+							{formatCurrency(priceUSD?.toString() || "0", 18, "USD")}
 						</span>
 					) : hasError ? (
 						<span className="text-danger text-xs">Failed</span>
@@ -367,7 +370,7 @@ export function NFTCard({
 						<p className="text-sm text-foreground/70 font-mono truncate">
 							{formatAddress(collection)}
 						</p>
-						{showAppraisal && appraisalContractAddress && (
+						{showAppraisal && (
 							<AppraisalDisplay
 								collection={collection as `0x${string}`}
 								tokenId={tokenId}
@@ -420,7 +423,7 @@ export function NFTCard({
 						</p>
 					</div>
 
-					{showAppraisal && appraisalContractAddress && (
+					{showAppraisal && (
 						<AppraisalDisplay
 							collection={collection as `0x${string}`}
 							tokenId={tokenId}

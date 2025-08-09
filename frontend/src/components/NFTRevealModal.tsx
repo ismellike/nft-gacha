@@ -21,7 +21,7 @@ interface NFTRevealModalProps {
 	isVisible: boolean;
 	nftResult: SpinResult;
 	onClose: () => void;
-	appraisalContractAddress?: `0x${string}`;
+	appraisalContractAddress: `0x${string}`;
 }
 
 const ANIMATION_PHASES = {
@@ -66,7 +66,9 @@ function RevealAppraisalDisplay({
 		});
 
 	const isLoading = checkingAppraisal || loadingPrice;
-	const hasValidAppraisal = hasAppraisal && appraisalPrice && Number(appraisalPrice) > 0;
+	// getAppraisedPrice returns [priceUSD, status] - extract the price
+	const priceUSD = Array.isArray(appraisalPrice) ? appraisalPrice[0] : appraisalPrice;
+	const hasValidAppraisal = hasAppraisal && priceUSD && Number(priceUSD) > 0;
 
 	if (!appraisalContractAddress) return null;
 
@@ -97,8 +99,8 @@ function RevealAppraisalDisplay({
 						transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
 						className="space-y-2"
 					>
-						<div className="text-3xl font-bold bg-gradient-to-r from-success via-emerald-400 to-success bg-clip-text text-transparent">
-							{formatCurrency(appraisalPrice.toString(), 18, "USD")}
+						<div className="text-3xl font-bold text-white drop-shadow-lg">
+							{formatCurrency(priceUSD?.toString() || "0", 18, "USD")}
 						</div>
 						<div className="flex items-center justify-center gap-2">
 							<div className="w-2 h-2 bg-success rounded-full animate-pulse" />
