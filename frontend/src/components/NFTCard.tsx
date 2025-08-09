@@ -57,95 +57,62 @@ function AppraisalDisplay({
 	const isLoading = checkingAppraisal || loadingPrice;
 	// getAppraisedPrice returns [priceUSD, status] - extract the price
 	const priceUSD = Array.isArray(appraisalPrice) ? appraisalPrice[0] : appraisalPrice;
-	const hasValidAppraisal = hasAppraisal && priceUSD && Number(priceUSD) > 0;
+	const hasValidAppraisal = Boolean(hasAppraisal && priceUSD && Number(priceUSD) > 0);
 	const hasError = appraisalCheckError || priceError;
 	
 
 	// Show info when there's no appraisal available
 	const showDebugInfo = !hasValidAppraisal && !isLoading && !hasError;
 
-	return (
-		<motion.div
-			initial={{ opacity: 0, scale: 0.95 }}
-			animate={{ opacity: 1, scale: 1 }}
-			transition={{ duration: 0.3 }}
-			className={cn(
-				"backdrop-blur-xl border rounded-lg px-3 py-2 shadow-lg",
-				hasValidAppraisal
-					? "bg-gradient-to-r from-success/20 to-emerald-500/20 border-success/30" 
-					: hasError
-					? "bg-gradient-to-r from-danger/20 to-red-500/20 border-danger/30"
-					: showDebugInfo
-					? "bg-gradient-to-r from-warning/20 to-orange-500/20 border-warning/30"
-					: "bg-gradient-to-r from-content1/20 to-content1/30 border-white/20"
-			)}
-		>
-			<div className="flex items-center justify-between gap-2">
-				<div className="flex items-center gap-2">
-					<div className={cn(
-						"w-2 h-2 rounded-full shadow-sm",
-						hasValidAppraisal
-							? "bg-success shadow-success/50 animate-pulse" 
-							: hasError
-							? "bg-danger shadow-danger/50"
-							: showDebugInfo
-							? "bg-warning shadow-warning/50"
-							: "bg-content1 shadow-white/30 animate-pulse"
-					)} />
-					<span className={cn(
-						"font-medium uppercase tracking-wide text-xs",
-						hasValidAppraisal
-							? "text-success/80" 
-							: hasError
-							? "text-danger/80"
-							: showDebugInfo
-							? "text-warning/80"
-							: "text-foreground/60"
-					)}>
-						{hasValidAppraisal ? "Appraised" : hasError ? "Error" : showDebugInfo ? "No Appraisal" : "Checking..."}
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center gap-2">
+				<motion.div
+					className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+					animate={{ rotate: 360 }}
+					transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+				/>
+				<span className="text-white/70 text-sm">Loading...</span>
+			</div>
+		);
+	}
+
+	if (hasValidAppraisal) {
+		return (
+			<div className="text-center space-y-1">
+				<div className="flex items-center justify-center gap-2">
+					<div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+					<span className="text-emerald-300 text-xs font-medium uppercase tracking-wide">
+						Appraised Value
 					</span>
 				</div>
-				<div className={cn(
-					"font-bold text-sm",
-					hasValidAppraisal
-						? "text-success" 
-						: hasError
-						? "text-danger"
-						: showDebugInfo
-						? "text-warning"
-						: "text-foreground/60"
-				)}>
-					{isLoading ? (
-						<div className="flex items-center gap-1">
-							<motion.div
-								className={cn(
-									"w-4 h-4 border-2 rounded-full",
-									hasValidAppraisal
-										? "border-success/30 border-t-success" 
-										: "border-content1/30 border-t-content1"
-								)}
-								animate={{ rotate: 360 }}
-								transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-							/>
-							<span className="text-foreground/60">Loading...</span>
-						</div>
-					) : hasValidAppraisal ? (
-						<span className="text-white font-bold drop-shadow-sm">
-							{formatCurrency(priceUSD?.toString() || "0", 18, "USD")}
-						</span>
-					) : hasError ? (
-						<span className="text-danger text-xs">Failed</span>
-					) : showDebugInfo ? (
-						<span className="text-warning text-xs">N/A</span>
-					) : null}
+				<div className="text-xl font-bold text-white drop-shadow-lg">
+					{formatCurrency(priceUSD?.toString() || "0", 18, "USD")}
 				</div>
 			</div>
-			{hasValidAppraisal && (
-				<div className="mt-1 text-xs text-success/60 font-mono">
-					Contract: {appraisalContractAddress?.slice(0, 6)}...{appraisalContractAddress?.slice(-4)}
-				</div>
-			)}
-		</motion.div>
+		);
+	}
+
+	if (hasError) {
+		return (
+			<div className="text-center">
+				<span className="text-red-300 text-xs">Failed to load appraisal</span>
+			</div>
+		);
+	}
+
+	if (showDebugInfo) {
+		return (
+			<div className="text-center">
+				<span className="text-yellow-300 text-xs">No appraisal available</span>
+			</div>
+		);
+	}
+
+	return (
+		<div className="text-center">
+			<span className="text-white/60 text-xs">Checking...</span>
+		</div>
 	);
 }
 
@@ -167,9 +134,9 @@ function NFTImage({
 	const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
 
 	const sizeClasses = {
-		sm: { container: "w-24 h-24", icon: "w-8 h-8" },
-		md: { container: "w-48 h-48", icon: "w-16 h-16" },
-		lg: { container: "w-64 h-64", icon: "w-24 h-24" },
+		sm: { container: "w-32 h-32", icon: "w-10 h-10" },
+		md: { container: "w-80 h-80", icon: "w-20 h-20" },
+		lg: { container: "w-96 h-96", icon: "w-32 h-32" },
 	};
 
 	const classes = sizeClasses[size];
@@ -198,29 +165,29 @@ function NFTImage({
 			<motion.div
 				className={cn(
 					classes.container,
-					"rounded-2xl flex flex-col items-center justify-center",
-					"bg-gradient-to-br from-content1/60 via-background/95 to-content1/40 border-2 border-white/40 shadow-xl relative overflow-hidden",
+					"rounded-2xl flex flex-col items-center justify-center relative overflow-hidden",
+					"bg-white/5 backdrop-blur-xl border border-white/20 shadow-2xl",
 				)}
 				animate={
 					animate
 						? {
 								boxShadow: [
-									"0 0 20px rgba(251, 146, 60, 0.3)",
-									"0 0 40px rgba(251, 146, 60, 0.5)",
-									"0 0 20px rgba(251, 146, 60, 0.3)",
+									"0 0 30px rgba(255, 255, 255, 0.1)",
+									"0 0 50px rgba(255, 255, 255, 0.2)",
+									"0 0 30px rgba(255, 255, 255, 0.1)",
 								],
 							}
 						: {}
 				}
 				transition={{
-					duration: 2,
+					duration: 3,
 					repeat: Infinity,
 					ease: "easeInOut",
 				}}
 			>
-				{/* Background glassmorphism layer */}
-				<div className="absolute inset-2 bg-gradient-to-br from-content1/60 via-background/95 to-content1/40 rounded-xl backdrop-blur-xl" />
-				<div className="absolute inset-2 bg-gradient-to-br from-white/20 to-transparent rounded-xl" />
+				{/* Glassmorphism layers */}
+				<div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent" />
+				<div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
 
 				{/* Animated crystal icon */}
 				<motion.div
@@ -228,16 +195,18 @@ function NFTImage({
 					animate={
 						animate
 							? {
-									y: [-2, 2, -2],
+									y: [-3, 3, -3],
 									rotateY: [0, 180, 360],
+									scale: [1, 1.05, 1],
 								}
 							: {}
 					}
 					transition={
 						animate
 							? {
-									y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-									rotateY: { duration: 8, repeat: Infinity, ease: "linear" },
+									y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+									rotateY: { duration: 10, repeat: Infinity, ease: "linear" },
+									scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
 								}
 							: {}
 					}
@@ -245,21 +214,24 @@ function NFTImage({
 					<div
 						className={cn(
 							classes.icon,
-							"bg-gradient-to-br from-warning to-orange-500 rounded-lg transform rotate-45 border-2 border-white/60 shadow-xl",
+							"bg-gradient-to-br from-orange-400/80 to-yellow-500/80 rounded-2xl",
+							"border border-white/40 shadow-xl backdrop-blur-sm",
+							"flex items-center justify-center transform rotate-45",
 						)}
 					>
 						<motion.div
-							className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent rounded-lg"
-							animate={animate ? { opacity: [0.4, 0.8, 0.4] } : {}}
-							transition={animate ? { duration: 1.5, repeat: Infinity } : {}}
+							className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent rounded-2xl"
+							animate={animate ? { opacity: [0.3, 0.6, 0.3] } : {}}
+							transition={animate ? { duration: 2, repeat: Infinity } : {}}
 						/>
+						<div className="w-4 h-4 bg-white/60 rounded-full transform -rotate-45" />
 					</div>
 				</motion.div>
 
 				{/* NFT info */}
-				<div className="relative z-10 mt-3 text-center">
-					<div className="text-xs font-bold text-white/90 tracking-wide">
-						NFT {formatTokenId(tokenId)}
+				<div className="relative z-10 mt-4 text-center">
+					<div className="text-xs font-medium text-white/80 tracking-wide">
+						{formatTokenId(tokenId)}
 					</div>
 				</div>
 			</motion.div>
@@ -268,28 +240,31 @@ function NFTImage({
 
 	return (
 		<div
-			className={cn(classes.container, "relative overflow-hidden rounded-2xl")}
+			className={cn(
+				classes.container, 
+				"relative overflow-hidden rounded-2xl",
+				"bg-white/5 backdrop-blur-xl border border-white/20 shadow-2xl"
+			)}
 		>
+			{/* Glassmorphism overlay */}
+			<div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 z-10" />
+			
 			{isLoading && (
-				<div
-					className={cn(
-						classes.container,
-						"absolute inset-0 bg-gradient-to-br from-content1/40 to-content1/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center",
-					)}
-				>
+				<div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center z-20">
 					<motion.div
-						className="w-8 h-8 border-3 border-warning/30 border-t-warning rounded-full"
+						className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full"
 						animate={{ rotate: 360 }}
 						transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
 					/>
 				</div>
 			)}
+			
 			<img
 				src={currentImageUrl}
 				alt={`NFT ${formatTokenId(tokenId)} from ${formatAddress(collection)}`}
 				className={cn(
 					classes.container,
-					"object-cover rounded-2xl border-2 border-white/20",
+					"object-cover rounded-2xl relative z-0",
 				)}
 				onLoad={handleImageLoad}
 				onError={handleImageError}
@@ -342,42 +317,52 @@ export function NFTCard({
 		return (
 			<CardComponent
 				className={cn(
-					"relative bg-gradient-to-br from-content1/40 via-background/95 to-content1/30 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden",
-					"p-4 flex items-center gap-4",
-					isInteractive &&
-						"cursor-pointer hover:border-white/30 transition-all duration-300",
+					"relative group",
+					"bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden",
+					"hover:bg-white/10 hover:border-white/20 transition-all duration-500",
+					isInteractive && "cursor-pointer",
 					className,
 				)}
 				onClick={onClick}
 				{...motionProps}
 			>
-				{/* Inner glassmorphism layer */}
-				<div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-2xl pointer-events-none" />
+				{/* Glassmorphism layers */}
+				<div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/2 to-transparent" />
+				<div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
 
-				<NFTImage
-					imageUrl={imageUrl}
-					collection={collection}
-					tokenId={tokenId}
-					size="sm"
-					animate={animate}
-				/>
-
-				<div className="flex-1 min-w-0 relative z-10">
-					<div className="space-y-2">
-						<h3 className="font-bold text-lg bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-							NFT {formatTokenId(tokenId)}
-						</h3>
-						<p className="text-sm text-foreground/70 font-mono truncate">
-							{formatAddress(collection)}
-						</p>
-						{showAppraisal && (
-							<AppraisalDisplay
-								collection={collection as `0x${string}`}
-								tokenId={tokenId}
-								appraisalContractAddress={appraisalContractAddress}
-							/>
-						)}
+				<div className="relative z-10 p-4">
+					{/* Contract & Token ID - Top */}
+					<div className="flex items-center justify-between mb-3">
+						<div className="flex items-center gap-2">
+							<div className="w-2 h-2 bg-gradient-to-r from-warning to-orange-400 rounded-full animate-pulse shadow-sm" />
+							<span className="text-xs font-mono text-white/60 uppercase tracking-wider">
+								{formatAddress(collection)}
+							</span>
+						</div>
+						<span className="text-lg font-bold text-white drop-shadow-sm">
+							{formatTokenId(tokenId)}
+						</span>
 					</div>
+
+					{/* NFT Image - Main focus */}
+					<div className="flex justify-center mb-4">
+						<NFTImage
+							imageUrl={imageUrl}
+							collection={collection}
+							tokenId={tokenId}
+							size="sm"
+							animate={animate}
+						/>
+					</div>
+
+					{/* Appraisal Information - Bottom */}
+					{showAppraisal && (
+						<AppraisalDisplay
+							collection={collection as `0x${string}`}
+							tokenId={tokenId}
+							appraisalContractAddress={appraisalContractAddress}
+						/>
+					)}
 				</div>
 			</CardComponent>
 		);
@@ -386,20 +371,35 @@ export function NFTCard({
 	return (
 		<CardComponent
 			className={cn(
-				"relative bg-gradient-to-br from-content1/40 via-background/95 to-content1/30 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden",
-				"p-6",
-				isInteractive &&
-					"cursor-pointer hover:border-white/30 transition-all duration-300",
+				"relative group",
+				"bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden",
+				"hover:bg-white/10 hover:border-white/20 transition-all duration-500",
+				isInteractive && "cursor-pointer",
 				className,
 			)}
 			onClick={onClick}
 			{...motionProps}
 		>
-			{/* Inner glassmorphism layer */}
-			<div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-2xl pointer-events-none" />
+			{/* Glassmorphism layers */}
+			<div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/2 to-transparent" />
+			<div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
 
-			<div className="relative z-10 space-y-4">
-				<div className="flex justify-center">
+			<div className="relative z-10 p-4">
+				{/* Contract & Token ID - Top */}
+				<div className="flex items-center justify-between mb-3">
+					<div className="flex items-center gap-2">
+						<div className="w-2 h-2 bg-gradient-to-r from-warning to-orange-400 rounded-full animate-pulse shadow-sm" />
+						<span className="text-xs font-mono text-white/60 uppercase tracking-wider">
+							{formatAddress(collection)}
+						</span>
+					</div>
+					<span className="text-lg font-bold text-white drop-shadow-sm">
+						{formatTokenId(tokenId)}
+					</span>
+				</div>
+
+				{/* NFT Image - Main focus - Takes up majority of space */}
+				<div className="flex justify-center mb-4">
 					<NFTImage
 						imageUrl={imageUrl}
 						collection={collection}
@@ -409,28 +409,14 @@ export function NFTCard({
 					/>
 				</div>
 
-				<div className="space-y-3 text-center">
-					<h3 className="font-bold text-2xl bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-						NFT {formatTokenId(tokenId)}
-					</h3>
-
-					<div className="space-y-2">
-						<div className="text-sm text-foreground/60 uppercase tracking-wide">
-							Collection
-						</div>
-						<p className="text-foreground font-mono text-sm bg-content1/20 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2">
-							{formatAddress(collection)}
-						</p>
-					</div>
-
-					{showAppraisal && (
-						<AppraisalDisplay
-							collection={collection as `0x${string}`}
-							tokenId={tokenId}
-							appraisalContractAddress={appraisalContractAddress}
-						/>
-					)}
-				</div>
+				{/* Appraisal Information - Bottom */}
+				{showAppraisal && (
+					<AppraisalDisplay
+						collection={collection as `0x${string}`}
+						tokenId={tokenId}
+						appraisalContractAddress={appraisalContractAddress}
+					/>
+				)}
 			</div>
 		</CardComponent>
 	);

@@ -33,95 +33,6 @@ const ANIMATION_PHASES = {
 
 type AnimationPhase = (typeof ANIMATION_PHASES)[keyof typeof ANIMATION_PHASES];
 
-// Dedicated appraised price display for the reveal modal
-function RevealAppraisalDisplay({
-	collection,
-	tokenId,
-	appraisalContractAddress,
-}: {
-	collection: string;
-	tokenId: string;
-	appraisalContractAddress?: `0x${string}`;
-}) {
-	const { data: hasAppraisal, isLoading: checkingAppraisal } =
-		useReadNftAppraisalHasAppraisal({
-			address: appraisalContractAddress!,
-			args: [collection as `0x${string}`, BigInt(tokenId)],
-			query: {
-				enabled: !!appraisalContractAddress && !!collection && !!tokenId,
-				staleTime: 30000,
-				retry: 2,
-			},
-		});
-
-	const { data: appraisalPrice, isLoading: loadingPrice } =
-		useReadNftAppraisalGetAppraisedPrice({
-			address: appraisalContractAddress!,
-			args: [collection as `0x${string}`, BigInt(tokenId)],
-			query: {
-				enabled: !!hasAppraisal && !!appraisalContractAddress,
-				staleTime: 30000,
-				retry: 2,
-			},
-		});
-
-	const isLoading = checkingAppraisal || loadingPrice;
-	// getAppraisedPrice returns [priceUSD, status] - extract the price
-	const priceUSD = Array.isArray(appraisalPrice) ? appraisalPrice[0] : appraisalPrice;
-	const hasValidAppraisal = hasAppraisal && priceUSD && Number(priceUSD) > 0;
-
-	if (!appraisalContractAddress) return null;
-
-	return (
-		<motion.div
-			initial={{ opacity: 0, y: 20, scale: 0.95 }}
-			animate={{ opacity: 1, y: 0, scale: 1 }}
-			transition={{ delay: 1, duration: 0.5, type: "spring" }}
-			className="mt-6 p-4 bg-gradient-to-br from-content1/30 via-background/95 to-content1/20 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl"
-		>
-			<div className="text-center">
-				<div className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-					Market Appraisal
-				</div>
-				{isLoading ? (
-					<div className="flex items-center justify-center gap-2">
-						<motion.div
-							className="w-5 h-5 border-2 border-warning/30 border-t-warning rounded-full"
-							animate={{ rotate: 360 }}
-							transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-						/>
-						<span className="text-foreground/60">Fetching appraisal...</span>
-					</div>
-				) : hasValidAppraisal ? (
-					<motion.div
-						initial={{ scale: 0 }}
-						animate={{ scale: 1 }}
-						transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-						className="space-y-2"
-					>
-						<div className="text-3xl font-bold text-white drop-shadow-lg">
-							{formatCurrency(priceUSD?.toString() || "0", 18, "USD")}
-						</div>
-						<div className="flex items-center justify-center gap-2">
-							<div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-							<span className="text-success/80 text-sm font-medium">
-								Professionally Appraised
-							</span>
-						</div>
-					</motion.div>
-				) : (
-					<div className="text-foreground/60">
-						<div className="text-warning">No appraisal available</div>
-						<div className="text-xs mt-1 opacity-70">
-							This NFT has not been appraised yet
-						</div>
-					</div>
-				)}
-			</div>
-		</motion.div>
-	);
-}
-
 export default function NFTRevealModal({
 	isVisible,
 	nftResult,
@@ -516,13 +427,6 @@ export default function NFTRevealModal({
 										showAppraisal={true}
 										appraisalContractAddress={appraisalContractAddress}
 										className="w-96"
-									/>
-									
-									{/* Prominent Appraised Price Display */}
-									<RevealAppraisalDisplay
-										collection={nftResult.collection}
-										tokenId={nftResult.tokenId}
-										appraisalContractAddress={appraisalContractAddress}
 									/>
 								</div>
 							</motion.div>
