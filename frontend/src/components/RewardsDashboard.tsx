@@ -17,7 +17,8 @@ import {
 	useWriteGachaRewardsManagerClaimAllRewards,
 	useReadGachaFeeToken,
 } from "../generated";
-import { env } from "../env";
+import { useGachaContracts } from "../hooks/useGachaContracts";
+import { useGachaId } from "../hooks/useGachaId";
 import { RARITY_CONFIG, Rarity } from "../lib/rarityConfig";
 import { ThemedIcon } from "../lib/icons";
 import { GlassCard, GlassButton, GlassBadge } from "./ui";
@@ -33,10 +34,13 @@ interface RarityReward {
 export default function RewardsDashboard() {
 	const { address: userAddress, isConnected } = useAccount();
 	const [refreshKey, setRefreshKey] = useState(0);
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
 
 	// Contract reads
 	const { data: feeToken } = useReadGachaFeeToken({
-		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+		address: contracts.gacha!,
+		query: { enabled: !!contracts.gacha },
 	});
 
 	const { data: tokenDecimals } = useReadErc20Decimals({
@@ -51,63 +55,64 @@ export default function RewardsDashboard() {
 
 	const { data: userAnalytics, refetch: refetchUserAnalytics } =
 		useReadGachaRewardsManagerGetUserAnalytics({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-			args: userAddress ? [userAddress] : undefined,
-			query: { enabled: !!userAddress },
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: globalAnalytics } =
 		useReadGachaRewardsManagerGetGlobalAnalytics({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
+			address: contracts.rewardsManager,
+			query: { enabled: !!contracts.rewardsManager },
 		});
 
 	const { data: totalClaimable, refetch: refetchClaimable } =
 		useReadGachaRewardsManagerGetUserTotalClaimableRewards({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-			args: userAddress ? [userAddress] : undefined,
-			query: { enabled: !!userAddress },
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: depositCounts } = useReadGachaTreasuryGetUserAllDepositCounts({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!userAddress },
+		address: contracts.treasury,
+		args: userAddress && contracts.treasury ? [userAddress] : undefined,
+		query: { enabled: !!userAddress && !!contracts.treasury },
 	});
 
 	// Individual rarity claimable amounts
 	const { data: commonClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-			args: userAddress ? [userAddress, 0] : undefined, // 0 = Common
-			query: { enabled: !!userAddress },
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined, // 0 = Common
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: uncommonClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-			args: userAddress ? [userAddress, 1] : undefined, // 1 = Uncommon
-			query: { enabled: !!userAddress },
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined, // 1 = Uncommon
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: rareClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-			args: userAddress ? [userAddress, 2] : undefined, // 2 = Rare
-			query: { enabled: !!userAddress },
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined, // 2 = Rare
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: epicClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-			args: userAddress ? [userAddress, 3] : undefined, // 3 = Epic
-			query: { enabled: !!userAddress },
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined, // 3 = Epic
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: legendaryClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
-			args: userAddress ? [userAddress, 4] : undefined, // 4 = Legendary
-			query: { enabled: !!userAddress },
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined, // 4 = Legendary
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	// Claim rewards mutation
@@ -180,7 +185,7 @@ export default function RewardsDashboard() {
 	const handleClaimRewards = () => {
 		if (!userAddress) return;
 		claimRewards({
-			address: env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
+			address: contracts.rewardsManager!,
 		});
 	};
 

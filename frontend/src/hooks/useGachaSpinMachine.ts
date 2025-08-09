@@ -8,7 +8,8 @@ import {
 	loadFromStorage,
 } from "../machines/gachaSpinMachine";
 import type { SpinResult } from "../machines/gachaSpinMachine";
-import { env } from "../env";
+import { useGachaContracts } from "./useGachaContracts";
+import { useGachaId } from "./useGachaId";
 import { gachaAbi } from "../generated";
 
 export interface UseGachaSpinMachineReturn {
@@ -41,16 +42,18 @@ export function useGachaSpinMachine(
 ): UseGachaSpinMachineReturn {
 	const { address: userAddress } = useAccount();
 	const publicClient = usePublicClient();
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
 
 	const [state, send] = useActor(gachaSpinMachine);
 
 	// Watch for SpinCompleted events from the contract
 	useWatchContractEvent({
-		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+		address: contracts.gacha!,
+		enabled: !!contracts.gacha && Boolean(userAddress),
 		abi: gachaAbi,
 		eventName: "SpinCompleted",
 		args: userAddress ? { requester: userAddress } : undefined,
-		enabled: Boolean(userAddress),
 		onLogs(logs) {
 			if (!state.matches("waitingForFulfillment")) return;
 
@@ -88,16 +91,16 @@ export function useGachaSpinMachine(
 		if (!userAddress || !publicClient || !state.matches("idle")) return;
 
 		const storedTriggerId = loadFromStorage(userAddress);
-		if (storedTriggerId) {
-			send({ type: "START_SPIN", userAddress, publicClient });
+		if (storedTriggerId && contracts.gacha) {
+			send({ type: "START_SPIN", userAddress, publicClient, gachaAddress: contracts.gacha });
 			send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
 		}
-	}, [userAddress, publicClient, state, send]);
+	}, [userAddress, publicClient, contracts.gacha, state, send]);
 
 	// Actions
 	const startSpin = () => {
-		if (userAddress && publicClient) {
-			send({ type: "START_SPIN", userAddress, publicClient });
+		if (userAddress && publicClient && contracts.gacha) {
+			send({ type: "START_SPIN", userAddress, publicClient, gachaAddress: contracts.gacha });
 		}
 	};
 

@@ -2,7 +2,7 @@
 
 import { assign, createMachine, fromPromise } from "xstate";
 import type { PublicClient } from "viem";
-import { env } from "../env";
+// Gacha contract address is now passed as context rather than imported
 
 export interface SpinResult {
 	rarity: string;
@@ -15,12 +15,13 @@ export interface GachaSpinContext {
 	spinResult: SpinResult | null;
 	userAddress: string | null;
 	publicClient: PublicClient | null;
+	gachaAddress: string | null;
 	error: string | null;
 	retryCount: number;
 }
 
 export type GachaSpinEvent =
-	| { type: "START_SPIN"; userAddress: string; publicClient: PublicClient }
+	| { type: "START_SPIN"; userAddress: string; publicClient: PublicClient; gachaAddress: string }
 	| { type: "TRANSACTION_CONFIRMED"; triggerId: bigint }
 	| { type: "SPIN_FULFILLED"; result: SpinResult }
 	| { type: "CLOSE_REVEAL" }
@@ -42,9 +43,10 @@ const pollForSpinFulfillment = fromPromise(
 			triggerId: bigint;
 			userAddress: string;
 			publicClient: PublicClient;
+			gachaAddress: string;
 		};
 	}): Promise<SpinResult> => {
-		const { triggerId, userAddress, publicClient } = input;
+		const { triggerId, userAddress, publicClient, gachaAddress } = input;
 
 		return new Promise((resolve, reject) => {
 			let attempts = 0;
@@ -69,7 +71,7 @@ const pollForSpinFulfillment = fromPromise(
 
 					// Query SpinFulfilled events for this specific trigger ID
 					const logs = await publicClient.getLogs({
-						address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+						address: gachaAddress as `0x${string}`,
 						event: {
 							type: "event",
 							name: "SpinCompleted",
@@ -194,6 +196,7 @@ export const gachaSpinMachine = createMachine(
 			spinResult: null,
 			userAddress: null,
 			publicClient: null,
+			gachaAddress: null,
 			error: null,
 			retryCount: 0,
 		},
@@ -233,6 +236,7 @@ export const gachaSpinMachine = createMachine(
 						triggerId: context.triggerId!,
 						userAddress: context.userAddress!,
 						publicClient: context.publicClient!,
+						gachaAddress: context.gachaAddress!,
 					}),
 					onDone: {
 						target: "revealing",
@@ -284,6 +288,8 @@ export const gachaSpinMachine = createMachine(
 					event.type === "START_SPIN" ? event.userAddress : null,
 				publicClient: ({ event }) =>
 					event.type === "START_SPIN" ? event.publicClient : null,
+				gachaAddress: ({ event }) =>
+					event.type === "START_SPIN" ? event.gachaAddress : null,
 				retryCount: 0,
 			}),
 			setTriggerId: assign({

@@ -14,7 +14,8 @@ import { GlassCard, GlassButton, GlassBadge, TokenFeeDisplay } from "./ui";
 import { ThemedIcon } from "../lib/icons";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
-import { env } from "../env";
+import { useGachaContracts } from "../hooks/useGachaContracts";
+import { useGachaId } from "../hooks/useGachaId";
 import {
 	useReadGachaSpinFee,
 	useReadGachaPaused,
@@ -44,21 +45,29 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 	const [usedSignature, setUsedSignature] = useState<string | null>(null);
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
 
+	// Get gacha ID and contract addresses
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
+
 	// Gacha contract data
 	const { data: spinFee } = useReadGachaSpinFee({
-		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+		address: contracts.gacha!,
+		query: { enabled: !!contracts.gacha },
 	});
 
 	const { data: paused } = useReadGachaPaused({
-		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+		address: contracts.gacha!,
+		query: { enabled: !!contracts.gacha },
 	});
 
 	const { data: feeToken } = useReadGachaFeeToken({
-		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+		address: contracts.gacha!,
+		query: { enabled: !!contracts.gacha },
 	});
 
 	const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+		address: contracts.treasury!,
+		query: { enabled: !!contracts.treasury },
 	});
 
 	// ERC20 token data
@@ -200,7 +209,7 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 			paused,
 			isGachaAvailable,
 			tokenBalance: tokenBalance?.toString(),
-			gachaContract: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+			gachaContract: contracts.gacha!,
 		});
 
 		// Handle retry for error state
@@ -269,7 +278,7 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 				primaryType: "Permit",
 				message: {
 					owner: userAddress,
-					spender: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+					spender: contracts.gacha!,
 					value: spinFee,
 					nonce: tokenNonce,
 					deadline,
@@ -310,7 +319,7 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 				setUsedSignature(signature);
 
 				spinWithPermit({
-					address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+					address: contracts.gacha!,
 					args: [permitDeadline, v, r, s],
 				});
 			} catch (error) {

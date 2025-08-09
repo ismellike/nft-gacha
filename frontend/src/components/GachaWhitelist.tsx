@@ -15,7 +15,8 @@ import {
 	CheckBadgeIcon,
 } from "@heroicons/react/24/outline";
 import { formatAddress } from "@/lib/utils";
-import { env } from "@/env";
+import { useGachaContracts } from "@/hooks/useGachaContracts";
+import { useGachaId } from "@/hooks/useGachaId";
 
 interface GachaWhitelistProps {
 	gachaAddress: string;
@@ -109,13 +110,16 @@ export function GachaWhitelist({ gachaAddress }: GachaWhitelistProps) {
 	const [selectedCollection, setSelectedCollection] = useState<string | null>(
 		null,
 	);
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
 
 	const {
 		data: whitelistedCollections,
 		isLoading,
 		error,
 	} = useReadGachaTreasuryGetWhitelistedCollections({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+		address: contracts.treasury,
+		query: { enabled: !!contracts.treasury },
 	});
 
 	const handleDepositClick = (collectionAddress: string) => {

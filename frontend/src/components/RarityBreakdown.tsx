@@ -8,7 +8,8 @@ import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
 } from "../generated";
-import { env } from "../env";
+import { useGachaContracts } from "../hooks/useGachaContracts";
+import { useGachaId } from "../hooks/useGachaId";
 import RarityShowcaseModal from "./RarityShowcaseModal";
 
 export interface RarityBreakdownRef {
@@ -18,6 +19,10 @@ export interface RarityBreakdownRef {
 const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	const [selectedRarity, setSelectedRarity] = useState<Rarity | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+
+	// Get gacha ID and contract addresses
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
 
 	const handleRarityClick = (rarity: Rarity) => {
 		setSelectedRarity(rarity);
@@ -32,12 +37,14 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	// Batch fetch all rarity counts in single RPC call
 	const { data: allRarityCounts, refetch: refetchAllRarityCounts } =
 		useReadGachaTreasuryGetAllRarityCounts({
-			address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+			address: contracts.treasury!,
+			query: { enabled: !!contracts.treasury },
 		});
 
 	// Rarity weights from gacha contract
 	const { data: rarityWeights } = useReadGachaGetRarityWeights({
-		address: env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS,
+		address: contracts.gacha!,
+		query: { enabled: !!contracts.gacha },
 	});
 
 	// Expose refresh function to parent component

@@ -10,7 +10,8 @@ import {
 	Chip,
 	Spinner,
 } from "@heroui/react";
-import { env } from "../env";
+import { useGachaContracts } from "../hooks/useGachaContracts";
+import { useGachaId } from "../hooks/useGachaId";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
 import { NFTInventoryCard } from "./ui";
@@ -34,15 +35,19 @@ export default function RarityShowcaseModal({
 	onClose,
 	rarity,
 }: RarityShowcaseModalProps) {
+	// Get gacha ID and contract addresses
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
+
 	// Fetch NFTs for the selected rarity
 	const {
 		data: nftItems,
 		isLoading,
 		error,
 	} = useReadGachaTreasuryGetTreasuryItems({
-		address: env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+		address: contracts.treasury!,
 		args: rarity !== null ? [rarity] : undefined,
-		query: { enabled: rarity !== null && isOpen },
+		query: { enabled: rarity !== null && isOpen && !!contracts.treasury },
 	});
 
 	if (rarity === null) return null;
@@ -151,7 +156,7 @@ export default function RarityShowcaseModal({
 									showAppraisal={true}
 									imageUrl={item.imageUrl}
 									appraisalContractAddress={
-										env.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS
+										contracts.appraisal!
 									}
 									animate={true}
 								/>

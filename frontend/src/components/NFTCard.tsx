@@ -31,7 +31,7 @@ function AppraisalDisplay({
 	appraisalContractAddress: `0x${string}`;
 }) {
 	// Check if appraisal exists
-	const { data: hasAppraisal, isLoading: checkingAppraisal } =
+	const { data: hasAppraisal, isLoading: checkingAppraisal, error: appraisalCheckError } =
 		useReadNftAppraisalHasAppraisal({
 			address: appraisalContractAddress,
 			args: [collection, BigInt(tokenId)],
@@ -43,7 +43,7 @@ function AppraisalDisplay({
 		});
 
 	// Get appraised price if appraisal exists
-	const { data: appraisalPrice, isLoading: loadingPrice } =
+	const { data: appraisalPrice, isLoading: loadingPrice, error: priceError } =
 		useReadNftAppraisalGetAppraisedPrice({
 			address: appraisalContractAddress,
 			args: [collection, BigInt(tokenId)],
@@ -55,42 +55,93 @@ function AppraisalDisplay({
 		});
 
 	const isLoading = checkingAppraisal || loadingPrice;
-	const hasValidAppraisal =
-		hasAppraisal && appraisalPrice && Number(appraisalPrice) > 0;
+	const hasValidAppraisal = hasAppraisal && appraisalPrice && Number(appraisalPrice) > 0;
+	const hasError = appraisalCheckError || priceError;
 
-	if (!hasValidAppraisal && !isLoading) {
-		return null;
-	}
+	// Always show something for debugging purposes, even when there's no appraisal
+	const showDebugInfo = !hasValidAppraisal && !isLoading && !hasError;
 
 	return (
 		<motion.div
 			initial={{ opacity: 0, scale: 0.95 }}
 			animate={{ opacity: 1, scale: 1 }}
 			transition={{ duration: 0.3 }}
-			className="bg-gradient-to-r from-success/20 to-emerald-500/20 backdrop-blur-xl border border-success/30 rounded-lg px-3 py-2 shadow-lg"
+			className={cn(
+				"backdrop-blur-xl border rounded-lg px-3 py-2 shadow-lg",
+				hasValidAppraisal 
+					? "bg-gradient-to-r from-success/20 to-emerald-500/20 border-success/30" 
+					: hasError
+					? "bg-gradient-to-r from-danger/20 to-red-500/20 border-danger/30"
+					: showDebugInfo
+					? "bg-gradient-to-r from-warning/20 to-orange-500/20 border-warning/30"
+					: "bg-gradient-to-r from-content1/20 to-content1/30 border-white/20"
+			)}
 		>
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex items-center gap-2">
-					<div className="w-2 h-2 bg-success rounded-full shadow-sm shadow-success/50 animate-pulse" />
-					<span className="text-success/80 font-medium uppercase tracking-wide text-xs">
-						Appraised
+					<div className={cn(
+						"w-2 h-2 rounded-full shadow-sm",
+						hasValidAppraisal 
+							? "bg-success shadow-success/50 animate-pulse" 
+							: hasError
+							? "bg-danger shadow-danger/50"
+							: showDebugInfo
+							? "bg-warning shadow-warning/50"
+							: "bg-content1 shadow-white/30 animate-pulse"
+					)} />
+					<span className={cn(
+						"font-medium uppercase tracking-wide text-xs",
+						hasValidAppraisal 
+							? "text-success/80" 
+							: hasError
+							? "text-danger/80"
+							: showDebugInfo
+							? "text-warning/80"
+							: "text-foreground/60"
+					)}>
+						{hasValidAppraisal ? "Appraised" : hasError ? "Error" : showDebugInfo ? "No Appraisal" : "Checking..."}
 					</span>
 				</div>
-				<div className="font-bold text-success text-sm">
+				<div className={cn(
+					"font-bold text-sm",
+					hasValidAppraisal 
+						? "text-success" 
+						: hasError
+						? "text-danger"
+						: showDebugInfo
+						? "text-warning"
+						: "text-foreground/60"
+				)}>
 					{isLoading ? (
 						<div className="flex items-center gap-1">
 							<motion.div
-								className="w-4 h-4 border-2 border-success/30 border-t-success rounded-full"
+								className={cn(
+									"w-4 h-4 border-2 rounded-full",
+									hasValidAppraisal 
+										? "border-success/30 border-t-success" 
+										: "border-content1/30 border-t-content1"
+								)}
 								animate={{ rotate: 360 }}
 								transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
 							/>
-							<span className="text-success/60">Loading...</span>
+							<span className="text-foreground/60">Loading...</span>
 						</div>
-					) : (
-						formatCurrency(appraisalPrice?.toString() || "0", 18, "USD")
-					)}
+					) : hasValidAppraisal ? (
+						<span className="text-success font-bold">
+							{formatCurrency(appraisalPrice?.toString() || "0", 18, "USD")}
+						</span>
+					) : hasError ? (
+						<span className="text-danger text-xs">Failed</span>
+					) : showDebugInfo ? (
+						<span className="text-warning text-xs">N/A</span>
+					) : null}
 				</div>
 			</div>
+			{hasValidAppraisal && (
+				<div className="mt-1 text-xs text-success/60 font-mono">
+					Contract: {appraisalContractAddress?.slice(0, 6)}...{appraisalContractAddress?.slice(-4)}
+				</div>
+			)}
 		</motion.div>
 	);
 }
