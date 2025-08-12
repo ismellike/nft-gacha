@@ -23,11 +23,11 @@ const features = [
 		stats: "Earn Yield",
 	},
 	{
-		icon: "gem",
-		title: "Deposit & Spin Model",
+		icon: "trending",
+		title: "Real-Time Analytics",
 		description:
-			"Contributors deposit cards by rarity, spinners pay fees. Fair distribution of rewards based on community participation.",
-		stats: "Community Owned",
+			"Track treasury value, browse deposited NFTs, view spin history, and monitor platform statistics with comprehensive analytics.",
+		stats: "Full Transparency",
 	},
 	{
 		icon: "trophy",
@@ -56,7 +56,7 @@ export default function LandingPage() {
 	}, []);
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-background via-background/98 to-content1/5">
+		<div className="min-h-screen bg-transparent">
 			{/* Hero Section - Redesigned */}
 			<section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
 				{/* Animated Background Elements */}
@@ -154,15 +154,15 @@ export default function LandingPage() {
 							</GlassButton>
 						</Link>
 
-						<Link href="/gacha?section=whitelist">
+						<Link href="/gacha/?id=graded-pokemon&section=analytics">
 							<GlassButton
 								variant="secondary"
 								size="lg"
-								startIcon="coins"
+								startIcon="trending"
 								className="min-w-56 h-14 text-lg"
 								animate={true}
 							>
-								Deposit & Earn
+								View Analytics
 							</GlassButton>
 						</Link>
 					</motion.div>
@@ -193,30 +193,6 @@ export default function LandingPage() {
 					</motion.div>
 				</div>
 
-				{/* Interactive Floating Elements */}
-				{[...Array(8)].map((_, i) => (
-					<motion.div
-						key={i}
-						className="absolute opacity-10"
-						style={{
-							left: `${10 + i * 12}%`,
-							top: `${20 + i * 8}%`,
-						}}
-						animate={{
-							y: [0, -20, 0],
-							rotate: [0, 180, 360],
-							scale: [1, 1.2, 1],
-						}}
-						transition={{
-							duration: 8 + Math.random() * 4,
-							repeat: Infinity,
-							ease: "easeInOut",
-							delay: i * 0.5,
-						}}
-					>
-						<ThemedIcon name="gem" size="lg" className="text-warning" />
-					</motion.div>
-				))}
 			</section>
 
 			{/* Features Section - Enhanced */}

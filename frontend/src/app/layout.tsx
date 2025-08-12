@@ -6,6 +6,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
+import { ClientAnimatedBackground } from "../components/ClientAnimatedBackground";
 
 // Optimize font loading
 const inter = Inter({
@@ -38,9 +39,12 @@ export default function RootLayout({
 			</head>
 			<body className={`${inter.variable} ${jetbrainsMono.variable} font-spin`}>
 				<Providers>
-					<Header />
-					{children}
-					<Footer />
+					<ClientAnimatedBackground />
+					<div className="relative z-10 bg-transparent">
+						<Header />
+						{children}
+						<Footer />
+					</div>
 				</Providers>
 			</body>
 		</html>

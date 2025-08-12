@@ -5,24 +5,16 @@ import {
 	ModalContent,
 	ModalHeader,
 	ModalBody,
-	ModalFooter,
-	Button,
-	Chip,
-	Spinner,
 } from "@heroui/react";
+import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
-import { NFTInventoryCard } from "./ui";
+import { NFTInventoryCard, GlassBadge } from "./ui";
+import { ThemedIcon } from "../lib/icons";
+import { glassModal } from "../lib/theme-config";
 
-// NFT Item type matching the contract
-interface NFTItem {
-	collection: string;
-	depositor: string;
-	rarity: number;
-	tokenId: bigint;
-}
 
 interface RarityShowcaseModalProps {
 	isOpen: boolean;
@@ -65,117 +57,144 @@ export default function RarityShowcaseModal({
 			}))
 		: [];
 
+	const modalStyles = glassModal({ size: "7xl" });
+
 	return (
 		<Modal
 			isOpen={isOpen}
 			onClose={onClose}
-			size="5xl"
+			size="full"
 			scrollBehavior="inside"
 			classNames={{
-				base: "bg-background/95 backdrop-blur-xl border border-white/10",
-				header: "border-b border-white/10",
-				body: "py-6",
-				footer: "border-t border-white/10",
+				wrapper: modalStyles.wrapper(),
+				backdrop: modalStyles.backdrop(),
+				base: modalStyles.base(),
+				header: modalStyles.header(),
+				body: modalStyles.body(),
+				footer: modalStyles.footer(),
+			}}
+			motionProps={{
+				variants: {
+					enter: {
+						scale: 1,
+						opacity: 1,
+						transition: {
+							type: "spring",
+							stiffness: 300,
+							damping: 30,
+						},
+					},
+					exit: {
+						scale: 0.95,
+						opacity: 0,
+						transition: {
+							duration: 0.2,
+						},
+					},
+				},
 			}}
 		>
 			<ModalContent>
-				<ModalHeader className="flex flex-col gap-1">
+				<ModalHeader className="flex-col gap-3">
 					<div className="flex items-center space-x-4">
-						<div
-							className={`px-4 py-2 rounded-lg bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg ${rarityConfig.glowColor}`}
+						<motion.div
+							className={`px-4 py-2 rounded-lg bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg border border-white/20`}
+							whileHover={{ scale: 1.02 }}
+							transition={{ type: "spring", stiffness: 400 }}
 						>
 							<span className="text-lg font-bold text-white drop-shadow-sm flex items-center gap-2">
-								<span>{rarityConfig.emoji}</span>
+								<span className="text-xl">{rarityConfig.emoji}</span>
 								{rarityConfig.name} NFTs
 							</span>
-						</div>
+						</motion.div>
 						{!isLoading && (
-							<Chip
-								variant="flat"
-								size="lg"
-								className={`border ${rarityConfig.borderColor} ${rarityConfig.textColor} bg-gradient-to-r ${rarityConfig.bgGradient} bg-opacity-10`}
+							<GlassBadge 
+								variant="primary"
+								size="md"
 							>
 								{formattedItems.length} Available
-							</Chip>
+							</GlassBadge>
 						)}
 					</div>
-					<p className="text-sm text-foreground/70 font-normal">
+					<p className="text-sm text-foreground/70 font-normal max-w-2xl text-left">
 						{rarityConfig.description}
 					</p>
 				</ModalHeader>
 
 				<ModalBody>
 					{isLoading ? (
-						<div className="flex flex-col items-center justify-center py-20">
-							<Spinner
-								size="lg"
-								color="primary"
-								classNames={{
-									circle1: rarityConfig.borderColor.replace(
-										"border-",
-										"border-t-",
-									),
-									circle2: rarityConfig.borderColor.replace(
-										"border-",
-										"border-b-",
-									),
-								}}
-							/>
-							<p className="text-foreground/70 mt-4">
+						<motion.div 
+							className="flex flex-col items-center justify-center py-32"
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+						>
+							<div className="relative">
+								<motion.div
+									className="w-16 h-16 border-4 border-white/20 border-t-yellow-400 rounded-full"
+									animate={{ rotate: 360 }}
+									transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+								/>
+							</div>
+							<p className="text-foreground/70 mt-6 text-lg">
 								Loading {rarityConfig.name} NFTs...
 							</p>
-						</div>
+						</motion.div>
 					) : error ? (
-						<div className="text-center py-20">
-							<div className="text-6xl mb-4">⚠️</div>
-							<h4 className="text-xl font-semibold text-danger mb-2">
+						<motion.div 
+							className="text-center py-32"
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+						>
+							<ThemedIcon name="alert-triangle" size="2xl" className="text-danger mb-6 mx-auto" />
+							<h4 className="text-2xl font-semibold text-danger mb-4">
 								Failed to Load NFTs
 							</h4>
-							<p className="text-foreground/70">
+							<p className="text-foreground/70 text-lg">
 								Unable to fetch {rarityConfig.name} NFTs. Please try again.
 							</p>
-						</div>
+						</motion.div>
 					) : formattedItems.length === 0 ? (
-						<div className="text-center py-20">
-							<div className="text-6xl mb-4">📦</div>
-							<h4 className="text-xl font-semibold text-foreground mb-2">
+						<motion.div 
+							className="text-center py-32"
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+						>
+							<ThemedIcon name="archive" size="2xl" className="text-foreground/50 mb-6 mx-auto" />
+							<h4 className="text-2xl font-semibold text-foreground mb-4">
 								No NFTs Available
 							</h4>
-							<p className="text-foreground/70">
-								There are currently no NFTs in the {rarityConfig.name} rarity
-								tier.
+							<p className="text-foreground/70 text-lg">
+								There are currently no NFTs in the {rarityConfig.name} rarity tier.
 							</p>
-						</div>
+						</motion.div>
 					) : (
-						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-							{formattedItems.map((item) => (
-								<NFTInventoryCard
+						<motion.div 
+							className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-6"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ staggerChildren: 0.03 }}
+						>
+							{formattedItems.map((item, index) => (
+								<motion.div
 									key={`${item.collection}-${item.tokenId}`}
-									collection={item.collection}
-									tokenId={item.tokenId}
-									showAppraisal={true}
-									imageUrl={item.imageUrl}
-									appraisalContractAddress={
-										contracts.appraisal!
-									}
-									animate={true}
-									rarity={rarity}
-								/>
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: index * 0.03 }}
+								>
+									<NFTInventoryCard
+										collection={item.collection}
+										tokenId={item.tokenId}
+										showAppraisal={true}
+										imageUrl={item.imageUrl}
+										appraisalContractAddress={contracts.appraisal!}
+										animate={true}
+										rarity={rarity}
+									/>
+								</motion.div>
 							))}
-						</div>
+						</motion.div>
 					)}
 				</ModalBody>
-
-				<ModalFooter>
-					<Button
-						color="primary"
-						variant="light"
-						onPress={onClose}
-						className="hover:bg-primary/10"
-					>
-						Close
-					</Button>
-				</ModalFooter>
 			</ModalContent>
 		</Modal>
 	);

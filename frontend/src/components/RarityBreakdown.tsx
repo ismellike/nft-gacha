@@ -7,6 +7,9 @@ import { GlassCard } from "./ui";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
+	useReadGachaGetTotalValueLocked,
+	useReadGachaTreasuryGetTotalItemsCount,
+	useReadGachaGetAverageRarityValues,
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -47,6 +50,22 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		query: { enabled: !!contracts.gacha },
 	});
 
+	// Additional treasury data
+	const { data: totalValueLocked } = useReadGachaGetTotalValueLocked({
+		address: contracts.gacha!,
+		query: { enabled: !!contracts.gacha },
+	});
+
+	const { data: totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
+		address: contracts.treasury!,
+		query: { enabled: !!contracts.treasury },
+	});
+
+	const { data: averageRarityValues } = useReadGachaGetAverageRarityValues({
+		address: contracts.gacha!,
+		query: { enabled: !!contracts.gacha },
+	});
+
 	// Expose refresh function to parent component
 	useImperativeHandle(ref, () => ({
 		refreshCounts: () => {
@@ -67,30 +86,35 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 			...getRarityConfig(Rarity.Common),
 			percentage: getRarityPercentage(0),
 			count: Number(allRarityCounts?.[0] || 0),
+			avgValue: averageRarityValues?.[0] || BigInt(0),
 		},
 		{
 			rarity: Rarity.Uncommon,
 			...getRarityConfig(Rarity.Uncommon),
 			percentage: getRarityPercentage(1),
 			count: Number(allRarityCounts?.[1] || 0),
+			avgValue: averageRarityValues?.[1] || BigInt(0),
 		},
 		{
 			rarity: Rarity.Rare,
 			...getRarityConfig(Rarity.Rare),
 			percentage: getRarityPercentage(2),
 			count: Number(allRarityCounts?.[2] || 0),
+			avgValue: averageRarityValues?.[2] || BigInt(0),
 		},
 		{
 			rarity: Rarity.Epic,
 			...getRarityConfig(Rarity.Epic),
 			percentage: getRarityPercentage(3),
 			count: Number(allRarityCounts?.[3] || 0),
+			avgValue: averageRarityValues?.[3] || BigInt(0),
 		},
 		{
 			rarity: Rarity.Legendary,
 			...getRarityConfig(Rarity.Legendary),
 			percentage: getRarityPercentage(4),
 			count: Number(allRarityCounts?.[4] || 0),
+			avgValue: averageRarityValues?.[4] || BigInt(0),
 		},
 	] as const;
 

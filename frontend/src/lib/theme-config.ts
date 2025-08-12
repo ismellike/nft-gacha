@@ -177,22 +177,22 @@ export const glassModal = tv({
 	slots: {
 		wrapper: [
 			"fixed inset-0 z-50 flex items-center justify-center",
-			"bg-background/95 backdrop-blur-xl",
+			"bg-transparent",
 		],
 		backdrop: [
-			"absolute inset-0 bg-black/40 backdrop-blur-sm",
+			"absolute inset-0 bg-transparent backdrop-blur-sm",
 			"data-[enter=true]:animate-in data-[enter=true]:fade-in-0",
 			"data-[exit=true]:animate-out data-[exit=true]:fade-out-0",
 		],
 		base: [
-			"relative bg-content1/95 backdrop-blur-xl border border-white/20",
+			"relative bg-white/5 backdrop-blur-2xl border border-white/20",
 			"shadow-2xl rounded-2xl max-h-[90vh] overflow-hidden",
 			"data-[enter=true]:animate-in data-[enter=true]:zoom-in-95",
 			"data-[exit=true]:animate-out data-[exit=true]:zoom-out-95",
 		],
-		header: "flex flex-col gap-1 p-6 pb-2",
+		header: "flex flex-col gap-1 p-6 pb-2 border-b border-white/10",
 		body: "flex-1 px-6 py-2 overflow-auto",
-		footer: "flex gap-2 p-6 pt-2",
+		footer: "flex gap-2 p-6 pt-2 border-t border-white/10",
 	},
 	variants: {
 		size: {
@@ -202,6 +202,26 @@ export const glassModal = tv({
 			lg: { base: "max-w-lg" },
 			xl: { base: "max-w-xl" },
 			"2xl": { base: "max-w-2xl" },
+			"3xl": { base: "max-w-3xl" },
+			"4xl": { base: "max-w-4xl" },
+			"5xl": { 
+				base: "max-w-5xl h-[85vh]", 
+				header: "p-8 pb-4", 
+				body: "px-8 py-4", 
+				footer: "p-8 pt-4" 
+			},
+			"6xl": { 
+				base: "max-w-6xl h-[85vh]", 
+				header: "p-8 pb-4", 
+				body: "px-8 py-4", 
+				footer: "p-8 pt-4" 
+			},
+			"7xl": { 
+				base: "max-w-[95vw] h-[90vh]", 
+				header: "p-6 pb-4", 
+				body: "px-6 py-4", 
+				footer: "p-6 pt-4" 
+			},
 			full: { base: "w-full h-full max-w-none max-h-none rounded-none" },
 		},
 		placement: {
@@ -242,7 +262,7 @@ export const glassBreadcrumb = tv({
 export const glassNavigation = tv({
 	slots: {
 		nav: [
-			"bg-content1/30 backdrop-blur-xl border-b border-divider/50 shadow-lg",
+			"bg-transparent backdrop-blur-md border-b border-white/10 shadow-sm",
 			"flex justify-between items-center p-6",
 		],
 		logo: ["flex items-center space-x-3 group"],

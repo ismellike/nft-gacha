@@ -8,12 +8,14 @@ import { formatTokenAmount } from "../../lib/utils";
 import GachaSpinner from "../../components/GachaSpinner";
 import { UserNFTModal } from "../../components/UserNFTModal";
 import { AdminControls } from "../../components/AdminControls";
+import AnalyticsDashboard from "../../components/AnalyticsDashboard";
 import { ThemedIcon } from "../../lib/icons";
 import {
 	GlassCard,
 	GlassButton,
 	StatsGridSkeleton,
 	RarityBreakdownSkeleton,
+	GlassHeader,
 } from "../../components/ui";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";
 import {
@@ -28,6 +30,7 @@ import {
 	useReadGachaOwner,
 	useReadGachaTreasuryOwner,
 	useReadGachaRewardsManagerOwner,
+	useReadGachaRewardsManagerPaused,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
@@ -54,7 +57,7 @@ export default function GachaDetailPage() {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const sectionParam = searchParams.get("section");
-	const validSections = ["spin", "rewards", "admin"] as const;
+	const validSections = ["spin", "analytics", "rewards", "admin"] as const;
 	type ValidSection = (typeof validSections)[number];
 
 	// Determine active tab from URL or default to 'spin'
@@ -87,6 +90,12 @@ export default function GachaDetailPage() {
 		(userAddress === gachaOwner ||
 			userAddress === treasuryOwner ||
 			userAddress === rewardsOwner);
+
+	// Check if rewards manager is paused
+	const { data: isRewardsManagerPaused } = useReadGachaRewardsManagerPaused({
+		address: contracts.rewardsManager,
+		query: { enabled: !!contracts.rewardsManager },
+	});
 
 	// Contract reads for rewards functionality
 	const { data: feeToken } = useReadGachaFeeToken({
@@ -298,6 +307,7 @@ export default function GachaDetailPage() {
 		if (gacha) {
 			const sectionTitles = {
 				spin: "Spin & Play",
+				analytics: "Treasury Analytics",
 				rewards: "My Rewards",
 				admin: "Admin Controls",
 			};
@@ -400,10 +410,30 @@ export default function GachaDetailPage() {
 	]);
 
 	const handleClaimRewards = () => {
+		// Enhanced debugging
+		console.log("Claim attempt:", {
+			userAddress,
+			totalClaimable: totalClaimable?.toString(),
+			rewardsManager: contracts.rewardsManager,
+			isConnected,
+			isRewardsManagerPaused,
+		});
+
 		if (!userAddress || !totalClaimable || totalClaimable === BigInt(0)) {
 			console.warn(
 				"Cannot claim rewards: missing user address or no claimable amount",
+				{ userAddress, totalClaimable: totalClaimable?.toString() }
 			);
+			return;
+		}
+
+		if (!contracts.rewardsManager) {
+			console.error("No rewards manager contract address available");
+			return;
+		}
+
+		if (isRewardsManagerPaused) {
+			console.error("Rewards manager contract is currently paused");
 			return;
 		}
 
@@ -412,6 +442,7 @@ export default function GachaDetailPage() {
 		setOptimisticClaimedAmount(totalClaimable);
 
 		try {
+			console.log("Initiating claim transaction...");
 			claimRewards({
 				address: contracts.rewardsManager!,
 			});
@@ -482,53 +513,30 @@ export default function GachaDetailPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-background">
+		<div className="min-h-screen bg-transparent">
 			<div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 max-w-7xl">
 				{/* Header */}
-				<motion.div
-					className="mb-12 lg:mb-16"
-					initial={{ opacity: 0, y: -20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.6, delay: 0.1 }}
-				>
-					<div className="flex items-center gap-4 mb-8 lg:mb-12">
-						<GlassButton
-							variant="secondary"
-							size="md"
-							startIcon="arrow-left"
-							onClick={() => router.push("/discover")}
-						>
-							<span className="hidden sm:inline">Back to Discovery</span>
-							<span className="sm:hidden">Back</span>
-						</GlassButton>
-					</div>
-
-					<div
-						className={`bg-gradient-to-br ${gacha.theme} rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-12 relative overflow-hidden`}
+				<div className="flex items-center gap-4 mb-8 lg:mb-12">
+					<GlassButton
+						variant="secondary"
+						size="md"
+						startIcon="arrow-left"
+						onClick={() => router.push("/discover")}
 					>
-						<div className="absolute inset-0 bg-gradient-to-br from-white/8 to-transparent"></div>
-						<div className="relative z-10">
-							<h1 className="text-2xl sm:text-3xl lg:text-4xl font-normal text-white mb-4 lg:mb-6 leading-tight">
-								{gacha.title}
-							</h1>
-							<p className="text-base sm:text-lg lg:text-xl text-white/80 max-w-3xl leading-relaxed mb-6 lg:mb-8">
-								{gacha.description}
-							</p>
-							<div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 text-white/70">
-								<div className="flex items-center gap-2">
-									<ThemedIcon name="shield-check" size="sm" />
-									<span className="text-sm font-medium">Provably Fair</span>
-								</div>
-								<div className="flex items-center gap-2">
-									<ThemedIcon name="link" size="sm" />
-									<span className="text-xs sm:text-sm font-mono">
-										{formatGachaAddress(gacha.address)}
-									</span>
-								</div>
-							</div>
-						</div>
-					</div>
-				</motion.div>
+						<span className="hidden sm:inline">Back to Discovery</span>
+						<span className="sm:hidden">Back</span>
+					</GlassButton>
+				</div>
+
+				<GlassHeader
+					title={gacha.title}
+					description={gacha.description}
+					gradient={`${gacha.theme} opacity-20`}
+					badges={[
+						{ icon: "shield-check", text: "Provably Fair", variant: "success" },
+						{ icon: "link", text: formatGachaAddress(gacha.address), variant: "info" },
+					]}
+				/>
 
 				{/* Navigation Tabs */}
 				<motion.div
@@ -549,6 +557,13 @@ export default function GachaDetailPage() {
 								onKeyDown={(e) => handleTabKeyDown(e, "spin")}
 								icon="zap"
 								label="Spin & Play"
+							/>
+							<TabButton
+								active={activeTab === "analytics"}
+								onClick={() => handleTabChange("analytics")}
+								onKeyDown={(e) => handleTabKeyDown(e, "analytics")}
+								icon="trending"
+								label="Analytics"
 							/>
 							<TabButton
 								active={activeTab === "rewards"}
@@ -584,6 +599,16 @@ export default function GachaDetailPage() {
 							aria-labelledby="tab-spin-&-play"
 						>
 							<GachaSpinner />
+						</div>
+					)}
+
+					{activeTab === "analytics" && (
+						<div
+							role="tabpanel"
+							id="tabpanel-analytics"
+							aria-labelledby="tab-analytics"
+						>
+							<AnalyticsDashboard />
 						</div>
 					)}
 
@@ -811,7 +836,8 @@ export default function GachaDetailPage() {
 																!totalClaimable ||
 																totalClaimable === BigInt(0) ||
 																optimisticClaim ||
-																isRefetchingRewards
+																isRefetchingRewards ||
+																isRewardsManagerPaused
 															}
 															animate={true}
 															aria-label={`Claim ${formatTokenAmountLocal(totalClaimable)} ${tokenSymbol} in rewards`}

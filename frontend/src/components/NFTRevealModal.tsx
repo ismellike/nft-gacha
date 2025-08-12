@@ -125,11 +125,12 @@ export default function NFTRevealModal({
 	return (
 		<AnimatePresence>
 			<motion.div
-				className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-xl"
+				className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-md"
 				variants={backdropVariants}
 				initial="hidden"
 				animate="visible"
 				exit="exit"
+				onClick={onClose}
 			>
 				{/* Dynamic Background Glow */}
 				<motion.div
@@ -193,7 +194,7 @@ export default function NFTRevealModal({
 				</motion.div>
 
 				{/* Main Content */}
-				<div className="relative z-10">
+				<div className="relative z-10" onClick={(e) => e.stopPropagation()}>
 					{/* Spinning Orb Phase */}
 					<AnimatePresence>
 						{(phase === ANIMATION_PHASES.INITIALIZING ||
