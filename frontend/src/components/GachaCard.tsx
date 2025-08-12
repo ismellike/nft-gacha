@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { memo, useCallback } from "react";
 import { formatTokenAmount } from "../lib/utils";
 import {
 	useReadGachaTreasuryIsGachaAvailable,
@@ -21,7 +22,7 @@ interface GachaCardProps {
 	gacha: GachaConfig;
 }
 
-export function GachaCard({ gacha }: GachaCardProps) {
+export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 	const router = useRouter();
 
 	// Fetch gacha-specific data
@@ -69,9 +70,9 @@ export function GachaCard({ gacha }: GachaCardProps) {
 				})
 			: "Loading...";
 
-	const handleExplore = () => {
+	const handleExplore = useCallback(() => {
 		router.push(`/gacha?id=${gacha.id}&section=spin`);
-	};
+	}, [router, gacha.id]);
 
 	// Show skeleton while essential data is loading
 	const isLoading =
@@ -96,7 +97,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 			aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
 			data-testid={`explore-gacha-${gacha.id}`}
 			onKeyDown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
+				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
 					handleExplore();
 				}
@@ -115,11 +116,19 @@ export function GachaCard({ gacha }: GachaCardProps) {
 							<div className="flex items-center gap-3 mb-3">
 								<motion.div
 									className={`w-3 h-3 rounded-full ${isAvailable ? "bg-green-400 shadow-green-400/50" : "bg-red-400 shadow-red-400/50"} shadow-lg`}
-									animate={{ 
+									animate={{
 										scale: [1, 1.3, 1],
-										boxShadow: isAvailable 
-											? ["0 0 4px rgba(34, 197, 94, 0.5)", "0 0 12px rgba(34, 197, 94, 0.8)", "0 0 4px rgba(34, 197, 94, 0.5)"]
-											: ["0 0 4px rgba(248, 113, 113, 0.5)", "0 0 12px rgba(248, 113, 113, 0.8)", "0 0 4px rgba(248, 113, 113, 0.5)"]
+										boxShadow: isAvailable
+											? [
+													"0 0 4px rgba(34, 197, 94, 0.5)",
+													"0 0 12px rgba(34, 197, 94, 0.8)",
+													"0 0 4px rgba(34, 197, 94, 0.5)",
+												]
+											: [
+													"0 0 4px rgba(248, 113, 113, 0.5)",
+													"0 0 12px rgba(248, 113, 113, 0.8)",
+													"0 0 4px rgba(248, 113, 113, 0.5)",
+												],
 									}}
 									transition={{ duration: 2, repeat: Infinity }}
 									aria-hidden="true"
@@ -133,7 +142,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 							</h3>
 						</div>
 						<div className="text-right ml-4">
-							<motion.div 
+							<motion.div
 								className="text-3xl font-bold text-white drop-shadow-lg mb-2"
 								whileHover={{ scale: 1.1 }}
 								transition={{ type: "spring", stiffness: 400 }}
@@ -158,14 +167,18 @@ export function GachaCard({ gacha }: GachaCardProps) {
 						{/* Key Stats Row */}
 						<div className="flex items-center justify-between p-4 bg-gradient-to-r from-content1/30 via-content1/20 to-content1/30 backdrop-blur-sm rounded-xl border border-white/15 shadow-lg">
 							<div className="text-center flex-1">
-								<div className="text-sm text-foreground/60 uppercase tracking-wide font-medium mb-1">Entry Fee</div>
+								<div className="text-sm text-foreground/60 uppercase tracking-wide font-medium mb-1">
+									Entry Fee
+								</div>
 								<div className="text-lg font-bold text-warning">
 									{formattedSpinFee}
 								</div>
 							</div>
 							<div className="w-px h-8 bg-white/20 mx-4"></div>
 							<div className="text-center flex-1">
-								<div className="text-sm text-foreground/60 uppercase tracking-wide font-medium mb-1">Collection</div>
+								<div className="text-sm text-foreground/60 uppercase tracking-wide font-medium mb-1">
+									Collection
+								</div>
 								<div className="text-lg font-bold text-foreground flex items-center justify-center gap-2">
 									<ThemedIcon name="gem" size="sm" className="text-warning" />
 									{totalNFTs}
@@ -176,22 +189,26 @@ export function GachaCard({ gacha }: GachaCardProps) {
 						{/* Compact Rarity Distribution */}
 						<div className="space-y-3">
 							<div className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
-								<ThemedIcon name="trending" size="sm" className="text-warning" />
+								<ThemedIcon
+									name="trending"
+									size="sm"
+									className="text-warning"
+								/>
 								Rarity Distribution
 							</div>
 							<div className="flex gap-2">
 								{rarityCounts?.map((count, index) => {
 									const rarityColors = [
 										"from-gray-500 to-gray-600",
-										"from-green-500 to-green-600", 
+										"from-green-500 to-green-600",
 										"from-blue-500 to-blue-600",
 										"from-purple-500 to-purple-600",
 										"from-yellow-500 to-yellow-600",
 									];
 									const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟡"];
 									return (
-										<motion.div 
-											key={index} 
+										<motion.div
+											key={index}
 											className="flex-1 text-center"
 											whileHover={{ scale: 1.05 }}
 											transition={{ type: "spring", stiffness: 400 }}
@@ -210,11 +227,11 @@ export function GachaCard({ gacha }: GachaCardProps) {
 						</div>
 
 						{/* Call to Action */}
-						<motion.div 
+						<motion.div
 							className="mt-6 p-4 bg-gradient-to-r from-warning/10 via-orange-400/5 to-warning/10 backdrop-blur-sm rounded-xl border border-warning/20 text-center"
-							whileHover={{ 
+							whileHover={{
 								borderColor: "rgba(255, 191, 0, 0.4)",
-								backgroundColor: "rgba(255, 191, 0, 0.1)"
+								backgroundColor: "rgba(255, 191, 0, 0.1)",
 							}}
 							transition={{ duration: 0.2 }}
 						>
@@ -249,4 +266,5 @@ export function GachaCard({ gacha }: GachaCardProps) {
 			</GlassCard>
 		</motion.div>
 	);
-}
+});
+GachaCard.displayName = "GachaCard";

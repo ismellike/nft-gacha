@@ -83,35 +83,40 @@ export default function RewardsDashboard() {
 	const { data: commonClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined, // 0 = Common
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined, // 0 = Common
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: uncommonClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined, // 1 = Uncommon
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined, // 1 = Uncommon
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: rareClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined, // 2 = Rare
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined, // 2 = Rare
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: epicClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined, // 3 = Epic
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined, // 3 = Epic
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: legendaryClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined, // 4 = Legendary
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined, // 4 = Legendary
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 

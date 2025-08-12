@@ -67,7 +67,7 @@ export default function SpinHistory() {
 				// 2. Query SpinCompleted events to get fulfilled spins
 				// 3. Match them together to build the spin history
 				// 4. Use event logs or a subgraph for efficient querying
-				
+
 				// For now, we'll show an empty state since we need proper event indexing
 				setSpinRequests([]);
 			} catch (error) {
@@ -88,10 +88,10 @@ export default function SpinHistory() {
 		const hours = Math.floor(diff / 3600000);
 		const days = Math.floor(diff / 86400000);
 
-		if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-		if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-		if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-		return 'Just now';
+		if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
+		if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+		if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+		return "Just now";
 	};
 
 	const getRarityConfig = (rarity: Rarity) => RARITY_CONFIG[rarity];
@@ -171,7 +171,7 @@ export default function SpinHistory() {
 									Successful Spins
 								</p>
 								<h3 className="text-3xl font-bold text-foreground mt-2">
-									{spinRequests.filter(spin => spin.fulfilled).length}
+									{spinRequests.filter((spin) => spin.fulfilled).length}
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
@@ -193,7 +193,7 @@ export default function SpinHistory() {
 									Pending Spins
 								</p>
 								<h3 className="text-3xl font-bold text-foreground mt-2">
-									{spinRequests.filter(spin => !spin.fulfilled).length}
+									{spinRequests.filter((spin) => !spin.fulfilled).length}
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-blue-400/20 to-blue-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
@@ -222,7 +222,10 @@ export default function SpinHistory() {
 					{isLoading ? (
 						<div className="p-8 space-y-4">
 							{[...Array(5)].map((_, i) => (
-								<div key={i} className="bg-content1/20 rounded-lg p-4 animate-pulse">
+								<div
+									key={i}
+									className="bg-content1/20 rounded-lg p-4 animate-pulse"
+								>
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-3">
 											<div className="w-12 h-12 bg-content1/30 rounded-full"></div>
@@ -277,7 +280,9 @@ export default function SpinHistory() {
 															name={spin.fulfilled ? "check" : "clock"}
 															size="md"
 															className={
-																spin.fulfilled ? "text-green-400" : "text-blue-400"
+																spin.fulfilled
+																	? "text-green-400"
+																	: "text-blue-400"
 															}
 														/>
 													</div>
@@ -303,11 +308,13 @@ export default function SpinHistory() {
 														<p className="text-sm text-foreground/60">
 															{formatTimeAgo(spin.timestamp)}
 														</p>
-														{spin.fulfilled && spin.nftAddress && spin.tokenId && (
-															<p className="text-xs text-foreground/50 font-mono">
-																Token #{spin.tokenId.toString()}
-															</p>
-														)}
+														{spin.fulfilled &&
+															spin.nftAddress &&
+															spin.tokenId && (
+																<p className="text-xs text-foreground/50 font-mono">
+																	Token #{spin.tokenId.toString()}
+																</p>
+															)}
 													</div>
 												</div>
 
@@ -344,7 +351,8 @@ export default function SpinHistory() {
 					<div className="flex items-center justify-center gap-2 text-foreground/60">
 						<ThemedIcon name="info" size="sm" />
 						<p className="text-sm">
-							Spin history requires event indexing to display user transactions. Consider implementing with The Graph or event log queries.
+							Spin history requires event indexing to display user transactions.
+							Consider implementing with The Graph or event log queries.
 						</p>
 					</div>
 				</GlassCard>

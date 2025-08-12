@@ -1,20 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useMemo } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { glassNavigation, glassGradients } from "../lib/theme-config";
+import { glassNavigation } from "../lib/theme-config";
 import { ThemedIcon } from "../lib/icons";
 
-export function Header() {
+export const Header = memo(() => {
 	const pathname = usePathname();
 
-	const navItems = [
-		{ href: "/", label: "Home", icon: "home" },
-		{ href: "/discover", label: "Discover", icon: "dice" },
-	];
+	const navItems = useMemo(
+		() => [
+			{ href: "/", label: "Home", icon: "home" },
+			{ href: "/discover", label: "Discover", icon: "dice" },
+		],
+		[],
+	);
 
 	const {
 		nav,
@@ -101,4 +104,5 @@ export function Header() {
 			<ConnectButton />
 		</nav>
 	);
-}
+});
+Header.displayName = "Header";

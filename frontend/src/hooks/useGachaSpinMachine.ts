@@ -92,7 +92,12 @@ export function useGachaSpinMachine(
 
 		const storedTriggerId = loadFromStorage(userAddress);
 		if (storedTriggerId && contracts.gacha) {
-			send({ type: "START_SPIN", userAddress, publicClient, gachaAddress: contracts.gacha });
+			send({
+				type: "START_SPIN",
+				userAddress,
+				publicClient,
+				gachaAddress: contracts.gacha,
+			});
 			send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
 		}
 	}, [userAddress, publicClient, contracts.gacha, state, send]);
@@ -100,7 +105,12 @@ export function useGachaSpinMachine(
 	// Actions
 	const startSpin = () => {
 		if (userAddress && publicClient && contracts.gacha) {
-			send({ type: "START_SPIN", userAddress, publicClient, gachaAddress: contracts.gacha });
+			send({
+				type: "START_SPIN",
+				userAddress,
+				publicClient,
+				gachaAddress: contracts.gacha,
+			});
 		}
 	};
 

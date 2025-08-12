@@ -1,5 +1,5 @@
 import { ThemedIcon } from "../lib/icons";
-import { cn } from "../lib/theme";
+import { cn } from "../lib/theme-config";
 
 export function Footer() {
 	return (

@@ -4,7 +4,7 @@
  */
 
 import { motion } from "framer-motion";
-import { cn } from "../../lib/theme";
+import { cn } from "../../lib/theme-config";
 
 interface SkeletonProps {
 	className?: string;

@@ -8,7 +8,7 @@ import {
 	useSignTypedData,
 	useChainId,
 } from "wagmi";
-import { cn } from "../lib/theme";
+import { cn } from "../lib/theme-config";
 import { glassTypography, glassStatus } from "../lib/theme-config";
 import { GlassCard, GlassButton, GlassBadge, TokenFeeDisplay } from "./ui";
 import { ThemedIcon } from "../lib/icons";

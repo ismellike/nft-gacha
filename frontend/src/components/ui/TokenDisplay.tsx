@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { cn } from "../../lib/theme";
+import { cn } from "../../lib/theme-config";
 import { ThemedIcon } from "../../lib/icons";
 import { getEnvMode } from "../../env";
 

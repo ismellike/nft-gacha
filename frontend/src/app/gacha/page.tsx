@@ -147,35 +147,40 @@ export default function GachaDetailPage() {
 	const { data: commonClaimable, refetch: refetchCommonClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined,
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: uncommonClaimable, refetch: refetchUncommonClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined,
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: rareClaimable, refetch: refetchRareClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined,
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: epicClaimable, refetch: refetchEpicClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined,
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
 	const { data: legendaryClaimable, refetch: refetchLegendaryClaimable } =
 		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
 			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined,
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
@@ -422,7 +427,7 @@ export default function GachaDetailPage() {
 		if (!userAddress || !totalClaimable || totalClaimable === BigInt(0)) {
 			console.warn(
 				"Cannot claim rewards: missing user address or no claimable amount",
-				{ userAddress, totalClaimable: totalClaimable?.toString() }
+				{ userAddress, totalClaimable: totalClaimable?.toString() },
 			);
 			return;
 		}
@@ -534,7 +539,11 @@ export default function GachaDetailPage() {
 					gradient={`${gacha.theme} opacity-20`}
 					badges={[
 						{ icon: "shield-check", text: "Provably Fair", variant: "success" },
-						{ icon: "link", text: formatGachaAddress(gacha.address), variant: "info" },
+						{
+							icon: "link",
+							text: formatGachaAddress(gacha.address),
+							variant: "info",
+						},
 					]}
 				/>
 

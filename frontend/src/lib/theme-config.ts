@@ -204,23 +204,23 @@ export const glassModal = tv({
 			"2xl": { base: "max-w-2xl" },
 			"3xl": { base: "max-w-3xl" },
 			"4xl": { base: "max-w-4xl" },
-			"5xl": { 
-				base: "max-w-5xl h-[85vh]", 
-				header: "p-8 pb-4", 
-				body: "px-8 py-4", 
-				footer: "p-8 pt-4" 
+			"5xl": {
+				base: "max-w-5xl h-[85vh]",
+				header: "p-8 pb-4",
+				body: "px-8 py-4",
+				footer: "p-8 pt-4",
 			},
-			"6xl": { 
-				base: "max-w-6xl h-[85vh]", 
-				header: "p-8 pb-4", 
-				body: "px-8 py-4", 
-				footer: "p-8 pt-4" 
+			"6xl": {
+				base: "max-w-6xl h-[85vh]",
+				header: "p-8 pb-4",
+				body: "px-8 py-4",
+				footer: "p-8 pt-4",
 			},
-			"7xl": { 
-				base: "max-w-[95vw] h-[90vh]", 
-				header: "p-6 pb-4", 
-				body: "px-6 py-4", 
-				footer: "p-6 pt-4" 
+			"7xl": {
+				base: "max-w-[95vw] h-[90vh]",
+				header: "p-6 pb-4",
+				body: "px-6 py-4",
+				footer: "p-6 pt-4",
 			},
 			full: { base: "w-full h-full max-w-none max-h-none rounded-none" },
 		},
@@ -382,6 +382,13 @@ export const glassBorders = {
 	danger: "border-danger/20",
 } as const;
 
+// Utility function for combining classes
+export const cn = (
+	...classes: (string | undefined | null | false)[]
+): string => {
+	return classes.filter(Boolean).join(" ");
+};
+
 // Export all variants
 export const glassTheme = {
 	glassButton,
@@ -396,4 +403,5 @@ export const glassTheme = {
 	glassStatus,
 	glassGradients,
 	glassBorders,
+	cn,
 };

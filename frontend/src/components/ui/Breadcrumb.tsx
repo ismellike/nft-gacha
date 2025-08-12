@@ -94,11 +94,7 @@ export function Breadcrumb({
 
 							{!isLast && (
 								<li className={itemClass()} aria-hidden="true">
-									<ThemedIcon
-										name="right"
-										size="sm"
-										className={separator()}
-									/>
+									<ThemedIcon name="right" size="sm" className={separator()} />
 								</li>
 							)}
 						</Fragment>

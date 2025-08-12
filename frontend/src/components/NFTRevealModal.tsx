@@ -57,7 +57,8 @@ export default function NFTRevealModal({
 
 	if (!isVisible) return null;
 
-	const resultRarity = Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
+	const resultRarity =
+		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
 	const rarityConfig = getRarityConfig(resultRarity);
 
 	const backdropVariants = {

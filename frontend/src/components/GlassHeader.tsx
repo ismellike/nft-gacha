@@ -36,15 +36,17 @@ export function GlassHeader({
 			transition={{ duration: 0.8 }}
 		>
 			{/* Glassmorphism Header Card */}
-			<GlassCard 
-				variant="highlight" 
+			<GlassCard
+				variant="highlight"
 				padding="none"
 				className="relative overflow-hidden border border-white/20 mb-12"
 			>
 				{/* Background gradient overlay */}
-				<div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-30`}></div>
+				<div
+					className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-30`}
+				></div>
 				<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-				
+
 				{/* Animated background elements */}
 				<motion.div
 					className="absolute top-4 right-4 w-24 h-24 rounded-full bg-gradient-to-br from-white/10 to-transparent blur-2xl"
@@ -92,35 +94,41 @@ export function GlassHeader({
 								</>
 							)}
 						</h1>
-						
+
 						{description && (
 							<p className="text-lg sm:text-xl lg:text-2xl text-foreground/80 max-w-4xl mx-auto leading-relaxed mb-8 lg:mb-10">
 								{description}
 							</p>
 						)}
-						
+
 						{/* Feature badges */}
 						{badges.length > 0 && (
 							<div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mb-8">
 								{badges.map((badge, index) => (
-									<motion.div 
+									<motion.div
 										key={index}
 										className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20"
 										whileHover={{ scale: 1.05 }}
 										transition={{ type: "spring", stiffness: 300 }}
 									>
-										<ThemedIcon 
-											name={badge.icon} 
-											size="sm" 
+										<ThemedIcon
+											name={badge.icon}
+											size="sm"
 											className={
-												badge.variant === "success" ? "text-success" :
-												badge.variant === "warning" ? "text-warning" :
-												badge.variant === "info" ? "text-primary" :
-												badge.variant === "primary" ? "text-warning" :
-												"text-foreground/60"
-											} 
+												badge.variant === "success"
+													? "text-success"
+													: badge.variant === "warning"
+														? "text-warning"
+														: badge.variant === "info"
+															? "text-primary"
+															: badge.variant === "primary"
+																? "text-warning"
+																: "text-foreground/60"
+											}
 										/>
-										<span className="text-sm font-medium text-foreground/90">{badge.text}</span>
+										<span className="text-sm font-medium text-foreground/90">
+											{badge.text}
+										</span>
 									</motion.div>
 								))}
 							</div>

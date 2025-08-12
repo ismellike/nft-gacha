@@ -8,7 +8,25 @@ export enum Rarity {
 	Legendary = 4,
 }
 
-export const RARITY_CONFIG = {
+export interface RarityConfigItem {
+	name: string;
+	percentage: number;
+	bgGradient: string;
+	borderColor: string;
+	textColor: string;
+	chipColor:
+		| "default"
+		| "primary"
+		| "secondary"
+		| "success"
+		| "warning"
+		| "danger";
+	glowColor: string;
+	description: string;
+	emoji: string;
+}
+
+export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 	[Rarity.Common]: {
 		name: "Common",
 		percentage: 70,
@@ -66,7 +84,23 @@ export const RARITY_CONFIG = {
 	},
 } as const;
 
-export const getRarityConfig = (rarity: Rarity) => RARITY_CONFIG[rarity];
+export const getRarityConfig = (rarity: Rarity): RarityConfigItem =>
+	RARITY_CONFIG[rarity];
 
-export const getAllRarities = () =>
+export const getAllRarities = (): Rarity[] =>
 	Object.values(Rarity).filter((v) => typeof v === "number") as Rarity[];
+
+// Utility functions for rarity operations
+export const getRarityByName = (name: string): Rarity | undefined => {
+	return getAllRarities().find(
+		(rarity) => RARITY_CONFIG[rarity].name.toLowerCase() === name.toLowerCase(),
+	);
+};
+
+export const getRarityName = (rarity: Rarity): string => {
+	return RARITY_CONFIG[rarity].name;
+};
+
+export const getRarityEmoji = (rarity: Rarity): string => {
+	return RARITY_CONFIG[rarity].emoji;
+};

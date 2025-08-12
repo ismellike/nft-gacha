@@ -5,7 +5,7 @@ import { getGachaConfig } from "../gacha-config";
  */
 export function getGachaContracts(gachaId: string) {
 	const gachaConfig = getGachaConfig(gachaId);
-	
+
 	if (!gachaConfig) {
 		throw new Error(`Gacha config not found for ID: ${gachaId}`);
 	}

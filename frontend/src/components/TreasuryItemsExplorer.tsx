@@ -32,8 +32,9 @@ export default function TreasuryItemsExplorer() {
 	const [selectedItems, setSelectedItems] = useState<TreasuryItem[]>([]);
 	const [currentPage, setCurrentPage] = useState(0);
 	const [isLoading, setIsLoading] = useState(true);
-	const [selectedRarityFilter, setSelectedRarityFilter] = useState<Rarity | null>(null);
-	
+	const [selectedRarityFilter, setSelectedRarityFilter] =
+		useState<Rarity | null>(null);
+
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const itemsPerPage = 12;
@@ -120,15 +121,15 @@ export default function TreasuryItemsExplorer() {
 	};
 
 	// Filter items by rarity
-	const filteredItems = selectedRarityFilter 
-		? selectedItems.filter(item => item.rarity === selectedRarityFilter)
+	const filteredItems = selectedRarityFilter
+		? selectedItems.filter((item) => item.rarity === selectedRarityFilter)
 		: selectedItems;
 
 	// Paginate items
 	const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 	const paginatedItems = filteredItems.slice(
 		currentPage * itemsPerPage,
-		(currentPage + 1) * itemsPerPage
+		(currentPage + 1) * itemsPerPage,
 	);
 
 	// Reset pagination when filter changes
@@ -171,13 +172,23 @@ export default function TreasuryItemsExplorer() {
 						>
 							All ({selectedItems.length})
 						</GlassButton>
-						{[Rarity.Common, Rarity.Uncommon, Rarity.Rare, Rarity.Epic, Rarity.Legendary].map((rarity) => {
-							const count = selectedItems.filter(item => item.rarity === rarity).length;
+						{[
+							Rarity.Common,
+							Rarity.Uncommon,
+							Rarity.Rare,
+							Rarity.Epic,
+							Rarity.Legendary,
+						].map((rarity) => {
+							const count = selectedItems.filter(
+								(item) => item.rarity === rarity,
+							).length;
 							const config = RARITY_CONFIG[rarity];
 							return (
 								<GlassButton
 									key={rarity}
-									variant={selectedRarityFilter === rarity ? "primary" : "secondary"}
+									variant={
+										selectedRarityFilter === rarity ? "primary" : "secondary"
+									}
 									size="sm"
 									onClick={() => setSelectedRarityFilter(rarity)}
 									className="flex items-center gap-2"
@@ -200,7 +211,10 @@ export default function TreasuryItemsExplorer() {
 				{isLoading ? (
 					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 						{[...Array(12)].map((_, i) => (
-							<div key={i} className="bg-content1/20 backdrop-blur-xl rounded-xl p-4 animate-pulse">
+							<div
+								key={i}
+								className="bg-content1/20 backdrop-blur-xl rounded-xl p-4 animate-pulse"
+							>
 								<div className="w-full h-48 bg-content1/30 rounded-lg mb-4"></div>
 								<div className="space-y-2">
 									<div className="w-20 h-4 bg-content1/30 rounded"></div>
@@ -221,10 +235,9 @@ export default function TreasuryItemsExplorer() {
 							No Items Found
 						</h4>
 						<p className="text-foreground/60">
-							{selectedRarityFilter 
+							{selectedRarityFilter
 								? `No ${RARITY_CONFIG[selectedRarityFilter].name.toLowerCase()} items in the treasury`
-								: "The treasury is empty"
-							}
+								: "The treasury is empty"}
 						</p>
 					</GlassCard>
 				) : (
@@ -245,7 +258,10 @@ export default function TreasuryItemsExplorer() {
 									/>
 
 									{/* Card */}
-									<GlassCard variant="interactive" className="relative overflow-hidden h-full">
+									<GlassCard
+										variant="interactive"
+										className="relative overflow-hidden h-full"
+									>
 										{/* NFT Image Placeholder */}
 										<div className="w-full h-48 bg-gradient-to-br from-content1/30 to-content1/10 rounded-lg mb-4 flex items-center justify-center">
 											<div className="text-6xl">{rarityConfig.emoji}</div>
@@ -280,7 +296,8 @@ export default function TreasuryItemsExplorer() {
 														Estimated Value
 													</p>
 													<p className="text-sm font-semibold text-warning">
-														{formatTokenAmountLocal(item.estimatedValue)} {tokenSymbol}
+														{formatTokenAmountLocal(item.estimatedValue)}{" "}
+														{tokenSymbol}
 													</p>
 												</div>
 											)}
@@ -314,13 +331,13 @@ export default function TreasuryItemsExplorer() {
 					<GlassButton
 						variant="secondary"
 						size="sm"
-						onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+						onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
 						isDisabled={currentPage === 0}
 						startIcon="left"
 					>
 						Previous
 					</GlassButton>
-					
+
 					<div className="flex items-center gap-2">
 						{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
 							const pageNum = currentPage < 3 ? i : currentPage - 2 + i;
@@ -342,7 +359,9 @@ export default function TreasuryItemsExplorer() {
 					<GlassButton
 						variant="secondary"
 						size="sm"
-						onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+						onClick={() =>
+							setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))
+						}
 						isDisabled={currentPage === totalPages - 1}
 						startIcon="right"
 					>
@@ -362,7 +381,8 @@ export default function TreasuryItemsExplorer() {
 					<div className="flex items-center justify-center gap-2 text-foreground/60">
 						<ThemedIcon name="info" size="sm" />
 						<p className="text-sm">
-							Treasury explorer requires additional contract methods to fetch individual NFT data. Currently showing placeholder implementation.
+							Treasury explorer requires additional contract methods to fetch
+							individual NFT data. Currently showing placeholder implementation.
 						</p>
 					</div>
 				</GlassCard>

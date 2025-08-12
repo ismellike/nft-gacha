@@ -55,7 +55,9 @@ export default function AnalyticsDashboard() {
 								startIcon={view.icon}
 							>
 								<div className="text-left min-w-0">
-									<div className="font-medium text-sm truncate">{view.label}</div>
+									<div className="font-medium text-sm truncate">
+										{view.label}
+									</div>
 									<div className="text-xs text-current/70 hidden sm:block truncate">
 										{view.description}
 									</div>

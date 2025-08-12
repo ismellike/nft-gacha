@@ -34,10 +34,11 @@ export default function GlobalStats() {
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: globalAnalytics } = useReadGachaRewardsManagerGetGlobalAnalytics({
-		address: contracts.rewardsManager,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	const { data: globalAnalytics } =
+		useReadGachaRewardsManagerGetGlobalAnalytics({
+			address: contracts.rewardsManager,
+			query: { enabled: !!contracts.rewardsManager },
+		});
 
 	// Format token amounts
 	const formatTokenAmountLocal = (amount: bigint | undefined) => {
@@ -93,8 +94,14 @@ export default function GlobalStats() {
 							transition={{ delay: 0.9 + index * 0.1, duration: 0.6 }}
 							className="text-center"
 						>
-							<div className={`w-16 h-16 mx-auto mb-3 bg-gradient-to-br ${stat.color} backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center`}>
-								<ThemedIcon name={stat.icon} size="lg" className={stat.iconColor} />
+							<div
+								className={`w-16 h-16 mx-auto mb-3 bg-gradient-to-br ${stat.color} backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center`}
+							>
+								<ThemedIcon
+									name={stat.icon}
+									size="lg"
+									className={stat.iconColor}
+								/>
 							</div>
 							<p className="text-2xl font-bold text-foreground mb-1">
 								{stat.value}

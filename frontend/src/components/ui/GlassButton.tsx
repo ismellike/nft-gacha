@@ -32,14 +32,31 @@ export interface GlassButtonProps {
 		| "success"
 		| "warning"
 		| "danger";
-	// Accessibility props
+	// Accessibility props - Enhanced with stricter typing
 	"aria-label"?: string;
+	"aria-labelledby"?: string;
 	"aria-describedby"?: string;
 	"aria-expanded"?: boolean;
 	"aria-controls"?: string;
-	role?: string;
+	"aria-pressed"?: boolean;
+	"aria-haspopup"?:
+		| boolean
+		| "false"
+		| "true"
+		| "menu"
+		| "listbox"
+		| "tree"
+		| "grid"
+		| "dialog";
+	role?: "button" | "tab" | "menuitem" | "link" | "switch";
 	type?: "button" | "submit" | "reset";
 	"data-testid"?: string;
+	tabIndex?: number;
+	// Form-related props
+	form?: string;
+	formAction?: string;
+	formMethod?: "get" | "post";
+	formTarget?: string;
 }
 
 export function GlassButton({
@@ -57,12 +74,20 @@ export function GlassButton({
 	iconSize,
 	iconVariant = "default",
 	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
 	"aria-describedby": ariaDescribedBy,
 	"aria-expanded": ariaExpanded,
 	"aria-controls": ariaControls,
+	"aria-pressed": ariaPressed,
+	"aria-haspopup": ariaHasPopup,
 	role,
 	type = "button",
 	"data-testid": dataTestId,
+	tabIndex,
+	form,
+	formAction,
+	formMethod,
+	formTarget,
 }: GlassButtonProps) {
 	// Generate classes using our custom variant system
 	const buttonStyles = glassButton({
@@ -121,11 +146,19 @@ export function GlassButton({
 			isDisabled={isDisabled || isLoading}
 			onPress={onClick}
 			aria-label={ariaLabel}
+			aria-labelledby={ariaLabelledBy}
 			aria-describedby={ariaDescribedBy}
 			aria-expanded={ariaExpanded}
 			aria-controls={ariaControls}
+			aria-pressed={ariaPressed}
+			aria-haspopup={ariaHasPopup}
 			role={role}
 			data-testid={dataTestId}
+			tabIndex={tabIndex}
+			form={form}
+			formAction={formAction}
+			formMethod={formMethod}
+			formTarget={formTarget}
 			{...motionProps}
 		>
 			{/* Shimmer effect for primary variant */}

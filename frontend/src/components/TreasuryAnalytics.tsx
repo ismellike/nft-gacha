@@ -61,9 +61,10 @@ export default function TreasuryAnalytics() {
 		query: { enabled: !!contracts.treasury },
 	});
 
-
 	// Constants for detecting unbounded values
-	const UINT256_MAX = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935");
+	const UINT256_MAX = BigInt(
+		"115792089237316195423570985008687907853269984665640564039457584007913129639935",
+	);
 	const VERY_LARGE_THRESHOLD = BigInt("1000000000000000000000000000000000000"); // Much smaller than uint256 max but still very large
 
 	// Format token amounts
@@ -78,14 +79,20 @@ export default function TreasuryAnalytics() {
 	};
 
 	// Format price range values with unbounded detection
-	const formatPriceRangeValue = (amount: bigint | undefined, isMaxValue: boolean = false) => {
+	const formatPriceRangeValue = (
+		amount: bigint | undefined,
+		isMaxValue: boolean = false,
+	) => {
 		if (!amount || !tokenDecimals) return "0";
-		
+
 		// Check if this is an unbounded/max value
-		if (isMaxValue && (amount >= VERY_LARGE_THRESHOLD || amount === UINT256_MAX)) {
+		if (
+			isMaxValue &&
+			(amount >= VERY_LARGE_THRESHOLD || amount === UINT256_MAX)
+		) {
 			return "∞";
 		}
-		
+
 		return formatTokenAmount(amount, tokenDecimals, {
 			maxDecimals: 2,
 			minDecimals: 0,
@@ -93,7 +100,6 @@ export default function TreasuryAnalytics() {
 			notation: "standard",
 		});
 	};
-
 
 	return (
 		<div className="space-y-8">
@@ -199,20 +205,27 @@ export default function TreasuryAnalytics() {
 									Avg Value/NFT
 								</p>
 								<h3 className="text-2xl lg:text-3xl font-bold text-foreground mt-2">
-									{totalValueLocked && totalItemsCount && Number(totalItemsCount) > 0
-										? formatTokenAmountLocal(totalValueLocked / BigInt(Number(totalItemsCount)))
+									{totalValueLocked &&
+									totalItemsCount &&
+									Number(totalItemsCount) > 0
+										? formatTokenAmountLocal(
+												totalValueLocked / BigInt(Number(totalItemsCount)),
+											)
 										: "0"}{" "}
 									{tokenSymbol}
 								</h3>
 							</div>
 							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="trending" size="lg" className="text-green-400" />
+								<ThemedIcon
+									name="trending"
+									size="lg"
+									className="text-green-400"
+								/>
 							</div>
 						</div>
 					</GlassCard>
 				</motion.div>
 			</div>
-
 
 			{/* Price Ranges */}
 			{priceRanges && priceRanges.length > 0 && (
@@ -245,8 +258,13 @@ export default function TreasuryAnalytics() {
 												Range {index + 1}
 											</p>
 											<p className="text-lg font-semibold text-foreground">
-												{formatPriceRangeValue(range.minPriceUSD)} - {formatPriceRangeValue(range.maxPriceUSD, true)}
-												{range.maxPriceUSD && (range.maxPriceUSD >= VERY_LARGE_THRESHOLD || range.maxPriceUSD === UINT256_MAX) ? "" : ` ${tokenSymbol}`}
+												{formatPriceRangeValue(range.minPriceUSD)} -{" "}
+												{formatPriceRangeValue(range.maxPriceUSD, true)}
+												{range.maxPriceUSD &&
+												(range.maxPriceUSD >= VERY_LARGE_THRESHOLD ||
+													range.maxPriceUSD === UINT256_MAX)
+													? ""
+													: ` ${tokenSymbol}`}
 											</p>
 										</div>
 									</div>

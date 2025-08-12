@@ -192,7 +192,6 @@ export default function LandingPage() {
 						))}
 					</motion.div>
 				</div>
-
 			</section>
 
 			{/* Features Section - Enhanced */}

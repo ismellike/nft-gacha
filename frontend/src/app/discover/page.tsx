@@ -2,7 +2,12 @@
 
 import { motion } from "framer-motion";
 import { ThemedIcon } from "../../lib/icons";
-import { GlassCard, GlassBadge, GlassHeader, GachaCard } from "../../components/ui";
+import {
+	GlassCard,
+	GlassBadge,
+	GlassHeader,
+	GachaCard,
+} from "../../components/ui";
 import { getAllActiveGachas } from "../../lib/gacha-config";
 
 export default function DiscoverPage() {

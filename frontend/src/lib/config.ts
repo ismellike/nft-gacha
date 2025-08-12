@@ -29,7 +29,6 @@ export const getEnvMode = (): EnvMode => {
 
 export const ENV_MODE = getEnvMode();
 
-
 // Minimal environment variables schema - only what we need from env
 const envSchema = z.object({
 	// Chain configuration
@@ -57,11 +56,11 @@ const parsedEnv = envSchema.parse({
 export const config = {
 	// Chain config
 	WAVS_CHAIN_RPC_URL: parsedEnv.NEXT_PUBLIC_WAVS_CHAIN_RPC_URL,
-	
+
 	// Other config
 	WALLETCONNECT_PROJECT_ID: parsedEnv.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
 	ENABLE_TESTNETS: parsedEnv.NEXT_PUBLIC_ENABLE_TESTNETS,
-	
+
 	// Environment info
 	ENV_MODE,
 } as const;

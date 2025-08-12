@@ -21,7 +21,12 @@ export interface GachaSpinContext {
 }
 
 export type GachaSpinEvent =
-	| { type: "START_SPIN"; userAddress: string; publicClient: PublicClient; gachaAddress: string }
+	| {
+			type: "START_SPIN";
+			userAddress: string;
+			publicClient: PublicClient;
+			gachaAddress: string;
+	  }
 	| { type: "TRANSACTION_CONFIRMED"; triggerId: bigint }
 	| { type: "SPIN_FULFILLED"; result: SpinResult }
 	| { type: "CLOSE_REVEAL" }

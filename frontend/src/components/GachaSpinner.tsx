@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import SpinControls from "./SpinControls";
 import RarityBreakdown from "./RarityBreakdown";
 import LastSpinResult from "./LastSpinResult";
@@ -9,13 +9,19 @@ import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 
-export default function GachaSpinner() {
+const GachaSpinner = memo(() => {
 	const [refreshKey, setRefreshKey] = useState(0);
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
 	// Use the new state machine hook
 	const gachaSpin = useGachaSpinMachine();
+
+	const handleCloseReveal = useCallback(() => {
+		gachaSpin.closeReveal();
+		// Refresh rarity counts after reveal closes
+		setRefreshKey((prev) => prev + 1);
+	}, [gachaSpin]);
 
 	return (
 		<div className="space-y-16">
@@ -24,11 +30,7 @@ export default function GachaSpinner() {
 				<NFTRevealModal
 					isVisible={true}
 					nftResult={gachaSpin.spinResult}
-					onClose={() => {
-						gachaSpin.closeReveal();
-						// Refresh rarity counts after reveal closes
-						setRefreshKey((prev) => prev + 1);
-					}}
+					onClose={handleCloseReveal}
 					appraisalContractAddress={contracts.appraisal}
 				/>
 			)}
@@ -52,4 +54,7 @@ export default function GachaSpinner() {
 			</div>
 		</div>
 	);
-}
+});
+GachaSpinner.displayName = "GachaSpinner";
+
+export default GachaSpinner;

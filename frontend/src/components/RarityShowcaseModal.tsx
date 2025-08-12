@@ -1,11 +1,6 @@
 "use client";
 
-import {
-	Modal,
-	ModalContent,
-	ModalHeader,
-	ModalBody,
-} from "@heroui/react";
+import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -14,7 +9,6 @@ import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
 import { NFTInventoryCard, GlassBadge } from "./ui";
 import { ThemedIcon } from "../lib/icons";
 import { glassModal } from "../lib/theme-config";
-
 
 interface RarityShowcaseModalProps {
 	isOpen: boolean;
@@ -108,10 +102,7 @@ export default function RarityShowcaseModal({
 							</span>
 						</motion.div>
 						{!isLoading && (
-							<GlassBadge 
-								variant="primary"
-								size="md"
-							>
+							<GlassBadge variant="primary" size="md">
 								{formattedItems.length} Available
 							</GlassBadge>
 						)}
@@ -123,7 +114,7 @@ export default function RarityShowcaseModal({
 
 				<ModalBody>
 					{isLoading ? (
-						<motion.div 
+						<motion.div
 							className="flex flex-col items-center justify-center py-32"
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
@@ -140,12 +131,16 @@ export default function RarityShowcaseModal({
 							</p>
 						</motion.div>
 					) : error ? (
-						<motion.div 
+						<motion.div
 							className="text-center py-32"
 							initial={{ opacity: 0, scale: 0.95 }}
 							animate={{ opacity: 1, scale: 1 }}
 						>
-							<ThemedIcon name="alert-triangle" size="2xl" className="text-danger mb-6 mx-auto" />
+							<ThemedIcon
+								name="alert-triangle"
+								size="2xl"
+								className="text-danger mb-6 mx-auto"
+							/>
 							<h4 className="text-2xl font-semibold text-danger mb-4">
 								Failed to Load NFTs
 							</h4>
@@ -154,21 +149,26 @@ export default function RarityShowcaseModal({
 							</p>
 						</motion.div>
 					) : formattedItems.length === 0 ? (
-						<motion.div 
+						<motion.div
 							className="text-center py-32"
 							initial={{ opacity: 0, scale: 0.95 }}
 							animate={{ opacity: 1, scale: 1 }}
 						>
-							<ThemedIcon name="archive" size="2xl" className="text-foreground/50 mb-6 mx-auto" />
+							<ThemedIcon
+								name="archive"
+								size="2xl"
+								className="text-foreground/50 mb-6 mx-auto"
+							/>
 							<h4 className="text-2xl font-semibold text-foreground mb-4">
 								No NFTs Available
 							</h4>
 							<p className="text-foreground/70 text-lg">
-								There are currently no NFTs in the {rarityConfig.name} rarity tier.
+								There are currently no NFTs in the {rarityConfig.name} rarity
+								tier.
 							</p>
 						</motion.div>
 					) : (
-						<motion.div 
+						<motion.div
 							className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-6"
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}

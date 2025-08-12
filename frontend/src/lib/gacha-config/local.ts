@@ -25,18 +25,23 @@ Each Pokémon card belongs to one of five carefully balanced rarity tiers:
 🚧 **Development Environment Active**
 This is a test environment using local contracts and test tokens for development purposes.`,
 		theme: "from-blue-500 to-yellow-500",
-		treasuryAddress: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS as `0x${string}`,
+		treasuryAddress: process.env
+			.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS as `0x${string}`,
 		isActive: true,
 		createdAt: "2024-01-01",
 		// Required contract addresses
-		appraisalAddress: process.env.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS as `0x${string}`,
-		rewardsManagerAddress: process.env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as `0x${string}`,
+		appraisalAddress: process.env
+			.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS as `0x${string}`,
+		rewardsManagerAddress: process.env
+			.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as `0x${string}`,
 		trackerAddresses: {
 			common: process.env.NEXT_PUBLIC_COMMON_TRACKER_ADDRESS as `0x${string}`,
-			uncommon: process.env.NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS as `0x${string}`,
+			uncommon: process.env
+				.NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS as `0x${string}`,
 			rare: process.env.NEXT_PUBLIC_RARE_TRACKER_ADDRESS as `0x${string}`,
 			epic: process.env.NEXT_PUBLIC_EPIC_TRACKER_ADDRESS as `0x${string}`,
-			legendary: process.env.NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS as `0x${string}`,
+			legendary: process.env
+				.NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS as `0x${string}`,
 		},
 	},
 };

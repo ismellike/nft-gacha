@@ -8,6 +8,6 @@ import { DEFAULT_GACHA_ID } from "../lib/gacha-config/contracts";
 export function useGachaId(): string {
 	const searchParams = useSearchParams();
 	const gachaId = searchParams.get("id") || DEFAULT_GACHA_ID;
-	
+
 	return gachaId;
 }
