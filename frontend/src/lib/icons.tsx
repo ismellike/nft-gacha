@@ -157,9 +157,11 @@ export const rarityIcons = {
 // UI action icons
 export const actionIcons = {
 	close: X,
+	x: X,
 	"x-circle": XCircle,
 	check: Check,
 	refresh: RefreshCw,
+	"refresh-cw": RefreshCw,
 	search: Search,
 	filter: Filter,
 	sort: SortAsc,

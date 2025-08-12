@@ -6,34 +6,34 @@ import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
 import { formatTokenAmount } from "../lib/utils";
 import {
-	useReadGachaSpinRequests,
-	useReadGachaGetSpinRequest,
 	useReadErc20Decimals,
 	useReadErc20Symbol,
 	useReadGachaFeeToken,
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
-import { RARITY_CONFIG, Rarity } from "../lib/rarityConfig";
+import { useUserSpinHistory } from "../hooks/useSpinHistory";
+import { RARITY_CONFIG, Rarity, getRarityConfig } from "../lib/rarityConfig";
+import { SpinStatus } from "../hooks/types/spinHistory";
 import { ThemedIcon } from "../lib/icons";
 import { GlassCard, GlassButton, GlassBadge } from "./ui";
 
-interface SpinRequest {
-	id: bigint;
-	spinner: `0x${string}`;
-	fulfilled: boolean;
-	timestamp: number;
-	rarity?: Rarity;
-	nftAddress?: `0x${string}`;
-	tokenId?: bigint;
-}
-
 export default function SpinHistory() {
 	const { address: userAddress, isConnected } = useAccount();
-	const [spinRequests, setSpinRequests] = useState<SpinRequest[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
+
+	// Use the new spin history hook
+	const {
+		spins,
+		totalSpins,
+		completedSpins,
+		refundedSpins,
+		pendingSpins,
+		isLoading,
+		error: spinHistoryError,
+		refetch,
+	} = useUserSpinHistory(contracts.gacha);
 
 	// Contract reads
 	const { data: feeToken } = useReadGachaFeeToken({
@@ -51,35 +51,12 @@ export default function SpinHistory() {
 		query: { enabled: !!feeToken },
 	});
 
-	// Load spin history for the user from contract events
+	// Handle error display
 	useEffect(() => {
-		if (!userAddress || !contracts.gacha) {
-			setIsLoading(false);
-			setSpinRequests([]);
-			return;
+		if (spinHistoryError) {
+			console.error("Spin history error:", spinHistoryError);
 		}
-
-		const loadSpinHistory = async () => {
-			setIsLoading(true);
-			try {
-				// In a real implementation, you would:
-				// 1. Query RandomnessRequested events filtered by user address
-				// 2. Query SpinCompleted events to get fulfilled spins
-				// 3. Match them together to build the spin history
-				// 4. Use event logs or a subgraph for efficient querying
-
-				// For now, we'll show an empty state since we need proper event indexing
-				setSpinRequests([]);
-			} catch (error) {
-				console.error("Failed to load spin history:", error);
-				setSpinRequests([]);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadSpinHistory();
-	}, [userAddress, contracts.gacha]);
+	}, [spinHistoryError]);
 
 	const formatTimeAgo = (timestamp: number) => {
 		const now = Date.now();
@@ -93,8 +70,6 @@ export default function SpinHistory() {
 		if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
 		return "Just now";
 	};
-
-	const getRarityConfig = (rarity: Rarity) => RARITY_CONFIG[rarity];
 
 	if (!isConnected) {
 		return (
@@ -136,7 +111,7 @@ export default function SpinHistory() {
 			</motion.div>
 
 			{/* Stats Summary */}
-			<div className="grid sm:grid-cols-1 md:grid-cols-3 gap-6">
+			<div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 				<motion.div
 					initial={{ opacity: 0, scale: 0.95 }}
 					animate={{ opacity: 1, scale: 1 }}
@@ -149,7 +124,7 @@ export default function SpinHistory() {
 									Total Spins
 								</p>
 								<h3 className="text-3xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent mt-2">
-									{spinRequests.length}
+									{totalSpins}
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
@@ -171,7 +146,7 @@ export default function SpinHistory() {
 									Successful Spins
 								</p>
 								<h3 className="text-3xl font-bold text-foreground mt-2">
-									{spinRequests.filter((spin) => spin.fulfilled).length}
+									{completedSpins}
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
@@ -193,11 +168,33 @@ export default function SpinHistory() {
 									Pending Spins
 								</p>
 								<h3 className="text-3xl font-bold text-foreground mt-2">
-									{spinRequests.filter((spin) => !spin.fulfilled).length}
+									{pendingSpins}
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-blue-400/20 to-blue-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
 								<ThemedIcon name="clock" size="xl" className="text-blue-400" />
+							</div>
+						</div>
+					</GlassCard>
+				</motion.div>
+
+				<motion.div
+					initial={{ opacity: 0, scale: 0.95 }}
+					animate={{ opacity: 1, scale: 1 }}
+					transition={{ delay: 0.4, duration: 0.6 }}
+				>
+					<GlassCard variant="floating" animate={true} padding="lg">
+						<div className="flex items-center justify-between">
+							<div>
+								<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
+									Refunded Spins
+								</p>
+								<h3 className="text-3xl font-bold text-foreground mt-2">
+									{refundedSpins}
+								</h3>
+							</div>
+							<div className="w-16 h-16 bg-gradient-to-br from-red-400/20 to-red-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
+								<ThemedIcon name="x" size="xl" className="text-red-400" />
 							</div>
 						</div>
 					</GlassCard>
@@ -208,7 +205,7 @@ export default function SpinHistory() {
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ delay: 0.4, duration: 0.6 }}
+				transition={{ delay: 0.5, duration: 0.6 }}
 			>
 				<GlassCard
 					variant="base"
@@ -239,7 +236,7 @@ export default function SpinHistory() {
 								</div>
 							))}
 						</div>
-					) : spinRequests.length === 0 ? (
+					) : spins.length === 0 ? (
 						<div className="p-12 text-center">
 							<ThemedIcon
 								name="dice"
@@ -256,9 +253,9 @@ export default function SpinHistory() {
 					) : (
 						<div className="p-6 space-y-4">
 							<AnimatePresence>
-								{spinRequests.map((spin, index) => (
+								{spins.map((spin, index) => (
 									<motion.div
-										key={spin.id.toString()}
+										key={spin.triggerId.toString()}
 										initial={{ opacity: 0, y: 20 }}
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ delay: 0.5 + index * 0.1, duration: 0.6 }}
@@ -271,18 +268,28 @@ export default function SpinHistory() {
 													{/* Status icon */}
 													<div
 														className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-xl border ${
-															spin.fulfilled
+															spin.status === SpinStatus.Completed
 																? "bg-green-400/20 border-green-400/30"
-																: "bg-blue-400/20 border-blue-400/30"
+																: spin.status === SpinStatus.Refunded
+																	? "bg-red-400/20 border-red-400/30"
+																	: "bg-blue-400/20 border-blue-400/30"
 														}`}
 													>
 														<ThemedIcon
-															name={spin.fulfilled ? "check" : "clock"}
+															name={
+																spin.status === SpinStatus.Completed
+																	? "check"
+																	: spin.status === SpinStatus.Refunded
+																		? "x"
+																		: "clock"
+															}
 															size="md"
 															className={
-																spin.fulfilled
+																spin.status === SpinStatus.Completed
 																	? "text-green-400"
-																	: "text-blue-400"
+																	: spin.status === SpinStatus.Refunded
+																		? "text-red-400"
+																		: "text-blue-400"
 															}
 														/>
 													</div>
@@ -291,38 +298,83 @@ export default function SpinHistory() {
 													<div className="space-y-1">
 														<div className="flex items-center gap-2">
 															<span className="font-medium text-foreground">
-																Spin #{spin.id.toString()}
+																Spin #{spin.triggerId.toString()}
 															</span>
-															{spin.fulfilled && spin.rarity !== undefined && (
+															{spin.completion && (
 																<GlassBadge
 																	variant="primary"
 																	className={`text-xs bg-gradient-to-r ${
-																		getRarityConfig(spin.rarity).bgGradient
+																		getRarityConfig(spin.completion.rarity)
+																			.bgGradient
 																	}`}
 																>
-																	{getRarityConfig(spin.rarity).emoji}{" "}
-																	{getRarityConfig(spin.rarity).name}
+																	{
+																		getRarityConfig(spin.completion.rarity)
+																			.emoji
+																	}{" "}
+																	{getRarityConfig(spin.completion.rarity).name}
+																</GlassBadge>
+															)}
+															{spin.refund && (
+																<GlassBadge
+																	variant="danger"
+																	className={`text-xs bg-gradient-to-r ${
+																		getRarityConfig(spin.refund.selectedRarity)
+																			.bgGradient
+																	}`}
+																>
+																	{
+																		getRarityConfig(spin.refund.selectedRarity)
+																			.emoji
+																	}{" "}
+																	{
+																		getRarityConfig(spin.refund.selectedRarity)
+																			.name
+																	}{" "}
+																	Refunded
 																</GlassBadge>
 															)}
 														</div>
 														<p className="text-sm text-foreground/60">
 															{formatTimeAgo(spin.timestamp)}
 														</p>
-														{spin.fulfilled &&
-															spin.nftAddress &&
-															spin.tokenId && (
+														{spin.completion && (
+															<div className="space-y-1">
 																<p className="text-xs text-foreground/50 font-mono">
-																	Token #{spin.tokenId.toString()}
+																	Token #{spin.completion.tokenId.toString()}
 																</p>
-															)}
+																<p className="text-xs text-foreground/50">
+																	Appraised:{" "}
+																	{formatUnits(
+																		spin.completion.appraisedPrice,
+																		tokenDecimals || 18,
+																	)}{" "}
+																	{tokenSymbol || ""}
+																</p>
+															</div>
+														)}
+														{spin.refund && (
+															<p className="text-xs text-foreground/50">
+																Refund:{" "}
+																{formatUnits(
+																	spin.refund.refundAmount,
+																	tokenDecimals || 18,
+																)}{" "}
+																{tokenSymbol || ""}
+															</p>
+														)}
 													</div>
 												</div>
 
 												{/* Right side - Status */}
 												<div className="text-right">
-													{spin.fulfilled ? (
+													{spin.status === SpinStatus.Completed ? (
 														<GlassBadge variant="success" size="sm">
-															Fulfilled
+															Completed
+														</GlassBadge>
+													) : spin.status === SpinStatus.Refunded ? (
+														<GlassBadge variant="danger" size="sm">
+															Refunded
 														</GlassBadge>
 													) : (
 														<GlassBadge variant="info" size="sm">
@@ -340,20 +392,45 @@ export default function SpinHistory() {
 				</GlassCard>
 			</motion.div>
 
-			{/* Note about data */}
+			{/* Actions and Status */}
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ delay: 0.8, duration: 0.6 }}
-				className="text-center"
+				transition={{ delay: 0.9, duration: 0.6 }}
+				className="text-center space-y-4"
 			>
+				{spinHistoryError && (
+					<GlassCard variant="base" className="p-6">
+						<div className="flex items-center justify-center gap-2 text-red-400">
+							<ThemedIcon name="alert-triangle" size="sm" />
+							<p className="text-sm">
+								Error loading spin history: {spinHistoryError.message}
+							</p>
+						</div>
+					</GlassCard>
+				)}
+
 				<GlassCard variant="base" className="p-6">
-					<div className="flex items-center justify-center gap-2 text-foreground/60">
-						<ThemedIcon name="info" size="sm" />
-						<p className="text-sm">
-							Spin history requires event indexing to display user transactions.
-							Consider implementing with The Graph or event log queries.
-						</p>
+					<div className="flex items-center justify-center gap-4 text-foreground/60">
+						<div className="flex items-center gap-2">
+							<ThemedIcon name="info" size="sm" />
+							<p className="text-sm">
+								Spin history loaded from blockchain events (last 5000 blocks)
+							</p>
+						</div>
+						<GlassButton
+							variant="secondary"
+							size="sm"
+							onClick={refetch}
+							isDisabled={isLoading}
+						>
+							<ThemedIcon
+								name="refresh-cw"
+								size="sm"
+								className={isLoading ? "animate-spin" : ""}
+							/>
+							Refresh
+						</GlassButton>
 					</div>
 				</GlassCard>
 			</motion.div>

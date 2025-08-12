@@ -104,3 +104,12 @@ export const getRarityName = (rarity: Rarity): string => {
 export const getRarityEmoji = (rarity: Rarity): string => {
 	return RARITY_CONFIG[rarity].emoji;
 };
+
+// Convert numeric rarity from contract events to Rarity enum
+export const rarityFromNumber = (rarityNumber: number): Rarity => {
+	if (rarityNumber in Rarity) {
+		return rarityNumber as Rarity;
+	}
+	// Default to Common if invalid number
+	return Rarity.Common;
+};
