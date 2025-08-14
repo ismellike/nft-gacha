@@ -6,7 +6,20 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { glassNavigation } from "../lib/theme-config";
-import { ThemedIcon } from "../lib/icons";
+import { HomeIcon, CubeIcon } from "@heroicons/react/24/outline";
+
+// Helper function to get icon component
+function getNavIcon(iconName: string, className: string) {
+	switch (iconName) {
+		case "home":
+			return <HomeIcon className={className} />;
+		case "dice":
+			return <CubeIcon className={className} />;
+		default:
+			console.warn(`Nav icon "${iconName}" not found`);
+			return null;
+	}
+}
 
 export const Header = memo(() => {
 	const pathname = usePathname();
@@ -73,11 +86,12 @@ export const Header = memo(() => {
 									transition={{ type: "spring", stiffness: 400, damping: 17 }}
 								>
 									<div className={navItemContent()}>
-										<ThemedIcon
-											name={item.icon}
-											size="md"
-											variant={isActive ? "accent" : "default"}
-										/>
+										{getNavIcon(
+											item.icon,
+											`w-5 h-5 ${
+												isActive ? "text-warning" : "text-foreground"
+											}`
+										)}
 										<span className={navStyles.navItemText()}>
 											{item.label}
 										</span>

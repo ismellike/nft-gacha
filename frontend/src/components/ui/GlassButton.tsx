@@ -7,9 +7,52 @@ import { Button } from "@heroui/react";
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
 import { glassButton } from "../../lib/theme-config";
-import { ArrowPathIcon as Loader2 } from "@heroicons/react/24/outline";
-import { ThemedIcon } from "../../lib/icons";
-import type { IconSize } from "../../lib/icons";
+import {
+	ArrowPathIcon as Loader2,
+	ChartBarIcon,
+	GiftIcon,
+	ClockIcon,
+	CheckIcon,
+	CurrencyDollarIcon,
+	XCircleIcon,
+	CubeIcon,
+	ArrowLeftIcon,
+	FunnelIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	BoltIcon,
+	CogIcon,
+} from "@heroicons/react/24/outline";
+
+type IconSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+
+// Helper function to map icon names to components
+function getIconComponent(iconName: string, className: string) {
+	const iconMap: Record<string, any> = {
+		trending: ChartBarIcon,
+		gem: GiftIcon,
+		gift: GiftIcon,
+		clock: ClockIcon,
+		check: CheckIcon,
+		coins: CurrencyDollarIcon,
+		"x-circle": XCircleIcon,
+		dice: CubeIcon,
+		"arrow-left": ArrowLeftIcon,
+		filter: FunnelIcon,
+		left: ChevronLeftIcon,
+		right: ChevronRightIcon,
+		zap: BoltIcon,
+		settings: CogIcon,
+	};
+	
+	const IconComponent = iconMap[iconName];
+	if (!IconComponent) {
+		console.warn(`Icon "${iconName}" not found`);
+		return null;
+	}
+	
+	return <IconComponent className={className} />;
+}
 
 export interface GlassButtonProps {
 	children: ReactNode;
@@ -110,8 +153,34 @@ export function GlassButton({
 			: {};
 
 	// Determine icon size based on button size if not explicitly set
-	const effectiveIconSize: IconSize =
-		iconSize || (size === "sm" ? "sm" : size === "lg" ? "md" : "sm");
+	const getIconSizeClass = (iconSize?: IconSize, buttonSize?: string) => {
+		if (iconSize) {
+			switch (iconSize) {
+				case "xs": return "w-3 h-3";
+				case "sm": return "w-4 h-4";
+				case "md": return "w-5 h-5";
+				case "lg": return "w-6 h-6";
+				case "xl": return "w-8 h-8";
+				case "2xl": return "w-10 h-10";
+				default: return "w-4 h-4";
+			}
+		}
+		return buttonSize === "sm" ? "w-4 h-4" : buttonSize === "lg" ? "w-5 h-5" : "w-4 h-4";
+	};
+	
+	const getIconVariantClass = (variant: string) => {
+		switch (variant) {
+			case "default": return "text-foreground";
+			case "muted": return "text-foreground/60";
+			case "accent": return "text-warning";
+			case "success": return "text-success";
+			case "warning": return "text-warning";
+			case "danger": return "text-danger";
+			default: return "text-foreground";
+		}
+	};
+	
+	const iconClassName = `${getIconSizeClass(iconSize, size)} ${getIconVariantClass(iconVariant)}`;
 
 	// Content to display
 	const buttonContent = isLoading ? (
@@ -121,21 +190,9 @@ export function GlassButton({
 		</div>
 	) : (
 		<div className="flex items-center justify-center space-x-2">
-			{startIcon && (
-				<ThemedIcon
-					name={startIcon}
-					size={effectiveIconSize}
-					variant={iconVariant}
-				/>
-			)}
+			{startIcon && getIconComponent(startIcon, iconClassName)}
 			<span>{children}</span>
-			{endIcon && (
-				<ThemedIcon
-					name={endIcon}
-					size={effectiveIconSize}
-					variant={iconVariant}
-				/>
-			)}
+			{endIcon && getIconComponent(endIcon, iconClassName)}
 		</div>
 	);
 

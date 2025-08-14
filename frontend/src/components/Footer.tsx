@@ -1,4 +1,3 @@
-import { ThemedIcon } from "../lib/icons";
 import { cn } from "../lib/theme-config";
 
 export function Footer() {

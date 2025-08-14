@@ -13,7 +13,7 @@ import {
 	useReadErc20Symbol,
 	useReadErc20Decimals,
 } from "../generated";
-import { ThemedIcon } from "../lib/icons";
+import { GiftIcon, BoltIcon, ArrowRightIcon, XCircleIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 import { GlassCard, GlassBadge, GachaCardSkeleton } from "./ui";
 import { GachaCardHeader } from "./GachaCardHeader";
 import { type GachaConfig } from "../lib/gacha-config";
@@ -180,7 +180,7 @@ export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 									Collection
 								</div>
 								<div className="text-lg font-bold text-foreground flex items-center justify-center gap-2">
-									<ThemedIcon name="gem" size="sm" className="text-warning" />
+									<GiftIcon className="w-4 h-4 text-warning" />
 									{totalNFTs}
 								</div>
 							</div>
@@ -189,11 +189,7 @@ export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 						{/* Compact Rarity Distribution */}
 						<div className="space-y-3">
 							<div className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
-								<ThemedIcon
-									name="trending"
-									size="sm"
-									className="text-warning"
-								/>
+								<ChartBarIcon className="w-4 h-4 text-warning" />
 								Rarity Distribution
 							</div>
 							<div className="flex gap-2">
@@ -236,13 +232,13 @@ export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 							transition={{ duration: 0.2 }}
 						>
 							<div className="flex items-center justify-center gap-2 text-warning font-semibold">
-								<ThemedIcon name="zap" size="sm" />
+								<BoltIcon className="w-4 h-4" />
 								<span>Click to Explore</span>
 								<motion.div
 									animate={{ x: [0, 4, 0] }}
 									transition={{ duration: 1.5, repeat: Infinity }}
 								>
-									<ThemedIcon name="arrow-right" size="sm" />
+									<ArrowRightIcon className="w-4 h-4" />
 								</motion.div>
 							</div>
 						</motion.div>
@@ -256,7 +252,7 @@ export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 								className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center"
 							>
 								<GlassBadge variant="danger" className="text-lg px-4 py-2">
-									<ThemedIcon name="x-circle" size="sm" className="mr-2" />
+									<XCircleIcon className="w-4 h-4 mr-2" />
 									Temporarily Unavailable
 								</GlassBadge>
 							</motion.div>

@@ -7,7 +7,7 @@ import { useGachaId } from "../hooks/useGachaId";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
 import { NFTInventoryCard, GlassBadge } from "./ui";
-import { ThemedIcon } from "../lib/icons";
+import { ExclamationTriangleIcon, ArchiveBoxIcon } from "@heroicons/react/24/outline";
 import { glassModal } from "../lib/theme-config";
 
 interface RarityShowcaseModalProps {
@@ -136,11 +136,7 @@ export default function RarityShowcaseModal({
 							initial={{ opacity: 0, scale: 0.95 }}
 							animate={{ opacity: 1, scale: 1 }}
 						>
-							<ThemedIcon
-								name="alert-triangle"
-								size="2xl"
-								className="text-danger mb-6 mx-auto"
-							/>
+							<ExclamationTriangleIcon className="w-10 h-10 text-danger mb-6 mx-auto" />
 							<h4 className="text-2xl font-semibold text-danger mb-4">
 								Failed to Load NFTs
 							</h4>
@@ -154,11 +150,7 @@ export default function RarityShowcaseModal({
 							initial={{ opacity: 0, scale: 0.95 }}
 							animate={{ opacity: 1, scale: 1 }}
 						>
-							<ThemedIcon
-								name="archive"
-								size="2xl"
-								className="text-foreground/50 mb-6 mx-auto"
-							/>
+							<ArchiveBoxIcon className="w-10 h-10 text-foreground/50 mb-6 mx-auto" />
 							<h4 className="text-2xl font-semibold text-foreground mb-4">
 								No NFTs Available
 							</h4>

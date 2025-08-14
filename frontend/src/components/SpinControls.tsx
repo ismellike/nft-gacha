@@ -11,7 +11,6 @@ import {
 import { cn } from "../lib/theme-config";
 import { glassTypography, glassStatus } from "../lib/theme-config";
 import { GlassCard, GlassButton, GlassBadge, TokenFeeDisplay } from "./ui";
-import { ThemedIcon } from "../lib/icons";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
 import { useGachaContracts } from "../hooks/useGachaContracts";

@@ -49,13 +49,6 @@ export function useRandomnessRequestedEvents(
 				BigInt(Math.max(0, Number(await publicClient.getBlockNumber()) - 5000));
 			const toBlock = params.toBlock || "latest";
 
-			console.log("Querying RandomnessRequested events:", {
-				contractAddress,
-				fromBlock: fromBlock.toString(),
-				toBlock,
-				userAddress: params.userAddress,
-			});
-
 			const logs = await publicClient.getLogs({
 				address: contractAddress,
 				event: {
@@ -73,8 +66,6 @@ export function useRandomnessRequestedEvents(
 				fromBlock,
 				toBlock,
 			});
-
-			console.log("Found RandomnessRequested logs:", logs.length, logs);
 
 			// Process logs and add block data
 			const eventsWithBlockData = await Promise.all(
@@ -100,15 +91,11 @@ export function useRandomnessRequestedEvents(
 			// Filter by user address if specified
 			const filteredEvents = params.userAddress
 				? eventsWithBlockData.filter(
-						(event) => {
-							const match = event.requester.toLowerCase() === params.userAddress!.toLowerCase();
-							console.log("Filtering event:", event.requester, "vs", params.userAddress, "match:", match);
-							return match;
-						}
+						(event) =>
+							event.requester.toLowerCase() ===
+							params.userAddress!.toLowerCase(),
 					)
 				: eventsWithBlockData;
-
-			console.log("Events after filtering:", filteredEvents.length, filteredEvents);
 
 			// Sort by block number descending (newest first)
 			const sortedEvents = filteredEvents.sort(

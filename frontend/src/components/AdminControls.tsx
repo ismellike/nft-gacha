@@ -4,7 +4,35 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard, GlassButton, GlassBadge } from "@/components/ui";
-import { ThemedIcon } from "@/lib/icons";
+import { 
+	ShieldCheckIcon, 
+	XCircleIcon, 
+	CheckIcon, 
+	Squares2X2Icon,
+	CurrencyDollarIcon,
+	FolderOpenIcon,
+	BoltIcon,
+	ExclamationTriangleIcon,
+	WalletIcon
+} from "@heroicons/react/24/outline";
+
+// Helper function to get admin section icons
+function getAdminSectionIcon(iconName: string, className: string = "w-5 h-5") {
+	switch (iconName) {
+		case "dice":
+			return <Squares2X2Icon className={className} />;
+		case "coins":
+			return <CurrencyDollarIcon className={className} />;
+		case "shield-check":
+			return <ShieldCheckIcon className={className} />;
+		case "folder-open":
+			return <FolderOpenIcon className={className} />;
+		case "zap":
+			return <BoltIcon className={className} />;
+		default:
+			return <ShieldCheckIcon className={className} />;
+	}
+}
 import {
 	useReadGachaOwner,
 	useReadGachaTreasuryOwner,
@@ -105,11 +133,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
 				<GlassCard className="p-12 text-center max-w-md">
-					<ThemedIcon
-						name="wallet"
-						size="xl"
-						className="mx-auto mb-6 text-warning"
-					/>
+					<WalletIcon className="w-8 h-8 mx-auto mb-6 text-warning" />
 					<h2 className="text-2xl font-bold text-foreground mb-4">
 						Connect Your Wallet
 					</h2>
@@ -125,11 +149,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
 				<GlassCard className="p-12 text-center max-w-md">
-					<ThemedIcon
-						name="shield-check"
-						size="xl"
-						className="mx-auto mb-6 text-danger"
-					/>
+					<ShieldCheckIcon className="w-8 h-8 mx-auto mb-6 text-danger" />
 					<h2 className="text-2xl font-bold text-foreground mb-4">
 						Access Denied
 					</h2>
@@ -162,7 +182,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 
 				<div className="flex items-center justify-center gap-3 mt-6">
 					<GlassBadge variant="success">
-						<ThemedIcon name="shield-check" size="sm" />
+						<ShieldCheckIcon className="w-4 h-4" />
 						<span className="ml-1">Authorized Owner</span>
 					</GlassBadge>
 					<GlassBadge variant="info">
@@ -198,13 +218,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 								>
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-3">
-											<ThemedIcon
-												name={section.icon}
-												size="md"
-												variant={
-													activeSection === section.id ? "accent" : "default"
-												}
-											/>
+											{getAdminSectionIcon(section.icon, `w-5 h-5 ${activeSection === section.id ? "text-warning" : "text-foreground"}`)}
 											<div>
 												<div className="font-medium text-foreground text-sm">
 													{section.title}
@@ -476,11 +490,7 @@ function WhitelistSection() {
 			</div>
 
 			<div className="text-center py-12">
-				<ThemedIcon
-					name="folder-open"
-					size="xl"
-					className="mx-auto mb-4 text-foreground/40"
-				/>
+				<FolderOpenIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
 				<h3 className="text-lg font-medium text-foreground/60 mb-2">
 					Coming Soon
 				</h3>
@@ -505,11 +515,7 @@ function DepositsSection() {
 			</div>
 
 			<div className="text-center py-12">
-				<ThemedIcon
-					name="folder-open"
-					size="xl"
-					className="mx-auto mb-4 text-foreground/40"
-				/>
+				<FolderOpenIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
 				<h3 className="text-lg font-medium text-foreground/60 mb-2">
 					No Pending Deposits
 				</h3>
@@ -566,7 +572,7 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 						</p>
 					</div>
 					<GlassBadge variant={isPaused ? "danger" : "success"} size="lg">
-						<ThemedIcon name={isPaused ? "x-circle" : "check"} size="sm" />
+						{isPaused ? <XCircleIcon className="w-4 h-4" /> : <CheckIcon className="w-4 h-4" />}
 						<span className="ml-2">{isPaused ? "PAUSED" : "ACTIVE"}</span>
 					</GlassBadge>
 				</div>
@@ -601,11 +607,7 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 
 				<div className="bg-warning/10 border border-warning/20 rounded-xl p-4">
 					<div className="flex items-start gap-3">
-						<ThemedIcon
-							name="alert-triangle"
-							size="md"
-							className="text-warning mt-0.5"
-						/>
+						<ExclamationTriangleIcon className="w-5 h-5 text-warning mt-0.5" />
 						<div>
 							<h4 className="font-semibold text-warning mb-1">
 								Emergency Use Only

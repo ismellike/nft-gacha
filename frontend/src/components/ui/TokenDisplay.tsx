@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../lib/theme-config";
-import { ThemedIcon } from "../../lib/icons";
+import { CurrencyDollarIcon } from "@heroicons/react/24/outline";
 import { getEnvMode } from "../../env";
 
 interface TokenDisplayProps {
@@ -259,10 +259,10 @@ export function TokenDisplay({
 						{getFallbackInitials()}
 					</span>
 				) : (
-					<ThemedIcon
-						name="coins"
-						size={size === "sm" ? "xs" : size === "md" ? "sm" : "md"}
-						className="text-white drop-shadow-sm"
+					<CurrencyDollarIcon
+						className={`text-white drop-shadow-sm ${
+							size === "sm" ? "w-3 h-3" : size === "md" ? "w-4 h-4" : "w-5 h-5"
+						}`}
 					/>
 				)}
 			</div>

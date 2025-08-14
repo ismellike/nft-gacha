@@ -222,61 +222,9 @@ export const mediaIcons = {
 	mute: VolumeX,
 } as const;
 
-// Utility functions for common icon patterns
-export const getIconByName = (name: string): HeroIcon | null => {
-	const allIcons = {
-		...navigationIcons,
-		...gachaIcons,
-		...rarityIcons,
-		...actionIcons,
-		...directionIcons,
-		...statusIcons,
-		...mediaIcons,
-	};
-
-	return allIcons[name as keyof typeof allIcons] || null;
-};
-
-// Icon with automatic sizing and styling
-export const ThemedIcon = ({
-	name,
-	size = "md",
-	className = "",
-	variant = "default",
-	...props
-}: {
-	name: string;
-	size?: IconSize | number;
-	className?: string;
-	variant?: "default" | "muted" | "accent" | "success" | "warning" | "danger";
-} & Omit<React.ComponentProps<HeroIcon>, "width" | "height">) => {
-	const IconComponent = getIconByName(name);
-
-	if (!IconComponent) {
-		console.warn(`Icon "${name}" not found`);
-		return null;
-	}
-
-	const variantClasses = {
-		default: "text-foreground",
-		muted: "text-foreground/60",
-		accent: "text-warning",
-		success: "text-success",
-		warning: "text-warning",
-		danger: "text-danger",
-	};
-
-	const iconSize = typeof size === "number" ? size : iconSizes[size];
-
-	return (
-		<IconComponent
-			width={iconSize}
-			height={iconSize}
-			className={`${variantClasses[variant]} ${className}`}
-			{...props}
-		/>
-	);
-};
+// Note: ThemedIcon and getIconByName have been removed in favor of direct icon imports
+// This improves tree-shaking, type safety, and performance
+// Use direct icon imports from @heroicons/react/24/outline instead
 
 // Export specific icons for direct use
 export {

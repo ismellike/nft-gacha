@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ThemedIcon } from "../lib/icons";
 import { GlassCard, GlassButton } from "./ui";
 import TreasuryAnalytics from "./TreasuryAnalytics";
 import TreasuryItemsExplorer from "./TreasuryItemsExplorer";

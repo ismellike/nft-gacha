@@ -15,7 +15,18 @@ import { useGachaId } from "../hooks/useGachaId";
 import { useUserSpinHistory } from "../hooks/useSpinHistory";
 import { RARITY_CONFIG, Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { SpinStatus } from "../hooks/types/spinHistory";
-import { ThemedIcon } from "../lib/icons";
+import {
+	BoltIcon,
+	CheckIcon,
+	ClockIcon,
+	XMarkIcon,
+	ExclamationTriangleIcon,
+	InformationCircleIcon,
+	WalletIcon,
+	StarIcon,
+	CubeIcon,
+	ArrowPathIcon,
+} from "@heroicons/react/24/outline";
 import { GlassCard, GlassButton, GlassBadge } from "./ui";
 
 export default function SpinHistory() {
@@ -75,11 +86,7 @@ export default function SpinHistory() {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
 				<GlassCard variant="base" className="p-8 text-center">
-					<ThemedIcon
-						name="wallet"
-						size="xl"
-						className="mx-auto mb-4 text-warning"
-					/>
+					<WalletIcon className="w-8 h-8 mx-auto mb-4 text-warning" />
 					<h3 className="text-xl font-medium text-foreground mb-4">
 						Connect Your Wallet
 					</h3>
@@ -128,7 +135,7 @@ export default function SpinHistory() {
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="zap" size="xl" variant="accent" />
+								<BoltIcon className="w-8 h-8 text-warning" />
 							</div>
 						</div>
 					</GlassCard>
@@ -150,7 +157,7 @@ export default function SpinHistory() {
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="check" size="xl" variant="success" />
+								<CheckIcon className="w-8 h-8 text-success" />
 							</div>
 						</div>
 					</GlassCard>
@@ -172,7 +179,7 @@ export default function SpinHistory() {
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-blue-400/20 to-blue-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="clock" size="xl" className="text-blue-400" />
+								<ClockIcon className="w-8 h-8 text-blue-400" />
 							</div>
 						</div>
 					</GlassCard>
@@ -194,7 +201,7 @@ export default function SpinHistory() {
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-red-400/20 to-red-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="x" size="xl" className="text-red-400" />
+								<XMarkIcon className="w-8 h-8 text-red-400" />
 							</div>
 						</div>
 					</GlassCard>
@@ -238,11 +245,7 @@ export default function SpinHistory() {
 						</div>
 					) : spins.length === 0 ? (
 						<div className="p-12 text-center">
-							<ThemedIcon
-								name="dice"
-								size="xl"
-								className="mx-auto mb-4 text-foreground/30"
-							/>
+							<CubeIcon className="w-8 h-8 mx-auto mb-4 text-foreground/30" />
 							<h4 className="text-lg font-medium text-foreground mb-2">
 								No Spins Yet
 							</h4>
@@ -275,23 +278,15 @@ export default function SpinHistory() {
 																	: "bg-blue-400/20 border-blue-400/30"
 														}`}
 													>
-														<ThemedIcon
-															name={
-																spin.status === SpinStatus.Completed
-																	? "check"
-																	: spin.status === SpinStatus.Refunded
-																		? "x"
-																		: "clock"
-															}
-															size="md"
-															className={
-																spin.status === SpinStatus.Completed
-																	? "text-green-400"
-																	: spin.status === SpinStatus.Refunded
-																		? "text-red-400"
-																		: "text-blue-400"
-															}
-														/>
+														{spin.status === SpinStatus.Completed && (
+															<CheckIcon className="w-5 h-5 text-green-400" />
+														)}
+														{spin.status === SpinStatus.Refunded && (
+															<XMarkIcon className="w-5 h-5 text-red-400" />
+														)}
+														{spin.status === SpinStatus.Pending && (
+															<ClockIcon className="w-5 h-5 text-blue-400" />
+														)}
 													</div>
 
 													{/* Spin details */}
@@ -402,7 +397,7 @@ export default function SpinHistory() {
 				{spinHistoryError && (
 					<GlassCard variant="base" className="p-6">
 						<div className="flex items-center justify-center gap-2 text-red-400">
-							<ThemedIcon name="alert-triangle" size="sm" />
+							<ExclamationTriangleIcon className="w-4 h-4" />
 							<p className="text-sm">
 								Error loading spin history: {spinHistoryError.message}
 							</p>
@@ -413,7 +408,7 @@ export default function SpinHistory() {
 				<GlassCard variant="base" className="p-6">
 					<div className="flex items-center justify-center gap-4 text-foreground/60">
 						<div className="flex items-center gap-2">
-							<ThemedIcon name="info" size="sm" />
+							<InformationCircleIcon className="w-4 h-4" />
 							<p className="text-sm">
 								Spin history loaded from blockchain events (last 5000 blocks)
 							</p>
@@ -424,10 +419,8 @@ export default function SpinHistory() {
 							onClick={refetch}
 							isDisabled={isLoading}
 						>
-							<ThemedIcon
-								name="refresh-cw"
-								size="sm"
-								className={isLoading ? "animate-spin" : ""}
+							<ArrowPathIcon
+								className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
 							/>
 							Refresh
 						</GlassButton>

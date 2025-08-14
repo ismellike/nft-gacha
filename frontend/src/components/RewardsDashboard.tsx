@@ -20,7 +20,7 @@ import {
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { RARITY_CONFIG, Rarity } from "../lib/rarityConfig";
-import { ThemedIcon } from "../lib/icons";
+import { CurrencyDollarIcon, CheckIcon, GiftIcon } from "@heroicons/react/24/outline";
 import { GlassCard, GlassButton, GlassBadge } from "./ui";
 
 interface RarityReward {
@@ -251,7 +251,7 @@ export default function RewardsDashboard() {
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="coins" size="xl" variant="accent" />
+								<CurrencyDollarIcon className="w-8 h-8 text-warning" />
 							</div>
 						</div>
 					</GlassCard>
@@ -277,7 +277,7 @@ export default function RewardsDashboard() {
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="check" size="xl" variant="success" />
+								<CheckIcon className="w-8 h-8 text-success" />
 							</div>
 						</div>
 					</GlassCard>
@@ -305,7 +305,7 @@ export default function RewardsDashboard() {
 								</h3>
 							</div>
 							<div className="w-16 h-16 bg-gradient-to-br from-purple-400/20 to-purple-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="gem" size="xl" className="text-purple-400" />
+								<GiftIcon className="w-8 h-8 text-purple-400" />
 							</div>
 						</div>
 					</GlassCard>

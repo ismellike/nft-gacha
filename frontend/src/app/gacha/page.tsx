@@ -9,7 +9,14 @@ import GachaSpinner from "../../components/GachaSpinner";
 import { UserNFTModal } from "../../components/UserNFTModal";
 import { AdminControls } from "../../components/AdminControls";
 import AnalyticsDashboard from "../../components/AnalyticsDashboard";
-import { ThemedIcon } from "../../lib/icons";
+import { 
+	CheckIcon, 
+	XCircleIcon, 
+	CurrencyDollarIcon, 
+	GiftIcon, 
+	WalletIcon
+} from "@heroicons/react/24/outline";
+
 import {
 	GlassCard,
 	GlassButton,
@@ -467,11 +474,7 @@ export default function GachaDetailPage() {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<GlassCard padding="lg" className="text-center">
-					<ThemedIcon
-						name="x-circle"
-						size="xl"
-						className="mx-auto mb-4 text-warning"
-					/>
+					<XCircleIcon className="w-8 h-8 mx-auto mb-4 text-warning" />
 					<h2 className="text-2xl font-medium text-foreground mb-2">
 						Missing Gacha ID
 					</h2>
@@ -494,11 +497,7 @@ export default function GachaDetailPage() {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<GlassCard padding="lg" className="text-center">
-					<ThemedIcon
-						name="x-circle"
-						size="xl"
-						className="mx-auto mb-4 text-warning"
-					/>
+					<XCircleIcon className="w-8 h-8 mx-auto mb-4 text-warning" />
 					<h2 className="text-2xl font-medium text-foreground mb-2">
 						Gacha Not Found
 					</h2>
@@ -560,35 +559,59 @@ export default function GachaDetailPage() {
 							aria-label="Gacha navigation tabs"
 							className="flex flex-col sm:flex-row gap-3 lg:gap-4"
 						>
-							<TabButton
-								active={activeTab === "spin"}
+							<GlassButton
+								variant={activeTab === "spin" ? "primary" : "secondary"}
+								size="md"
+								startIcon="zap"
 								onClick={() => handleTabChange("spin")}
-								onKeyDown={(e) => handleTabKeyDown(e, "spin")}
-								icon="zap"
-								label="Spin & Play"
-							/>
-							<TabButton
-								active={activeTab === "analytics"}
+								role="tab"
+								aria-selected={activeTab === "spin"}
+								aria-controls="tabpanel-spin-&-play"
+								tabIndex={activeTab === "spin" ? 0 : -1}
+								className="flex-1 sm:flex-initial"
+							>
+								Spin & Play
+							</GlassButton>
+							<GlassButton
+								variant={activeTab === "analytics" ? "primary" : "secondary"}
+								size="md"
+								startIcon="trending"
 								onClick={() => handleTabChange("analytics")}
-								onKeyDown={(e) => handleTabKeyDown(e, "analytics")}
-								icon="trending"
-								label="Analytics"
-							/>
-							<TabButton
-								active={activeTab === "rewards"}
+								role="tab"
+								aria-selected={activeTab === "analytics"}
+								aria-controls="tabpanel-analytics"
+								tabIndex={activeTab === "analytics" ? 0 : -1}
+								className="flex-1 sm:flex-initial"
+							>
+								Analytics
+							</GlassButton>
+							<GlassButton
+								variant={activeTab === "rewards" ? "primary" : "secondary"}
+								size="md"
+								startIcon="gift"
 								onClick={() => handleTabChange("rewards")}
-								onKeyDown={(e) => handleTabKeyDown(e, "rewards")}
-								icon="gift"
-								label="My Rewards"
-							/>
+								role="tab"
+								aria-selected={activeTab === "rewards"}
+								aria-controls="tabpanel-my-rewards"
+								tabIndex={activeTab === "rewards" ? 0 : -1}
+								className="flex-1 sm:flex-initial"
+							>
+								My Rewards
+							</GlassButton>
 							{isOwner && (
-								<TabButton
-									active={activeTab === "admin"}
+								<GlassButton
+									variant={activeTab === "admin" ? "primary" : "secondary"}
+									size="md"
+									startIcon="settings"
 									onClick={() => handleTabChange("admin")}
-									onKeyDown={(e) => handleTabKeyDown(e, "admin")}
-									icon="settings"
-									label="Admin"
-								/>
+									role="tab"
+									aria-selected={activeTab === "admin"}
+									aria-controls="tabpanel-admin"
+									tabIndex={activeTab === "admin" ? 0 : -1}
+									className="flex-1 sm:flex-initial"
+								>
+									Admin
+								</GlassButton>
 							)}
 						</div>
 					</GlassCard>
@@ -641,11 +664,7 @@ export default function GachaDetailPage() {
 							{!isConnected ? (
 								<div className="flex items-center justify-center min-h-[400px]">
 									<GlassCard variant="base" className="p-8 text-center">
-										<ThemedIcon
-											name="wallet"
-											size="xl"
-											className="mx-auto mb-4 text-warning"
-										/>
+										<WalletIcon className="w-8 h-8 mx-auto mb-4 text-warning" />
 										<h3 className="text-xl font-medium text-foreground mb-4">
 											Connect Your Wallet
 										</h3>
@@ -710,7 +729,7 @@ export default function GachaDetailPage() {
 																	animate={{ opacity: 1, scale: 1 }}
 																	className="text-xs text-success mt-1 flex items-center gap-1"
 																>
-																	<ThemedIcon name="check" size="xs" />
+																	<CheckIcon className="w-3 h-3" />
 																	<span>
 																		Claiming{" "}
 																		{formatTokenAmountLocal(
@@ -722,11 +741,7 @@ export default function GachaDetailPage() {
 															)}
 														</div>
 														<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-															<ThemedIcon
-																name="coins"
-																size="xl"
-																variant="accent"
-															/>
+															<CurrencyDollarIcon className="w-8 h-8 text-warning" />
 														</div>
 													</div>
 												</GlassCard>
@@ -756,11 +771,7 @@ export default function GachaDetailPage() {
 															</h3>
 														</div>
 														<div className="w-16 h-16 bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-															<ThemedIcon
-																name="check"
-																size="xl"
-																variant="success"
-															/>
+															<CheckIcon className="w-8 h-8 text-success" />
 														</div>
 													</div>
 												</GlassCard>
@@ -792,11 +803,7 @@ export default function GachaDetailPage() {
 															</h3>
 														</div>
 														<div className="w-16 h-16 bg-gradient-to-br from-purple-400/20 to-purple-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-															<ThemedIcon
-																name="gem"
-																size="xl"
-																className="text-purple-400"
-															/>
+															<GiftIcon className="w-8 h-8 text-purple-400" />
 														</div>
 													</div>
 												</GlassCard>
@@ -1001,11 +1008,7 @@ export default function GachaDetailPage() {
 													<div className="flex items-start justify-between gap-3">
 														<div className="flex-1">
 															<div className="flex items-center gap-2 mb-2">
-																<ThemedIcon
-																	name="x-circle"
-																	size="sm"
-																	className="text-danger"
-																/>
+																<XCircleIcon className="w-4 h-4 text-danger" />
 																<h4 className="font-semibold text-danger text-sm">
 																	Transaction Failed
 																</h4>
@@ -1061,38 +1064,3 @@ export default function GachaDetailPage() {
 	);
 }
 
-// Tab Button Component
-function TabButton({
-	active,
-	onClick,
-	icon,
-	label,
-	onKeyDown,
-}: {
-	active: boolean;
-	onClick: () => void;
-	icon: string;
-	label: string;
-	onKeyDown?: (e: React.KeyboardEvent) => void;
-}) {
-	return (
-		<button
-			onClick={onClick}
-			onKeyDown={onKeyDown}
-			role="tab"
-			aria-selected={active}
-			aria-controls={`tabpanel-${label.toLowerCase().replace(/\s+/g, "-")}`}
-			tabIndex={active ? 0 : -1}
-			className={`flex-1 sm:flex-initial flex items-center justify-center sm:justify-start gap-2 lg:gap-3 px-3 sm:px-4 lg:px-6 py-3 lg:py-4 rounded-xl lg:rounded-2xl transition-all duration-300 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background ${
-				active
-					? "bg-gradient-to-r from-warning to-orange-400 text-black shadow-[0_0_12px_rgba(255,191,0,0.4),0_0_24px_rgba(255,191,0,0.15)] drop-shadow-sm font-bold"
-					: "bg-content1/20 text-foreground/70 hover:bg-content1/30 hover:text-foreground hover:shadow-[0_0_8px_rgba(255,255,255,0.12),0_0_16px_rgba(255,255,255,0.06)] shadow-[0_0_4px_rgba(255,255,255,0.02)] backdrop-blur-xl"
-			}`}
-		>
-			<ThemedIcon name={icon} size="sm" />
-			<span className="font-semibold text-sm lg:text-base whitespace-nowrap">
-				{label}
-			</span>
-		</button>
-	);
-}

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ThemedIcon } from "../../lib/icons";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import {
 	GlassCard,
 	GlassBadge,
@@ -80,7 +80,7 @@ export default function DiscoverPage() {
 					<GlassCard variant="base" padding="lg" className="text-center">
 						<div className="space-y-6">
 							<div className="w-16 h-16 mx-auto bg-gradient-to-br from-warning/20 to-orange-400/20 rounded-full flex items-center justify-center">
-								<ThemedIcon name="plus" size="xl" className="text-warning" />
+								<PlusIcon className="w-8 h-8 text-warning" />
 							</div>
 							<div>
 								<h3 className="text-2xl font-medium text-foreground mb-3">

@@ -17,7 +17,7 @@ import {
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
-import { ThemedIcon } from "../lib/icons";
+import { CurrencyDollarIcon, GiftIcon, TrophyIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 import { GlassCard, GlassButton, GlassBadge } from "./ui";
 import GlobalStats from "./GlobalStats";
 
@@ -140,7 +140,7 @@ export default function TreasuryAnalytics() {
 								</h3>
 							</div>
 							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="coins" size="lg" variant="accent" />
+								<CurrencyDollarIcon className="w-6 h-6 text-warning" />
 							</div>
 						</div>
 					</GlassCard>
@@ -163,7 +163,7 @@ export default function TreasuryAnalytics() {
 								</h3>
 							</div>
 							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-purple-400/20 to-purple-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="gem" size="lg" className="text-purple-400" />
+								<GiftIcon className="w-6 h-6 text-purple-400" />
 							</div>
 						</div>
 					</GlassCard>
@@ -186,7 +186,7 @@ export default function TreasuryAnalytics() {
 								</h3>
 							</div>
 							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-blue-400/20 to-blue-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon name="trophy" size="lg" className="text-blue-400" />
+								<TrophyIcon className="w-6 h-6 text-blue-400" />
 							</div>
 						</div>
 					</GlassCard>
@@ -216,11 +216,7 @@ export default function TreasuryAnalytics() {
 								</h3>
 							</div>
 							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ThemedIcon
-									name="trending"
-									size="lg"
-									className="text-green-400"
-								/>
+								<ChartBarIcon className="w-6 h-6 text-green-400" />
 							</div>
 						</div>
 					</GlassCard>

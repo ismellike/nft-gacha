@@ -3,7 +3,12 @@
 import { GlassCard, GlassButton, GlassBadge } from "@/components/ui";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ThemedIcon } from "@/lib/icons";
+import {
+	CurrencyDollarIcon,
+	BoltIcon,
+	TrophyIcon,
+	ChartBarIcon,
+} from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
 
 const rarityColors = [
@@ -97,7 +102,7 @@ export default function LandingPage() {
 							variant="primary"
 							className="inline-flex items-center gap-2 text-sm px-4 py-2"
 						>
-							<ThemedIcon name="coins" size="sm" />
+							<CurrencyDollarIcon className="w-4 h-4" />
 							<span className="font-medium">Community-Funded NFT Gacha</span>
 						</GlassBadge>
 					</motion.div>
@@ -206,7 +211,7 @@ export default function LandingPage() {
 						className="text-center mb-20"
 					>
 						<GlassBadge variant="info" className="mb-6">
-							<ThemedIcon name="coins" size="sm" />
+							<CurrencyDollarIcon className="w-4 h-4" />
 							<span className="ml-2">Community Benefits</span>
 						</GlassBadge>
 						<h2 className="text-4xl md:text-6xl font-bold mb-8">
@@ -241,11 +246,15 @@ export default function LandingPage() {
 								>
 									{/* Icon */}
 									<div className="relative z-10 w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-warning/20 to-orange-400/20 rounded-2xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-warning/20 transition-all duration-300">
-										<ThemedIcon
-											name={feature.icon}
-											size="xl"
-											variant="accent"
-										/>
+										{feature.icon === "coins" && (
+											<CurrencyDollarIcon className="w-8 h-8 text-warning" />
+										)}
+										{feature.icon === "trending" && (
+											<ChartBarIcon className="w-8 h-8 text-warning" />
+										)}
+										{feature.icon === "trophy" && (
+											<TrophyIcon className="w-8 h-8 text-warning" />
+										)}
 									</div>
 
 									{/* Content */}
@@ -332,7 +341,7 @@ export default function LandingPage() {
 								}}
 								className="w-20 h-20 mx-auto mb-8 bg-gradient-to-r from-warning to-orange-400 rounded-2xl flex items-center justify-center shadow-xl shadow-warning/30"
 							>
-								<ThemedIcon name="zap" size="xl" className="text-black" />
+								<BoltIcon className="w-8 h-8 text-black" />
 							</motion.div>
 
 							<h2 className="text-3xl md:text-5xl font-bold mb-6">
@@ -360,7 +369,7 @@ export default function LandingPage() {
 								</Link>
 
 								<div className="flex items-center gap-3 text-foreground/60">
-									<ThemedIcon name="trophy" size="md" variant="accent" />
+									<TrophyIcon className="w-5 h-5 text-warning" />
 									<span className="text-sm font-medium">
 										Community Owned & Operated
 									</span>

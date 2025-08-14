@@ -3,7 +3,32 @@
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
 import { GlassCard } from "./ui";
-import { ThemedIcon } from "../lib/icons";
+import {
+	ShieldCheckIcon,
+	GiftIcon,
+	ChartBarIcon,
+	PlusIcon,
+	LinkIcon,
+} from "@heroicons/react/24/outline";
+
+// Helper function to map icon names to components
+function getIconComponent(iconName: string, props: any) {
+	const iconMap: Record<string, any> = {
+		"shield-check": ShieldCheckIcon,
+		gem: GiftIcon,
+		trending: ChartBarIcon,
+		plus: PlusIcon,
+		link: LinkIcon,
+	};
+	
+	const IconComponent = iconMap[iconName];
+	if (!IconComponent) {
+		console.warn(`Icon "${iconName}" not found`);
+		return null;
+	}
+	
+	return <IconComponent {...props} />;
+}
 
 interface GlassHeaderProps {
 	title: string;
@@ -111,10 +136,8 @@ export function GlassHeader({
 										whileHover={{ scale: 1.05 }}
 										transition={{ type: "spring", stiffness: 300 }}
 									>
-										<ThemedIcon
-											name={badge.icon}
-											size="sm"
-											className={
+										{getIconComponent(badge.icon, {
+											className: `w-4 h-4 ${
 												badge.variant === "success"
 													? "text-success"
 													: badge.variant === "warning"
@@ -124,8 +147,8 @@ export function GlassHeader({
 															: badge.variant === "primary"
 																? "text-warning"
 																: "text-foreground/60"
-											}
-										/>
+											}`
+										})}
 										<span className="text-sm font-medium text-foreground/90">
 											{badge.text}
 										</span>

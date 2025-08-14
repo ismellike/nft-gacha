@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Modal, ModalContent, ModalBody } from "@heroui/react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTRevealCard } from "./NFTCard";
+import { glassModal } from "../lib/theme-config";
 
 export interface SpinResult {
 	rarity: string;
@@ -55,7 +57,6 @@ export default function NFTRevealModal({
 		}
 	}, [isVisible]);
 
-	if (!isVisible) return null;
 
 	const resultRarity =
 		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
@@ -123,23 +124,31 @@ export default function NFTRevealModal({
 		},
 	};
 
+	const modalStyles = glassModal({ size: "full" });
+
 	return (
-		<AnimatePresence>
-			<motion.div
-				className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-md"
-				variants={backdropVariants}
-				initial="hidden"
-				animate="visible"
-				exit="exit"
-				onClick={onClose}
-			>
-				{/* Dynamic Background Glow */}
-				<motion.div
-					className="absolute inset-0 overflow-hidden"
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					transition={{ duration: 1 }}
-				>
+		<Modal
+			isOpen={isVisible}
+			onClose={onClose}
+			size="2xl"
+			hideCloseButton
+			classNames={{
+				wrapper: modalStyles.wrapper(),
+				backdrop: modalStyles.backdrop(),
+				base: modalStyles.base(),
+				body: modalStyles.body(),
+			}}
+			placement="center"
+		>
+			<ModalContent>
+				<ModalBody className="relative overflow-hidden p-0 min-h-[600px] flex items-center justify-center">
+					{/* Dynamic Background Glow */}
+					<motion.div
+						className="absolute inset-0 overflow-hidden"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ duration: 1 }}
+					>
 					{/* Spinning Phase Background */}
 					<AnimatePresence>
 						{(phase === ANIMATION_PHASES.SPINNING ||
@@ -192,10 +201,10 @@ export default function NFTRevealModal({
 							</motion.div>
 						)}
 					</AnimatePresence>
-				</motion.div>
+					</motion.div>
 
-				{/* Main Content */}
-				<div className="relative z-10" onClick={(e) => e.stopPropagation()}>
+					{/* Main Content */}
+					<div className="relative z-10">
 					{/* Spinning Orb Phase */}
 					<AnimatePresence>
 						{(phase === ANIMATION_PHASES.INITIALIZING ||
@@ -429,8 +438,9 @@ export default function NFTRevealModal({
 							</motion.div>
 						)}
 					</AnimatePresence>
-				</div>
-			</motion.div>
-		</AnimatePresence>
+					</div>
+				</ModalBody>
+			</ModalContent>
+		</Modal>
 	);
 }

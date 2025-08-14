@@ -17,7 +17,7 @@ import {
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { RARITY_CONFIG, Rarity } from "../lib/rarityConfig";
-import { ThemedIcon } from "../lib/icons";
+import { InformationCircleIcon, GiftIcon } from "@heroicons/react/24/outline";
 import { GlassCard, GlassButton, GlassBadge } from "./ui";
 
 interface TreasuryItem {
@@ -226,11 +226,7 @@ export default function TreasuryItemsExplorer() {
 					</div>
 				) : paginatedItems.length === 0 ? (
 					<GlassCard className="p-12 text-center">
-						<ThemedIcon
-							name="gem"
-							size="xl"
-							className="mx-auto mb-4 text-foreground/30"
-						/>
+						<GiftIcon className="w-8 h-8 mx-auto mb-4 text-foreground/30" />
 						<h4 className="text-lg font-medium text-foreground mb-2">
 							No Items Found
 						</h4>
@@ -379,7 +375,7 @@ export default function TreasuryItemsExplorer() {
 			>
 				<GlassCard variant="base" className="p-4">
 					<div className="flex items-center justify-center gap-2 text-foreground/60">
-						<ThemedIcon name="info" size="sm" />
+						<InformationCircleIcon className="w-4 h-4" />
 						<p className="text-sm">
 							Treasury explorer requires additional contract methods to fetch
 							individual NFT data. Currently showing placeholder implementation.

@@ -6,7 +6,39 @@
 import { Fragment } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { ThemedIcon } from "../../lib/icons";
+import { ChevronRightIcon } from "@heroicons/react/24/outline";
+
+// Helper function to get breadcrumb icons
+function getBreadcrumbIcon(iconName: string | undefined, className: string = "w-4 h-4") {
+	if (!iconName) return null;
+	
+	// Import commonly used icons
+	const { 
+		HomeIcon, 
+		EyeIcon, 
+		BoltIcon, 
+		FolderOpenIcon, 
+		GiftIcon, 
+		CogIcon 
+	} = require("@heroicons/react/24/outline");
+	
+	switch (iconName) {
+		case "home":
+			return <HomeIcon className={className} />;
+		case "eye":
+			return <EyeIcon className={className} />;
+		case "zap":
+			return <BoltIcon className={className} />;
+		case "folder-open":
+			return <FolderOpenIcon className={className} />;
+		case "gift":
+			return <GiftIcon className={className} />;
+		case "settings":
+			return <CogIcon className={className} />;
+		default:
+			return null;
+	}
+}
 import { glassBreadcrumb } from "../../lib/theme-config";
 
 interface BreadcrumbItem {
@@ -72,7 +104,7 @@ export function Breadcrumb({
 										className={link()}
 										aria-label={`Navigate to ${item.label}`}
 									>
-										{item.icon && <ThemedIcon name={item.icon} size="sm" />}
+										{getBreadcrumbIcon(item.icon, "w-4 h-4")}
 										<span>{item.label}</span>
 									</button>
 								) : (
@@ -80,13 +112,7 @@ export function Breadcrumb({
 										className={current()}
 										aria-current={isCurrent ? "page" : undefined}
 									>
-										{item.icon && (
-											<ThemedIcon
-												name={item.icon}
-												size="sm"
-												variant={isCurrent ? "accent" : "default"}
-											/>
-										)}
+										{getBreadcrumbIcon(item.icon, `w-4 h-4 ${isCurrent ? "text-warning" : "text-foreground"}`)}
 										<span>{item.label}</span>
 									</div>
 								)}
@@ -94,7 +120,7 @@ export function Breadcrumb({
 
 							{!isLast && (
 								<li className={itemClass()} aria-hidden="true">
-									<ThemedIcon name="right" size="sm" className={separator()} />
+									<ChevronRightIcon className={`w-4 h-4 ${separator()}`} />
 								</li>
 							)}
 						</Fragment>

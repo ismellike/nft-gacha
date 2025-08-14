@@ -11,7 +11,11 @@ import {
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
-import { ThemedIcon } from "../lib/icons";
+import {
+	BoltIcon,
+	CurrencyDollarIcon,
+	ChartBarIcon,
+} from "@heroicons/react/24/outline";
 import { GlassCard } from "./ui";
 
 export default function GlobalStats() {
@@ -97,11 +101,15 @@ export default function GlobalStats() {
 							<div
 								className={`w-16 h-16 mx-auto mb-3 bg-gradient-to-br ${stat.color} backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center`}
 							>
-								<ThemedIcon
-									name={stat.icon}
-									size="lg"
-									className={stat.iconColor}
-								/>
+								{stat.icon === "zap" && (
+									<BoltIcon className={`w-6 h-6 ${stat.iconColor}`} />
+								)}
+								{stat.icon === "coins" && (
+									<CurrencyDollarIcon className={`w-6 h-6 ${stat.iconColor}`} />
+								)}
+								{stat.icon === "trending" && (
+									<ChartBarIcon className={`w-6 h-6 ${stat.iconColor}`} />
+								)}
 							</div>
 							<p className="text-2xl font-bold text-foreground mb-1">
 								{stat.value}
