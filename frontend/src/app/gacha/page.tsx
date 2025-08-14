@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 import { formatTokenAmount } from "../../lib/utils";
 import GachaSpinner from "../../components/GachaSpinner";
 import { UserNFTModal } from "../../components/UserNFTModal";
@@ -32,12 +32,12 @@ import {
 	useReadGachaTreasuryGetUserAllDepositCounts,
 	useReadErc20Decimals,
 	useReadErc20Symbol,
-	useWriteGachaRewardsManagerClaimAllRewards,
 	useReadGachaFeeToken,
 	useReadGachaOwner,
 	useReadGachaTreasuryOwner,
 	useReadGachaRewardsManagerOwner,
 	useReadGachaRewardsManagerPaused,
+	rarityDividendTrackerAbi,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
@@ -191,13 +191,13 @@ export default function GachaDetailPage() {
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
-	// Claim rewards mutation
+	// Claim rewards mutation - use generic writeContract for individual tracker calls
 	const {
 		writeContract: claimRewards,
 		isPending: isClaimPending,
 		isSuccess: isClaimSuccess,
 		error: claimError,
-	} = useWriteGachaRewardsManagerClaimAllRewards();
+	} = useWriteContract();
 
 	// Format token amounts with enhanced precision and clean display
 	const formatTokenAmountLocal = (amount: bigint | undefined) => {
@@ -256,41 +256,6 @@ export default function GachaDetailPage() {
 		router.push(`/gacha?${newSearchParams.toString()}`, { scroll: false });
 	};
 
-	// Handle keyboard navigation for tabs
-	const handleTabKeyDown = (
-		e: React.KeyboardEvent,
-		currentTab: ValidSection,
-	) => {
-		const tabs = validSections.filter(
-			(section) => section !== "admin" || isOwner,
-		);
-		const currentIndex = tabs.indexOf(currentTab);
-
-		let nextIndex = currentIndex;
-
-		switch (e.key) {
-			case "ArrowLeft":
-				e.preventDefault();
-				nextIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
-				break;
-			case "ArrowRight":
-				e.preventDefault();
-				nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-				break;
-			case "Home":
-				e.preventDefault();
-				nextIndex = 0;
-				break;
-			case "End":
-				e.preventDefault();
-				nextIndex = tabs.length - 1;
-				break;
-			default:
-				return;
-		}
-
-		handleTabChange(tabs[nextIndex]);
-	};
 
 	// Redirect to spin tab if trying to access admin without permissions
 	useEffect(() => {
@@ -421,7 +386,7 @@ export default function GachaDetailPage() {
 		refetchLegendaryClaimable,
 	]);
 
-	const handleClaimRewards = () => {
+	const handleClaimRewards = async () => {
 		// Enhanced debugging
 		console.log("Claim attempt:", {
 			userAddress,
@@ -439,13 +404,8 @@ export default function GachaDetailPage() {
 			return;
 		}
 
-		if (!contracts.rewardsManager) {
-			console.error("No rewards manager contract address available");
-			return;
-		}
-
-		if (isRewardsManagerPaused) {
-			console.error("Rewards manager contract is currently paused");
+		if (!contracts.trackers) {
+			console.error("No tracker contract addresses available");
 			return;
 		}
 
@@ -454,10 +414,45 @@ export default function GachaDetailPage() {
 		setOptimisticClaimedAmount(totalClaimable);
 
 		try {
-			console.log("Initiating claim transaction...");
+			console.log("Initiating individual tracker claims...");
+			
+			// Find the first tracker with claimable rewards and claim from it
+			// Users will need to call this multiple times if they have rewards in multiple rarities
+			let trackerToClaim: `0x${string}` | null = null;
+			let amountToClaim = BigInt(0);
+			
+			if (commonClaimable && commonClaimable > BigInt(0)) {
+				trackerToClaim = contracts.trackers.common;
+				amountToClaim = commonClaimable;
+			} else if (uncommonClaimable && uncommonClaimable > BigInt(0)) {
+				trackerToClaim = contracts.trackers.uncommon;
+				amountToClaim = uncommonClaimable;
+			} else if (rareClaimable && rareClaimable > BigInt(0)) {
+				trackerToClaim = contracts.trackers.rare;
+				amountToClaim = rareClaimable;
+			} else if (epicClaimable && epicClaimable > BigInt(0)) {
+				trackerToClaim = contracts.trackers.epic;
+				amountToClaim = epicClaimable;
+			} else if (legendaryClaimable && legendaryClaimable > BigInt(0)) {
+				trackerToClaim = contracts.trackers.legendary;
+				amountToClaim = legendaryClaimable;
+			}
+			
+			if (!trackerToClaim) {
+				console.warn("No claimable rewards found");
+				setOptimisticClaim(false);
+				setOptimisticClaimedAmount(null);
+				return;
+			}
+			
+			console.log(`Claiming ${formatTokenAmountLocal(amountToClaim)} from tracker: ${trackerToClaim}`);
+			
 			claimRewards({
-				address: contracts.rewardsManager!,
+				address: trackerToClaim,
+				abi: rarityDividendTrackerAbi,
+				functionName: 'withdrawFunds',
 			});
+			
 		} catch (error) {
 			console.error("Failed to initiate claim transaction:", error);
 			// Reset optimistic state on immediate error
@@ -860,7 +855,7 @@ export default function GachaDetailPage() {
 														>
 															{optimisticClaim
 																? "Processing Claim..."
-																: "Claim All Rewards"}
+																: "Claim Next Reward"}
 														</GlassButton>
 													</div>
 												}

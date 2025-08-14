@@ -180,31 +180,22 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         emit FeesDistributed(totalFeeAmount, rewardsAmount, protocolAmount);
     }
 
-    /// @notice Claim all available rewards across all rarities
-    function claimAllRewards() external whenNotPaused nonReentrant {
-        bool claimed = false;
-        uint256 totalClaimed = 0;
-
+    /// @notice Updates user's total claimed rewards when they claim from individual trackers
+    /// @dev Called by individual RarityDividendTracker contracts after successful withdrawal
+    function recordUserRewardClaim(address user, uint256 amount) external {
+        // Verify the caller is one of our deployed rarity trackers
+        bool isValidTracker = false;
         for (uint256 i = 0; i < 5; i++) {
-            RarityDividendTracker token = rarityTokens[GachaTreasury.Rarity(i)];
-            if (address(token) != address(0)) {
-                uint256 claimable = token.withdrawableFundsOf(msg.sender);
-                if (claimable > 0) {
-                    try token.withdrawFunds() {
-                        claimed = true;
-                        totalClaimed += claimable;
-                    } catch {
-                        // continue silently
-                    }
-                }
+            if (msg.sender == address(rarityTokens[GachaTreasury.Rarity(i)])) {
+                isValidTracker = true;
+                break;
             }
         }
-
-        if (!claimed) revert NoFundsToWithdraw();
-
-        // Track user rewards claimed
-        userTotalRewardsClaimed[msg.sender] += totalClaimed;
-        emit UserRewardsClaimed(msg.sender, totalClaimed);
+        
+        if (!isValidTracker) revert UnauthorizedGachaContract();
+        
+        userTotalRewardsClaimed[user] += amount;
+        emit UserRewardsClaimed(user, amount);
     }
 
     /// @notice View user's total withdrawable rewards across all rarities

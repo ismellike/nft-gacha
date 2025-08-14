@@ -361,9 +361,10 @@ contract GachaRewardsTest is Test {
         rewardsManager.emergencyPause();
 
         // Test that claiming fails when paused
+        address commonTracker = rewardsManager.getRarityToken(GachaTreasury.Rarity.Common);
         vm.prank(user1);
         vm.expectRevert();
-        rewardsManager.claimAllRewards();
+        RarityDividendTracker(commonTracker).withdrawFunds();
 
         // Test unpause
         vm.prank(owner);
@@ -437,12 +438,13 @@ contract GachaRewardsTest is Test {
     function testClaimWithNoRewardsAvailable() public {
         address user3 = makeAddr("user3"); // User with no deposits
 
+        // Test claiming with no rewards using individual tracker
+        address commonTracker = rewardsManager.getRarityToken(GachaTreasury.Rarity.Common);
         vm.prank(user3);
         vm.expectRevert(); // Should revert when trying to claim with no rewards
-        rewardsManager.claimAllRewards();
+        RarityDividendTracker(commonTracker).withdrawFunds();
 
         // Also test claiming specific rarity with no rewards directly
-        address commonTracker = rewardsManager.getRarityToken(GachaTreasury.Rarity.Common);
         vm.prank(user3);
         vm.expectRevert(); // Should revert when trying to claim specific rarity with no rewards
         RarityDividendTracker(commonTracker).withdrawFunds();

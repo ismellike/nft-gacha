@@ -7,6 +7,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
 
+interface IGachaRewardsManager {
+    function recordUserRewardClaim(address user, uint256 amount) external;
+}
+
 contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
 
@@ -57,6 +61,15 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
         uint256 withdrawable = _prepareWithdraw();
         if (withdrawable == 0) revert NoFundsToWithdraw();
         fundsToken.safeTransfer(msg.sender, withdrawable);
+        
+        // Notify rewards manager about the claim
+        if (rewardsManager != address(0)) {
+            try IGachaRewardsManager(rewardsManager).recordUserRewardClaim(msg.sender, withdrawable) {
+                // Success - claim recorded
+            } catch {
+                // Ignore errors to prevent withdrawal failures
+            }
+        }
     }
 
     function _prepareWithdraw() internal returns (uint256) {

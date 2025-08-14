@@ -1531,13 +1531,6 @@ export const gachaRewardsManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'claimAllRewards',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'deployAllRarityTokens',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -1718,6 +1711,16 @@ export const gachaRewardsManagerAbi = [
       { name: 'rarity', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'recordNFTWon',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'recordUserRewardClaim',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -3788,6 +3791,23 @@ export const iFundsDistributionTokenAbi = [
       },
     ],
     name: 'FundsWithdrawn',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IGachaRewardsManager
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const iGachaRewardsManagerAbi = [
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'recordUserRewardClaim',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
 ] as const
 
@@ -7553,15 +7573,6 @@ export const useWriteGachaRewardsManagerContract =
   /*#__PURE__*/ createUseWriteContract({ abi: gachaRewardsManagerAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimAllRewards"`
- */
-export const useWriteGachaRewardsManagerClaimAllRewards =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaRewardsManagerAbi,
-    functionName: 'claimAllRewards',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"deployAllRarityTokens"`
  */
 export const useWriteGachaRewardsManagerDeployAllRarityTokens =
@@ -7625,6 +7636,15 @@ export const useWriteGachaRewardsManagerRecordNftWon =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"recordUserRewardClaim"`
+ */
+export const useWriteGachaRewardsManagerRecordUserRewardClaim =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'recordUserRewardClaim',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
 export const useWriteGachaRewardsManagerRenounceOwnership =
@@ -7665,15 +7685,6 @@ export const useWriteGachaRewardsManagerTransferOwnership =
  */
 export const useSimulateGachaRewardsManagerContract =
   /*#__PURE__*/ createUseSimulateContract({ abi: gachaRewardsManagerAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimAllRewards"`
- */
-export const useSimulateGachaRewardsManagerClaimAllRewards =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaRewardsManagerAbi,
-    functionName: 'claimAllRewards',
-  })
 
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"deployAllRarityTokens"`
@@ -7736,6 +7747,15 @@ export const useSimulateGachaRewardsManagerRecordNftWon =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaRewardsManagerAbi,
     functionName: 'recordNFTWon',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"recordUserRewardClaim"`
+ */
+export const useSimulateGachaRewardsManagerRecordUserRewardClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'recordUserRewardClaim',
   })
 
 /**
@@ -9419,6 +9439,36 @@ export const useWatchIFundsDistributionTokenFundsWithdrawn =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: iFundsDistributionTokenAbi,
     eventName: 'FundsWithdrawn',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaRewardsManagerAbi}__
+ */
+export const useWriteIGachaRewardsManagerContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: iGachaRewardsManagerAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaRewardsManagerAbi}__ and `functionName` set to `"recordUserRewardClaim"`
+ */
+export const useWriteIGachaRewardsManagerRecordUserRewardClaim =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: iGachaRewardsManagerAbi,
+    functionName: 'recordUserRewardClaim',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaRewardsManagerAbi}__
+ */
+export const useSimulateIGachaRewardsManagerContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: iGachaRewardsManagerAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaRewardsManagerAbi}__ and `functionName` set to `"recordUserRewardClaim"`
+ */
+export const useSimulateIGachaRewardsManagerRecordUserRewardClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: iGachaRewardsManagerAbi,
+    functionName: 'recordUserRewardClaim',
   })
 
 /**
