@@ -43,6 +43,7 @@ function getIconComponent(iconName: string, className: string) {
 		right: ChevronRightIcon,
 		zap: BoltIcon,
 		settings: CogIcon,
+		refresh: Loader2,
 	};
 	
 	const IconComponent = iconMap[iconName];

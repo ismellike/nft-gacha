@@ -44,8 +44,8 @@ const nextConfig = {
 			"zustand",
 		],
 
-		// Lightning CSS for faster CSS processing
-		useLightningcss: true,
+		// Lightning CSS for faster CSS processing (disabled due to PostCSS plugin conflict)
+		// useLightningcss: true,
 
 		// Partial Prerendering for improved performance
 		ppr: false, // Set to true if using app router with SSG

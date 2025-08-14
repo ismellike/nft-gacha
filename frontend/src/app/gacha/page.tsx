@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount, useWriteContract } from "wagmi";
@@ -9,6 +9,7 @@ import GachaSpinner from "../../components/GachaSpinner";
 import { UserNFTModal } from "../../components/UserNFTModal";
 import { AdminControls } from "../../components/AdminControls";
 import AnalyticsDashboard from "../../components/AnalyticsDashboard";
+import { NFTAvailabilitySection } from "../../components/NFTAvailabilitySection";
 import { 
 	CheckIcon, 
 	XCircleIcon, 
@@ -51,7 +52,7 @@ interface RarityReward {
 	color: string;
 }
 
-export default function GachaDetailPage() {
+function GachaDetailPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { address: userAddress, isConnected } = useAccount();
@@ -64,7 +65,7 @@ export default function GachaDetailPage() {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const sectionParam = searchParams.get("section");
-	const validSections = ["spin", "analytics", "rewards", "admin"] as const;
+	const validSections = ["spin", "deposits", "analytics", "rewards", "admin"] as const;
 	type ValidSection = (typeof validSections)[number];
 
 	// Determine active tab from URL or default to 'spin'
@@ -284,6 +285,7 @@ export default function GachaDetailPage() {
 		if (gacha) {
 			const sectionTitles = {
 				spin: "Spin & Play",
+				deposits: "NFT Deposits",
 				analytics: "Treasury Analytics",
 				rewards: "My Rewards",
 				admin: "Admin Controls",
@@ -568,6 +570,19 @@ export default function GachaDetailPage() {
 								Spin & Play
 							</GlassButton>
 							<GlassButton
+								variant={activeTab === "deposits" ? "primary" : "secondary"}
+								size="md"
+								startIcon="gem"
+								onClick={() => handleTabChange("deposits")}
+								role="tab"
+								aria-selected={activeTab === "deposits"}
+								aria-controls="tabpanel-deposits"
+								tabIndex={activeTab === "deposits" ? 0 : -1}
+								className="flex-1 sm:flex-initial"
+							>
+								NFT Deposits
+							</GlassButton>
+							<GlassButton
 								variant={activeTab === "analytics" ? "primary" : "secondary"}
 								size="md"
 								startIcon="trending"
@@ -626,6 +641,16 @@ export default function GachaDetailPage() {
 							aria-labelledby="tab-spin-&-play"
 						>
 							<GachaSpinner />
+						</div>
+					)}
+
+					{activeTab === "deposits" && (
+						<div
+							role="tabpanel"
+							id="tabpanel-deposits"
+							aria-labelledby="tab-deposits"
+						>
+							<NFTAvailabilitySection />
 						</div>
 					)}
 
@@ -1056,6 +1081,21 @@ export default function GachaDetailPage() {
 				)}
 			</div>
 		</div>
+	);
+}
+
+export default function GachaDetailPage() {
+	return (
+		<Suspense fallback={
+			<div className="min-h-screen bg-background flex items-center justify-center">
+				<div className="text-center space-y-4">
+					<div className="w-8 h-8 border-4 border-warning border-t-transparent rounded-full animate-spin mx-auto" />
+					<p className="text-foreground/70">Loading gacha...</p>
+				</div>
+			</div>
+		}>
+			<GachaDetailPageContent />
+		</Suspense>
 	);
 }
 

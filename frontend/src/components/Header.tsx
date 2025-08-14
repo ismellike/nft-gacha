@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { glassNavigation } from "../lib/theme-config";
-import { HomeIcon, CubeIcon } from "@heroicons/react/24/outline";
+import { HomeIcon, CubeIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 // Helper function to get icon component
 function getNavIcon(iconName: string, className: string) {
@@ -15,6 +15,8 @@ function getNavIcon(iconName: string, className: string) {
 			return <HomeIcon className={className} />;
 		case "dice":
 			return <CubeIcon className={className} />;
+		case "search":
+			return <MagnifyingGlassIcon className={className} />;
 		default:
 			console.warn(`Nav icon "${iconName}" not found`);
 			return null;
@@ -28,6 +30,7 @@ export const Header = memo(() => {
 		() => [
 			{ href: "/", label: "Home", icon: "home" },
 			{ href: "/discover", label: "Discover", icon: "dice" },
+			{ href: "/appraisal", label: "NFT Appraisal", icon: "search" },
 		],
 		[],
 	);
