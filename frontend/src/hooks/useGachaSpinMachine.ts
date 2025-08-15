@@ -20,6 +20,7 @@ export interface UseGachaSpinMachineReturn {
 	isWaitingForFulfillment: boolean;
 	isRevealing: boolean;
 	isError: boolean;
+	isTimeout: boolean;
 	canRetry: boolean;
 
 	// Context
@@ -35,6 +36,7 @@ export interface UseGachaSpinMachineReturn {
 	closeReveal: () => void;
 	retry: () => void;
 	reset: () => void;
+	timeout: () => void;
 }
 
 export function useGachaSpinMachine(
@@ -126,6 +128,7 @@ export function useGachaSpinMachine(
 	const closeReveal = () => send({ type: "CLOSE_REVEAL" });
 	const retry = () => send({ type: "RETRY" });
 	const reset = () => send({ type: "RESET" });
+	const timeout = () => send({ type: "TIMEOUT" });
 
 	// Derived state
 	const isIdle = state.matches("idle");
@@ -133,6 +136,7 @@ export function useGachaSpinMachine(
 	const isWaitingForFulfillment = state.matches("waitingForFulfillment");
 	const isRevealing = state.matches("revealing");
 	const isError = state.matches("error");
+	const isTimeout = state.matches("timeout");
 	const canRetry = state.context.retryCount < 5; // MAX_RETRIES from machine
 
 	return {
@@ -143,6 +147,7 @@ export function useGachaSpinMachine(
 		isWaitingForFulfillment,
 		isRevealing,
 		isError,
+		isTimeout,
 		canRetry,
 
 		// Context
@@ -158,5 +163,6 @@ export function useGachaSpinMachine(
 		closeReveal,
 		retry,
 		reset,
+		timeout,
 	};
 }

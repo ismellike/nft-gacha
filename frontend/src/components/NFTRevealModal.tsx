@@ -21,14 +21,6 @@ interface NFTRevealModalProps {
 	appraisalContractAddress: `0x${string}`;
 }
 
-const ANIMATION_PHASES = {
-	INITIALIZING: "initializing",
-	SPINNING: "spinning",
-	REVEALING: "revealing",
-	REVEALED: "revealed",
-} as const;
-
-type AnimationPhase = (typeof ANIMATION_PHASES)[keyof typeof ANIMATION_PHASES];
 
 export default function NFTRevealModal({
 	isVisible,
@@ -36,92 +28,23 @@ export default function NFTRevealModal({
 	onClose,
 	appraisalContractAddress,
 }: NFTRevealModalProps) {
-	const [phase, setPhase] = useState<AnimationPhase>(
-		ANIMATION_PHASES.INITIALIZING,
-	);
+	const [showCard, setShowCard] = useState(false);
 
 	useEffect(() => {
 		if (isVisible) {
-			// Animation sequence with proper timing
-			setPhase(ANIMATION_PHASES.INITIALIZING);
-
-			const timers = [
-				setTimeout(() => setPhase(ANIMATION_PHASES.SPINNING), 200),
-				setTimeout(() => setPhase(ANIMATION_PHASES.REVEALING), 2500),
-				setTimeout(() => setPhase(ANIMATION_PHASES.REVEALED), 3800),
-			];
-
-			return () => timers.forEach(clearTimeout);
+			// Add dramatic delay before showing the NFT card
+			const timer = setTimeout(() => {
+				setShowCard(true);
+			}, 1500);
+			return () => clearTimeout(timer);
 		} else {
-			setPhase(ANIMATION_PHASES.INITIALIZING);
+			setShowCard(false);
 		}
 	}, [isVisible]);
 
-	const resultRarity =
-		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
+	const resultRarity = Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
 	const rarityConfig = getRarityConfig(resultRarity);
 
-	const backdropVariants = {
-		hidden: { opacity: 0 },
-		visible: {
-			opacity: 1,
-			transition: { duration: 0.5 },
-		},
-		exit: {
-			opacity: 0,
-			transition: { duration: 0.3 },
-		},
-	};
-
-	const orbVariants = {
-		[ANIMATION_PHASES.INITIALIZING]: {
-			scale: 0,
-			opacity: 0,
-			rotate: 0,
-		},
-		[ANIMATION_PHASES.SPINNING]: {
-			scale: [0, 1.2, 1],
-			opacity: [0, 0.8, 1],
-			transition: {
-				duration: 1.5,
-				ease: "easeOut" as const,
-			},
-		},
-		[ANIMATION_PHASES.REVEALING]: {
-			scale: [1, 1.5, 0.8],
-			opacity: [1, 0.5, 0],
-			rotate: 720,
-			transition: {
-				duration: 0.8,
-				ease: "easeInOut" as const,
-			},
-		},
-		[ANIMATION_PHASES.REVEALED]: {
-			scale: 0,
-			opacity: 0,
-		},
-	};
-
-	const cardVariants = {
-		hidden: {
-			scale: 0,
-			opacity: 0,
-			rotateY: -90,
-			z: -100,
-		},
-		visible: {
-			scale: 1,
-			opacity: 1,
-			rotateY: 0,
-			z: 0,
-			transition: {
-				type: "spring" as const,
-				damping: 15,
-				stiffness: 100,
-				duration: 0.8,
-			},
-		},
-	};
 
 	const modalStyles = glassModal({ size: "full" });
 
@@ -129,7 +52,7 @@ export default function NFTRevealModal({
 		<Modal
 			isOpen={isVisible}
 			onClose={onClose}
-			size="2xl"
+			size="full"
 			hideCloseButton
 			classNames={{
 				wrapper: modalStyles.wrapper(),
@@ -140,290 +63,91 @@ export default function NFTRevealModal({
 			placement="center"
 		>
 			<ModalContent>
-				<ModalBody className="relative overflow-hidden p-0 min-h-[600px] flex items-center justify-center">
-					{/* Dynamic Background Glow */}
+				<ModalBody className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center">
+					{/* Close Button - Top Right of Modal */}
+					<motion.button
+						onClick={onClose}
+						className="absolute top-8 right-8 z-50 w-12 h-12 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors"
+						initial={{ opacity: 0, scale: 0 }}
+						animate={{ opacity: 1, scale: 1 }}
+						transition={{ delay: showCard ? 1 : 0, duration: 0.5 }}
+						whileHover={{ scale: 1.1 }}
+						whileTap={{ scale: 0.95 }}
+					>
+						<svg
+							className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+							strokeWidth={2.5}
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M6 18L18 6M6 6l12 12"
+							/>
+						</svg>
+					</motion.button>
+
+					{/* Dramatic Background Glow */}
 					<motion.div
 						className="absolute inset-0 overflow-hidden"
 						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ duration: 1 }}
+						animate={{ opacity: showCard ? 1 : 0 }}
+						transition={{ duration: 2 }}
 					>
-						{/* Spinning Phase Background */}
-						<AnimatePresence>
-							{(phase === ANIMATION_PHASES.SPINNING ||
-								phase === ANIMATION_PHASES.INITIALIZING) && (
-								<motion.div
-									className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-									initial={{ scale: 0, opacity: 0 }}
-									animate={{ scale: 1, opacity: 0.2 }}
-									exit={{ scale: 0, opacity: 0 }}
-									transition={{ duration: 1.2, ease: "easeOut" }}
-								>
-									<motion.div
-										className="w-96 h-96 bg-gradient-to-r from-warning/20 via-orange-400/30 to-warning/20 rounded-full blur-3xl"
-										animate={{
-											scale: [1, 1.3, 1.1, 1],
-											opacity: [0.3, 0.6, 0.4, 0.3],
-										}}
-										transition={{
-											duration: 4,
-											repeat: Infinity,
-											ease: "easeInOut",
-										}}
-									/>
-								</motion.div>
-							)}
-						</AnimatePresence>
-
-						{/* Revealed Phase Background */}
-						<AnimatePresence>
-							{(phase === ANIMATION_PHASES.REVEALING ||
-								phase === ANIMATION_PHASES.REVEALED) && (
-								<motion.div
-									className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-									initial={{ scale: 0, opacity: 0 }}
-									animate={{ scale: 1, opacity: 0.4 }}
-									exit={{ scale: 0, opacity: 0 }}
-									transition={{ duration: 0.5 }}
-								>
-									<motion.div
-										className={`w-96 h-96 bg-gradient-to-r ${rarityConfig.bgGradient} rounded-full blur-3xl`}
-										animate={{
-											scale: [1, 1.1, 1],
-										}}
-										transition={{
-											duration: 3,
-											repeat: Infinity,
-											ease: "easeInOut",
-										}}
-									/>
-								</motion.div>
-							)}
-						</AnimatePresence>
+						<motion.div
+							className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+							initial={{ scale: 0 }}
+							animate={{ scale: showCard ? 1 : 0 }}
+							transition={{ duration: 1.5, ease: "easeOut" }}
+						>
+							<motion.div
+								className={`w-96 h-96 ${rarityConfig.bgGradient} rounded-full blur-3xl`}
+								animate={{
+									scale: [1, 1.1, 1],
+									opacity: [0.3, 0.5, 0.3],
+								}}
+								transition={{
+									duration: 4,
+									repeat: Infinity,
+									ease: "easeInOut",
+								}}
+							/>
+						</motion.div>
 					</motion.div>
 
-					{/* Main Content */}
-					<div className="relative z-10">
-						{/* Spinning Orb Phase */}
+					{/* NFT Card */}
+					<div className="relative z-10 flex items-center justify-center min-h-screen">
 						<AnimatePresence>
-							{(phase === ANIMATION_PHASES.INITIALIZING ||
-								phase === ANIMATION_PHASES.SPINNING) && (
+							{showCard && (
 								<motion.div
-									className="flex flex-col items-center space-y-8"
-									variants={orbVariants}
-									animate={phase}
-									exit={{ opacity: 0, scale: 0 }}
-								>
-									{/* Digital Vault Opening Sequence */}
-									<div className="relative w-80 h-80 flex items-center justify-center">
-										{/* Circular Glassmorphism Frame */}
-										<motion.div
-											className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-br from-content1/30 via-warning/20 to-content1/30 backdrop-blur-xl border border-white/20 shadow-2xl"
-											animate={{
-												boxShadow: [
-													"0 0 30px rgba(255, 165, 0, 0.3), inset 0 0 30px rgba(255, 255, 255, 0.1)",
-													"0 0 60px rgba(255, 165, 0, 0.5), inset 0 0 40px rgba(255, 255, 255, 0.2)",
-													"0 0 30px rgba(255, 165, 0, 0.3), inset 0 0 30px rgba(255, 255, 255, 0.1)",
-												],
-											}}
-											transition={{
-												duration: 3,
-												repeat: Infinity,
-												ease: "easeInOut",
-											}}
-										/>
-
-										{/* Outer rotating ring */}
-										<motion.div
-											className="absolute inset-4 w-72 h-72 rounded-full border-2 border-warning/30"
-											animate={{ rotate: 360 }}
-											transition={{
-												duration: 8,
-												repeat: Infinity,
-												ease: "linear",
-											}}
-										/>
-
-										{/* Inner counter-rotating ring */}
-										<motion.div
-											className="absolute inset-8 w-64 h-64 rounded-full border border-warning/20"
-											animate={{ rotate: -360 }}
-											transition={{
-												duration: 12,
-												repeat: Infinity,
-												ease: "linear",
-											}}
-										/>
-
-										{/* Data Loading Progress Bars */}
-										<div className="absolute inset-0 flex flex-col items-center justify-center space-y-3">
-											{[...Array(4)].map((_, i) => (
-												<motion.div
-													key={i}
-													className="w-40 h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/20"
-													initial={{ opacity: 0, scale: 0 }}
-													animate={{ opacity: 1, scale: 1 }}
-													transition={{ delay: i * 0.15, duration: 0.4 }}
-												>
-													<motion.div
-														className="h-full bg-gradient-to-r from-warning via-orange-400 to-warning rounded-full shadow-lg"
-														initial={{ width: "0%" }}
-														animate={{ width: "100%" }}
-														transition={{
-															delay: i * 0.2 + 0.6,
-															duration: 1.8,
-															ease: "easeOut",
-															repeat: Infinity,
-															repeatType: "loop",
-															repeatDelay: 1,
-														}}
-													/>
-												</motion.div>
-											))}
-										</div>
-
-										{/* Center Digital Vault Icon */}
-										<motion.div
-											className="absolute inset-0 flex items-center justify-center"
-											animate={{
-												scale: [1, 1.15, 1],
-												opacity: [0.8, 1, 0.8],
-											}}
-											transition={{
-												duration: 2.5,
-												repeat: Infinity,
-												ease: "easeInOut",
-											}}
-										>
-											{/* Glassmorphism icon container */}
-											<div className="relative w-20 h-20 bg-gradient-to-br from-content1/40 to-content1/20 backdrop-blur-xl border border-white/30 rounded-2xl flex items-center justify-center shadow-xl">
-												<div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl" />
-												<svg
-													className="w-10 h-10 text-warning drop-shadow-lg relative z-10"
-													fill="none"
-													stroke="currentColor"
-													viewBox="0 0 24 24"
-													strokeWidth={2.5}
-												>
-													<path
-														strokeLinecap="round"
-														strokeLinejoin="round"
-														d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-													/>
-												</svg>
-											</div>
-										</motion.div>
-
-										{/* Orbital Access Points */}
-										{[0, 1, 2, 3, 4, 5, 6, 7].map((point) => (
-											<motion.div
-												key={point}
-												className="absolute w-2 h-2 bg-gradient-to-br from-warning to-orange-400 rounded-full shadow-lg"
-												style={{
-													left: `${50 + 42 * Math.cos((point * Math.PI) / 4)}%`,
-													top: `${50 + 42 * Math.sin((point * Math.PI) / 4)}%`,
-													transform: "translate(-50%, -50%)",
-												}}
-												animate={{
-													scale: [0.6, 1.4, 0.6],
-													opacity: [0.4, 1, 0.4],
-													boxShadow: [
-														"0 0 5px rgba(255, 165, 0, 0.3)",
-														"0 0 15px rgba(255, 165, 0, 0.8)",
-														"0 0 5px rgba(255, 165, 0, 0.3)",
-													],
-												}}
-												transition={{
-													duration: 2,
-													repeat: Infinity,
-													delay: point * 0.25,
-													ease: "easeInOut",
-												}}
-											/>
-										))}
-									</div>
-
-									{/* Status Text */}
-									<motion.div
-										className="text-center"
-										animate={{
-											opacity: [0.7, 1, 0.7],
-										}}
-										transition={{
-											duration: 2,
-											repeat: Infinity,
-											ease: "easeInOut",
-										}}
-									>
-										<div className="text-center space-y-2">
-											<motion.p
-												className="text-xl font-semibold text-warning tracking-wide"
-												animate={{
-													opacity: [0.8, 1, 0.8],
-												}}
-												transition={{
-													duration: 2,
-													repeat: Infinity,
-													ease: "easeInOut",
-												}}
-											>
-												{phase === ANIMATION_PHASES.SPINNING &&
-													"Accessing Digital Vault..."}
-											</motion.p>
-											<motion.p
-												className="text-sm text-foreground/60 font-mono"
-												initial={{ opacity: 0 }}
-												animate={{ opacity: 1 }}
-												transition={{ delay: 1 }}
-											>
-												{phase === ANIMATION_PHASES.SPINNING &&
-													"DECRYPTING REWARD DATA..."}
-											</motion.p>
-										</div>
-									</motion.div>
-								</motion.div>
-							)}
-						</AnimatePresence>
-
-						{/* NFT Card Phase */}
-						<AnimatePresence>
-							{phase === ANIMATION_PHASES.REVEALED && (
-								<motion.div
-									variants={cardVariants}
-									initial="hidden"
-									animate="visible"
-									exit="hidden"
-									style={{ perspective: 1000 }}
+									initial={{ 
+										opacity: 0, 
+										scale: 0.3,
+										rotateY: -180,
+									}}
+									animate={{ 
+										opacity: 1, 
+										scale: 1,
+										rotateY: 0,
+									}}
+									exit={{ 
+										opacity: 0, 
+										scale: 0.8,
+									}}
+									transition={{ 
+										duration: 1.2,
+										ease: "easeOut",
+										type: "spring",
+										damping: 20,
+										stiffness: 100,
+									}}
 									className="relative"
+									style={{ perspective: 1000 }}
 								>
-									{/* Close Button */}
-									<motion.button
-										onClick={onClose}
-										className="absolute top-4 right-4 z-30 w-12 h-12 bg-gradient-to-br from-content1/60 to-content1/40 hover:from-content1/80 hover:to-content1/60 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group"
-										whileHover={{ scale: 1.1 }}
-										whileTap={{ scale: 0.95 }}
-										initial={{ opacity: 0, scale: 0 }}
-										animate={{ opacity: 1, scale: 1 }}
-										transition={{ delay: 0.5 }}
-									>
-										<div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl" />
-										<svg
-											className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors relative z-10"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-											strokeWidth={2.5}
-										>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												d="M6 18L18 6M6 6l12 12"
-											/>
-										</svg>
-									</motion.button>
-
-									{/* NFT Card Container */}
-									<div className="relative flex flex-col items-center">
+									{/* NFT Card */}
+									<div className="flex flex-col items-center">
 										<NFTRevealCard
 											collection={nftResult.collection}
 											tokenId={nftResult.tokenId}

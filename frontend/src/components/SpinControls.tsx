@@ -26,6 +26,7 @@ import {
 	useReadErc20BalanceOf,
 	useReadTestTokenNonces,
 	useReadGachaTreasuryIsGachaAvailable,
+	useWriteGachaReclaimFailedSpin,
 	gachaAbi,
 } from "../generated";
 import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
@@ -43,6 +44,10 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 	const [permitDeadline, setPermitDeadline] = useState<bigint | null>(null);
 	const [usedSignature, setUsedSignature] = useState<string | null>(null);
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
+	
+	// Countdown timer for randomness timeout
+	const [countdown, setCountdown] = useState(30);
+	const [timeoutStarted, setTimeoutStarted] = useState<number | null>(null);
 
 	// Get gacha ID and contract addresses
 	const gachaId = useGachaId();
@@ -113,6 +118,13 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 		isPending: isSignaturePending,
 		error: signatureError,
 	} = useSignTypedData();
+
+	// Reclaim failed spin operation
+	const {
+		writeContract: reclaimFailedSpin,
+		isPending: isReclaimPending,
+		error: reclaimError,
+	} = useWriteGachaReclaimFailedSpin();
 
 	// Transaction confirmations
 	const {
@@ -192,6 +204,24 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 			gachaSpin.isWaitingForFulfillment ||
 			tokenNonce === undefined
 		);
+	};
+
+	// Reclaim handler
+	const handleReclaim = async () => {
+		if (!gachaSpin.triggerId || !contracts.gacha) {
+			console.error("Missing trigger ID or gacha contract for reclaim");
+			return;
+		}
+
+		try {
+			console.log("🔄 [SpinControls] Reclaiming failed spin:", gachaSpin.triggerId);
+			reclaimFailedSpin({
+				address: contracts.gacha,
+				args: [gachaSpin.triggerId],
+			});
+		} catch (error) {
+			console.error("Error reclaiming failed spin:", error);
+		}
 	};
 
 	// Enhanced button click handler
@@ -396,6 +426,34 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 		gachaSpin,
 	]);
 
+	// Countdown timer effect
+	useEffect(() => {
+		if (gachaSpin.isWaitingForFulfillment) {
+			if (!timeoutStarted) {
+				setTimeoutStarted(Date.now());
+				setCountdown(30);
+			}
+			
+			const timer = setInterval(() => {
+				if (timeoutStarted) {
+					const elapsed = Math.floor((Date.now() - timeoutStarted) / 1000);
+					const remaining = Math.max(0, 30 - elapsed);
+					setCountdown(remaining);
+					
+					if (remaining === 0) {
+						gachaSpin.timeout();
+						clearInterval(timer);
+					}
+				}
+			}, 1000);
+
+			return () => clearInterval(timer);
+		} else {
+			setTimeoutStarted(null);
+			setCountdown(30);
+		}
+	}, [gachaSpin.isWaitingForFulfillment, timeoutStarted]);
+
 	// Enhanced error handling
 	const hasError =
 		spinWithPermitError ||
@@ -491,8 +549,54 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 						</div>
 					</div>
 
+
+					{/* Timeout Display */}
+					{gachaSpin.isTimeout && (
+						<GlassBadge variant="danger" className="text-center p-4">
+							<div>
+								<div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-3">
+									<svg
+										className="w-8 h-8 text-danger"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"
+										/>
+									</svg>
+								</div>
+								<p className="text-sm mb-2 font-semibold text-danger">Randomness Timeout</p>
+								<p className="text-xs opacity-60 mb-3">
+									The random number generation took longer than expected. This may indicate a network issue or VRF coordinator problem.
+								</p>
+								<div className="flex flex-col gap-2">
+									<button
+										onClick={handleReclaim}
+										disabled={isReclaimPending}
+										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
+									>
+										{isReclaimPending ? "Reclaiming..." : "Reclaim Funds"}
+									</button>
+									<button
+										onClick={gachaSpin.reset}
+										className="px-4 py-2 bg-content2 hover:bg-content3 text-foreground rounded-lg transition-colors text-sm"
+									>
+										Try Again
+									</button>
+									<p className="text-xs opacity-50">
+										Reclaim refunds your spin fee and invalidates this request to prevent late fulfillment.
+									</p>
+								</div>
+							</div>
+						</GlassBadge>
+					)}
+
 					{/* Error Display Only */}
-					{gachaSpin.isError && (
+					{gachaSpin.isError && !gachaSpin.isTimeout && (
 						<GlassBadge variant="danger" className="text-center p-4">
 							<div>
 								<p className="text-sm mb-2">{gachaSpin.error}</p>
@@ -537,9 +641,17 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 					{/* Error display for transaction errors */}
 					{(spinWithPermitError ||
 						spinWithPermitReceiptError ||
-						signatureError) && (
+						signatureError ||
+						reclaimError) && (
 						<GlassBadge variant="danger" className="text-center p-4">
-							<p className="text-sm">Transaction failed. Please try again.</p>
+							<div>
+								<p className="text-sm mb-2">Transaction failed. Please try again.</p>
+								{reclaimError && (
+									<p className="text-xs opacity-60">
+										Reclaim error: {reclaimError.message}
+									</p>
+								)}
+							</div>
 						</GlassBadge>
 					)}
 
@@ -576,6 +688,15 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 					>
 						{getButtonText()}
 					</GlassButton>
+
+					{/* Countdown Display - Under Button */}
+					{gachaSpin.isWaitingForFulfillment && (
+						<div className="text-center">
+							<p className="text-2xl font-mono font-bold text-warning">
+								{countdown}s
+							</p>
+						</div>
+					)}
 				</div>
 			</div>
 		</GlassCard>

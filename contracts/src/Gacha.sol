@@ -34,6 +34,8 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     error UnauthorizedServiceHandler();
     error InvalidTreasuryContract();
     error InvalidRewardsManager();
+    error CannotReclaimFulfilledSpin();
+    error NotSpinRequester();
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
@@ -78,6 +80,10 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
 
     event SpinRefunded(
         uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity selectedRarity, uint256 refundAmount
+    );
+
+    event SpinReclaimed(
+        uint256 indexed triggerId, address indexed requester, uint256 refundAmount
     );
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
@@ -352,6 +358,31 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
 
     function getTreasuryAddress() external view returns (address) {
         return address(treasury);
+    }
+
+    /**
+     * @notice Allows users to reclaim their fees if randomness fails or times out
+     * @param triggerId The trigger ID of the failed spin request
+     * @dev Only the original requester can reclaim, and only if not already fulfilled
+     * @dev Marks the request as fulfilled to prevent late fulfillment
+     */
+    function reclaimFailedSpin(uint256 triggerId) external nonReentrant {
+        SpinRequest storage request = spinRequests[triggerId];
+        
+        // Validate the request exists and caller is the original requester
+        if (request.requester == address(0)) revert InvalidTriggerId();
+        if (request.requester != msg.sender) revert NotSpinRequester();
+        if (request.fulfilled) revert CannotReclaimFulfilledSpin();
+        
+        // Mark as fulfilled to prevent any future fulfillment of this trigger
+        request.fulfilled = true;
+        
+        // Refund the spin fee if one was paid
+        if (spinFee > 0) {
+            feeToken.safeTransfer(request.requester, spinFee);
+        }
+        
+        emit SpinReclaimed(triggerId, request.requester, spinFee);
     }
 
     // Emergency functions

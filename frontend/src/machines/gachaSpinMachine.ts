@@ -32,7 +32,8 @@ export type GachaSpinEvent =
 	| { type: "CLOSE_REVEAL" }
 	| { type: "RESET" }
 	| { type: "RETRY" }
-	| { type: "ERROR"; error: string };
+	| { type: "ERROR"; error: string }
+	| { type: "TIMEOUT" };
 
 const STORAGE_PREFIX = "pendingSpin_";
 const PENDING_SPIN_TIMEOUT = 10 * 60 * 1000; // 10 minutes
@@ -257,6 +258,10 @@ export const gachaSpinMachine = createMachine(
 						target: "revealing",
 						actions: ["setSpinResult", "clearFromStorage"],
 					},
+					TIMEOUT: {
+						target: "timeout",
+						actions: "setTimeoutError",
+					},
 					RESET: "idle",
 					RETRY: {
 						target: "waitingForFulfillment",
@@ -268,6 +273,11 @@ export const gachaSpinMachine = createMachine(
 			revealing: {
 				on: {
 					CLOSE_REVEAL: "idle",
+					RESET: "idle",
+				},
+			},
+			timeout: {
+				on: {
 					RESET: "idle",
 				},
 			},
@@ -335,6 +345,9 @@ export const gachaSpinMachine = createMachine(
 					}
 					return "Unknown polling error";
 				},
+			}),
+			setTimeoutError: assign({
+				error: "Randomness generation timed out after 30 seconds. You can reclaim your funds.",
 			}),
 			clearError: assign({
 				error: null,

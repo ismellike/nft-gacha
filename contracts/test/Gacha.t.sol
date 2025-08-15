@@ -482,7 +482,98 @@ contract GachaTest is Test {
     event SpinRefunded(
         uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity selectedRarity, uint256 refundAmount
     );
+    event SpinReclaimed(
+        uint256 indexed triggerId, address indexed requester, uint256 refundAmount
+    );
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTokenUpdated(address oldToken, address newToken);
     event RarityWeightsUpdated(uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary);
+
+    function testReclaimFailedSpin() public {
+        // Setup user with exact spin fee amount  
+        vm.startPrank(user1);
+        feeToken.mint(user1, SPIN_FEE);
+        feeToken.approve(address(gacha), SPIN_FEE);
+
+        // Record initial balances
+        uint256 userInitialBalance = feeToken.balanceOf(user1);
+        uint256 gachaInitialBalance = feeToken.balanceOf(address(gacha));
+
+        // Start a spin
+        uint256 triggerId = gacha.spin();
+        
+        // Check that the user's balance is reduced by spin fee
+        assertEq(feeToken.balanceOf(user1), userInitialBalance - SPIN_FEE);
+        assertEq(feeToken.balanceOf(address(gacha)), gachaInitialBalance + SPIN_FEE);
+
+        // User reclaims the failed spin
+        vm.expectEmit(true, true, false, true);
+        emit SpinReclaimed(triggerId, user1, SPIN_FEE);
+        gacha.reclaimFailedSpin(triggerId);
+
+        // Check that fee is refunded and request is marked as fulfilled
+        assertEq(feeToken.balanceOf(user1), userInitialBalance);
+        assertEq(feeToken.balanceOf(address(gacha)), gachaInitialBalance);
+        
+        (, bool fulfilled) = gacha.getSpinRequest(triggerId);
+        assertTrue(fulfilled);
+        
+        vm.stopPrank();
+    }
+
+    function testReclaimFailedSpinPreventsLateFulfillment() public {
+        // Setup user with tokens
+        vm.startPrank(user1);
+        feeToken.mint(user1, SPIN_FEE);
+        feeToken.approve(address(gacha), SPIN_FEE);
+
+        // Start a spin
+        uint256 triggerId = gacha.spin();
+        
+        // User reclaims the failed spin
+        gacha.reclaimFailedSpin(triggerId);
+        vm.stopPrank();
+
+        // Try to fulfill the reclaimed spin (should fail)
+        bytes32 randomness = bytes32(uint256(5000));
+        vm.expectRevert(abi.encodeWithSelector(Gacha.AlreadyFulfilled.selector));
+        gacha.fulfillRandomness(triggerId, randomness);
+    }
+
+    function testReclaimFailedSpinOnlyByOriginalRequester() public {
+        // Setup user1 with tokens
+        vm.startPrank(user1);
+        feeToken.mint(user1, SPIN_FEE);
+        feeToken.approve(address(gacha), SPIN_FEE);
+
+        // Start a spin
+        uint256 triggerId = gacha.spin();
+        vm.stopPrank();
+
+        // user2 tries to reclaim user1's spin (should fail)
+        vm.prank(user2);
+        vm.expectRevert(abi.encodeWithSelector(Gacha.NotSpinRequester.selector));
+        gacha.reclaimFailedSpin(triggerId);
+    }
+
+    function testCannotReclaimAlreadyFulfilledSpin() public {
+        // Setup user with tokens
+        vm.startPrank(user1);
+        feeToken.mint(user1, SPIN_FEE);
+        feeToken.approve(address(gacha), SPIN_FEE);
+
+        // Start a spin
+        uint256 triggerId = gacha.spin();
+        vm.stopPrank();
+
+        // Fulfill the spin first
+        bytes32 randomness = bytes32(uint256(5000));
+        vm.prank(owner);
+        gacha.fulfillRandomness(triggerId, randomness);
+
+        // Try to reclaim already fulfilled spin (should fail)
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(Gacha.CannotReclaimFulfilledSpin.selector));
+        gacha.reclaimFailedSpin(triggerId);
+    }
 }
