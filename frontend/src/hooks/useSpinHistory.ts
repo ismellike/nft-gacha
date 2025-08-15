@@ -116,7 +116,14 @@ export function useRandomnessRequestedEvents(
 		} finally {
 			setIsLoading(false);
 		}
-	}, [publicClient, contractAddress, params.fromBlock, params.toBlock, params.userAddress, params.limit]);
+	}, [
+		publicClient,
+		contractAddress,
+		params.fromBlock,
+		params.toBlock,
+		params.userAddress,
+		params.limit,
+	]);
 
 	useEffect(() => {
 		refetch();
@@ -212,7 +219,14 @@ export function useSpinCompletedEvents(
 		} finally {
 			setIsLoading(false);
 		}
-	}, [publicClient, contractAddress, params.fromBlock, params.toBlock, params.userAddress, params.limit]);
+	}, [
+		publicClient,
+		contractAddress,
+		params.fromBlock,
+		params.toBlock,
+		params.userAddress,
+		params.limit,
+	]);
 
 	useEffect(() => {
 		refetch();
@@ -304,7 +318,14 @@ export function useSpinRefundedEvents(
 		} finally {
 			setIsLoading(false);
 		}
-	}, [publicClient, contractAddress, params.fromBlock, params.toBlock, params.userAddress, params.limit]);
+	}, [
+		publicClient,
+		contractAddress,
+		params.fromBlock,
+		params.toBlock,
+		params.userAddress,
+		params.limit,
+	]);
 
 	useEffect(() => {
 		refetch();

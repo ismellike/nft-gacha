@@ -1,16 +1,34 @@
 version: "3"
 
+vars:
+  # Common variable definitions
+  SERVICE_JSON_CMD: 'service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}"'
+
 tasks:
   components-build:
     desc: "Builds the WASI components"
     deps: [components-clean]
+    requires:
+      vars:
+        [
+          PROJECT,
+          COMPONENT_NAME,
+          REPO_ROOT,
+          ROOT_DIR,
+          AGGREGATOR_PROJECT,
+          AGGREGATOR_COMPONENT_NAME,
+        ]
     vars:
       COMPONENT_SOURCE_DIR: '{{joinPath .ROOT_DIR "component"}}'
+      AGGREGATOR_COMPONENT_SOURCE_DIR: '{{ joinPath .REPO_ROOT "projects" .AGGREGATOR_PROJECT "component" }}'
     cmds:
       - cd "{{.REPO_ROOT}}" && task component:build PROJECT="{{.PROJECT}}" COMPONENT_NAME="{{.COMPONENT_NAME}}" COMPONENT_SOURCE_DIR="{{.COMPONENT_SOURCE_DIR}}"
+      - cd "{{.REPO_ROOT}}" && task component:build PROJECT="{{.PROJECT}}" COMPONENT_NAME="{{.AGGREGATOR_COMPONENT_NAME}}" COMPONENT_SOURCE_DIR="{{.AGGREGATOR_COMPONENT_SOURCE_DIR}}"
 
   components-clean:
     desc: "Deletes the WASI components"
+    requires:
+      vars: [PROJECT, COMPONENT_NAME, REPO_ROOT]
     cmds:
       - cd "{{.REPO_ROOT}}" && task component:clean-all PROJECT="{{.PROJECT}}" COMPONENT_NAME="{{.COMPONENT_NAME}}"
 
@@ -20,43 +38,44 @@ tasks:
       WAVS_INSTANCE: "{{.WAVS_INSTANCE | default 1}}"
       WAVS_ENDPOINT:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
+    requires:
+      vars: [PROJECT, COMPONENT_NAME, REPO_ROOT, AGGREGATOR_COMPONENT_NAME]
     cmds:
       - cd "{{.REPO_ROOT}}" && task component:upload PROJECT="{{.PROJECT}}" COMPONENT_NAME="{{.COMPONENT_NAME}}" WAVS_ENDPOINT="{{.WAVS_ENDPOINT}}"
-
-  get-deploy-mode:
-    desc: "Gets the actual deploy mode for the project"
-    vars:
-      ACTUAL_DEPLOY_MODE: '{{.PROJECT_DEPLOY_MODE | default .DEPLOY_MODE | default "LOCAL"}}'
-    cmds:
-      - echo "{{.ACTUAL_DEPLOY_MODE}}"
+      - cd "{{.REPO_ROOT}}" && task component:upload-aggregator PROJECT="{{.PROJECT}}" COMPONENT_NAME="{{.AGGREGATOR_COMPONENT_NAME}}" WAVS_ENDPOINT="{{.WAVS_ENDPOINT}}"
 
   middleware-deploy:
-    desc: "Deploys the middleware based on DEPLOY_MODE (projects may override internally)"
+    desc: "Deploys the middleware (mock or real based on USES_MOCK setting)"
     vars:
-      ACTUAL_DEPLOY_MODE:
-        sh: task bootstrap:get-deploy-mode
+      USES_MOCK: '{{.USES_MOCK | default "false"}}'
+      CHAIN_ARG: "{{if .SOURCE_CHAIN_NUMBER}}CHAIN_NUMBER={{.SOURCE_CHAIN_NUMBER}}{{end}}"
+    requires:
+      vars: [PROJECT, REPO_ROOT]
     cmds:
       - |
-        case "{{.ACTUAL_DEPLOY_MODE}}" in
-          "LOCAL"|"TESTNET")
-            if [ -n "{{.SOURCE_CHAIN_NUMBER}}" ]; then
-              cd "{{.REPO_ROOT}}" && task middleware:deploy PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}" CHAIN_NUMBER="{{.SOURCE_CHAIN_NUMBER}}"
-            else
-              cd "{{.REPO_ROOT}}" && task middleware:deploy PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}"
-            fi
-            ;;
-          "MOCK")
-            if [ -n "{{.SOURCE_CHAIN_NUMBER}}" ]; then
-              cd "{{.REPO_ROOT}}" && task middleware:deploy-mock PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}" CHAIN_NUMBER="{{.SOURCE_CHAIN_NUMBER}}"
-            else
-              cd "{{.REPO_ROOT}}" && task middleware:deploy-mock PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}"
-            fi
-            ;;
-          *)
-            echo "Unknown DEPLOY_MODE: {{.ACTUAL_DEPLOY_MODE}}. Valid options: LOCAL, MOCK, TESTNET"
-            exit 1
-            ;;
-        esac
+        if [ "{{.USES_MOCK}}" = "true" ]; then
+          cd "{{.REPO_ROOT}}" && task middleware:deploy-mock PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}" {{.CHAIN_ARG}}
+        else
+          cd "{{.REPO_ROOT}}" && task middleware:deploy PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}" {{.CHAIN_ARG}}
+        fi
+
+  middleware-transfer-ownership:
+    desc: "Transfer ownership of ECDSA proxy and AVS contracts (conditional on TRANSFER_OWNERSHIP)"
+    vars:
+      TRANSFER_OWNERSHIP: '{{.TRANSFER_OWNERSHIP | default "false"}}'
+      USES_MOCK: '{{.USES_MOCK | default "false"}}'
+      CHAIN_ARG: "{{if .SOURCE_CHAIN_NUMBER}}CHAIN_NUMBER={{.SOURCE_CHAIN_NUMBER}}{{end}}"
+    requires:
+      vars: [PROJECT, REPO_ROOT, PROXY_OWNER, AVS_OWNER]
+    status:
+      - '[ "{{.TRANSFER_OWNERSHIP}}" != "true" ]'
+    cmds:
+      - |
+        if [ "{{.USES_MOCK}}" = "true" ]; then
+          cd "{{.REPO_ROOT}}" && task middleware:mock-transfer-ownership PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}" PROXY_OWNER="{{.PROXY_OWNER}}" AVS_OWNER="{{.AVS_OWNER}}" {{.CHAIN_ARG}}
+        else
+          cd "{{.REPO_ROOT}}" && task middleware:transfer-ownership PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}" PROXY_OWNER="{{.PROXY_OWNER}}" AVS_OWNER="{{.AVS_OWNER}}" {{.CHAIN_ARG}}
+        fi
 
   build-mock-config:
     desc: "Build mock configuration JSON with all active operators"
@@ -116,6 +135,15 @@ tasks:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-chain-name-{{.SOURCE_CHAIN_NUMBER}}
       SERVICE_MANAGER_ADDRESS:
         sh: task get-service-manager-address
+    requires:
+      vars:
+        [
+          REPO_ROOT,
+          COMPONENT_NAME,
+          SERVICE_OUTPUT_DIR,
+          WAVS_CLI_SERVICE_JSON_PATH,
+          SOURCE_CHAIN_NUMBER,
+        ]
     cmds:
       - |
         cd "{{.REPO_ROOT}}"
@@ -129,14 +157,19 @@ tasks:
 
   clean-service:
     desc: "Cleans up the service configuration"
+    requires:
+      vars: [SERVICE_OUTPUT_DIR]
     cmds:
       - rm -rf "{{.SERVICE_OUTPUT_DIR}}"
 
   upload-service:
+    desc: "Upload service configuration to WAVS endpoint"
     vars:
       WAVS_INSTANCE: "{{.WAVS_INSTANCE | default 1}}"
       WAVS_ENDPOINT:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
+    requires:
+      vars: [REPO_ROOT, SERVICE_JSON_PATH, TEMP_SERVICE_HASH_JSON_PATH]
     cmds:
       - >
         curl --fail-with-body -X POST "{{.WAVS_ENDPOINT}}/save-service" 
@@ -195,47 +228,59 @@ tasks:
       WAVS_INSTANCE: "{{.WAVS_INSTANCE | default 1}}"
       WAVS_SIGNING_KEY:
         sh: task get-service-signing-address WAVS_INSTANCE="{{.WAVS_INSTANCE}}"
-      ACTUAL_DEPLOY_MODE:
-        sh: task bootstrap:get-deploy-mode
+      USES_MOCK: '{{.USES_MOCK | default "false"}}'
     cmds:
       - |
-        case "{{.ACTUAL_DEPLOY_MODE}}" in
-          "LOCAL"|"TESTNET")
-            cd "{{.REPO_ROOT}}" && task middleware:register-operator WAVS_SIGNING_KEY="{{.WAVS_SIGNING_KEY}}" AMOUNT="0.001ether" PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}" WAVS_INSTANCE="{{.WAVS_INSTANCE}}"
-            ;;
-          "MOCK")
-            task bootstrap:build-mock-config PROJECT="{{.PROJECT}}"
-            cd "{{.REPO_ROOT}}" && task middleware:configure-mock PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}"
-            ;;
-          *)
-            echo "Unknown DEPLOY_MODE: {{.ACTUAL_DEPLOY_MODE}}. Valid options: LOCAL, MOCK, TESTNET"
-            exit 1
-            ;;
-        esac
+        if [ "{{.USES_MOCK}}" = "true" ]; then
+          task bootstrap:build-mock-config PROJECT="{{.PROJECT}}"
+          cd "{{.REPO_ROOT}}" && task middleware:configure-mock PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}"
+        else
+          cd "{{.REPO_ROOT}}" && task middleware:register-operator WAVS_SIGNING_KEY="{{.WAVS_SIGNING_KEY}}" AMOUNT="0.001ether" PROJECT="{{.PROJECT}}" SERVICE_NAME="{{.PROJECT}}" WAVS_INSTANCE="{{.WAVS_INSTANCE}}"
+        fi
 
   deploy-service-*:
     vars:
+      FIRST_OPERATOR: "{{.FIRST_OPERATOR | default 1}}"
       WAVS_INSTANCE: "{{index .MATCH 0}}"
       WAVS_ENDPOINT:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
       TEMP_SERVICE_HASH:
         sh: task get-temp-service-hash
       SOURCE_WAVS_ENDPOINT:
-        sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.SOURCE_CHAIN_NUMBER}}
+        sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.FIRST_OPERATOR}}
       SERVICE_URI: "{{.SOURCE_WAVS_ENDPOINT}}/service-by-hash/{{.TEMP_SERVICE_HASH}}"
     cmds:
       - task cli:wavs WAVS_INSTANCE={{.WAVS_INSTANCE}} -- deploy-service --home /wavs-home --service-url {{.SERVICE_URI}} --wavs-endpoint {{.WAVS_ENDPOINT}}
 
+  get-aggregator-config-values:
+    desc: "Get the aggregators config values"
+    requires:
+      vars: [AGGREGATOR_PROJECT]
+    vars:
+      AGGREGATOR_FLAGS:
+        sh: task get-aggregator-simple-flags
+    cmds:
+      - |
+        case "{{.AGGREGATOR_PROJECT}}" in
+          "aggregator-simple")
+            # Output the config vars in the expected format
+            echo "{{.AGGREGATOR_FLAGS}}"
+            ;;
+          *)
+            echo "Error: Unsupported aggregator project '{{.AGGREGATOR_PROJECT}}'. Only 'aggregator-simple' is supported." >&2
+            exit 1
+            ;;
+        esac
+
   wavs-*:
     vars:
       WAVS_INSTANCE: "{{index .MATCH 0}}"
-      ACTUAL_DEPLOY_MODE:
-        sh: task bootstrap:get-deploy-mode
+      USES_MOCK: '{{.USES_MOCK | default "false"}}'
     cmds:
       - task bootstrap:components-upload WAVS_INSTANCE="{{.WAVS_INSTANCE}}"
       - task bootstrap:deploy-service-{{.WAVS_INSTANCE}}
       - |
-        if [ "{{.ACTUAL_DEPLOY_MODE}}" != "MOCK" ]; then
+        if [ "{{.USES_MOCK}}" != "true" ]; then
           task bootstrap:register-operator WAVS_INSTANCE="{{.WAVS_INSTANCE}}"
         fi
 
@@ -246,6 +291,6 @@ tasks:
       - |
         for OPERATOR in $(seq 1 {{.ACTIVE_WAVS_COUNT}}); do
           if [ "$OPERATOR" -ne {{.FIRST_OPERATOR}} ]; then
-            task bootstrap:wavs-$OPERATOR
+            task bootstrap:wavs-$OPERATOR FIRST_OPERATOR="{{.FIRST_OPERATOR}}"
           fi
         done

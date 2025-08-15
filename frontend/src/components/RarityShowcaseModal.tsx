@@ -7,7 +7,10 @@ import { useGachaId } from "../hooks/useGachaId";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
 import { NFTInventoryCard, GlassBadge } from "./ui";
-import { ExclamationTriangleIcon, ArchiveBoxIcon } from "@heroicons/react/24/outline";
+import {
+	ExclamationTriangleIcon,
+	ArchiveBoxIcon,
+} from "@heroicons/react/24/outline";
 import { glassModal } from "../lib/theme-config";
 
 interface RarityShowcaseModalProps {

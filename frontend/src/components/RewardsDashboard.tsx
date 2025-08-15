@@ -20,7 +20,11 @@ import {
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { RARITY_CONFIG, Rarity } from "../lib/rarityConfig";
-import { CurrencyDollarIcon, CheckIcon, GiftIcon } from "@heroicons/react/24/outline";
+import {
+	CurrencyDollarIcon,
+	CheckIcon,
+	GiftIcon,
+} from "@heroicons/react/24/outline";
 import { GlassCard, GlassButton, GlassBadge } from "./ui";
 
 interface RarityReward {

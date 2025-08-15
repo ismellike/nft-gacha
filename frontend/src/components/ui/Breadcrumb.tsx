@@ -9,19 +9,22 @@ import { useRouter } from "next/navigation";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
 // Helper function to get breadcrumb icons
-function getBreadcrumbIcon(iconName: string | undefined, className: string = "w-4 h-4") {
+function getBreadcrumbIcon(
+	iconName: string | undefined,
+	className: string = "w-4 h-4",
+) {
 	if (!iconName) return null;
-	
+
 	// Import commonly used icons
-	const { 
-		HomeIcon, 
-		EyeIcon, 
-		BoltIcon, 
-		FolderOpenIcon, 
-		GiftIcon, 
-		CogIcon 
+	const {
+		HomeIcon,
+		EyeIcon,
+		BoltIcon,
+		FolderOpenIcon,
+		GiftIcon,
+		CogIcon,
 	} = require("@heroicons/react/24/outline");
-	
+
 	switch (iconName) {
 		case "home":
 			return <HomeIcon className={className} />;
@@ -112,7 +115,10 @@ export function Breadcrumb({
 										className={current()}
 										aria-current={isCurrent ? "page" : undefined}
 									>
-										{getBreadcrumbIcon(item.icon, `w-4 h-4 ${isCurrent ? "text-warning" : "text-foreground"}`)}
+										{getBreadcrumbIcon(
+											item.icon,
+											`w-4 h-4 ${isCurrent ? "text-warning" : "text-foreground"}`,
+										)}
 										<span>{item.label}</span>
 									</div>
 								)}

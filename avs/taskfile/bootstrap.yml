@@ -25,6 +25,8 @@ tasks:
         sh: task get-service-manager-address
       RANDOMNESS_REQUESTED_EVENT_HASH:
         sh: cast keccak "RandomnessRequested(uint256)"
+      AGGREGATOR_COMPONENT_CONFIG:
+        sh: task bootstrap:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}"
     cmds:
       - |
         cd "{{.REPO_ROOT}}"
@@ -37,7 +39,9 @@ tasks:
 
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow trigger --id ${WORKFLOW_ID} set-evm --chain-name {{.TRIGGER_CHAIN}} --address ${GACHA_CONTRACT_ADDRESS} --event-hash {{.RANDOMNESS_REQUESTED_EVENT_HASH}}
           
-        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id ${WORKFLOW_ID} set-aggregator --url {{.WAVS_AGGREGATOR_ENDPOINT}} --address ${GACHA_SERVICE_HANDLER_ADDRESS} --chain-name {{.SUBMIT_CHAIN}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id ${WORKFLOW_ID} set-aggregator --url {{.WAVS_AGGREGATOR_ENDPOINT}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id ${WORKFLOW_ID} component set-source-registry --package {{.AGGREGATOR_COMPONENT_PACKAGE}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id ${WORKFLOW_ID} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
 
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id ${WORKFLOW_ID} set-source-registry --package {{.COMPONENT_PACKAGE}}
           

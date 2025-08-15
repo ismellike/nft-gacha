@@ -10,12 +10,12 @@ import { UserNFTModal } from "../../components/UserNFTModal";
 import { AdminControls } from "../../components/AdminControls";
 import AnalyticsDashboard from "../../components/AnalyticsDashboard";
 import { NFTAvailabilitySection } from "../../components/NFTAvailabilitySection";
-import { 
-	CheckIcon, 
-	XCircleIcon, 
-	CurrencyDollarIcon, 
-	GiftIcon, 
-	WalletIcon
+import {
+	CheckIcon,
+	XCircleIcon,
+	CurrencyDollarIcon,
+	GiftIcon,
+	WalletIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -65,7 +65,13 @@ function GachaDetailPageContent() {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const sectionParam = searchParams.get("section");
-	const validSections = ["spin", "deposits", "analytics", "rewards", "admin"] as const;
+	const validSections = [
+		"spin",
+		"deposits",
+		"analytics",
+		"rewards",
+		"admin",
+	] as const;
 	type ValidSection = (typeof validSections)[number];
 
 	// Determine active tab from URL or default to 'spin'
@@ -257,7 +263,6 @@ function GachaDetailPageContent() {
 		router.push(`/gacha?${newSearchParams.toString()}`, { scroll: false });
 	};
 
-
 	// Redirect to spin tab if trying to access admin without permissions
 	useEffect(() => {
 		if (
@@ -417,12 +422,12 @@ function GachaDetailPageContent() {
 
 		try {
 			console.log("Initiating individual tracker claims...");
-			
+
 			// Find the first tracker with claimable rewards and claim from it
 			// Users will need to call this multiple times if they have rewards in multiple rarities
 			let trackerToClaim: `0x${string}` | null = null;
 			let amountToClaim = BigInt(0);
-			
+
 			if (commonClaimable && commonClaimable > BigInt(0)) {
 				trackerToClaim = contracts.trackers.common;
 				amountToClaim = commonClaimable;
@@ -439,22 +444,23 @@ function GachaDetailPageContent() {
 				trackerToClaim = contracts.trackers.legendary;
 				amountToClaim = legendaryClaimable;
 			}
-			
+
 			if (!trackerToClaim) {
 				console.warn("No claimable rewards found");
 				setOptimisticClaim(false);
 				setOptimisticClaimedAmount(null);
 				return;
 			}
-			
-			console.log(`Claiming ${formatTokenAmountLocal(amountToClaim)} from tracker: ${trackerToClaim}`);
-			
+
+			console.log(
+				`Claiming ${formatTokenAmountLocal(amountToClaim)} from tracker: ${trackerToClaim}`,
+			);
+
 			claimRewards({
 				address: trackerToClaim,
 				abi: rarityDividendTrackerAbi,
-				functionName: 'withdrawFunds',
+				functionName: "withdrawFunds",
 			});
-			
 		} catch (error) {
 			console.error("Failed to initiate claim transaction:", error);
 			// Reset optimistic state on immediate error
@@ -1086,16 +1092,17 @@ function GachaDetailPageContent() {
 
 export default function GachaDetailPage() {
 	return (
-		<Suspense fallback={
-			<div className="min-h-screen bg-background flex items-center justify-center">
-				<div className="text-center space-y-4">
-					<div className="w-8 h-8 border-4 border-warning border-t-transparent rounded-full animate-spin mx-auto" />
-					<p className="text-foreground/70">Loading gacha...</p>
+		<Suspense
+			fallback={
+				<div className="min-h-screen bg-background flex items-center justify-center">
+					<div className="text-center space-y-4">
+						<div className="w-8 h-8 border-4 border-warning border-t-transparent rounded-full animate-spin mx-auto" />
+						<p className="text-foreground/70">Loading gacha...</p>
+					</div>
 				</div>
-			</div>
-		}>
+			}
+		>
 			<GachaDetailPageContent />
 		</Suspense>
 	);
 }
-

@@ -20,13 +20,13 @@ function getIconComponent(iconName: string, props: any) {
 		plus: PlusIcon,
 		link: LinkIcon,
 	};
-	
+
 	const IconComponent = iconMap[iconName];
 	if (!IconComponent) {
 		console.warn(`Icon "${iconName}" not found`);
 		return null;
 	}
-	
+
 	return <IconComponent {...props} />;
 }
 
@@ -147,7 +147,7 @@ export function GlassHeader({
 															: badge.variant === "primary"
 																? "text-warning"
 																: "text-foreground/60"
-											}`
+											}`,
 										})}
 										<span className="text-sm font-medium text-foreground/90">
 											{badge.text}

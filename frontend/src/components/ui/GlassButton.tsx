@@ -45,13 +45,13 @@ function getIconComponent(iconName: string, className: string) {
 		settings: CogIcon,
 		refresh: Loader2,
 	};
-	
+
 	const IconComponent = iconMap[iconName];
 	if (!IconComponent) {
 		console.warn(`Icon "${iconName}" not found`);
 		return null;
 	}
-	
+
 	return <IconComponent className={className} />;
 }
 
@@ -157,30 +157,48 @@ export function GlassButton({
 	const getIconSizeClass = (iconSize?: IconSize, buttonSize?: string) => {
 		if (iconSize) {
 			switch (iconSize) {
-				case "xs": return "w-3 h-3";
-				case "sm": return "w-4 h-4";
-				case "md": return "w-5 h-5";
-				case "lg": return "w-6 h-6";
-				case "xl": return "w-8 h-8";
-				case "2xl": return "w-10 h-10";
-				default: return "w-4 h-4";
+				case "xs":
+					return "w-3 h-3";
+				case "sm":
+					return "w-4 h-4";
+				case "md":
+					return "w-5 h-5";
+				case "lg":
+					return "w-6 h-6";
+				case "xl":
+					return "w-8 h-8";
+				case "2xl":
+					return "w-10 h-10";
+				default:
+					return "w-4 h-4";
 			}
 		}
-		return buttonSize === "sm" ? "w-4 h-4" : buttonSize === "lg" ? "w-5 h-5" : "w-4 h-4";
+		return buttonSize === "sm"
+			? "w-4 h-4"
+			: buttonSize === "lg"
+				? "w-5 h-5"
+				: "w-4 h-4";
 	};
-	
+
 	const getIconVariantClass = (variant: string) => {
 		switch (variant) {
-			case "default": return "text-foreground";
-			case "muted": return "text-foreground/60";
-			case "accent": return "text-warning";
-			case "success": return "text-success";
-			case "warning": return "text-warning";
-			case "danger": return "text-danger";
-			default: return "text-foreground";
+			case "default":
+				return "text-foreground";
+			case "muted":
+				return "text-foreground/60";
+			case "accent":
+				return "text-warning";
+			case "success":
+				return "text-success";
+			case "warning":
+				return "text-warning";
+			case "danger":
+				return "text-danger";
+			default:
+				return "text-foreground";
 		}
 	};
-	
+
 	const iconClassName = `${getIconSizeClass(iconSize, size)} ${getIconVariantClass(iconVariant)}`;
 
 	// Content to display

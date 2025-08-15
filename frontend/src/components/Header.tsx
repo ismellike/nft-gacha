@@ -6,7 +6,11 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { glassNavigation } from "../lib/theme-config";
-import { HomeIcon, CubeIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import {
+	HomeIcon,
+	CubeIcon,
+	MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 
 // Helper function to get icon component
 function getNavIcon(iconName: string, className: string) {
@@ -93,7 +97,7 @@ export const Header = memo(() => {
 											item.icon,
 											`w-5 h-5 ${
 												isActive ? "text-warning" : "text-foreground"
-											}`
+											}`,
 										)}
 										<span className={navStyles.navItemText()}>
 											{item.label}

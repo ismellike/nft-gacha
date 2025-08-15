@@ -13,7 +13,13 @@ import {
 	useReadErc20Symbol,
 	useReadErc20Decimals,
 } from "../generated";
-import { GiftIcon, BoltIcon, ArrowRightIcon, XCircleIcon, ChartBarIcon } from "@heroicons/react/24/outline";
+import {
+	GiftIcon,
+	BoltIcon,
+	ArrowRightIcon,
+	XCircleIcon,
+	ChartBarIcon,
+} from "@heroicons/react/24/outline";
 import { GlassCard, GlassBadge, GachaCardSkeleton } from "./ui";
 import { GachaCardHeader } from "./GachaCardHeader";
 import { type GachaConfig } from "../lib/gacha-config";

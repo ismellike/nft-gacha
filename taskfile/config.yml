@@ -5,8 +5,7 @@ vars:
     # find the root directory of the repository by looking for the `.git` directory.
     sh: git rev-parse --show-toplevel
   PROJECT_OUTPUT_DIRNAME: ".project-output"
-  BACKEND_DIR:
-    sh: realpath "{{.REPO_ROOT}}/backend"
+  BACKEND_DIR: '{{joinPath .REPO_ROOT "backend"}}'
   ANVIL_FORK_CHAIN_ID: 31337
   # Network Configuration
   ANVIL_HOLESKY_FORK_URL: "https://eth-holesky.g.alchemy.com/v2/Hr83A86i2pYH_ABCxFveDMBmKvhIo_Gi"
@@ -45,5 +44,11 @@ vars:
       docker ps --format '{{"{{"}}.Names{{"}}"}}' | grep 'anvil-' | wc -l | xargs
   ACTIVE_WAVS_COUNT:
     sh: |
-      docker ps --format '{{"{{"}}.Names{{"}}"}}' | grep 'wavs-' | grep -v 'wavs-aggregator' | wc -l | xargs
+      docker ps --format '{{"{{"}}.Names{{"}}"}}' | grep 'wavs-operator-' | wc -l | xargs
   SUBMIT_DELAY: '{{ternary 1 5 (eq .DEPLOY_ENV "LOCAL")}}'
+  # Transfer Ownership Config
+  AVS_OWNER: "0x1111111111111111111111111111111111111111"
+  PROXY_OWNER: "0x2222222222222222222222222222222222222222"
+  # Aggregator config
+  AGGREGATOR_PROJECT: "aggregator-simple"
+  AGGREGATOR_COMPONENT_NAME: "aggregator_simple"

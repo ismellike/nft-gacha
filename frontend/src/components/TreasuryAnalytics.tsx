@@ -17,7 +17,12 @@ import {
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
-import { CurrencyDollarIcon, GiftIcon, TrophyIcon, ChartBarIcon } from "@heroicons/react/24/outline";
+import {
+	CurrencyDollarIcon,
+	GiftIcon,
+	TrophyIcon,
+	ChartBarIcon,
+} from "@heroicons/react/24/outline";
 import { GlassCard, GlassButton, GlassBadge } from "./ui";
 import GlobalStats from "./GlobalStats";
 

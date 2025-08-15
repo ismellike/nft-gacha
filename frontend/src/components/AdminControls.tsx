@@ -4,16 +4,16 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard, GlassButton, GlassBadge } from "@/components/ui";
-import { 
-	ShieldCheckIcon, 
-	XCircleIcon, 
-	CheckIcon, 
+import {
+	ShieldCheckIcon,
+	XCircleIcon,
+	CheckIcon,
 	Squares2X2Icon,
 	CurrencyDollarIcon,
 	FolderOpenIcon,
 	BoltIcon,
 	ExclamationTriangleIcon,
-	WalletIcon
+	WalletIcon,
 } from "@heroicons/react/24/outline";
 
 // Helper function to get admin section icons
@@ -218,7 +218,10 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 								>
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-3">
-											{getAdminSectionIcon(section.icon, `w-5 h-5 ${activeSection === section.id ? "text-warning" : "text-foreground"}`)}
+											{getAdminSectionIcon(
+												section.icon,
+												`w-5 h-5 ${activeSection === section.id ? "text-warning" : "text-foreground"}`,
+											)}
 											<div>
 												<div className="font-medium text-foreground text-sm">
 													{section.title}
@@ -572,7 +575,11 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 						</p>
 					</div>
 					<GlassBadge variant={isPaused ? "danger" : "success"} size="lg">
-						{isPaused ? <XCircleIcon className="w-4 h-4" /> : <CheckIcon className="w-4 h-4" />}
+						{isPaused ? (
+							<XCircleIcon className="w-4 h-4" />
+						) : (
+							<CheckIcon className="w-4 h-4" />
+						)}
 						<span className="ml-2">{isPaused ? "PAUSED" : "ACTIVE"}</span>
 					</GlassBadge>
 				</div>
