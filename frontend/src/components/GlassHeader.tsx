@@ -66,40 +66,9 @@ export function GlassHeader({
 				padding="none"
 				className="relative overflow-hidden border border-white/20 mb-12"
 			>
-				{/* Background gradient overlay */}
-				<div
-					className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-30`}
-				></div>
-				<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-
-				{/* Animated background elements */}
-				<motion.div
-					className="absolute top-4 right-4 w-24 h-24 rounded-full bg-gradient-to-br from-white/10 to-transparent blur-2xl"
-					animate={{
-						x: [0, 10, 0],
-						y: [0, -8, 0],
-						scale: [1, 1.05, 1],
-					}}
-					transition={{
-						duration: 8,
-						repeat: Infinity,
-						ease: "easeInOut",
-					}}
-				></motion.div>
-				<motion.div
-					className="absolute bottom-4 left-4 w-32 h-32 rounded-full bg-gradient-to-tr from-white/5 to-transparent blur-3xl"
-					animate={{
-						x: [0, -8, 0],
-						y: [0, 10, 0],
-						scale: [1, 0.95, 1],
-					}}
-					transition={{
-						duration: 10,
-						repeat: Infinity,
-						ease: "easeInOut",
-						delay: 2,
-					}}
-				></motion.div>
+				{/* Clean glassmorphism overlays for depth */}
+				<div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+				<div className="absolute inset-0 bg-gradient-to-b from-white/8 via-transparent to-black/10"></div>
 
 				{/* Content */}
 				<div className="relative z-10 p-6 sm:p-8 lg:p-12 text-center">
@@ -108,14 +77,12 @@ export function GlassHeader({
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.8, delay: 0.3 }}
 					>
-						<h1 className="text-4xl sm:text-5xl lg:text-6xl font-light mb-6 lg:mb-8 tracking-tight leading-tight">
-							<span className="bg-gradient-to-r from-foreground via-warning to-orange-400 bg-clip-text text-transparent font-extralight">
-								{title}
-							</span>
+						<h1 className="text-4xl sm:text-5xl lg:text-6xl font-extralight mb-6 lg:mb-8 tracking-tight leading-tight text-foreground">
+							{title}
 							{subtitle && (
 								<>
 									<br />
-									<span className="text-foreground font-light">{subtitle}</span>
+									<span className="text-foreground/80 font-light">{subtitle}</span>
 								</>
 							)}
 						</h1>
