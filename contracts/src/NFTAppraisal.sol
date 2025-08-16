@@ -67,14 +67,16 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         address indexed collection,
         uint256 indexed tokenId,
         address indexed requester,
-        uint256 fee
+        uint256 fee,
+        uint256 timestamp
     );
 
     event AppraisalCompleted(
         address indexed collection,
         uint256 indexed tokenId,
         uint256 priceUSD,
-        address indexed oracle
+        address indexed oracle,
+        uint256 timestamp
     );
 
     event AppraisalOverridden(
@@ -97,6 +99,15 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     event AppraisalFeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTokenUpdated(address oldToken, address newToken);
     event ProtocolAddressUpdated(address oldAddress, address newAddress);
+    
+    /// @notice Enhanced events for better UX
+    event AppraisalStatusChanged(
+        address indexed collection,
+        uint256 indexed tokenId,
+        AppraisalStatus oldStatus,
+        AppraisalStatus newStatus,
+        uint256 timestamp
+    );
 
     /// @notice Restricts access to authorized oracles
     modifier onlyAuthorizedOracle() {
@@ -165,7 +176,64 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
             lastUpdated: 0
         });
 
-        emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee);
+        emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee, block.timestamp);
+        emit AppraisalStatusChanged(collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp);
+    }
+
+    /**
+     * @notice Requests appraisals for multiple NFTs in batch
+     * @param collections Array of NFT collection addresses
+     * @param tokenIds Array of token IDs to appraise
+     * @dev Emits AppraisalRequested event for each NFT for external service to pick up
+     */
+    function requestBatchAppraisal(address[] calldata collections, uint256[] calldata tokenIds) 
+        external 
+        whenNotPaused 
+        nonReentrant 
+    {
+        require(collections.length == tokenIds.length, "Array length mismatch");
+        require(collections.length > 0, "Empty arrays");
+
+        uint256 totalFee = appraisalFee * collections.length;
+        
+        // Collect total appraisal fee upfront
+        if (totalFee > 0) {
+            feeToken.safeTransferFrom(msg.sender, protocolAddress, totalFee);
+        }
+
+        // Process each appraisal request
+        for (uint256 i = 0; i < collections.length; i++) {
+            address collection = collections[i];
+            uint256 tokenId = tokenIds[i];
+            
+            if (collection == address(0)) revert InvalidCollection();
+            if (!_isValidNFTContract(collection)) revert InvalidCollection();
+            
+            // Verify token exists
+            try IERC721(collection).ownerOf(tokenId) returns (address) {
+                // Token exists, continue
+            } catch {
+                revert InvalidTokenId();
+            }
+
+            // Check if appraisal already exists
+            if (appraisals[collection][tokenId].timestamp != 0) {
+                revert AppraisalAlreadyExists();
+            }
+
+            // Create appraisal record
+            appraisals[collection][tokenId] = Appraisal({
+                requester: msg.sender,
+                priceUSD: 0,
+                status: AppraisalStatus.Pending,
+                timestamp: block.timestamp,
+                lastUpdated: 0
+            });
+
+            // Emit events for external service integration
+            emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee, block.timestamp);
+            emit AppraisalStatusChanged(collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp);
+        }
     }
 
     /**
@@ -192,7 +260,8 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         appraisal.status = AppraisalStatus.Completed;
         appraisal.lastUpdated = block.timestamp;
 
-        emit AppraisalCompleted(collection, tokenId, priceUSD, msg.sender);
+        emit AppraisalCompleted(collection, tokenId, priceUSD, msg.sender, block.timestamp);
+        emit AppraisalStatusChanged(collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Completed, block.timestamp);
         
         if (oldPrice != priceUSD) {
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
@@ -220,11 +289,13 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
         Appraisal storage appraisal = appraisals[collection][tokenId];
         uint256 oldPrice = appraisal.priceUSD;
+        AppraisalStatus oldStatus = appraisal.status;
 
         // Create appraisal if it doesn't exist
         if (appraisal.timestamp == 0) {
             appraisal.requester = msg.sender;
             appraisal.timestamp = block.timestamp;
+            oldStatus = AppraisalStatus.Pending;
         }
 
         appraisal.priceUSD = priceUSD;
@@ -232,6 +303,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         appraisal.lastUpdated = block.timestamp;
 
         emit AppraisalOverridden(collection, tokenId, oldPrice, priceUSD, msg.sender);
+        emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.OwnerOverride, block.timestamp);
         
         if (oldPrice != priceUSD) {
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
@@ -283,6 +355,53 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         return appraisal.priceUSD > 0 && 
                (appraisal.status == AppraisalStatus.Completed || 
                 appraisal.status == AppraisalStatus.OwnerOverride);
+    }
+
+    /**
+     * @notice Batch function to get appraisal status for multiple NFTs
+     * @param collections Array of NFT collection addresses
+     * @param tokenIds Array of token IDs
+     * @return prices Array of appraised prices
+     * @return statuses Array of appraisal statuses
+     */
+    function getBatchAppraisals(address[] calldata collections, uint256[] calldata tokenIds)
+        external
+        view
+        returns (uint256[] memory prices, AppraisalStatus[] memory statuses)
+    {
+        require(collections.length == tokenIds.length, "Array length mismatch");
+        
+        prices = new uint256[](collections.length);
+        statuses = new AppraisalStatus[](collections.length);
+        
+        for (uint256 i = 0; i < collections.length; i++) {
+            Appraisal memory appraisal = appraisals[collections[i]][tokenIds[i]];
+            prices[i] = appraisal.priceUSD;
+            statuses[i] = appraisal.status;
+        }
+    }
+
+    /**
+     * @notice Batch function to check if multiple NFTs have completed appraisals
+     * @param collections Array of NFT collection addresses
+     * @param tokenIds Array of token IDs
+     * @return hasAppraisals Array of booleans indicating appraisal completion
+     */
+    function hasBatchAppraisals(address[] calldata collections, uint256[] calldata tokenIds)
+        external
+        view
+        returns (bool[] memory hasAppraisals)
+    {
+        require(collections.length == tokenIds.length, "Array length mismatch");
+        
+        hasAppraisals = new bool[](collections.length);
+        
+        for (uint256 i = 0; i < collections.length; i++) {
+            Appraisal memory appraisal = appraisals[collections[i]][tokenIds[i]];
+            hasAppraisals[i] = appraisal.priceUSD > 0 && 
+                              (appraisal.status == AppraisalStatus.Completed || 
+                               appraisal.status == AppraisalStatus.OwnerOverride);
+        }
     }
 
     // ============ ORACLE MANAGEMENT ============

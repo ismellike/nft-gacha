@@ -127,8 +127,8 @@ contract GachaTest is Test {
         vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE);
 
-        vm.expectEmit(true, false, false, false);
-        emit RandomnessRequested(1);
+        vm.expectEmit(true, true, false, false);
+        emit RandomnessRequested(1, user1);
 
         uint256 triggerId = gacha.spin();
         vm.stopPrank();
@@ -471,7 +471,8 @@ contract GachaTest is Test {
         assertTrue(fulfilled);
     }
 
-    event RandomnessRequested(uint256 indexed triggerId);
+    event RandomnessRequested(uint256 indexed triggerId, address indexed requester);
+    event SpinStatusUpdate(uint256 indexed triggerId, address indexed requester, string status, uint256 timestamp);
     event SpinCompleted(
         uint256 indexed triggerId,
         address indexed requester,
@@ -568,7 +569,6 @@ contract GachaTest is Test {
 
         // Fulfill the spin first
         bytes32 randomness = bytes32(uint256(5000));
-        vm.prank(owner);
         gacha.fulfillRandomness(triggerId, randomness);
 
         // Try to reclaim already fulfilled spin (should fail)

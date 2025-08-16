@@ -9,6 +9,9 @@ import {
 	useReadErc20Decimals,
 	useReadErc20Symbol,
 	useReadGachaFeeToken,
+	useWatchGachaSpinStatusUpdate,
+	useWatchGachaRandomnessRequested,
+	useWatchGachaSpinRefunded,
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -60,6 +63,67 @@ export default function SpinHistory() {
 	const { data: tokenSymbol } = useReadErc20Symbol({
 		address: feeToken,
 		query: { enabled: !!feeToken },
+	});
+
+	// Real-time event watchers for live updates
+	const [latestSpinUpdate, setLatestSpinUpdate] = useState<{
+		triggerId: bigint;
+		status: string;
+		timestamp: number;
+	} | null>(null);
+
+	// Watch for new spin status updates
+	useWatchGachaSpinStatusUpdate({
+		address: contracts.gacha,
+		args: userAddress ? { requester: userAddress } : undefined,
+		onLogs: (logs) => {
+			// Process the latest status update
+			if (logs.length > 0) {
+				const latestLog = logs[logs.length - 1];
+				setLatestSpinUpdate({
+					triggerId: latestLog.args.triggerId!,
+					status: latestLog.args.status!,
+					timestamp: Date.now(),
+				});
+				
+				// Trigger a refetch to update the spin history
+				setTimeout(() => refetch(), 1000);
+			}
+		},
+		enabled: !!contracts.gacha && !!userAddress,
+	});
+
+	// Watch for new randomness requests (new spins)
+	useWatchGachaRandomnessRequested({
+		address: contracts.gacha,
+		onLogs: (logs) => {
+			if (logs.length > 0) {
+				// Auto-refresh when user starts new spins
+				setTimeout(() => refetch(), 500);
+			}
+		},
+		enabled: !!contracts.gacha && !!userAddress,
+	});
+
+	// Watch for refunded spins for immediate updates
+	useWatchGachaSpinRefunded({
+		address: contracts.gacha,
+		args: userAddress ? { requester: userAddress } : undefined,
+		onLogs: (logs) => {
+			if (logs.length > 0) {
+				const latestLog = logs[logs.length - 1];
+				console.log("💰 [SpinHistory] Detected spin refund:", latestLog.args);
+				setLatestSpinUpdate({
+					triggerId: latestLog.args.triggerId!,
+					status: "refunded",
+					timestamp: Date.now(),
+				});
+				
+				// Immediate refresh for refunds to update balance and history
+				setTimeout(() => refetch(), 500);
+			}
+		},
+		enabled: !!contracts.gacha && !!userAddress,
 	});
 
 	// Handle error display
@@ -116,6 +180,40 @@ export default function SpinHistory() {
 					Track all your gacha spins and results
 				</p>
 			</motion.div>
+
+			{/* Real-time Status Update Notification */}
+			{latestSpinUpdate && (
+				<motion.div
+					initial={{ opacity: 0, y: -20, scale: 0.95 }}
+					animate={{ opacity: 1, y: 0, scale: 1 }}
+					exit={{ opacity: 0, y: -20, scale: 0.95 }}
+					transition={{ duration: 0.3 }}
+					className="mb-6"
+				>
+					<GlassCard variant="floating" className="p-4 border-l-4 border-warning bg-gradient-to-r from-warning/10 to-orange-400/10">
+						<div className="flex items-center gap-3">
+							<motion.div
+								animate={{ rotate: 360 }}
+								transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+								className="w-6 h-6 rounded-full bg-gradient-to-r from-warning to-orange-400 flex items-center justify-center"
+							>
+								<BoltIcon className="w-3 h-3 text-white" />
+							</motion.div>
+							<div>
+								<p className="text-sm font-medium text-foreground">
+									Spin #{latestSpinUpdate.triggerId.toString()} status updated to{" "}
+									<span className="text-warning font-bold capitalize">
+										{latestSpinUpdate.status}
+									</span>
+								</p>
+								<p className="text-xs text-foreground/60">
+									{formatTimeAgo(latestSpinUpdate.timestamp)}
+								</p>
+							</div>
+						</div>
+					</GlassCard>
+				</motion.div>
+			)}
 
 			{/* Stats Summary */}
 			<div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

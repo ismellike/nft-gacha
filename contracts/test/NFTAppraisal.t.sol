@@ -25,14 +25,24 @@ contract NFTAppraisalTest is Test {
         address indexed collection,
         uint256 indexed tokenId,
         address indexed requester,
-        uint256 fee
+        uint256 fee,
+        uint256 timestamp
     );
     
     event AppraisalCompleted(
         address indexed collection,
         uint256 indexed tokenId,
         uint256 priceUSD,
-        address indexed oracle
+        address indexed oracle,
+        uint256 timestamp
+    );
+    
+    event AppraisalStatusChanged(
+        address indexed collection,
+        uint256 indexed tokenId,
+        NFTAppraisal.AppraisalStatus oldStatus,
+        NFTAppraisal.AppraisalStatus newStatus,
+        uint256 timestamp
     );
     
     event AppraisalOverridden(
@@ -69,8 +79,8 @@ contract NFTAppraisalTest is Test {
         uint256 tokenId = 1;
         uint256 protocolBalanceBefore = feeToken.balanceOf(protocol);
         
-        vm.expectEmit(true, true, true, true);
-        emit AppraisalRequested(address(nft), tokenId, user, 10e18);
+        vm.expectEmit(true, true, true, false);
+        emit AppraisalRequested(address(nft), tokenId, user, 10e18, block.timestamp);
         
         vm.prank(user);
         appraisal.requestAppraisal(address(nft), tokenId);
@@ -117,8 +127,8 @@ contract NFTAppraisalTest is Test {
         vm.prank(user);
         appraisal.requestAppraisal(address(nft), tokenId);
         
-        vm.expectEmit(true, true, true, true);
-        emit AppraisalCompleted(address(nft), tokenId, 100e18, oracle);
+        vm.expectEmit(true, true, true, false);
+        emit AppraisalCompleted(address(nft), tokenId, 100e18, oracle, block.timestamp);
         
         vm.prank(oracle);
         appraisal.setAppraisedPrice(address(nft), tokenId, 100e18);

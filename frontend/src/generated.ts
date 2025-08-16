@@ -971,6 +971,32 @@ export const gachaAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'triggerIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'getBatchSpinRequests',
+    outputs: [
+      {
+        name: 'requests',
+        internalType: 'struct Gacha.SpinRequest[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'requester', internalType: 'address', type: 'address' },
+          { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getNextTriggerId',
+    outputs: [{ name: 'nextId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'getRarityWeights',
     outputs: [
@@ -1465,6 +1491,37 @@ export const gachaAbi = [
       },
     ],
     name: 'SpinRefunded',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'triggerId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'requester',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'status',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'SpinStatusUpdate',
   },
   {
     type: 'event',
@@ -4467,11 +4524,40 @@ export const nftAppraisalAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'collections', internalType: 'address[]', type: 'address[]' },
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'getBatchAppraisals',
+    outputs: [
+      { name: 'prices', internalType: 'uint256[]', type: 'uint256[]' },
+      {
+        name: 'statuses',
+        internalType: 'enum NFTAppraisal.AppraisalStatus[]',
+        type: 'uint8[]',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'hasAppraisal',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collections', internalType: 'address[]', type: 'address[]' },
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'hasBatchAppraisals',
+    outputs: [
+      { name: 'hasAppraisals', internalType: 'bool[]', type: 'bool[]' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -4615,6 +4701,12 @@ export const nftAppraisalAbi = [
         type: 'address',
         indexed: true,
       },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
     name: 'AppraisalCompleted',
   },
@@ -4697,8 +4789,51 @@ export const nftAppraisalAbi = [
         indexed: true,
       },
       { name: 'fee', internalType: 'uint256', type: 'uint256', indexed: false },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
     name: 'AppraisalRequested',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'oldStatus',
+        internalType: 'enum NFTAppraisal.AppraisalStatus',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'newStatus',
+        internalType: 'enum NFTAppraisal.AppraisalStatus',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'AppraisalStatusChanged',
   },
   {
     type: 'event',
@@ -4974,6 +5109,12 @@ export const nftAppraisalServiceHandlerAbi = [
         type: 'bytes32',
         indexed: false,
       },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
     name: 'AppraisalDataReceived',
   },
@@ -5000,8 +5141,40 @@ export const nftAppraisalServiceHandlerAbi = [
         indexed: false,
       },
       { name: 'success', internalType: 'bool', type: 'bool', indexed: false },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
     ],
     name: 'AppraisalProcessed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'operation',
+        internalType: 'string',
+        type: 'string',
+        indexed: true,
+      },
+      { name: 'success', internalType: 'bool', type: 'bool', indexed: false },
+      {
+        name: 'reason',
+        internalType: 'string',
+        type: 'string',
+        indexed: false,
+      },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'ServiceHandlerStatusUpdate',
   },
   { type: 'error', inputs: [], name: 'AppraisalProcessingFailed' },
   { type: 'error', inputs: [], name: 'InvalidAppraisalContract' },
@@ -6922,6 +7095,22 @@ export const useReadGachaGetAverageRarityValues =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getBatchSpinRequests"`
+ */
+export const useReadGachaGetBatchSpinRequests =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getBatchSpinRequests',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getNextTriggerId"`
+ */
+export const useReadGachaGetNextTriggerId = /*#__PURE__*/ createUseReadContract(
+  { abi: gachaAbi, functionName: 'getNextTriggerId' },
+)
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getRarityWeights"`
  */
 export const useReadGachaGetRarityWeights = /*#__PURE__*/ createUseReadContract(
@@ -7413,6 +7602,15 @@ export const useWatchGachaSpinRefunded =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaAbi,
     eventName: 'SpinRefunded',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"SpinStatusUpdate"`
+ */
+export const useWatchGachaSpinStatusUpdate =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaAbi,
+    eventName: 'SpinStatusUpdate',
   })
 
 /**
@@ -10056,12 +10254,30 @@ export const useReadNftAppraisalGetAuthorizedOracles =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getBatchAppraisals"`
+ */
+export const useReadNftAppraisalGetBatchAppraisals =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getBatchAppraisals',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"hasAppraisal"`
  */
 export const useReadNftAppraisalHasAppraisal =
   /*#__PURE__*/ createUseReadContract({
     abi: nftAppraisalAbi,
     functionName: 'hasAppraisal',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"hasBatchAppraisals"`
+ */
+export const useReadNftAppraisalHasBatchAppraisals =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'hasBatchAppraisals',
   })
 
 /**
@@ -10378,6 +10594,15 @@ export const useWatchNftAppraisalAppraisalRequested =
   })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"AppraisalStatusChanged"`
+ */
+export const useWatchNftAppraisalAppraisalStatusChanged =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'AppraisalStatusChanged',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"FeeTokenUpdated"`
  */
 export const useWatchNftAppraisalFeeTokenUpdated =
@@ -10538,6 +10763,15 @@ export const useWatchNftAppraisalServiceHandlerAppraisalProcessed =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: nftAppraisalServiceHandlerAbi,
     eventName: 'AppraisalProcessed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `eventName` set to `"ServiceHandlerStatusUpdate"`
+ */
+export const useWatchNftAppraisalServiceHandlerServiceHandlerStatusUpdate =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalServiceHandlerAbi,
+    eventName: 'ServiceHandlerStatusUpdate',
   })
 
 /**

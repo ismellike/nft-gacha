@@ -15,7 +15,14 @@ const GachaSpinner = memo(() => {
 	const contracts = useGachaContracts(gachaId);
 
 	// Use the new state machine hook
-	const gachaSpin = useGachaSpinMachine();
+	const gachaSpin = useGachaSpinMachine(
+		undefined, // onSpinComplete
+		() => {
+			// onRefund - trigger refresh for balance updates
+			console.log("💰 [GachaSpinner] Refund detected, refreshing UI");
+			setRefreshKey((prev) => prev + 1);
+		}
+	);
 
 	const handleCloseReveal = useCallback(() => {
 		gachaSpin.closeReveal();
@@ -39,7 +46,13 @@ const GachaSpinner = memo(() => {
 			<div className="grid lg:grid-cols-2 gap-16 items-start">
 				{/* Left Column - Spin Controls */}
 				<div className="space-y-8">
-					<SpinControls gachaSpin={gachaSpin} />
+					<SpinControls 
+						gachaSpin={gachaSpin} 
+						onRefund={() => {
+							console.log("💰 [GachaSpinner] SpinControls refund callback triggered");
+							setRefreshKey((prev) => prev + 1);
+						}}
+					/>
 
 					{/* Last Spin Result - Only show when not revealing */}
 					{!gachaSpin.isRevealing && gachaSpin.spinResult && (

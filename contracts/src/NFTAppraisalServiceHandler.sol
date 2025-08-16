@@ -29,10 +29,18 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
 
     /// @notice Events for tracking appraisal operations
     event AppraisalDataReceived(
-        address indexed collection, uint256 indexed tokenId, uint256 priceUSD, bytes32 requestId
+        address indexed collection, uint256 indexed tokenId, uint256 priceUSD, bytes32 requestId, uint256 timestamp
     );
 
-    event AppraisalProcessed(address indexed collection, uint256 indexed tokenId, uint256 priceUSD, bool success);
+    event AppraisalProcessed(address indexed collection, uint256 indexed tokenId, uint256 priceUSD, bool success, uint256 timestamp);
+    
+    /// @notice Enhanced events for monitoring
+    event ServiceHandlerStatusUpdate(
+        string indexed operation,
+        bool success,
+        string reason,
+        uint256 timestamp
+    );
 
     /// @notice Custom errors for validation
     error InvalidServiceManager();
@@ -90,15 +98,18 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
         if (payload.priceUSD == 0) revert InvalidAppraisalData();
 
         // Emit event for monitoring
-        emit AppraisalDataReceived(payload.collection, payload.tokenId, payload.priceUSD, payload.requestId);
+        emit AppraisalDataReceived(payload.collection, payload.tokenId, payload.priceUSD, payload.requestId, block.timestamp);
 
         // Set the appraised price in the NFTAppraisal contract
         bool success = _processAppraisal(payload);
 
-        emit AppraisalProcessed(payload.collection, payload.tokenId, payload.priceUSD, success);
+        emit AppraisalProcessed(payload.collection, payload.tokenId, payload.priceUSD, success, block.timestamp);
 
         if (!success) {
+            emit ServiceHandlerStatusUpdate("processAppraisal", false, "Failed to process appraisal", block.timestamp);
             revert AppraisalProcessingFailed();
+        } else {
+            emit ServiceHandlerStatusUpdate("processAppraisal", true, "Successfully processed appraisal", block.timestamp);
         }
     }
 

@@ -2,6 +2,7 @@
 
 import { assign, createMachine, fromPromise } from "xstate";
 import type { PublicClient } from "viem";
+import { useGachaStore } from '../stores/gachaStore';
 // Gacha contract address is now passed as context rather than imported
 
 export interface SpinResult {
@@ -10,9 +11,15 @@ export interface SpinResult {
 	tokenId: string;
 }
 
+export interface RefundResult {
+	selectedRarity: string;
+	refundAmount: bigint;
+}
+
 export interface GachaSpinContext {
 	triggerId: bigint | null;
 	spinResult: SpinResult | null;
+	refundResult: RefundResult | null;
 	userAddress: string | null;
 	publicClient: PublicClient | null;
 	gachaAddress: string | null;
@@ -29,14 +36,13 @@ export type GachaSpinEvent =
 	  }
 	| { type: "TRANSACTION_CONFIRMED"; triggerId: bigint }
 	| { type: "SPIN_FULFILLED"; result: SpinResult }
+	| { type: "SPIN_REFUNDED"; refundResult: RefundResult }
 	| { type: "CLOSE_REVEAL" }
 	| { type: "RESET" }
 	| { type: "RETRY" }
 	| { type: "ERROR"; error: string }
 	| { type: "TIMEOUT" };
 
-const STORAGE_PREFIX = "pendingSpin_";
-const PENDING_SPIN_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 const MAX_RETRIES = 5;
 const POLLING_INTERVAL = 3000; // 3 seconds
 
@@ -57,6 +63,7 @@ const pollForSpinFulfillment = fromPromise(
 		return new Promise((resolve, reject) => {
 			let attempts = 0;
 			const maxAttempts = 200; // 10 minutes at 3-second intervals
+			const refundCheckDelay = 10; // Start checking for refunds after 30 seconds (10 * 3s)
 
 			const poll = async () => {
 				attempts++;
@@ -75,8 +82,8 @@ const pollForSpinFulfillment = fromPromise(
 							? currentBlock - BigInt(1000)
 							: BigInt(0);
 
-					// Query SpinFulfilled events for this specific trigger ID
-					const logs = await publicClient.getLogs({
+					// Always check for SpinCompleted events (normal successful case)
+					const completedLogs = await publicClient.getLogs({
 						address: gachaAddress as `0x${string}`,
 						event: {
 							type: "event",
@@ -87,6 +94,7 @@ const pollForSpinFulfillment = fromPromise(
 								{ name: "rarity", type: "uint8", indexed: false },
 								{ name: "collection", type: "address", indexed: false },
 								{ name: "tokenId", type: "uint256", indexed: false },
+								{ name: "appraisedPrice", type: "uint256", indexed: false },
 							],
 						},
 						args: {
@@ -97,8 +105,8 @@ const pollForSpinFulfillment = fromPromise(
 						toBlock: currentBlock,
 					});
 
-					if (logs.length > 0) {
-						const log = logs[0];
+					if (completedLogs.length > 0) {
+						const log = completedLogs[0];
 						const { rarity, collection, tokenId } = log.args;
 
 						// Convert rarity enum to string
@@ -118,11 +126,63 @@ const pollForSpinFulfillment = fromPromise(
 						};
 
 						console.log(
-							"🎉 [GachaSpinMachine] SpinFulfilled event found:",
+							"🎉 [GachaSpinMachine] SpinCompleted event found:",
 							result,
 						);
 						resolve(result);
 						return;
+					}
+
+					// Only check for SpinRefunded events after initial delay
+					// This is an optimization since automatic refunds are rare and only happen
+					// when the selected rarity has no available NFTs during fulfillment
+					if (attempts >= refundCheckDelay) {
+						const refundedLogs = await publicClient.getLogs({
+							address: gachaAddress as `0x${string}`,
+							event: {
+								type: "event",
+								name: "SpinRefunded",
+								inputs: [
+									{ name: "triggerId", type: "uint256", indexed: true },
+									{ name: "requester", type: "address", indexed: true },
+									{ name: "selectedRarity", type: "uint8", indexed: false },
+									{ name: "refundAmount", type: "uint256", indexed: false },
+								],
+							},
+							args: {
+								triggerId: triggerId,
+								requester: userAddress as `0x${string}`,
+							},
+							fromBlock: fromBlock,
+							toBlock: currentBlock,
+						});
+
+						if (refundedLogs.length > 0) {
+							const log = refundedLogs[0];
+							const { selectedRarity, refundAmount } = log.args;
+
+							// Convert rarity enum to string
+							const rarityNames = [
+								"Common",
+								"Uncommon",
+								"Rare",
+								"Epic",
+								"Legendary",
+							];
+							const rarityName = rarityNames[Number(selectedRarity)] || "Unknown";
+
+							console.log(
+								"💰 [GachaSpinMachine] SpinRefunded event found:",
+								{ selectedRarity: rarityName, refundAmount },
+							);
+							
+							// Reject with a special refund error that includes the refund data
+							reject(new Error(`REFUND:${JSON.stringify({
+								selectedRarity: rarityName,
+								refundAmount: refundAmount?.toString() || "0"
+							})}`));
+							return;
+						}
 					}
 
 					// Continue polling
@@ -140,57 +200,32 @@ const pollForSpinFulfillment = fromPromise(
 	},
 );
 
-// Persistence helpers
-const saveToStorage = (userAddress: string, triggerId: bigint) => {
-	if (typeof window === "undefined") return;
-
-	const storageKey = `${STORAGE_PREFIX}${userAddress}`;
-	try {
-		localStorage.setItem(
-			storageKey,
-			JSON.stringify({
-				triggerId: triggerId.toString(),
-				timestamp: Date.now(),
-			}),
-		);
-	} catch (error) {
-		console.warn("Failed to save to localStorage:", error);
-	}
+// Persistence helpers using Zustand store
+const saveToStorage = (userAddress: string, gachaAddress: string, triggerId: bigint) => {
+	useGachaStore.getState().addPendingSpin({
+		userAddress,
+		gachaAddress,
+		triggerId
+	});
 };
 
-const removeFromStorage = (userAddress: string) => {
-	if (typeof window === "undefined") return;
-
-	const storageKey = `${STORAGE_PREFIX}${userAddress}`;
-	try {
-		localStorage.removeItem(storageKey);
-	} catch (error) {
-		console.warn("Failed to remove from localStorage:", error);
-	}
+const removeFromStorage = (userAddress: string, gachaAddress: string) => {
+	useGachaStore.getState().removePendingSpin(userAddress, gachaAddress);
 };
 
-export const loadFromStorage = (userAddress: string): bigint | null => {
-	if (typeof window === "undefined") return null;
+export const loadFromStorage = (userAddress: string, gachaAddress: string): bigint | null => {
+	const pendingSpin = useGachaStore.getState().getPendingSpin(userAddress, gachaAddress);
+	return pendingSpin?.triggerId || null;
+};
 
-	const storageKey = `${STORAGE_PREFIX}${userAddress}`;
-	const stored = localStorage.getItem(storageKey);
-	if (!stored) return null;
+// Utility function to clear all pending spins
+export const clearAllPendingSpins = () => {
+	useGachaStore.setState({ pendingSpins: {} });
+};
 
-	try {
-		const { triggerId, timestamp } = JSON.parse(stored);
-
-		// Only restore if it's less than timeout period
-		if (Date.now() - timestamp < PENDING_SPIN_TIMEOUT) {
-			return BigInt(triggerId);
-		} else {
-			localStorage.removeItem(storageKey);
-			return null;
-		}
-	} catch (error) {
-		console.error("Failed to parse stored spin state:", error);
-		localStorage.removeItem(storageKey);
-		return null;
-	}
+// Utility function to validate pending spins against contract
+export const validatePendingSpins = async (publicClient: PublicClient) => {
+	await useGachaStore.getState().validateAndCleanPendingSpins(publicClient);
 };
 
 export const gachaSpinMachine = createMachine(
@@ -200,10 +235,11 @@ export const gachaSpinMachine = createMachine(
 		context: {
 			triggerId: null,
 			spinResult: null,
+			refundResult: null as RefundResult | null,
 			userAddress: null,
 			publicClient: null,
 			gachaAddress: null,
-			error: null,
+			error: null as string | null,
 			retryCount: 0,
 		},
 		initial: "idle",
@@ -248,15 +284,29 @@ export const gachaSpinMachine = createMachine(
 						target: "revealing",
 						actions: ["setSpinResult", "clearFromStorage"],
 					},
-					onError: {
-						target: "error",
-						actions: "setPollingError",
-					},
+					onError: [
+						{
+							target: "refunded",
+							guard: ({ event }) => {
+								const errorMessage = (event.error as Error)?.message || "";
+								return errorMessage.startsWith("REFUND:");
+							},
+							actions: ["setRefundFromError", "clearFromStorage"],
+						},
+						{
+							target: "error",
+							actions: "setPollingError",
+						},
+					],
 				},
 				on: {
 					SPIN_FULFILLED: {
 						target: "revealing",
 						actions: ["setSpinResult", "clearFromStorage"],
+					},
+					SPIN_REFUNDED: {
+						target: "refunded",
+						actions: ["setRefundResult", "clearFromStorage"],
 					},
 					TIMEOUT: {
 						target: "timeout",
@@ -288,6 +338,11 @@ export const gachaSpinMachine = createMachine(
 						guard: "canRetry",
 						actions: "incrementRetry",
 					},
+					RESET: "idle",
+				},
+			},
+			refunded: {
+				on: {
 					RESET: "idle",
 				},
 			},
@@ -335,34 +390,76 @@ export const gachaSpinMachine = createMachine(
 					return null;
 				},
 			}),
+			setRefundResult: assign({
+				refundResult: ({ event }) => {
+					console.log(
+						"💰 [GachaSpinMachine] Setting refund result for event:",
+						event.type,
+					);
+					if (event.type === "SPIN_REFUNDED") {
+						console.log(
+							"✅ [GachaSpinMachine] SPIN_REFUNDED event:",
+							event.refundResult,
+						);
+						return event.refundResult;
+					}
+					return null;
+				},
+			}),
 			setError: assign({
 				error: ({ event }) => (event.type === "ERROR" ? event.error : null),
 			}),
 			setPollingError: assign({
 				error: ({ event }) => {
 					if (event.type === "xstate.error.actor.pollForSpinFulfillment") {
-						return event.error.message || "Polling failed";
+						const errorMessage = (event.error as Error)?.message || "Polling failed";
+						// Check if this is a refund error
+						if (errorMessage.startsWith("REFUND:")) {
+							// This is handled by setRefundFromError action
+							return null;
+						}
+						return errorMessage;
 					}
 					return "Unknown polling error";
 				},
 			}),
+			setRefundFromError: assign({
+				refundResult: ({ event }) => {
+					if (event.type === "xstate.error.actor.pollForSpinFulfillment") {
+						const errorMessage = (event.error as Error)?.message || "";
+						if (errorMessage.startsWith("REFUND:")) {
+							try {
+								const refundData = JSON.parse(errorMessage.substring(7));
+								return {
+									selectedRarity: refundData.selectedRarity,
+									refundAmount: BigInt(refundData.refundAmount)
+								} as RefundResult;
+							} catch (e) {
+								console.error("Failed to parse refund data:", e);
+								return null;
+							}
+						}
+					}
+					return null;
+				},
+			}),
 			setTimeoutError: assign({
-				error: "Randomness generation timed out after 30 seconds. You can reclaim your funds.",
+				error: ({ event }) => "Randomness generation timed out after 30 seconds. You can reclaim your funds.",
 			}),
 			clearError: assign({
-				error: null,
+				error: ({ event }) => null,
 			}),
 			incrementRetry: assign({
 				retryCount: ({ context }) => context.retryCount + 1,
 			}),
 			persistToStorage: ({ context }) => {
-				if (context.userAddress && context.triggerId) {
-					saveToStorage(context.userAddress, context.triggerId);
+				if (context.userAddress && context.gachaAddress && context.triggerId) {
+					saveToStorage(context.userAddress, context.gachaAddress, context.triggerId);
 				}
 			},
 			clearFromStorage: ({ context }) => {
-				if (context.userAddress) {
-					removeFromStorage(context.userAddress);
+				if (context.userAddress && context.gachaAddress) {
+					removeFromStorage(context.userAddress, context.gachaAddress);
 				}
 			},
 		},

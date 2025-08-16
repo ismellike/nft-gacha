@@ -95,6 +95,14 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     event EmergencyPause(address indexed admin);
     event EmergencyUnpause(address indexed admin);
     event RewardsDistributed(uint256 rewardsAmount);
+    
+    /// @notice Enhanced events for better UX tracking
+    event SpinStatusUpdate(
+        uint256 indexed triggerId,
+        address indexed requester,
+        string status,
+        uint256 timestamp
+    );
 
     /// @notice Restricts access to the authorized gacha service handler
     modifier onlyGachaServiceHandler() {
@@ -155,6 +163,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false});
 
         emit RandomnessRequested(triggerId);
+        emit SpinStatusUpdate(triggerId, msg.sender, "requested", block.timestamp);
         return triggerId;
     }
 
@@ -185,6 +194,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false});
 
         emit RandomnessRequested(triggerId);
+        emit SpinStatusUpdate(triggerId, msg.sender, "requested", block.timestamp);
         return triggerId;
     }
 
@@ -229,6 +239,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
                 feeToken.safeTransfer(request.requester, spinFee);
             }
             emit SpinRefunded(triggerId, request.requester, selectedRarity, spinFee);
+            emit SpinStatusUpdate(triggerId, request.requester, "refunded", block.timestamp);
             return;
         }
 
@@ -252,6 +263,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
             selectedNFT.tokenId,
             selectedNFT.appraisedPrice  // Include appraised price in event
         );
+        emit SpinStatusUpdate(triggerId, request.requester, "completed", block.timestamp);
     }
 
     function _selectRarity(bytes32 randomness) private view returns (GachaTreasury.Rarity) {
@@ -307,6 +319,26 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     function getSpinRequest(uint256 triggerId) external view returns (address requester, bool fulfilled) {
         SpinRequest memory request = spinRequests[triggerId];
         return (request.requester, request.fulfilled);
+    }
+
+    /// @notice Gets the current next trigger ID that will be used for the next spin
+    /// @return nextId The next trigger ID
+    function getNextTriggerId() external view returns (uint256 nextId) {
+        return _nextTriggerId;
+    }
+
+    /// @notice Batch function to get multiple spin requests
+    /// @param triggerIds Array of trigger IDs to query
+    /// @return requests Array of spin requests
+    function getBatchSpinRequests(uint256[] calldata triggerIds) 
+        external 
+        view 
+        returns (SpinRequest[] memory requests) 
+    {
+        requests = new SpinRequest[](triggerIds.length);
+        for (uint256 i = 0; i < triggerIds.length; i++) {
+            requests[i] = spinRequests[triggerIds[i]];
+        }
     }
 
     /// @notice Updates rarity weights for gacha distribution
@@ -383,6 +415,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         }
         
         emit SpinReclaimed(triggerId, request.requester, spinFee);
+        emit SpinStatusUpdate(triggerId, request.requester, "reclaimed", block.timestamp);
     }
 
     // Emergency functions

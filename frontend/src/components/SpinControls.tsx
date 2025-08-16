@@ -34,9 +34,10 @@ import type { UseGachaSpinMachineReturn } from "../hooks/useGachaSpinMachine";
 
 interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
+	onRefund?: () => void;
 }
 
-export default function SpinControls({ gachaSpin }: SpinControlsProps) {
+export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps) {
 	const { address: userAddress, isConnected } = useAccount();
 	const chainId = useChainId();
 
@@ -103,6 +104,16 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!(feeToken && userAddress) },
 	});
+
+	// Handle refund detection to refresh balances
+	useEffect(() => {
+		if (gachaSpin.isRefunded && gachaSpin.refundResult) {
+			console.log("💰 [SpinControls] Refund detected, refreshing balances");
+			refetchBalance();
+			refetchNonce();
+			onRefund?.();
+		}
+	}, [gachaSpin.isRefunded, gachaSpin.refundResult, refetchBalance, refetchNonce, onRefund]);
 
 	// Write operations
 	const {
@@ -595,8 +606,55 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 						</GlassBadge>
 					)}
 
+					{/* Refund Display */}
+					{gachaSpin.isRefunded && gachaSpin.refundResult && (
+						<GlassBadge variant="warning" className="text-center p-4">
+							<div>
+								<div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-3">
+									<svg
+										className="w-8 h-8 text-warning"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M9 8h6m-5 0a3 3 0 110 6H9l3 3-3-3m1 0h6m-6 0a3 3 0 110-6m6 0a3 3 0 110 6M9 8a3 3 0 000 6m0-6a3 3 0 016 0 201 201 0 00.999 1M15 14a3 3 0 000-6m0 6a3 3 0 000-6M10 21l-3-3 3-3"
+										/>
+									</svg>
+								</div>
+								<p className="text-sm mb-2 font-semibold text-warning">Spin Refunded</p>
+								<p className="text-xs opacity-60 mb-3">
+									Your spin was automatically refunded because the selected rarity ({gachaSpin.refundResult.selectedRarity}) had no available NFTs.
+								</p>
+								<div className="space-y-2">
+									<div className="bg-content1/20 rounded-lg p-3">
+										<p className="text-xs font-medium mb-1">Refund Details:</p>
+										<p className="text-sm">
+											<span className="font-semibold">Rarity:</span> {gachaSpin.refundResult.selectedRarity}
+										</p>
+										<p className="text-sm">
+											<span className="font-semibold">Amount:</span> {formatUnits(gachaSpin.refundResult.refundAmount, tokenDecimals || 18)} {tokenSymbol}
+										</p>
+									</div>
+									<button
+										onClick={gachaSpin.reset}
+										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm w-full"
+									>
+										Try Another Spin
+									</button>
+									<p className="text-xs opacity-50">
+										Your funds have been automatically returned to your wallet.
+									</p>
+								</div>
+							</div>
+						</GlassBadge>
+					)}
+
 					{/* Error Display Only */}
-					{gachaSpin.isError && !gachaSpin.isTimeout && (
+					{gachaSpin.isError && !gachaSpin.isTimeout && !gachaSpin.isRefunded && (
 						<GlassBadge variant="danger" className="text-center p-4">
 							<div>
 								<p className="text-sm mb-2">{gachaSpin.error}</p>
@@ -688,6 +746,7 @@ export default function SpinControls({ gachaSpin }: SpinControlsProps) {
 					>
 						{getButtonText()}
 					</GlassButton>
+
 
 					{/* Countdown Display - Under Button */}
 					{gachaSpin.isWaitingForFulfillment && (
