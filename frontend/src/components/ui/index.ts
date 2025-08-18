@@ -10,6 +10,7 @@ export { GlassHeader } from "../GlassHeader";
 export { GachaCard } from "../GachaCard";
 export { GachaCardHeader } from "../GachaCardHeader";
 export { LoadingState } from "./LoadingState";
+export { NFTLoadingPlaceholder } from "./NFTLoadingPlaceholder";
 export { TokenDisplay, TokenFeeDisplay } from "./TokenDisplay";
 export {
 	Skeleton,
@@ -29,3 +30,9 @@ export {
 	NFTRevealCard,
 	type NFTCardProps,
 } from "../NFTCard";
+
+// Export Courtyard-specific components
+export {
+	CourtyardNFTCard,
+	type CourtyardNFTCardProps,
+} from "../CourtyardNFTCard";

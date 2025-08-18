@@ -1025,21 +1025,21 @@ function GachaDetailPageContent() {
 												initial={{ opacity: 0, scale: 0.95 }}
 												animate={{ opacity: 1, scale: 1 }}
 												exit={{ opacity: 0, scale: 0.95 }}
-												className="fixed bottom-8 right-8 z-50 max-w-sm"
+												className="fixed bottom-8 right-8 z-50 max-w-sm overflow-hidden"
 											>
 												<GlassCard
 													variant="base"
-													className="bg-danger/10 border border-danger/20 shadow-xl backdrop-blur-xl p-4"
+													className="bg-danger/10 border border-danger/20 shadow-xl backdrop-blur-xl p-4 overflow-hidden"
 												>
 													<div className="flex items-start justify-between gap-3">
-														<div className="flex-1">
+														<div className="flex-1 min-w-0">
 															<div className="flex items-center gap-2 mb-2">
-																<XCircleIcon className="w-4 h-4 text-danger" />
-																<h4 className="font-semibold text-danger text-sm">
+																<XCircleIcon className="w-4 h-4 text-danger flex-shrink-0" />
+																<h4 className="font-semibold text-danger text-sm truncate">
 																	Transaction Failed
 																</h4>
 															</div>
-															<p className="text-danger/80 text-sm mb-3">
+															<p className="text-danger/80 text-sm mb-3 break-words">
 																{claimError?.message?.includes(
 																	"insufficient funds",
 																)
@@ -1054,18 +1054,29 @@ function GachaDetailPageContent() {
 																			? "No rewards available to claim at this time."
 																			: "Failed to claim rewards. This could be due to network issues or insufficient gas."}
 															</p>
-															<div className="flex gap-2">
+															<div className="flex gap-2 flex-wrap">
 																<GlassButton
 																	variant="danger"
 																	size="sm"
 																	onClick={retryClaimRewards}
 																	isDisabled={isClaimPending}
 																	aria-label="Retry claiming rewards"
+																	className="flex-shrink-0"
 																>
 																	Retry
 																</GlassButton>
 															</div>
 														</div>
+														<button
+															onClick={() => {
+																// Force a state update to clear the error by reloading
+																window.location.reload();
+															}}
+															className="flex-shrink-0 p-1 hover:bg-danger/20 rounded-full transition-colors"
+															aria-label="Close error message"
+														>
+															<XCircleIcon className="w-4 h-4 text-danger/60 hover:text-danger" />
+														</button>
 													</div>
 												</GlassCard>
 											</motion.div>

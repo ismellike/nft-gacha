@@ -2,7 +2,8 @@
 pragma solidity ^0.8.27;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC721} from "forge-std/interfaces/IERC721.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
@@ -500,7 +501,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @return isValid True if address supports ERC721 interface
      */
     function _isValidNFTContract(address collection) private view returns (bool isValid) {
-        try IERC721(collection).supportsInterface(0x80ac58cd) returns (bool supported) {
+        try IERC165(collection).supportsInterface(0x80ac58cd) returns (bool supported) {
             return supported;
         } catch {
             return false;

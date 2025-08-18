@@ -2,13 +2,14 @@
 
 import { assign, createMachine, fromPromise } from "xstate";
 import type { PublicClient } from "viem";
-import { useGachaStore } from '../stores/gachaStore';
+import { useGachaStore } from "../stores/gachaStore";
 // Gacha contract address is now passed as context rather than imported
 
 export interface SpinResult {
 	rarity: string;
 	collection: string;
 	tokenId: string;
+	imageUrl?: string; // Optional - will be fetched from metadata if not provided
 }
 
 export interface RefundResult {
@@ -169,18 +170,23 @@ const pollForSpinFulfillment = fromPromise(
 								"Epic",
 								"Legendary",
 							];
-							const rarityName = rarityNames[Number(selectedRarity)] || "Unknown";
+							const rarityName =
+								rarityNames[Number(selectedRarity)] || "Unknown";
 
-							console.log(
-								"💰 [GachaSpinMachine] SpinRefunded event found:",
-								{ selectedRarity: rarityName, refundAmount },
-							);
-							
-							// Reject with a special refund error that includes the refund data
-							reject(new Error(`REFUND:${JSON.stringify({
+							console.log("💰 [GachaSpinMachine] SpinRefunded event found:", {
 								selectedRarity: rarityName,
-								refundAmount: refundAmount?.toString() || "0"
-							})}`));
+								refundAmount,
+							});
+
+							// Reject with a special refund error that includes the refund data
+							reject(
+								new Error(
+									`REFUND:${JSON.stringify({
+										selectedRarity: rarityName,
+										refundAmount: refundAmount?.toString() || "0",
+									})}`,
+								),
+							);
 							return;
 						}
 					}
@@ -201,11 +207,15 @@ const pollForSpinFulfillment = fromPromise(
 );
 
 // Persistence helpers using Zustand store
-const saveToStorage = (userAddress: string, gachaAddress: string, triggerId: bigint) => {
+const saveToStorage = (
+	userAddress: string,
+	gachaAddress: string,
+	triggerId: bigint,
+) => {
 	useGachaStore.getState().addPendingSpin({
 		userAddress,
 		gachaAddress,
-		triggerId
+		triggerId,
 	});
 };
 
@@ -213,8 +223,13 @@ const removeFromStorage = (userAddress: string, gachaAddress: string) => {
 	useGachaStore.getState().removePendingSpin(userAddress, gachaAddress);
 };
 
-export const loadFromStorage = (userAddress: string, gachaAddress: string): bigint | null => {
-	const pendingSpin = useGachaStore.getState().getPendingSpin(userAddress, gachaAddress);
+export const loadFromStorage = (
+	userAddress: string,
+	gachaAddress: string,
+): bigint | null => {
+	const pendingSpin = useGachaStore
+		.getState()
+		.getPendingSpin(userAddress, gachaAddress);
 	return pendingSpin?.triggerId || null;
 };
 
@@ -412,7 +427,8 @@ export const gachaSpinMachine = createMachine(
 			setPollingError: assign({
 				error: ({ event }) => {
 					if (event.type === "xstate.error.actor.pollForSpinFulfillment") {
-						const errorMessage = (event.error as Error)?.message || "Polling failed";
+						const errorMessage =
+							(event.error as Error)?.message || "Polling failed";
 						// Check if this is a refund error
 						if (errorMessage.startsWith("REFUND:")) {
 							// This is handled by setRefundFromError action
@@ -432,7 +448,7 @@ export const gachaSpinMachine = createMachine(
 								const refundData = JSON.parse(errorMessage.substring(7));
 								return {
 									selectedRarity: refundData.selectedRarity,
-									refundAmount: BigInt(refundData.refundAmount)
+									refundAmount: BigInt(refundData.refundAmount),
 								} as RefundResult;
 							} catch (e) {
 								console.error("Failed to parse refund data:", e);
@@ -444,7 +460,8 @@ export const gachaSpinMachine = createMachine(
 				},
 			}),
 			setTimeoutError: assign({
-				error: ({ event }) => "Randomness generation timed out after 30 seconds. You can reclaim your funds.",
+				error: ({ event }) =>
+					"Randomness generation timed out. You can reclaim your funds or try again.",
 			}),
 			clearError: assign({
 				error: ({ event }) => null,
@@ -454,7 +471,11 @@ export const gachaSpinMachine = createMachine(
 			}),
 			persistToStorage: ({ context }) => {
 				if (context.userAddress && context.gachaAddress && context.triggerId) {
-					saveToStorage(context.userAddress, context.gachaAddress, context.triggerId);
+					saveToStorage(
+						context.userAddress,
+						context.gachaAddress,
+						context.triggerId,
+					);
 				}
 			},
 			clearFromStorage: ({ context }) => {

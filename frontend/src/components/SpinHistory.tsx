@@ -85,7 +85,7 @@ export default function SpinHistory() {
 					status: latestLog.args.status!,
 					timestamp: Date.now(),
 				});
-				
+
 				// Trigger a refetch to update the spin history
 				setTimeout(() => refetch(), 1000);
 			}
@@ -118,7 +118,7 @@ export default function SpinHistory() {
 					status: "refunded",
 					timestamp: Date.now(),
 				});
-				
+
 				// Immediate refresh for refunds to update balance and history
 				setTimeout(() => refetch(), 500);
 			}
@@ -190,7 +190,10 @@ export default function SpinHistory() {
 					transition={{ duration: 0.3 }}
 					className="mb-6"
 				>
-					<GlassCard variant="floating" className="p-4 border-l-4 border-warning bg-gradient-to-r from-warning/10 to-orange-400/10">
+					<GlassCard
+						variant="floating"
+						className="p-4 border-l-4 border-warning bg-gradient-to-r from-warning/10 to-orange-400/10"
+					>
 						<div className="flex items-center gap-3">
 							<motion.div
 								animate={{ rotate: 360 }}
@@ -201,7 +204,8 @@ export default function SpinHistory() {
 							</motion.div>
 							<div>
 								<p className="text-sm font-medium text-foreground">
-									Spin #{latestSpinUpdate.triggerId.toString()} status updated to{" "}
+									Spin #{latestSpinUpdate.triggerId.toString()} status updated
+									to{" "}
 									<span className="text-warning font-bold capitalize">
 										{latestSpinUpdate.status}
 									</span>

@@ -10,6 +10,8 @@ export interface GachaConfig {
 	createdAt: string;
 	appraisalAddress: string;
 	rewardsManagerAddress: string;
+	// Collections are now queried dynamically from the treasury contract
+	// Removed: nftCollectionAddress - collections are fetched from treasury whitelist
 	trackerAddresses: {
 		common: string;
 		uncommon: string;

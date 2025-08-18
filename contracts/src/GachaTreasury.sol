@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {IERC721} from "forge-std/interfaces/IERC721.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -623,7 +624,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     // Helper functions
     function _isValidNFTContract(address collection) private view returns (bool) {
-        try IERC721(collection).supportsInterface(0x80ac58cd) returns (bool supported) {
+        try IERC165(collection).supportsInterface(0x80ac58cd) returns (bool supported) {
             return supported;
         } catch {
             return false;

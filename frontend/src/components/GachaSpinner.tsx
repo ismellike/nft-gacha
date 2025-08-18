@@ -21,7 +21,7 @@ const GachaSpinner = memo(() => {
 			// onRefund - trigger refresh for balance updates
 			console.log("💰 [GachaSpinner] Refund detected, refreshing UI");
 			setRefreshKey((prev) => prev + 1);
-		}
+		},
 	);
 
 	const handleCloseReveal = useCallback(() => {
@@ -46,10 +46,12 @@ const GachaSpinner = memo(() => {
 			<div className="grid lg:grid-cols-2 gap-16 items-start">
 				{/* Left Column - Spin Controls */}
 				<div className="space-y-8">
-					<SpinControls 
-						gachaSpin={gachaSpin} 
+					<SpinControls
+						gachaSpin={gachaSpin}
 						onRefund={() => {
-							console.log("💰 [GachaSpinner] SpinControls refund callback triggered");
+							console.log(
+								"💰 [GachaSpinner] SpinControls refund callback triggered",
+							);
 							setRefreshKey((prev) => prev + 1);
 						}}
 					/>

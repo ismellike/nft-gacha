@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalContent, ModalBody } from "@heroui/react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { NFTRevealCard } from "./NFTCard";
+import { NFTInventoryCard } from "./NFTCard";
 import { glassModal } from "../lib/theme-config";
+import { useEnhancedSpinResult } from "../hooks/useNFTWithMetadata";
 
 export interface SpinResult {
 	rarity: string;
@@ -21,7 +22,6 @@ interface NFTRevealModalProps {
 	appraisalContractAddress: `0x${string}`;
 }
 
-
 export default function NFTRevealModal({
 	isVisible,
 	nftResult,
@@ -29,6 +29,9 @@ export default function NFTRevealModal({
 	appraisalContractAddress,
 }: NFTRevealModalProps) {
 	const [showCard, setShowCard] = useState(false);
+
+	// Get enhanced spin result with metadata
+	const enhancedResult = useEnhancedSpinResult(nftResult);
 
 	useEffect(() => {
 		if (isVisible) {
@@ -42,9 +45,9 @@ export default function NFTRevealModal({
 		}
 	}, [isVisible]);
 
-	const resultRarity = Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
+	const resultRarity =
+		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
 	const rarityConfig = getRarityConfig(resultRarity);
-
 
 	const modalStyles = glassModal({ size: "full" });
 
@@ -122,21 +125,21 @@ export default function NFTRevealModal({
 						<AnimatePresence>
 							{showCard && (
 								<motion.div
-									initial={{ 
-										opacity: 0, 
+									initial={{
+										opacity: 0,
 										scale: 0.3,
 										rotateY: -180,
 									}}
-									animate={{ 
-										opacity: 1, 
+									animate={{
+										opacity: 1,
 										scale: 1,
 										rotateY: 0,
 									}}
-									exit={{ 
-										opacity: 0, 
+									exit={{
+										opacity: 0,
 										scale: 0.8,
 									}}
-									transition={{ 
+									transition={{
 										duration: 1.2,
 										ease: "easeOut",
 										type: "spring",
@@ -146,15 +149,15 @@ export default function NFTRevealModal({
 									className="relative"
 									style={{ perspective: 1000 }}
 								>
-									{/* NFT Card */}
+									{/* NFT Card - Using same size as rarity showcase */}
 									<div className="flex flex-col items-center">
-										<NFTRevealCard
+										<NFTInventoryCard
 											collection={nftResult.collection}
 											tokenId={nftResult.tokenId}
-											imageUrl={nftResult.imageUrl}
+											imageUrl={enhancedResult?.imageUrl || nftResult.imageUrl}
 											showAppraisal={true}
 											appraisalContractAddress={appraisalContractAddress}
-											className="w-96"
+											animate={true}
 											rarity={resultRarity}
 										/>
 									</div>

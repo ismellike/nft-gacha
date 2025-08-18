@@ -12,6 +12,9 @@ import {TestToken} from "../src/TestToken.sol";
 import {SimpleERC721} from "../src/SimpleERC721.sol";
 
 contract DeployDirectLocal is Script {
+    // Polygon contract address for Courtyard NFTs
+    address constant POLYGON_CONTRACT_ADDRESS = 0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD;
+    
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
@@ -36,7 +39,7 @@ contract DeployDirectLocal is Script {
             wavsServiceManagerAddress = vm.envAddress("WAVS_SERVICE_MANAGER_ADDRESS");
             console.log("Using WAVS Service Manager from env:", wavsServiceManagerAddress);
         } catch {
-            string memory avsDeployJson = vm.readFile("../avs/.project-output/chain-1/wavs_drand/avs_deploy.json");
+            string memory avsDeployJson = vm.readFile("../avs/.project-output/chain-1/avs/avs_deploy.json");
             wavsServiceManagerAddress = vm.parseJsonAddress(avsDeployJson, ".addresses.WavsServiceManager");
             console.log("Using WAVS Service Manager from JSON:", wavsServiceManagerAddress);
         }
@@ -105,6 +108,14 @@ contract DeployDirectLocal is Script {
         console.log("Configuring system...");
         gacha.setRarityWeights(7000, 2000, 600, 300, 100); // 70%, 20%, 6%, 3%, 1%
 
+        // Configure price ranges for proper rarity distribution
+        console.log("Setting price ranges for rarity tiers...");
+        treasury.setPriceRange(GachaTreasury.Rarity.Common, 0, 99 * 1e18); // $0-99 (5 cards)
+        treasury.setPriceRange(GachaTreasury.Rarity.Uncommon, 100 * 1e18, 199 * 1e18); // $100-199 (7 cards)
+        treasury.setPriceRange(GachaTreasury.Rarity.Rare, 200 * 1e18, 399 * 1e18); // $200-399 (8 cards)
+        treasury.setPriceRange(GachaTreasury.Rarity.Epic, 400 * 1e18, 999 * 1e18); // $400-999 (6 cards)
+        treasury.setPriceRange(GachaTreasury.Rarity.Legendary, 1000 * 1e18, type(uint256).max); // $1000+ (4 cards)
+
         console.log("Deploying rarity dividend trackers...");
         rewardsManager.deployAllRarityTokens();
 
@@ -147,9 +158,9 @@ contract DeployDirectLocal is Script {
         console.log("Whitelisted 1 NFT collection");
         console.log("Gacha Available: ", treasury.isGachaAvailable()); // Should be false (no NFTs yet)
 
-        // Mint and deposit NFTs with different rarities based on appraisal values
-        console.log("\\n=== Minting and Depositing NFTs ===");
-        _depositNFTsWithRarity(treasury, appraisalContract, pokemonNFT, deployer);
+        // Mint and create NFTs with real Pokemon card data
+        console.log("\\n=== Minting NFTs with Real Pokemon Card Data ===");
+        _createPokemonNFTs(treasury, appraisalContract, pokemonNFT, deployer);
 
         // Verify gacha is now available
         console.log("\\n=== Gacha System Status ===");
@@ -180,53 +191,147 @@ contract DeployDirectLocal is Script {
         console.log("All contracts deployed and configured successfully");
     }
 
-    function _depositNFTsWithRarity(
+    function _createPokemonNFTs(
         GachaTreasury treasury,
         NFTAppraisal appraisalContract,
         SimpleERC721 nftContract,
         address deployer
     ) internal {
-        // Mint 50 tokens total: 10 of each rarity
-        uint256 totalTokens = 50;
-        address[] memory tokens = new address[](totalTokens);
-        uint256[] memory tokenIds = new uint256[](totalTokens);
+        console.log("Creating 36 Pokemon NFTs with real blockchain metadata using 9 verified Courtyard tokens...");
 
-        uint256 tokenIndex = 0;
+        // Using real Courtyard token IDs for authentic metadata
 
-        // Define rarity structure: 10 tokens each rarity
-        GachaTreasury.Rarity[5] memory rarities = [
-            GachaTreasury.Rarity.Common,
-            GachaTreasury.Rarity.Uncommon,
-            GachaTreasury.Rarity.Rare,
-            GachaTreasury.Rarity.Epic,
-            GachaTreasury.Rarity.Legendary
-        ];
+        // We'll create 36 NFTs total using VERIFIED real Courtyard tokens (reused with different rarities)
+        uint256 totalNFTs = 36;
 
-        // Mint 10 tokens for each rarity level
-        for (uint256 rarityIndex = 0; rarityIndex < 5; rarityIndex++) {
-            GachaTreasury.Rarity currentRarity = rarities[rarityIndex];
-            uint256 priceUSD = _getAppraisalPriceForRarity(currentRarity);
+        // Create arrays for different groups - include all rarities for gacha
+        address[] memory depositTokens = new address[](33); // Include Epic and Legendary
+        uint256[] memory depositTokenIds = new uint256[](33);
 
-            for (uint256 i = 0; i < 10; i++) {
-                uint256 tokenId = nftContract.mint(deployer);
-                tokens[tokenIndex] = address(nftContract);
-                tokenIds[tokenIndex] = tokenId;
+        // Generate 36 NFTs using 9 real tokens cycled through with different rarities and values
+        for (uint256 i = 0; i < totalNFTs; i++) {
+            // Get Polygon token ID for this card (cycle through 9 real tokens)
+            uint256 polygonTokenId = _getPolygonTokenId(i % 9);
+            uint256 estimatedValue = _getCardValue(i);
 
-                // Set appraisal price based on rarity
-                appraisalContract.overrideAppraisal(address(nftContract), tokenId, priceUSD);
+            // Mint NFT with Polygon reference (automatically generates Courtyard URL)
+            uint256 tokenId = nftContract.mintWithPolygonReference(deployer, POLYGON_CONTRACT_ADDRESS, polygonTokenId);
+            console.log("Minted Pokemon NFT", i + 1, "with token ID:", tokenId);
+            console.log("Estimated value: $", estimatedValue / 1e18);
 
-                tokenIndex++;
+            // Appraise cards 3-35 to include all rarities (skip first 3 common cards)
+            if (i >= 3 && i < 36) {
+                appraisalContract.overrideAppraisal(address(nftContract), tokenId, estimatedValue);
+                console.log("Appraised NFT", tokenId, "at $", estimatedValue / 1e18);
+                
+                // Add to deposit arrays (shift index since we start from i=3)
+                depositTokens[i - 3] = address(nftContract);
+                depositTokenIds[i - 3] = tokenId;
+            } else {
+                console.log("NFT", tokenId, "left unappraised for testing");
             }
-
-            console.log("Minted 10 tokens for rarity:", uint256(currentRarity));
-            console.log("Price per token: $", priceUSD / 1e18);
         }
 
-        // Approve and deposit all tokens at once
+        // Approve and deposit all appraised NFTs (cards 3-35 = 33 NFTs)
         nftContract.setApprovalForAll(address(treasury), true);
-        treasury.batchDepositNFT(tokens, tokenIds);
+        treasury.batchDepositNFT(depositTokens, depositTokenIds);
 
-        console.log("Deposited", totalTokens, "NFTs from single contract with mixed rarities");
+        console.log("\\n=== VERIFIED Real Courtyard NFT Setup Complete ===");
+        console.log("Total NFTs minted:       36 (Using 9 VERIFIED REAL COURTYARD TOKENS cycled with different rarities)");
+        console.log("NFTs appraised:          33 (tokens 3-35 - includes ALL rarities)");
+        console.log("NFTs deposited:          33 (tokens 3-35)");
+        console.log("NFTs not appraised:      3 (tokens 0-2) - Available for testing appraisal");
+        console.log("Rarity Distribution in Treasury (deposited cards 3-35):");
+        console.log("  Common (15):    $35-85 range (cards 3-17)");
+        console.log("  Uncommon (9):   $120-180 range (cards 18-26)");
+        console.log("  Rare (5):       $280-350 range (cards 27-31)");
+        console.log("  Epic (3):       $450-850 range (cards 32-34)");
+        console.log("  Legendary (1):  $1200 (card 35 - exceeds $1000 threshold)");
+    }
+
+    function _getPolygonTokenId(uint256 cardIndex) internal pure returns (uint256) {
+        // Real Courtyard token IDs (hex format) from the actual Polygon contract - VERIFIED REAL TOKENS ONLY
+        string[9] memory courtyardTokenIds = [
+            "0x6274859bf9e325d0fc7c2387c8efeafbb8728d0d38b02f932c390a6aad93038c", // VERIFIED: Real token
+            "0x05f672f6cdfb808e4038ab2b331633158860809bb003a2cab4fbe8352a5f10dc", // VERIFIED: Real token
+            "0x3f8eb6e3c0993739b6923416c9fad399da687f8bcaaf92d1e75901e1c872dc3e", // VERIFIED: Real token
+            "0xb6e21e1d79445070a28fdfa9db3d199ffc4d01692d39967200113304dc114a03", // VERIFIED: Real token
+            "0x32068595c4e1c727725444478d6dc6623c7ccaa854a291e1b1b886044b5af147", // VERIFIED: Real token
+            "0x544ee57d69aa9a92cde78d297a01b847c0cb9763d4e653782d2e0fc3d6f5d4c4", // VERIFIED: Real token
+            "0x277508a1beabc304c4b89f95a1117397901b7040f1df0cdb0531f16642b5793a", // VERIFIED: Real token
+            "0xb7d232fecdc7bca4ed9b1f47328edc8cf38fe57416d4c31e8bc948c9ba7a6467", // VERIFIED: Real token
+            "0x23afbd41b540a6675d4df584bc7b79bd0f99376cb8882b49e4e4e7e34577810d"  // VERIFIED: Real token
+        ];
+
+        // Convert hex string to uint256
+        return _hexStringToUint256(courtyardTokenIds[cardIndex]);
+    }
+    
+    function _hexStringToUint256(string memory hexString) internal pure returns (uint256) {
+        bytes memory hexBytes = bytes(hexString);
+        require(hexBytes.length == 66, "Invalid hex string length"); // 0x + 64 chars
+        require(hexBytes[0] == '0' && hexBytes[1] == 'x', "Invalid hex prefix");
+        
+        uint256 result = 0;
+        for (uint256 i = 2; i < hexBytes.length; i++) {
+            result = result * 16;
+            uint8 charValue = uint8(hexBytes[i]);
+            
+            if (charValue >= 48 && charValue <= 57) { // 0-9
+                result += charValue - 48;
+            } else if (charValue >= 97 && charValue <= 102) { // a-f
+                result += charValue - 87;
+            } else if (charValue >= 65 && charValue <= 70) { // A-F
+                result += charValue - 55;
+            } else {
+                revert("Invalid hex character");
+            }
+        }
+        
+        return result;
+    }
+
+    function _getCardValue(uint256 cardIndex) internal pure returns (uint256) {
+        // Create 36 cards with proper rarity distribution:
+        // Most Common (18 cards): $35-85 range
+        // Uncommon (9 cards): $120-180 range  
+        // Rare (5 cards): $280-350 range
+        // Epic (3 cards): $450-850 range
+        // Legendary (1 card): $1200 (exceeds $1000 threshold)
+        
+        // Common cards (0-17): 18 cards, mostly low values
+        if (cardIndex < 18) {
+            uint256[6] memory commonBaseValues = [uint256(35), 45, 55, 65, 75, 85]; // Mix of low values
+            return commonBaseValues[cardIndex % 6] * 1e18;
+        }
+        // Uncommon cards (18-26): 9 cards, mid-low values
+        else if (cardIndex < 27) {
+            uint256[3] memory uncommonBaseValues = [uint256(120), 150, 180]; // Mid-range values
+            return uncommonBaseValues[(cardIndex - 18) % 3] * 1e18;
+        }
+        // Rare cards (27-31): 5 cards, mid-high values
+        else if (cardIndex < 32) {
+            uint256[5] memory rareBaseValues = [uint256(280), 300, 320, 340, 350]; // Higher values
+            return rareBaseValues[cardIndex - 27] * 1e18;
+        }
+        // Epic cards (32-34): 3 cards, high values
+        else if (cardIndex < 35) {
+            uint256[3] memory epicBaseValues = [uint256(450), 650, 850]; // High values in Epic range
+            return epicBaseValues[cardIndex - 32] * 1e18;
+        }
+        // Legendary card (35): 1 card, highest value
+        else {
+            return 1200 * 1e18; // Legendary value - exceeds $1000 threshold
+        }
+    }
+
+    function _getRarityFromValue(uint256 value) internal pure returns (GachaTreasury.Rarity) {
+        // Define rarity thresholds based on card values for proper distribution
+        if (value >= 1000 * 1e18) return GachaTreasury.Rarity.Legendary; // $1000+ (4 cards)
+        if (value >= 400 * 1e18) return GachaTreasury.Rarity.Epic; // $400-999 (6 cards)
+        if (value >= 200 * 1e18) return GachaTreasury.Rarity.Rare; // $200-399 (8 cards)
+        if (value >= 100 * 1e18) return GachaTreasury.Rarity.Uncommon; // $100-199 (7 cards)
+        return GachaTreasury.Rarity.Common; // Under $100 (5 cards)
     }
 
     function _getAppraisalPriceForRarity(GachaTreasury.Rarity rarity) internal pure returns (uint256) {

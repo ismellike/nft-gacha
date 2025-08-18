@@ -9,7 +9,7 @@ import {
 	clearAllPendingSpins,
 	validatePendingSpins,
 } from "../machines/gachaSpinMachine";
-import { useGachaStore } from '../stores/gachaStore';
+import { useGachaStore } from "../stores/gachaStore";
 import type { SpinResult, RefundResult } from "../machines/gachaSpinMachine";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
@@ -97,37 +97,51 @@ export function useGachaSpinMachine(
 
 	// Restore state from localStorage on mount/account change
 	useEffect(() => {
-		if (!userAddress || !publicClient || !state.matches("idle") || !contracts.gacha) return;
+		if (
+			!userAddress ||
+			!publicClient ||
+			!state.matches("idle") ||
+			!contracts.gacha
+		)
+			return;
 
 		// First, validate and clean expired/invalid pending spins
-		validatePendingSpins(publicClient).then(() => {
-			const storedTriggerId = loadFromStorage(userAddress, contracts.gacha!);
-			if (storedTriggerId) {
-				// Only restore if we have a valid stored trigger ID
-				console.log("🔄 [useGachaSpinMachine] Restoring pending spin:", storedTriggerId);
-				send({
-					type: "START_SPIN",
-					userAddress,
-					publicClient,
-					gachaAddress: contracts.gacha,
-				});
-				send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
-			}
-		}).catch(error => {
-			console.warn("Failed to validate pending spins:", error);
-			// Continue with normal operation even if validation fails
-			const storedTriggerId = loadFromStorage(userAddress, contracts.gacha!);
-			if (storedTriggerId) {
-				console.log("🔄 [useGachaSpinMachine] Restoring pending spin (validation failed):", storedTriggerId);
-				send({
-					type: "START_SPIN",
-					userAddress,
-					publicClient,
-					gachaAddress: contracts.gacha!,
-				});
-				send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
-			}
-		});
+		validatePendingSpins(publicClient)
+			.then(() => {
+				const storedTriggerId = loadFromStorage(userAddress, contracts.gacha!);
+				if (storedTriggerId) {
+					// Only restore if we have a valid stored trigger ID
+					console.log(
+						"🔄 [useGachaSpinMachine] Restoring pending spin:",
+						storedTriggerId,
+					);
+					send({
+						type: "START_SPIN",
+						userAddress,
+						publicClient,
+						gachaAddress: contracts.gacha,
+					});
+					send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
+				}
+			})
+			.catch((error) => {
+				console.warn("Failed to validate pending spins:", error);
+				// Continue with normal operation even if validation fails
+				const storedTriggerId = loadFromStorage(userAddress, contracts.gacha!);
+				if (storedTriggerId) {
+					console.log(
+						"🔄 [useGachaSpinMachine] Restoring pending spin (validation failed):",
+						storedTriggerId,
+					);
+					send({
+						type: "START_SPIN",
+						userAddress,
+						publicClient,
+						gachaAddress: contracts.gacha!,
+					});
+					send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
+				}
+			});
 	}, [userAddress, publicClient, contracts.gacha, state, send]);
 
 	// Actions
@@ -176,7 +190,9 @@ export function useGachaSpinMachine(
 	// Handle refund completion
 	useEffect(() => {
 		if (isRefunded && state.context.refundResult) {
-			console.log("💰 [useGachaSpinMachine] Refund completed, triggering balance refresh");
+			console.log(
+				"💰 [useGachaSpinMachine] Refund completed, triggering balance refresh",
+			);
 			onRefund?.();
 		}
 	}, [isRefunded, state.context.refundResult, onRefund]);

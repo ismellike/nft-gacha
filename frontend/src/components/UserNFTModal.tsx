@@ -8,7 +8,6 @@ import {
 	useReadErc721Name,
 	useReadErc721Symbol,
 	useReadErc721BalanceOf,
-	useReadErc721TokenUri,
 } from "@/generated";
 import {
 	XMarkIcon,
@@ -17,6 +16,7 @@ import {
 	ArrowUpTrayIcon,
 } from "@heroicons/react/24/outline";
 import { formatAddress } from "@/lib/utils";
+import { useNFTWithMetadata } from "@/hooks/useNFTWithMetadata";
 
 interface UserNFTModalProps {
 	collectionAddress: string;
@@ -37,48 +37,8 @@ function NFTCard({
 	isSelected,
 	onToggleSelect,
 }: NFTCardProps) {
-	const { data: tokenUri } = useReadErc721TokenUri({
-		address: collectionAddress as `0x${string}`,
-		args: [tokenId],
-	});
-
-	const [metadata, setMetadata] = useState<any>(null);
-	const [imageUrl, setImageUrl] = useState<string | null>(null);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		if (!tokenUri) {
-			setLoading(false);
-			return;
-		}
-
-		const fetchMetadata = async () => {
-			try {
-				// Handle IPFS URLs
-				let url = tokenUri;
-				if (tokenUri.startsWith("ipfs://")) {
-					url = tokenUri.replace("ipfs://", "https://ipfs.io/ipfs/");
-				}
-
-				const response = await fetch(url);
-				const data = await response.json();
-				setMetadata(data);
-
-				// Handle image URL
-				let imgUrl = data.image;
-				if (imgUrl?.startsWith("ipfs://")) {
-					imgUrl = imgUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-				}
-				setImageUrl(imgUrl);
-			} catch (error) {
-				console.error("Failed to fetch NFT metadata:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchMetadata();
-	}, [tokenUri]);
+	// Use the new metadata hook
+	const nftData = useNFTWithMetadata(collectionAddress, tokenId.toString());
 
 	return (
 		<motion.div
@@ -98,14 +58,14 @@ function NFTCard({
 				onClick={() => onToggleSelect(tokenId)}
 			>
 				<div className="aspect-square mb-3 relative bg-content1/20 rounded-xl overflow-hidden">
-					{loading ? (
+					{nftData.isLoading ? (
 						<div className="w-full h-full flex items-center justify-center">
 							<div className="w-8 h-8 border-2 border-warning border-t-transparent rounded-full animate-spin" />
 						</div>
-					) : imageUrl ? (
+					) : nftData.imageUrl ? (
 						<img
-							src={imageUrl}
-							alt={metadata?.name || `Token #${tokenId}`}
+							src={nftData.imageUrl}
+							alt={nftData.metadata?.name || `Token #${tokenId}`}
 							className="w-full h-full object-cover"
 							onError={(e) => {
 								e.currentTarget.style.display = "none";
@@ -131,11 +91,14 @@ function NFTCard({
 
 				<div className="text-center">
 					<h4 className="font-medium text-sm truncate">
-						{metadata?.name || `Token #${tokenId}`}
+						{nftData.metadata?.name || `Token #${tokenId}`}
 					</h4>
 					<p className="text-xs text-default-600 mt-1">
 						ID: {tokenId.toString()}
 					</p>
+					{nftData.error && (
+						<p className="text-xs text-danger mt-1">Failed to load metadata</p>
+					)}
 				</div>
 			</GlassCard>
 		</motion.div>

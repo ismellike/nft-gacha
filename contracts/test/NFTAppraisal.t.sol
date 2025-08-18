@@ -63,6 +63,7 @@ contract NFTAppraisalTest is Test {
         
         // Setup initial state
         feeToken.mint(user, 1000e18);
+        // Note: NFT is owned by test contract (address(this)), so we can mint directly
         nft.mint(user);
         nft.mint(user);
         

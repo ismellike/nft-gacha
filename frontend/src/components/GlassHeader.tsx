@@ -82,7 +82,9 @@ export function GlassHeader({
 							{subtitle && (
 								<>
 									<br />
-									<span className="text-foreground/80 font-light">{subtitle}</span>
+									<span className="text-foreground/80 font-light">
+										{subtitle}
+									</span>
 								</>
 							)}
 						</h1>

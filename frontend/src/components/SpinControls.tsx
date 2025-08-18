@@ -37,7 +37,10 @@ interface SpinControlsProps {
 	onRefund?: () => void;
 }
 
-export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps) {
+export default function SpinControls({
+	gachaSpin,
+	onRefund,
+}: SpinControlsProps) {
 	const { address: userAddress, isConnected } = useAccount();
 	const chainId = useChainId();
 
@@ -45,7 +48,7 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 	const [permitDeadline, setPermitDeadline] = useState<bigint | null>(null);
 	const [usedSignature, setUsedSignature] = useState<string | null>(null);
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
-	
+
 	// Countdown timer for randomness timeout
 	const [countdown, setCountdown] = useState(30);
 	const [timeoutStarted, setTimeoutStarted] = useState<number | null>(null);
@@ -113,7 +116,13 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 			refetchNonce();
 			onRefund?.();
 		}
-	}, [gachaSpin.isRefunded, gachaSpin.refundResult, refetchBalance, refetchNonce, onRefund]);
+	}, [
+		gachaSpin.isRefunded,
+		gachaSpin.refundResult,
+		refetchBalance,
+		refetchNonce,
+		onRefund,
+	]);
 
 	// Write operations
 	const {
@@ -133,7 +142,9 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 	// Reclaim failed spin operation
 	const {
 		writeContract: reclaimFailedSpin,
+		data: reclaimTxHash,
 		isPending: isReclaimPending,
+		isSuccess: isReclaimSuccess,
 		error: reclaimError,
 	} = useWriteGachaReclaimFailedSpin();
 
@@ -146,6 +157,11 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 	} = useWaitForTransactionReceipt({
 		hash: spinWithPermitTxHash,
 	});
+
+	const { isSuccess: isReclaimReceiptSuccess, error: reclaimReceiptError } =
+		useWaitForTransactionReceipt({
+			hash: reclaimTxHash,
+		});
 
 	// Derived state from state machine
 	const isProcessingTransaction =
@@ -225,7 +241,10 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 		}
 
 		try {
-			console.log("🔄 [SpinControls] Reclaiming failed spin:", gachaSpin.triggerId);
+			console.log(
+				"🔄 [SpinControls] Reclaiming failed spin:",
+				gachaSpin.triggerId,
+			);
 			reclaimFailedSpin({
 				address: contracts.gacha,
 				args: [gachaSpin.triggerId],
@@ -444,13 +463,13 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 				setTimeoutStarted(Date.now());
 				setCountdown(30);
 			}
-			
+
 			const timer = setInterval(() => {
 				if (timeoutStarted) {
 					const elapsed = Math.floor((Date.now() - timeoutStarted) / 1000);
 					const remaining = Math.max(0, 30 - elapsed);
 					setCountdown(remaining);
-					
+
 					if (remaining === 0) {
 						gachaSpin.timeout();
 						clearInterval(timer);
@@ -464,6 +483,18 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 			setCountdown(30);
 		}
 	}, [gachaSpin.isWaitingForFulfillment, timeoutStarted]);
+
+	// Handle reclaim success
+	useEffect(() => {
+		if (isReclaimReceiptSuccess) {
+			console.log(
+				"✅ [SpinControls] Reclaim transaction confirmed, resetting state machine",
+			);
+			gachaSpin.reset();
+			refetchBalance();
+			refetchNonce();
+		}
+	}, [isReclaimReceiptSuccess, gachaSpin, refetchBalance, refetchNonce]);
 
 	// Enhanced error handling
 	const hasError =
@@ -560,7 +591,6 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 						</div>
 					</div>
 
-
 					{/* Timeout Display */}
 					{gachaSpin.isTimeout && (
 						<GlassBadge variant="danger" className="text-center p-4">
@@ -580,9 +610,12 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 										/>
 									</svg>
 								</div>
-								<p className="text-sm mb-2 font-semibold text-danger">Randomness Timeout</p>
+								<p className="text-sm mb-2 font-semibold text-danger">
+									Randomness Timeout
+								</p>
 								<p className="text-xs opacity-60 mb-3">
-									The random number generation took longer than expected. This may indicate a network issue or VRF coordinator problem.
+									The random number generation took longer than expected. This
+									may indicate a network issue or VRF coordinator problem.
 								</p>
 								<div className="flex flex-col gap-2">
 									<button
@@ -599,7 +632,8 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 										Try Again
 									</button>
 									<p className="text-xs opacity-50">
-										Reclaim refunds your spin fee and invalidates this request to prevent late fulfillment.
+										Reclaim refunds your spin fee and invalidates this request
+										to prevent late fulfillment.
 									</p>
 								</div>
 							</div>
@@ -625,18 +659,28 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 										/>
 									</svg>
 								</div>
-								<p className="text-sm mb-2 font-semibold text-warning">Spin Refunded</p>
+								<p className="text-sm mb-2 font-semibold text-warning">
+									Spin Refunded
+								</p>
 								<p className="text-xs opacity-60 mb-3">
-									Your spin was automatically refunded because the selected rarity ({gachaSpin.refundResult.selectedRarity}) had no available NFTs.
+									Your spin was automatically refunded because the selected
+									rarity ({gachaSpin.refundResult.selectedRarity}) had no
+									available NFTs.
 								</p>
 								<div className="space-y-2">
 									<div className="bg-content1/20 rounded-lg p-3">
 										<p className="text-xs font-medium mb-1">Refund Details:</p>
 										<p className="text-sm">
-											<span className="font-semibold">Rarity:</span> {gachaSpin.refundResult.selectedRarity}
+											<span className="font-semibold">Rarity:</span>{" "}
+											{gachaSpin.refundResult.selectedRarity}
 										</p>
 										<p className="text-sm">
-											<span className="font-semibold">Amount:</span> {formatUnits(gachaSpin.refundResult.refundAmount, tokenDecimals || 18)} {tokenSymbol}
+											<span className="font-semibold">Amount:</span>{" "}
+											{formatUnits(
+												gachaSpin.refundResult.refundAmount,
+												tokenDecimals || 18,
+											)}{" "}
+											{tokenSymbol}
 										</p>
 									</div>
 									<button
@@ -654,16 +698,18 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 					)}
 
 					{/* Error Display Only */}
-					{gachaSpin.isError && !gachaSpin.isTimeout && !gachaSpin.isRefunded && (
-						<GlassBadge variant="danger" className="text-center p-4">
-							<div>
-								<p className="text-sm mb-2">{gachaSpin.error}</p>
-								<p className="text-xs opacity-60">
-									Retry attempts: {gachaSpin.retryCount}/5
-								</p>
-							</div>
-						</GlassBadge>
-					)}
+					{gachaSpin.isError &&
+						!gachaSpin.isTimeout &&
+						!gachaSpin.isRefunded && (
+							<GlassBadge variant="danger" className="text-center p-4">
+								<div>
+									<p className="text-sm mb-2">{gachaSpin.error}</p>
+									<p className="text-xs opacity-60">
+										Retry attempts: {gachaSpin.retryCount}/5
+									</p>
+								</div>
+							</GlassBadge>
+						)}
 
 					{/* Gacha Unavailable Warning */}
 					{isConnected && isGachaAvailable === false && (
@@ -703,7 +749,9 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 						reclaimError) && (
 						<GlassBadge variant="danger" className="text-center p-4">
 							<div>
-								<p className="text-sm mb-2">Transaction failed. Please try again.</p>
+								<p className="text-sm mb-2">
+									Transaction failed. Please try again.
+								</p>
 								{reclaimError && (
 									<p className="text-xs opacity-60">
 										Reclaim error: {reclaimError.message}
@@ -746,7 +794,6 @@ export default function SpinControls({ gachaSpin, onRefund }: SpinControlsProps)
 					>
 						{getButtonText()}
 					</GlassButton>
-
 
 					{/* Countdown Display - Under Button */}
 					{gachaSpin.isWaitingForFulfillment && (

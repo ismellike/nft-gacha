@@ -34,6 +34,8 @@ This is a test environment using local contracts and test tokens for development
 			.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS as `0x${string}`,
 		rewardsManagerAddress: process.env
 			.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as `0x${string}`,
+		// Collections are now queried dynamically from the treasury contract's whitelist
+		// Removed nftCollectionAddress - use useReadGachaTreasuryGetWhitelistedCollections hook instead
 		trackerAddresses: {
 			common: process.env.NEXT_PUBLIC_COMMON_TRACKER_ADDRESS as `0x${string}`,
 			uncommon: process.env

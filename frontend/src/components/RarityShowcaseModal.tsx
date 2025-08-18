@@ -43,14 +43,14 @@ export default function RarityShowcaseModal({
 
 	const rarityConfig = getRarityConfig(rarity);
 
-	// Format NFT display data
+	// Format NFT display data - let NFTCard handle image fetching from metadata
 	const formattedItems = nftItems
 		? nftItems.map((item) => ({
 				collection: item.collection,
 				tokenId: item.tokenId.toString(),
 				depositor: item.depositor,
-				// Generate a placeholder image URL based on contract and tokenId
-				imageUrl: `https://via.placeholder.com/200x200/6366f1/ffffff?text=NFT%20${item.tokenId}`,
+				// Remove placeholder override - let NFTCard fetch real metadata and images
+				// imageUrl will be undefined, allowing proper metadata fetching in NFTCard
 			}))
 		: [];
 
@@ -180,7 +180,6 @@ export default function RarityShowcaseModal({
 										collection={item.collection}
 										tokenId={item.tokenId}
 										showAppraisal={true}
-										imageUrl={item.imageUrl}
 										appraisalContractAddress={contracts.appraisal!}
 										animate={true}
 										rarity={rarity}

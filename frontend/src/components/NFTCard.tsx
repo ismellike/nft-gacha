@@ -10,6 +10,18 @@ import {
 	useReadNftAppraisalHasAppraisal,
 } from "../generated";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
+import { useNFTWithMetadata } from "../hooks/useNFTWithMetadata";
+import { NFTLoadingPlaceholder } from "./ui/NFTLoadingPlaceholder";
+import { CourtyardNFTCard } from "./CourtyardNFTCard";
+import {
+	isCourtyardTokenURI,
+	CourtyardMetadata,
+	processCourtyardImageUrl,
+} from "../lib/courtyard-utils";
+import {
+	useImageWithFallbacks,
+	getImageUrlAlternatives,
+} from "../lib/image-proxy";
 
 export interface NFTCardProps {
 	collection: string;
@@ -135,118 +147,90 @@ interface NFTImageProps {
 	imageUrl?: string;
 	collection: string;
 	tokenId: string;
-	size?: "sm" | "md" | "lg";
+	size?: "sm" | "md" | "lg" | "xl";
 	animate?: boolean;
 }
 
 const NFTImage = memo<NFTImageProps>(
 	({ imageUrl, collection, tokenId, size = "md", animate = true }) => {
-		const [isLoading, setIsLoading] = useState(!imageUrl);
-		const [hasError, setHasError] = useState(false);
-		const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
+		// Always fetch metadata to get token URI, regardless of imageUrl provided
+		const nftData = useNFTWithMetadata(collection, tokenId);
+
+		// Determine the actual image URL to use, prioritizing provided imageUrl
+		const actualImageUrl = imageUrl || nftData.imageUrl;
+
+		// Show loading if we don't have token URI yet or if metadata is loading
+		const isMetadataLoading =
+			nftData.isLoading || (!nftData.tokenURI && !nftData.error);
+		const metadataError = nftData.error;
+
+		// Use the image proxy hook for CORS-friendly loading with fallbacks
+		const {
+			finalUrl,
+			isLoading: isProxyLoading,
+			error: proxyError,
+			attempt,
+		} = useImageWithFallbacks(actualImageUrl);
+
+		// Enhanced logging for Courtyard NFTs
+		if (nftData.tokenURI && nftData.tokenURI.includes("api.courtyard.io")) {
+			console.log("Courtyard NFT Image Processing:", {
+				tokenURI: nftData.tokenURI,
+				providedImageUrl: imageUrl,
+				nftDataImageUrl: nftData.imageUrl,
+				finalImageUrl: actualImageUrl,
+				proxyFinalUrl: finalUrl,
+				proxyAttempt: attempt,
+				metadataImage: nftData.metadata?.image,
+				metadataName: nftData.metadata?.name,
+			});
+		}
 
 		const sizeClasses = {
 			sm: { container: "w-32 h-32", icon: "w-10 h-10" },
 			md: { container: "w-80 h-80", icon: "w-20 h-20" },
 			lg: { container: "w-96 h-96", icon: "w-32 h-32" },
+			xl: { container: "w-[480px] h-[480px]", icon: "w-40 h-40" },
 		};
 
 		const classes = sizeClasses[size];
 
-		useEffect(() => {
-			if (!imageUrl) {
-				setHasError(true);
-				setIsLoading(false);
-			} else {
-				setCurrentImageUrl(imageUrl);
-			}
-		}, [imageUrl]);
+		// Determine loading and error states - always show skeleton until we have token URI
+		const isLoading = isMetadataLoading || isProxyLoading || !nftData.tokenURI;
+		const hasError =
+			(!isMetadataLoading && metadataError) ||
+			(!isProxyLoading && proxyError) ||
+			(!isProxyLoading && !finalUrl && nftData.tokenURI);
 
-		const handleImageLoad = () => {
-			setIsLoading(false);
-			setHasError(false);
-		};
+		// Build error message with more details
+		const errorMessage =
+			metadataError ||
+			proxyError ||
+			(hasError ? "Failed to load NFT image with all fallback options" : null);
 
-		const handleImageError = () => {
-			setIsLoading(false);
-			setHasError(true);
-		};
+		if (hasError && !isLoading) {
+			// Enhanced error info for debugging
+			const detailedError = {
+				errorMessage,
+				originalImageUrl: actualImageUrl,
+				finalProxyUrl: finalUrl,
+				tokenURI: nftData.tokenURI,
+				isCourtyard: nftData.tokenURI?.includes("api.courtyard.io") || false,
+				proxyAttempt: attempt,
+				metadataLoaded: !!nftData.metadata,
+				availableAlternatives: actualImageUrl
+					? getImageUrlAlternatives(actualImageUrl).length
+					: 0,
+			};
 
-		if (hasError || !currentImageUrl) {
+			console.error("NFTImage render error:", detailedError);
+
 			return (
-				<motion.div
-					className={cn(
-						classes.container,
-						"rounded-2xl flex flex-col items-center justify-center relative overflow-hidden",
-						"bg-white/5 backdrop-blur-xl border border-white/20 shadow-2xl",
-					)}
-					animate={
-						animate
-							? {
-									boxShadow: [
-										"0 0 30px rgba(255, 255, 255, 0.1)",
-										"0 0 50px rgba(255, 255, 255, 0.2)",
-										"0 0 30px rgba(255, 255, 255, 0.1)",
-									],
-								}
-							: {}
-					}
-					transition={{
-						duration: 3,
-						repeat: Infinity,
-						ease: "easeInOut",
-					}}
-				>
-					{/* Glassmorphism layers */}
-					<div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent" />
-					<div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
-
-					{/* Animated crystal icon */}
-					<motion.div
-						className="relative z-10"
-						animate={
-							animate
-								? {
-										y: [-3, 3, -3],
-										rotateY: [0, 180, 360],
-										scale: [1, 1.05, 1],
-									}
-								: {}
-						}
-						transition={
-							animate
-								? {
-										y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-										rotateY: { duration: 10, repeat: Infinity, ease: "linear" },
-										scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-									}
-								: {}
-						}
-					>
-						<div
-							className={cn(
-								classes.icon,
-								"bg-gradient-to-br from-orange-400/80 to-yellow-500/80 rounded-2xl",
-								"border border-white/40 shadow-xl backdrop-blur-sm",
-								"flex items-center justify-center transform rotate-45",
-							)}
-						>
-							<motion.div
-								className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent rounded-2xl"
-								animate={animate ? { opacity: [0.3, 0.6, 0.3] } : {}}
-								transition={animate ? { duration: 2, repeat: Infinity } : {}}
-							/>
-							<div className="w-4 h-4 bg-white/60 rounded-full transform -rotate-45" />
-						</div>
-					</motion.div>
-
-					{/* NFT info */}
-					<div className="relative z-10 mt-4 text-center">
-						<div className="text-xs font-medium text-white/80 tracking-wide">
-							{formatTokenId(tokenId)}
-						</div>
-					</div>
-				</motion.div>
+				<NFTLoadingPlaceholder
+					size={size}
+					animate={animate}
+					error={errorMessage}
+				/>
 			);
 		}
 
@@ -264,28 +248,63 @@ const NFTImage = memo<NFTImageProps>(
 				{isLoading && (
 					<div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center z-20">
 						<motion.div
-							className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full"
+							className="w-8 h-8 border-2 border-white/30 border-t-warning rounded-full"
 							animate={{ rotate: 360 }}
 							transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
 						/>
+						{attempt > 0 && (
+							<div className="absolute bottom-2 left-2 right-2">
+								<div className="text-xs text-white/70 text-center">
+									Trying fallback {attempt}...
+								</div>
+							</div>
+						)}
 					</div>
 				)}
 
-				<img
-					src={currentImageUrl}
-					alt={`NFT ${formatTokenId(tokenId)} from ${formatAddress(collection)}`}
-					className={cn(
-						classes.container,
-						"object-cover rounded-2xl relative z-0",
-					)}
-					onLoad={handleImageLoad}
-					onError={handleImageError}
-				/>
+				{finalUrl && (
+					<img
+						src={finalUrl}
+						alt={
+							nftData.metadata?.name ||
+							`NFT ${formatTokenId(tokenId)} from ${formatAddress(collection)}`
+						}
+						className={cn(
+							classes.container,
+							"object-cover rounded-2xl relative z-0",
+						)}
+						// Add CORS attributes for better compatibility
+						crossOrigin="anonymous"
+						// Preload for better UX
+						loading="lazy"
+						// Add referrer policy for CORS
+						referrerPolicy="no-referrer-when-downgrade"
+						onError={(e) => {
+							console.error("Final image load failed:", {
+								src: e.currentTarget.src,
+								finalUrl,
+								originalUrl: actualImageUrl,
+								tokenURI: nftData.tokenURI,
+							});
+						}}
+						onLoad={() => {
+							console.log("NFT image loaded successfully:", {
+								finalUrl,
+								originalUrl: actualImageUrl,
+								proxyUsed: finalUrl !== actualImageUrl,
+								attempt,
+							});
+						}}
+					/>
+				)}
 			</div>
 		);
 	},
 );
 NFTImage.displayName = "NFTImage";
+
+// Export NFTImage for use in other components
+export { NFTImage };
 
 export const NFTCard = memo<NFTCardProps>(
 	({
@@ -302,6 +321,59 @@ export const NFTCard = memo<NFTCardProps>(
 	}) => {
 		const isCompact = variant === "compact";
 		const isInteractive = !!onClick;
+
+		// Get NFT metadata
+		const nftData = useNFTWithMetadata(collection, tokenId);
+
+		// Always show skeleton first, then check for Courtyard optimization once we have token URI
+		if (nftData.isLoading || !nftData.tokenURI) {
+			return (
+				<NFTLoadingPlaceholder
+					size={isCompact ? "sm" : "md"}
+					animate={animate}
+					error={nftData.error}
+				/>
+			);
+		}
+
+		// Check if this is a Courtyard NFT and use specialized component if needed
+		const isCourtyardNFT = isCourtyardTokenURI(nftData.tokenURI);
+		if (isCourtyardNFT && nftData.metadata) {
+			// Use the metadata we already fetched as Courtyard metadata
+			const courtyardMetadata = nftData.metadata as CourtyardMetadata;
+
+			// Get the best image URL - prefer provided imageUrl, then nftData.imageUrl, then process from metadata
+			const courtyardImageUrl =
+				imageUrl ||
+				nftData.imageUrl ||
+				processCourtyardImageUrl(courtyardMetadata) ||
+				undefined;
+
+			console.log("Rendering Courtyard NFT Card:", {
+				collection,
+				tokenId,
+				providedImageUrl: imageUrl,
+				nftDataImageUrl: nftData.imageUrl,
+				processedImageUrl: processCourtyardImageUrl(courtyardMetadata),
+				finalImageUrl: courtyardImageUrl,
+				metadataName: courtyardMetadata.name,
+			});
+
+			return (
+				<CourtyardNFTCard
+					collection={collection}
+					tokenId={tokenId}
+					metadata={courtyardMetadata}
+					imageUrl={courtyardImageUrl}
+					variant={variant}
+					className={className}
+					onClick={onClick}
+					animate={animate}
+					showAppraisal={showAppraisal}
+					appraisalContractAddress={appraisalContractAddress}
+				/>
+			);
+		}
 
 		// Get rarity theming if provided
 		const rarityConfig = rarity ? getRarityConfig(rarity) : null;
@@ -394,7 +466,7 @@ export const NFTCard = memo<NFTCardProps>(
 								imageUrl={imageUrl}
 								collection={collection}
 								tokenId={tokenId}
-								size="sm"
+								size="md"
 								animate={animate}
 							/>
 						</div>
@@ -465,7 +537,7 @@ export const NFTCard = memo<NFTCardProps>(
 							imageUrl={imageUrl}
 							collection={collection}
 							tokenId={tokenId}
-							size="md"
+							size="xl"
 							animate={animate}
 						/>
 					</div>
