@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 import {
 	useAccount,
 	useWriteContract,
@@ -18,6 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { GlassCard, GlassButton } from "./ui";
+import { NFTCard } from "./NFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import {
@@ -56,6 +58,7 @@ export function NFTAppraisalForm({
 	const { address: userAddress, isConnected } = useAccount();
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
+	const searchParams = useSearchParams();
 
 	const [formData, setFormData] = useState<FormData>({
 		collection: "",
@@ -63,6 +66,21 @@ export function NFTAppraisalForm({
 	});
 	const [errors, setErrors] = useState<FormErrors>({});
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isPrePopulated, setIsPrePopulated] = useState(false);
+
+	// Populate form with URL parameters
+	useEffect(() => {
+		const collectionParam = searchParams.get('collection');
+		const tokenIdParam = searchParams.get('tokenId');
+		
+		if (collectionParam || tokenIdParam) {
+			setFormData({
+				collection: collectionParam || "",
+				tokenId: tokenIdParam || "",
+			});
+			setIsPrePopulated(true);
+		}
+	}, [searchParams]);
 
 	// Contract reads for appraisal fee and token info
 	const { data: appraisalFee } = useReadNftAppraisalAppraisalFee({
@@ -268,6 +286,43 @@ export function NFTAppraisalForm({
 							value
 						</p>
 					</div>
+
+					{/* Pre-populated NFT Preview */}
+					{isPrePopulated && formData.collection && formData.tokenId && contracts.appraisal && (
+						<motion.div
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+							className="bg-gradient-to-r from-green-500/10 to-green-600/10 backdrop-blur-xl rounded-xl border border-green-500/20 p-4"
+						>
+							<div className="flex items-start gap-4">
+								<div className="w-20 h-20 flex-shrink-0">
+									<NFTCard
+										collection={formData.collection}
+										tokenId={formData.tokenId}
+										variant="compact"
+										showAppraisal={false}
+										animate={true}
+										appraisalContractAddress={contracts.appraisal}
+										className="w-full h-full"
+									/>
+								</div>
+								<div className="flex-1">
+									<div className="flex items-center gap-2 mb-2">
+										<CheckBadgeIcon className="w-4 h-4 text-green-400" />
+										<p className="text-sm font-medium text-green-400">
+											NFT Pre-loaded
+										</p>
+									</div>
+									<p className="text-xs text-foreground/70 mb-1">
+										Collection: {formData.collection.slice(0, 6)}...{formData.collection.slice(-4)}
+									</p>
+									<p className="text-xs text-foreground/70">
+										Token ID: #{formData.tokenId}
+									</p>
+								</div>
+							</div>
+						</motion.div>
+					)}
 
 					{/* Fee Information */}
 					{appraisalFee && (

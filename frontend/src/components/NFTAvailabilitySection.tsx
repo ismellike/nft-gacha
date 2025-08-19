@@ -17,11 +17,15 @@ import { GlassCard, GlassButton, LoadingState } from "./ui";
 import { NFTCard } from "./NFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
+import { useNFTWithMetadata } from "../hooks/useNFTWithMetadata";
 import {
 	useWriteGachaTreasuryDepositNft,
 	useWriteErc721Approve,
 	useReadErc721GetApproved,
 	useReadErc721IsApprovedForAll,
+	useReadGachaTreasuryGetWhitelistedCollections,
+	useReadErc721BalanceOf,
+	useReadErc721Name,
 	gachaTreasuryAbi,
 	erc721Abi,
 } from "../generated";
@@ -36,6 +40,13 @@ interface AppraisedNFT {
 	requester: string;
 	timestamp: bigint;
 	lastUpdated: bigint;
+}
+
+interface UserNFT {
+	collection: string;
+	tokenId: string;
+	collectionName?: string;
+	isAppraised: boolean;
 }
 
 interface NFTAvailabilitySectionProps {
@@ -53,22 +64,20 @@ const determineRarity = (priceUSD: bigint): Rarity => {
 	return Rarity.Common;
 };
 
-interface DepositableNFTCardProps {
-	nft: AppraisedNFT;
-	onDeposit: (collection: string, tokenId: string) => void;
-	isDepositing: boolean;
+interface UserNFTCardProps {
+	nft: UserNFT;
+	onAction: (collection: string, tokenId: string) => void;
+	isProcessing: boolean;
 }
 
-const DepositableNFTCard = ({
+const UserNFTCard = ({
 	nft,
-	onDeposit,
-	isDepositing,
-}: DepositableNFTCardProps) => {
+	onAction,
+	isProcessing,
+}: UserNFTCardProps) => {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-
-	const rarity = determineRarity(nft.priceUSD);
-	const rarityConfig = RARITY_CONFIG[rarity];
+	const nftData = useNFTWithMetadata(nft.collection, nft.tokenId);
 
 	return (
 		<motion.div
@@ -77,41 +86,48 @@ const DepositableNFTCard = ({
 			transition={{ duration: 0.4 }}
 			className="group relative"
 		>
-			{/* Rarity glow effect */}
-			<div
-				className={`absolute -inset-2 bg-gradient-to-r ${rarityConfig.bgGradient} rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300`}
-			/>
-
 			<GlassCard variant="interactive" className="relative h-full">
 				<div className="p-6 space-y-4">
-					{/* Rarity Badge */}
+					{/* Status Badge */}
 					<div className="flex items-center justify-between">
 						<div
-							className={`inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r ${rarityConfig.bgGradient} backdrop-blur-xl border border-white/30 rounded-full`}
+							className={`inline-flex items-center gap-2 px-3 py-1.5 backdrop-blur-xl border border-white/30 rounded-full ${
+								nft.isAppraised 
+									? 'bg-gradient-to-r from-green-500 to-green-600' 
+									: 'bg-gradient-to-r from-blue-500 to-blue-600'
+							}`}
 						>
-							<span className="text-sm">{rarityConfig.emoji}</span>
+							<span className="text-sm">
+								{nft.isAppraised ? '✅' : '🔍'}
+							</span>
 							<span className="text-sm font-medium text-white">
-								{rarityConfig.name}
+								{nft.isAppraised ? 'Ready to Deposit' : 'Needs Appraisal'}
 							</span>
 						</div>
 
-						{/* Sparkle icon for visual appeal */}
-						<SparklesIcon className={`w-5 h-5 ${rarityConfig.textColor}`} />
+						<SparklesIcon className="w-5 h-5 text-warning" />
 					</div>
 
 					{/* NFT Preview */}
 					<div className="flex justify-center">
-						<div className="w-48 h-48">
-							{contracts.appraisal && (
-								<NFTCard
-									collection={nft.collection}
-									tokenId={nft.tokenId}
-									variant="compact"
-									showAppraisal={false}
-									animate={true}
-									appraisalContractAddress={contracts.appraisal}
-									className="w-full h-full"
+						<div className="w-48 h-48 bg-content1/20 rounded-xl overflow-hidden">
+							{nftData.isLoading ? (
+								<div className="w-full h-full flex items-center justify-center">
+									<div className="w-8 h-8 border-2 border-warning border-t-transparent rounded-full animate-spin" />
+								</div>
+							) : nftData.imageUrl ? (
+								<img
+									src={nftData.imageUrl}
+									alt={nftData.metadata?.name || `Token #${nft.tokenId}`}
+									className="w-full h-full object-cover"
+									onError={(e) => {
+										e.currentTarget.style.display = "none";
+									}}
 								/>
+							) : (
+								<div className="w-full h-full flex items-center justify-center">
+									<GiftIcon className="w-12 h-12 text-foreground/40" />
+								</div>
 							)}
 						</div>
 					</div>
@@ -123,7 +139,7 @@ const DepositableNFTCard = ({
 								Collection
 							</p>
 							<p className="text-sm font-mono text-foreground break-all">
-								{nft.collection.slice(0, 6)}...{nft.collection.slice(-4)}
+								{nft.collectionName || `${nft.collection.slice(0, 6)}...${nft.collection.slice(-4)}`}
 							</p>
 						</div>
 						<div>
@@ -134,40 +150,31 @@ const DepositableNFTCard = ({
 								#{nft.tokenId}
 							</p>
 						</div>
+						{nftData.metadata?.name && (
+							<div>
+								<p className="text-xs text-foreground/60 uppercase tracking-wide mb-1">
+									Name
+								</p>
+								<p className="text-sm text-foreground">
+									{nftData.metadata.name}
+								</p>
+							</div>
+						)}
 					</div>
 
-					{/* Appraised Value with rarity styling */}
-					<div
-						className={`bg-gradient-to-r ${rarityConfig.bgGradient} bg-opacity-20 backdrop-blur-xl border border-white/20 rounded-xl p-4`}
-					>
-						<div className="text-center space-y-2">
-							<p className="text-xs text-foreground/60 uppercase tracking-wide">
-								Appraised Value
-							</p>
-							<p
-								className={`text-2xl font-bold bg-gradient-to-r ${rarityConfig.bgGradient} bg-clip-text text-transparent`}
-							>
-								{formatCurrency(nft.priceUSD.toString(), 18, "USD")}
-							</p>
-							<p className="text-xs text-foreground/60">
-								Rarity: {rarityConfig.name} • {rarityConfig.description}
-							</p>
-						</div>
-					</div>
-
-					{/* Deposit Button */}
+					{/* Action Button */}
 					<div className="pt-2">
 						<GlassButton
-							variant="primary"
+							variant={nft.isAppraised ? "primary" : "secondary"}
 							size="md"
 							className="w-full"
-							startIcon="gift"
-							onClick={() => onDeposit(nft.collection, nft.tokenId)}
-							isLoading={isDepositing}
-							loadingText="Depositing..."
+							startIcon={nft.isAppraised ? "gift" : "gem"}
+							onClick={() => onAction(nft.collection, nft.tokenId)}
+							isLoading={isProcessing}
+							loadingText={nft.isAppraised ? "Depositing..." : "Redirecting..."}
 							animate={true}
 						>
-							Deposit to Gacha
+							{nft.isAppraised ? 'Deposit to Gacha' : 'Get Appraised'}
 						</GlassButton>
 					</div>
 				</div>
@@ -183,21 +190,25 @@ export function NFTAvailabilitySection({
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
-	const [availableNFTs, setAvailableNFTs] = useState<AppraisedNFT[]>([]);
+	const [userNFTs, setUserNFTs] = useState<UserNFT[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [depositingNFT, setDepositingNFT] = useState<string | null>(null);
+	const [processingNFT, setProcessingNFT] = useState<string | null>(null);
 	const [showSuccess, setShowSuccess] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	// Contract interactions
-	const { writeContract: approveNFT, isPending: isApprovingNFT } =
-		useWriteContract();
-	const { writeContract: depositNFT, isPending: isDepositingNFT } =
-		useWriteContract();
+	// Get whitelisted collections
+	const { data: whitelistedCollections } = useReadGachaTreasuryGetWhitelistedCollections({
+		address: contracts.treasury,
+		query: { enabled: !!contracts.treasury },
+	});
 
-	// Load available appraised NFTs from localStorage
-	const loadAvailableNFTs = () => {
-		if (!userAddress) {
+	// Contract interactions
+	const { writeContract: approveNFT } = useWriteContract();
+	const { writeContract: depositNFT } = useWriteContract();
+
+	// Load user NFTs from whitelisted collections
+	const loadUserNFTs = async () => {
+		if (!userAddress || !whitelistedCollections) {
 			setLoading(false);
 			return;
 		}
@@ -206,61 +217,64 @@ export function NFTAvailabilitySection({
 		setError(null);
 
 		try {
+			const allUserNFTs: UserNFT[] = [];
+			
+			// Get appraised NFTs from localStorage
 			const storageKey = `nft-appraisals-${userAddress.toLowerCase()}`;
 			const stored = localStorage.getItem(storageKey);
-
-			if (stored) {
-				const submittedNFTs = JSON.parse(stored);
-
-				// Mock appraised NFTs with completed status and values
-				// In production, this would fetch real appraisal data
-				const mockAvailableNFTs: AppraisedNFT[] = submittedNFTs.map(
-					(nft: any) => ({
-						collection: nft.collection,
-						tokenId: nft.tokenId,
-						priceUSD:
-							BigInt(Math.floor(Math.random() * 5000) + 100) *
-							BigInt(Math.pow(10, 18)),
-						status: 1, // Completed
-						requester: userAddress,
-						timestamp: BigInt(Math.floor((nft.timestamp || Date.now()) / 1000)),
-						lastUpdated: BigInt(Math.floor(Date.now() / 1000)),
-					}),
-				);
-
-				setAvailableNFTs(mockAvailableNFTs);
-			} else {
-				setAvailableNFTs([]);
+			const appraisedNFTs = stored ? JSON.parse(stored) : [];
+			
+			// For demo purposes, add some mock NFTs for each whitelisted collection
+			// In production, you would use the contract calls to get actual user NFTs
+			for (const collection of whitelistedCollections) {
+				// Add a few mock NFTs per collection for demonstration
+				const mockTokenIds = ['1', '42', '123'];
+				for (const tokenId of mockTokenIds) {
+					const isAppraised = appraisedNFTs.some(
+						(appraised: any) => 
+							appraised.collection.toLowerCase() === collection.toLowerCase() && 
+							appraised.tokenId === tokenId
+					);
+					
+					allUserNFTs.push({
+						collection,
+						tokenId,
+						isAppraised,
+					});
+				}
 			}
+
+			setUserNFTs(allUserNFTs);
 		} catch (error) {
-			console.error("Failed to load available NFTs:", error);
-			setError("Failed to load available NFTs");
-			setAvailableNFTs([]);
+			console.error("Failed to load user NFTs:", error);
+			setError("Failed to load user NFTs");
+			setUserNFTs([]);
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	useEffect(() => {
-		loadAvailableNFTs();
-	}, [userAddress]);
+		loadUserNFTs();
+	}, [userAddress, whitelistedCollections]);
 
-	// Handle NFT deposit to gacha treasury
-	const handleDeposit = async (collection: string, tokenId: string) => {
-		if (!userAddress || !contracts.treasury) {
-			console.error("Wallet not connected or treasury contract not available");
-			return;
-		}
+	// Handle NFT action (deposit or appraise)
+	const handleNFTAction = async (collection: string, tokenId: string) => {
+		const nft = userNFTs.find(n => n.collection === collection && n.tokenId === tokenId);
+		if (!nft) return;
 
 		const nftKey = `${collection}:${tokenId}`;
-		setDepositingNFT(nftKey);
+		setProcessingNFT(nftKey);
 
 		try {
-			// Step 1: Check if NFT needs approval
-			// For demo purposes, assume approval is always needed
-			const needsApproval = true;
+			if (nft.isAppraised) {
+				// Handle deposit
+				if (!userAddress || !contracts.treasury) {
+					console.error("Wallet not connected or treasury contract not available");
+					return;
+				}
 
-			if (needsApproval) {
+				// Step 1: Approve NFT
 				console.log("Approving NFT for treasury...");
 				approveNFT({
 					address: collection as `0x${string}`,
@@ -271,65 +285,37 @@ export function NFTAvailabilitySection({
 
 				// Wait for approval transaction
 				await new Promise((resolve) => setTimeout(resolve, 3000));
+
+				// Step 2: Deposit NFT to treasury
+				console.log("Depositing NFT to treasury...");
+				depositNFT({
+					address: contracts.treasury,
+					abi: gachaTreasuryAbi,
+					functionName: "depositNFT",
+					args: [collection as `0x${string}`, BigInt(tokenId)],
+				});
+
+				// Remove NFT from list after successful deposit
+				const updatedNFTs = userNFTs.filter(
+					(nft) => !(nft.collection === collection && nft.tokenId === tokenId)
+				);
+				setUserNFTs(updatedNFTs);
+
+				// Show success message
+				setShowSuccess(true);
+				setTimeout(() => setShowSuccess(false), 3000);
+			} else {
+				// Handle appraisal - redirect to appraisal page with pre-populated data
+				const appraisalUrl = `/appraisal?collection=${encodeURIComponent(collection)}&tokenId=${encodeURIComponent(tokenId)}`;
+				window.location.href = appraisalUrl;
 			}
-
-			// Step 2: Deposit NFT to treasury
-			console.log("Depositing NFT to treasury...");
-			depositNFT({
-				address: contracts.treasury,
-				abi: gachaTreasuryAbi,
-				functionName: "depositNFT",
-				args: [collection as `0x${string}`, BigInt(tokenId)],
-			});
-
-			// Remove NFT from available list and localStorage after successful deposit
-			const updatedNFTs = availableNFTs.filter(
-				(nft) => !(nft.collection === collection && nft.tokenId === tokenId),
-			);
-			setAvailableNFTs(updatedNFTs);
-
-			// Update localStorage
-			if (userAddress) {
-				const storageKey = `nft-appraisals-${userAddress.toLowerCase()}`;
-				const stored = localStorage.getItem(storageKey);
-				if (stored) {
-					const submittedNFTs = JSON.parse(stored);
-					const filteredNFTs = submittedNFTs.filter(
-						(nft: any) =>
-							!(nft.collection === collection && nft.tokenId === tokenId),
-					);
-					localStorage.setItem(storageKey, JSON.stringify(filteredNFTs));
-				}
-			}
-
-			// Show success message
-			setShowSuccess(true);
-			setTimeout(() => setShowSuccess(false), 3000);
 		} catch (error: any) {
-			console.error("Deposit failed:", error);
-			setError("Failed to deposit NFT. Please try again.");
+			console.error("NFT action failed:", error);
+			setError(`Failed to ${nft.isAppraised ? 'deposit' : 'process'} NFT. Please try again.`);
 		} finally {
-			setDepositingNFT(null);
+			setProcessingNFT(null);
 		}
 	};
-
-	// Group NFTs by rarity for better display
-	const nftsByRarity = useMemo(() => {
-		const groups: Record<Rarity, AppraisedNFT[]> = {
-			[Rarity.Legendary]: [],
-			[Rarity.Epic]: [],
-			[Rarity.Rare]: [],
-			[Rarity.Uncommon]: [],
-			[Rarity.Common]: [],
-		};
-
-		availableNFTs.forEach((nft) => {
-			const rarity = determineRarity(nft.priceUSD);
-			groups[rarity].push(nft);
-		});
-
-		return groups;
-	}, [availableNFTs]);
 
 	if (!isConnected) {
 		return (
@@ -387,7 +373,7 @@ export function NFTAvailabilitySection({
 						<div>
 							<h3 className="text-lg font-medium text-danger mb-2">Error</h3>
 							<p className="text-foreground/70 mb-4">{error}</p>
-							<GlassButton variant="danger" onClick={loadAvailableNFTs}>
+							<GlassButton variant="danger" onClick={loadUserNFTs}>
 								Try Again
 							</GlassButton>
 						</div>
@@ -397,7 +383,7 @@ export function NFTAvailabilitySection({
 		);
 	}
 
-	if (availableNFTs.length === 0) {
+	if (userNFTs.length === 0) {
 		return (
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
@@ -411,17 +397,17 @@ export function NFTAvailabilitySection({
 						</div>
 						<div>
 							<h3 className="text-xl font-medium text-foreground mb-2">
-								No NFTs Available
+								No NFTs Found
 							</h3>
 							<p className="text-foreground/70 mb-4">
-								You don't have any appraised NFTs ready for deposit.
+								You don't have any NFTs from the whitelisted collections for this gacha, or they haven't been loaded yet.
 							</p>
 							<GlassButton
 								variant="secondary"
-								startIcon="gem"
-								onClick={() => (window.location.href = "/appraisal")}
+								startIcon="refresh"
+								onClick={loadUserNFTs}
 							>
-								Get NFT Appraised
+								Refresh
 							</GlassButton>
 						</div>
 					</div>
@@ -442,11 +428,11 @@ export function NFTAvailabilitySection({
 				<div className="text-center space-y-4">
 					<h2 className="text-3xl font-light tracking-tight">
 						<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-							Available NFTs for Deposit
+							Your NFTs from Whitelisted Collections
 						</span>
 					</h2>
 					<p className="text-foreground/70 max-w-2xl mx-auto">
-						Your appraised NFTs ready to be deposited into this gacha
+						NFTs from collections accepted by this gacha. Get them appraised to deposit them into the treasury.
 					</p>
 				</div>
 
@@ -455,10 +441,10 @@ export function NFTAvailabilitySection({
 					<GlassCard variant="floating" padding="md">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Total Available
+								Total NFTs
 							</p>
 							<p className="text-2xl font-bold text-foreground">
-								{availableNFTs.length}
+								{userNFTs.length}
 							</p>
 						</div>
 					</GlassCard>
@@ -466,21 +452,10 @@ export function NFTAvailabilitySection({
 					<GlassCard variant="floating" padding="md">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Legendary
+								Ready to Deposit
 							</p>
-							<p className="text-2xl font-bold text-orange-400">
-								{nftsByRarity[Rarity.Legendary].length}
-							</p>
-						</div>
-					</GlassCard>
-
-					<GlassCard variant="floating" padding="md">
-						<div className="text-center">
-							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Epic
-							</p>
-							<p className="text-2xl font-bold text-purple-400">
-								{nftsByRarity[Rarity.Epic].length}
+							<p className="text-2xl font-bold text-green-400">
+								{userNFTs.filter(nft => nft.isAppraised).length}
 							</p>
 						</div>
 					</GlassCard>
@@ -488,51 +463,41 @@ export function NFTAvailabilitySection({
 					<GlassCard variant="floating" padding="md">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Other
+								Need Appraisal
 							</p>
 							<p className="text-2xl font-bold text-blue-400">
-								{nftsByRarity[Rarity.Rare].length +
-									nftsByRarity[Rarity.Uncommon].length +
-									nftsByRarity[Rarity.Common].length}
+								{userNFTs.filter(nft => !nft.isAppraised).length}
+							</p>
+						</div>
+					</GlassCard>
+
+					<GlassCard variant="floating" padding="md">
+						<div className="text-center">
+							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
+								Collections
+							</p>
+							<p className="text-2xl font-bold text-purple-400">
+								{new Set(userNFTs.map(nft => nft.collection)).size}
 							</p>
 						</div>
 					</GlassCard>
 				</div>
 
-				{/* NFT Grid organized by rarity */}
-				{Object.entries(nftsByRarity)
-					.filter(([_, nfts]) => nfts.length > 0)
-					.map(([rarityStr, nfts]) => {
-						const rarity = parseInt(rarityStr) as Rarity;
-						const rarityConfig = RARITY_CONFIG[rarity];
-
-						return (
-							<div key={rarity} className="space-y-4">
-								<h3 className="text-xl font-medium text-foreground flex items-center gap-2">
-									<span className="text-lg">{rarityConfig.emoji}</span>
-									{rarityConfig.name} ({nfts.length})
-									<div
-										className={`h-px flex-1 bg-gradient-to-r ${rarityConfig.bgGradient} opacity-30`}
-									/>
-								</h3>
-
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-									<AnimatePresence>
-										{nfts.map((nft) => (
-											<DepositableNFTCard
-												key={`${nft.collection}:${nft.tokenId}`}
-												nft={nft}
-												onDeposit={handleDeposit}
-												isDepositing={
-													depositingNFT === `${nft.collection}:${nft.tokenId}`
-												}
-											/>
-										))}
-									</AnimatePresence>
-								</div>
-							</div>
-						);
-					})}
+				{/* NFT Grid */}
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+					<AnimatePresence>
+						{userNFTs.map((nft) => (
+							<UserNFTCard
+								key={`${nft.collection}:${nft.tokenId}`}
+								nft={nft}
+								onAction={handleNFTAction}
+								isProcessing={
+									processingNFT === `${nft.collection}:${nft.tokenId}`
+								}
+							/>
+						))}
+					</AnimatePresence>
+				</div>
 
 				{/* Info Banner */}
 				<GlassCard
@@ -542,11 +507,11 @@ export function NFTAvailabilitySection({
 					<div className="flex items-start gap-3 p-4">
 						<InformationCircleIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
 						<div className="text-sm text-foreground/70">
-							<p className="font-medium text-blue-400 mb-1">Rarity System</p>
+							<p className="font-medium text-blue-400 mb-1">How it Works</p>
 							<p>
-								NFT rarity is determined by appraised value: Legendary ($10K+),
-								Epic ($5K+), Rare ($1K+), Uncommon ($100+), Common (under $100).
-								Higher rarity NFTs contribute more to gacha rewards.
+								1. Click "Get Appraised" on any NFT to get its value assessed.
+								2. Once appraised, return here and click "Deposit to Gacha" to add it to the treasury.
+								3. Deposited NFTs contribute to rewards and can be won by other players.
 							</p>
 						</div>
 					</div>

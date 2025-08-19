@@ -4,10 +4,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard, GlassButton } from "./ui";
 import TreasuryAnalytics from "./TreasuryAnalytics";
-import TreasuryItemsExplorer from "./TreasuryItemsExplorer";
 import SpinHistory from "./SpinHistory";
 
-type AnalyticsView = "treasury" | "items" | "history";
+type AnalyticsView = "treasury" | "history";
 
 export default function AnalyticsDashboard() {
 	const [activeView, setActiveView] = useState<AnalyticsView>("treasury");
@@ -18,12 +17,6 @@ export default function AnalyticsDashboard() {
 			label: "Treasury Stats",
 			icon: "trending",
 			description: "Pool analytics and value metrics",
-		},
-		{
-			id: "items" as const,
-			label: "Browse Items",
-			icon: "gem",
-			description: "Explore NFTs in the treasury",
 		},
 		{
 			id: "history" as const,
@@ -75,7 +68,6 @@ export default function AnalyticsDashboard() {
 				transition={{ duration: 0.4 }}
 			>
 				{activeView === "treasury" && <TreasuryAnalytics />}
-				{activeView === "items" && <TreasuryItemsExplorer />}
 				{activeView === "history" && <SpinHistory />}
 			</motion.div>
 		</div>

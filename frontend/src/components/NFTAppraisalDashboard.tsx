@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
+import { useSearchParams } from "next/navigation";
 import {
 	MagnifyingGlassIcon,
 	CheckBadgeIcon,
@@ -29,11 +30,22 @@ export function NFTAppraisalDashboard({
 	className,
 }: NFTAppraisalDashboardProps) {
 	const { address: userAddress, isConnected } = useAccount();
+	const searchParams = useSearchParams();
 
 	// State management
 	const [viewMode, setViewMode] = useState<ViewMode>("overview");
 	const [submittedNFTs, setSubmittedNFTs] = useState<SubmittedNFT[]>([]);
 	const [showSuccess, setShowSuccess] = useState(false);
+
+	// Auto-switch to form mode if URL params are present
+	useEffect(() => {
+		const collectionParam = searchParams.get('collection');
+		const tokenIdParam = searchParams.get('tokenId');
+		
+		if ((collectionParam || tokenIdParam) && viewMode === "overview") {
+			setViewMode("form");
+		}
+	}, [searchParams, viewMode]);
 
 	// Load submitted NFTs from localStorage
 	useEffect(() => {
