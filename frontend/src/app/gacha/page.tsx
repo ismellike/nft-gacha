@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAccount, useWriteContract } from "wagmi";
 import { formatTokenAmount } from "../../lib/utils";
 import GachaSpinner from "../../components/GachaSpinner";
-import { UserNFTModal } from "../../components/UserNFTModal";
 import { AdminControls } from "../../components/AdminControls";
 import AnalyticsDashboard from "../../components/AnalyticsDashboard";
 import { NFTAvailabilitySection } from "../../components/NFTAvailabilitySection";
@@ -56,7 +55,6 @@ function GachaDetailPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { address: userAddress, isConnected } = useAccount();
-	const [showDepositModal, setShowDepositModal] = useState(false);
 	const [optimisticClaim, setOptimisticClaim] = useState(false);
 	const [optimisticClaimedAmount, setOptimisticClaimedAmount] = useState<
 		bigint | null
@@ -1088,14 +1086,6 @@ function GachaDetailPageContent() {
 					)}
 				</motion.div>
 
-				{/* Deposit Modal */}
-				{showDepositModal && (
-					<UserNFTModal
-						collectionAddress=""
-						isOpen={showDepositModal}
-						onClose={() => setShowDepositModal(false)}
-					/>
-				)}
 			</div>
 		</div>
 	);

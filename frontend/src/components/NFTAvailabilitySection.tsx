@@ -18,6 +18,7 @@ import { NFTCard } from "./NFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { useNFTWithMetadata } from "../hooks/useNFTWithMetadata";
+import { useUserOwnedNFTsMultipleCollections } from "../hooks/useUserOwnedNFTs";
 import {
 	useWriteGachaTreasuryDepositNft,
 	useWriteErc721Approve,
@@ -26,6 +27,7 @@ import {
 	useReadGachaTreasuryGetWhitelistedCollections,
 	useReadErc721BalanceOf,
 	useReadErc721Name,
+	useReadNftAppraisalGetAppraisal,
 	gachaTreasuryAbi,
 	erc721Abi,
 } from "../generated";
@@ -47,6 +49,7 @@ interface UserNFT {
 	tokenId: string;
 	collectionName?: string;
 	isAppraised: boolean;
+	appraisalValue?: bigint;
 }
 
 interface NFTAvailabilitySectionProps {
@@ -79,6 +82,17 @@ const UserNFTCard = ({
 	const contracts = useGachaContracts(gachaId);
 	const nftData = useNFTWithMetadata(nft.collection, nft.tokenId);
 
+	// Get appraisal data from contract
+	const { data: appraisalData } = useReadNftAppraisalGetAppraisal({
+		address: contracts.appraisal,
+		args: [nft.collection as `0x${string}`, BigInt(nft.tokenId)],
+		query: { enabled: !!contracts.appraisal },
+	});
+
+	// Extract appraisal info
+	const hasValidAppraisal = appraisalData && appraisalData.priceUSD > BigInt(0) && appraisalData.status === 1; // status = 1 means completed
+	const appraisalValue = hasValidAppraisal ? appraisalData.priceUSD : BigInt(0);
+
 	return (
 		<motion.div
 			initial={{ opacity: 0, y: 20 }}
@@ -92,16 +106,16 @@ const UserNFTCard = ({
 					<div className="flex items-center justify-between">
 						<div
 							className={`inline-flex items-center gap-2 px-3 py-1.5 backdrop-blur-xl border border-white/30 rounded-full ${
-								nft.isAppraised 
+								hasValidAppraisal
 									? 'bg-gradient-to-r from-green-500 to-green-600' 
 									: 'bg-gradient-to-r from-blue-500 to-blue-600'
 							}`}
 						>
 							<span className="text-sm">
-								{nft.isAppraised ? '✅' : '🔍'}
+								{hasValidAppraisal ? '✅' : '🔍'}
 							</span>
 							<span className="text-sm font-medium text-white">
-								{nft.isAppraised ? 'Ready to Deposit' : 'Needs Appraisal'}
+								{hasValidAppraisal ? 'Ready to Deposit' : 'Needs Appraisal'}
 							</span>
 						</div>
 
@@ -160,21 +174,31 @@ const UserNFTCard = ({
 								</p>
 							</div>
 						)}
+						{hasValidAppraisal && (
+							<div>
+								<p className="text-xs text-foreground/60 uppercase tracking-wide mb-1">
+									Appraised Value
+								</p>
+								<p className="text-lg font-bold text-warning">
+									{formatCurrency(appraisalValue.toString(), 18, "USD")}
+								</p>
+							</div>
+						)}
 					</div>
 
 					{/* Action Button */}
 					<div className="pt-2">
 						<GlassButton
-							variant={nft.isAppraised ? "primary" : "secondary"}
+							variant={hasValidAppraisal ? "primary" : "secondary"}
 							size="md"
 							className="w-full"
-							startIcon={nft.isAppraised ? "gift" : "gem"}
+							startIcon={hasValidAppraisal ? "gift" : "gem"}
 							onClick={() => onAction(nft.collection, nft.tokenId)}
 							isLoading={isProcessing}
-							loadingText={nft.isAppraised ? "Depositing..." : "Redirecting..."}
+							loadingText={hasValidAppraisal ? "Depositing..." : "Redirecting..."}
 							animate={true}
 						>
-							{nft.isAppraised ? 'Deposit to Gacha' : 'Get Appraised'}
+							{hasValidAppraisal ? 'Deposit to Gacha' : 'Get Appraised'}
 						</GlassButton>
 					</div>
 				</div>
@@ -202,61 +226,52 @@ export function NFTAvailabilitySection({
 		query: { enabled: !!contracts.treasury },
 	});
 
+	// Get user's actual NFTs from all whitelisted collections
+	const {
+		nfts: userOwnedNFTs,
+		isLoading: nftsLoading,
+		error: nftsError,
+		refetch: refetchNFTs,
+	} = useUserOwnedNFTsMultipleCollections(whitelistedCollections ? [...whitelistedCollections] : []);
+
 	// Contract interactions
 	const { writeContract: approveNFT } = useWriteContract();
 	const { writeContract: depositNFT } = useWriteContract();
 
-	// Load user NFTs from whitelisted collections
-	const loadUserNFTs = async () => {
-		if (!userAddress || !whitelistedCollections) {
+	// Transform owned NFTs to include appraisal status
+	useEffect(() => {
+		if (!userAddress) {
+			setUserNFTs([]);
 			setLoading(false);
 			return;
 		}
 
-		setLoading(true);
-		setError(null);
-
-		try {
-			const allUserNFTs: UserNFT[] = [];
-			
-			// Get appraised NFTs from localStorage
-			const storageKey = `nft-appraisals-${userAddress.toLowerCase()}`;
-			const stored = localStorage.getItem(storageKey);
-			const appraisedNFTs = stored ? JSON.parse(stored) : [];
-			
-			// For demo purposes, add some mock NFTs for each whitelisted collection
-			// In production, you would use the contract calls to get actual user NFTs
-			for (const collection of whitelistedCollections) {
-				// Add a few mock NFTs per collection for demonstration
-				const mockTokenIds = ['1', '42', '123'];
-				for (const tokenId of mockTokenIds) {
-					const isAppraised = appraisedNFTs.some(
-						(appraised: any) => 
-							appraised.collection.toLowerCase() === collection.toLowerCase() && 
-							appraised.tokenId === tokenId
-					);
-					
-					allUserNFTs.push({
-						collection,
-						tokenId,
-						isAppraised,
-					});
-				}
-			}
-
-			setUserNFTs(allUserNFTs);
-		} catch (error) {
-			console.error("Failed to load user NFTs:", error);
-			setError("Failed to load user NFTs");
-			setUserNFTs([]);
-		} finally {
-			setLoading(false);
+		if (nftsLoading) {
+			setLoading(true);
+			return;
 		}
-	};
 
-	useEffect(() => {
-		loadUserNFTs();
-	}, [userAddress, whitelistedCollections]);
+		if (nftsError) {
+			setError(nftsError);
+			setLoading(false);
+			return;
+		}
+
+		// Transform owned NFTs to include appraisal status (will be fetched by individual cards)
+		const transformedNFTs: UserNFT[] = userOwnedNFTs.map(ownedNFT => {
+			return {
+				collection: ownedNFT.collection,
+				tokenId: ownedNFT.tokenId.toString(),
+				collectionName: ownedNFT.collectionName,
+				isAppraised: false, // Will be determined by contract data in UserNFTCard
+				appraisalValue: BigInt(0), // Will be fetched by contract data in UserNFTCard
+			};
+		});
+
+		setUserNFTs(transformedNFTs);
+		setLoading(false);
+		setError(null);
+	}, [userAddress, userOwnedNFTs, nftsLoading, nftsError]);
 
 	// Handle NFT action (deposit or appraise)
 	const handleNFTAction = async (collection: string, tokenId: string) => {
@@ -267,7 +282,8 @@ export function NFTAvailabilitySection({
 		setProcessingNFT(nftKey);
 
 		try {
-			if (nft.isAppraised) {
+			// Check appraisal status from contract, not localStorage
+			if (nft.appraisalValue && nft.appraisalValue > BigInt(0)) {
 				// Handle deposit
 				if (!userAddress || !contracts.treasury) {
 					console.error("Wallet not connected or treasury contract not available");
@@ -311,7 +327,7 @@ export function NFTAvailabilitySection({
 			}
 		} catch (error: any) {
 			console.error("NFT action failed:", error);
-			setError(`Failed to ${nft.isAppraised ? 'deposit' : 'process'} NFT. Please try again.`);
+			setError(`Failed to ${nft.appraisalValue && nft.appraisalValue > BigInt(0) ? 'deposit' : 'process'} NFT. Please try again.`);
 		} finally {
 			setProcessingNFT(null);
 		}
@@ -373,7 +389,7 @@ export function NFTAvailabilitySection({
 						<div>
 							<h3 className="text-lg font-medium text-danger mb-2">Error</h3>
 							<p className="text-foreground/70 mb-4">{error}</p>
-							<GlassButton variant="danger" onClick={loadUserNFTs}>
+							<GlassButton variant="danger" onClick={refetchNFTs}>
 								Try Again
 							</GlassButton>
 						</div>
@@ -405,7 +421,7 @@ export function NFTAvailabilitySection({
 							<GlassButton
 								variant="secondary"
 								startIcon="refresh"
-								onClick={loadUserNFTs}
+								onClick={refetchNFTs}
 							>
 								Refresh
 							</GlassButton>
@@ -437,7 +453,7 @@ export function NFTAvailabilitySection({
 				</div>
 
 				{/* Statistics */}
-				<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 					<GlassCard variant="floating" padding="md">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
@@ -452,32 +468,21 @@ export function NFTAvailabilitySection({
 					<GlassCard variant="floating" padding="md">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Ready to Deposit
-							</p>
-							<p className="text-2xl font-bold text-green-400">
-								{userNFTs.filter(nft => nft.isAppraised).length}
-							</p>
-						</div>
-					</GlassCard>
-
-					<GlassCard variant="floating" padding="md">
-						<div className="text-center">
-							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Need Appraisal
-							</p>
-							<p className="text-2xl font-bold text-blue-400">
-								{userNFTs.filter(nft => !nft.isAppraised).length}
-							</p>
-						</div>
-					</GlassCard>
-
-					<GlassCard variant="floating" padding="md">
-						<div className="text-center">
-							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Collections
 							</p>
 							<p className="text-2xl font-bold text-purple-400">
 								{new Set(userNFTs.map(nft => nft.collection)).size}
+							</p>
+						</div>
+					</GlassCard>
+
+					<GlassCard variant="floating" padding="md">
+						<div className="text-center">
+							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
+								Status
+							</p>
+							<p className="text-sm text-foreground/70">
+								View individual NFTs for appraisal status
 							</p>
 						</div>
 					</GlassCard>

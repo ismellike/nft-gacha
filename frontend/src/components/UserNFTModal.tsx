@@ -8,15 +8,21 @@ import {
 	useReadErc721Name,
 	useReadErc721Symbol,
 	useReadErc721BalanceOf,
+	useReadNftAppraisalGetAppraisal,
 } from "@/generated";
 import {
 	XMarkIcon,
 	PhotoIcon,
 	CheckIcon,
 	ArrowUpTrayIcon,
+	SparklesIcon,
+	CheckBadgeIcon,
 } from "@heroicons/react/24/outline";
-import { formatAddress } from "@/lib/utils";
+import { formatAddress, formatCurrency } from "@/lib/utils";
 import { useNFTWithMetadata } from "@/hooks/useNFTWithMetadata";
+import { useUserOwnedNFTs } from "@/hooks/useUserOwnedNFTs";
+import { useGachaContracts } from "@/hooks/useGachaContracts";
+import { useGachaId } from "@/hooks/useGachaId";
 
 interface UserNFTModalProps {
 	collectionAddress: string;
@@ -37,8 +43,18 @@ function NFTCard({
 	isSelected,
 	onToggleSelect,
 }: NFTCardProps) {
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
+	
 	// Use the new metadata hook
 	const nftData = useNFTWithMetadata(collectionAddress, tokenId.toString());
+	
+	// Get appraisal information
+	const { data: appraisalData } = useReadNftAppraisalGetAppraisal({
+		address: contracts.appraisal,
+		args: [collectionAddress as `0x${string}`, tokenId],
+		query: { enabled: !!contracts.appraisal },
+	});
 
 	return (
 		<motion.div
@@ -89,15 +105,21 @@ function NFTCard({
 					)}
 				</div>
 
-				<div className="text-center">
+				<div className="text-center space-y-1">
 					<h4 className="font-medium text-sm truncate">
 						{nftData.metadata?.name || `Token #${tokenId}`}
 					</h4>
-					<p className="text-xs text-default-600 mt-1">
+					<p className="text-xs text-default-600">
 						ID: {tokenId.toString()}
 					</p>
+					{appraisalData && appraisalData.priceUSD > 0 && appraisalData.status === 1 && (
+						<div className="flex items-center justify-center gap-1 text-xs bg-success/10 text-success px-2 py-1 rounded-full">
+							<CheckBadgeIcon className="w-3 h-3" />
+							<span>{formatCurrency(appraisalData.priceUSD.toString(), 18, "USD")}</span>
+						</div>
+					)}
 					{nftData.error && (
-						<p className="text-xs text-danger mt-1">Failed to load metadata</p>
+						<p className="text-xs text-danger">Failed to load metadata</p>
 					)}
 				</div>
 			</GlassCard>
@@ -112,7 +134,8 @@ export function UserNFTModal({
 }: UserNFTModalProps) {
 	const { address } = useAccount();
 	const [selectedTokens, setSelectedTokens] = useState<Set<bigint>>(new Set());
-	const [userTokens, setUserTokens] = useState<bigint[]>([]);
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
 
 	const { data: collectionName } = useReadErc721Name({
 		address: collectionAddress as `0x${string}`,
@@ -124,39 +147,20 @@ export function UserNFTModal({
 		query: { enabled: !!address },
 	});
 
-	// Fetch user's token IDs
+	// Use the new hook to fetch all user-owned NFTs including gacha wins
+	const {
+		tokens: userTokens,
+		isLoading: tokensLoading,
+		error: tokensError,
+		refetch: refetchTokens,
+	} = useUserOwnedNFTs(collectionAddress);
+
+	// Reset selected tokens when modal opens/closes or tokens change
 	useEffect(() => {
-		if (!balance || !address || balance === BigInt(0)) {
-			setUserTokens([]);
-			return;
+		if (!isOpen) {
+			setSelectedTokens(new Set());
 		}
-
-		const fetchTokens = async () => {
-			const tokens: bigint[] = [];
-			const balanceNumber = Number(balance);
-
-			// Limit to first 20 tokens to avoid overwhelming the UI
-			const limit = Math.min(balanceNumber, 20);
-
-			for (let i = 0; i < limit; i++) {
-				try {
-					// Note: This assumes the contract implements tokenOfOwnerByIndex
-					// If not available, we'd need to use a different approach
-					const tokenId = await fetch(
-						`/api/nft/${collectionAddress}/owner/${address}/index/${i}`,
-					);
-					// This is a placeholder - in practice you'd use a proper indexing service
-					tokens.push(BigInt(i)); // Simplified for demo
-				} catch (error) {
-					console.error(`Failed to fetch token at index ${i}:`, error);
-				}
-			}
-
-			setUserTokens(tokens);
-		};
-
-		fetchTokens();
-	}, [balance, address, collectionAddress]);
+	}, [isOpen]);
 
 	const handleToggleSelect = (tokenId: bigint) => {
 		setSelectedTokens((prev) => {
@@ -243,9 +247,24 @@ export function UserNFTModal({
 							</div>
 
 							<div className="mb-6">
-								{balanceLoading ? (
+								{tokensLoading ? (
 									<LoadingState text="Loading your NFTs..." />
-								) : balance === BigInt(0) ? (
+								) : tokensError ? (
+									<div className="text-center py-12">
+										<div className="w-16 h-16 mx-auto mb-4 bg-danger/20 rounded-full flex items-center justify-center">
+											<XMarkIcon className="w-8 h-8 text-danger" />
+										</div>
+										<h4 className="text-lg font-semibold mb-2">
+											Error Loading NFTs
+										</h4>
+										<p className="text-default-600 mb-4">
+											{tokensError}
+										</p>
+										<GlassButton variant="secondary" onClick={refetchTokens}>
+											Try Again
+										</GlassButton>
+									</div>
+								) : userTokens.length === 0 ? (
 									<div className="text-center py-12">
 										<div className="w-16 h-16 mx-auto mb-4 bg-warning/20 rounded-full flex items-center justify-center">
 											<PhotoIcon className="w-8 h-8 text-warning" />
@@ -253,19 +272,28 @@ export function UserNFTModal({
 										<h4 className="text-lg font-semibold mb-2">
 											No NFTs Found
 										</h4>
-										<p className="text-default-600">
+										<p className="text-default-600 mb-2">
 											You don't own any NFTs from this collection.
+										</p>
+										<p className="text-default-500 text-sm">
+											Try spinning the gacha to win some NFTs!
 										</p>
 									</div>
 								) : (
 									<>
 										<div className="flex items-center justify-between mb-4">
-											<p className="text-sm text-default-600">
-												Found {balance?.toString()} NFT
-												{balance !== BigInt(1) ? "s" : ""}
-												{selectedTokens.size > 0 &&
-													` • ${selectedTokens.size} selected`}
-											</p>
+											<div className="flex items-center gap-2">
+												<p className="text-sm text-default-600">
+													Found {userTokens.length} NFT
+													{userTokens.length !== 1 ? "s" : ""}
+													{selectedTokens.size > 0 &&
+														` • ${selectedTokens.size} selected`}
+												</p>
+												<div className="flex items-center gap-1 text-xs text-warning bg-warning/10 px-2 py-1 rounded-full">
+													<SparklesIcon className="w-3 h-3" />
+													<span>Including gacha wins</span>
+												</div>
+											</div>
 											{selectedTokens.size > 0 && (
 												<GlassButton
 													variant="secondary"

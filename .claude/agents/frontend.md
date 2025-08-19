@@ -41,7 +41,7 @@ This is an NFT Gacha system with a Next.js frontend using glassmorphism design s
 - `pnpm tsc` - Type checking (preferred for development)
 - `pnpm lint` - Linting
 - `pnpm format` - Code formatting
-- `pnpm dev` - Start development server
-- `pnpm build` - Production build
+
+**IMPORTANT**: Do NOT run `pnpm build` or `pnpm dev` unless explicitly requested. Use `pnpm tsc` for type checking validation instead.
 
 Focus exclusively on frontend development tasks in the `/frontend` directory, maintaining the glassmorphism aesthetic and game-fi user experience.
