@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount, useWriteContract } from "wagmi";
 import {
@@ -69,13 +69,15 @@ const determineRarity = (priceUSD: bigint): Rarity => {
 
 interface UserNFTCardProps {
 	nft: UserNFT;
-	onAction: (collection: string, tokenId: string) => void;
+	onAction: (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void;
+	onAppraisalStatusChange?: (collection: string, tokenId: string, hasValidAppraisal: boolean) => void;
 	isProcessing: boolean;
 }
 
 const UserNFTCard = ({
 	nft,
 	onAction,
+	onAppraisalStatusChange,
 	isProcessing,
 }: UserNFTCardProps) => {
 	const gachaId = useGachaId();
@@ -90,8 +92,19 @@ const UserNFTCard = ({
 	});
 
 	// Extract appraisal info
-	const hasValidAppraisal = appraisalData && appraisalData.priceUSD > BigInt(0) && appraisalData.status === 1; // status = 1 means completed
+	// Accept both Completed (1) and OwnerOverride (2) statuses as valid appraisals
+	const hasValidAppraisal: boolean = !!(appraisalData && appraisalData.priceUSD > BigInt(0) && (appraisalData.status === 1 || appraisalData.status === 2));
 	const appraisalValue = hasValidAppraisal ? appraisalData.priceUSD : BigInt(0);
+
+	// Report appraisal status change to parent component (with ref to prevent loops)
+	const lastReportedStatusRef = useRef<boolean | null>(null);
+	
+	useEffect(() => {
+		if (onAppraisalStatusChange && lastReportedStatusRef.current !== hasValidAppraisal) {
+			lastReportedStatusRef.current = hasValidAppraisal;
+			onAppraisalStatusChange(nft.collection, nft.tokenId, hasValidAppraisal);
+		}
+	}, [hasValidAppraisal, nft.collection, nft.tokenId, onAppraisalStatusChange]);
 
 	return (
 		<motion.div
@@ -193,7 +206,7 @@ const UserNFTCard = ({
 							size="md"
 							className="w-full"
 							startIcon={hasValidAppraisal ? "gift" : "gem"}
-							onClick={() => onAction(nft.collection, nft.tokenId)}
+							onClick={() => onAction(nft.collection, nft.tokenId, hasValidAppraisal)}
 							isLoading={isProcessing}
 							loadingText={hasValidAppraisal ? "Depositing..." : "Redirecting..."}
 							animate={true}
@@ -219,6 +232,10 @@ export function NFTAvailabilitySection({
 	const [processingNFT, setProcessingNFT] = useState<string | null>(null);
 	const [showSuccess, setShowSuccess] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	
+	// Separate NFTs by appraisal status
+	const [readyToDepositNFTs, setReadyToDepositNFTs] = useState<UserNFT[]>([]);
+	const [needsAppraisalNFTs, setNeedsAppraisalNFTs] = useState<UserNFT[]>([]);
 
 	// Get whitelisted collections
 	const { data: whitelistedCollections } = useReadGachaTreasuryGetWhitelistedCollections({
@@ -273,8 +290,43 @@ export function NFTAvailabilitySection({
 		setError(null);
 	}, [userAddress, userOwnedNFTs, nftsLoading, nftsError]);
 
+	// Handle appraisal status updates from child components
+	const handleAppraisalStatusChange = useCallback((collection: string, tokenId: string, hasValidAppraisal: boolean) => {
+		const nftKey = `${collection}:${tokenId}`;
+		
+		// Update the lists based on appraisal status
+		setReadyToDepositNFTs(prev => {
+			const filtered = prev.filter(nft => `${nft.collection}:${nft.tokenId}` !== nftKey);
+			if (hasValidAppraisal) {
+				const nft = userNFTs.find(n => n.collection === collection && n.tokenId === tokenId);
+				if (nft && !filtered.some(n => `${n.collection}:${n.tokenId}` === nftKey)) {
+					return [...filtered, nft];
+				}
+			}
+			return filtered;
+		});
+
+		setNeedsAppraisalNFTs(prev => {
+			const filtered = prev.filter(nft => `${nft.collection}:${nft.tokenId}` !== nftKey);
+			if (!hasValidAppraisal) {
+				const nft = userNFTs.find(n => n.collection === collection && n.tokenId === tokenId);
+				if (nft && !filtered.some(n => `${n.collection}:${n.tokenId}` === nftKey)) {
+					return [...filtered, nft];
+				}
+			}
+			return filtered;
+		});
+	}, [userNFTs]);
+
+	// Initialize NFT lists when userNFTs change
+	useEffect(() => {
+		// Reset lists and let the child components categorize them
+		setReadyToDepositNFTs([]);
+		setNeedsAppraisalNFTs([...userNFTs]);
+	}, [userNFTs]);
+
 	// Handle NFT action (deposit or appraise)
-	const handleNFTAction = async (collection: string, tokenId: string) => {
+	const handleNFTAction = async (collection: string, tokenId: string, hasValidAppraisal?: boolean) => {
 		const nft = userNFTs.find(n => n.collection === collection && n.tokenId === tokenId);
 		if (!nft) return;
 
@@ -282,8 +334,8 @@ export function NFTAvailabilitySection({
 		setProcessingNFT(nftKey);
 
 		try {
-			// Check appraisal status from contract, not localStorage
-			if (nft.appraisalValue && nft.appraisalValue > BigInt(0)) {
+			// Use the appraisal status passed from UserNFTCard
+			if (hasValidAppraisal) {
 				// Handle deposit
 				if (!userAddress || !contracts.treasury) {
 					console.error("Wallet not connected or treasury contract not available");
@@ -327,7 +379,7 @@ export function NFTAvailabilitySection({
 			}
 		} catch (error: any) {
 			console.error("NFT action failed:", error);
-			setError(`Failed to ${nft.appraisalValue && nft.appraisalValue > BigInt(0) ? 'deposit' : 'process'} NFT. Please try again.`);
+			setError(`Failed to ${hasValidAppraisal ? 'deposit' : 'process'} NFT. Please try again.`);
 		} finally {
 			setProcessingNFT(null);
 		}
@@ -448,12 +500,12 @@ export function NFTAvailabilitySection({
 						</span>
 					</h2>
 					<p className="text-foreground/70 max-w-2xl mx-auto">
-						NFTs from collections accepted by this gacha. Get them appraised to deposit them into the treasury.
+						NFTs from collections accepted by this gacha. Ready NFTs can be deposited immediately.
 					</p>
 				</div>
 
 				{/* Statistics */}
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+				<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 					<GlassCard variant="floating" padding="md">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
@@ -468,10 +520,10 @@ export function NFTAvailabilitySection({
 					<GlassCard variant="floating" padding="md">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Collections
+								Ready to Deposit
 							</p>
-							<p className="text-2xl font-bold text-purple-400">
-								{new Set(userNFTs.map(nft => nft.collection)).size}
+							<p className="text-2xl font-bold text-success">
+								{readyToDepositNFTs.length}
 							</p>
 						</div>
 					</GlassCard>
@@ -479,30 +531,79 @@ export function NFTAvailabilitySection({
 					<GlassCard variant="floating" padding="md">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Status
+								Needs Appraisal
 							</p>
-							<p className="text-sm text-foreground/70">
-								View individual NFTs for appraisal status
+							<p className="text-2xl font-bold text-warning">
+								{needsAppraisalNFTs.length}
+							</p>
+						</div>
+					</GlassCard>
+
+					<GlassCard variant="floating" padding="md">
+						<div className="text-center">
+							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
+								Collections
+							</p>
+							<p className="text-2xl font-bold text-purple-400">
+								{new Set(userNFTs.map(nft => nft.collection)).size}
 							</p>
 						</div>
 					</GlassCard>
 				</div>
 
-				{/* NFT Grid */}
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					<AnimatePresence>
-						{userNFTs.map((nft) => (
-							<UserNFTCard
-								key={`${nft.collection}:${nft.tokenId}`}
-								nft={nft}
-								onAction={handleNFTAction}
-								isProcessing={
-									processingNFT === `${nft.collection}:${nft.tokenId}`
-								}
-							/>
-						))}
-					</AnimatePresence>
-				</div>
+				{/* Ready to Deposit Section */}
+				{readyToDepositNFTs.length > 0 && (
+					<div className="space-y-6">
+						<div className="flex items-center gap-3">
+							<div className="w-3 h-3 bg-success rounded-full animate-pulse"></div>
+							<h3 className="text-xl font-medium text-success">
+								Ready to Deposit ({readyToDepositNFTs.length})
+							</h3>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+							<AnimatePresence>
+								{readyToDepositNFTs.map((nft) => (
+									<UserNFTCard
+										key={`ready-${nft.collection}:${nft.tokenId}`}
+										nft={nft}
+										onAction={handleNFTAction}
+										onAppraisalStatusChange={handleAppraisalStatusChange}
+										isProcessing={
+											processingNFT === `${nft.collection}:${nft.tokenId}`
+										}
+									/>
+								))}
+							</AnimatePresence>
+						</div>
+					</div>
+				)}
+
+				{/* Needs Appraisal Section */}
+				{needsAppraisalNFTs.length > 0 && (
+					<div className="space-y-6">
+						<div className="flex items-center gap-3">
+							<div className="w-3 h-3 bg-warning rounded-full animate-pulse"></div>
+							<h3 className="text-xl font-medium text-warning">
+								Needs Appraisal ({needsAppraisalNFTs.length})
+							</h3>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+							<AnimatePresence>
+								{needsAppraisalNFTs.map((nft) => (
+									<UserNFTCard
+										key={`appraisal-${nft.collection}:${nft.tokenId}`}
+										nft={nft}
+										onAction={handleNFTAction}
+										onAppraisalStatusChange={handleAppraisalStatusChange}
+										isProcessing={
+											processingNFT === `${nft.collection}:${nft.tokenId}`
+										}
+									/>
+								))}
+							</AnimatePresence>
+						</div>
+					</div>
+				)}
 
 				{/* Info Banner */}
 				<GlassCard

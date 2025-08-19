@@ -47,11 +47,6 @@ export function useNFTWithMetadata(
 	// Collections are dynamically fetched from treasury whitelist
 	const nftCollectionAddress = collection;
 
-	console.log("useNFTWithMetadata debug:", {
-		collection,
-		tokenId,
-		nftCollectionAddress,
-	});
 
 	// Get tokenURI from the actual NFT collection contract
 	const {
@@ -133,14 +128,6 @@ export function useNFTWithMetadata(
 					}
 				}
 
-				console.log("NFT metadata processed:", {
-					tokenURI,
-					isCourtyard,
-					hasMetadata: !!metadata,
-					imageSrc: metadata?.image,
-					processedImageUrl: imageUrl,
-					metadataName: metadata?.name,
-				});
 
 				setState((prev) => ({
 					...prev,
