@@ -28,8 +28,13 @@ tasks:
           echo "🧹 Removed old .env.local file"
         fi
 
+  init-submodules:
+    dir: contracts
+    cmds:
+      - git submodule update --init --recursive
+
   bootstrap:
-    deps: [clean-env]
+    deps: [clean-env, init-submodules]
     cmds:
       - |
         task backend:start 
