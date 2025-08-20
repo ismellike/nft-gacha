@@ -258,9 +258,26 @@ export function NFTAppraisalForm({
 		if (errors[field]) {
 			setErrors((prev) => ({ ...prev, [field]: undefined }));
 		}
+
+		// Clear general error when user starts typing
+		if (errors.general) {
+			setErrors((prev) => ({ ...prev, general: undefined }));
+		}
 	};
 
 	const isPending = isApproving || isRequestingAppraisal || isSubmitting;
+
+	// Check if we should show NFT preview
+	const shouldShowPreview = () => {
+		return (
+			formData.collection &&
+			formData.tokenId &&
+			contracts.appraisal &&
+			isAddress(formData.collection) &&
+			!isNaN(Number(formData.tokenId)) &&
+			Number(formData.tokenId) >= 0
+		);
+	};
 
 	return (
 		<motion.div
@@ -287,43 +304,47 @@ export function NFTAppraisalForm({
 						</p>
 					</div>
 
-					{/* Pre-populated NFT Preview */}
-					{isPrePopulated &&
-						formData.collection &&
-						formData.tokenId &&
-						contracts.appraisal && (
+					{/* Enhanced NFT Preview */}
+					{shouldShowPreview() && (
 							<motion.div
 								initial={{ opacity: 0, scale: 0.95 }}
 								animate={{ opacity: 1, scale: 1 }}
-								className="bg-gradient-to-r from-green-500/10 to-green-600/10 backdrop-blur-xl rounded-xl border border-green-500/20 p-4"
+								className="bg-gradient-to-r from-green-500/10 to-green-600/10 backdrop-blur-xl rounded-xl border border-green-500/20 p-6"
 							>
-								<div className="flex items-start gap-4">
-									<div className="w-20 h-20 flex-shrink-0">
+								<div className="text-center mb-4">
+									<div className="flex items-center justify-center gap-2 mb-2">
+										<CheckBadgeIcon className="w-5 h-5 text-green-400" />
+										<p className="text-sm font-medium text-green-400">
+											{isPrePopulated ? "NFT Pre-loaded from URL" : "NFT Preview"}
+										</p>
+									</div>
+									<p className="text-xs text-foreground/70">
+										This NFT will be submitted for appraisal
+									</p>
+								</div>
+
+								<div className="flex justify-center mb-4">
+									<div className="w-64">
 										<UnifiedNFTCard
 											collection={formData.collection}
 											tokenId={formData.tokenId}
-											variant="compact"
-											showAppraisal={false}
+											variant="detailed"
+											size="md"
+											showAppraisal={true}
 											animate={true}
 											appraisalContractAddress={contracts.appraisal}
-											className="w-full h-full"
+											priority={8}
 										/>
 									</div>
-									<div className="flex-1">
-										<div className="flex items-center gap-2 mb-2">
-											<CheckBadgeIcon className="w-4 h-4 text-green-400" />
-											<p className="text-sm font-medium text-green-400">
-												NFT Pre-loaded
-											</p>
-										</div>
-										<p className="text-xs text-foreground/70 mb-1">
-											Collection: {formData.collection.slice(0, 6)}...
-											{formData.collection.slice(-4)}
-										</p>
-										<p className="text-xs text-foreground/70">
-											Token ID: #{formData.tokenId}
-										</p>
-									</div>
+								</div>
+
+								<div className="text-center space-y-1">
+									<p className="text-xs text-foreground/60">
+										Collection: {formData.collection.slice(0, 8)}...{formData.collection.slice(-6)}
+									</p>
+									<p className="text-xs text-foreground/60">
+										Token ID: #{formData.tokenId}
+									</p>
 								</div>
 							</motion.div>
 						)}
