@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAccount, useWriteContract } from "wagmi";
+import { useAccount, useWriteContract, usePublicClient } from "wagmi";
+import { useMachine } from "@xstate/react";
 import {
 	GiftIcon,
 	MagnifyingGlassIcon,
@@ -33,6 +34,7 @@ import {
 } from "../generated";
 import { RARITY_CONFIG, Rarity, rarityFromNumber } from "../lib/rarityConfig";
 import { formatCurrency } from "../lib/utils";
+import { nftDepositMachine } from "../machines/nftDepositMachine";
 
 interface AppraisedNFT {
 	collection: string;
@@ -71,18 +73,35 @@ interface UserNFTCardProps {
 	nft: UserNFT;
 	onAction: (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void;
 	onAppraisalStatusChange?: (collection: string, tokenId: string, hasValidAppraisal: boolean) => void;
-	isProcessing: boolean;
 }
 
 const UserNFTCard = ({
 	nft,
 	onAction,
 	onAppraisalStatusChange,
-	isProcessing,
 }: UserNFTCardProps) => {
+	const { address: userAddress } = useAccount();
+	const publicClient = usePublicClient();
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const nftData = useNFTWithMetadata(nft.collection, nft.tokenId);
+
+	// XState machine for deposit process
+	const [depositState, sendDepositEvent] = useMachine(nftDepositMachine);
+
+	// Contract write hooks
+	const { 
+		writeContract: approveNFT, 
+		isSuccess: isApprovalSuccess,
+		isError: isApprovalError,
+		error: approvalError 
+	} = useWriteContract();
+	const { 
+		writeContract: depositNFT, 
+		isSuccess: isDepositSuccess,
+		isError: isDepositError,
+		error: depositError 
+	} = useWriteContract();
 
 	// Get appraisal data from contract
 	const { data: appraisalData } = useReadNftAppraisalGetAppraisal({
@@ -94,7 +113,7 @@ const UserNFTCard = ({
 	// Extract appraisal info
 	// Accept both Completed (1) and OwnerOverride (2) statuses as valid appraisals
 	const hasValidAppraisal: boolean = !!(appraisalData && appraisalData.priceUSD > BigInt(0) && (appraisalData.status === 1 || appraisalData.status === 2));
-	const appraisalValue = hasValidAppraisal ? appraisalData.priceUSD : BigInt(0);
+	const appraisalValue = hasValidAppraisal && appraisalData ? appraisalData.priceUSD : BigInt(0);
 
 	// Report appraisal status change to parent component (with ref to prevent loops)
 	const lastReportedStatusRef = useRef<boolean | null>(null);
@@ -105,6 +124,112 @@ const UserNFTCard = ({
 			onAppraisalStatusChange(nft.collection, nft.tokenId, hasValidAppraisal);
 		}
 	}, [hasValidAppraisal, nft.collection, nft.tokenId, onAppraisalStatusChange]);
+
+	// Handle deposit flow using state machine
+	const handleDeposit = useCallback(async () => {
+		if (!userAddress || !publicClient || !contracts.treasury) {
+			console.error("Missing required parameters for deposit");
+			return;
+		}
+
+		// Start the deposit process
+		sendDepositEvent({
+			type: "START_DEPOSIT",
+			collection: nft.collection,
+			tokenId: nft.tokenId,
+			treasuryAddress: contracts.treasury,
+			userAddress,
+			publicClient,
+		});
+	}, [userAddress, publicClient, contracts.treasury, nft.collection, nft.tokenId, sendDepositEvent]);
+
+	// Handle approval step
+	const handleApproval = useCallback(async () => {
+		if (!contracts.treasury) return;
+
+		try {
+			approveNFT({
+				address: nft.collection as `0x${string}`,
+				abi: erc721Abi,
+				functionName: "approve",
+				args: [contracts.treasury, BigInt(nft.tokenId)],
+			});
+			// Transaction success/failure will be handled by useEffect
+		} catch (error) {
+			sendDepositEvent({
+				type: "ERROR",
+				error: error instanceof Error ? error.message : "Approval failed",
+			});
+		}
+	}, [approveNFT, nft.collection, nft.tokenId, contracts.treasury, sendDepositEvent]);
+
+	// Handle deposit step
+	const handleDepositTransaction = useCallback(async () => {
+		if (!contracts.treasury) return;
+
+		try {
+			depositNFT({
+				address: contracts.treasury,
+				abi: gachaTreasuryAbi,
+				functionName: "depositNFT",
+				args: [nft.collection as `0x${string}`, BigInt(nft.tokenId)],
+			});
+			// Transaction success/failure will be handled by useEffect
+		} catch (error) {
+			sendDepositEvent({
+				type: "ERROR",
+				error: error instanceof Error ? error.message : "Deposit failed",
+			});
+		}
+	}, [depositNFT, nft.collection, nft.tokenId, contracts.treasury, sendDepositEvent]);
+
+	// Handle approval transaction results
+	useEffect(() => {
+		if (isApprovalSuccess && depositState.matches("needsApproval")) {
+			sendDepositEvent({
+				type: "APPROVAL_CONFIRMED",
+				txHash: "approval-confirmed",
+			});
+		}
+	}, [isApprovalSuccess, depositState, sendDepositEvent]);
+
+	useEffect(() => {
+		if (isApprovalError && depositState.matches("needsApproval")) {
+			sendDepositEvent({
+				type: "ERROR",
+				error: approvalError?.message || "Approval failed",
+			});
+		}
+	}, [isApprovalError, approvalError, depositState, sendDepositEvent]);
+
+	// Handle deposit transaction results
+	useEffect(() => {
+		if (isDepositSuccess && (depositState.matches("depositing") || depositState.matches("readyToDeposit"))) {
+			sendDepositEvent({
+				type: "DEPOSIT_CONFIRMED",
+				txHash: "deposit-confirmed",
+			});
+
+			// Now remove NFT from list after successful deposit
+			if (onAction) {
+				onAction(nft.collection, nft.tokenId, true);
+			}
+		}
+	}, [isDepositSuccess, depositState, sendDepositEvent, onAction, nft.collection, nft.tokenId]);
+
+	useEffect(() => {
+		if (isDepositError && (depositState.matches("depositing") || depositState.matches("readyToDeposit"))) {
+			sendDepositEvent({
+				type: "ERROR",
+				error: depositError?.message || "Deposit failed",
+			});
+		}
+	}, [isDepositError, depositError, depositState, sendDepositEvent]);
+
+	// Get current state info for UI
+	const isDepositInProgress = !depositState.matches("idle") && !depositState.matches("completed");
+	const currentDepositState = depositState.value as string;
+	const depositStateError = depositState.context.error;
 
 	return (
 		<motion.div
@@ -201,18 +326,134 @@ const UserNFTCard = ({
 
 					{/* Action Button */}
 					<div className="pt-2">
-						<GlassButton
-							variant={hasValidAppraisal ? "primary" : "secondary"}
-							size="md"
-							className="w-full"
-							startIcon={hasValidAppraisal ? "gift" : "gem"}
-							onClick={() => onAction(nft.collection, nft.tokenId, hasValidAppraisal)}
-							isLoading={isProcessing}
-							loadingText={hasValidAppraisal ? "Depositing..." : "Redirecting..."}
-							animate={true}
-						>
-							{hasValidAppraisal ? 'Deposit to Gacha' : 'Get Appraised'}
-						</GlassButton>
+						{!hasValidAppraisal ? (
+							<GlassButton
+								variant="secondary"
+								size="md"
+								className="w-full"
+								startIcon="gem"
+								onClick={() => onAction(nft.collection, nft.tokenId, hasValidAppraisal)}
+								isLoading={false}
+								loadingText="Redirecting..."
+								animate={true}
+							>
+								Get Appraised
+							</GlassButton>
+						) : (
+							<div className="space-y-2">
+								{/* Main action button based on state */}
+								{currentDepositState === "idle" && (
+									<GlassButton
+										variant="primary"
+										size="md"
+										className="w-full"
+										startIcon="gift"
+										onClick={handleDeposit}
+										animate={true}
+									>
+										Deposit to Gacha
+									</GlassButton>
+								)}
+
+								{currentDepositState === "checkingApproval" && (
+									<GlassButton
+										variant="primary"
+										size="md"
+										className="w-full"
+										isLoading={true}
+										loadingText="Checking approval..."
+										animate={true}
+									>
+										Checking...
+									</GlassButton>
+								)}
+
+								{currentDepositState === "needsApproval" && (
+									<GlassButton
+										variant="secondary"
+										size="md"
+										className="w-full"
+										startIcon="shield-check"
+										onClick={handleApproval}
+										animate={true}
+									>
+										Approve NFT
+									</GlassButton>
+								)}
+
+								{currentDepositState === "readyToDeposit" && (
+									<GlassButton
+										variant="primary"
+										size="md"
+										className="w-full"
+										startIcon="gift"
+										onClick={handleDepositTransaction}
+										animate={true}
+									>
+										Deposit to Treasury
+									</GlassButton>
+								)}
+
+								{currentDepositState === "depositing" && (
+									<GlassButton
+										variant="primary"
+										size="md"
+										className="w-full"
+										isLoading={true}
+										loadingText="Depositing..."
+										animate={true}
+									>
+										Depositing...
+									</GlassButton>
+								)}
+
+								{currentDepositState === "needsDeposit" && (
+									<GlassButton
+										variant="secondary"
+										size="md"
+										className="w-full"
+										startIcon="refresh"
+										onClick={handleDepositTransaction}
+										animate={true}
+									>
+										Retry Deposit
+									</GlassButton>
+								)}
+
+								{currentDepositState === "completed" && (
+									<GlassButton
+										variant="primary"
+										size="md"
+										className="w-full"
+										startIcon="check"
+										isDisabled={true}
+										animate={true}
+									>
+										Deposited Successfully
+									</GlassButton>
+								)}
+
+								{currentDepositState === "error" && (
+									<div className="space-y-2">
+										<GlassButton
+											variant="danger"
+											size="md"
+											className="w-full"
+											startIcon="refresh"
+											onClick={() => sendDepositEvent({ type: "RESET" })}
+											animate={true}
+										>
+											Reset & Try Again
+										</GlassButton>
+										{depositStateError && (
+											<p className="text-xs text-danger text-center">
+												{depositStateError}
+											</p>
+										)}
+									</div>
+								)}
+							</div>
+						)}
 					</div>
 				</div>
 			</GlassCard>
@@ -229,7 +470,6 @@ export function NFTAvailabilitySection({
 
 	const [userNFTs, setUserNFTs] = useState<UserNFT[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [processingNFT, setProcessingNFT] = useState<string | null>(null);
 	const [showSuccess, setShowSuccess] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	
@@ -251,9 +491,6 @@ export function NFTAvailabilitySection({
 		refetch: refetchNFTs,
 	} = useUserOwnedNFTsMultipleCollections(whitelistedCollections ? [...whitelistedCollections] : []);
 
-	// Contract interactions
-	const { writeContract: approveNFT } = useWriteContract();
-	const { writeContract: depositNFT } = useWriteContract();
 
 	// Transform owned NFTs to include appraisal status
 	useEffect(() => {
@@ -325,65 +562,24 @@ export function NFTAvailabilitySection({
 		setNeedsAppraisalNFTs([...userNFTs]);
 	}, [userNFTs]);
 
-	// Handle NFT action (deposit or appraise)
-	const handleNFTAction = async (collection: string, tokenId: string, hasValidAppraisal?: boolean) => {
-		const nft = userNFTs.find(n => n.collection === collection && n.tokenId === tokenId);
-		if (!nft) return;
+	// Handle NFT action (appraise or removal notification)
+	const handleNFTAction = useCallback((collection: string, tokenId: string, hasValidAppraisal?: boolean) => {
+		if (hasValidAppraisal) {
+			// This is called when deposit is completed - remove NFT from list
+			const updatedNFTs = userNFTs.filter(
+				(nft) => !(nft.collection === collection && nft.tokenId === tokenId)
+			);
+			setUserNFTs(updatedNFTs);
 
-		const nftKey = `${collection}:${tokenId}`;
-		setProcessingNFT(nftKey);
-
-		try {
-			// Use the appraisal status passed from UserNFTCard
-			if (hasValidAppraisal) {
-				// Handle deposit
-				if (!userAddress || !contracts.treasury) {
-					console.error("Wallet not connected or treasury contract not available");
-					return;
-				}
-
-				// Step 1: Approve NFT
-				console.log("Approving NFT for treasury...");
-				approveNFT({
-					address: collection as `0x${string}`,
-					abi: erc721Abi,
-					functionName: "approve",
-					args: [contracts.treasury, BigInt(tokenId)],
-				});
-
-				// Wait for approval transaction
-				await new Promise((resolve) => setTimeout(resolve, 3000));
-
-				// Step 2: Deposit NFT to treasury
-				console.log("Depositing NFT to treasury...");
-				depositNFT({
-					address: contracts.treasury,
-					abi: gachaTreasuryAbi,
-					functionName: "depositNFT",
-					args: [collection as `0x${string}`, BigInt(tokenId)],
-				});
-
-				// Remove NFT from list after successful deposit
-				const updatedNFTs = userNFTs.filter(
-					(nft) => !(nft.collection === collection && nft.tokenId === tokenId)
-				);
-				setUserNFTs(updatedNFTs);
-
-				// Show success message
-				setShowSuccess(true);
-				setTimeout(() => setShowSuccess(false), 3000);
-			} else {
-				// Handle appraisal - redirect to appraisal page with pre-populated data
-				const appraisalUrl = `/appraisal?collection=${encodeURIComponent(collection)}&tokenId=${encodeURIComponent(tokenId)}`;
-				window.location.href = appraisalUrl;
-			}
-		} catch (error: any) {
-			console.error("NFT action failed:", error);
-			setError(`Failed to ${hasValidAppraisal ? 'deposit' : 'process'} NFT. Please try again.`);
-		} finally {
-			setProcessingNFT(null);
+			// Show success message
+			setShowSuccess(true);
+			setTimeout(() => setShowSuccess(false), 3000);
+		} else {
+			// Handle appraisal - redirect to appraisal page with pre-populated data
+			const appraisalUrl = `/appraisal?collection=${encodeURIComponent(collection)}&tokenId=${encodeURIComponent(tokenId)}`;
+			window.location.href = appraisalUrl;
 		}
-	};
+	}, [userNFTs]);
 
 	if (!isConnected) {
 		return (
@@ -568,9 +764,6 @@ export function NFTAvailabilitySection({
 										nft={nft}
 										onAction={handleNFTAction}
 										onAppraisalStatusChange={handleAppraisalStatusChange}
-										isProcessing={
-											processingNFT === `${nft.collection}:${nft.tokenId}`
-										}
 									/>
 								))}
 							</AnimatePresence>
@@ -595,9 +788,6 @@ export function NFTAvailabilitySection({
 										nft={nft}
 										onAction={handleNFTAction}
 										onAppraisalStatusChange={handleAppraisalStatusChange}
-										isProcessing={
-											processingNFT === `${nft.collection}:${nft.tokenId}`
-										}
 									/>
 								))}
 							</AnimatePresence>
@@ -616,8 +806,9 @@ export function NFTAvailabilitySection({
 							<p className="font-medium text-blue-400 mb-1">How it Works</p>
 							<p>
 								1. Click "Get Appraised" on any NFT to get its value assessed.
-								2. Once appraised, return here and click "Deposit to Gacha" to add it to the treasury.
-								3. Deposited NFTs contribute to rewards and can be won by other players.
+								2. Once appraised, click "Deposit to Gacha" to start the 2-step process.
+								3. First approve the NFT, then deposit it to the treasury.
+								4. Deposited NFTs contribute to rewards and can be won by other players.
 							</p>
 						</div>
 					</div>
