@@ -30,7 +30,7 @@ contract GachaTest is Test {
 
         // Deploy mock appraisal contract
         mockAppraisal = new MockNFTAppraisal();
-        
+
         // Deploy treasury first (will update gacha address later)
         treasury = new GachaTreasury(owner, address(0x998), address(mockAppraisal)); // temp address
 
@@ -127,8 +127,8 @@ contract GachaTest is Test {
         vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE);
 
-        vm.expectEmit(true, true, false, false);
-        emit RandomnessRequested(1, user1);
+        vm.expectEmit(true, false, false, false);
+        emit RandomnessRequested(1);
 
         uint256 triggerId = gacha.spin();
         vm.stopPrank();
@@ -417,7 +417,11 @@ contract GachaTest is Test {
 
         // Check exact refund amounts
         assertEq(feeToken.balanceOf(user1), userInitialBalance + 100e18, "User should be refunded exactly 100 tokens");
-        assertEq(feeToken.balanceOf(address(gacha)), gachaInitialBalance - 100e18, "Gacha balance should decrease by exactly 100 tokens");
+        assertEq(
+            feeToken.balanceOf(address(gacha)),
+            gachaInitialBalance - 100e18,
+            "Gacha balance should decrease by exactly 100 tokens"
+        );
 
         // Check request is still marked as fulfilled
         (, bool fulfilled) = gacha.getSpinRequest(triggerId);
@@ -471,7 +475,7 @@ contract GachaTest is Test {
         assertTrue(fulfilled);
     }
 
-    event RandomnessRequested(uint256 indexed triggerId, address indexed requester);
+    event RandomnessRequested(uint256 indexed triggerId);
     event SpinStatusUpdate(uint256 indexed triggerId, address indexed requester, string status, uint256 timestamp);
     event SpinCompleted(
         uint256 indexed triggerId,
@@ -483,15 +487,13 @@ contract GachaTest is Test {
     event SpinRefunded(
         uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity selectedRarity, uint256 refundAmount
     );
-    event SpinReclaimed(
-        uint256 indexed triggerId, address indexed requester, uint256 refundAmount
-    );
+    event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTokenUpdated(address oldToken, address newToken);
     event RarityWeightsUpdated(uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary);
 
     function testReclaimFailedSpin() public {
-        // Setup user with exact spin fee amount  
+        // Setup user with exact spin fee amount
         vm.startPrank(user1);
         feeToken.mint(user1, SPIN_FEE);
         feeToken.approve(address(gacha), SPIN_FEE);
@@ -502,7 +504,7 @@ contract GachaTest is Test {
 
         // Start a spin
         uint256 triggerId = gacha.spin();
-        
+
         // Check that the user's balance is reduced by spin fee
         assertEq(feeToken.balanceOf(user1), userInitialBalance - SPIN_FEE);
         assertEq(feeToken.balanceOf(address(gacha)), gachaInitialBalance + SPIN_FEE);
@@ -515,10 +517,10 @@ contract GachaTest is Test {
         // Check that fee is refunded and request is marked as fulfilled
         assertEq(feeToken.balanceOf(user1), userInitialBalance);
         assertEq(feeToken.balanceOf(address(gacha)), gachaInitialBalance);
-        
+
         (, bool fulfilled) = gacha.getSpinRequest(triggerId);
         assertTrue(fulfilled);
-        
+
         vm.stopPrank();
     }
 
@@ -530,7 +532,7 @@ contract GachaTest is Test {
 
         // Start a spin
         uint256 triggerId = gacha.spin();
-        
+
         // User reclaims the failed spin
         gacha.reclaimFailedSpin(triggerId);
         vm.stopPrank();

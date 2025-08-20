@@ -20,20 +20,16 @@ contract MockNFTAppraisal {
         appraisalStatuses[collection][tokenId] = AppraisalStatus.Completed;
     }
 
-    function getAppraisedPrice(address collection, uint256 tokenId) 
-        external 
-        view 
-        returns (uint256 priceUSD, AppraisalStatus status) 
+    function getAppraisedPrice(address collection, uint256 tokenId)
+        external
+        view
+        returns (uint256 priceUSD, AppraisalStatus status)
     {
         return (appraisedPrices[collection][tokenId], appraisalStatuses[collection][tokenId]);
     }
 
-    function hasAppraisal(address collection, uint256 tokenId) 
-        external 
-        view 
-        returns (bool) 
-    {
-        return appraisedPrices[collection][tokenId] > 0 && 
-               appraisalStatuses[collection][tokenId] == AppraisalStatus.Completed;
+    function hasAppraisal(address collection, uint256 tokenId) external view returns (bool) {
+        return appraisedPrices[collection][tokenId] > 0
+            && appraisalStatuses[collection][tokenId] == AppraisalStatus.Completed;
     }
 }

@@ -25,6 +25,8 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     error NoFundsToWithdraw();
     error UnauthorizedGachaContract();
     error UnauthorizedTreasuryContract();
+    error CalculationOverflow();
+    error DustThresholdExceeded();
 
     // Constants
     uint256 public constant REWARDS_PERCENTAGE = 9000; // 90% to rewards
@@ -47,6 +49,13 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     uint256 public totalSpinCount;
     mapping(address => uint256) public userTotalRewardsClaimed;
     mapping(address => uint256) public userSpinCount;
+
+    // Dust handling
+    uint256 public accumulatedDust;
+    uint256 private constant DUST_THRESHOLD = 1e15; // 0.001 tokens
+
+    // Access control optimization
+    mapping(address => bool) private isValidRarityTracker;
 
     // Events
     event RarityTokenDeployed(GachaTreasury.Rarity indexed rarity, address indexed tokenAddress);
@@ -110,6 +119,10 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         token.setRewardsManager(address(this));
         token.transferOwnership(owner());
         rarityTokens[rarity] = token;
+
+        // Register in mapping for faster access control
+        isValidRarityTracker[address(token)] = true;
+
         emit RarityTokenDeployed(rarity, address(token));
     }
 
@@ -153,21 +166,37 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
 
         if (totalEffectiveWeight == 0) revert InvalidWeights();
 
-        // Distribute to each rarity proportionally
+        // Calculate all amounts first to handle dust properly
+        uint256 distributedTotal = 0;
+        uint256[5] memory amounts;
+
         for (uint8 i = 0; i < 5; i++) {
             if (effectiveWeights[i] == 0) continue;
+            amounts[i] = (rewardsAmount * effectiveWeights[i]) / totalEffectiveWeight;
+            distributedTotal += amounts[i];
+        }
 
-            uint256 amount = (rewardsAmount * effectiveWeights[i]) / totalEffectiveWeight;
-            if (amount == 0) continue;
+        // Handle dust accumulation
+        uint256 currentDust = rewardsAmount - distributedTotal;
+        accumulatedDust += currentDust;
+
+        // Redistribute accumulated dust when threshold is reached
+        if (accumulatedDust >= DUST_THRESHOLD) {
+            _redistributeDust(amounts, effectiveWeights, totalEffectiveWeight);
+        }
+
+        // Distribute to each rarity proportionally
+        for (uint8 i = 0; i < 5; i++) {
+            if (amounts[i] == 0) continue;
 
             GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
             RarityDividendTracker token = rarityTokens[rarity];
             if (address(token) == address(0)) revert TokenNotDeployed();
 
-            feeToken.safeIncreaseAllowance(address(token), amount);
-            token.distributeFunds(amount);
+            feeToken.safeIncreaseAllowance(address(token), amounts[i]);
+            token.distributeFunds(amounts[i]);
 
-            emit RarityFundsDistributed(rarity, amount);
+            emit RarityFundsDistributed(rarity, amounts[i]);
         }
 
         // Protocol fee
@@ -180,20 +209,50 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         emit FeesDistributed(totalFeeAmount, rewardsAmount, protocolAmount);
     }
 
+    /// @notice Redistributes accumulated dust to rarity trackers proportionally
+    /// @param amounts Array of distribution amounts to modify
+    /// @param effectiveWeights Array of effective weights for proportional distribution
+    /// @param totalEffectiveWeight Total weight for calculations
+    function _redistributeDust(
+        uint256[5] memory amounts,
+        uint256[5] memory effectiveWeights,
+        uint256 totalEffectiveWeight
+    ) private {
+        uint256 dustToDistribute = accumulatedDust;
+        accumulatedDust = 0;
+
+        // Find the rarity with the largest effective weight to add any remaining dust
+        uint8 largestWeightIndex = 0;
+        uint256 largestWeight = 0;
+
+        // Distribute dust proportionally and track distributed amount
+        uint256 dustDistributed = 0;
+        for (uint8 i = 0; i < 5; i++) {
+            if (effectiveWeights[i] > 0) {
+                uint256 dustShare = (dustToDistribute * effectiveWeights[i]) / totalEffectiveWeight;
+                amounts[i] += dustShare;
+                dustDistributed += dustShare;
+
+                // Track largest weight for remainder distribution
+                if (effectiveWeights[i] > largestWeight) {
+                    largestWeight = effectiveWeights[i];
+                    largestWeightIndex = i;
+                }
+            }
+        }
+
+        // Add any remaining dust to the largest weight category
+        if (dustDistributed < dustToDistribute && largestWeight > 0) {
+            amounts[largestWeightIndex] += (dustToDistribute - dustDistributed);
+        }
+    }
+
     /// @notice Updates user's total claimed rewards when they claim from individual trackers
     /// @dev Called by individual RarityDividendTracker contracts after successful withdrawal
     function recordUserRewardClaim(address user, uint256 amount) external {
-        // Verify the caller is one of our deployed rarity trackers
-        bool isValidTracker = false;
-        for (uint256 i = 0; i < 5; i++) {
-            if (msg.sender == address(rarityTokens[GachaTreasury.Rarity(i)])) {
-                isValidTracker = true;
-                break;
-            }
-        }
-        
-        if (!isValidTracker) revert UnauthorizedGachaContract();
-        
+        // Use optimized mapping lookup instead of loop
+        if (!isValidRarityTracker[msg.sender]) revert UnauthorizedGachaContract();
+
         userTotalRewardsClaimed[user] += amount;
         emit UserRewardsClaimed(user, amount);
     }

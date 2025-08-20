@@ -213,7 +213,7 @@ contract GachaRewardsTest is Test {
          * user2 has 1 Epic deposit out of 1 total = 100% of Epic rewards ≈ 48.214285714285714285e18
          */
         uint256 expectedUser1Rewards = 562500000000000000000; // 562.5e18
-        uint256 expectedUser2Rewards = 48214285714285714285;   // ~48.214e18
+        uint256 expectedUser2Rewards = 48214285714285714285; // ~48.214e18
 
         uint256 user1Rewards = rewardsManager.getUserTotalClaimableRewards(user1);
         uint256 user2Rewards = rewardsManager.getUserTotalClaimableRewards(user2);
@@ -268,8 +268,12 @@ contract GachaRewardsTest is Test {
          */
         uint256 expectedUser2EpicRewards = 111570247933884297520; // ~111.57e18
         uint256 user2EpicRewards = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
-        
-        assertEq(user2EpicRewards, expectedUser2EpicRewards, "Epic should receive exactly ~111.57 tokens with 5.0x multiplier");
+
+        assertEq(
+            user2EpicRewards,
+            expectedUser2EpicRewards,
+            "Epic should receive exactly ~111.57 tokens with 5.0x multiplier"
+        );
     }
 
     // === Integration Methods Tests ===
@@ -386,7 +390,7 @@ contract GachaRewardsTest is Test {
 
         // Exact expected Common rewards calculation (same as testUserRewardCalculation)
         uint256 expectedUser1CommonRewards = 562500000000000000000; // 562.5e18
-        
+
         uint256 user1CommonRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
         assertEq(user1CommonRewards, expectedUser1CommonRewards, "User1 should have exactly 562.5 Common rewards");
 
@@ -394,13 +398,17 @@ contract GachaRewardsTest is Test {
 
         // Get the Common rarity tracker directly to test individual claiming
         address commonTracker = rewardsManager.getRarityToken(GachaTreasury.Rarity.Common);
-        
+
         // User claims their Common rewards specifically through the individual tracker
         vm.prank(user1);
         RarityDividendTracker(commonTracker).withdrawFunds();
 
         // Verify exact amount was transferred
-        assertEq(feeToken.balanceOf(user1), user1InitialBalance + expectedUser1CommonRewards, "User1 should receive exactly 562.5 tokens");
+        assertEq(
+            feeToken.balanceOf(user1),
+            user1InitialBalance + expectedUser1CommonRewards,
+            "User1 should receive exactly 562.5 tokens"
+        );
 
         // Verify rewards are now zero
         uint256 user1RemainingRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
@@ -416,7 +424,7 @@ contract GachaRewardsTest is Test {
 
         // Exact expected Epic rewards calculation (same as testUserRewardCalculation)
         uint256 expectedUser2EpicRewards = 48214285714285714285; // ~48.214e18
-        
+
         uint256 user2EpicRewards = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
         assertEq(user2EpicRewards, expectedUser2EpicRewards, "User2 should have exactly ~48.214 Epic rewards");
 
@@ -428,7 +436,11 @@ contract GachaRewardsTest is Test {
         RarityDividendTracker(epicTracker).withdrawFunds();
 
         // Verify exact amount was transferred
-        assertEq(feeToken.balanceOf(user2), user2InitialBalance + expectedUser2EpicRewards, "User2 should receive exactly ~48.214 tokens");
+        assertEq(
+            feeToken.balanceOf(user2),
+            user2InitialBalance + expectedUser2EpicRewards,
+            "User2 should receive exactly ~48.214 tokens"
+        );
 
         // Verify Epic rewards are now zero
         uint256 user2RemainingRewards = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
@@ -503,7 +515,7 @@ contract GachaRewardsTest is Test {
         // user1 now has 2 NFTs instead of 3, so should get 2/3 of their previous share
         // This is the key test: future yield is reduced based on reduced NFT count
         assertTrue(user1NewRewards > 0, "User1 should still earn some new rewards");
-        
+
         // The exact amount depends on the dividend tracker's calculation, but it should be positive
         // and represent their reduced share of the reward pool
     }
@@ -518,7 +530,8 @@ contract GachaRewardsTest is Test {
         vm.prank(address(gacha));
         rewardsManager.distributeSpinRewards(feeAmount);
 
-        uint256 user1AccumulatedRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
+        uint256 user1AccumulatedRewards =
+            rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
         assertTrue(user1AccumulatedRewards > 0, "User1 should have accumulated rewards");
 
         // Record NFT won
@@ -615,9 +628,13 @@ contract GachaRewardsTest is Test {
          * user1 gets 100% of Common share = 843.75e18
          */
         uint256 expectedUser1CommonRewards = 843750000000000000000; // 843.75e18
-        
+
         uint256 user1CommonRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
-        assertEq(user1CommonRewards, expectedUser1CommonRewards, "User1 should have exactly 843.75 accumulated Common rewards");
+        assertEq(
+            user1CommonRewards,
+            expectedUser1CommonRewards,
+            "User1 should have exactly 843.75 accumulated Common rewards"
+        );
 
         uint256 user1InitialBalance = feeToken.balanceOf(user1);
 
@@ -626,8 +643,16 @@ contract GachaRewardsTest is Test {
         vm.prank(user1);
         RarityDividendTracker(commonTracker).withdrawFunds();
 
-        assertEq(feeToken.balanceOf(user1), user1InitialBalance + expectedUser1CommonRewards, "User1 should receive exactly 843.75 tokens");
-        assertEq(rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common), 0, "User1 should have no remaining Common rewards");
+        assertEq(
+            feeToken.balanceOf(user1),
+            user1InitialBalance + expectedUser1CommonRewards,
+            "User1 should receive exactly 843.75 tokens"
+        );
+        assertEq(
+            rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common),
+            0,
+            "User1 should have no remaining Common rewards"
+        );
     }
 
     function testClaimAfterNFTWon() public {
@@ -640,7 +665,9 @@ contract GachaRewardsTest is Test {
         // Expected initial rewards (same as testUserRewardCalculation)
         uint256 expectedInitialCommonRewards = 562500000000000000000; // 562.5e18
         uint256 user1CommonRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
-        assertEq(user1CommonRewards, expectedInitialCommonRewards, "User1 should have exactly 562.5 initial Common rewards");
+        assertEq(
+            user1CommonRewards, expectedInitialCommonRewards, "User1 should have exactly 562.5 initial Common rewards"
+        );
 
         // Simulate NFT won (reduces future yield)
         vm.prank(address(treasury));
@@ -648,7 +675,11 @@ contract GachaRewardsTest is Test {
 
         // Rewards should still be claimable (preserved)
         uint256 user1PreClaimRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
-        assertEq(user1PreClaimRewards, expectedInitialCommonRewards, "Earned Common rewards should be preserved after NFT won");
+        assertEq(
+            user1PreClaimRewards,
+            expectedInitialCommonRewards,
+            "Earned Common rewards should be preserved after NFT won"
+        );
 
         uint256 user1InitialBalance = feeToken.balanceOf(user1);
 
@@ -657,7 +688,11 @@ contract GachaRewardsTest is Test {
         vm.prank(user1);
         RarityDividendTracker(commonTracker).withdrawFunds();
 
-        assertEq(feeToken.balanceOf(user1), user1InitialBalance + expectedInitialCommonRewards, "User1 should receive exactly 562.5 preserved tokens");
+        assertEq(
+            feeToken.balanceOf(user1),
+            user1InitialBalance + expectedInitialCommonRewards,
+            "User1 should receive exactly 562.5 preserved tokens"
+        );
 
         // Future distributions should reflect reduced share
         vm.prank(address(gacha));
@@ -674,7 +709,11 @@ contract GachaRewardsTest is Test {
          */
         uint256 expectedSecondDistributionRewards = 562500000000000000000; // 562.5e18
         uint256 user1NewRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
-        assertEq(user1NewRewards, expectedSecondDistributionRewards, "User1 should earn exactly 562.5 tokens from second distribution");
+        assertEq(
+            user1NewRewards,
+            expectedSecondDistributionRewards,
+            "User1 should earn exactly 562.5 tokens from second distribution"
+        );
     }
 
     function testClaimNormalFlow() public {
@@ -697,8 +736,16 @@ contract GachaRewardsTest is Test {
         RarityDividendTracker(commonTracker).withdrawFunds();
 
         // Should succeed since rewards are distributed to individual trackers
-        assertEq(feeToken.balanceOf(user1), user1InitialBalance + user1CommonRewards, "User1 should receive exact Common rewards");
-        assertEq(rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common), 0, "User1 should have no remaining Common rewards");
+        assertEq(
+            feeToken.balanceOf(user1),
+            user1InitialBalance + user1CommonRewards,
+            "User1 should receive exact Common rewards"
+        );
+        assertEq(
+            rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common),
+            0,
+            "User1 should have no remaining Common rewards"
+        );
     }
 
     function testClaimingWithPausedIndividualTracker() public {
@@ -730,7 +777,11 @@ contract GachaRewardsTest is Test {
         vm.prank(user1);
         RarityDividendTracker(commonTracker).withdrawFunds();
 
-        assertEq(feeToken.balanceOf(user1), user1InitialBalance + user1CommonRewards, "User1 should receive Common rewards after unpause");
+        assertEq(
+            feeToken.balanceOf(user1),
+            user1InitialBalance + user1CommonRewards,
+            "User1 should receive Common rewards after unpause"
+        );
     }
 
     function testClaimingAccuracy() public {
@@ -742,12 +793,12 @@ contract GachaRewardsTest is Test {
 
         // Exact expected rewards (same calculations as testUserRewardCalculation)
         uint256 expectedUser1CommonRewards = 562500000000000000000; // 562.5e18
-        uint256 expectedUser2EpicRewards = 48214285714285714285;   // ~48.214e18
+        uint256 expectedUser2EpicRewards = 48214285714285714285; // ~48.214e18
 
         // Check individual rarity rewards match exact expectations
         uint256 user1CommonRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
         uint256 user2EpicRewards = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
-        
+
         assertEq(user1CommonRewards, expectedUser1CommonRewards, "User1 Common rewards should be exactly 562.5 tokens");
         assertEq(user2EpicRewards, expectedUser2EpicRewards, "User2 Epic rewards should be exactly ~48.214 tokens");
 
@@ -774,7 +825,15 @@ contract GachaRewardsTest is Test {
         vm.prank(user2);
         RarityDividendTracker(epicTracker).withdrawFunds();
 
-        assertEq(feeToken.balanceOf(user1), user1InitialBalance + expectedUser1CommonRewards, "User1 should receive exactly 562.5 tokens");
-        assertEq(feeToken.balanceOf(user2), user2InitialBalance + expectedUser2EpicRewards, "User2 should receive exactly ~48.214 tokens");
+        assertEq(
+            feeToken.balanceOf(user1),
+            user1InitialBalance + expectedUser1CommonRewards,
+            "User1 should receive exactly 562.5 tokens"
+        );
+        assertEq(
+            feeToken.balanceOf(user2),
+            user2InitialBalance + expectedUser2EpicRewards,
+            "User2 should receive exactly ~48.214 tokens"
+        );
     }
 }

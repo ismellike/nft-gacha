@@ -11,60 +11,55 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract SimpleERC721 is ERC721, Ownable {
     uint256 private _tokenIdCounter;
-    
+
     // Mapping from local token ID to Polygon contract address and token ID
     struct PolygonNFT {
         address contractAddress;
         uint256 tokenId;
     }
+
     mapping(uint256 => PolygonNFT) private _polygonNFTs;
-    
+
     // Courtyard API base URL
     string private constant COURTYARD_BASE = "https://api.courtyard.io/index/token/polygon/";
 
     constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) Ownable(msg.sender) {}
 
-    function mintWithPolygonReference(address to, address polygonContract, uint256 polygonTokenId) external onlyOwner returns (uint256) {
+    function mintWithPolygonReference(address to, address polygonContract, uint256 polygonTokenId)
+        external
+        onlyOwner
+        returns (uint256)
+    {
         uint256 tokenId = _tokenIdCounter++;
         _mint(to, tokenId);
-        _polygonNFTs[tokenId] = PolygonNFT({
-            contractAddress: polygonContract,
-            tokenId: polygonTokenId
-        });
+        _polygonNFTs[tokenId] = PolygonNFT({contractAddress: polygonContract, tokenId: polygonTokenId});
         return tokenId;
     }
-    
+
     // Backward compatibility function for existing tests
     function mint(address to) external onlyOwner returns (uint256) {
         // Use a default REAL polygon reference for backward compatibility
         address defaultPolygonContract = 0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD;
         uint256 defaultTokenId = 0x6274859bf9e325d0fc7c2387c8efeafbb8728d0d38b02f932c390a6aad93038c; // REAL Courtyard token
-        
+
         uint256 tokenId = _tokenIdCounter++;
         _mint(to, tokenId);
-        _polygonNFTs[tokenId] = PolygonNFT({
-            contractAddress: defaultPolygonContract,
-            tokenId: defaultTokenId
-        });
+        _polygonNFTs[tokenId] = PolygonNFT({contractAddress: defaultPolygonContract, tokenId: defaultTokenId});
         return tokenId;
     }
-    
 
     function batchMintWithPolygonReferences(
-        address to, 
-        address[] memory polygonContracts, 
+        address to,
+        address[] memory polygonContracts,
         uint256[] memory polygonTokenIds
     ) external onlyOwner returns (uint256[] memory tokenIds) {
         require(polygonContracts.length == polygonTokenIds.length, "Arrays length mismatch");
-        
+
         tokenIds = new uint256[](polygonContracts.length);
         for (uint256 i = 0; i < polygonContracts.length; i++) {
             uint256 tokenId = _tokenIdCounter++;
             _mint(to, tokenId);
-            _polygonNFTs[tokenId] = PolygonNFT({
-                contractAddress: polygonContracts[i],
-                tokenId: polygonTokenIds[i]
-            });
+            _polygonNFTs[tokenId] = PolygonNFT({contractAddress: polygonContracts[i], tokenId: polygonTokenIds[i]});
             tokenIds[i] = tokenId;
         }
     }
@@ -72,47 +67,42 @@ contract SimpleERC721 is ERC721, Ownable {
     function totalSupply() external view returns (uint256) {
         return _tokenIdCounter;
     }
-    
-    
+
     function setPolygonReference(uint256 tokenId, address polygonContract, uint256 polygonTokenId) external onlyOwner {
         _requireOwned(tokenId);
-        _polygonNFTs[tokenId] = PolygonNFT({
-            contractAddress: polygonContract,
-            tokenId: polygonTokenId
-        });
+        _polygonNFTs[tokenId] = PolygonNFT({contractAddress: polygonContract, tokenId: polygonTokenId});
     }
-    
+
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         _requireOwned(tokenId);
-        
+
         PolygonNFT memory polygonNFT = _polygonNFTs[tokenId];
         require(polygonNFT.contractAddress != address(0), "Polygon reference not set");
-        
+
         // Generate Courtyard API URL
         // Format: https://api.courtyard.io/index/token/polygon/{contractAddress}/{tokenId}/metadata.json
         string memory tokenIdStr = _getTokenIdString(polygonNFT.tokenId);
-        
-        return string.concat(
-            COURTYARD_BASE,
-            _toHexString(polygonNFT.contractAddress),
-            "/",
-            tokenIdStr,
-            "/metadata.json"
-        );
+
+        return
+            string.concat(COURTYARD_BASE, _toHexString(polygonNFT.contractAddress), "/", tokenIdStr, "/metadata.json");
     }
-    
+
     /**
      * @notice Gets the Polygon NFT reference for a token
      * @param tokenId The local token ID
      * @return contractAddress The Polygon contract address
      * @return polygonTokenId The Polygon token ID
      */
-    function getPolygonReference(uint256 tokenId) external view returns (address contractAddress, uint256 polygonTokenId) {
+    function getPolygonReference(uint256 tokenId)
+        external
+        view
+        returns (address contractAddress, uint256 polygonTokenId)
+    {
         _requireOwned(tokenId);
         PolygonNFT memory polygonNFT = _polygonNFTs[tokenId];
         return (polygonNFT.contractAddress, polygonNFT.tokenId);
     }
-    
+
     /**
      * @notice Converts a uint256 to its ASCII string decimal representation
      */
@@ -134,14 +124,14 @@ contract SimpleERC721 is ERC721, Ownable {
         }
         return string(buffer);
     }
-    
+
     /**
      * @notice Converts an address to its ASCII string hexadecimal representation (lowercase)
      */
     function _toHexString(address addr) internal pure returns (string memory) {
         return _toHexString(uint256(uint160(addr)), 20);
     }
-    
+
     /**
      * @notice Converts a uint256 to its ASCII string hexadecimal representation (lowercase)
      */
@@ -157,7 +147,7 @@ contract SimpleERC721 is ERC721, Ownable {
         }
         return _toHexString(value, length);
     }
-    
+
     /**
      * @notice Converts a uint256 to its ASCII string hexadecimal representation with fixed length
      */
@@ -172,24 +162,24 @@ contract SimpleERC721 is ERC721, Ownable {
         require(value == 0, "Strings: hex length insufficient");
         return string(buffer);
     }
-    
+
     bytes16 private constant _SYMBOLS = "0123456789abcdef";
-    
+
     /**
      * @notice Extract substring from string
      */
     function substring(string memory str, uint256 startIndex, uint256 length) internal pure returns (string memory) {
         bytes memory strBytes = bytes(str);
         require(startIndex + length <= strBytes.length, "Substring out of bounds");
-        
+
         bytes memory result = new bytes(length);
         for (uint256 i = 0; i < length; i++) {
             result[i] = strBytes[startIndex + i];
         }
-        
+
         return string(result);
     }
-    
+
     /**
      * @notice Gets token ID string representation - hex for large values, decimal for small values
      */
@@ -203,28 +193,27 @@ contract SimpleERC721 is ERC721, Ownable {
             return _toString(tokenId);
         }
     }
-    
+
     /**
      * @notice Remove leading zeros from hex string
      */
     function _removeLeadingZeros(string memory hexStr) internal pure returns (string memory) {
         bytes memory hexBytes = bytes(hexStr);
         uint256 firstNonZero = 0;
-        
+
         // Find first non-zero character
         for (uint256 i = 0; i < hexBytes.length; i++) {
-            if (hexBytes[i] != '0') {
+            if (hexBytes[i] != "0") {
                 firstNonZero = i;
                 break;
             }
         }
-        
+
         // If all zeros, return "0"
-        if (firstNonZero == 0 && hexBytes[0] == '0' && hexBytes.length > 1) {
+        if (firstNonZero == 0 && hexBytes[0] == "0" && hexBytes.length > 1) {
             return "0";
         }
-        
+
         return substring(hexStr, firstNonZero, hexBytes.length - firstNonZero);
     }
-    
 }

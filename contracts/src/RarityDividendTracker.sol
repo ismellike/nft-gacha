@@ -20,14 +20,19 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     error InvalidAddress();
     error TransferFailed();
     error UnauthorizedCaller();
+    error CalculationOverflow();
+    error PrecisionLoss();
 
     IERC20 public immutable fundsToken;
     GachaTreasury public immutable treasury;
     GachaTreasury.Rarity public immutable rarity;
 
     uint256 public totalFundsDistributed;
-    uint256 private constant pointsMultiplier = 2 ** 128;
+    uint256 private constant pointsMultiplier = 2 ** 96; // Sufficient precision with overflow safety
     uint256 private pointsPerShare;
+
+    // Minimum distribution threshold to prevent precision loss
+    uint256 private constant MIN_DISTRIBUTION = 1e12; // 0.000001 tokens
 
     mapping(address => int256) private pointsCorrection;
     mapping(address => uint256) private withdrawnFunds;
@@ -47,22 +52,36 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
 
     function distributeFunds(uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert InvalidAmount();
+
         uint256 totalShares = treasury.getRarityCount(rarity);
         if (totalShares == 0) revert NoDeposits();
 
+        // Check for precision loss in points calculation
+        uint256 pointsIncrease = (amount * pointsMultiplier) / totalShares;
+        if (pointsIncrease == 0 && amount >= MIN_DISTRIBUTION) revert PrecisionLoss();
+
+        // Check for overflow in pointsPerShare update
+        if (pointsPerShare > type(uint256).max - pointsIncrease) revert CalculationOverflow();
+
         fundsToken.safeTransferFrom(msg.sender, address(this), amount);
-        pointsPerShare += (amount * pointsMultiplier) / totalShares;
+        pointsPerShare += pointsIncrease;
         totalFundsDistributed += amount;
 
         emit FundsDistributed(msg.sender, amount);
     }
 
     function withdrawFunds() external nonReentrant whenNotPaused {
-        uint256 withdrawable = _prepareWithdraw();
+        uint256 withdrawable = withdrawableFundsOf(msg.sender);
         if (withdrawable == 0) revert NoFundsToWithdraw();
+
+        // Update state before external calls (CEI pattern)
+        withdrawnFunds[msg.sender] += withdrawable;
+        emit FundsWithdrawn(msg.sender, withdrawable);
+
+        // External transfer
         fundsToken.safeTransfer(msg.sender, withdrawable);
-        
-        // Notify rewards manager about the claim
+
+        // External call to rewards manager (after state changes)
         if (rewardsManager != address(0)) {
             try IGachaRewardsManager(rewardsManager).recordUserRewardClaim(msg.sender, withdrawable) {
                 // Success - claim recorded
@@ -70,13 +89,6 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
                 // Ignore errors to prevent withdrawal failures
             }
         }
-    }
-
-    function _prepareWithdraw() internal returns (uint256) {
-        uint256 amount = withdrawableFundsOf(msg.sender);
-        withdrawnFunds[msg.sender] += amount;
-        emit FundsWithdrawn(msg.sender, amount);
-        return amount;
     }
 
     function withdrawableFundsOf(address account) public view returns (uint256) {
@@ -88,9 +100,11 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     function accumulativeFundsOf(address account) public view returns (uint256) {
         uint256 shares = treasury.getUserDepositCount(account, rarity);
 
-        // Prevent overflow by checking if multiplication would overflow
-        if (shares > 0 && pointsPerShare > type(uint256).max / shares) {
-            return 0; // Return 0 on overflow to prevent revert
+        if (shares == 0) return 0;
+
+        // Enhanced overflow protection - revert instead of returning 0
+        if (pointsPerShare > type(uint256).max / shares) {
+            revert CalculationOverflow();
         }
 
         int256 corrected = int256(pointsPerShare * shares) + pointsCorrection[account];
@@ -104,13 +118,21 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
         // We need to preserve the user's already-earned dividends while updating their share count
         uint256 currentWithdrawable = withdrawableFundsOf(account);
         uint256 newShares = treasury.getUserDepositCount(account, rarity);
-
-        // Set correction so that:
-        // accumulativeFundsOf = (pointsPerShare * newShares + pointsCorrection) / pointsMultiplier
-        // withdrawableFundsOf = accumulativeFundsOf - withdrawnFunds = currentWithdrawable
-        // Therefore: accumulativeFundsOf = currentWithdrawable + withdrawnFunds
         uint256 targetAccumulative = currentWithdrawable + withdrawnFunds[account];
-        pointsCorrection[account] = int256(targetAccumulative * pointsMultiplier) - int256(pointsPerShare * newShares);
+
+        // Enhanced overflow protection for correction calculation
+        uint256 targetPoints = targetAccumulative * pointsMultiplier;
+        uint256 sharePoints = pointsPerShare * newShares;
+
+        // Check for overflow in multiplication
+        if (targetAccumulative > 0 && targetPoints / pointsMultiplier != targetAccumulative) {
+            revert CalculationOverflow();
+        }
+        if (newShares > 0 && sharePoints / newShares != pointsPerShare) {
+            revert CalculationOverflow();
+        }
+
+        pointsCorrection[account] = int256(targetPoints) - int256(sharePoints);
     }
 
     // Optional: helper view

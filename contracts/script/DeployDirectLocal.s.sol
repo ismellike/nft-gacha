@@ -14,7 +14,7 @@ import {SimpleERC721} from "../src/SimpleERC721.sol";
 contract DeployDirectLocal is Script {
     // Polygon contract address for Courtyard NFTs
     address constant POLYGON_CONTRACT_ADDRESS = 0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD;
-    
+
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
@@ -223,7 +223,7 @@ contract DeployDirectLocal is Script {
             if (i >= 3 && i < 36) {
                 appraisalContract.overrideAppraisal(address(nftContract), tokenId, estimatedValue);
                 console.log("Appraised NFT", tokenId, "at $", estimatedValue / 1e18);
-                
+
                 // Add to deposit arrays (shift index since we start from i=3)
                 depositTokens[i - 3] = address(nftContract);
                 depositTokenIds[i - 3] = tokenId;
@@ -237,7 +237,9 @@ contract DeployDirectLocal is Script {
         treasury.batchDepositNFT(depositTokens, depositTokenIds);
 
         console.log("\\n=== VERIFIED Real Courtyard NFT Setup Complete ===");
-        console.log("Total NFTs minted:       36 (Using 9 VERIFIED REAL COURTYARD TOKENS cycled with different rarities)");
+        console.log(
+            "Total NFTs minted:       36 (Using 9 VERIFIED REAL COURTYARD TOKENS cycled with different rarities)"
+        );
         console.log("NFTs appraised:          33 (tokens 3-35 - includes ALL rarities)");
         console.log("NFTs deposited:          33 (tokens 3-35)");
         console.log("NFTs not appraised:      3 (tokens 0-2) - Available for testing appraisal");
@@ -260,45 +262,48 @@ contract DeployDirectLocal is Script {
             "0x544ee57d69aa9a92cde78d297a01b847c0cb9763d4e653782d2e0fc3d6f5d4c4", // VERIFIED: Real token
             "0x277508a1beabc304c4b89f95a1117397901b7040f1df0cdb0531f16642b5793a", // VERIFIED: Real token
             "0xb7d232fecdc7bca4ed9b1f47328edc8cf38fe57416d4c31e8bc948c9ba7a6467", // VERIFIED: Real token
-            "0x23afbd41b540a6675d4df584bc7b79bd0f99376cb8882b49e4e4e7e34577810d"  // VERIFIED: Real token
+            "0x23afbd41b540a6675d4df584bc7b79bd0f99376cb8882b49e4e4e7e34577810d" // VERIFIED: Real token
         ];
 
         // Convert hex string to uint256
         return _hexStringToUint256(courtyardTokenIds[cardIndex]);
     }
-    
+
     function _hexStringToUint256(string memory hexString) internal pure returns (uint256) {
         bytes memory hexBytes = bytes(hexString);
         require(hexBytes.length == 66, "Invalid hex string length"); // 0x + 64 chars
-        require(hexBytes[0] == '0' && hexBytes[1] == 'x', "Invalid hex prefix");
-        
+        require(hexBytes[0] == "0" && hexBytes[1] == "x", "Invalid hex prefix");
+
         uint256 result = 0;
         for (uint256 i = 2; i < hexBytes.length; i++) {
             result = result * 16;
             uint8 charValue = uint8(hexBytes[i]);
-            
-            if (charValue >= 48 && charValue <= 57) { // 0-9
+
+            if (charValue >= 48 && charValue <= 57) {
+                // 0-9
                 result += charValue - 48;
-            } else if (charValue >= 97 && charValue <= 102) { // a-f
+            } else if (charValue >= 97 && charValue <= 102) {
+                // a-f
                 result += charValue - 87;
-            } else if (charValue >= 65 && charValue <= 70) { // A-F
+            } else if (charValue >= 65 && charValue <= 70) {
+                // A-F
                 result += charValue - 55;
             } else {
                 revert("Invalid hex character");
             }
         }
-        
+
         return result;
     }
 
     function _getCardValue(uint256 cardIndex) internal pure returns (uint256) {
         // Create 36 cards with proper rarity distribution:
         // Most Common (18 cards): $35-85 range
-        // Uncommon (9 cards): $120-180 range  
+        // Uncommon (9 cards): $120-180 range
         // Rare (5 cards): $280-350 range
         // Epic (3 cards): $450-850 range
         // Legendary (1 card): $1200 (exceeds $1000 threshold)
-        
+
         // Common cards (0-17): 18 cards, mostly low values
         if (cardIndex < 18) {
             uint256[6] memory commonBaseValues = [uint256(35), 45, 55, 65, 75, 85]; // Mix of low values

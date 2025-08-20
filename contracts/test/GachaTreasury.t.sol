@@ -15,7 +15,7 @@ contract GachaTreasuryTest is Test {
 
     function setUp() public {
         mockAppraisal = new MockNFTAppraisal();
-        
+
         // Use a mock gacha address for testing
         address mockGacha = address(0x999);
         treasury = new GachaTreasury(owner, mockGacha, address(mockAppraisal));
@@ -71,7 +71,9 @@ contract GachaTreasuryTest is Test {
 
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should have exactly 1 Common NFT ($50)");
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 1, "Should have exactly 1 Rare NFT ($1000)");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 1, "Should have exactly 1 Legendary NFT ($15000)");
+        assertEq(
+            treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 1, "Should have exactly 1 Legendary NFT ($15000)"
+        );
         assertEq(treasury.getTotalItemsCount(), 3, "Should have exactly 3 total NFTs");
     }
 
@@ -188,7 +190,11 @@ contract GachaTreasuryTest is Test {
         vm.stopPrank();
 
         // Check initial deposit counts
-        assertEq(treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic), 1, "Should have exactly 1 Epic deposit before win");
+        assertEq(
+            treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic),
+            1,
+            "Should have exactly 1 Epic deposit before win"
+        );
         assertEq(treasury.getUserTotalDepositCount(owner), 1, "Should have exactly 1 total deposit before win");
 
         vm.prank(gachaAddress);
@@ -200,9 +206,13 @@ contract GachaTreasuryTest is Test {
         assertEq(item.tokenId, tokenId, "Item should contain correct tokenId");
         assertEq(uint8(item.rarity), uint8(GachaTreasury.Rarity.Epic), "Item should be Epic rarity");
         assertEq(item.appraisedPrice, 5000e18, "Item should contain exact appraised price of $5000");
-        
+
         // Verify user deposit counts decreased by exactly 1
-        assertEq(treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic), 0, "Should have exactly 0 Epic deposits after win");
+        assertEq(
+            treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic),
+            0,
+            "Should have exactly 0 Epic deposits after win"
+        );
         assertEq(treasury.getUserTotalDepositCount(owner), 0, "Should have exactly 0 total deposits after win");
     }
 
@@ -302,7 +312,6 @@ contract GachaTreasuryTest is Test {
         vm.stopPrank();
     }
 
-
     function testIsGachaAvailable() public {
         // Initially should be false (empty whitelist)
         assertFalse(treasury.isGachaAvailable());
@@ -355,37 +364,37 @@ contract GachaTreasuryTest is Test {
         uint256[] memory tokenIds = new uint256[](6);
         uint256[] memory prices = new uint256[](6);
         GachaTreasury.Rarity[] memory expectedRarities = new GachaTreasury.Rarity[](6);
-        
+
         // Common: $99 (just below $100 threshold)
         tokenIds[0] = nft.mint(owner);
         prices[0] = 99e18;
         expectedRarities[0] = GachaTreasury.Rarity.Common;
-        
+
         // Uncommon: $100 (exact threshold)
         tokenIds[1] = nft.mint(owner);
         prices[1] = 100e18;
         expectedRarities[1] = GachaTreasury.Rarity.Uncommon;
-        
+
         // Rare: $500 (exact threshold)
         tokenIds[2] = nft.mint(owner);
         prices[2] = 500e18;
         expectedRarities[2] = GachaTreasury.Rarity.Rare;
-        
+
         // Epic: $2000 (exact threshold)
         tokenIds[3] = nft.mint(owner);
         prices[3] = 2000e18;
         expectedRarities[3] = GachaTreasury.Rarity.Epic;
-        
+
         // Legendary: $10000 (exact threshold)
         tokenIds[4] = nft.mint(owner);
         prices[4] = 10000e18;
         expectedRarities[4] = GachaTreasury.Rarity.Legendary;
-        
+
         // Legendary: $50000 (way above threshold)
         tokenIds[5] = nft.mint(owner);
         prices[5] = 50000e18;
         expectedRarities[5] = GachaTreasury.Rarity.Legendary;
-        
+
         // Deposit all NFTs and verify exact rarity assignment
         for (uint256 i = 0; i < tokenIds.length; i++) {
             nft.approve(address(treasury), tokenIds[i]);
@@ -399,9 +408,13 @@ contract GachaTreasuryTest is Test {
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Uncommon), 1, "Should have exactly 1 Uncommon ($100)");
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 1, "Should have exactly 1 Rare ($500)");
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Should have exactly 1 Epic ($2000)");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 2, "Should have exactly 2 Legendary ($10000 & $50000)");
+        assertEq(
+            treasury.getRarityCount(GachaTreasury.Rarity.Legendary),
+            2,
+            "Should have exactly 2 Legendary ($10000 & $50000)"
+        );
         assertEq(treasury.getTotalItemsCount(), 6, "Should have exactly 6 total NFTs");
-        
+
         // Verify items in each rarity pool have correct prices
         GachaTreasury.NFTItem[] memory legendaryItems = treasury.getTreasuryItems(GachaTreasury.Rarity.Legendary);
         assertEq(legendaryItems.length, 2, "Should have 2 items in Legendary pool");

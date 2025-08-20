@@ -39,8 +39,8 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
-        address requester;      // Address that initiated the spin
-        bool fulfilled;         // Whether the spin has been completed
+        address requester; // Address that initiated the spin
+        bool fulfilled; // Whether the spin has been completed
     }
 
     /// @notice Core contract interfaces and addresses
@@ -82,9 +82,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity selectedRarity, uint256 refundAmount
     );
 
-    event SpinReclaimed(
-        uint256 indexed triggerId, address indexed requester, uint256 refundAmount
-    );
+    event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTokenUpdated(address oldToken, address newToken);
@@ -95,14 +93,9 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     event EmergencyPause(address indexed admin);
     event EmergencyUnpause(address indexed admin);
     event RewardsDistributed(uint256 rewardsAmount);
-    
+
     /// @notice Enhanced events for better UX tracking
-    event SpinStatusUpdate(
-        uint256 indexed triggerId,
-        address indexed requester,
-        string status,
-        uint256 timestamp
-    );
+    event SpinStatusUpdate(uint256 indexed triggerId, address indexed requester, string status, uint256 timestamp);
 
     /// @notice Restricts access to the authorized gacha service handler
     modifier onlyGachaServiceHandler() {
@@ -142,7 +135,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         feeToken = IERC20(_feeToken);
         spinFee = _spinFee;
         rewardsManager = GachaRewardsManager(_rewardsManager);
-        
+
         // Initialize trigger ID to start from 1 instead of 0
         _nextTriggerId = 1;
     }
@@ -256,12 +249,12 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
             treasury.sendNFTToWinner(selectedRarity, selectedIndex, request.requester);
 
         emit SpinCompleted(
-            triggerId, 
-            request.requester, 
-            selectedRarity, 
-            selectedNFT.collection, 
+            triggerId,
+            request.requester,
+            selectedRarity,
+            selectedNFT.collection,
             selectedNFT.tokenId,
-            selectedNFT.appraisedPrice  // Include appraised price in event
+            selectedNFT.appraisedPrice // Include appraised price in event
         );
         emit SpinStatusUpdate(triggerId, request.requester, "completed", block.timestamp);
     }
@@ -330,10 +323,10 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     /// @notice Batch function to get multiple spin requests
     /// @param triggerIds Array of trigger IDs to query
     /// @return requests Array of spin requests
-    function getBatchSpinRequests(uint256[] calldata triggerIds) 
-        external 
-        view 
-        returns (SpinRequest[] memory requests) 
+    function getBatchSpinRequests(uint256[] calldata triggerIds)
+        external
+        view
+        returns (SpinRequest[] memory requests)
     {
         requests = new SpinRequest[](triggerIds.length);
         for (uint256 i = 0; i < triggerIds.length; i++) {
@@ -400,20 +393,20 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
      */
     function reclaimFailedSpin(uint256 triggerId) external nonReentrant {
         SpinRequest storage request = spinRequests[triggerId];
-        
+
         // Validate the request exists and caller is the original requester
         if (request.requester == address(0)) revert InvalidTriggerId();
         if (request.requester != msg.sender) revert NotSpinRequester();
         if (request.fulfilled) revert CannotReclaimFulfilledSpin();
-        
+
         // Mark as fulfilled to prevent any future fulfillment of this trigger
         request.fulfilled = true;
-        
+
         // Refund the spin fee if one was paid
         if (spinFee > 0) {
             feeToken.safeTransfer(request.requester, spinFee);
         }
-        
+
         emit SpinReclaimed(triggerId, request.requester, spinFee);
         emit SpinStatusUpdate(triggerId, request.requester, "reclaimed", block.timestamp);
     }
@@ -454,17 +447,17 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i < 5; i++) {
             GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
             GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(rarity);
-            
+
             if (items.length == 0) {
                 averageValues[i] = 0;
                 continue;
             }
-            
+
             uint256 totalValue = 0;
             for (uint256 j = 0; j < items.length; j++) {
                 totalValue += items[j].appraisedPrice;
             }
-            
+
             averageValues[i] = totalValue / items.length;
         }
     }
@@ -477,11 +470,10 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i < 5; i++) {
             GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
             GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(rarity);
-            
+
             for (uint256 j = 0; j < items.length; j++) {
                 totalValueUSD += items[j].appraisedPrice;
             }
         }
     }
-
 }

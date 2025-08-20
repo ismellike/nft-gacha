@@ -36,28 +36,29 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
-        Pending,        // Awaiting external service response
-        Completed,      // Price set by oracle
-        OwnerOverride   // Price manually set by owner
+        Pending, // Awaiting external service response
+        Completed, // Price set by oracle
+        OwnerOverride // Price manually set by owner
+
     }
 
     /// @notice Represents an NFT appraisal record
     struct Appraisal {
-        address requester;      // User who requested appraisal
-        uint256 priceUSD;       // Appraised price in USD (scaled by 1e18)
+        address requester; // User who requested appraisal
+        uint256 priceUSD; // Appraised price in USD (scaled by 1e18)
         AppraisalStatus status; // Current status
-        uint256 timestamp;      // When appraisal was requested
-        uint256 lastUpdated;    // When price was last updated
+        uint256 timestamp; // When appraisal was requested
+        uint256 lastUpdated; // When price was last updated
     }
 
     /// @notice Configuration variables
-    IERC20 public feeToken;           // Token used for appraisal fees
-    uint256 public appraisalFee;      // Fee amount for appraisal requests
-    address public protocolAddress;   // Address receiving protocol fees
+    IERC20 public feeToken; // Token used for appraisal fees
+    uint256 public appraisalFee; // Fee amount for appraisal requests
+    address public protocolAddress; // Address receiving protocol fees
 
     /// @notice Oracle management
-    mapping(address => bool) public authorizedOracles;  // Approved external oracles
-    address[] public oracleList;                        // List of all oracles
+    mapping(address => bool) public authorizedOracles; // Approved external oracles
+    address[] public oracleList; // List of all oracles
 
     /// @notice Appraisal storage
     /// @dev collection => tokenId => Appraisal
@@ -65,19 +66,11 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Events for external service integration and monitoring
     event AppraisalRequested(
-        address indexed collection,
-        uint256 indexed tokenId,
-        address indexed requester,
-        uint256 fee,
-        uint256 timestamp
+        address indexed collection, uint256 indexed tokenId, address indexed requester, uint256 fee, uint256 timestamp
     );
 
     event AppraisalCompleted(
-        address indexed collection,
-        uint256 indexed tokenId,
-        uint256 priceUSD,
-        address indexed oracle,
-        uint256 timestamp
+        address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed oracle, uint256 timestamp
     );
 
     event AppraisalOverridden(
@@ -88,19 +81,14 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         address indexed owner
     );
 
-    event PriceUpdated(
-        address indexed collection,
-        uint256 indexed tokenId,
-        uint256 oldPriceUSD,
-        uint256 newPriceUSD
-    );
+    event PriceUpdated(address indexed collection, uint256 indexed tokenId, uint256 oldPriceUSD, uint256 newPriceUSD);
 
     event OracleAuthorized(address indexed oracle);
     event OracleRevoked(address indexed oracle);
     event AppraisalFeeUpdated(uint256 oldFee, uint256 newFee);
     event FeeTokenUpdated(address oldToken, address newToken);
     event ProtocolAddressUpdated(address oldAddress, address newAddress);
-    
+
     /// @notice Enhanced events for better UX
     event AppraisalStatusChanged(
         address indexed collection,
@@ -123,12 +111,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @param _appraisalFee Fee amount for each appraisal request
      * @param _protocolAddress Address to receive protocol fees
      */
-    constructor(
-        address _owner,
-        address _feeToken,
-        uint256 _appraisalFee,
-        address _protocolAddress
-    ) Ownable(_owner) {
+    constructor(address _owner, address _feeToken, uint256 _appraisalFee, address _protocolAddress) Ownable(_owner) {
         if (_feeToken == address(0)) revert InvalidFeeToken();
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
 
@@ -143,14 +126,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @param tokenId Token ID to appraise
      * @dev Emits AppraisalRequested event for external service to pick up
      */
-    function requestAppraisal(address collection, uint256 tokenId) 
-        external 
-        whenNotPaused 
-        nonReentrant 
-    {
+    function requestAppraisal(address collection, uint256 tokenId) external whenNotPaused nonReentrant {
         if (collection == address(0)) revert InvalidCollection();
         if (!_isValidNFTContract(collection)) revert InvalidCollection();
-        
+
         // Verify token exists
         try IERC721(collection).ownerOf(tokenId) returns (address) {
             // Token exists, continue
@@ -178,7 +157,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         });
 
         emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee, block.timestamp);
-        emit AppraisalStatusChanged(collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp);
+        emit AppraisalStatusChanged(
+            collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp
+        );
     }
 
     /**
@@ -187,16 +168,16 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @param tokenIds Array of token IDs to appraise
      * @dev Emits AppraisalRequested event for each NFT for external service to pick up
      */
-    function requestBatchAppraisal(address[] calldata collections, uint256[] calldata tokenIds) 
-        external 
-        whenNotPaused 
-        nonReentrant 
+    function requestBatchAppraisal(address[] calldata collections, uint256[] calldata tokenIds)
+        external
+        whenNotPaused
+        nonReentrant
     {
         require(collections.length == tokenIds.length, "Array length mismatch");
         require(collections.length > 0, "Empty arrays");
 
         uint256 totalFee = appraisalFee * collections.length;
-        
+
         // Collect total appraisal fee upfront
         if (totalFee > 0) {
             feeToken.safeTransferFrom(msg.sender, protocolAddress, totalFee);
@@ -206,10 +187,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i < collections.length; i++) {
             address collection = collections[i];
             uint256 tokenId = tokenIds[i];
-            
+
             if (collection == address(0)) revert InvalidCollection();
             if (!_isValidNFTContract(collection)) revert InvalidCollection();
-            
+
             // Verify token exists
             try IERC721(collection).ownerOf(tokenId) returns (address) {
                 // Token exists, continue
@@ -233,7 +214,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
             // Emit events for external service integration
             emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee, block.timestamp);
-            emit AppraisalStatusChanged(collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp);
+            emit AppraisalStatusChanged(
+                collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp
+            );
         }
     }
 
@@ -243,11 +226,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @param tokenId Token ID that was appraised
      * @param priceUSD Appraised price in USD (scaled by 1e18)
      */
-    function setAppraisedPrice(
-        address collection, 
-        uint256 tokenId, 
-        uint256 priceUSD
-    )
+    function setAppraisedPrice(address collection, uint256 tokenId, uint256 priceUSD)
         external
         onlyAuthorizedOracle
         whenNotPaused
@@ -262,8 +241,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         appraisal.lastUpdated = block.timestamp;
 
         emit AppraisalCompleted(collection, tokenId, priceUSD, msg.sender, block.timestamp);
-        emit AppraisalStatusChanged(collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Completed, block.timestamp);
-        
+        emit AppraisalStatusChanged(
+            collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Completed, block.timestamp
+        );
+
         if (oldPrice != priceUSD) {
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
         }
@@ -276,11 +257,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @param priceUSD New price in USD (scaled by 1e18)
      * @dev Creates appraisal record if it doesn't exist
      */
-    function overrideAppraisal(
-        address collection, 
-        uint256 tokenId, 
-        uint256 priceUSD
-    )
+    function overrideAppraisal(address collection, uint256 tokenId, uint256 priceUSD)
         external
         onlyOwner
         whenNotPaused
@@ -305,7 +282,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
         emit AppraisalOverridden(collection, tokenId, oldPrice, priceUSD, msg.sender);
         emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.OwnerOverride, block.timestamp);
-        
+
         if (oldPrice != priceUSD) {
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
         }
@@ -318,10 +295,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @return priceUSD Appraised price in USD (0 if not appraised)
      * @return status Current appraisal status
      */
-    function getAppraisedPrice(address collection, uint256 tokenId) 
-        external 
-        view 
-        returns (uint256 priceUSD, AppraisalStatus status) 
+    function getAppraisedPrice(address collection, uint256 tokenId)
+        external
+        view
+        returns (uint256 priceUSD, AppraisalStatus status)
     {
         Appraisal memory appraisal = appraisals[collection][tokenId];
         return (appraisal.priceUSD, appraisal.status);
@@ -333,11 +310,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @param tokenId Token ID to query
      * @return appraisal Complete appraisal record
      */
-    function getAppraisal(address collection, uint256 tokenId) 
-        external 
-        view 
-        returns (Appraisal memory appraisal) 
-    {
+    function getAppraisal(address collection, uint256 tokenId) external view returns (Appraisal memory appraisal) {
         return appraisals[collection][tokenId];
     }
 
@@ -347,15 +320,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @param tokenId Token ID to check
      * @return True if NFT has been appraised with a price > 0
      */
-    function hasAppraisal(address collection, uint256 tokenId) 
-        external 
-        view 
-        returns (bool) 
-    {
+    function hasAppraisal(address collection, uint256 tokenId) external view returns (bool) {
         Appraisal memory appraisal = appraisals[collection][tokenId];
-        return appraisal.priceUSD > 0 && 
-               (appraisal.status == AppraisalStatus.Completed || 
-                appraisal.status == AppraisalStatus.OwnerOverride);
+        return appraisal.priceUSD > 0
+            && (appraisal.status == AppraisalStatus.Completed || appraisal.status == AppraisalStatus.OwnerOverride);
     }
 
     /**
@@ -371,10 +339,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         returns (uint256[] memory prices, AppraisalStatus[] memory statuses)
     {
         require(collections.length == tokenIds.length, "Array length mismatch");
-        
+
         prices = new uint256[](collections.length);
         statuses = new AppraisalStatus[](collections.length);
-        
+
         for (uint256 i = 0; i < collections.length; i++) {
             Appraisal memory appraisal = appraisals[collections[i]][tokenIds[i]];
             prices[i] = appraisal.priceUSD;
@@ -394,14 +362,13 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         returns (bool[] memory hasAppraisals)
     {
         require(collections.length == tokenIds.length, "Array length mismatch");
-        
+
         hasAppraisals = new bool[](collections.length);
-        
+
         for (uint256 i = 0; i < collections.length; i++) {
             Appraisal memory appraisal = appraisals[collections[i]][tokenIds[i]];
-            hasAppraisals[i] = appraisal.priceUSD > 0 && 
-                              (appraisal.status == AppraisalStatus.Completed || 
-                               appraisal.status == AppraisalStatus.OwnerOverride);
+            hasAppraisals[i] = appraisal.priceUSD > 0
+                && (appraisal.status == AppraisalStatus.Completed || appraisal.status == AppraisalStatus.OwnerOverride);
         }
     }
 
