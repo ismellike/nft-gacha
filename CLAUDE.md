@@ -29,12 +29,16 @@ task backend:start         # Start WAVS backend services
 ```bash
 # In frontend/ directory
 pnpm tsc                  # Type checking (use this to validate code)
-pnpm build                # Production build
 pnpm lint                 # Biome linting with auto-fix
 pnpm format               # Biome formatting
 pnpm codegen              # Generate TypeScript types from contracts
 
-# IMPORTANT: Do not start development servers - only validate with tsc
+# IMPORTANT: NEVER use these commands - they interfere with user workflow:
+# - pnpm dev (development server)
+# - pnpm build (production build) 
+# - next build (Next.js build)
+# - next dev (Next.js dev server)
+# Only validate code with pnpm tsc
 ```
 
 ### Smart Contract Development

@@ -1085,7 +1085,6 @@ function GachaDetailPageContent() {
 						</div>
 					)}
 				</motion.div>
-
 			</div>
 		</div>
 	);

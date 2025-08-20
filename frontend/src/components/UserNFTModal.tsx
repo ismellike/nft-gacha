@@ -3,23 +3,21 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
-import { GlassCard, GlassButton, LoadingState } from "@/components/ui";
+import { GlassButton, LoadingState, GlassCard } from "@/components/ui";
+import { UnifiedNFTCard } from "@/components/ui/UnifiedNFTCard";
 import {
 	useReadErc721Name,
 	useReadErc721Symbol,
 	useReadErc721BalanceOf,
-	useReadNftAppraisalGetAppraisal,
 } from "@/generated";
 import {
 	XMarkIcon,
-	PhotoIcon,
 	CheckIcon,
 	ArrowUpTrayIcon,
 	SparklesIcon,
-	CheckBadgeIcon,
+	PhotoIcon,
 } from "@heroicons/react/24/outline";
-import { formatAddress, formatCurrency } from "@/lib/utils";
-import { useNFTWithMetadata } from "@/hooks/useNFTWithMetadata";
+import { formatAddress } from "@/lib/utils";
 import { useUserOwnedNFTs } from "@/hooks/useUserOwnedNFTs";
 import { useGachaContracts } from "@/hooks/useGachaContracts";
 import { useGachaId } from "@/hooks/useGachaId";
@@ -30,31 +28,21 @@ interface UserNFTModalProps {
 	onClose: () => void;
 }
 
-interface NFTCardProps {
+interface SelectableNFTCardProps {
 	collectionAddress: string;
 	tokenId: bigint;
 	isSelected: boolean;
 	onToggleSelect: (tokenId: bigint) => void;
 }
 
-function NFTCard({
+function SelectableNFTCard({
 	collectionAddress,
 	tokenId,
 	isSelected,
 	onToggleSelect,
-}: NFTCardProps) {
+}: SelectableNFTCardProps) {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	
-	// Use the new metadata hook
-	const nftData = useNFTWithMetadata(collectionAddress, tokenId.toString());
-	
-	// Get appraisal information
-	const { data: appraisalData } = useReadNftAppraisalGetAppraisal({
-		address: contracts.appraisal,
-		args: [collectionAddress as `0x${string}`, tokenId],
-		query: { enabled: !!contracts.appraisal },
-	});
 
 	return (
 		<motion.div
@@ -64,65 +52,32 @@ function NFTCard({
 			transition={{ duration: 0.3 }}
 			className="relative"
 		>
-			<GlassCard
-				variant="base"
-				className={`p-4 cursor-pointer transition-all duration-200 ${
-					isSelected
-						? "ring-2 ring-warning bg-warning/10"
-						: "hover:bg-content1/30"
-				}`}
+			<UnifiedNFTCard
+				collection={collectionAddress}
+				tokenId={tokenId.toString()}
+				size="md"
+				variant="detailed"
+				showAppraisal={true}
+				appraisalContractAddress={contracts.appraisal!}
+				animate={true}
+				priority={5}
 				onClick={() => onToggleSelect(tokenId)}
-			>
-				<div className="aspect-square mb-3 relative bg-content1/20 rounded-xl overflow-hidden">
-					{nftData.isLoading ? (
-						<div className="w-full h-full flex items-center justify-center">
-							<div className="w-8 h-8 border-2 border-warning border-t-transparent rounded-full animate-spin" />
-						</div>
-					) : nftData.imageUrl ? (
-						<img
-							src={nftData.imageUrl}
-							alt={nftData.metadata?.name || `Token #${tokenId}`}
-							className="w-full h-full object-cover"
-							onError={(e) => {
-								e.currentTarget.style.display = "none";
-								e.currentTarget.nextElementSibling?.classList.remove("hidden");
-							}}
-						/>
-					) : null}
+				className={`transition-all duration-200 ${
+					isSelected
+						? "ring-2 ring-yellow-400 ring-opacity-60 shadow-lg shadow-yellow-400/20"
+						: "hover:scale-105"
+				}`}
+			/>
 
-					<div className="hidden w-full h-full flex items-center justify-center bg-content1/20">
-						<PhotoIcon className="w-12 h-12 text-default-400" />
-					</div>
-
-					{isSelected && (
-						<motion.div
-							initial={{ opacity: 0, scale: 0.8 }}
-							animate={{ opacity: 1, scale: 1 }}
-							className="absolute top-2 right-2 w-6 h-6 bg-warning rounded-full flex items-center justify-center"
-						>
-							<CheckIcon className="w-4 h-4 text-black" />
-						</motion.div>
-					)}
-				</div>
-
-				<div className="text-center space-y-1">
-					<h4 className="font-medium text-sm truncate">
-						{nftData.metadata?.name || `Token #${tokenId}`}
-					</h4>
-					<p className="text-xs text-default-600">
-						ID: {tokenId.toString()}
-					</p>
-					{appraisalData && appraisalData.priceUSD > 0 && appraisalData.status === 1 && (
-						<div className="flex items-center justify-center gap-1 text-xs bg-success/10 text-success px-2 py-1 rounded-full">
-							<CheckBadgeIcon className="w-3 h-3" />
-							<span>{formatCurrency(appraisalData.priceUSD.toString(), 18, "USD")}</span>
-						</div>
-					)}
-					{nftData.error && (
-						<p className="text-xs text-danger">Failed to load metadata</p>
-					)}
-				</div>
-			</GlassCard>
+			{isSelected && (
+				<motion.div
+					initial={{ opacity: 0, scale: 0.8 }}
+					animate={{ opacity: 1, scale: 1 }}
+					className="absolute top-3 right-3 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center z-20 shadow-lg"
+				>
+					<CheckIcon className="w-4 h-4 text-black" />
+				</motion.div>
+			)}
 		</motion.div>
 	);
 }
@@ -257,9 +212,7 @@ export function UserNFTModal({
 										<h4 className="text-lg font-semibold mb-2">
 											Error Loading NFTs
 										</h4>
-										<p className="text-default-600 mb-4">
-											{tokensError}
-										</p>
+										<p className="text-default-600 mb-4">{tokensError}</p>
 										<GlassButton variant="secondary" onClick={refetchTokens}>
 											Try Again
 										</GlassButton>
@@ -307,7 +260,7 @@ export function UserNFTModal({
 
 										<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 max-h-96 overflow-y-auto">
 											{userTokens.map((tokenId) => (
-												<NFTCard
+												<SelectableNFTCard
 													key={tokenId.toString()}
 													collectionAddress={collectionAddress}
 													tokenId={tokenId}

@@ -6,7 +6,7 @@ import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
-import { NFTInventoryCard, GlassBadge } from "./ui";
+import { GlassBadge, StandardNFTGrid, useTreasuryItemsToGridItems } from "./ui";
 import {
 	ExclamationTriangleIcon,
 	ArchiveBoxIcon,
@@ -39,20 +39,15 @@ export default function RarityShowcaseModal({
 		query: { enabled: rarity !== null && isOpen && !!contracts.treasury },
 	});
 
+	// Convert treasury items to grid items format (must be called before any early returns)
+	const gridItems = useTreasuryItemsToGridItems(
+		nftItems, // Hook will handle undefined internally
+		rarity ?? undefined,
+	);
+
 	if (rarity === null) return null;
 
 	const rarityConfig = getRarityConfig(rarity);
-
-	// Format NFT display data - let NFTCard handle image fetching from metadata
-	const formattedItems = nftItems
-		? nftItems.map((item) => ({
-				collection: item.collection,
-				tokenId: item.tokenId.toString(),
-				depositor: item.depositor,
-				// Remove placeholder override - let NFTCard fetch real metadata and images
-				// imageUrl will be undefined, allowing proper metadata fetching in NFTCard
-			}))
-		: [];
 
 	const modalStyles = glassModal({ size: "7xl" });
 
@@ -106,7 +101,7 @@ export default function RarityShowcaseModal({
 						</motion.div>
 						{!isLoading && (
 							<GlassBadge variant="primary" size="md">
-								{formattedItems.length} Available
+								{gridItems.length} Available
 							</GlassBadge>
 						)}
 					</div>
@@ -147,7 +142,7 @@ export default function RarityShowcaseModal({
 								Unable to fetch {rarityConfig.name} NFTs. Please try again.
 							</p>
 						</motion.div>
-					) : formattedItems.length === 0 ? (
+					) : gridItems.length === 0 ? (
 						<motion.div
 							className="text-center py-32"
 							initial={{ opacity: 0, scale: 0.95 }}
@@ -163,30 +158,15 @@ export default function RarityShowcaseModal({
 							</p>
 						</motion.div>
 					) : (
-						<motion.div
-							className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-6"
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							transition={{ staggerChildren: 0.03 }}
-						>
-							{formattedItems.map((item, index) => (
-								<motion.div
-									key={`${item.collection}-${item.tokenId}`}
-									initial={{ opacity: 0, y: 20 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: index * 0.03 }}
-								>
-									<NFTInventoryCard
-										collection={item.collection}
-										tokenId={item.tokenId}
-										showAppraisal={true}
-										appraisalContractAddress={contracts.appraisal!}
-										animate={true}
-										rarity={rarity}
-									/>
-								</motion.div>
-							))}
-						</motion.div>
+						<StandardNFTGrid
+							items={gridItems}
+							appraisalContractAddress={contracts.appraisal!}
+							showAppraisal={true}
+							animate={true}
+							enableLazyLoading={true}
+							priorityLoadCount={16} // Load first 16 items with high priority
+							itemsPerPage={gridItems.length > 50 ? 50 : undefined} // Paginate if many items
+						/>
 					)}
 				</ModalBody>
 			</ModalContent>

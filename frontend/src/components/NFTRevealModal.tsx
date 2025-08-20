@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalContent, ModalBody } from "@heroui/react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { NFTInventoryCard } from "./NFTCard";
+import { NFTHeroCard } from "./ui";
 import { glassModal } from "../lib/theme-config";
 import { useEnhancedSpinResult } from "../hooks/useNFTWithMetadata";
 
@@ -151,7 +151,7 @@ export default function NFTRevealModal({
 								>
 									{/* NFT Card - Using same size as rarity showcase */}
 									<div className="flex flex-col items-center">
-										<NFTInventoryCard
+										<NFTHeroCard
 											collection={nftResult.collection}
 											tokenId={nftResult.tokenId}
 											imageUrl={enhancedResult?.imageUrl || nftResult.imageUrl}

@@ -15,7 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { GlassCard, GlassButton, LoadingState } from "./ui";
-import { NFTCard } from "./NFTCard";
+import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { useReadNftAppraisalGetAppraisal, nftAppraisalAbi } from "../generated";
@@ -120,7 +120,7 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 					<div className="flex justify-center">
 						<div className="w-48 h-48">
 							{contracts.appraisal && (
-								<NFTCard
+								<UnifiedNFTCard
 									collection={nft.collection}
 									tokenId={nft.tokenId}
 									variant="compact"

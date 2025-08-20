@@ -39,9 +39,9 @@ export function NFTAppraisalDashboard({
 
 	// Auto-switch to form mode if URL params are present
 	useEffect(() => {
-		const collectionParam = searchParams.get('collection');
-		const tokenIdParam = searchParams.get('tokenId');
-		
+		const collectionParam = searchParams.get("collection");
+		const tokenIdParam = searchParams.get("tokenId");
+
 		if ((collectionParam || tokenIdParam) && viewMode === "overview") {
 			setViewMode("form");
 		}

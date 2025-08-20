@@ -47,7 +47,8 @@ const waitForApprovalConfirmation = fromPromise(
 			publicClient: PublicClient;
 		};
 	}): Promise<string> => {
-		const { collection, tokenId, treasuryAddress, userAddress, publicClient } = input;
+		const { collection, tokenId, treasuryAddress, userAddress, publicClient } =
+			input;
 
 		// Check if NFT is already approved
 		try {
@@ -78,7 +79,9 @@ const waitForApprovalConfirmation = fromPromise(
 
 			throw new Error("NFT not approved - please approve first");
 		} catch (error) {
-			throw new Error(`Failed to check approval status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			throw new Error(
+				`Failed to check approval status: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 		}
 	},
 );
@@ -108,7 +111,9 @@ const waitForDepositConfirmation = fromPromise(
 			});
 
 			if (currentOwner?.toLowerCase() === userAddress.toLowerCase()) {
-				throw new Error("NFT still owned by user - deposit transaction may have failed");
+				throw new Error(
+					"NFT still owned by user - deposit transaction may have failed",
+				);
 			}
 
 			console.log("✅ [NFTDepositMachine] NFT successfully deposited");
@@ -116,7 +121,9 @@ const waitForDepositConfirmation = fromPromise(
 		} catch (error) {
 			// If ownerOf fails, the token might not exist or might be deposited
 			// Let's assume success if we can't verify ownership
-			console.log("✅ [NFTDepositMachine] NFT deposit completed (ownership check failed, assuming success)");
+			console.log(
+				"✅ [NFTDepositMachine] NFT deposit completed (ownership check failed, assuming success)",
+			);
 			return "deposit-confirmed";
 		}
 	},
@@ -334,7 +341,9 @@ export const nftDepositMachine = createMachine(
 			setDepositError: assign({
 				error: ({ event }) => {
 					if (event.type === "xstate.error.actor.waitForDepositConfirmation") {
-						return (event.error as Error)?.message || "Deposit confirmation failed";
+						return (
+							(event.error as Error)?.message || "Deposit confirmation failed"
+						);
 					}
 					return null;
 				},

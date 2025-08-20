@@ -31,8 +31,37 @@ export {
 	type NFTCardProps,
 } from "../NFTCard";
 
-// Export Courtyard-specific components
+// Export new optimized NFT card components
 export {
-	CourtyardNFTCard,
-	type CourtyardNFTCardProps,
-} from "../CourtyardNFTCard";
+	BaseNFTCard,
+	NFTThumbnail as BaseNFTThumbnail,
+	NFTCompactCard,
+	NFTDetailCard,
+	NFTShowcaseCard as BaseNFTShowcaseCard,
+	NFTHeroCard as BaseNFTHeroCard,
+	type BaseNFTCardProps,
+	type NFTCardSize,
+} from "./BaseNFTCard";
+
+export {
+	OptimizedNFTCard,
+	NFTGridCard,
+	NFTListCard,
+	NFTHeroCard,
+	NFTThumbnail,
+	type OptimizedNFTCardProps,
+} from "./OptimizedNFTCard";
+
+export {
+	NFTGrid,
+	CompactNFTGrid,
+	StandardNFTGrid,
+	ShowcaseNFTGrid,
+	useTreasuryItemsToGridItems,
+	type NFTGridProps,
+	type NFTGridItem,
+	type GridLayout,
+	type GridSize,
+} from "./NFTGrid";
+
+// Courtyard functionality is now built into UnifiedNFTCard
