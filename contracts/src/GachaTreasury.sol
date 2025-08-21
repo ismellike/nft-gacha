@@ -42,10 +42,14 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     error RarityMigrationFailed();
     error InvalidPriceRange();
     error OverlappingPriceRanges();
+    error NoNFTsAvailable(Rarity rarity);
+    error NFTNotDeposited();
+    error NotNFTDepositor();
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
     uint256 public constant MAX_BATCH_WITHDRAW = 20;
+    uint256 public constant MAX_MIGRATION_BATCH = 50;
 
     /// @notice NFT rarity tiers for gacha distribution
     enum Rarity {
@@ -95,6 +99,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @notice User deposit tracking for rewards
     mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
     mapping(address => uint256) public userTotalDeposits;
+    
+    /// @notice Value-weighted dividend tracking
+    mapping(address => mapping(Rarity => uint256)) public userDepositValues;  // Total USD value deposited by user per rarity
+    mapping(Rarity => uint256) public totalRarityValue;  // Total USD value in each rarity pool
 
     /// @notice Collection whitelist management
     mapping(address => bool) public whitelistedCollections;
@@ -218,6 +226,18 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Track user deposit counts for rewards
         userDepositCounts[msg.sender][rarity]++;
         userTotalDeposits[msg.sender]++;
+        
+        // Track value-weighted deposits for enhanced rewards
+        userDepositValues[msg.sender][rarity] += priceUSD;
+        totalRarityValue[rarity] += priceUSD;
+        
+        // Notify rewards manager about the deposit to update dividend corrections
+        if (treasuryRewardsManager != address(0)) {
+            (bool success,) = treasuryRewardsManager.call(
+                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", msg.sender, uint8(rarity))
+            );
+            success; // Silence unused variable warning
+        }
 
         emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
     }
@@ -292,42 +312,89 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Update user deposit counts
         userDepositCounts[item.depositor][currentRarity]--;
         userDepositCounts[item.depositor][newRarity]++;
+        
+        // Update value-weighted tracking for dividend rewards
+        uint256 oldPrice = item.appraisedPrice; // Use original price before update
+        userDepositValues[item.depositor][currentRarity] -= oldPrice;
+        userDepositValues[item.depositor][newRarity] += newPriceUSD;
+        totalRarityValue[currentRarity] -= oldPrice;
+        totalRarityValue[newRarity] += newPriceUSD;
+        
+        // Notify rewards manager about the value change (update dividend corrections)
+        if (treasuryRewardsManager != address(0)) {
+            // Update corrections for both old and new rarities
+            (bool success1,) = treasuryRewardsManager.call(
+                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", item.depositor, uint8(currentRarity))
+            );
+            (bool success2,) = treasuryRewardsManager.call(
+                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", item.depositor, uint8(newRarity))
+            );
+            success1; success2; // Silence unused variable warnings
+        }
 
         emit RarityMigrated(collection, tokenId, currentRarity, newRarity, newPriceUSD);
     }
 
-    /// @notice Withdraws an NFT from the treasury (owner only)
-    /// @param rarity Rarity tier to withdraw from
-    /// @param index Index of NFT in the rarity array
-    /// @param to Recipient address
-    function withdrawNFT(Rarity rarity, uint256 index, address to) external onlyOwner whenNotPaused nonReentrant {
+
+    /// @notice Allows users to withdraw their own deposited NFTs
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID to withdraw
+    function withdrawMyNFT(address collection, uint256 tokenId) external whenNotPaused nonReentrant {
+        if (collection == address(0)) revert InvalidCollectionAddress();
+        if (!depositedNFTs[collection][tokenId]) revert NFTNotDeposited();
+        
+        // Get the NFT's current rarity and treasury index
+        Rarity rarity = nftCurrentRarity[collection][tokenId];
+        uint256 index = nftToTreasuryIndex[collection][tokenId];
+        
         if (index >= treasury[rarity].length) revert InvalidIndex();
-        if (to == address(0)) revert InvalidRecipient();
-
-        NFTItem memory item = treasury[rarity][index];
-
-        // Update treasury array
-        treasury[rarity][index] = treasury[rarity][treasury[rarity].length - 1];
-        treasury[rarity].pop();
-
-        // Update index mapping for moved item
-        if (index < treasury[rarity].length) {
-            NFTItem memory movedItem = treasury[rarity][index];
-            nftToTreasuryIndex[movedItem.collection][movedItem.tokenId] = index;
+        
+        NFTItem storage item = treasury[rarity][index];
+        
+        // Verify the caller is the original depositor
+        if (item.depositor != msg.sender) revert NotNFTDepositor();
+        
+        // Move the last item to the current position and pop
+        uint256 lastIndex = treasury[rarity].length - 1;
+        if (index != lastIndex) {
+            NFTItem storage lastItem = treasury[rarity][lastIndex];
+            treasury[rarity][index] = lastItem;
+            nftToTreasuryIndex[lastItem.collection][lastItem.tokenId] = index;
         }
-
+        treasury[rarity].pop();
+        
+        // Update counts
         unchecked {
             --rarityCount[rarity];
         }
-
+        
+        // Update user deposit tracking (affects their rewards)
+        if (userDepositCounts[item.depositor][rarity] > 0) {
+            --userDepositCounts[item.depositor][rarity];
+            --userTotalDeposits[item.depositor];
+        }
+        
+        // Update value tracking - subtract the NFT's value from user and total
+        userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+        totalRarityValue[rarity] -= item.appraisedPrice;
+        
         // Clean up mappings
-        depositedNFTs[item.collection][item.tokenId] = false;
-        delete nftToTreasuryIndex[item.collection][item.tokenId];
-        delete nftCurrentRarity[item.collection][item.tokenId];
-
-        IERC721(item.collection).safeTransferFrom(address(this), to, item.tokenId);
-
-        emit NFTWithdrawn(item.collection, item.tokenId, rarity, to);
+        depositedNFTs[collection][tokenId] = false;
+        delete nftToTreasuryIndex[collection][tokenId];
+        delete nftCurrentRarity[collection][tokenId];
+        
+        // Notify rewards manager about the withdrawal (update dividend corrections)
+        if (treasuryRewardsManager != address(0)) {
+            (bool success,) = treasuryRewardsManager.call(
+                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", item.depositor, uint8(rarity))
+            );
+            success; // Silence unused variable warning
+        }
+        
+        // Transfer NFT back to the user
+        IERC721(collection).safeTransferFrom(address(this), msg.sender, tokenId);
+        
+        emit NFTWithdrawn(collection, tokenId, rarity, msg.sender);
     }
 
     /// @notice Sends NFT to gacha winner (called by gacha contract)
@@ -360,6 +427,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             --userDepositCounts[item.depositor][rarity];
             --userTotalDeposits[item.depositor];
         }
+        
+        // Update value tracking - subtract the NFT's value from user and total
+        userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+        totalRarityValue[rarity] -= item.appraisedPrice;
 
         // Clean up mappings
         depositedNFTs[item.collection][item.tokenId] = false;
@@ -575,6 +646,18 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             // Track user deposit counts for rewards
             userDepositCounts[msg.sender][rarity]++;
             userTotalDeposits[msg.sender]++;
+            
+            // Track value-weighted deposits for enhanced rewards
+            userDepositValues[msg.sender][rarity] += priceUSD;
+            totalRarityValue[rarity] += priceUSD;
+            
+            // Notify rewards manager about the deposit to update dividend corrections
+            if (treasuryRewardsManager != address(0)) {
+                (bool success,) = treasuryRewardsManager.call(
+                    abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", msg.sender, uint8(rarity))
+                );
+                success; // Silence unused variable warning
+            }
 
             emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
         }
@@ -582,45 +665,6 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         emit BatchDeposited(length, Rarity.Common); // Use a placeholder for the event
     }
 
-    /// @notice Batch withdraw multiple NFTs of same rarity
-    /// @param rarity Rarity tier to withdraw from
-    /// @param indices Array of indices to withdraw
-    /// @param to Recipient address
-    function batchWithdrawNFT(Rarity rarity, uint256[] calldata indices, address to)
-        external
-        onlyOwner
-        whenNotPaused
-        nonReentrant
-    {
-        uint256 length = indices.length;
-        if (length == 0) revert EmptyArrays();
-        if (length > MAX_BATCH_WITHDRAW) revert TooManyItems();
-        if (to == address(0)) revert InvalidRecipient();
-
-        // Sort indices in descending order to avoid index shifting issues
-        uint256[] memory sortedIndices = _quickSort(indices);
-
-        for (uint256 i; i < length;) {
-            uint256 index = sortedIndices[i];
-            if (index >= treasury[rarity].length) revert InvalidIndex();
-
-            NFTItem memory item = treasury[rarity][index];
-
-            treasury[rarity][index] = treasury[rarity][treasury[rarity].length - 1];
-            treasury[rarity].pop();
-            unchecked {
-                --rarityCount[rarity];
-                ++i;
-            }
-            depositedNFTs[item.collection][item.tokenId] = false;
-
-            IERC721(item.collection).safeTransferFrom(address(this), to, item.tokenId);
-
-            emit NFTWithdrawn(item.collection, item.tokenId, rarity, to);
-        }
-
-        emit BatchWithdrawn(length, rarity, to);
-    }
 
     // Helper functions
     function _isValidNFTContract(address collection) private view returns (bool) {
@@ -695,6 +739,168 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         if (user == address(0)) return counts; // Returns all zeros
         for (uint256 i = 0; i < 5; i++) {
             counts[i] = userDepositCounts[user][Rarity(i)];
+        }
+    }
+
+    // ============ VALUE-WEIGHTED DIVIDEND FUNCTIONS ============
+
+    /// @notice Gets user's total deposited value for a specific rarity  
+    /// @param user User address
+    /// @param rarity Rarity to check
+    /// @return value Total USD value (in 18 decimals) deposited by user for the rarity
+    function getUserDepositValue(address user, Rarity rarity) external view returns (uint256 value) {
+        if (user == address(0)) return 0;
+        return userDepositValues[user][rarity];
+    }
+
+    /// @notice Gets total value in a specific rarity pool
+    /// @param rarity Rarity to check  
+    /// @return totalValue Total USD value (in 18 decimals) in the rarity pool
+    function getRarityTotalValue(Rarity rarity) external view returns (uint256 totalValue) {
+        return totalRarityValue[rarity];
+    }
+
+    /// @notice Gets all deposit values for a user across all rarities
+    /// @param user User address
+    /// @return values Array of deposit values [Common, Uncommon, Rare, Epic, Legendary] in USD (18 decimals)
+    function getUserAllDepositValues(address user) external view returns (uint256[5] memory values) {
+        if (user == address(0)) return values; // Returns all zeros
+        for (uint256 i = 0; i < 5; i++) {
+            values[i] = userDepositValues[user][Rarity(i)];
+        }
+    }
+
+    /// @notice Gets total values across all rarity pools
+    /// @return values Array of total values [Common, Uncommon, Rare, Epic, Legendary] in USD (18 decimals)
+    function getAllRarityTotalValues() external view returns (uint256[5] memory values) {
+        for (uint256 i = 0; i < 5; i++) {
+            values[i] = totalRarityValue[Rarity(i)];
+        }
+    }
+
+    /// @notice Migrates value data for a batch of NFTs to avoid gas limits
+    /// @dev Processes NFTs in chunks to prevent out-of-gas errors
+    /// @param rarity Target rarity pool
+    /// @param startIndex Starting index in the array
+    /// @param endIndex Ending index (exclusive) - max 50 NFTs per call
+    function migrateBatchNFTValues(Rarity rarity, uint256 startIndex, uint256 endIndex) external onlyOwner {
+        if (endIndex > treasury[rarity].length) endIndex = treasury[rarity].length;
+        if (endIndex - startIndex > 50) revert TooManyItems(); // Limit batch size
+        
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            NFTItem memory item = treasury[rarity][i];
+            
+            // Only add if not already migrated (avoid double counting)
+            if (!_isNFTValueMigrated(item.collection, item.tokenId)) {
+                userDepositValues[item.depositor][rarity] += item.appraisedPrice;
+                totalRarityValue[rarity] += item.appraisedPrice;
+                
+                // Mark as migrated
+                _markNFTValueMigrated(item.collection, item.tokenId);
+            }
+        }
+    }
+    
+    // Track which NFTs have been migrated to avoid double counting
+    mapping(address => mapping(uint256 => bool)) private nftValueMigrated;
+    
+    function _isNFTValueMigrated(address collection, uint256 tokenId) private view returns (bool) {
+        return nftValueMigrated[collection][tokenId];
+    }
+    
+    function _markNFTValueMigrated(address collection, uint256 tokenId) private {
+        nftValueMigrated[collection][tokenId] = true;
+    }
+
+    /// @notice Sends a pseudo-random NFT to winner (optimized for gas)
+    /// @param rarity Rarity tier to select from  
+    /// @param randomSeed Random seed for selection (from VRF or similar)
+    /// @param winner Winner's address
+    /// @return item The NFT item that was sent
+    function sendRandomNFTToWinner(Rarity rarity, uint256 randomSeed, address winner) 
+        external 
+        onlyGacha 
+        returns (NFTItem memory item) 
+    {
+        uint256 totalCount = treasury[rarity].length;
+        if (totalCount == 0) revert NoNFTsAvailable(rarity);
+        if (winner == address(0)) revert InvalidRecipient();
+
+        // O(1) random selection
+        uint256 randomIndex = randomSeed % totalCount;
+        return _removeNFTAtIndex(rarity, randomIndex, winner);
+    }
+
+    /// @notice Gas-optimized NFT removal using swap-and-pop
+    /// @param rarity Rarity pool
+    /// @param index Index to remove
+    /// @param winner Winner receiving the NFT
+    /// @return item Removed NFT item
+    function _removeNFTAtIndex(Rarity rarity, uint256 index, address winner) 
+        private 
+        returns (NFTItem memory item) 
+    {
+        NFTItem[] storage rarityTreasury = treasury[rarity];
+        if (index >= rarityTreasury.length) revert InvalidIndex();
+
+        item = rarityTreasury[index];
+
+        // O(1) removal: swap with last element and pop
+        rarityTreasury[index] = rarityTreasury[rarityTreasury.length - 1];
+        rarityTreasury.pop();
+
+        // Update index mapping for the swapped item (if any)
+        if (index < rarityTreasury.length) {
+            NFTItem memory movedItem = rarityTreasury[index];
+            nftToTreasuryIndex[movedItem.collection][movedItem.tokenId] = index;
+        }
+
+        // Update counters and value tracking
+        unchecked {
+            --rarityCount[rarity];
+            --userDepositCounts[item.depositor][rarity];
+            --userTotalDeposits[item.depositor];
+        }
+        
+        userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+        totalRarityValue[rarity] -= item.appraisedPrice;
+
+        // Clean up mappings
+        depositedNFTs[item.collection][item.tokenId] = false;
+        delete nftToTreasuryIndex[item.collection][item.tokenId];
+        delete nftCurrentRarity[item.collection][item.tokenId];
+
+        // Transfer NFT to winner
+        IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
+
+        // Notify rewards manager
+        if (treasuryRewardsManager != address(0)) {
+            (bool success,) = treasuryRewardsManager.call(
+                abi.encodeWithSignature("recordNFTWon(address,uint8)", item.depositor, uint8(rarity))
+            );
+            success;
+        }
+
+        emit NFTWithdrawn(item.collection, item.tokenId, rarity, winner);
+    }
+
+    /// @notice Estimates gas cost and returns safe batch size for migration
+    /// @param rarity Target rarity pool
+    /// @return maxSafeBatch Maximum NFTs that can be migrated in one transaction
+    /// @return totalBatches Total number of batches needed
+    function getMigrationBatchInfo(Rarity rarity) external view returns (uint256 maxSafeBatch, uint256 totalBatches) {
+        uint256 totalNFTs = treasury[rarity].length;
+        maxSafeBatch = MAX_MIGRATION_BATCH;
+        totalBatches = (totalNFTs + maxSafeBatch - 1) / maxSafeBatch; // Ceiling division
+    }
+
+    /// @notice Get treasury status for gas optimization monitoring
+    /// @return sizes Array of rarity pool sizes [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return totalSize Total NFTs across all rarities
+    function getTreasuryGasStatus() external view returns (uint256[5] memory sizes, uint256 totalSize) {
+        for (uint256 i = 0; i < 5; i++) {
+            sizes[i] = treasury[Rarity(i)].length;
+            totalSize += sizes[i];
         }
     }
 

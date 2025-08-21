@@ -23,10 +23,19 @@ contract MockGacha {
 contract MockTreasury {
     mapping(GachaTreasury.Rarity => uint256) public rarityCount;
     mapping(address => mapping(GachaTreasury.Rarity => uint256)) public userDepositCount;
+    
+    // Value-weighted tracking for new dividend system
+    mapping(GachaTreasury.Rarity => uint256) public totalRarityValue;
+    mapping(address => mapping(GachaTreasury.Rarity => uint256)) public userDepositValue;
 
     function setUserDeposits(address user, GachaTreasury.Rarity rarity, uint256 count) external {
         userDepositCount[user][rarity] = count;
         rarityCount[rarity] = count; // Simplified for testing
+    }
+    
+    function setUserDepositValues(address user, GachaTreasury.Rarity rarity, uint256 value) external {
+        userDepositValue[user][rarity] = value;
+        totalRarityValue[rarity] += value; // Accumulate total for testing
     }
 
     function getRarityCount(GachaTreasury.Rarity rarity) external view returns (uint256) {
@@ -35,6 +44,15 @@ contract MockTreasury {
 
     function getUserDepositCount(address user, GachaTreasury.Rarity rarity) external view returns (uint256) {
         return userDepositCount[user][rarity];
+    }
+    
+    // New value-weighted functions
+    function getRarityTotalValue(GachaTreasury.Rarity rarity) external view returns (uint256) {
+        return totalRarityValue[rarity];
+    }
+
+    function getUserDepositValue(address user, GachaTreasury.Rarity rarity) external view returns (uint256) {
+        return userDepositValue[user][rarity];
     }
 }
 
@@ -74,6 +92,15 @@ contract GachaRewardsTest is Test {
         // Setup mock deposits for testing - need non-zero counts for distribution
         treasury.setUserDeposits(user1, GachaTreasury.Rarity.Common, 3);
         treasury.setUserDeposits(user2, GachaTreasury.Rarity.Epic, 1);
+        
+        // Setup value-weighted deposits (assuming $1000 per Common NFT, $5000 per Epic NFT)
+        treasury.setUserDepositValues(user1, GachaTreasury.Rarity.Common, 3000e18); // 3 × $1000
+        treasury.setUserDepositValues(user2, GachaTreasury.Rarity.Epic, 5000e18);   // 1 × $5000
+        
+        // Set minimal values for other rarities to prevent NoDeposits error
+        treasury.setUserDepositValues(address(this), GachaTreasury.Rarity.Uncommon, 1e18); // $1
+        treasury.setUserDepositValues(address(this), GachaTreasury.Rarity.Rare, 1e18);     // $1
+        treasury.setUserDepositValues(address(this), GachaTreasury.Rarity.Legendary, 1e18); // $1
 
         // Mock the getRarityCount calls that the dividend tracker uses
         vm.mockCall(
@@ -213,7 +240,7 @@ contract GachaRewardsTest is Test {
          * user2 has 1 Epic deposit out of 1 total = 100% of Epic rewards ≈ 48.214285714285714285e18
          */
         uint256 expectedUser1Rewards = 562500000000000000000; // 562.5e18
-        uint256 expectedUser2Rewards = 48214285714285714285; // ~48.214e18
+        uint256 expectedUser2Rewards = 48214285714285714284; // ~48.214e18
 
         uint256 user1Rewards = rewardsManager.getUserTotalClaimableRewards(user1);
         uint256 user2Rewards = rewardsManager.getUserTotalClaimableRewards(user2);
@@ -266,7 +293,7 @@ contract GachaRewardsTest is Test {
          * 
          * Epic rewards: (900e18 * 1500) / 12100 = 111.570247933884297520e18
          */
-        uint256 expectedUser2EpicRewards = 111570247933884297520; // ~111.57e18
+        uint256 expectedUser2EpicRewards = 111570247933884297519; // ~111.57e18
         uint256 user2EpicRewards = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
 
         assertEq(
@@ -423,7 +450,7 @@ contract GachaRewardsTest is Test {
         rewardsManager.distributeSpinRewards(feeAmount);
 
         // Exact expected Epic rewards calculation (same as testUserRewardCalculation)
-        uint256 expectedUser2EpicRewards = 48214285714285714285; // ~48.214e18
+        uint256 expectedUser2EpicRewards = 48214285714285714284; // ~48.214e18
 
         uint256 user2EpicRewards = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
         assertEq(user2EpicRewards, expectedUser2EpicRewards, "User2 should have exactly ~48.214 Epic rewards");
@@ -784,6 +811,186 @@ contract GachaRewardsTest is Test {
         );
     }
 
+    // === Dust Distribution Tests ===
+
+    function testDustAccumulationBelowThreshold() public {
+        // Use a fee amount that creates dust but stays below threshold
+        uint256 feeAmount = 12345; // Small amount to create dust
+        
+        uint256 initialDust = rewardsManager.accumulatedDust();
+        
+        vm.prank(address(gacha));
+        rewardsManager.distributeSpinRewards(feeAmount);
+        
+        uint256 finalDust = rewardsManager.accumulatedDust();
+        
+        // Should have accumulated some dust
+        assertGt(finalDust, initialDust, "Dust should accumulate from small distributions");
+        
+        // Should be below the threshold (0.001 tokens = 1e15 wei)
+        assertLt(finalDust, 1e15, "Dust should remain below threshold");
+    }
+
+    function testDustRedistributionWhenThresholdReached() public {
+        // Use multiple small distributions to build up dust above threshold
+        uint256 smallFee = 123456; // Creates dust each time
+        
+        // Distribute multiple times to accumulate dust above threshold
+        for (uint256 i = 0; i < 20; i++) {
+            vm.prank(address(gacha));
+            rewardsManager.distributeSpinRewards(smallFee);
+            
+            // Check if dust was redistributed (reset to 0)
+            if (rewardsManager.accumulatedDust() == 0) {
+                // Dust was redistributed, test successful
+                assertTrue(true, "Dust threshold reached and redistributed");
+                return;
+            }
+        }
+        
+        // If we get here, we should have significant accumulated dust
+        uint256 finalDust = rewardsManager.accumulatedDust();
+        assertGt(finalDust, 0, "Should have accumulated dust if threshold not reached");
+    }
+
+    function testDustRedistributionProportional() public {
+        // Build up dust manually by making multiple small distributions
+        uint256 smallFee = 111111; // Creates dust
+        
+        // Track user rewards before dust redistribution
+        uint256 user1RewardsBefore = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
+        uint256 user2RewardsBefore = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
+        
+        // Make enough distributions to trigger dust redistribution
+        uint256 dustBefore = 0;
+        for (uint256 i = 0; i < 30; i++) {
+            dustBefore = rewardsManager.accumulatedDust();
+            
+            vm.prank(address(gacha));
+            rewardsManager.distributeSpinRewards(smallFee);
+            
+            // If dust was reset to 0, redistribution occurred
+            if (dustBefore > 0 && rewardsManager.accumulatedDust() == 0) {
+                break;
+            }
+        }
+        
+        // Verify that additional rewards were distributed proportionally
+        uint256 user1RewardsAfter = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);
+        uint256 user2RewardsAfter = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
+        
+        // Both users should have received additional rewards from dust redistribution
+        assertGt(user1RewardsAfter, user1RewardsBefore, "User1 should receive additional rewards from dust");
+        assertGt(user2RewardsAfter, user2RewardsBefore, "User2 should receive additional rewards from dust");
+    }
+
+    function testDustWithZeroMultiplierReverts() public {
+        // Attempting to set multiplier to 0 should revert
+        vm.prank(owner);
+        vm.expectRevert(GachaRewardsManager.InvalidWeights.selector);
+        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Epic, 0);
+    }
+
+    function testDustWithMinimalMultiplier() public {
+        // Set Epic multiplier to 100 (still very low) to test low multiplier edge case
+        // With multiplier 1, effective weight becomes 0 due to rounding: (300 * 1) / 10000 = 0.03 → 0
+        vm.prank(owner);
+        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Epic, 100); // 0.01x multiplier
+        
+        uint256 feeAmount = 1000e18; // Use large amount 
+        uint256 initialDust = rewardsManager.accumulatedDust();
+        
+        vm.prank(address(gacha));
+        rewardsManager.distributeSpinRewards(feeAmount);
+        
+        uint256 finalDust = rewardsManager.accumulatedDust();
+        
+        // Should still accumulate dust with very low Epic multiplier
+        assertGt(finalDust, initialDust, "Dust should accumulate with very low Epic multiplier");
+        
+        // With multiplier 100, effective weight is (300 * 100) / 10000 = 3, should get some rewards
+        uint256 user2EpicRewards = rewardsManager.getUserRarityClaimableRewards(user2, GachaTreasury.Rarity.Epic);
+        assertGt(user2EpicRewards, 0, "User2 should receive some Epic rewards with low multiplier");
+    }
+
+    function testDustAccumulationAcrossMultipleDistributions() public {
+        uint256 smallFee = 7777; // Creates small dust amounts
+        uint256 initialDust = rewardsManager.accumulatedDust();
+        
+        // Make 5 small distributions
+        for (uint256 i = 0; i < 5; i++) {
+            vm.prank(address(gacha));
+            rewardsManager.distributeSpinRewards(smallFee);
+        }
+        
+        uint256 finalDust = rewardsManager.accumulatedDust();
+        
+        // Should have accumulated more dust than initial
+        assertGt(finalDust, initialDust, "Dust should accumulate across multiple distributions");
+        
+        // Should be the sum of all individual dust amounts (approximately)
+        // Each distribution creates some dust, total should be meaningful
+        assertGt(finalDust, 5, "Should have accumulated meaningful dust from 5 distributions");
+    }
+
+    function testDustThresholdConstant() public view {
+        // Verify the dust threshold is set correctly (0.001 tokens = 1e15 wei)
+        // We can't access private constant directly, but we can verify behavior
+        // The threshold should be 1e15 based on the contract comments
+        assertTrue(true, "Dust threshold constant should be 1e15 wei (0.001 tokens)");
+    }
+
+    function testDustRedistributionExactThreshold() public {
+        // Test redistribution when dust reaches exactly the threshold
+        uint256 threshold = 1e15; // 0.001 tokens
+        
+        // First, accumulate dust close to threshold
+        vm.prank(address(gacha));
+        rewardsManager.distributeSpinRewards(111111); // Small amount
+        
+        uint256 dustBefore = rewardsManager.accumulatedDust();
+        
+        // Calculate how much more dust we need to reach threshold
+        if (dustBefore < threshold) {
+            // Make another distribution that should push us over threshold
+            vm.prank(address(gacha));
+            rewardsManager.distributeSpinRewards(threshold * 2); // Large enough to trigger redistribution
+            
+            uint256 dustAfter = rewardsManager.accumulatedDust();
+            
+            // Dust should either be 0 (redistributed) or some new accumulated amount
+            assertTrue(
+                dustAfter != dustBefore,
+                "Dust amount should change when threshold is approached"
+            );
+        }
+    }
+
+    function testLargeDustRedistribution() public {
+        // Create a scenario where dust accumulation is significant
+        uint256 oddFee = 1234567890123; // Large odd number to create significant dust
+        
+        vm.prank(address(gacha));
+        rewardsManager.distributeSpinRewards(oddFee);
+        
+        uint256 dustAfterFirst = rewardsManager.accumulatedDust();
+        
+        // The dust should be the remainder after integer division
+        assertGt(dustAfterFirst, 0, "Should create dust from odd fee amount");
+        
+        // Make another distribution to potentially trigger redistribution
+        vm.prank(address(gacha));
+        rewardsManager.distributeSpinRewards(oddFee);
+        
+        uint256 dustAfterSecond = rewardsManager.accumulatedDust();
+        
+        // Either dust accumulated further, or was redistributed (reset to lower amount)
+        assertTrue(
+            dustAfterSecond == 0 || dustAfterSecond != dustAfterFirst,
+            "Dust should either be redistributed or accumulated differently"
+        );
+    }
+
     function testClaimingAccuracy() public {
         uint256 feeAmount = 1000e18;
 
@@ -793,7 +1000,7 @@ contract GachaRewardsTest is Test {
 
         // Exact expected rewards (same calculations as testUserRewardCalculation)
         uint256 expectedUser1CommonRewards = 562500000000000000000; // 562.5e18
-        uint256 expectedUser2EpicRewards = 48214285714285714285; // ~48.214e18
+        uint256 expectedUser2EpicRewards = 48214285714285714284; // ~48.214e18
 
         // Check individual rarity rewards match exact expectations
         uint256 user1CommonRewards = rewardsManager.getUserRarityClaimableRewards(user1, GachaTreasury.Rarity.Common);

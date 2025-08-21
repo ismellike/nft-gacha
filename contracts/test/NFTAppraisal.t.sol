@@ -58,6 +58,7 @@ contract NFTAppraisalTest is Test {
         // Note: NFT is owned by test contract (address(this)), so we can mint directly
         nft.mint(user);
         nft.mint(user);
+        nft.mint(user); // Add third NFT for tokenId 2
 
         // Authorize oracle
         vm.prank(owner);

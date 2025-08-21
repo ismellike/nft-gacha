@@ -53,7 +53,7 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     function distributeFunds(uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert InvalidAmount();
 
-        uint256 totalShares = treasury.getRarityCount(rarity);
+        uint256 totalShares = treasury.getRarityTotalValue(rarity);
         if (totalShares == 0) revert NoDeposits();
 
         // Check for precision loss in points calculation
@@ -98,7 +98,7 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     }
 
     function accumulativeFundsOf(address account) public view returns (uint256) {
-        uint256 shares = treasury.getUserDepositCount(account, rarity);
+        uint256 shares = treasury.getUserDepositValue(account, rarity);
 
         if (shares == 0) return 0;
 
@@ -114,10 +114,10 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     function updateCorrection(address account) external {
         if (msg.sender != rewardsManager && msg.sender != owner()) revert UnauthorizedCaller();
 
-        // This method should be called when treasury deposit counts change
-        // We need to preserve the user's already-earned dividends while updating their share count
+        // This method should be called when treasury deposit values change
+        // We need to preserve the user's already-earned dividends while updating their share value
         uint256 currentWithdrawable = withdrawableFundsOf(account);
-        uint256 newShares = treasury.getUserDepositCount(account, rarity);
+        uint256 newShares = treasury.getUserDepositValue(account, rarity);
         uint256 targetAccumulative = currentWithdrawable + withdrawnFunds[account];
 
         // Enhanced overflow protection for correction calculation

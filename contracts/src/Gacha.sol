@@ -236,17 +236,16 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
             return;
         }
 
-        // Select random NFT from the rarity pool
-        uint256 selectedIndex = uint256(keccak256(abi.encode(randomness, selectedRarity))) % availableCount;
+        // Random selection now handled by treasury.sendRandomNFTToWinner()
 
         // Distribute rewards from spin fee
         if (spinFee > 0) {
             _distributeSpinRewards();
         }
 
-        // Send NFT from treasury to requester
+        // Send NFT from treasury to requester using optimized random selection
         GachaTreasury.NFTItem memory selectedNFT =
-            treasury.sendNFTToWinner(selectedRarity, selectedIndex, request.requester);
+            treasury.sendRandomNFTToWinner(selectedRarity, uint256(randomness), request.requester);
 
         emit SpinCompleted(
             triggerId,

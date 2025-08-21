@@ -33,6 +33,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     error InvalidRecipient();
     error OracleAlreadyAuthorized();
     error OracleNotAuthorized();
+    error InvalidTreasuryAddress();
+    error TreasuryAlreadyWhitelisted();
+    error TreasuryNotWhitelisted();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
@@ -60,6 +63,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     mapping(address => bool) public authorizedOracles; // Approved external oracles
     address[] public oracleList; // List of all oracles
 
+    /// @notice Treasury management for automatic migration
+    mapping(address => bool) public whitelistedTreasuries; // Treasuries that trigger auto-migration
+    address[] public treasuryList; // List of all whitelisted treasuries
+
     /// @notice Appraisal storage
     /// @dev collection => tokenId => Appraisal
     mapping(address => mapping(uint256 => Appraisal)) public appraisals;
@@ -86,6 +93,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     event OracleAuthorized(address indexed oracle);
     event OracleRevoked(address indexed oracle);
     event AppraisalFeeUpdated(uint256 oldFee, uint256 newFee);
+    
+    event TreasuryWhitelisted(address indexed treasury);
+    event TreasuryUnwhitelisted(address indexed treasury);
+    event AutoMigrationTriggered(address indexed treasury, address indexed collection, uint256 indexed tokenId);
     event FeeTokenUpdated(address oldToken, address newToken);
     event ProtocolAddressUpdated(address oldAddress, address newAddress);
 
@@ -247,6 +258,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
         if (oldPrice != priceUSD) {
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
+            
+            // Trigger automatic migration if NFT is in a whitelisted treasury
+            _triggerAutoMigration(collection, tokenId);
         }
     }
 
@@ -285,6 +299,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
         if (oldPrice != priceUSD) {
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
+            
+            // Trigger automatic migration if NFT is in a whitelisted treasury
+            _triggerAutoMigration(collection, tokenId);
         }
     }
 
@@ -458,6 +475,82 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         address oldAddress = protocolAddress;
         protocolAddress = _newProtocolAddress;
         emit ProtocolAddressUpdated(oldAddress, _newProtocolAddress);
+    }
+
+    // ============ TREASURY MANAGEMENT ============
+
+    /**
+     * @notice Add a treasury to the whitelist for automatic migration
+     * @param treasury Treasury contract address
+     */
+    function whitelistTreasury(address treasury) external onlyOwner {
+        if (treasury == address(0)) revert InvalidTreasuryAddress();
+        if (whitelistedTreasuries[treasury]) revert TreasuryAlreadyWhitelisted();
+
+        whitelistedTreasuries[treasury] = true;
+        treasuryList.push(treasury);
+        emit TreasuryWhitelisted(treasury);
+    }
+
+    /**
+     * @notice Remove a treasury from the whitelist
+     * @param treasury Treasury contract address  
+     */
+    function unwhitelistTreasury(address treasury) external onlyOwner {
+        if (!whitelistedTreasuries[treasury]) revert TreasuryNotWhitelisted();
+
+        whitelistedTreasuries[treasury] = false;
+        
+        // Remove from treasuryList array
+        for (uint256 i = 0; i < treasuryList.length; i++) {
+            if (treasuryList[i] == treasury) {
+                treasuryList[i] = treasuryList[treasuryList.length - 1];
+                treasuryList.pop();
+                break;
+            }
+        }
+        
+        emit TreasuryUnwhitelisted(treasury);
+    }
+
+    /**
+     * @notice Internal function to trigger automatic migration if NFT is in whitelisted treasury
+     * @param collection NFT collection address
+     * @param tokenId Token ID to check and migrate
+     */
+    function _triggerAutoMigration(address collection, uint256 tokenId) internal {
+        // Check if the NFT owner is a whitelisted treasury
+        address nftOwner = IERC721(collection).ownerOf(tokenId);
+        
+        if (whitelistedTreasuries[nftOwner]) {
+            // Call the treasury's migration function
+            // Use low-level call to prevent revert from failing this transaction
+            (bool success,) = nftOwner.call(
+                abi.encodeWithSignature("migrateNFTRarity(address,uint256)", collection, tokenId)
+            );
+            
+            if (success) {
+                emit AutoMigrationTriggered(nftOwner, collection, tokenId);
+            }
+            // If migration fails, we don't revert - the price update still happened
+        }
+    }
+
+    /**
+     * @notice Get all whitelisted treasuries
+     * @return treasuries Array of whitelisted treasury addresses
+     */
+    function getWhitelistedTreasuries() external view returns (address[] memory treasuries) {
+        return treasuryList;
+    }
+
+    /**
+     * @notice Check if a treasury is whitelisted
+     * @param treasury Treasury address to check
+     * @return isWhitelisted True if treasury is whitelisted
+     */
+    function isTreasuryWhitelisted(address treasury) external view returns (bool isWhitelisted) {
+        return whitelistedTreasuries[treasury];
     }
 
     // ============ UTILITY FUNCTIONS ============

@@ -360,10 +360,11 @@ contract GachaTest is Test {
     }
 
     function testSpinBlockedWhenRarityEmpty() public {
-        // Remove all common NFTs to test blocking
+        // Remove all common NFTs to test blocking - owner withdraws their own NFTs
         vm.startPrank(owner);
-        for (uint256 i = 0; i < 10; i++) {
-            treasury.withdrawNFT(GachaTreasury.Rarity.Common, 0, owner);
+        // Get the common NFTs that owner deposited (token IDs 0-9)
+        for (uint256 tokenId = 0; tokenId < 10; tokenId++) {
+            treasury.withdrawMyNFT(address(nft), tokenId);
         }
         vm.stopPrank();
 
@@ -375,11 +376,12 @@ contract GachaTest is Test {
     }
 
     function testSpinAllowedWhenZeroWeightRarityEmpty() public {
-        // Set common weight to 0 and remove all common NFTs
+        // Set common weight to 0 and remove all common NFTs - owner withdraws their own NFTs
         vm.startPrank(owner);
         gacha.setRarityWeights(0, 6000, 2000, 1500, 500); // No common weight
-        for (uint256 i = 0; i < 10; i++) {
-            treasury.withdrawNFT(GachaTreasury.Rarity.Common, 0, owner);
+        // Get the common NFTs that owner deposited (token IDs 0-9)
+        for (uint256 tokenId = 0; tokenId < 10; tokenId++) {
+            treasury.withdrawMyNFT(address(nft), tokenId);
         }
         vm.stopPrank();
 
@@ -399,9 +401,9 @@ contract GachaTest is Test {
         uint256 triggerId = gacha.spin();
         vm.stopPrank();
 
-        // Now remove the legendary NFT AFTER spinning but BEFORE fulfillment
+        // Now remove the legendary NFT AFTER spinning but BEFORE fulfillment - owner withdraws their own NFT
         vm.startPrank(owner);
-        treasury.withdrawNFT(GachaTreasury.Rarity.Legendary, 0, owner);
+        treasury.withdrawMyNFT(address(nft), 20); // Legendary NFT is token ID 20
         vm.stopPrank();
 
         uint256 userInitialBalance = feeToken.balanceOf(user1);
@@ -455,10 +457,11 @@ contract GachaTest is Test {
         vm.prank(user1);
         uint256 triggerId = zeroFeeGacha.spin();
 
-        // Now remove all common NFTs AFTER spinning but BEFORE fulfillment
+        // Now remove all common NFTs AFTER spinning but BEFORE fulfillment - owner withdraws their own NFTs
         vm.startPrank(owner);
-        for (uint256 i = 0; i < 5; i++) {
-            zeroFeeGachaTreasury.withdrawNFT(GachaTreasury.Rarity.Common, 0, owner);
+        // Zero fee test uses token IDs 21-25 (5 NFTs minted specifically for this test)
+        for (uint256 tokenId = 21; tokenId < 26; tokenId++) {
+            zeroFeeGachaTreasury.withdrawMyNFT(address(nft), tokenId);
         }
         vm.stopPrank();
 

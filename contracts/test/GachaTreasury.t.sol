@@ -77,7 +77,7 @@ contract GachaTreasuryTest is Test {
         assertEq(treasury.getTotalItemsCount(), 3, "Should have exactly 3 total NFTs");
     }
 
-    function testWithdrawNFT() public {
+    function testUserWithdrawMyNFT() public {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
@@ -88,11 +88,12 @@ contract GachaTreasuryTest is Test {
         mockAppraisal.setMockAppraisal(address(nft), tokenId, 5000e18);
         treasury.depositNFT(address(nft), tokenId);
 
-        treasury.withdrawNFT(GachaTreasury.Rarity.Epic, 0, user);
+        // Owner withdraws their own NFT
+        treasury.withdrawMyNFT(address(nft), tokenId);
         vm.stopPrank();
 
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0, "Should have 0 Epic NFTs after withdrawal");
-        assertEq(nft.ownerOf(tokenId), user, "User should own the withdrawn NFT");
+        assertEq(nft.ownerOf(tokenId), owner, "Owner should own their withdrawn NFT");
     }
 
     function testOnlyNFTOwnerCanDeposit() public {
@@ -107,7 +108,7 @@ contract GachaTreasuryTest is Test {
         vm.stopPrank();
     }
 
-    function testOnlyOwnerCanWithdraw() public {
+    function testOnlyDepositorCanWithdrawTheirNFT() public {
         vm.startPrank(owner);
         // First whitelist the collection
         treasury.addToWhitelist(address(nft));
@@ -118,9 +119,10 @@ contract GachaTreasuryTest is Test {
         treasury.depositNFT(address(nft), tokenId);
         vm.stopPrank();
 
+        // User (not the depositor) cannot withdraw owner's NFT
         vm.startPrank(user);
-        vm.expectRevert();
-        treasury.withdrawNFT(GachaTreasury.Rarity.Common, 0, user);
+        vm.expectRevert(abi.encodeWithSelector(GachaTreasury.NotNFTDepositor.selector));
+        treasury.withdrawMyNFT(address(nft), tokenId);
         vm.stopPrank();
     }
 
