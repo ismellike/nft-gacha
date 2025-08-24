@@ -17,6 +17,8 @@ includes:
     taskfile: ./taskfile/middleware.yml
   cli:
     taskfile: ./taskfile/cli.yml
+  pricing:
+    taskfile: ./taskfile/pricing.yml
 
 tasks:
   clean-env:

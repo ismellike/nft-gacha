@@ -1,0 +1,279 @@
+version: "3"
+
+vars:
+  PROTOCOL_FEE_BPS: 1000
+  # Rarity probabilities (must sum to 1.0)
+  PROB_COMMON: 0.70
+  PROB_UNCOMMON: 0.20
+  PROB_RARE: 0.06
+  PROB_EPIC: 0.03
+  PROB_LEGENDARY: 0.01
+  # Value ranges for each rarity
+  MIN_COMMON: 20
+  MAX_COMMON: 40
+  MIN_UNCOMMON: 40
+  MAX_UNCOMMON: 80
+  MIN_RARE: 80
+  MAX_RARE: 150
+  MIN_EPIC: 150
+  MAX_EPIC: 250
+  MIN_LEGENDARY: 250
+  MAX_LEGENDARY: 500
+
+tasks:
+  calc:
+    desc: "Calculate optimal spin price from configured variables"
+    aliases: [calculate, price]
+    vars:
+      OUTPUT_FORMAT: '{{.OUTPUT_FORMAT | default "detailed"}}'
+    cmds:
+      - |
+        jq -n --argjson fee {{.PROTOCOL_FEE_BPS}} \
+          --argjson probabilities '[{{.PROB_COMMON}}, {{.PROB_UNCOMMON}}, {{.PROB_RARE}}, {{.PROB_EPIC}}, {{.PROB_LEGENDARY}}]' \
+          --argjson mins '[{{.MIN_COMMON}}, {{.MIN_UNCOMMON}}, {{.MIN_RARE}}, {{.MIN_EPIC}}, {{.MIN_LEGENDARY}}]' \
+          --argjson maxs '[{{.MAX_COMMON}}, {{.MAX_UNCOMMON}}, {{.MAX_RARE}}, {{.MAX_EPIC}}, {{.MAX_LEGENDARY}}]' \
+          --arg format "{{.OUTPUT_FORMAT}}" '
+          def meanVal($min; $max): ($min + $max) / 2;
+          def validate: 
+            if ($probabilities | add | . > 1.01 or . < 0.99) then 
+              error("Probabilities must sum to ~1.0, got: " + (. | tostring))
+            else . end;
+          validate |
+          ($fee | tonumber) as $bps
+          | ($bps / 10000.0) as $f
+          | ([ range(0; ($probabilities | length)) | $probabilities[.] * meanVal($mins[.]; $maxs[.]) ] | add) as $ev
+          | (2.0 * $ev / (2.0 - $f)) as $spin
+          | {
+              protocolFeeBps: $bps,
+              expectedValue: ($ev | . * 100 | round | . / 100),
+              spinPrice: ($spin | . * 100 | round | . / 100),
+              protocolRevenue: (($spin * $f) | . * 100 | round | . / 100),
+              spinnerLoss: (($spin - $ev) | . * 100 | round | . / 100),
+              depositorProfit: (($spin * (1.0 - $f)) - $ev | . * 100 | round | . / 100),
+              fairnessGap: ((($spin * (1.0 - $f)) - $ev) - ($spin - $ev) | . * 100 | round | . / 100),
+              rarityBreakdown: [
+                {name: "Common", prob: $probabilities[0], range: "\($mins[0])-\($maxs[0])", ev: ($probabilities[0] * meanVal($mins[0]; $maxs[0]) | . * 100 | round | . / 100)},
+                {name: "Uncommon", prob: $probabilities[1], range: "\($mins[1])-\($maxs[1])", ev: ($probabilities[1] * meanVal($mins[1]; $maxs[1]) | . * 100 | round | . / 100)},
+                {name: "Rare", prob: $probabilities[2], range: "\($mins[2])-\($maxs[2])", ev: ($probabilities[2] * meanVal($mins[2]; $maxs[2]) | . * 100 | round | . / 100)},
+                {name: "Epic", prob: $probabilities[3], range: "\($mins[3])-\($maxs[3])", ev: ($probabilities[3] * meanVal($mins[3]; $maxs[3]) | . * 100 | round | . / 100)},
+                {name: "Legendary", prob: $probabilities[4], range: "\($mins[4])-\($maxs[4])", ev: ($probabilities[4] * meanVal($mins[4]; $maxs[4]) | . * 100 | round | . / 100)}
+              ]
+            }
+          | . as $o
+          | if $format == "json" then
+              $o | @json
+            elif $format == "summary" then
+              "Spin: \($o.spinPrice) | EV: \($o.expectedValue) | Protocol: \($o.protocolRevenue) | Gap: \($o.fairnessGap)"
+            else
+              "GACHA PRICING ANALYSIS\n"
+              + "======================\n"
+              + "Spin Price: \($o.spinPrice) units\n"
+              + "Expected Value: \($o.expectedValue) units\n"
+              + "Protocol Fee: \($o.protocolFeeBps) bps (\(($o.protocolFeeBps/100))%)\n\n"
+              + "OUTCOMES:\n"
+              + "  Protocol Revenue: +\($o.protocolRevenue) units\n"
+              + "  Spinner Loss: -\($o.spinnerLoss) units\n"
+              + "  Depositor Profit: +\($o.depositorProfit) units\n"
+              + "  Fairness Gap: \($o.fairnessGap) units\n\n"
+              + "RARITIES:\n"
+              + ($o.rarityBreakdown | map("  \(.name): \(.prob*100)% chance, \(.range) range, EV \(.ev)") | join("\n"))
+            end'
+
+  from-chain:
+    desc: "Calculate pricing from live contract data"
+    aliases: [chain, live]
+    requires:
+      vars: [GACHA_ADDRESS, RPC_URL]
+    preconditions:
+      - sh: "command -v cast"
+        msg: "foundry cast is required but not installed"
+    vars:
+      OUTPUT_FORMAT: '{{.OUTPUT_FORMAT | default "detailed"}}'
+    cmds:
+      - |
+        set -euo pipefail
+        echo "Fetching on-chain data from {{.GACHA_ADDRESS}}..."
+        
+        CURRENT_FEE=$(cast call "{{.GACHA_ADDRESS}}" "spinFee()" --rpc-url "{{.RPC_URL}}")
+        AVGS=$(cast call "{{.GACHA_ADDRESS}}" "getAverageRarityValues()(uint256[5])" --rpc-url "{{.RPC_URL}}" | tr -d '[]' | tr ',' ' ')
+        WEIGHTS=$(cast call "{{.GACHA_ADDRESS}}" "getRarityWeights()(uint256,uint256,uint256,uint256,uint256)" --rpc-url "{{.RPC_URL}}" | tr -d '()' | tr ',' ' ')
+        
+        read -r AVG_C AVG_U AVG_R AVG_E AVG_L <<< "$AVGS"
+        read -r W_C W_U W_R W_E W_L <<< "$WEIGHTS"
+        
+        jq -n --argjson avg "[$AVG_C,$AVG_U,$AVG_R,$AVG_E,$AVG_L]" \
+          --argjson w "[$W_C,$W_U,$W_R,$W_E,$W_L]" \
+          --argjson bps {{.PROTOCOL_FEE_BPS}} \
+          --argjson currentFee "$CURRENT_FEE" \
+          --arg format "{{.OUTPUT_FORMAT}}" '
+          ($bps | tonumber) as $bps
+          | ($bps/10000.0) as $f
+          | ($w | map(. / 10000.0)) as $p
+          | ($avg | map(. | tonumber)) as $avgVals
+          | ($p | map(. * $avgVals[.])) as $evComponents
+          | ($evComponents | add) as $ev
+          | (2.0 * $ev / (2.0 - $f)) as $spin
+          | {
+              currentSpinFee: ($currentFee | tonumber),
+              optimalSpinPrice: ($spin | . * 100 | round | . / 100),
+              expectedValue: ($ev | . * 100 | round | . / 100),
+              protocolRevenue: (($spin * $f) | . * 100 | round | . / 100),
+              adjustment: (($spin - ($currentFee | tonumber)) | . * 100 | round | . / 100),
+              fairnessGap: ((($spin * (1.0 - $f)) - $ev) - ($spin - $ev) | . * 100 | round | . / 100)
+            }
+          | . as $o
+          | if $format == "json" then
+              $o | @json
+            elif $format == "summary" then
+              "Current: \($o.currentSpinFee) | Optimal: \($o.optimalSpinPrice) | Adjustment: \(if $o.adjustment > 0 then "+" else "" end)\($o.adjustment)"
+            else
+              "ON-CHAIN GACHA ANALYSIS\n"
+              + "=======================\n"
+              + "Contract: {{.GACHA_ADDRESS}}\n"
+              + "Current Spin Fee: \($o.currentSpinFee) units\n"
+              + "Optimal Spin Price: \($o.optimalSpinPrice) units\n"
+              + "Expected Value: \($o.expectedValue) units\n"
+              + "Adjustment Needed: \(if $o.adjustment > 0 then "+" else "" end)\($o.adjustment) units\n"
+              + "Protocol Revenue: \($o.protocolRevenue) units\n"
+              + "Fairness Gap: \($o.fairnessGap) units"
+            end'
+
+  apply:
+    desc: "Update spin fee on-chain"
+    aliases: [set, update]
+    requires:
+      vars: [GACHA_ADDRESS, RPC_URL, SPIN_FEE]
+    preconditions:
+      - sh: "[ -n \"${DEPLOYER_PRIVATE_KEY:-}\" ]"
+        msg: "DEPLOYER_PRIVATE_KEY must be set in env"
+      - sh: "command -v cast"
+        msg: "foundry cast is required"
+    vars:
+      DRY_RUN: '{{.DRY_RUN | default false}}'
+    cmds:
+      - |
+        set -euo pipefail
+        
+        CURRENT_FEE=$(cast call "{{.GACHA_ADDRESS}}" "spinFee()" --rpc-url "{{.RPC_URL}}")
+        echo "SPIN FEE UPDATE"
+        echo "==============="
+        echo "Contract: {{.GACHA_ADDRESS}}"
+        echo "Current: $CURRENT_FEE units"
+        echo "New: {{.SPIN_FEE}} units"
+        echo "Change: $(( {{.SPIN_FEE}} - CURRENT_FEE )) units"
+        echo ""
+        
+        if [ "{{.DRY_RUN}}" = "true" ]; then
+          echo "DRY RUN - No transaction sent"
+          exit 0
+        fi
+        
+        echo "Sending transaction..."
+        TX_HASH=$(cast send {{.GACHA_ADDRESS}} \
+          "setSpinFee(uint256)" {{.SPIN_FEE}} \
+          --rpc-url {{.RPC_URL}} \
+          --private-key ${DEPLOYER_PRIVATE_KEY} \
+          --json | jq -r '.transactionHash')
+        
+        echo "Transaction: $TX_HASH"
+        cast receipt "$TX_HASH" --rpc-url "{{.RPC_URL}}" > /dev/null
+        
+        NEW_FEE=$(cast call "{{.GACHA_ADDRESS}}" "spinFee()" --rpc-url "{{.RPC_URL}}")
+        if [ "$NEW_FEE" = "{{.SPIN_FEE}}" ]; then
+          echo "Success: Fee updated to $NEW_FEE units"
+        else
+          echo "Error: Expected {{.SPIN_FEE}}, got $NEW_FEE"
+          exit 1
+        fi
+
+  fair:
+    desc: "Compare fair vs unfair pricing formulas"
+    cmds:
+      - |
+        jq -n --argjson probabilities '[{{.PROB_COMMON}}, {{.PROB_UNCOMMON}}, {{.PROB_RARE}}, {{.PROB_EPIC}}, {{.PROB_LEGENDARY}}]' \
+          --argjson mins '[{{.MIN_COMMON}}, {{.MIN_UNCOMMON}}, {{.MIN_RARE}}, {{.MIN_EPIC}}, {{.MIN_LEGENDARY}}]' \
+          --argjson maxs '[{{.MAX_COMMON}}, {{.MAX_UNCOMMON}}, {{.MAX_RARE}}, {{.MAX_EPIC}}, {{.MAX_LEGENDARY}}]' \
+          --argjson protocolBps {{.PROTOCOL_FEE_BPS}} '
+          def meanVal($min; $max): ($min + $max) / 2;
+          
+          ([ range(0; ($probabilities | length)) | $probabilities[.] * meanVal($mins[.]; $maxs[.]) ] | add) as $ev
+          | ($protocolBps / 10000.0) as $protocolRate
+          | ($ev / (1.0 - $protocolRate)) as $oldFormulaSpin
+          | (2.0 * $ev / (2.0 - $protocolRate)) as $newFormulaSpin
+          | {
+              expectedValue: ($ev | . * 100 | round | . / 100),
+              protocolRate: ($protocolRate * 100 | round | . / 100),
+              oldFormula: {
+                name: "EV/(1-fee) - Depositor Favored",
+                spinPrice: ($oldFormulaSpin | . * 100 | round | . / 100),
+                spinnerLoss: ($oldFormulaSpin - $ev | . * 100 | round | . / 100),
+                depositorOutcome: (($oldFormulaSpin * (1.0 - $protocolRate)) - $ev | . * 100 | round | . / 100),
+                protocolRevenue: ($oldFormulaSpin * $protocolRate | . * 100 | round | . / 100)
+              },
+              newFormula: {
+                name: "2*EV/(2-fee) - Truly Fair",
+                spinPrice: ($newFormulaSpin | . * 100 | round | . / 100),
+                spinnerLoss: ($newFormulaSpin - $ev | . * 100 | round | . / 100),
+                depositorLoss: ($ev - ($newFormulaSpin * (1.0 - $protocolRate)) | . * 100 | round | . / 100),
+                protocolRevenue: ($newFormulaSpin * $protocolRate | . * 100 | round | . / 100)
+              }
+            }
+          | "FAIR PRICING COMPARISON"
+          + "\n========================"
+          + "\nExpected Value: \(.expectedValue) units"
+          + "\nProtocol Rate: \(.protocolRate)%"
+          + "\n"
+          + "\nOLD FORMULA - \(.oldFormula.name):"
+          + "\n  Spin Price: \(.oldFormula.spinPrice) units"
+          + "\n  Spinner Loss: -\(.oldFormula.spinnerLoss) units"
+          + "\n  Depositor Outcome: \(if .oldFormula.depositorOutcome >= 0 then "+" else "" end)\(.oldFormula.depositorOutcome) units"
+          + "\n  Protocol Revenue: +\(.oldFormula.protocolRevenue) units"
+          + "\n  Problem: Depositor breaks even, spinner takes all risk!"
+          + "\n"
+          + "\nNEW FORMULA - \(.newFormula.name):"
+          + "\n  Spin Price: \(.newFormula.spinPrice) units"
+          + "\n  Spinner Loss: -\(.newFormula.spinnerLoss) units"
+          + "\n  Depositor Loss: -\(.newFormula.depositorLoss) units"
+          + "\n  Protocol Revenue: +\(.newFormula.protocolRevenue) units"
+          + "\n  Fairness: Both parties lose equally to protocol!"'
+
+  simulate:
+    desc: "Test different protocol fees"
+    vars:
+      FEE_RANGE: '{{.FEE_RANGE | default "500,1000,1500,2000"}}'
+    cmds:
+      - |
+        echo "PRICING SIMULATION"
+        echo "=================="
+        IFS=',' read -ra FEES <<< "{{.FEE_RANGE}}"
+        
+        for fee in "${FEES[@]}"; do
+          echo ""
+          echo "Protocol Fee: $fee bps ($(echo "$fee / 100" | bc)%)"
+          echo "----------------------------------------"
+          PROTOCOL_FEE_BPS=$fee task pricing:calc OUTPUT_FORMAT=summary
+        done
+
+  validate:
+    desc: "Validate current configuration"
+    cmds:
+      - |
+        echo "CONFIGURATION VALIDATION"
+        echo "========================"
+        
+        PROB_SUM=$(echo "{{.PROB_COMMON}} + {{.PROB_UNCOMMON}} + {{.PROB_RARE}} + {{.PROB_EPIC}} + {{.PROB_LEGENDARY}}" | bc -l)
+        
+        echo "Protocol Fee: {{.PROTOCOL_FEE_BPS}} bps"
+        echo "Probability Sum: $PROB_SUM"
+        
+        if (( $(echo "$PROB_SUM > 1.01 || $PROB_SUM < 0.99" | bc -l) )); then
+          echo "ERROR: Probabilities must sum to ~1.0"
+          exit 1
+        fi
+        
+        if [ {{.PROTOCOL_FEE_BPS}} -lt 0 ] || [ {{.PROTOCOL_FEE_BPS}} -gt 10000 ]; then
+          echo "ERROR: Protocol fee must be 0-10000 bps"
+          exit 1
+        fi
+        
+        echo "Configuration is valid"
