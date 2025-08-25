@@ -22,6 +22,7 @@ import {
 	ChevronRightIcon,
 	BoltIcon,
 	CogIcon,
+	UserCircleIcon,
 } from "@heroicons/react/24/outline";
 
 type IconSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
@@ -44,6 +45,7 @@ function getIconComponent(iconName: string, className: string) {
 		zap: BoltIcon,
 		settings: CogIcon,
 		refresh: Loader2,
+		"user-circle": UserCircleIcon,
 	};
 
 	const IconComponent = iconMap[iconName];

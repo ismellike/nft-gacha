@@ -7,8 +7,10 @@ import { useAccount, useWriteContract } from "wagmi";
 import { formatTokenAmount } from "../../lib/utils";
 import GachaSpinner from "../../components/GachaSpinner";
 import { AdminControls } from "../../components/AdminControls";
-import AnalyticsDashboard from "../../components/AnalyticsDashboard";
 import { NFTAvailabilitySection } from "../../components/NFTAvailabilitySection";
+import { ProfileDashboard } from "../../components/ProfileDashboard";
+import { PlatformAnalytics } from "../../components/PlatformAnalytics";
+import { RealTimeNotifications } from "../../components/RealTimeNotifications";
 import {
 	CheckIcon,
 	XCircleIcon,
@@ -289,8 +291,8 @@ function GachaDetailPageContent() {
 			const sectionTitles = {
 				spin: "Spin & Play",
 				deposits: "NFT Deposits",
-				analytics: "Treasury Analytics",
-				rewards: "My Rewards",
+				analytics: "Analytics & Insights",
+				rewards: "My Rewards & Profile",
 				admin: "Admin Controls",
 			};
 			const sectionTitle = sectionTitles[activeTab];
@@ -602,7 +604,7 @@ function GachaDetailPageContent() {
 							<GlassButton
 								variant={activeTab === "rewards" ? "primary" : "secondary"}
 								size="md"
-								startIcon="gift"
+								startIcon="user-circle"
 								onClick={() => handleTabChange("rewards")}
 								role="tab"
 								aria-selected={activeTab === "rewards"}
@@ -610,7 +612,7 @@ function GachaDetailPageContent() {
 								tabIndex={activeTab === "rewards" ? 0 : -1}
 								className="flex-1 sm:flex-initial"
 							>
-								My Rewards
+								My Profile
 							</GlassButton>
 							{isOwner && (
 								<GlassButton
@@ -664,7 +666,17 @@ function GachaDetailPageContent() {
 							id="tabpanel-analytics"
 							aria-labelledby="tab-analytics"
 						>
-							<AnalyticsDashboard />
+							<PlatformAnalytics />
+						</div>
+					)}
+
+					{activeTab === "rewards" && (
+						<div
+							role="tabpanel"
+							id="tabpanel-my-rewards"
+							aria-labelledby="tab-my-rewards"
+						>
+							<ProfileDashboard />
 						</div>
 					)}
 
@@ -677,414 +689,10 @@ function GachaDetailPageContent() {
 							<AdminControls gacha={gacha} />
 						</div>
 					)}
-
-					{activeTab === "rewards" && (
-						<div
-							role="tabpanel"
-							id="tabpanel-my-rewards"
-							aria-labelledby="tab-my-rewards"
-							className="space-y-8"
-						>
-							{!isConnected ? (
-								<div className="flex items-center justify-center min-h-[400px]">
-									<GlassCard variant="base" className="p-8 text-center">
-										<WalletIcon className="w-8 h-8 mx-auto mb-4 text-warning" />
-										<h3 className="text-xl font-medium text-foreground mb-4">
-											Connect Your Wallet
-										</h3>
-										<p className="text-foreground/70">
-											Connect your wallet to view your rewards from this gacha
-										</p>
-									</GlassCard>
-								</div>
-							) : (
-								<>
-									{/* Header */}
-									<motion.div
-										className="text-center"
-										initial={{ opacity: 0, y: -20 }}
-										animate={{ opacity: 1, y: 0 }}
-										transition={{ duration: 0.6 }}
-									>
-										<h2 className="text-4xl font-light mb-4 tracking-tight">
-											<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-												My Gacha Rewards
-											</span>
-										</h2>
-										<p className="text-xl text-foreground/70 max-w-3xl mx-auto leading-relaxed font-light">
-											Track your NFT deposits and accumulated rewards from{" "}
-											{gacha?.title}
-										</p>
-									</motion.div>
-
-									{/* Summary Cards */}
-									{isUserAnalyticsLoading ||
-									isTotalClaimableLoading ||
-									isDepositCountsLoading ||
-									isRefetchingRewards ? (
-										<StatsGridSkeleton columns={3} />
-									) : (
-										<div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-											{/* Total Claimable */}
-											<motion.div
-												initial={{ opacity: 0, scale: 0.95 }}
-												animate={{ opacity: 1, scale: 1 }}
-												transition={{ delay: 0.1, duration: 0.6 }}
-											>
-												<GlassCard
-													variant="floating"
-													animate={true}
-													padding="lg"
-												>
-													<div className="flex items-center justify-between">
-														<div>
-															<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
-																Available to Claim
-															</p>
-															<h3 className="text-3xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent mt-2">
-																{optimisticClaim
-																	? "0"
-																	: formatTokenAmountLocal(totalClaimable)}{" "}
-																{tokenSymbol || "TOKENS"}
-															</h3>
-															{optimisticClaim && (
-																<motion.div
-																	initial={{ opacity: 0, scale: 0.95 }}
-																	animate={{ opacity: 1, scale: 1 }}
-																	className="text-xs text-success mt-1 flex items-center gap-1"
-																>
-																	<CheckIcon className="w-3 h-3" />
-																	<span>
-																		Claiming{" "}
-																		{formatTokenAmountLocal(
-																			optimisticClaimedAmount || BigInt(0),
-																		)}{" "}
-																		{tokenSymbol}...
-																	</span>
-																</motion.div>
-															)}
-														</div>
-														<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-															<CurrencyDollarIcon className="w-8 h-8 text-warning" />
-														</div>
-													</div>
-												</GlassCard>
-											</motion.div>
-
-											{/* Total Claimed */}
-											<motion.div
-												initial={{ opacity: 0, scale: 0.95 }}
-												animate={{ opacity: 1, scale: 1 }}
-												transition={{ delay: 0.2, duration: 0.6 }}
-											>
-												<GlassCard
-													variant="floating"
-													animate={true}
-													padding="lg"
-												>
-													<div className="flex items-center justify-between">
-														<div>
-															<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
-																Total Claimed
-															</p>
-															<h3 className="text-3xl font-bold text-foreground mt-2">
-																{userAnalytics
-																	? formatTokenAmountLocal(userAnalytics[0])
-																	: "0"}{" "}
-																{tokenSymbol || "TOKENS"}
-															</h3>
-														</div>
-														<div className="w-16 h-16 bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-															<CheckIcon className="w-8 h-8 text-success" />
-														</div>
-													</div>
-												</GlassCard>
-											</motion.div>
-
-											{/* Total Deposits */}
-											<motion.div
-												initial={{ opacity: 0, scale: 0.95 }}
-												animate={{ opacity: 1, scale: 1 }}
-												transition={{ delay: 0.3, duration: 0.6 }}
-											>
-												<GlassCard
-													variant="floating"
-													animate={true}
-													padding="lg"
-												>
-													<div className="flex items-center justify-between">
-														<div>
-															<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
-																NFTs Deposited
-															</p>
-															<h3 className="text-3xl font-bold text-foreground mt-2">
-																{depositCounts
-																	? depositCounts.reduce(
-																			(sum, count) => sum + Number(count),
-																			0,
-																		)
-																	: 0}
-															</h3>
-														</div>
-													<div className="w-16 h-16 bg-gradient-to-br from-secondary/20 to-secondary/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-														<GiftIcon className="w-8 h-8 text-secondary-400" />
-														</div>
-													</div>
-												</GlassCard>
-											</motion.div>
-										</div>
-									)}
-
-									{/* Rarity Breakdown */}
-									{isUserAnalyticsLoading ||
-									isTotalClaimableLoading ||
-									isDepositCountsLoading ||
-									isRefetchingRewards ? (
-										<div className="bg-content1/20 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-6">
-											<div className="flex justify-between items-center mb-6">
-												<div className="h-8 w-48 bg-content1/30 rounded animate-pulse"></div>
-												<div className="h-12 w-32 bg-content1/30 rounded-xl animate-pulse"></div>
-											</div>
-											<RarityBreakdownSkeleton />
-										</div>
-									) : (
-										<motion.div
-											initial={{ opacity: 0, y: 20 }}
-											animate={{ opacity: 1, y: 0 }}
-											transition={{ delay: 0.4, duration: 0.6 }}
-										>
-											<GlassCard
-												variant="base"
-												padding="none"
-												header={
-													<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-4">
-														<h3 className="text-2xl font-light text-foreground tracking-tight">
-															Rewards by Rarity
-														</h3>
-														<GlassButton
-															size="lg"
-															variant="primary"
-															className="w-full sm:w-auto"
-															isLoading={isClaimPending || optimisticClaim}
-															loadingText={
-																optimisticClaim
-																	? "Processing..."
-																	: "Claiming..."
-															}
-															onClick={handleClaimRewards}
-															isDisabled={
-																!totalClaimable ||
-																totalClaimable === BigInt(0) ||
-																optimisticClaim ||
-																isRefetchingRewards ||
-																isRewardsManagerPaused
-															}
-															animate={true}
-															aria-label={`Claim ${formatTokenAmountLocal(totalClaimable)} ${tokenSymbol} in rewards`}
-														>
-															{optimisticClaim
-																? "Processing Claim..."
-																: "Claim Next Reward"}
-														</GlassButton>
-													</div>
-												}
-											>
-												{/* Desktop/Tablet: Horizontal Layout */}
-												<div className="hidden sm:block pt-8 pb-4">
-													<div className="flex flex-wrap gap-4 justify-center">
-														{rarityRewards.map((rarity, index) => (
-															<motion.div
-																key={rarity.rarity}
-																initial={{ opacity: 0, y: 20 }}
-																animate={{ opacity: 1, y: 0 }}
-																transition={{
-																	delay: 0.5 + index * 0.1,
-																	duration: 0.6,
-																}}
-																className="relative group flex-1 min-w-[180px] max-w-[220px]"
-															>
-																{/* Background glow */}
-																<div
-																	className={`absolute -inset-2 bg-gradient-to-r ${rarity.color} rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300`}
-																/>
-
-																{/* Card */}
-																<div className="relative bg-gradient-to-br from-content1/40 via-background/95 to-content1/30 backdrop-blur-xl rounded-xl border border-white/20 p-4 shadow-xl h-full">
-																	<div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-xl" />
-
-																	<div className="relative z-10 text-center space-y-3">
-																		{/* Rarity badge */}
-																		<div className="inline-flex items-center gap-2 px-2 py-1 bg-gradient-to-r from-content1/50 to-content1/30 backdrop-blur-xl border border-white/30 rounded-full">
-																			<span className="text-sm">
-																				{rarity.emoji}
-																			</span>
-																			<span className="text-xs font-medium text-foreground">
-																				{rarity.rarity}
-																			</span>
-																		</div>
-
-																		{/* Stats in compact layout */}
-																		<div className="space-y-2">
-																			<div>
-																				<p className="text-xs text-foreground/60 uppercase tracking-wide">
-																					Deposits
-																				</p>
-																				<p className="text-lg font-bold text-foreground">
-																					{rarity.deposits}
-																				</p>
-																			</div>
-																			<div>
-																				<p className="text-xs text-foreground/60 uppercase tracking-wide">
-																					Claimable
-																				</p>
-																				<p
-																					className={`text-sm font-semibold bg-gradient-to-r ${rarity.color} bg-clip-text text-transparent`}
-																				>
-																					{rarity.amount} {tokenSymbol}
-																				</p>
-																			</div>
-																		</div>
-																	</div>
-																</div>
-															</motion.div>
-														))}
-													</div>
-												</div>
-
-												{/* Mobile: Vertical List Layout */}
-												<div className="block sm:hidden space-y-3 pt-6 pb-2">
-													{rarityRewards.map((rarity, index) => (
-														<motion.div
-															key={rarity.rarity}
-															initial={{ opacity: 0, x: -20 }}
-															animate={{ opacity: 1, x: 0 }}
-															transition={{
-																delay: 0.5 + index * 0.1,
-																duration: 0.6,
-															}}
-															className="relative group"
-														>
-															{/* Background glow */}
-															<div
-																className={`absolute -inset-1 bg-gradient-to-r ${rarity.color} rounded-lg blur-sm opacity-20 group-hover:opacity-30 transition-opacity duration-300`}
-															/>
-
-															{/* Card */}
-															<div className="relative bg-gradient-to-r from-content1/40 to-content1/20 backdrop-blur-xl rounded-lg border border-white/20 p-4 shadow-lg">
-																<div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-lg" />
-
-																<div className="relative z-10 flex items-center justify-between">
-																	{/* Left side - Rarity info */}
-																	<div className="flex items-center gap-3">
-																		<div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-content1/50 to-content1/30 backdrop-blur-xl border border-white/30 rounded-full">
-																			<span className="text-sm">
-																				{rarity.emoji}
-																			</span>
-																			<span className="text-sm font-medium text-foreground">
-																				{rarity.rarity}
-																			</span>
-																		</div>
-																	</div>
-
-																	{/* Right side - Stats */}
-																	<div className="flex items-center gap-6 text-right">
-																		<div>
-																			<p className="text-xs text-foreground/60 uppercase tracking-wide">
-																				Deposits
-																			</p>
-																			<p className="text-lg font-bold text-foreground">
-																				{rarity.deposits}
-																			</p>
-																		</div>
-																		<div>
-																			<p className="text-xs text-foreground/60 uppercase tracking-wide">
-																				Claimable
-																			</p>
-																			<p
-																				className={`text-sm font-semibold bg-gradient-to-r ${rarity.color} bg-clip-text text-transparent`}
-																			>
-																				{rarity.amount} {tokenSymbol}
-																			</p>
-																		</div>
-																	</div>
-																</div>
-															</div>
-														</motion.div>
-													))}
-												</div>
-											</GlassCard>
-										</motion.div>
-									)}
-
-									{/* Error Display */}
-									<AnimatePresence>
-										{claimError && (
-											<motion.div
-												initial={{ opacity: 0, scale: 0.95 }}
-												animate={{ opacity: 1, scale: 1 }}
-												exit={{ opacity: 0, scale: 0.95 }}
-												className="fixed bottom-8 right-8 z-50 max-w-sm overflow-hidden"
-											>
-												<GlassCard
-													variant="base"
-													className="bg-danger/10 border border-danger/20 shadow-xl backdrop-blur-xl p-4 overflow-hidden"
-												>
-													<div className="flex items-start justify-between gap-3">
-														<div className="flex-1 min-w-0">
-															<div className="flex items-center gap-2 mb-2">
-																<XCircleIcon className="w-4 h-4 text-danger flex-shrink-0" />
-																<h4 className="font-semibold text-danger text-sm truncate">
-																	Transaction Failed
-																</h4>
-															</div>
-															<p className="text-danger/80 text-sm mb-3 break-words">
-																{claimError?.message?.includes(
-																	"insufficient funds",
-																)
-																	? "Insufficient funds for gas fees. Please add more ETH to your wallet."
-																	: claimError?.message?.includes(
-																				"User rejected",
-																			)
-																		? "Transaction was rejected in your wallet."
-																		: claimError?.message?.includes(
-																					"No rewards to claim",
-																				)
-																			? "No rewards available to claim at this time."
-																			: "Failed to claim rewards. This could be due to network issues or insufficient gas."}
-															</p>
-															<div className="flex gap-2 flex-wrap">
-																<GlassButton
-																	variant="danger"
-																	size="sm"
-																	onClick={retryClaimRewards}
-																	isDisabled={isClaimPending}
-																	aria-label="Retry claiming rewards"
-																	className="flex-shrink-0"
-																>
-																	Retry
-																</GlassButton>
-															</div>
-														</div>
-														<button
-															onClick={() => {
-																// Force a state update to clear the error by reloading
-																window.location.reload();
-															}}
-															className="flex-shrink-0 p-1 hover:bg-danger/20 rounded-full transition-colors"
-															aria-label="Close error message"
-														>
-															<XCircleIcon className="w-4 h-4 text-danger/60 hover:text-danger" />
-														</button>
-													</div>
-												</GlassCard>
-											</motion.div>
-										)}
-									</AnimatePresence>
-								</>
-							)}
-						</div>
-					)}
 				</motion.div>
+
+				{/* Real-Time Notifications */}
+				<RealTimeNotifications />
 			</div>
 		</div>
 	);

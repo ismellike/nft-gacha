@@ -10,6 +10,8 @@ import {
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
+import { GlobalPlatformStats } from "../components/GlobalPlatformStats";
+import { RealTimeNotifications } from "../components/RealTimeNotifications";
 
 const rarityColors = [
 	"from-primary-400 to-primary-600",
@@ -322,6 +324,37 @@ export default function LandingPage() {
 				</div>
 			</section>
 
+			{/* Global Platform Stats Section */}
+			<section className="py-24 px-4 relative">
+				<div className="max-w-7xl mx-auto">
+					<motion.div
+						initial={{ opacity: 0, y: 30 }}
+						whileInView={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.8 }}
+						viewport={{ once: true }}
+						className="text-center mb-16"
+					>
+						<h2 className="text-3xl md:text-5xl font-bold mb-6">
+							<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
+								Platform Statistics
+							</span>
+						</h2>
+						<p className="text-lg text-foreground/70 max-w-2xl mx-auto">
+							Real-time insights into the NFT Gacha ecosystem, powered by on-chain data.
+						</p>
+					</motion.div>
+					
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						whileInView={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.8, delay: 0.2 }}
+						viewport={{ once: true }}
+					>
+						<GlobalPlatformStats />
+					</motion.div>
+				</div>
+			</section>
+
 			{/* CTA Section - Redesigned */}
 			<section className="py-24 px-4 relative">
 				<div className="max-w-5xl mx-auto">
@@ -379,6 +412,8 @@ export default function LandingPage() {
 					</motion.div>
 				</div>
 			</section>
+			{/* Real-Time Notifications */}
+			<RealTimeNotifications />
 		</div>
 	);
 }
