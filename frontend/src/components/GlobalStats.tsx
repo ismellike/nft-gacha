@@ -74,8 +74,8 @@ export default function GlobalStats() {
 			icon: "trending",
 			label: "Protocol Fees Collected",
 			value: `${formatTokenAmountLocal(globalAnalytics?.[2])} ${tokenSymbol}`,
-			color: "from-blue-400/20 to-blue-600/20",
-			iconColor: "text-blue-400",
+			color: "from-info/20 to-info/20",
+			iconColor: "text-info",
 		},
 	];
 

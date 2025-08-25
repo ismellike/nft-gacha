@@ -120,7 +120,7 @@ export function NFTLoadingPlaceholder({
 					<motion.div
 						className={cn(
 							classes.icon,
-							"bg-gradient-to-br from-orange-400/80 to-yellow-500/80 rounded-2xl",
+						"bg-gradient-to-br from-warning/80 to-warning/60 rounded-2xl",
 							"border border-white/40 shadow-xl backdrop-blur-sm",
 							"flex items-center justify-center transform rotate-45",
 						)}

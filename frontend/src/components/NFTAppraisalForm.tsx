@@ -332,7 +332,7 @@ export function NFTAppraisalForm({
 											size="md"
 											showAppraisal={true}
 											animate={true}
-											appraisalContractAddress={contracts.appraisal}
+											appraisalContractAddress={contracts.appraisal!}
 											priority={8}
 										/>
 									</div>
@@ -353,8 +353,8 @@ export function NFTAppraisalForm({
 					{appraisalFee && (
 						<div className="bg-gradient-to-r from-content1/40 to-content1/20 backdrop-blur-xl rounded-xl border border-white/20 p-4">
 							<div className="flex items-center gap-3">
-								<div className="w-10 h-10 bg-gradient-to-br from-blue-400/20 to-blue-600/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center">
-									<CurrencyDollarIcon className="w-5 h-5 text-blue-400" />
+								<div className="w-10 h-10 bg-gradient-to-br from-info/20 to-info/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center">
+									<CurrencyDollarIcon className="w-5 h-5 text-info" />
 								</div>
 								<div className="flex-1">
 									<p className="text-sm font-medium text-foreground">
@@ -457,11 +457,11 @@ export function NFTAppraisalForm({
 					)}
 
 					{/* Info Box */}
-					<div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl p-4">
+					<div className="bg-gradient-to-r from-info/10 to-secondary/10 border border-info/20 rounded-xl p-4">
 						<div className="flex items-start gap-3">
-							<InformationCircleIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+							<InformationCircleIcon className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
 							<div className="text-sm text-foreground/70 space-y-1">
-								<p className="font-medium text-blue-400">How it works:</p>
+								<p className="font-medium text-info">How it works:</p>
 								<ul className="space-y-1 ml-2">
 									<li>• Submit your NFT details and pay the appraisal fee</li>
 									<li>• External appraisal service evaluates your NFT</li>

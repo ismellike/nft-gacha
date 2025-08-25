@@ -157,7 +157,7 @@ const UnifiedAppraisalDisplay = memo<{
 
 	return (
 		<div className="text-center">
-			<span className={cn("text-yellow-300", styles.text)}>No appraisal</span>
+			<span className={cn("text-warning-300", styles.text)}>No appraisal</span>
 		</div>
 	);
 });
@@ -284,7 +284,7 @@ const UnifiedNFTImage = memo<{
 							className={cn(
 								classes.icon,
 								"border-2 border-white/30 rounded-full",
-								rarityConfig ? `border-t-orange-400` : "border-t-warning",
+								rarityConfig ? `border-t-warning` : "border-t-warning",
 							)}
 							animate={{ rotate: 360 }}
 							transition={{ duration: 1, repeat: Infinity, ease: "linear" }}

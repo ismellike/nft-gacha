@@ -49,7 +49,7 @@ export function GlassHeader({
 	subtitle,
 	description,
 	badges = [],
-	gradient = "from-warning/20 via-orange-400/10 to-transparent",
+	gradient = "from-warning/20 via-warning/10 to-transparent",
 	children,
 	className = "",
 }: GlassHeaderProps) {

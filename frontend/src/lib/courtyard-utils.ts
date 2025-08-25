@@ -519,9 +519,9 @@ export function getGradeColorScheme(grade: string | number | undefined): {
 			};
 		} else if (numGrade === 9) {
 			return {
-				gradient: "from-blue-400 via-blue-500 to-blue-600",
-				textColor: "text-blue-100",
-				borderColor: "border-blue-400/40",
+				gradient: "from-info via-info to-info",
+				textColor: "text-info-100",
+				borderColor: "border-info/40",
 			};
 		} else if (numGrade >= 8) {
 			return {
@@ -546,8 +546,8 @@ export function getGradeColorScheme(grade: string | number | undefined): {
 
 	// For text grades, use a neutral scheme
 	return {
-		gradient: "from-purple-400 via-purple-500 to-purple-600",
-		textColor: "text-purple-100",
-		borderColor: "border-purple-400/40",
+		gradient: "from-secondary via-secondary to-secondary",
+		textColor: "text-secondary-100",
+		borderColor: "border-secondary/40",
 	};
 }

@@ -24,7 +24,7 @@ Each Pokémon card belongs to one of five carefully balanced rarity tiers:
 
 🚧 **Development Environment Active**
 This is a test environment using local contracts and test tokens for development purposes.`,
-		theme: "from-blue-500 to-yellow-500",
+		theme: "from-secondary to-warning-500",
 		treasuryAddress: process.env
 			.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS as `0x${string}`,
 		isActive: true,

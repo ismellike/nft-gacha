@@ -64,7 +64,7 @@ function SelectableNFTCard({
 				onClick={() => onToggleSelect(tokenId)}
 				className={`transition-all duration-200 ${
 					isSelected
-						? "ring-2 ring-yellow-400 ring-opacity-60 shadow-lg shadow-yellow-400/20"
+						? "ring-2 ring-warning ring-opacity-60 shadow-lg shadow-warning/20"
 						: "hover:scale-105"
 				}`}
 			/>
@@ -73,7 +73,7 @@ function SelectableNFTCard({
 				<motion.div
 					initial={{ opacity: 0, scale: 0.8 }}
 					animate={{ opacity: 1, scale: 1 }}
-					className="absolute top-3 right-3 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center z-20 shadow-lg"
+					className="absolute top-3 right-3 w-6 h-6 bg-warning rounded-full flex items-center justify-center z-20 shadow-lg"
 				>
 					<CheckIcon className="w-4 h-4 text-black" />
 				</motion.div>

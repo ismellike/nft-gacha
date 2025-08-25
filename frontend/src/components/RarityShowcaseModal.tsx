@@ -119,7 +119,7 @@ export default function RarityShowcaseModal({
 						>
 							<div className="relative">
 								<motion.div
-									className="w-16 h-16 border-4 border-white/20 border-t-yellow-400 rounded-full"
+								className="w-16 h-16 border-4 border-white/20 border-t-warning rounded-full"
 									animate={{ rotate: 360 }}
 									transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
 								/>

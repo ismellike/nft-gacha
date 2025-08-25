@@ -167,8 +167,8 @@ export default function TreasuryAnalytics() {
 									{totalItemsCount ? totalItemsCount.toString() : "0"}
 								</h3>
 							</div>
-							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-purple-400/20 to-purple-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<GiftIcon className="w-6 h-6 text-purple-400" />
+							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-secondary/20 to-secondary/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
+								<GiftIcon className="w-6 h-6 text-secondary-400" />
 							</div>
 						</div>
 					</GlassCard>
@@ -190,8 +190,8 @@ export default function TreasuryAnalytics() {
 									{whitelistLength ? whitelistLength.toString() : "0"}
 								</h3>
 							</div>
-							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-blue-400/20 to-blue-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<TrophyIcon className="w-6 h-6 text-blue-400" />
+							<div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-info/20 to-info/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
+								<TrophyIcon className="w-6 h-6 text-info" />
 							</div>
 						</div>
 					</GlassCard>

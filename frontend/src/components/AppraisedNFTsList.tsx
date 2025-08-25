@@ -70,9 +70,9 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 				return {
 					label: "Owner Override",
 					icon: ExclamationTriangleIcon,
-					color: "text-purple-400",
-					bgColor: "from-purple-400/20 to-purple-600/20",
-					borderColor: "border-purple-400/30",
+					color: "text-secondary-400",
+					bgColor: "from-secondary/20 to-secondary/20",
+					borderColor: "border-secondary/30",
 				};
 			default:
 				return {

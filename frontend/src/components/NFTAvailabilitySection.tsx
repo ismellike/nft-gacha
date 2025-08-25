@@ -337,7 +337,7 @@ export function NFTAvailabilitySection({
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Collections
 							</p>
-							<p className="text-2xl font-bold text-purple-400">
+							<p className="text-2xl font-bold text-secondary-400">
 								{new Set(userNFTs.map((nft) => nft.collection)).size}
 							</p>
 						</div>
@@ -399,12 +399,12 @@ export function NFTAvailabilitySection({
 				{/* Info Banner */}
 				<GlassCard
 					variant="base"
-					className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/20"
+					className="bg-gradient-to-r from-info/10 to-secondary/10 border-info/20"
 				>
 					<div className="flex items-start gap-3 p-4">
-						<InformationCircleIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+						<InformationCircleIcon className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
 						<div className="text-sm text-foreground/70">
-							<p className="font-medium text-blue-400 mb-1">How it Works</p>
+							<p className="font-medium text-info mb-1">How it Works</p>
 							<p>
 								1. Click "Get Appraised" on any NFT to get its value assessed.
 								2. Once appraised, click "Deposit to Gacha" to start the 2-step

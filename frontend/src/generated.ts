@@ -2268,21 +2268,6 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-      { name: 'indices', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'to', internalType: 'address', type: 'address' },
-    ],
-    name: 'batchWithdrawNFT',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
     ],
@@ -2927,15 +2912,10 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-      { name: 'index', internalType: 'uint256', type: 'uint256' },
-      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'withdrawNFT',
+    name: 'withdrawMyNFT',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -3263,6 +3243,7 @@ export const gachaTreasuryAbi = [
   { type: 'error', inputs: [], name: 'InvalidRewardsManager' },
   { type: 'error', inputs: [], name: 'NFTAlreadyDeposited' },
   { type: 'error', inputs: [], name: 'NFTNotAppraised' },
+  { type: 'error', inputs: [], name: 'NFTNotDeposited' },
   {
     type: 'error',
     inputs: [
@@ -3274,6 +3255,7 @@ export const gachaTreasuryAbi = [
     ],
     name: 'NoNFTsAvailable',
   },
+  { type: 'error', inputs: [], name: 'NotNFTDepositor' },
   { type: 'error', inputs: [], name: 'NotNFTOwner' },
   { type: 'error', inputs: [], name: 'OverlappingPriceRanges' },
   {
@@ -8990,15 +8972,6 @@ export const useWriteGachaTreasuryBatchDepositNft =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"batchWithdrawNFT"`
- */
-export const useWriteGachaTreasuryBatchWithdrawNft =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'batchWithdrawNFT',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"depositNFT"`
  */
 export const useWriteGachaTreasuryDepositNft =
@@ -9125,12 +9098,12 @@ export const useWriteGachaTreasuryTransferOwnership =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"withdrawNFT"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"withdrawMyNFT"`
  */
-export const useWriteGachaTreasuryWithdrawNft =
+export const useWriteGachaTreasuryWithdrawMyNft =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
-    functionName: 'withdrawNFT',
+    functionName: 'withdrawMyNFT',
   })
 
 /**
@@ -9155,15 +9128,6 @@ export const useSimulateGachaTreasuryBatchDepositNft =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'batchDepositNFT',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"batchWithdrawNFT"`
- */
-export const useSimulateGachaTreasuryBatchWithdrawNft =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'batchWithdrawNFT',
   })
 
 /**
@@ -9293,12 +9257,12 @@ export const useSimulateGachaTreasuryTransferOwnership =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"withdrawNFT"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"withdrawMyNFT"`
  */
-export const useSimulateGachaTreasuryWithdrawNft =
+export const useSimulateGachaTreasuryWithdrawMyNft =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
-    functionName: 'withdrawNFT',
+    functionName: 'withdrawMyNFT',
   })
 
 /**

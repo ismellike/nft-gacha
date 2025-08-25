@@ -305,8 +305,8 @@ export default function RewardsDashboard() {
 										: 0}
 								</h3>
 							</div>
-							<div className="w-16 h-16 bg-gradient-to-br from-purple-400/20 to-purple-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<GiftIcon className="w-8 h-8 text-purple-400" />
+							<div className="w-16 h-16 bg-gradient-to-br from-secondary/20 to-secondary/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
+								<GiftIcon className="w-8 h-8 text-secondary-400" />
 							</div>
 						</div>
 					</GlassCard>

@@ -114,7 +114,7 @@ export const AnimatedBackground = memo(() => {
 					return (
 						<motion.div
 							key={element.id}
-							className="absolute rounded-full bg-gradient-to-br from-yellow-400/30 via-orange-400/20 to-transparent blur-2xl"
+							className="absolute rounded-full bg-gradient-to-br from-warning/30 via-warning/20 to-transparent blur-2xl"
 							style={{
 								left: `${element.x}%`,
 								top: `${element.y}%`,
@@ -161,7 +161,7 @@ export const AnimatedBackground = memo(() => {
 								ease: "easeInOut",
 							}}
 						>
-							<div className="w-full h-full bg-gradient-to-br from-yellow-400/80 to-orange-400/60 rotate-45 rounded-lg shadow-2xl shadow-yellow-400/50 border border-yellow-400/30" />
+							<div className="w-full h-full bg-gradient-to-br from-warning/80 to-warning/60 rotate-45 rounded-lg shadow-2xl shadow-warning/50 border border-warning/30" />
 						</motion.div>
 					);
 
@@ -169,7 +169,7 @@ export const AnimatedBackground = memo(() => {
 					return (
 						<motion.div
 							key={element.id}
-							className="absolute rounded-full bg-gradient-to-br from-white/80 to-yellow-400/60 shadow-lg shadow-yellow-400/30 border border-white/20"
+							className="absolute rounded-full bg-gradient-to-br from-white/80 to-warning/60 shadow-lg shadow-warning/30 border border-white/20"
 							style={{
 								left: `${element.x}%`,
 								top: `${element.y}%`,
@@ -239,9 +239,9 @@ export const AnimatedBackground = memo(() => {
 			/>
 
 			{/* Corner accents */}
-			<div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-yellow-400/5 to-transparent rounded-full blur-3xl" />
-			<div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-orange-400/3 to-transparent rounded-full blur-3xl" />
-			<div className="absolute top-1/4 right-1/4 w-48 h-48 bg-gradient-to-bl from-yellow-400/4 to-transparent rounded-full blur-2xl" />
+			<div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-warning/5 to-transparent rounded-full blur-3xl" />
+			<div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-warning/3 to-transparent rounded-full blur-3xl" />
+			<div className="absolute top-1/4 right-1/4 w-48 h-48 bg-gradient-to-bl from-warning/4 to-transparent rounded-full blur-2xl" />
 		</div>
 	);
 });

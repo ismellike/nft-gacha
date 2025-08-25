@@ -204,16 +204,11 @@ export function TokenDisplay({
 
 		// Industry standard color combinations used by major DeFi apps
 		const gradients = [
-			"from-blue-400 to-blue-600",
-			"from-purple-400 to-purple-600",
-			"from-pink-400 to-pink-600",
-			"from-indigo-400 to-indigo-600",
-			"from-green-400 to-green-600",
-			"from-yellow-400 to-yellow-600",
-			"from-red-400 to-red-600",
-			"from-cyan-400 to-cyan-600",
-			"from-orange-400 to-orange-600",
-			"from-emerald-400 to-emerald-600",
+			"from-primary-400 to-primary-600",
+			"from-secondary-400 to-secondary-600",
+			"from-success-400 to-success-600",
+			"from-warning-400 to-warning-600",
+			"from-danger-400 to-danger-600",
 		];
 
 		return gradients[Math.abs(hash) % gradients.length];
@@ -336,7 +331,7 @@ export function TokenFeeDisplay({
 	return (
 		<div
 			className={cn(
-				"bg-gradient-to-r from-warning/20 to-orange-500/20 backdrop-blur-xl border border-warning/30 rounded-xl px-4 py-3 shadow-xl",
+				"bg-gradient-to-r from-warning/20 to-warning/20 backdrop-blur-xl border border-warning/30 rounded-xl px-4 py-3 shadow-xl",
 				className,
 			)}
 		>

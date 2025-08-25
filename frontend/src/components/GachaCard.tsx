@@ -201,13 +201,13 @@ export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 							<div className="flex gap-2">
 								{rarityCounts?.map((count, index) => {
 									const rarityColors = [
-										"from-gray-500 to-gray-600",
-										"from-green-500 to-green-600",
-										"from-blue-500 to-blue-600",
-										"from-purple-500 to-purple-600",
-										"from-yellow-500 to-yellow-600",
+										"from-rarity-common-500 to-rarity-common-600",
+										"from-rarity-uncommon-500 to-rarity-uncommon-600",
+										"from-rarity-rare-500 to-rarity-rare-600",
+										"from-rarity-epic-500 to-rarity-epic-600",
+										"from-rarity-legendary-500 to-rarity-legendary-600",
 									];
-									const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟡"];
+									const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟠"];
 									return (
 										<motion.div
 											key={index}

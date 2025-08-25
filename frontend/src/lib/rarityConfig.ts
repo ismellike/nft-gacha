@@ -30,55 +30,55 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 	[Rarity.Common]: {
 		name: "Common",
 		percentage: 70,
-		bgGradient: "from-zinc-600 to-zinc-700",
-		borderColor: "border-zinc-600/50",
-		textColor: "text-zinc-200",
+		bgGradient: "from-rarity-common-500 to-rarity-common-600",
+		borderColor: "border-rarity-common-500/50",
+		textColor: "text-rarity-common-200",
 		chipColor: "default" as const,
-		glowColor: "shadow-zinc-600/20",
+		glowColor: "shadow-rarity-common-500/20",
 		description: "70% drop rate",
 		emoji: "⚪",
 	},
 	[Rarity.Uncommon]: {
 		name: "Uncommon",
 		percentage: 20,
-		bgGradient: "from-green-500 to-emerald-600",
-		borderColor: "border-green-500/50",
-		textColor: "text-green-200",
+		bgGradient: "from-rarity-uncommon-500 to-rarity-uncommon-600",
+		borderColor: "border-rarity-uncommon-500/50",
+		textColor: "text-rarity-uncommon-200",
 		chipColor: "success" as const,
-		glowColor: "shadow-green-500/20",
+		glowColor: "shadow-rarity-uncommon-500/20",
 		description: "20% drop rate",
 		emoji: "🟢",
 	},
 	[Rarity.Rare]: {
 		name: "Rare",
 		percentage: 6,
-		bgGradient: "from-blue-500 to-purple-600",
-		borderColor: "border-blue-500/50",
-		textColor: "text-blue-200",
+		bgGradient: "from-rarity-rare-500 to-rarity-rare-600",
+		borderColor: "border-rarity-rare-500/50",
+		textColor: "text-rarity-rare-200",
 		chipColor: "primary" as const,
-		glowColor: "shadow-blue-500/20",
+		glowColor: "shadow-rarity-rare-500/20",
 		description: "6% drop rate",
 		emoji: "🔵",
 	},
 	[Rarity.Epic]: {
 		name: "Epic",
 		percentage: 3,
-		bgGradient: "from-purple-500 to-pink-600",
-		borderColor: "border-purple-500/50",
-		textColor: "text-purple-200",
+		bgGradient: "from-rarity-epic-500 to-rarity-epic-600",
+		borderColor: "border-rarity-epic-500/50",
+		textColor: "text-rarity-epic-200",
 		chipColor: "secondary" as const,
-		glowColor: "shadow-purple-500/20",
+		glowColor: "shadow-rarity-epic-500/20",
 		description: "3% drop rate",
 		emoji: "🟣",
 	},
 	[Rarity.Legendary]: {
 		name: "Legendary",
 		percentage: 1,
-		bgGradient: "from-orange-500 to-red-600",
-		borderColor: "border-orange-500/50",
-		textColor: "text-orange-200",
+		bgGradient: "from-rarity-legendary-500 to-rarity-legendary-600",
+		borderColor: "border-rarity-legendary-500/50",
+		textColor: "text-rarity-legendary-200",
 		chipColor: "warning" as const,
-		glowColor: "shadow-orange-500/20",
+		glowColor: "shadow-rarity-legendary-500/20",
 		description: "1% drop rate",
 		emoji: "🟠",
 	},
@@ -112,4 +112,57 @@ export const rarityFromNumber = (rarityNumber: number): Rarity => {
 	}
 	// Default to Common if invalid number
 	return Rarity.Common;
+};
+
+// Enhanced utility functions for rarity theming
+export const getRarityTailwindClasses = (rarity: Rarity) => {
+	const config = getRarityConfig(rarity);
+	const rarityName = config.name.toLowerCase();
+	return {
+		bg: `bg-rarity-${rarityName}-500`,
+		bgLight: `bg-rarity-${rarityName}-200`,
+		bgDark: `bg-rarity-${rarityName}-700`,
+		text: `text-rarity-${rarityName}-500`,
+		textLight: `text-rarity-${rarityName}-200`,
+		textDark: `text-rarity-${rarityName}-700`,
+		border: `border-rarity-${rarityName}-500`,
+		borderLight: `border-rarity-${rarityName}-300`,
+		shadow: `shadow-rarity-${rarityName}-500/20`,
+		gradient: config.bgGradient,
+		glow: `shadow-lg shadow-rarity-${rarityName}-500/30`,
+	};
+};
+
+// Get rarity color hex values for programmatic use
+export const getRarityColorHex = (rarity: Rarity, shade: 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950 = 500): string => {
+	const rarityName = getRarityConfig(rarity).name.toLowerCase();
+	const colorMap = {
+		common: {
+			50: "#fafafa", 100: "#f4f4f5", 200: "#e4e4e7", 300: "#d4d4d8", 
+			400: "#a1a1aa", 500: "#71717a", 600: "#52525b", 700: "#3f3f46", 
+			800: "#27272a", 900: "#18181b", 950: "#09090b"
+		},
+		uncommon: {
+			50: "#f0fdf4", 100: "#dcfce7", 200: "#bbf7d0", 300: "#86efac", 
+			400: "#4ade80", 500: "#22c55e", 600: "#16a34a", 700: "#15803d", 
+			800: "#166534", 900: "#14532d", 950: "#052e16"
+		},
+		rare: {
+			50: "#eff6ff", 100: "#dbeafe", 200: "#bfdbfe", 300: "#93c5fd", 
+			400: "#60a5fa", 500: "#3b82f6", 600: "#2563eb", 700: "#1d4ed8", 
+			800: "#1e40af", 900: "#1e3a8a", 950: "#172554"
+		},
+		epic: {
+			50: "#faf5ff", 100: "#f3e8ff", 200: "#e9d5ff", 300: "#d8b4fe", 
+			400: "#c084fc", 500: "#a855f7", 600: "#9333ea", 700: "#7c3aed", 
+			800: "#6b21a8", 900: "#581c87", 950: "#3b0764"
+		},
+		legendary: {
+			50: "#fef7ed", 100: "#fdedd3", 200: "#fcd9a5", 300: "#fbbf6d", 
+			400: "#f89b32", 500: "#f57c00", 600: "#e65100", 700: "#bf360c", 
+			800: "#8d2a00", 900: "#5d1f00", 950: "#3e0e00"
+		}
+	};
+	
+	return colorMap[rarityName as keyof typeof colorMap]?.[shade] || colorMap.common[500];
 };

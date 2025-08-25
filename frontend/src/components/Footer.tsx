@@ -47,7 +47,7 @@ export function Footer() {
 							and transparency.
 						</p>
 						<div className="flex justify-center md:justify-start">
-							<div className="bg-gradient-to-r from-warning/20 to-orange-500/20 backdrop-blur-xl border border-warning/30 rounded-xl px-4 py-2 shadow-lg">
+							<div className="bg-gradient-to-r from-warning/20 to-warning/20 backdrop-blur-xl border border-warning/30 rounded-xl px-4 py-2 shadow-lg">
 								<span className="text-sm font-medium bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
 									Start Spinning Today
 								</span>
@@ -64,7 +64,7 @@ export function Footer() {
 						</p>
 						<div className="flex items-center gap-6 text-foreground/60">
 							<div className="flex items-center gap-2">
-								<div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+								<div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
 								<span className="text-sm font-light">Live Network</span>
 							</div>
 						</div>

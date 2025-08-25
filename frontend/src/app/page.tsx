@@ -12,11 +12,11 @@ import {
 import { useState, useEffect } from "react";
 
 const rarityColors = [
-	"from-gray-400 to-gray-600",
-	"from-green-400 to-green-600",
-	"from-blue-400 to-blue-600",
-	"from-purple-400 to-purple-600",
-	"from-yellow-400 to-yellow-600",
+	"from-primary-400 to-primary-600",
+	"from-success-400 to-success-600",
+	"from-secondary-400 to-secondary-600",
+	"from-primary-500 to-primary-700",
+	"from-warning-400 to-warning-600",
 ];
 
 const features = [
@@ -115,7 +115,7 @@ export default function LandingPage() {
 						className="mb-8"
 					>
 						<h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
-							<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
+							<span className="bg-gradient-to-r from-warning via-warning to-warning-500 bg-clip-text text-transparent">
 								Spin-Fi
 							</span>
 							<br />
@@ -187,7 +187,7 @@ export default function LandingPage() {
 								transition={{ delay: 0.8 + index * 0.1, duration: 0.6 }}
 								className="text-center"
 							>
-								<div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent mb-1">
+								<div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-warning to-warning bg-clip-text text-transparent mb-1">
 									{stat.value}
 								</div>
 								<div className="text-sm text-foreground/60 font-medium">
@@ -215,9 +215,9 @@ export default function LandingPage() {
 							<span className="ml-2">Community Benefits</span>
 						</GlassBadge>
 						<h2 className="text-4xl md:text-6xl font-bold mb-8">
-							<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-								Earn While You
-							</span>
+									<span className="bg-gradient-to-r from-warning to-warning bg-clip-text text-transparent">
+									Earn While You
+								</span>
 							<br />
 							<span className="text-foreground">Contribute</span>
 						</h2>
@@ -245,7 +245,7 @@ export default function LandingPage() {
 									animate={true}
 								>
 									{/* Icon */}
-									<div className="relative z-10 w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-warning/20 to-orange-400/20 rounded-2xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-warning/20 transition-all duration-300">
+									<div className="relative z-10 w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-warning/20 to-warning/20 rounded-2xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-warning/20 transition-all duration-300">
 										{feature.icon === "coins" && (
 											<CurrencyDollarIcon className="w-8 h-8 text-warning" />
 										)}

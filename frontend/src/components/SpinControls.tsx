@@ -555,7 +555,7 @@ export default function SpinControls({
 						{/* Main spinner with enhanced state-based styling */}
 						<div
 							className={cn(
-								"relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-orange-500 p-3 shadow-2xl shadow-warning/20",
+								"relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-warning p-3 shadow-2xl shadow-warning/20",
 								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
 									? "spin-wobble"
 									: gachaSpin.isError

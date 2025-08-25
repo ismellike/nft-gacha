@@ -192,13 +192,13 @@ export default function SpinHistory() {
 				>
 					<GlassCard
 						variant="floating"
-						className="p-4 border-l-4 border-warning bg-gradient-to-r from-warning/10 to-orange-400/10"
+						className="p-4 border-l-4 border-warning bg-gradient-to-r from-warning/10 to-warning/10"
 					>
 						<div className="flex items-center gap-3">
 							<motion.div
 								animate={{ rotate: 360 }}
 								transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-								className="w-6 h-6 rounded-full bg-gradient-to-r from-warning to-orange-400 flex items-center justify-center"
+								className="w-6 h-6 rounded-full bg-gradient-to-r from-warning to-warning flex items-center justify-center"
 							>
 								<BoltIcon className="w-3 h-3 text-white" />
 							</motion.div>
@@ -232,7 +232,7 @@ export default function SpinHistory() {
 								<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
 									Total Spins
 								</p>
-								<h3 className="text-3xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent mt-2">
+								<h3 className="text-3xl font-bold bg-gradient-to-r from-warning to-warning bg-clip-text text-transparent mt-2">
 									{totalSpins}
 								</h3>
 							</div>
@@ -280,8 +280,8 @@ export default function SpinHistory() {
 									{pendingSpins}
 								</h3>
 							</div>
-							<div className="w-16 h-16 bg-gradient-to-br from-blue-400/20 to-blue-600/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-								<ClockIcon className="w-8 h-8 text-blue-400" />
+						<div className="w-16 h-16 bg-gradient-to-br from-info/20 to-info/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
+							<ClockIcon className="w-8 h-8 text-info" />
 							</div>
 						</div>
 					</GlassCard>
@@ -377,7 +377,7 @@ export default function SpinHistory() {
 																? "bg-green-400/20 border-green-400/30"
 																: spin.status === SpinStatus.Refunded
 																	? "bg-red-400/20 border-red-400/30"
-																	: "bg-blue-400/20 border-blue-400/30"
+																	: "bg-info/20 border-info/30"
 														}`}
 													>
 														{spin.status === SpinStatus.Completed && (
@@ -387,7 +387,7 @@ export default function SpinHistory() {
 															<XMarkIcon className="w-5 h-5 text-red-400" />
 														)}
 														{spin.status === SpinStatus.Pending && (
-															<ClockIcon className="w-5 h-5 text-blue-400" />
+								<ClockIcon className="w-5 h-5 text-info" />
 														)}
 													</div>
 
