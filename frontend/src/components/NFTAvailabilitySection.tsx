@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
 import {
-	GiftIcon,
 	MagnifyingGlassIcon,
 	CheckBadgeIcon,
 	ExclamationTriangleIcon,
@@ -17,10 +16,7 @@ import { DepositableNFTCard } from "./ui/DepositableNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { useUserOwnedNFTsMultipleCollections } from "../hooks/useUserOwnedNFTs";
-import {
-	useReadGachaTreasuryGetWhitelistedCollections,
-	useReadErc721Name,
-} from "../generated";
+import { useReadGachaTreasuryGetWhitelistedCollections } from "../generated";
 
 interface UserNFT {
 	collection: string;

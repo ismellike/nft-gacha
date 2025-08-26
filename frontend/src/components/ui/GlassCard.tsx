@@ -5,7 +5,8 @@
 
 import { Card, CardBody, CardHeader } from "@heroui/react";
 import { motion } from "framer-motion";
-import { ReactNode, memo } from "react";
+import { memo } from "react";
+import type { ReactNode } from "react";
 import { glassCard } from "../../lib/theme-config";
 
 interface GlassCardProps {

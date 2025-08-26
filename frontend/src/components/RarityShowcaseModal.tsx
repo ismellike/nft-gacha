@@ -4,7 +4,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
 import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
-import { Rarity, getRarityConfig } from "../lib/rarityConfig";
+import { type Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
 import { GlassBadge, StandardNFTGrid, useTreasuryItemsToGridItems } from "./ui";
 import {
@@ -33,11 +33,11 @@ export default function RarityShowcaseModal({
 		data: nftItems,
 		isLoading,
 		error,
-	} = useReadGachaTreasuryGetTreasuryItems({
-		address: contracts.treasury!,
-		args: rarity !== null ? [rarity] : undefined,
-		query: { enabled: rarity !== null && isOpen && !!contracts.treasury },
-	});
+    } = useReadGachaTreasuryGetTreasuryItems({
+        address: contracts.treasury as `0x${string}` | undefined,
+        args: rarity !== null ? [rarity] : undefined,
+        query: { enabled: rarity !== null && isOpen && !!contracts.treasury },
+    });
 
 	// Convert treasury items to grid items format (must be called before any early returns)
 	const gridItems = useTreasuryItemsToGridItems(
@@ -119,7 +119,7 @@ export default function RarityShowcaseModal({
 						>
 							<div className="relative">
 								<motion.div
-								className="w-16 h-16 border-4 border-white/20 border-t-warning rounded-full"
+									className="w-16 h-16 border-4 border-white/20 border-t-warning rounded-full"
 									animate={{ rotate: 360 }}
 									transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
 								/>
@@ -158,12 +158,12 @@ export default function RarityShowcaseModal({
 							</p>
 						</motion.div>
 					) : (
-						<StandardNFTGrid
-							items={gridItems}
-							appraisalContractAddress={contracts.appraisal!}
-							showAppraisal={true}
-							animate={true}
-							enableLazyLoading={true}
+                        <StandardNFTGrid
+                            items={gridItems}
+                            appraisalContractAddress={contracts.appraisal as `0x${string}` | undefined}
+                            showAppraisal={true}
+                            animate={true}
+                            enableLazyLoading={true}
 							priorityLoadCount={16} // Load first 16 items with high priority
 							itemsPerPage={gridItems.length > 50 ? 50 : undefined} // Paginate if many items
 						/>

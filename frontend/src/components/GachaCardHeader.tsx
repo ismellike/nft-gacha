@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface GachaCardHeaderProps {
 	theme: string;
@@ -10,7 +9,7 @@ interface GachaCardHeaderProps {
 }
 
 export function GachaCardHeader({
-	theme,
+	theme: _,
 	children,
 	className = "",
 }: GachaCardHeaderProps) {

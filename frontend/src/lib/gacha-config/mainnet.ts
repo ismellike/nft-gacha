@@ -1,4 +1,3 @@
-import { env } from "@/env";
 import type { GachaConfig } from "./types";
 
 // Mainnet configurations - placeholder for now

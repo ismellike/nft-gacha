@@ -45,13 +45,13 @@ import {
 	useWriteGachaEmergencyUnpause,
 	useReadGachaPaused,
 } from "@/generated";
-import { formatUnits, parseUnits } from "viem";
+import { parseUnits } from "viem";
 import {
 	formatTokenAmount,
 	formatAddress,
 	formatPercentage,
 } from "@/lib/utils";
-import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
+import { RARITY_CONFIG } from "@/lib/rarityConfig";
 import type { GachaConfig } from "@/lib/gacha-config";
 
 interface AdminControlsProps {
@@ -123,11 +123,11 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 			userAddress === treasuryOwner ||
 			userAddress === rewardsOwner);
 
-	useEffect(() => {
-		if (isConnected) {
-			setIsOwnerChecked(true);
-		}
-	}, [isConnected, gachaOwner, treasuryOwner, rewardsOwner]);
+    useEffect(() => {
+        if (isConnected) {
+            setIsOwnerChecked(true);
+        }
+    }, [isConnected]);
 
 	if (!isConnected) {
 		return (
@@ -206,16 +206,17 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 							Control Sections
 						</h3>
 						<div className="space-y-2">
-							{adminSections.map((section) => (
-								<button
-									key={section.id}
-									onClick={() => setActiveSection(section.id)}
-									className={`w-full text-left p-3 rounded-xl transition-all duration-200 ${
-										activeSection === section.id
-											? "bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 shadow-lg shadow-warning/10"
-											: "hover:bg-content1/20 hover:border-white/10 border border-transparent"
-									}`}
-								>
+                            {adminSections.map((section) => (
+                                <button
+                                    type="button"
+                                    key={section.id}
+                                    onClick={() => setActiveSection(section.id)}
+                                    className={`w-full text-left p-3 rounded-xl transition-all duration-200 ${
+                                        activeSection === section.id
+                                            ? "bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 shadow-lg shadow-warning/10"
+                                            : "hover:bg-content1/20 hover:border-white/10 border border-transparent"
+                                    }`}
+                                >
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-3">
 											{getAdminSectionIcon(
@@ -273,7 +274,6 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 // Individual Admin Sections
 function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 	const [weights, setWeights] = useState([7000, 2000, 600, 300, 100]);
-	const [isUpdating, setIsUpdating] = useState(false);
 
 	const { data: currentWeights } = useReadGachaGetRarityWeights({
 		address: gacha.address as `0x${string}`,
@@ -330,13 +330,13 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 			</div>
 
 			<div className="grid md:grid-cols-2 gap-6 mb-8">
-				{weights.map((weight, index) => {
-					const rarity = Object.values(RARITY_CONFIG)[index];
-					const percentage = formatPercentage(weight / 100, 2, true);
+                    {weights.map((weight, index) => {
+                        const rarity = Object.values(RARITY_CONFIG)[index];
+                        const percentage = formatPercentage(weight / 100, 2, true);
 
-					return (
-						<div key={index} className="space-y-3">
-							<div className="flex items-center justify-between">
+                        return (
+                            <div key={rarity.name} className="space-y-3">
+                                <div className="flex items-center justify-between">
 								<div className="flex items-center gap-3">
 									<span className="text-xl">{rarity.emoji}</span>
 									<div>
@@ -429,11 +429,11 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 			</div>
 
 			<div className="space-y-6">
-				<div>
-					<label className="block text-sm font-medium text-foreground mb-2">
-						Current Spin Fee
-					</label>
-					<div className="bg-content1/10 border border-white/10 rounded-xl p-4">
+                <div>
+                    <div className="block text-sm font-medium text-foreground mb-2">
+                        Current Spin Fee
+                    </div>
+                    <div className="bg-content1/10 border border-white/10 rounded-xl p-4">
 						<div className="text-2xl font-bold text-warning">
 							{currentFee
 								? formatTokenAmount(currentFee, 18, {
@@ -445,16 +445,17 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 					</div>
 				</div>
 
-				<div>
-					<label className="block text-sm font-medium text-foreground mb-2">
-						New Spin Fee (in TOKENS)
-					</label>
-					<input
-						type="number"
-						value={newFee}
-						onChange={(e) => setNewFee(e.target.value)}
-						className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
-						placeholder="Enter fee amount (e.g., 10.5)"
+                <div>
+                    <label htmlFor="newSpinFee" className="block text-sm font-medium text-foreground mb-2">
+                        New Spin Fee (in TOKENS)
+                    </label>
+                    <input
+                        id="newSpinFee"
+                        type="number"
+                        value={newFee}
+                        onChange={(e) => setNewFee(e.target.value)}
+                        className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
+                        placeholder="Enter fee amount (e.g., 10.5)"
 						step="0.01"
 						min="0"
 					/>

@@ -4,10 +4,10 @@
  */
 
 import { useState, useEffect } from "react";
+import NextImage from "next/image";
 import { motion } from "framer-motion";
 import { cn } from "../../lib/theme-config";
 import { CurrencyDollarIcon } from "@heroicons/react/24/outline";
-import { getEnvMode } from "../../env";
 
 interface TokenDisplayProps {
 	address?: `0x${string}`;
@@ -102,7 +102,7 @@ const getTokenLogoSources = (address?: string, symbol?: string): string[] => {
 	return sources;
 };
 
-export function TokenDisplay({
+function TokenDisplay({
 	address,
 	name,
 	symbol,
@@ -116,7 +116,6 @@ export function TokenDisplay({
 }: TokenDisplayProps) {
 	const [imageUrl, setImageUrl] = useState<string | null>(null);
 	const [imageError, setImageError] = useState(false);
-	const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
 
 	const logoSources = getTokenLogoSources(address, symbol);
 
@@ -162,7 +161,7 @@ export function TokenDisplay({
 				setImageUrl(logoSources[sourceIndex]);
 				setImageError(false);
 			};
-			img.onerror = (e) => {
+			img.onerror = () => {
 				// Suppress error logging for known test tokens to keep console clean
 				if (!isLocalOrTestToken(address, symbol)) {
 					console.debug(
@@ -170,14 +169,13 @@ export function TokenDisplay({
 						logoSources[sourceIndex],
 					);
 				}
-				setCurrentSourceIndex(sourceIndex + 1);
 				tryLoadImage(sourceIndex + 1);
 			};
 			img.src = logoSources[sourceIndex];
 		};
 
 		tryLoadImage(0);
-	}, [logoSources]);
+    }, [logoSources, address, symbol]);
 
 	// Generate fallback initials from token name or symbol (industry standard)
 	const getFallbackInitials = () => {
@@ -216,19 +214,21 @@ export function TokenDisplay({
 
 	const TokenImage = () => {
 		if (imageUrl && !imageError) {
-			return (
-				<div className="relative">
-					<img
-						src={imageUrl}
-						alt={`${name || symbol} logo`}
-						className={cn(
-							config.image,
-							"rounded-full object-cover border-2 border-white/10 shadow-lg bg-gradient-to-br from-content1/20 to-content1/40",
-						)}
-						onError={() => setImageError(true)}
-					/>
-				</div>
-			);
+            return (
+                <div className="relative">
+                    <NextImage
+                        src={imageUrl}
+                        alt={`${name || symbol} logo`}
+                        width={64}
+                        height={64}
+                        className={cn(
+                            config.image,
+                            "rounded-full object-cover border-2 border-white/10 shadow-lg bg-gradient-to-br from-content1/20 to-content1/40",
+                        )}
+                        onError={() => setImageError(true)}
+                    />
+                </div>
+            );
 		}
 
 		// Fallback with initials and deterministic gradient (industry standard)

@@ -67,18 +67,19 @@ export function NFTLoadingPlaceholder({
 						animate={animate ? { scale: [1, 1.05, 1] } : {}}
 						transition={animate ? { duration: 2, repeat: Infinity } : {}}
 					>
-						<svg
-							className="w-8 h-8 text-white/80"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth={2}
-								d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
+                    <svg
+                        className="w-8 h-8 text-white/80"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <title>Error</title>
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
 						</svg>
 					</motion.div>
 					<div className="text-xs text-white/70 max-w-48 mx-auto leading-relaxed">
@@ -120,7 +121,7 @@ export function NFTLoadingPlaceholder({
 					<motion.div
 						className={cn(
 							classes.icon,
-						"bg-gradient-to-br from-warning/80 to-warning/60 rounded-2xl",
+							"bg-gradient-to-br from-warning/80 to-warning/60 rounded-2xl",
 							"border border-white/40 shadow-xl backdrop-blur-sm",
 							"flex items-center justify-center transform rotate-45",
 						)}

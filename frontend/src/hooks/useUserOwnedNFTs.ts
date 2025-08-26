@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import {
 	useReadSimpleErc721BalanceOf,
@@ -59,7 +59,7 @@ export function useUserOwnedNFTs(
 		query: { enabled: !!collectionAddress },
 	});
 
-	const fetchUserTokens = async () => {
+	const fetchUserTokens = useCallback(async () => {
 		if (
 			!userAddress ||
 			!collectionAddress ||
@@ -105,11 +105,7 @@ export function useUserOwnedNFTs(
 					if (owner.toLowerCase() === userAddress.toLowerCase()) {
 						ownedTokenIds.push(tokenId);
 					}
-				} catch (ownershipError) {
-					// Skip tokens that don't exist or can't be checked
-					// This is normal as token IDs might not be sequential
-					continue;
-				}
+				} catch (_ownershipError) { }
 			}
 
 			setTokens(ownedTokenIds);
@@ -120,12 +116,12 @@ export function useUserOwnedNFTs(
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [userAddress, collectionAddress, publicClient, totalSupply, userBalance]);
 
 	// Fetch tokens when dependencies change
 	useEffect(() => {
 		fetchUserTokens();
-	}, [userAddress, collectionAddress, userBalance, totalSupply]);
+	}, [fetchUserTokens]);
 
 	return {
 		tokens,
@@ -148,8 +144,23 @@ export function useUserOwnedNFTsMultipleCollections(
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	const fetchUserNFTs = async () => {
-		if (!userAddress || !publicClient || collectionAddresses.length === 0) {
+	// Normalize and key by contents to avoid identity churn across renders
+	const collectionsKey = useMemo(
+		() =>
+			JSON.stringify(
+				(collectionAddresses || [])
+					.map((a) => a.toLowerCase())
+					.sort(),
+			),
+		[collectionAddresses],
+	);
+	const normalizedCollections = useMemo(
+		() => JSON.parse(collectionsKey) as string[],
+		[collectionsKey],
+	);
+
+	const fetchUserNFTs = useCallback(async () => {
+		if (!userAddress || !publicClient || normalizedCollections.length === 0) {
 			setNfts([]);
 			return;
 		}
@@ -161,7 +172,7 @@ export function useUserOwnedNFTsMultipleCollections(
 			const allUserNFTs: UserOwnedNFTMultiCollection[] = [];
 
 			// Process each collection
-			for (const collectionAddress of collectionAddresses) {
+			for (const collectionAddress of normalizedCollections) {
 				try {
 					// Get user's balance for this collection
 					const userBalance = await publicClient.readContract({
@@ -223,18 +234,13 @@ export function useUserOwnedNFTsMultipleCollections(
 								});
 								ownedTokenIds.push(tokenId);
 							}
-						} catch (ownershipError) {
-							// Skip tokens that don't exist or can't be checked
-							continue;
-						}
+						} catch (_ownershipError) { }
 					}
 				} catch (collectionError) {
 					console.warn(
 						`Error processing collection ${collectionAddress}:`,
 						collectionError,
 					);
-					// Continue with other collections even if one fails
-					continue;
 				}
 			}
 
@@ -246,12 +252,13 @@ export function useUserOwnedNFTsMultipleCollections(
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [userAddress, publicClient, normalizedCollections]);
 
 	// Fetch NFTs when dependencies change
 	useEffect(() => {
 		fetchUserNFTs();
-	}, [userAddress, JSON.stringify(collectionAddresses)]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [fetchUserNFTs]);
 
 	return {
 		nfts,

@@ -289,12 +289,12 @@ export const gachaSpinMachine = createMachine(
 				invoke: {
 					id: "pollForSpinFulfillment",
 					src: "pollForSpinFulfillment",
-					input: ({ context }) => ({
-						triggerId: context.triggerId!,
-						userAddress: context.userAddress!,
-						publicClient: context.publicClient!,
-						gachaAddress: context.gachaAddress!,
-					}),
+                    input: ({ context }) => ({
+                        triggerId: context.triggerId as bigint,
+                        userAddress: context.userAddress as `0x${string}`,
+                        publicClient: context.publicClient as unknown,
+                        gachaAddress: context.gachaAddress as `0x${string}`,
+                    }),
 					onDone: {
 						target: "revealing",
 						actions: ["setSpinResult", "clearFromStorage"],
@@ -460,11 +460,11 @@ export const gachaSpinMachine = createMachine(
 				},
 			}),
 			setTimeoutError: assign({
-				error: ({ event }) =>
+				error: () =>
 					"Randomness generation timed out. You can reclaim your funds or try again.",
 			}),
 			clearError: assign({
-				error: ({ event }) => null,
+				error: () => null,
 			}),
 			incrementRetry: assign({
 				retryCount: ({ context }) => context.retryCount + 1,

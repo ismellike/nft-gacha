@@ -1,19 +1,23 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { formatTokenAmount } from "../lib/utils";
-import { Rarity, getRarityConfig, getAllRarities } from "../lib/rarityConfig";
+import {
+	type Rarity,
+	getRarityConfig,
+	getAllRarities,
+} from "../lib/rarityConfig";
 import { GlassCard, GlassButton } from "./ui";
 import { glassTypography } from "../lib/theme-config";
 import {
-	useReadGachaRewardsManagerGetUserAnalytics,
+	useReadGachaRewardsManagerGetRewardsAnalytics,
 	useReadGachaTreasuryGetUserAllDepositCounts,
 	useReadGachaRewardsManagerGetUserRarityClaimableRewards,
 	useReadGachaFeeToken,
 	useReadErc20Symbol,
 	useReadErc20Decimals,
+	useReadGachaGetUserAnalytics,
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -23,6 +27,7 @@ import {
 	GiftIcon,
 	CurrencyDollarIcon,
 	ClockIcon,
+	TrophyIcon,
 } from "@heroicons/react/24/outline";
 
 export const ProfileDashboard: React.FC = () => {
@@ -31,38 +36,59 @@ export const ProfileDashboard: React.FC = () => {
 	const contracts = useGachaContracts(gachaId);
 
 	// Fee token info
-	const { data: feeTokenAddress } = useReadGachaFeeToken({
-		address: contracts.gacha!,
-		query: { enabled: !!contracts.gacha },
-	});
+    const { data: feeTokenAddress } = useReadGachaFeeToken({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    });
 
-	const { data: tokenSymbol } = useReadErc20Symbol({
-		address: feeTokenAddress!,
-		query: { enabled: !!feeTokenAddress },
-	});
+    const { data: tokenSymbol } = useReadErc20Symbol({
+        address: feeTokenAddress,
+        query: { enabled: !!feeTokenAddress },
+    });
 
-	const { data: tokenDecimals } = useReadErc20Decimals({
-		address: feeTokenAddress!,
-		query: { enabled: !!feeTokenAddress },
-	});
+    const { data: tokenDecimals } = useReadErc20Decimals({
+        address: feeTokenAddress,
+        query: { enabled: !!feeTokenAddress },
+    });
 
-	// Use the same getUserAnalytics function that the main gacha page uses
-	const { data: userAnalytics } = useReadGachaRewardsManagerGetUserAnalytics({
-		address: contracts.rewardsManager!,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.rewardsManager && !!userAddress },
-	});
+	// Get comprehensive user analytics from Gacha contract
+    const { data: userGachaAnalytics } = useReadGachaGetUserAnalytics({
+        address: contracts.gacha as `0x${string}` | undefined,
+        args: userAddress ? [userAddress] : undefined,
+        query: { enabled: !!contracts.gacha && !!userAddress },
+    });
 
-	const { data: userDepositCounts } = useReadGachaTreasuryGetUserAllDepositCounts({
-		address: contracts.treasury!,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.treasury && !!userAddress },
-	});
+	// Get user rewards analytics from RewardsManager
+    const { data: userRewardsAnalytics } =
+        useReadGachaRewardsManagerGetRewardsAnalytics({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            args: userAddress ? [userAddress] : undefined,
+            query: { enabled: !!contracts.rewardsManager && !!userAddress },
+        });
 
-	// Extract values from userAnalytics tuple: [totalClaimed, totalClaimable, spinCount]
-	const totalRewardsClaimed = userAnalytics?.[0] || BigInt(0);
-	const totalClaimableRewards = userAnalytics?.[1] || BigInt(0);
-	const userSpinCount = userAnalytics?.[2] || BigInt(0);
+    const { data: userDepositCounts } =
+        useReadGachaTreasuryGetUserAllDepositCounts({
+            address: contracts.treasury as `0x${string}` | undefined,
+            args: userAddress ? [userAddress] : undefined,
+            query: { enabled: !!contracts.treasury && !!userAddress },
+        });
+
+	// Extract values from analytics tuples
+	// userGachaAnalytics: [totalSpins, totalRefunds, totalReclaims, rarityWins[5]]
+	// userRewardsAnalytics: [totalClaimed, totalClaimable]
+	const userSpinCount = userGachaAnalytics?.[0] || BigInt(0);
+	const userRefundCount = userGachaAnalytics?.[1] || BigInt(0);
+	const userReclaimCount = userGachaAnalytics?.[2] || BigInt(0);
+	const userRarityWins = userGachaAnalytics?.[3] || [
+		BigInt(0),
+		BigInt(0),
+		BigInt(0),
+		BigInt(0),
+		BigInt(0),
+	];
+
+	const totalRewardsClaimed = userRewardsAnalytics?.[0] || BigInt(0);
+	const totalClaimableRewards = userRewardsAnalytics?.[1] || BigInt(0);
 
 	if (!userAddress) {
 		return (
@@ -90,58 +116,8 @@ export const ProfileDashboard: React.FC = () => {
 	const totalDeposits =
 		userDepositCounts?.reduce((sum, count) => sum + Number(count || 0), 0) || 0;
 
-	// Debug logging to understand what's happening with the data
-	useEffect(() => {
-		if (userAddress) {
-			console.log("🔍 ProfileDashboard Debug:", {
-				userAddress,
-				userAnalytics,
-				userSpinCount: userSpinCount.toString(),
-				userDepositCounts: userDepositCounts?.map(c => c?.toString()),
-				totalDeposits,
-				totalClaimableRewards: totalClaimableRewards.toString(),
-				totalRewardsClaimed: totalRewardsClaimed.toString(),
-				contracts: {
-					rewardsManager: contracts.rewardsManager,
-					treasury: contracts.treasury,
-				}
-			});
-		}
-	}, [userAddress, userAnalytics, userSpinCount, userDepositCounts, totalDeposits, totalClaimableRewards, totalRewardsClaimed, contracts]);
-
 	return (
-		<div className="max-w-6xl mx-auto space-y-8">
-			{/* Profile Header */}
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.6 }}
-			>
-				<div className="text-center mb-12">
-					<div className="relative inline-block mb-6">
-						<div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center border border-primary/30">
-							<UserCircleIcon className="w-12 h-12 text-primary" />
-						</div>
-						<div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-							<div className="bg-success/20 border border-success/50 rounded-full px-3 py-1">
-								<span className="text-xs font-medium text-success">
-									Connected
-								</span>
-							</div>
-						</div>
-					</div>
-					<h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
-						My Profile
-					</h1>
-					<div className="inline-flex items-center gap-2 bg-content2/30 backdrop-blur-xl border border-white/10 rounded-full px-4 py-2">
-						<div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-						<span className="text-sm font-mono text-foreground/80">
-							{userAddress.slice(0, 6)}...{userAddress.slice(-4)}
-						</span>
-					</div>
-				</div>
-			</motion.div>
-
+		<div className="max-w-7xl mx-auto space-y-8">
 			{/* Stats Grid */}
 			<div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
 				<motion.div
@@ -215,13 +191,17 @@ export const ProfileDashboard: React.FC = () => {
 										tokenDecimals || 18,
 									)}
 								</div>
-								<div className="text-sm text-foreground/60">{tokenSymbol} Available</div>
+								<div className="text-sm text-foreground/60">
+									{tokenSymbol} Available
+								</div>
 							</div>
 						</div>
 						<div className="w-full bg-content2/30 rounded-full h-2">
-							<div 
+							<div
 								className="bg-gradient-to-r from-rarity-legendary-500 to-rarity-legendary-400 h-2 rounded-full"
-								style={{ width: `${totalClaimableRewards > BigInt(0) ? 100 : 0}%` }}
+								style={{
+									width: `${totalClaimableRewards > BigInt(0) ? 100 : 0}%`,
+								}}
 							/>
 						</div>
 					</GlassCard>
@@ -239,23 +219,151 @@ export const ProfileDashboard: React.FC = () => {
 							</div>
 							<div className="text-right">
 								<div className="text-2xl font-bold text-rarity-epic-300">
-									{formatTokenAmount(
-										totalRewardsClaimed,
-										tokenDecimals || 18,
-									)}
+									{formatTokenAmount(totalRewardsClaimed, tokenDecimals || 18)}
 								</div>
-								<div className="text-sm text-foreground/60">{tokenSymbol} Claimed</div>
+								<div className="text-sm text-foreground/60">
+									{tokenSymbol} Claimed
+								</div>
 							</div>
 						</div>
 						<div className="w-full bg-content2/30 rounded-full h-2">
-							<div 
+							<div
 								className="bg-gradient-to-r from-rarity-epic-500 to-rarity-epic-400 h-2 rounded-full"
-								style={{ width: `${totalRewardsClaimed > BigInt(0) ? 100 : 0}%` }}
+								style={{
+									width: `${totalRewardsClaimed > BigInt(0) ? 100 : 0}%`,
+								}}
 							/>
 						</div>
 					</GlassCard>
 				</motion.div>
 			</div>
+
+			{/* Advanced Statistics */}
+			{(userRefundCount > BigInt(0) || userReclaimCount > BigInt(0)) && (
+				<div className="grid md:grid-cols-2 gap-6">
+					{userRefundCount > BigInt(0) && (
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.6, delay: 0.5 }}
+						>
+							<GlassCard className="p-6 border-warning/30">
+								<div className="flex items-center justify-between mb-4">
+									<div className="w-12 h-12 bg-gradient-to-br from-warning/20 to-warning/30 rounded-lg flex items-center justify-center">
+										<SparklesIcon className="w-6 h-6 text-warning" />
+									</div>
+									<div className="text-right">
+										<div className="text-2xl font-bold text-warning">
+											{Number(userRefundCount).toLocaleString()}
+										</div>
+										<div className="text-sm text-foreground/60">
+											Refunded Spins
+										</div>
+									</div>
+								</div>
+								<div className="text-xs text-foreground/70 leading-relaxed">
+									Spins automatically refunded when selected rarity pools were
+									empty
+								</div>
+							</GlassCard>
+						</motion.div>
+					)}
+
+					{userReclaimCount > BigInt(0) && (
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.6, delay: 0.6 }}
+						>
+							<GlassCard className="p-6 border-danger/30">
+								<div className="flex items-center justify-between mb-4">
+									<div className="w-12 h-12 bg-gradient-to-br from-danger/20 to-danger/30 rounded-lg flex items-center justify-center">
+										<ClockIcon className="w-6 h-6 text-danger" />
+									</div>
+									<div className="text-right">
+										<div className="text-2xl font-bold text-danger">
+											{Number(userReclaimCount).toLocaleString()}
+										</div>
+										<div className="text-sm text-foreground/60">
+											Reclaimed Spins
+										</div>
+									</div>
+								</div>
+								<div className="text-xs text-foreground/70 leading-relaxed">
+									Spins manually reclaimed due to timeout or service issues
+								</div>
+							</GlassCard>
+						</motion.div>
+					)}
+				</div>
+			)}
+
+			{/* Rarity Wins Breakdown */}
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.6, delay: 0.7 }}
+			>
+				<GlassCard className="p-8">
+					<h2
+						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
+					>
+						<TrophyIcon className="w-6 h-6 inline mr-2" />
+						Rarity Win Statistics
+					</h2>
+
+					<div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+						{getAllRarities().map((rarity, index) => {
+							const config = getRarityConfig(rarity);
+							const winCount = Number(userRarityWins[index] || 0);
+							const totalSpins = Number(userSpinCount);
+							const winRate =
+								totalSpins > 0
+									? ((winCount / totalSpins) * 100).toFixed(1)
+									: "0.0";
+
+							return (
+								<motion.div
+									key={rarity}
+									initial={{ opacity: 0, scale: 0.95 }}
+									animate={{ opacity: 1, scale: 1 }}
+									transition={{ duration: 0.5, delay: 0.1 * index }}
+								>
+									<div className="group relative">
+										<div
+											className={`absolute inset-0 bg-gradient-to-br ${config.bgGradient} rounded-xl opacity-0 group-hover:opacity-10 transition-opacity duration-300 blur-sm`}
+										/>
+
+										<div
+											className={`relative bg-content2/20 border ${config.borderColor} rounded-xl p-4 hover:bg-content2/30 transition-all duration-300`}
+										>
+											<div className="text-center">
+												<div className="text-3xl mb-2">{config.emoji}</div>
+												<div
+													className={`font-bold text-sm ${config.textColor} mb-2`}
+												>
+													{config.name}
+												</div>
+												<div className="text-2xl font-bold mb-1">
+													{winCount.toLocaleString()}
+												</div>
+												<div className="text-xs text-foreground/60 mb-2">
+													Wins
+												</div>
+												<div
+													className={`text-sm font-medium ${config.textColor}`}
+												>
+													{winRate}% rate
+												</div>
+											</div>
+										</div>
+									</div>
+								</motion.div>
+							);
+						})}
+					</div>
+				</GlassCard>
+			</motion.div>
 
 			{/* Rewards by Rarity */}
 			<motion.div
@@ -282,7 +390,7 @@ export const ProfileDashboard: React.FC = () => {
 								<RarityRewardCard
 									rarity={rarity}
 									userAddress={userAddress}
-									rewardsManagerAddress={contracts.rewardsManager!}
+                                    rewardsManagerAddress={contracts.rewardsManager as `0x${string}` | undefined}
 									tokenSymbol={tokenSymbol}
 									tokenDecimals={tokenDecimals}
 								/>
@@ -331,7 +439,7 @@ const RarityRewardCard: React.FC<{
 			/>
 
 			<div
-				className={`relative bg-content2/20 border ${config.borderColor} rounded-xl p-4 hover:bg-content2/30 transition-all duration-300 ${hasRewards ? "hover:shadow-lg hover:shadow-" + config.name.toLowerCase() + "/20" : ""}`}
+                className={`relative bg-content2/20 border ${config.borderColor} rounded-xl p-4 hover:bg-content2/30 transition-all duration-300 ${hasRewards ? `hover:shadow-lg hover:shadow-${config.name.toLowerCase()}/20` : ""}`}
 			>
 				<div className="text-center">
 					<div className="text-3xl mb-2">{config.emoji}</div>
@@ -348,7 +456,7 @@ const RarityRewardCard: React.FC<{
 						variant={hasRewards ? "primary" : "secondary"}
 						size="sm"
 						className="w-full"
-						disabled={!hasRewards}
+						isDisabled={!hasRewards}
 					>
 						{hasRewards ? "Claim" : "No rewards"}
 					</GlassButton>

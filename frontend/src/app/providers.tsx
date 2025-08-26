@@ -18,17 +18,15 @@ const customDarkTheme = darkTheme({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    const router = useRouter();
+	const router = useRouter();
 
-    return (
-        <WagmiProvider config={config}>
-            <QueryClientProvider client={queryClient}>
-                <RainbowKitProvider theme={customDarkTheme} modalSize="compact">
-                    <HeroUIProvider navigate={router.push}>
-                        {children}
-                    </HeroUIProvider>
-                </RainbowKitProvider>
-            </QueryClientProvider>
-        </WagmiProvider>
-    );
+	return (
+		<WagmiProvider config={config}>
+			<QueryClientProvider client={queryClient}>
+				<RainbowKitProvider theme={customDarkTheme} modalSize="compact">
+					<HeroUIProvider navigate={router.push}>{children}</HeroUIProvider>
+				</RainbowKitProvider>
+			</QueryClientProvider>
+		</WagmiProvider>
+	);
 }

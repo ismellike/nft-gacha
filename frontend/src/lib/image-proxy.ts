@@ -218,7 +218,7 @@ export function useImageWithFallbacks(imageUrl: string | null | undefined) {
 
 		setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-		loadImageWithFallbacks(imageUrl, (attempt, url) => {
+		loadImageWithFallbacks(imageUrl, (attempt) => {
 			setState((prev) => ({ ...prev, attempt }));
 		})
 			.then((finalUrl) => {

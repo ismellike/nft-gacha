@@ -55,6 +55,14 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     /// @notice Internal state
     uint256 private _nextTriggerId;
     mapping(uint256 => SpinRequest) public spinRequests;
+    mapping(address => uint256) public userSpinCount;
+    mapping(address => mapping(GachaTreasury.Rarity => uint256)) public userRarityWins;
+    mapping(address => uint256) public userRefundCount;
+    mapping(address => uint256) public userReclaimCount;
+    uint256 public totalSpinCount;
+    uint256 public totalRefundCount;
+    uint256 public totalReclaimCount;
+    mapping(GachaTreasury.Rarity => uint256) public globalRarityWins;
 
     /// @notice Total weight constant for rarity calculations (basis points)
     uint256 public constant TOTAL_WEIGHT = 10_000;
@@ -220,6 +228,10 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
 
         request.fulfilled = true;
 
+        // Increment spin counters
+        userSpinCount[request.requester]++;
+        totalSpinCount++;
+
         // Select rarity based on randomness
         GachaTreasury.Rarity selectedRarity = _selectRarity(randomness);
 
@@ -227,6 +239,10 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         uint256 availableCount = treasury.getRarityCount(selectedRarity);
 
         if (availableCount == 0) {
+            // Track refund statistics
+            userRefundCount[request.requester]++;
+            totalRefundCount++;
+            
             // Refund the user if selected rarity is empty
             if (spinFee > 0) {
                 feeToken.safeTransfer(request.requester, spinFee);
@@ -246,6 +262,10 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         // Send NFT from treasury to requester using optimized random selection
         GachaTreasury.NFTItem memory selectedNFT =
             treasury.sendRandomNFTToWinner(selectedRarity, uint256(randomness), request.requester);
+
+        // Track win statistics
+        userRarityWins[request.requester][selectedRarity]++;
+        globalRarityWins[selectedRarity]++;
 
         emit SpinCompleted(
             triggerId,
@@ -384,6 +404,74 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         return address(treasury);
     }
 
+    /// @notice Gets the total number of spins performed by a specific user
+    /// @param user The user address to query
+    /// @return spinCount The number of spins performed by the user
+    function getUserSpinCount(address user) external view returns (uint256 spinCount) {
+        return userSpinCount[user];
+    }
+
+    /// @notice Gets comprehensive analytics for a specific user
+    /// @param user The user address to query
+    /// @return totalSpins Total completed spins
+    /// @return totalRefunds Total refunded spins
+    /// @return totalReclaims Total reclaimed spins
+    /// @return rarityWins Array of wins per rarity [Common, Uncommon, Rare, Epic, Legendary]
+    function getUserAnalytics(address user) 
+        external 
+        view 
+        returns (
+            uint256 totalSpins,
+            uint256 totalRefunds, 
+            uint256 totalReclaims,
+            uint256[5] memory rarityWins
+        ) 
+    {
+        totalSpins = userSpinCount[user];
+        totalRefunds = userRefundCount[user];
+        totalReclaims = userReclaimCount[user];
+        
+        for (uint256 i = 0; i < 5; i++) {
+            rarityWins[i] = userRarityWins[user][GachaTreasury.Rarity(i)];
+        }
+    }
+
+    /// @notice Gets global analytics data
+    /// @return totalSpins Total spins across all users
+    /// @return totalRefunds Total refunded spins
+    /// @return totalReclaims Total reclaimed spins
+    /// @return globalRarityWinCounts Array of global wins per rarity
+    function getGlobalAnalytics() 
+        external 
+        view 
+        returns (
+            uint256 totalSpins,
+            uint256 totalRefunds,
+            uint256 totalReclaims,
+            uint256[5] memory globalRarityWinCounts
+        )
+    {
+        totalSpins = totalSpinCount;
+        totalRefunds = totalRefundCount;
+        totalReclaims = totalReclaimCount;
+        
+        for (uint256 i = 0; i < 5; i++) {
+            globalRarityWinCounts[i] = globalRarityWins[GachaTreasury.Rarity(i)];
+        }
+    }
+
+    /// @notice Gets user's win count for a specific rarity
+    /// @param user The user address to query  
+    /// @param rarity The rarity to check
+    /// @return winCount Number of wins for that rarity
+    function getUserRarityWinCount(address user, GachaTreasury.Rarity rarity) 
+        external 
+        view 
+        returns (uint256 winCount) 
+    {
+        return userRarityWins[user][rarity];
+    }
+
     /**
      * @notice Allows users to reclaim their fees if randomness fails or times out
      * @param triggerId The trigger ID of the failed spin request
@@ -400,6 +488,10 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
 
         // Mark as fulfilled to prevent any future fulfillment of this trigger
         request.fulfilled = true;
+
+        // Track reclaim statistics
+        userReclaimCount[request.requester]++;
+        totalReclaimCount++;
 
         // Refund the spin fee if one was paid
         if (spinFee > 0) {

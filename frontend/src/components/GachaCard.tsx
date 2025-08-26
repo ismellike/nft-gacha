@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { memo, useCallback } from "react";
+import { useCallback } from "react";
 import { formatTokenAmount } from "../lib/utils";
 import {
 	useReadGachaTreasuryIsGachaAvailable,
@@ -22,29 +22,30 @@ import {
 } from "@heroicons/react/24/outline";
 import { GlassCard, GlassBadge, GachaCardSkeleton } from "./ui";
 import { GachaCardHeader } from "./GachaCardHeader";
-import { type GachaConfig } from "../lib/gacha-config";
+import type { GachaConfig } from "../lib/gacha-config";
 
 interface GachaCardProps {
 	gacha: GachaConfig;
 }
 
-export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
+export function GachaCard({ gacha }: GachaCardProps) {
 	const router = useRouter();
 
 	// Fetch gacha-specific data
+	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
 	const { data: isAvailable, isLoading: isAvailableLoading } =
 		useReadGachaTreasuryIsGachaAvailable({
-			address: gacha.treasuryAddress as `0x${string}`,
+			address: treasuryAddress,
 		});
 
 	const { data: totalItemsCount, isLoading: isTotalItemsLoading } =
 		useReadGachaTreasuryGetTotalItemsCount({
-			address: gacha.treasuryAddress as `0x${string}`,
+			address: treasuryAddress,
 		});
 
 	const { data: rarityCounts, isLoading: isRarityCountsLoading } =
 		useReadGachaTreasuryGetAllRarityCounts({
-			address: gacha.treasuryAddress as `0x${string}`,
+			address: treasuryAddress,
 		});
 
 	const { data: spinFee, isLoading: isSpinFeeLoading } = useReadGachaSpinFee({
@@ -91,24 +92,16 @@ export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 		return <GachaCardSkeleton />;
 	}
 
-	return (
-		<motion.div
-			className="h-full cursor-pointer"
-			onClick={handleExplore}
-			whileHover={{ scale: 1.02 }}
-			whileTap={{ scale: 0.98 }}
-			transition={{ type: "spring", stiffness: 300, damping: 20 }}
-			role="button"
-			tabIndex={0}
-			aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
-			data-testid={`explore-gacha-${gacha.id}`}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					handleExplore();
-				}
-			}}
-		>
+    return (
+        <motion.button
+            className="h-full cursor-pointer"
+            onClick={handleExplore}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
+            data-testid={`explore-gacha-${gacha.id}`}
+        >
 			<GlassCard
 				variant="interactive"
 				padding="none"
@@ -199,22 +192,29 @@ export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 								Rarity Distribution
 							</div>
 							<div className="flex gap-2">
-								{rarityCounts?.map((count, index) => {
-									const rarityColors = [
-										"from-rarity-common-500 to-rarity-common-600",
-										"from-rarity-uncommon-500 to-rarity-uncommon-600",
-										"from-rarity-rare-500 to-rarity-rare-600",
-										"from-rarity-epic-500 to-rarity-epic-600",
-										"from-rarity-legendary-500 to-rarity-legendary-600",
-									];
-									const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟠"];
-									return (
-										<motion.div
-											key={index}
-											className="flex-1 text-center"
-											whileHover={{ scale: 1.05 }}
-											transition={{ type: "spring", stiffness: 400 }}
-										>
+                            {rarityCounts?.map((count, index) => {
+                                const rarityColors = [
+                                    "from-rarity-common-500 to-rarity-common-600",
+                                    "from-rarity-uncommon-500 to-rarity-uncommon-600",
+                                    "from-rarity-rare-500 to-rarity-rare-600",
+                                    "from-rarity-epic-500 to-rarity-epic-600",
+                                    "from-rarity-legendary-500 to-rarity-legendary-600",
+                                ];
+                                const rarityKeys = [
+                                    "common",
+                                    "uncommon",
+                                    "rare",
+                                    "epic",
+                                    "legendary",
+                                ];
+                                const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟠"];
+                                return (
+                                    <motion.div
+                                        key={rarityKeys[index]}
+                                        className="flex-1 text-center"
+                                        whileHover={{ scale: 1.05 }}
+                                        transition={{ type: "spring", stiffness: 400 }}
+                                    >
 											<div className="text-lg mb-1">{rarityEmojis[index]}</div>
 											<div
 												className={`h-2 bg-gradient-to-r ${rarityColors[index]} rounded-full mb-1 shadow-sm`}
@@ -266,7 +266,6 @@ export const GachaCard = memo<GachaCardProps>(({ gacha }) => {
 					</div>
 				</div>
 			</GlassCard>
-		</motion.div>
-	);
-});
-GachaCard.displayName = "GachaCard";
+        </motion.button>
+    );
+}

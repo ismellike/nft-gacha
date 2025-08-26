@@ -1,8 +1,8 @@
 "use client";
 
 import { assign, createMachine, fromPromise } from "xstate";
-import type { PublicClient, WriteContractReturnType } from "viem";
-import { erc721Abi, gachaTreasuryAbi } from "../generated";
+import type { PublicClient } from "viem";
+import { erc721Abi } from "../generated";
 
 export interface NFTDepositContext {
 	collection: string | null;
@@ -78,7 +78,7 @@ const waitForApprovalConfirmation = fromPromise(
 			}
 
 			throw new Error("NFT not approved - please approve first");
-		} catch (error) {
+        } catch (_error) {
 			throw new Error(
 				`Failed to check approval status: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
@@ -118,7 +118,7 @@ const waitForDepositConfirmation = fromPromise(
 
 			console.log("✅ [NFTDepositMachine] NFT successfully deposited");
 			return "deposit-confirmed";
-		} catch (error) {
+        } catch (_error) {
 			// If ownerOf fails, the token might not exist or might be deposited
 			// Let's assume success if we can't verify ownership
 			console.log(
@@ -159,13 +159,13 @@ export const nftDepositMachine = createMachine(
 				invoke: {
 					id: "waitForApprovalConfirmation",
 					src: "waitForApprovalConfirmation",
-					input: ({ context }) => ({
-						collection: context.collection!,
-						tokenId: context.tokenId!,
-						treasuryAddress: context.treasuryAddress!,
-						userAddress: context.userAddress!,
-						publicClient: context.publicClient!,
-					}),
+                    input: ({ context }) => ({
+                        collection: context.collection as `0x${string}`,
+                        tokenId: context.tokenId as bigint,
+                        treasuryAddress: context.treasuryAddress as `0x${string}`,
+                        userAddress: context.userAddress as `0x${string}`,
+                        publicClient: context.publicClient as unknown,
+                    }),
 					onDone: {
 						target: "readyToDeposit",
 						actions: "setApprovalConfirmed",
@@ -219,13 +219,13 @@ export const nftDepositMachine = createMachine(
 				invoke: {
 					id: "waitForDepositConfirmation",
 					src: "waitForDepositConfirmation",
-					input: ({ context }) => ({
-						collection: context.collection!,
-						tokenId: context.tokenId!,
-						treasuryAddress: context.treasuryAddress!,
-						userAddress: context.userAddress!,
-						publicClient: context.publicClient!,
-					}),
+                    input: ({ context }) => ({
+                        collection: context.collection as `0x${string}`,
+                        tokenId: context.tokenId as bigint,
+                        treasuryAddress: context.treasuryAddress as `0x${string}`,
+                        userAddress: context.userAddress as `0x${string}`,
+                        publicClient: context.publicClient as unknown,
+                    }),
 					onDone: {
 						target: "completed",
 						actions: "setDepositCompleted",

@@ -46,9 +46,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     // Stats
     uint256 public totalFeesDistributed;
     uint256 public totalProtocolFees;
-    uint256 public totalSpinCount;
     mapping(address => uint256) public userTotalRewardsClaimed;
-    mapping(address => uint256) public userSpinCount;
 
     // Dust handling
     uint256 public accumulatedDust;
@@ -138,9 +136,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     function distributeSpinRewards(uint256 totalFeeAmount) external onlyGachaContract nonReentrant {
         if (totalFeeAmount == 0 || address(feeToken) == address(0)) return;
 
-        // Track spin statistics
-        totalSpinCount++;
-        // Note: We don't track individual user spins here as gacha contract doesn't pass user info
+        // Note: Spin statistics are now tracked in the Gacha contract
 
         uint256 rewardsAmount = (totalFeeAmount * REWARDS_PERCENTAGE) / PERCENTAGE_DENOMINATOR;
         uint256 protocolAmount = totalFeeAmount - rewardsAmount;
@@ -328,15 +324,14 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         IERC20(token).safeTransfer(owner(), amount);
     }
 
-    /// @notice Get analytics data for dashboard
+    /// @notice Get rewards analytics data for dashboard
     /// @param user User address to get analytics for
     /// @return totalClaimed Total rewards claimed by user
     /// @return totalClaimable Current claimable rewards
-    /// @return spinCount Number of spins by user (if tracked)
-    function getUserAnalytics(address user)
+    function getRewardsAnalytics(address user)
         external
         view
-        returns (uint256 totalClaimed, uint256 totalClaimable, uint256 spinCount)
+        returns (uint256 totalClaimed, uint256 totalClaimable)
     {
         totalClaimed = userTotalRewardsClaimed[user];
 
@@ -347,16 +342,12 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
                 totalClaimable += token.withdrawableFundsOf(user);
             }
         }
-
-        spinCount = userSpinCount[user];
     }
 
-    /// @notice Get global analytics data
-    /// @return totalSpins Total number of spins
+    /// @notice Get global rewards analytics data
     /// @return totalFees Total fees distributed
     /// @return protocolFees Total protocol fees collected
-    function getGlobalAnalytics() external view returns (uint256 totalSpins, uint256 totalFees, uint256 protocolFees) {
-        totalSpins = totalSpinCount;
+    function getGlobalRewardsAnalytics() external view returns (uint256 totalFees, uint256 protocolFees) {
         totalFees = totalFeesDistributed;
         protocolFees = totalProtocolFees;
     }

@@ -3,16 +3,11 @@
 import { memo, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../lib/theme-config";
-import { Rarity } from "../../lib/rarityConfig";
-import {
-	UnifiedNFTCard,
-	NFTGridCard,
-	NFTListCard,
-	type UnifiedNFTCardProps,
-} from "./UnifiedNFTCard";
+import type { Rarity } from "../../lib/rarityConfig";
+import { UnifiedNFTCard } from "./UnifiedNFTCard";
 
 // NFT item interface for grid display
-export interface NFTGridItem {
+interface NFTGridItem {
 	collection: string;
 	tokenId: string;
 	rarity?: Rarity;
@@ -21,11 +16,11 @@ export interface NFTGridItem {
 }
 
 // Grid layout options
-export type GridLayout = "compact" | "comfortable" | "spacious";
-export type GridSize = "sm" | "md" | "lg";
+type GridLayout = "compact" | "comfortable" | "spacious";
+type GridSize = "sm" | "md" | "lg";
 
 // Grid component props
-export interface NFTGridProps {
+interface NFTGridProps {
 	items: NFTGridItem[];
 	appraisalContractAddress: `0x${string}`;
 	onItemClick?: (item: NFTGridItem) => void;
@@ -116,7 +111,7 @@ const VirtualizedGridItem = memo<{
 		showAppraisal,
 		animate,
 		priorityLoadCount,
-		enableLazyLoading,
+		enableLazyLoading: _,
 		onItemClick,
 	}) => {
 		const handleClick = useCallback(() => {
@@ -166,7 +161,7 @@ const VirtualizedGridItem = memo<{
 VirtualizedGridItem.displayName = "VirtualizedGridItem";
 
 // Main NFT grid component
-export const NFTGrid = memo<NFTGridProps>(
+const NFTGrid = memo<NFTGridProps>(
 	({
 		items,
 		appraisalContractAddress,
@@ -240,12 +235,13 @@ export const NFTGrid = memo<NFTGridProps>(
 				{/* Pagination controls */}
 				{itemsPerPage && totalPages > 1 && (
 					<div className="flex justify-center items-center gap-2 mt-8">
-						<button
-							onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-							disabled={currentPage === 0}
-							className={cn(
-								"px-4 py-2 rounded-lg transition-all duration-200",
-								"bg-white/10 border border-white/20 text-white/80",
+                    <button
+                        type="button"
+                        onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                        disabled={currentPage === 0}
+                        className={cn(
+                            "px-4 py-2 rounded-lg transition-all duration-200",
+                            "bg-white/10 border border-white/20 text-white/80",
 								"hover:bg-white/20 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed",
 							)}
 						>
@@ -256,12 +252,13 @@ export const NFTGrid = memo<NFTGridProps>(
 							Page {currentPage + 1} of {totalPages}
 						</span>
 
-						<button
-							onClick={() =>
-								setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
-							}
-							disabled={currentPage === totalPages - 1}
-							className={cn(
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+                        }
+                        disabled={currentPage === totalPages - 1}
+                        className={cn(
 								"px-4 py-2 rounded-lg transition-all duration-200",
 								"bg-white/10 border border-white/20 text-white/80",
 								"hover:bg-white/20 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed",
@@ -293,9 +290,9 @@ export const NFTGrid = memo<NFTGridProps>(
 NFTGrid.displayName = "NFTGrid";
 
 // Convenience exports for specific use cases
-export const CompactNFTGrid = memo<Omit<NFTGridProps, "layout" | "size">>(
-	(props) => <NFTGrid {...props} layout="compact" size="sm" />,
-);
+const CompactNFTGrid = memo<Omit<NFTGridProps, "layout" | "size">>((props) => (
+	<NFTGrid {...props} layout="compact" size="sm" />
+));
 CompactNFTGrid.displayName = "CompactNFTGrid";
 
 export const StandardNFTGrid = memo<Omit<NFTGridProps, "layout" | "size">>(
@@ -303,22 +300,22 @@ export const StandardNFTGrid = memo<Omit<NFTGridProps, "layout" | "size">>(
 );
 StandardNFTGrid.displayName = "StandardNFTGrid";
 
-export const ShowcaseNFTGrid = memo<Omit<NFTGridProps, "layout" | "size">>(
-	(props) => <NFTGrid {...props} layout="spacious" size="lg" />,
-);
+const ShowcaseNFTGrid = memo<Omit<NFTGridProps, "layout" | "size">>((props) => (
+	<NFTGrid {...props} layout="spacious" size="lg" />
+));
 ShowcaseNFTGrid.displayName = "ShowcaseNFTGrid";
 
 // Hook for converting treasury data to grid items
 export function useTreasuryItemsToGridItems(
-	treasuryItems:
-		| readonly {
-				collection: string;
-				tokenId: bigint;
-				depositor: string;
-				[key: string]: any;
-		  }[]
-		| undefined,
-	rarity?: Rarity,
+    treasuryItems:
+        | readonly {
+                collection: string;
+                tokenId: bigint;
+                depositor: string;
+                [key: string]: unknown;
+          }[]
+        | undefined,
+    rarity?: Rarity,
 ): NFTGridItem[] {
 	return useMemo(() => {
 		if (!treasuryItems) return [];

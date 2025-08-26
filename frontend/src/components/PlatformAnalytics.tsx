@@ -8,7 +8,6 @@ import {
 	CubeIcon,
 	TrophyIcon,
 	BanknotesIcon,
-	UsersIcon,
 	SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -17,7 +16,7 @@ import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaTreasuryGetTotalItemsCount,
 	useReadGachaRewardsManagerTotalFeesDistributed,
-	useReadGachaRewardsManagerTotalSpinCount,
+	useReadGachaGetGlobalAnalytics,
 	useReadGachaFeeToken,
 	useReadErc20Symbol,
 	useReadErc20Decimals,
@@ -30,42 +29,44 @@ export const PlatformAnalytics: React.FC = () => {
 	const contracts = useGachaContracts(gachaId);
 
 	// Fee token info
-	const { data: feeTokenAddress } = useReadGachaFeeToken({
-		address: contracts.gacha!,
-		query: { enabled: !!contracts.gacha },
-	});
+    const { data: feeTokenAddress } = useReadGachaFeeToken({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    });
 
-	const { data: tokenSymbol } = useReadErc20Symbol({
-		address: feeTokenAddress!,
-		query: { enabled: !!feeTokenAddress },
-	});
+    const { data: tokenSymbol } = useReadErc20Symbol({
+        address: feeTokenAddress,
+        query: { enabled: !!feeTokenAddress },
+    });
 
-	const { data: tokenDecimals } = useReadErc20Decimals({
-		address: feeTokenAddress!,
-		query: { enabled: !!feeTokenAddress },
-	});
+    const { data: tokenDecimals } = useReadErc20Decimals({
+        address: feeTokenAddress,
+        query: { enabled: !!feeTokenAddress },
+    });
 
 	// Platform data
-	const { data: allRarityCounts } = useReadGachaTreasuryGetAllRarityCounts({
-		address: contracts.treasury!,
-		query: { enabled: !!contracts.treasury },
-	});
+    const { data: allRarityCounts } = useReadGachaTreasuryGetAllRarityCounts({
+        address: contracts.treasury as `0x${string}` | undefined,
+        query: { enabled: !!contracts.treasury },
+    });
 
-	const { data: totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
-		address: contracts.treasury!,
-		query: { enabled: !!contracts.treasury },
-	});
+    const { data: totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
+        address: contracts.treasury as `0x${string}` | undefined,
+        query: { enabled: !!contracts.treasury },
+    });
 
-	const { data: totalFeesDistributed } =
-		useReadGachaRewardsManagerTotalFeesDistributed({
-			address: contracts.rewardsManager!,
-			query: { enabled: !!contracts.rewardsManager },
-		});
+    const { data: totalFeesDistributed } =
+        useReadGachaRewardsManagerTotalFeesDistributed({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            query: { enabled: !!contracts.rewardsManager },
+        });
 
-	const { data: totalSpinCount } = useReadGachaRewardsManagerTotalSpinCount({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+    const { data: gachaGlobalAnalytics } = useReadGachaGetGlobalAnalytics({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    });
+
+	const totalSpinCount = gachaGlobalAnalytics?.[0];
 
 	const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
 	const totalValue = formatTokenAmount(
@@ -75,22 +76,6 @@ export const PlatformAnalytics: React.FC = () => {
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">
-			{/* Header */}
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.6 }}
-				className="text-center"
-			>
-				<h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
-					Platform Analytics
-				</h1>
-				<p className="text-foreground/70 text-lg max-w-3xl mx-auto">
-					Real-time insights into the gacha platform performance, treasury
-					health, and community activity.
-				</p>
-			</motion.div>
-
 			{/* Key Metrics */}
 			<div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
 				<MetricCard
@@ -314,12 +299,6 @@ const HealthMetric: React.FC<{
 	value: string;
 	status: "excellent" | "good" | "warning";
 }> = ({ label, value, status }) => {
-	const statusColors = {
-		excellent: "text-success",
-		good: "text-warning",
-		warning: "text-danger",
-	};
-
 	const statusIcons = {
 		excellent: "🟢",
 		good: "🟡",

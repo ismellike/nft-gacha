@@ -8,7 +8,7 @@ import { NFTHeroCard } from "./ui";
 import { glassModal } from "../lib/theme-config";
 import { useEnhancedSpinResult } from "../hooks/useNFTWithMetadata";
 
-export interface SpinResult {
+interface SpinResult {
 	rarity: string;
 	collection: string;
 	tokenId: string;
@@ -77,19 +77,20 @@ export default function NFTRevealModal({
 						whileHover={{ scale: 1.1 }}
 						whileTap={{ scale: 0.95 }}
 					>
-						<svg
-							className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-							strokeWidth={2.5}
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M6 18L18 6M6 6l12 12"
-							/>
-						</svg>
+                    <svg
+                        className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2.5}
+                    >
+                        <title>Close</title>
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
 					</motion.button>
 
 					{/* Dramatic Background Glow */}

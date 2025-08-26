@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, memo, useMemo } from "react";
+import NextImage from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/theme-config";
 import { formatAddress, formatTokenId, formatCurrency } from "../../lib/utils";
@@ -9,12 +10,12 @@ import {
 	useReadNftAppraisalHasAppraisal,
 	useReadErc721Name,
 } from "../../generated";
-import { Rarity, getRarityConfig } from "../../lib/rarityConfig";
+import { type Rarity, getRarityConfig } from "../../lib/rarityConfig";
 import { useOptimizedNFTMetadata } from "../../hooks/useOptimizedNFTMetadata";
 import { NFTLoadingPlaceholder } from "./NFTLoadingPlaceholder";
 import {
 	isCourtyardTokenURI,
-	CourtyardMetadata,
+	type CourtyardMetadata,
 	processCourtyardImageUrl,
 	parseCourtyardMetadata,
 	formatCardTitle,
@@ -284,7 +285,7 @@ const UnifiedNFTImage = memo<{
 							className={cn(
 								classes.icon,
 								"border-2 border-white/30 rounded-full",
-								rarityConfig ? `border-t-warning` : "border-t-warning",
+								rarityConfig ? "border-t-warning" : "border-t-warning",
 							)}
 							animate={{ rotate: 360 }}
 							transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -292,20 +293,22 @@ const UnifiedNFTImage = memo<{
 					</div>
 				)}
 
-				{finalUrl && (
-					<img
-						src={finalUrl}
-						alt={nftData.metadata?.name || `NFT ${formatTokenId(tokenId)}`}
-						className={cn(
-							classes.container,
-							classes.rounded,
-							"object-cover relative z-0",
-						)}
-						crossOrigin="anonymous"
-						loading={priority > 7 ? "eager" : "lazy"}
-						referrerPolicy="no-referrer-when-downgrade"
-					/>
-				)}
+                {finalUrl && (
+                    <NextImage
+                        src={finalUrl}
+                        alt={nftData.metadata?.name || `NFT ${formatTokenId(tokenId)}`}
+                        width={512}
+                        height={512}
+                        className={cn(
+                            classes.container,
+                            classes.rounded,
+                            "object-cover relative z-0",
+                        )}
+                        crossOrigin="anonymous"
+                        priority={priority > 7}
+                        referrerPolicy="no-referrer-when-downgrade"
+                    />
+                )}
 			</div>
 		);
 	},
@@ -410,7 +413,6 @@ const UnifiedTraitDisplay = memo<{
 		const visibleTraits = isExpanded
 			? traits
 			: traits.slice(0, maxCollapsedTraits);
-		const hasMoreTraits = traits.length > maxCollapsedTraits;
 
 		// For Courtyard NFTs, add grading info as the first trait if available
 		const allTraitsToShow =
@@ -457,12 +459,13 @@ const UnifiedTraitDisplay = memo<{
 							{isCourtyardNFT ? "Details" : "Traits"}
 						</span>
 						{enableExpansion && finalHasMoreTraits && (
-							<button
-								onClick={onToggle}
-								className={cn(
-									"text-white/60 hover:text-white/90 transition-colors",
-									styles.text,
-								)}
+                            <button
+                                type="button"
+                                onClick={onToggle}
+                                className={cn(
+                                    "text-white/60 hover:text-white/90 transition-colors",
+                                    styles.text,
+                                )}
 							>
 								{isExpanded
 									? "Less"
@@ -818,11 +821,11 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					{/* Extra Details */}
 					{extraDetails && extraDetails.length > 0 && (
 						<div className="space-y-1">
-							{extraDetails.map((detail, index) => (
-								<div
-									key={index}
-									className="bg-white/5 backdrop-blur-md rounded-xl border border-white/20 p-2"
-								>
+                            {extraDetails.map((detail) => (
+                                <div
+                                    key={`${detail.label}:${detail.value}`}
+                                    className="bg-white/5 backdrop-blur-md rounded-xl border border-white/20 p-2"
+                                >
 									<p
 										className={cn(
 											"text-white/60 uppercase tracking-wide font-medium mb-1",
@@ -855,15 +858,6 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 UnifiedNFTCard.displayName = "UnifiedNFTCard";
 
 // Convenience exports for specific use cases
-export const NFTThumbnail = memo<UnifiedNFTCardProps>((props) => (
-	<UnifiedNFTCard
-		{...props}
-		size="xs"
-		variant="minimal"
-		showAppraisal={false}
-	/>
-));
-NFTThumbnail.displayName = "NFTThumbnail";
 
 export const NFTGridCard = memo<UnifiedNFTCardProps>((props) => (
 	<UnifiedNFTCard {...props} size="sm" variant="compact" />
@@ -875,15 +869,9 @@ export const NFTListCard = memo<UnifiedNFTCardProps>((props) => (
 ));
 NFTListCard.displayName = "NFTListCard";
 
-export const NFTShowcaseCard = memo<UnifiedNFTCardProps>((props) => (
-	<UnifiedNFTCard {...props} size="lg" variant="showcase" priority={8} />
-));
-NFTShowcaseCard.displayName = "NFTShowcaseCard";
-
 export const NFTHeroCard = memo<UnifiedNFTCardProps>((props) => (
 	<UnifiedNFTCard {...props} size="xl" variant="showcase" priority={10} />
 ));
 NFTHeroCard.displayName = "NFTHeroCard";
 
-// Main export
-export { UnifiedNFTCard as NFTCard };
+// Main export removed: use UnifiedNFTCard directly or NFTHeroCard via index

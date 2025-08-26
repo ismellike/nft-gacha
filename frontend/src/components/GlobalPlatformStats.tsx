@@ -1,20 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { formatTokenAmount, formatCurrency } from "../lib/utils";
-import { Rarity, getRarityConfig, getAllRarities } from "../lib/rarityConfig";
+import { formatTokenAmount } from "../lib/utils";
+import { getRarityConfig, getAllRarities } from "../lib/rarityConfig";
 import { GlassCard } from "./ui";
 import { glassTypography } from "../lib/theme-config";
 import {
-	useReadGachaRewardsManagerGetGlobalAnalytics,
+	useReadGachaRewardsManagerGetGlobalRewardsAnalytics,
 	useReadGachaRewardsManagerTotalFeesDistributed,
-	useReadGachaRewardsManagerTotalSpinCount,
 	useReadGachaRewardsManagerRarityMultipliers,
 	useReadGachaRewardsManagerTotalProtocolFees,
 	useReadGachaRewardsManagerRewardsPercentage,
 	useReadGachaRewardsManagerProtocolPercentage,
 	useReadGachaRewardsManagerPercentageDenominator,
 	useReadGachaGetTotalValueLocked,
+	useReadGachaGetGlobalAnalytics,
 	useReadGachaTreasuryGetTotalItemsCount,
 	useReadGachaFeeToken,
 	useReadErc20Symbol,
@@ -39,80 +39,90 @@ export const GlobalPlatformStats: React.FC = () => {
 	const rarities = getAllRarities();
 
 	// Fee token info
-	const { data: feeTokenAddress } = useReadGachaFeeToken({
-		address: contracts.gacha!,
-		query: { enabled: !!contracts.gacha },
-	});
+    const { data: feeTokenAddress } = useReadGachaFeeToken({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    });
 
-	const { data: tokenSymbol } = useReadErc20Symbol({
-		address: feeTokenAddress!,
-		query: { enabled: !!feeTokenAddress },
-	});
+    const { data: tokenSymbol } = useReadErc20Symbol({
+        address: feeTokenAddress,
+        query: { enabled: !!feeTokenAddress },
+    });
 
-	const { data: tokenDecimals } = useReadErc20Decimals({
-		address: feeTokenAddress!,
-		query: { enabled: !!feeTokenAddress },
-	});
+    const { data: tokenDecimals } = useReadErc20Decimals({
+        address: feeTokenAddress,
+        query: { enabled: !!feeTokenAddress },
+    });
 
-	// Global stats
-	const { data: globalAnalytics } = useReadGachaRewardsManagerGetGlobalAnalytics({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	// Global stats from Gacha contract
+    const { data: gachaGlobalAnalytics } = useReadGachaGetGlobalAnalytics({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    });
 
-	const { data: totalFeesDistributed } = useReadGachaRewardsManagerTotalFeesDistributed({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	// Global rewards stats from RewardsManager
+	const { data: _rewardsGlobalAnalytics } =
+        useReadGachaRewardsManagerGetGlobalRewardsAnalytics({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            query: { enabled: !!contracts.rewardsManager },
+        });
 
-	const { data: totalSpinCount } = useReadGachaRewardsManagerTotalSpinCount({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	const { data: totalFeesDistributed } =
+        useReadGachaRewardsManagerTotalFeesDistributed({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            query: { enabled: !!contracts.rewardsManager },
+        });
 
-	const { data: rarityMultipliers } = useReadGachaRewardsManagerRarityMultipliers({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	const { data: rarityMultipliers } =
+        useReadGachaRewardsManagerRarityMultipliers({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            query: { enabled: !!contracts.rewardsManager },
+        });
 
-	const { data: totalProtocolFees } = useReadGachaRewardsManagerTotalProtocolFees({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	const { data: totalProtocolFees } =
+        useReadGachaRewardsManagerTotalProtocolFees({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            query: { enabled: !!contracts.rewardsManager },
+        });
 
-	const { data: rewardsPercentage } = useReadGachaRewardsManagerRewardsPercentage({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	const { data: rewardsPercentage } =
+        useReadGachaRewardsManagerRewardsPercentage({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            query: { enabled: !!contracts.rewardsManager },
+        });
 
-	const { data: protocolPercentage } = useReadGachaRewardsManagerProtocolPercentage({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	const { data: protocolPercentage } =
+        useReadGachaRewardsManagerProtocolPercentage({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            query: { enabled: !!contracts.rewardsManager },
+        });
 
-	const { data: percentageDenominator } = useReadGachaRewardsManagerPercentageDenominator({
-		address: contracts.rewardsManager!,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+	const { data: percentageDenominator } =
+        useReadGachaRewardsManagerPercentageDenominator({
+            address: contracts.rewardsManager as `0x${string}` | undefined,
+            query: { enabled: !!contracts.rewardsManager },
+        });
 
-	const { data: totalValueLocked } = useReadGachaGetTotalValueLocked({
-		address: contracts.gacha!,
-		query: { enabled: !!contracts.gacha },
-	});
+    const { data: totalValueLocked } = useReadGachaGetTotalValueLocked({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    });
 
-	const { data: totalItems } = useReadGachaTreasuryGetTotalItemsCount({
-		address: contracts.treasury!,
-		query: { enabled: !!contracts.treasury },
-	});
+    const { data: totalItems } = useReadGachaTreasuryGetTotalItemsCount({
+        address: contracts.treasury as `0x${string}` | undefined,
+        query: { enabled: !!contracts.treasury },
+    });
 
 	// Calculate percentages
-	const rewardsPercentageDisplay = percentageDenominator && rewardsPercentage
-		? (Number(rewardsPercentage) / Number(percentageDenominator)) * 100
-		: 0;
+	const rewardsPercentageDisplay =
+		percentageDenominator && rewardsPercentage
+			? (Number(rewardsPercentage) / Number(percentageDenominator)) * 100
+			: 0;
 
-	const protocolPercentageDisplay = percentageDenominator && protocolPercentage
-		? (Number(protocolPercentage) / Number(percentageDenominator)) * 100
-		: 0;
+	const protocolPercentageDisplay =
+		percentageDenominator && protocolPercentage
+			? (Number(protocolPercentage) / Number(percentageDenominator)) * 100
+			: 0;
 
 	return (
 		<div className="space-y-6">
@@ -138,7 +148,7 @@ export const GlobalPlatformStats: React.FC = () => {
 							</div>
 							<div>
 								<div className="text-lg font-bold text-rarity-rare-200">
-									{Number(totalSpinCount || 0).toLocaleString()}
+									{Number(gachaGlobalAnalytics?.[0] || 0).toLocaleString()}
 								</div>
 								<div className="text-xs text-foreground/60">Total Spins</div>
 							</div>
@@ -156,9 +166,15 @@ export const GlobalPlatformStats: React.FC = () => {
 							</div>
 							<div>
 								<div className="text-lg font-bold text-success">
-									{formatTokenAmount(totalValueLocked || BigInt(0), tokenDecimals || 18)} {tokenSymbol}
+									{formatTokenAmount(
+										totalValueLocked || BigInt(0),
+										tokenDecimals || 18,
+									)}{" "}
+									{tokenSymbol}
 								</div>
-								<div className="text-xs text-foreground/60">Total Value Locked</div>
+								<div className="text-xs text-foreground/60">
+									Total Value Locked
+								</div>
 							</div>
 						</div>
 					</motion.div>
@@ -192,9 +208,15 @@ export const GlobalPlatformStats: React.FC = () => {
 							</div>
 							<div>
 								<div className="text-lg font-bold text-rarity-legendary-200">
-									{formatTokenAmount(totalFeesDistributed || BigInt(0), tokenDecimals || 18)} {tokenSymbol}
+									{formatTokenAmount(
+										totalFeesDistributed || BigInt(0),
+										tokenDecimals || 18,
+									)}{" "}
+									{tokenSymbol}
 								</div>
-								<div className="text-xs text-foreground/60">Fees Distributed</div>
+								<div className="text-xs text-foreground/60">
+									Fees Distributed
+								</div>
 							</div>
 						</div>
 					</motion.div>
@@ -215,9 +237,10 @@ export const GlobalPlatformStats: React.FC = () => {
 					<div className="space-y-3">
 						{rarities.map((rarity, index) => {
 							const config = getRarityConfig(rarity);
-							const multiplier = rarityMultipliers && Array.isArray(rarityMultipliers) 
-								? Number(rarityMultipliers[index] || 1) 
-								: 1;
+							const multiplier =
+								rarityMultipliers && Array.isArray(rarityMultipliers)
+									? Number(rarityMultipliers[index] || 1)
+									: 1;
 							const bonusPercentage = (multiplier - 1) * 100;
 
 							return (
@@ -246,11 +269,15 @@ export const GlobalPlatformStats: React.FC = () => {
 												</div>
 											</div>
 											<div className="text-right">
-												<div className={`text-lg font-bold ${config.textColor}`}>
+												<div
+													className={`text-lg font-bold ${config.textColor}`}
+												>
 													{multiplier}x
 												</div>
 												<div className="text-xs text-foreground/60">
-													{bonusPercentage > 0 ? `+${bonusPercentage.toFixed(0)}%` : "Base rate"}
+													{bonusPercentage > 0
+														? `+${bonusPercentage.toFixed(0)}%`
+														: "Base rate"}
 												</div>
 											</div>
 										</div>
@@ -281,10 +308,13 @@ export const GlobalPlatformStats: React.FC = () => {
 									</div>
 									<span className="font-medium text-sm">User Rewards</span>
 								</div>
-								<span className="text-lg font-bold text-success">{rewardsPercentageDisplay.toFixed(1)}%</span>
+								<span className="text-lg font-bold text-success">
+									{rewardsPercentageDisplay.toFixed(1)}%
+								</span>
 							</div>
 							<div className="text-xs text-foreground/70 leading-relaxed">
-								Percentage of each spin fee distributed as rewards to users based on rarity multipliers
+								Percentage of each spin fee distributed as rewards to users
+								based on rarity multipliers
 							</div>
 						</div>
 
@@ -297,10 +327,13 @@ export const GlobalPlatformStats: React.FC = () => {
 									</div>
 									<span className="font-medium text-sm">Protocol Fees</span>
 								</div>
-								<span className="text-lg font-bold text-info">{protocolPercentageDisplay.toFixed(1)}%</span>
+								<span className="text-lg font-bold text-info">
+									{protocolPercentageDisplay.toFixed(1)}%
+								</span>
 							</div>
 							<div className="text-xs text-foreground/70 leading-relaxed">
-								Fees collected for platform maintenance, development, and operations
+								Fees collected for platform maintenance, development, and
+								operations
 							</div>
 						</div>
 
@@ -311,10 +344,16 @@ export const GlobalPlatformStats: React.FC = () => {
 									<div className="w-8 h-8 bg-gradient-to-br from-warning/20 to-warning/30 rounded-lg flex items-center justify-center">
 										<BanknotesIcon className="w-4 h-4 text-warning" />
 									</div>
-									<span className="font-medium text-sm">Total Protocol Fees</span>
+									<span className="font-medium text-sm">
+										Total Protocol Fees
+									</span>
 								</div>
 								<span className="text-lg font-bold text-warning">
-									{formatTokenAmount(totalProtocolFees || BigInt(0), tokenDecimals || 18)} {tokenSymbol}
+									{formatTokenAmount(
+										totalProtocolFees || BigInt(0),
+										tokenDecimals || 18,
+									)}{" "}
+									{tokenSymbol}
 								</span>
 							</div>
 							<div className="text-xs text-foreground/70 leading-relaxed">
@@ -338,18 +377,33 @@ export const GlobalPlatformStats: React.FC = () => {
 				<div className="grid md:grid-cols-3 gap-6">
 					{/* Activity Metrics */}
 					<div className="space-y-4">
-						<h4 className="font-medium text-foreground/80 text-sm">Activity Metrics</h4>
+						<h4 className="font-medium text-foreground/80 text-sm">
+							Activity Metrics
+						</h4>
 						<div className="space-y-3">
 							<div className="flex justify-between items-center">
-								<span className="text-sm text-foreground/70">Avg. Daily Spins</span>
+								<span className="text-sm text-foreground/70">
+									Avg. Daily Spins
+								</span>
 								<span className="font-mono text-sm">
-									{totalSpinCount ? Math.round(Number(totalSpinCount) / 30).toLocaleString() : "0"}
+									{gachaGlobalAnalytics?.[0]
+										? Math.round(
+												Number(gachaGlobalAnalytics[0]) / 30,
+											).toLocaleString()
+										: "0"}
 								</span>
 							</div>
 							<div className="flex justify-between items-center">
-								<span className="text-sm text-foreground/70">Total Revenue</span>
+								<span className="text-sm text-foreground/70">
+									Total Revenue
+								</span>
 								<span className="font-mono text-sm">
-									{formatTokenAmount((totalFeesDistributed || BigInt(0)) + (totalProtocolFees || BigInt(0)), tokenDecimals || 18)} {tokenSymbol}
+									{formatTokenAmount(
+										(totalFeesDistributed || BigInt(0)) +
+											(totalProtocolFees || BigInt(0)),
+										tokenDecimals || 18,
+									)}{" "}
+									{tokenSymbol}
 								</span>
 							</div>
 						</div>
@@ -357,24 +411,32 @@ export const GlobalPlatformStats: React.FC = () => {
 
 					{/* Treasury Metrics */}
 					<div className="space-y-4">
-						<h4 className="font-medium text-foreground/80 text-sm">Treasury Health</h4>
+						<h4 className="font-medium text-foreground/80 text-sm">
+							Treasury Health
+						</h4>
 						<div className="space-y-3">
 							<div className="flex justify-between items-center">
-								<span className="text-sm text-foreground/70">Utilization Rate</span>
+								<span className="text-sm text-foreground/70">
+									Utilization Rate
+								</span>
 								<span className="font-mono text-sm">
-									{totalItems && totalSpinCount 
-										? `${Math.min((Number(totalSpinCount) / Number(totalItems)) * 100, 100).toFixed(1)}%`
-										: "0%"
-									}
+									{totalItems && gachaGlobalAnalytics?.[0]
+										? `${Math.min((Number(gachaGlobalAnalytics[0]) / Number(totalItems)) * 100, 100).toFixed(1)}%`
+										: "0%"}
 								</span>
 							</div>
 							<div className="flex justify-between items-center">
-								<span className="text-sm text-foreground/70">Avg. Item Value</span>
+								<span className="text-sm text-foreground/70">
+									Avg. Item Value
+								</span>
 								<span className="font-mono text-sm">
 									{totalValueLocked && totalItems && Number(totalItems) > 0
-										? formatTokenAmount(totalValueLocked / BigInt(Number(totalItems)), tokenDecimals || 18)
-										: "0"
-									} {tokenSymbol}
+										? formatTokenAmount(
+												totalValueLocked / BigInt(Number(totalItems)),
+												tokenDecimals || 18,
+											)
+										: "0"}{" "}
+									{tokenSymbol}
 								</span>
 							</div>
 						</div>
@@ -382,18 +444,30 @@ export const GlobalPlatformStats: React.FC = () => {
 
 					{/* Economic Metrics */}
 					<div className="space-y-4">
-						<h4 className="font-medium text-foreground/80 text-sm">Economic Impact</h4>
+						<h4 className="font-medium text-foreground/80 text-sm">
+							Economic Impact
+						</h4>
 						<div className="space-y-3">
 							<div className="flex justify-between items-center">
 								<span className="text-sm text-foreground/70">User Rewards</span>
 								<span className="font-mono text-sm text-success">
-									{formatTokenAmount(totalFeesDistributed || BigInt(0), tokenDecimals || 18)} {tokenSymbol}
+									{formatTokenAmount(
+										totalFeesDistributed || BigInt(0),
+										tokenDecimals || 18,
+									)}{" "}
+									{tokenSymbol}
 								</span>
 							</div>
 							<div className="flex justify-between items-center">
-								<span className="text-sm text-foreground/70">Protocol Share</span>
+								<span className="text-sm text-foreground/70">
+									Protocol Share
+								</span>
 								<span className="font-mono text-sm text-info">
-									{formatTokenAmount(totalProtocolFees || BigInt(0), tokenDecimals || 18)} {tokenSymbol}
+									{formatTokenAmount(
+										totalProtocolFees || BigInt(0),
+										tokenDecimals || 18,
+									)}{" "}
+									{tokenSymbol}
 								</span>
 							</div>
 						</div>

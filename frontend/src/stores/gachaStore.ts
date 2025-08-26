@@ -52,8 +52,8 @@ export const useGachaStore = create<GachaStore>()(
 			removePendingSpin: (userAddress, gachaAddress) => {
 				const key = getSpinKey(userAddress, gachaAddress);
 				set((state) => {
-					const { [key]: removed, ...remaining } = state.pendingSpins;
-					return { pendingSpins: remaining };
+                const { [key]: _removed, ...remaining } = state.pendingSpins;
+                return { pendingSpins: remaining };
 				});
 			},
 
@@ -126,7 +126,7 @@ export const useGachaStore = create<GachaStore>()(
 		{
 			name: "gacha-store",
 			storage: createJSONStorage(() => localStorage, {
-				replacer: (key, value) =>
+				replacer: (_key, value) =>
 					typeof value === "bigint" ? value.toString() : value,
 				reviver: (key, value) => {
 					// Convert triggerId strings back to BigInt for specific keys

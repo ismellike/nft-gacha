@@ -1,6 +1,6 @@
 "use client";
 
-import { NFTMetadata } from "./nft-metadata";
+import type { NFTMetadata } from "./nft-metadata";
 
 /**
  * Extended interface for Courtyard-specific metadata
@@ -41,8 +41,8 @@ export interface CourtyardMetadata extends NFTMetadata {
  * Simplified to work with direct tokenURI detection
  */
 export function isCourtyardMetadata(
-	metadata: NFTMetadata,
-): metadata is CourtyardMetadata {
+	_metadata: NFTMetadata,
+): _metadata is CourtyardMetadata {
 	// Simple check - if we got here, it's likely already verified as Courtyard
 	// This is mainly for type safety now
 	return true;
@@ -156,7 +156,7 @@ export async function fetchCourtyardMetadata(
 					console.error(
 						`Courtyard request timeout after ${10000 + attempt * 3000}ms`,
 					);
-					throw new Error(`Courtyard request timeout`);
+					throw new Error("Courtyard request timeout");
 				}
 
 				if (error.message.includes("404") || error.message.includes("403")) {
@@ -168,7 +168,7 @@ export async function fetchCourtyardMetadata(
 
 			// Wait before retry (exponential backoff)
 			if (attempt < maxRetries) {
-				const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+				const delay = Math.min(1000 * 2 ** attempt, 5000);
 				console.log(`Retrying Courtyard fetch in ${delay}ms...`);
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			}
@@ -441,8 +441,8 @@ export function parseCourtyardMetadata(metadata: CourtyardMetadata) {
 export function formatCardTitle(
 	title?: string,
 	cardNumber?: string,
-	category?: string,
-	metadata?: CourtyardMetadata,
+	_category?: string,
+	_metadata?: CourtyardMetadata,
 ): string {
 	// Use the title directly if it's clean (like "Enamorus" from Title/Subject attribute)
 	if (!title) return "";
@@ -510,7 +510,7 @@ export function getGradeColorScheme(grade: string | number | undefined): {
 
 	const numGrade = Number(grade);
 
-	if (!isNaN(numGrade)) {
+    if (!Number.isNaN(numGrade)) {
 		if (numGrade === 10) {
 			return {
 				gradient: "from-yellow-400 via-yellow-500 to-yellow-600",

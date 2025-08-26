@@ -5,7 +5,7 @@
 
 import { Button } from "@heroui/react";
 import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 import { glassButton } from "../../lib/theme-config";
 import {
 	ArrowPathIcon as Loader2,
@@ -29,12 +29,12 @@ type IconSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 
 // Helper function to map icon names to components
 function getIconComponent(iconName: string, className: string) {
-	const iconMap: Record<string, any> = {
-		trending: ChartBarIcon,
-		gem: GiftIcon,
-		gift: GiftIcon,
-		clock: ClockIcon,
-		check: CheckIcon,
+    const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+        trending: ChartBarIcon,
+        gem: GiftIcon,
+        gift: GiftIcon,
+        clock: ClockIcon,
+        check: CheckIcon,
 		coins: CurrencyDollarIcon,
 		"x-circle": XCircleIcon,
 		dice: CubeIcon,
@@ -57,7 +57,7 @@ function getIconComponent(iconName: string, className: string) {
 	return <IconComponent className={className} />;
 }
 
-export interface GlassButtonProps {
+interface GlassButtonProps {
 	children: ReactNode;
 	variant?: "primary" | "secondary" | "danger" | "ghost";
 	size?: "sm" | "md" | "lg";
@@ -127,7 +127,7 @@ export function GlassButton({
 	"aria-pressed": ariaPressed,
 	"aria-haspopup": ariaHasPopup,
 	role,
-	type = "button",
+	type: _ = "button",
 	"data-testid": dataTestId,
 	tabIndex,
 	form,

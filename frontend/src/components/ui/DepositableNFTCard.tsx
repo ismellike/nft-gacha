@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useAccount, useWriteContract, usePublicClient } from "wagmi";
 import { useMachine } from "@xstate/react";
-import { SparklesIcon } from "@heroicons/react/24/outline";
 
 import { UnifiedNFTCard, type UnifiedNFTCardProps } from "./UnifiedNFTCard";
 import { GlassButton } from "./index";
@@ -12,12 +11,9 @@ import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import {
 	useReadNftAppraisalGetAppraisal,
-	useWriteErc721Approve,
-	useWriteGachaTreasuryDepositNft,
 	gachaTreasuryAbi,
 	erc721Abi,
 } from "../../generated";
-import { formatCurrency } from "../../lib/utils";
 import { nftDepositMachine } from "../../machines/nftDepositMachine";
 
 interface DepositableNFTCardProps
@@ -80,8 +76,6 @@ export const DepositableNFTCard = ({
 		appraisalData.priceUSD > BigInt(0) &&
 		(appraisalData.status === 1 || appraisalData.status === 2)
 	);
-	const appraisalValue =
-		hasValidAppraisal && appraisalData ? appraisalData.priceUSD : BigInt(0);
 
 	// Report appraisal status change to parent component (with ref to prevent loops)
 	const lastReportedStatusRef = useRef<boolean | null>(null);
@@ -220,8 +214,6 @@ export const DepositableNFTCard = ({
 	}, [isDepositError, depositError, depositState, sendDepositEvent]);
 
 	// Get current state info for UI
-	const isDepositInProgress =
-		!depositState.matches("idle") && !depositState.matches("completed");
 	const currentDepositState = depositState.value as string;
 	const depositStateError = depositState.context.error;
 

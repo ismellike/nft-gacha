@@ -1,21 +1,13 @@
 {
-  "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": [
-    "src/app/**/*.{ts,tsx}",
-    "next.config.*",
-    "tailwind.config.*",
-    "postcss.config.*",
-    "wagmi.config.*"
-  ],
-  "project": [
-    "src/**/*.{ts,tsx}",
-    "src/**/*.css"
-  ],
-  "ignore": [
-    // Generated or convention-based files that often cause false positives
-    "src/generated.ts",
-    "src/**/*.d.ts",
-    "src/examples/**"
-  ]
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"entry": [
+		"src/app/**/*.{ts,tsx}",
+		"next.config.*",
+		"tailwind.config.*",
+		"postcss.config.*",
+		"wagmi.config.*"
+	],
+	"project": ["src/**/*.{ts,tsx}", "src/**/*.css"],
+	"ignoreDependencies": ["tailwind-variants", "zod", "zustand"],
+	"ignore": ["src/generated.ts", "src/**/*.d.ts", "src/examples/**"]
 }
-

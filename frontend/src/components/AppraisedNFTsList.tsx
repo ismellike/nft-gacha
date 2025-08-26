@@ -1,24 +1,20 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
 import {
-	ChartBarSquareIcon,
 	ClockIcon,
 	CheckBadgeIcon,
 	ExclamationTriangleIcon,
 	MagnifyingGlassIcon,
 	ArrowPathIcon,
-	PlusIcon,
-	GiftIcon,
 } from "@heroicons/react/24/outline";
 
 import { GlassCard, GlassButton, LoadingState } from "./ui";
 import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
-import { useReadNftAppraisalGetAppraisal, nftAppraisalAbi } from "../generated";
 import { formatCurrency } from "../lib/utils";
 
 interface AppraisedNFT {
@@ -231,11 +227,11 @@ export function AppraisedNFTsList({
 	const [error, setError] = useState<string | null>(null);
 
 	// Fetch appraisal data for each submitted NFT
-	const fetchAppraisalData = async () => {
-		if (!contracts.appraisal || userSubmittedNFTs.length === 0) {
-			setLoading(false);
-			return;
-		}
+    const fetchAppraisalData = useCallback(async () => {
+        if (!contracts.appraisal || userSubmittedNFTs.length === 0) {
+            setLoading(false);
+            return;
+        }
 
 		setLoading(true);
 		setError(null);
@@ -251,7 +247,7 @@ export function AppraisedNFTsList({
 					const mockPrice =
 						mockStatus === 1
 							? BigInt(Math.floor(Math.random() * 1000) + 100) *
-								BigInt(Math.pow(10, 18))
+								BigInt(10 ** 18)
 							: BigInt(0);
 
 					const appraisal: AppraisedNFT = {
@@ -261,11 +257,11 @@ export function AppraisedNFTsList({
 						status: mockStatus,
 						requester: userAddress || "",
 						timestamp: BigInt(Math.floor((nft.timestamp || Date.now()) / 1000)),
-						lastUpdated:
-							mockStatus === 1
-								? BigInt(Math.floor(Date.now() / 1000))
-								: BigInt(0),
-					};
+                    lastUpdated:
+                        mockStatus === 1
+                            ? BigInt(Math.floor(Date.now() / 1000))
+                            : BigInt(0),
+                };
 
 					appraisals.push(appraisal);
 				} catch (err) {
@@ -283,11 +279,11 @@ export function AppraisedNFTsList({
 		} finally {
 			setLoading(false);
 		}
-	};
+    }, [contracts.appraisal, userSubmittedNFTs, userAddress]);
 
-	useEffect(() => {
-		fetchAppraisalData();
-	}, [contracts.appraisal, userSubmittedNFTs, userAddress]);
+    useEffect(() => {
+        fetchAppraisalData();
+    }, [fetchAppraisalData]);
 
 	const completedAppraisals = useMemo(
 		() => appraisedNFTs.filter((nft) => nft.status === 1 || nft.status === 2),

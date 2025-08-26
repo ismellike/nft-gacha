@@ -67,15 +67,15 @@ export default function LandingPage() {
 			{/* Hero Section - Redesigned */}
 			<section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
 				{/* Animated Background Elements */}
-				<div className="absolute inset-0">
-					{[...Array(6)].map((_, i) => (
-						<motion.div
-							key={i}
-							className="absolute w-64 h-64 rounded-full"
-							style={{
-								background: `radial-gradient(circle, ${rarityColors[i % rarityColors.length].replace("from-", "rgba(").replace(" to-", ", 0.03) 0%, rgba(").replace("-400", "").replace("-600", ", 0.01)")} 100%)`,
-								left: `${Math.random() * 100}%`,
-								top: `${Math.random() * 100}%`,
+                <div className="absolute inset-0">
+                    {Array.from({ length: 6 }, (_, i) => `bg-${i}`).map((id, i) => (
+                        <motion.div
+                            key={id}
+                            className="absolute w-64 h-64 rounded-full"
+                            style={{
+                                background: `radial-gradient(circle, ${rarityColors[i % rarityColors.length].replace("from-", "rgba(").replace(" to-", ", 0.03) 0%, rgba(").replace("-400", "").replace("-600", ", 0.01)")} 100%)`,
+                                left: `${Math.random() * 100}%`,
+                                top: `${Math.random() * 100}%`,
 							}}
 							animate={{
 								x: [0, Math.random() * 100 - 50],
@@ -217,9 +217,9 @@ export default function LandingPage() {
 							<span className="ml-2">Community Benefits</span>
 						</GlassBadge>
 						<h2 className="text-4xl md:text-6xl font-bold mb-8">
-									<span className="bg-gradient-to-r from-warning to-warning bg-clip-text text-transparent">
-									Earn While You
-								</span>
+							<span className="bg-gradient-to-r from-warning to-warning bg-clip-text text-transparent">
+								Earn While You
+							</span>
 							<br />
 							<span className="text-foreground">Contribute</span>
 						</h2>
@@ -340,10 +340,11 @@ export default function LandingPage() {
 							</span>
 						</h2>
 						<p className="text-lg text-foreground/70 max-w-2xl mx-auto">
-							Real-time insights into the NFT Gacha ecosystem, powered by on-chain data.
+							Real-time insights into the NFT Gacha ecosystem, powered by
+							on-chain data.
 						</p>
 					</motion.div>
-					
+
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						whileInView={{ opacity: 1, y: 0 }}

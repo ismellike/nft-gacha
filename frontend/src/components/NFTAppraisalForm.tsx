@@ -3,12 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import {
-	useAccount,
-	useWriteContract,
-	useWaitForTransactionReceipt,
-} from "wagmi";
-import { isAddress, parseEther } from "viem";
+import { useAccount, useWriteContract } from "wagmi";
+import { isAddress } from "viem";
 import {
 	CheckBadgeIcon,
 	ExclamationTriangleIcon,
@@ -23,14 +19,12 @@ import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import {
-	useWriteNftAppraisalRequestAppraisal,
 	useReadNftAppraisalAppraisalFee,
 	useReadNftAppraisalFeeToken,
 	useReadErc20Symbol,
 	useReadErc20Decimals,
 	useReadErc20BalanceOf,
 	useReadErc20Allowance,
-	useWriteErc20Approve,
 	nftAppraisalAbi,
 } from "../generated";
 import { formatTokenAmount } from "../lib/utils";
@@ -158,12 +152,12 @@ export function NFTAppraisalForm({
 
 		if (!formData.tokenId.trim()) {
 			newErrors.tokenId = "Token ID is required";
-		} else if (
-			isNaN(Number(formData.tokenId)) ||
-			Number(formData.tokenId) < 0
-		) {
-			newErrors.tokenId = "Please enter a valid token ID";
-		}
+    } else if (
+            Number.isNaN(Number(formData.tokenId)) ||
+            Number(formData.tokenId) < 0
+        ) {
+        newErrors.tokenId = "Please enter a valid token ID";
+    }
 
 		if (!isConnected) {
 			newErrors.general = "Please connect your wallet";
@@ -237,19 +231,20 @@ export function NFTAppraisalForm({
 			if (onSubmissionSuccess) {
 				onSubmissionSuccess(formData.collection, formData.tokenId);
 			}
-		} catch (error: any) {
-			console.error("Appraisal submission error:", error);
-			setErrors({
-				general: error?.message?.includes("User rejected")
-					? "Transaction was rejected"
-					: error?.message?.includes("Appraisal already exists")
-						? "This NFT has already been submitted for appraisal"
-						: "Failed to submit appraisal request. Please try again.",
-			});
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error("Appraisal submission error:", error);
+            setErrors({
+                general: message.includes("User rejected")
+                        ? "Transaction was rejected"
+                        : message.includes("Appraisal already exists")
+                            ? "This NFT has already been submitted for appraisal"
+                            : "Failed to submit appraisal request. Please try again.",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
 	const handleInputChange = (field: keyof FormData, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
@@ -274,9 +269,9 @@ export function NFTAppraisalForm({
 			formData.tokenId &&
 			contracts.appraisal &&
 			isAddress(formData.collection) &&
-			!isNaN(Number(formData.tokenId)) &&
-			Number(formData.tokenId) >= 0
-		);
+            !Number.isNaN(Number(formData.tokenId)) &&
+            Number(formData.tokenId) >= 0
+        );
 	};
 
 	return (
@@ -306,48 +301,49 @@ export function NFTAppraisalForm({
 
 					{/* Enhanced NFT Preview */}
 					{shouldShowPreview() && (
-							<motion.div
-								initial={{ opacity: 0, scale: 0.95 }}
-								animate={{ opacity: 1, scale: 1 }}
-								className="bg-gradient-to-r from-green-500/10 to-green-600/10 backdrop-blur-xl rounded-xl border border-green-500/20 p-6"
-							>
-								<div className="text-center mb-4">
-									<div className="flex items-center justify-center gap-2 mb-2">
-										<CheckBadgeIcon className="w-5 h-5 text-green-400" />
-										<p className="text-sm font-medium text-green-400">
-											{isPrePopulated ? "NFT Pre-loaded from URL" : "NFT Preview"}
-										</p>
-									</div>
-									<p className="text-xs text-foreground/70">
-										This NFT will be submitted for appraisal
+						<motion.div
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+							className="bg-gradient-to-r from-green-500/10 to-green-600/10 backdrop-blur-xl rounded-xl border border-green-500/20 p-6"
+						>
+							<div className="text-center mb-4">
+								<div className="flex items-center justify-center gap-2 mb-2">
+									<CheckBadgeIcon className="w-5 h-5 text-green-400" />
+									<p className="text-sm font-medium text-green-400">
+										{isPrePopulated ? "NFT Pre-loaded from URL" : "NFT Preview"}
 									</p>
 								</div>
+								<p className="text-xs text-foreground/70">
+									This NFT will be submitted for appraisal
+								</p>
+							</div>
 
-								<div className="flex justify-center mb-4">
-									<div className="w-64">
-										<UnifiedNFTCard
-											collection={formData.collection}
-											tokenId={formData.tokenId}
-											variant="detailed"
-											size="md"
-											showAppraisal={true}
-											animate={true}
-											appraisalContractAddress={contracts.appraisal!}
-											priority={8}
-										/>
-									</div>
+							<div className="flex justify-center mb-4">
+								<div className="w-64">
+									<UnifiedNFTCard
+										collection={formData.collection}
+										tokenId={formData.tokenId}
+										variant="detailed"
+										size="md"
+										showAppraisal={true}
+										animate={true}
+                                    appraisalContractAddress={contracts.appraisal}
+										priority={8}
+									/>
 								</div>
+							</div>
 
-								<div className="text-center space-y-1">
-									<p className="text-xs text-foreground/60">
-										Collection: {formData.collection.slice(0, 8)}...{formData.collection.slice(-6)}
-									</p>
-									<p className="text-xs text-foreground/60">
-										Token ID: #{formData.tokenId}
-									</p>
-								</div>
-							</motion.div>
-						)}
+							<div className="text-center space-y-1">
+								<p className="text-xs text-foreground/60">
+									Collection: {formData.collection.slice(0, 8)}...
+									{formData.collection.slice(-6)}
+								</p>
+								<p className="text-xs text-foreground/60">
+									Token ID: #{formData.tokenId}
+								</p>
+							</div>
+						</motion.div>
+					)}
 
 					{/* Fee Information */}
 					{appraisalFee && (

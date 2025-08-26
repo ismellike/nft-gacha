@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAccount, useWriteContract } from "wagmi";
 import { formatTokenAmount } from "../../lib/utils";
 import GachaSpinner from "../../components/GachaSpinner";
@@ -12,56 +12,47 @@ import { ProfileDashboard } from "../../components/ProfileDashboard";
 import { PlatformAnalytics } from "../../components/PlatformAnalytics";
 import { RealTimeNotifications } from "../../components/RealTimeNotifications";
 import {
-	CheckIcon,
 	XCircleIcon,
-	CurrencyDollarIcon,
 	GiftIcon,
-	WalletIcon,
+	SparklesIcon,
+	ChartBarIcon,
+	UserCircleIcon,
+	CogIcon,
 } from "@heroicons/react/24/outline";
 
-import {
-	GlassCard,
-	GlassButton,
-	StatsGridSkeleton,
-	RarityBreakdownSkeleton,
-	GlassHeader,
-} from "../../components/ui";
+import { GlassCard, GlassButton, GlassHeader } from "../../components/ui";
+import { glassTypography } from "../../lib/theme-config";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";
 import {
-	useReadGachaRewardsManagerGetUserTotalClaimableRewards,
-	useReadGachaRewardsManagerGetUserRarityClaimableRewards,
-	useReadGachaRewardsManagerGetUserAnalytics,
-	useReadGachaTreasuryGetUserAllDepositCounts,
-	useReadErc20Decimals,
-	useReadErc20Symbol,
-	useReadGachaFeeToken,
-	useReadGachaOwner,
-	useReadGachaTreasuryOwner,
-	useReadGachaRewardsManagerOwner,
-	useReadGachaRewardsManagerPaused,
-	rarityDividendTrackerAbi,
+    useReadGachaRewardsManagerGetUserTotalClaimableRewards,
+    useReadGachaRewardsManagerGetUserRarityClaimableRewards,
+    useReadGachaRewardsManagerGetRewardsAnalytics,
+    useReadGachaTreasuryGetUserAllDepositCounts,
+    useReadErc20Decimals,
+    useReadGachaFeeToken,
+    useReadGachaOwner,
+    useReadGachaTreasuryOwner,
+    useReadGachaRewardsManagerOwner,
+    useReadGachaRewardsManagerPaused,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { RARITY_CONFIG, Rarity } from "../../lib/rarityConfig";
+// import { RARITY_CONFIG, Rarity } from "../../lib/rarityConfig";
 
-interface RarityReward {
-	rarity: string;
-	amount: string;
-	deposits: number;
-	emoji: string;
-	color: string;
-}
+// interface RarityReward {
+//   rarity: string;
+//   amount: string;
+//   deposits: number;
+//   emoji: string;
+//   color: string;
+// }
 
 function GachaDetailPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { address: userAddress, isConnected } = useAccount();
-	const [optimisticClaim, setOptimisticClaim] = useState(false);
-	const [optimisticClaimedAmount, setOptimisticClaimedAmount] = useState<
-		bigint | null
-	>(null);
-	const [isRefetchingRewards, setIsRefetchingRewards] = useState(false);
+	const [, setOptimisticClaim] = useState(false);
+	const [, setOptimisticClaimedAmount] = useState<bigint | null>(null);
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const sectionParam = searchParams.get("section");
@@ -106,162 +97,110 @@ function GachaDetailPageContent() {
 			userAddress === rewardsOwner);
 
 	// Check if rewards manager is paused
-	const { data: isRewardsManagerPaused } = useReadGachaRewardsManagerPaused({
-		address: contracts.rewardsManager,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+    useReadGachaRewardsManagerPaused({
+        address: contracts.rewardsManager,
+        query: { enabled: !!contracts.rewardsManager },
+    });
 
 	// Contract reads for rewards functionality
-	const { data: feeToken } = useReadGachaFeeToken({
-		address: contracts.gacha!,
-		query: { enabled: !!contracts.gacha },
-	});
+    const { data: feeToken } = useReadGachaFeeToken({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    });
 
 	const { data: tokenDecimals } = useReadErc20Decimals({
 		address: feeToken,
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: tokenSymbol } = useReadErc20Symbol({
-		address: feeToken,
-		query: { enabled: !!feeToken },
-	});
+	const { refetch: refetchUserAnalytics } =
+		useReadGachaRewardsManagerGetRewardsAnalytics({
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		});
 
-	const {
-		data: userAnalytics,
-		refetch: refetchUserAnalytics,
-		isLoading: isUserAnalyticsLoading,
-	} = useReadGachaRewardsManagerGetUserAnalytics({
-		address: contracts.rewardsManager,
-		args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
-		query: { enabled: !!userAddress && !!contracts.rewardsManager },
-	});
+    const { refetch: refetchClaimable } =
+        useReadGachaRewardsManagerGetUserTotalClaimableRewards({
+            address: contracts.rewardsManager,
+            args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
+            query: { enabled: !!userAddress && !!contracts.rewardsManager },
+        });
 
-	const {
-		data: totalClaimable,
-		refetch: refetchClaimable,
-		isLoading: isTotalClaimableLoading,
-	} = useReadGachaRewardsManagerGetUserTotalClaimableRewards({
-		address: contracts.rewardsManager,
-		args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
-		query: { enabled: !!userAddress && !!contracts.rewardsManager },
-	});
-
-	const {
-		data: depositCounts,
-		refetch: refetchDepositCounts,
-		isLoading: isDepositCountsLoading,
-	} = useReadGachaTreasuryGetUserAllDepositCounts({
-		address: contracts.treasury,
-		args: userAddress && contracts.treasury ? [userAddress] : undefined,
-		query: { enabled: !!userAddress && !!contracts.treasury },
-	});
+    const { refetch: refetchDepositCounts } =
+        useReadGachaTreasuryGetUserAllDepositCounts({
+            address: contracts.treasury,
+            args: userAddress && contracts.treasury ? [userAddress] : undefined,
+            query: { enabled: !!userAddress && !!contracts.treasury },
+        });
 
 	// Individual rarity claimable amounts
-	const { data: commonClaimable, refetch: refetchCommonClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
-		});
+    const { refetch: refetchCommonClaimable } =
+        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+            address: contracts.rewardsManager,
+            args:
+                userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined,
+            query: { enabled: !!userAddress && !!contracts.rewardsManager },
+        });
 
-	const { data: uncommonClaimable, refetch: refetchUncommonClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
-		});
+    const { refetch: refetchUncommonClaimable } =
+        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+            address: contracts.rewardsManager,
+            args:
+                userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined,
+            query: { enabled: !!userAddress && !!contracts.rewardsManager },
+        });
 
-	const { data: rareClaimable, refetch: refetchRareClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
-		});
+    const { refetch: refetchRareClaimable } =
+        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+            address: contracts.rewardsManager,
+            args:
+                userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined,
+            query: { enabled: !!userAddress && !!contracts.rewardsManager },
+        });
 
-	const { data: epicClaimable, refetch: refetchEpicClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
-		});
+    const { refetch: refetchEpicClaimable } =
+        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+            address: contracts.rewardsManager,
+            args:
+                userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined,
+            query: { enabled: !!userAddress && !!contracts.rewardsManager },
+        });
 
-	const { data: legendaryClaimable, refetch: refetchLegendaryClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
-		});
+    const { refetch: refetchLegendaryClaimable } =
+        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+            address: contracts.rewardsManager,
+            args:
+                userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined,
+            query: { enabled: !!userAddress && !!contracts.rewardsManager },
+        });
 
 	// Claim rewards mutation - use generic writeContract for individual tracker calls
-	const {
-		writeContract: claimRewards,
-		isPending: isClaimPending,
-		isSuccess: isClaimSuccess,
-		error: claimError,
-	} = useWriteContract();
+    const {
+        isSuccess: isClaimSuccess,
+        error: claimError,
+    } = useWriteContract();
 
 	// Format token amounts with enhanced precision and clean display
-	const formatTokenAmountLocal = (amount: bigint | undefined) => {
-		if (!amount || !tokenDecimals) return "0";
-		return formatTokenAmount(amount, tokenDecimals, {
-			maxDecimals: 6,
-			minDecimals: 0,
-			useGrouping: true,
-			notation: "standard",
-		});
-	};
-
-	// Prepare rarity rewards data using official config
-	const rarityRewards: RarityReward[] = [
-		{
-			rarity: RARITY_CONFIG[Rarity.Common].name,
-			amount: formatTokenAmountLocal(commonClaimable),
-			deposits: depositCounts ? Number(depositCounts[0]) : 0,
-			emoji: RARITY_CONFIG[Rarity.Common].emoji,
-			color: RARITY_CONFIG[Rarity.Common].bgGradient,
-		},
-		{
-			rarity: RARITY_CONFIG[Rarity.Uncommon].name,
-			amount: formatTokenAmountLocal(uncommonClaimable),
-			deposits: depositCounts ? Number(depositCounts[1]) : 0,
-			emoji: RARITY_CONFIG[Rarity.Uncommon].emoji,
-			color: RARITY_CONFIG[Rarity.Uncommon].bgGradient,
-		},
-		{
-			rarity: RARITY_CONFIG[Rarity.Rare].name,
-			amount: formatTokenAmountLocal(rareClaimable),
-			deposits: depositCounts ? Number(depositCounts[2]) : 0,
-			emoji: RARITY_CONFIG[Rarity.Rare].emoji,
-			color: RARITY_CONFIG[Rarity.Rare].bgGradient,
-		},
-		{
-			rarity: RARITY_CONFIG[Rarity.Epic].name,
-			amount: formatTokenAmountLocal(epicClaimable),
-			deposits: depositCounts ? Number(depositCounts[3]) : 0,
-			emoji: RARITY_CONFIG[Rarity.Epic].emoji,
-			color: RARITY_CONFIG[Rarity.Epic].bgGradient,
-		},
-		{
-			rarity: RARITY_CONFIG[Rarity.Legendary].name,
-			amount: formatTokenAmountLocal(legendaryClaimable),
-			deposits: depositCounts ? Number(depositCounts[4]) : 0,
-			emoji: RARITY_CONFIG[Rarity.Legendary].emoji,
-			color: RARITY_CONFIG[Rarity.Legendary].bgGradient,
-		},
-	];
+    const _formatTokenAmountLocal = (amount: bigint | undefined) => {
+        if (!amount || !tokenDecimals) return "0";
+        return formatTokenAmount(amount, tokenDecimals, {
+            maxDecimals: 6,
+            minDecimals: 0,
+            useGrouping: true,
+            notation: "standard",
+        });
+    };
 
 	// Handle tab navigation via URL
-	const handleTabChange = (section: ValidSection) => {
-		const newSearchParams = new URLSearchParams(searchParams.toString());
-		newSearchParams.set("section", section);
-		router.push(`/gacha?${newSearchParams.toString()}`, { scroll: false });
-	};
+    const handleTabChange = useCallback(
+        (section: ValidSection) => {
+            const newSearchParams = new URLSearchParams(searchParams.toString());
+            newSearchParams.set("section", section);
+            router.push(`/gacha?${newSearchParams.toString()}`, { scroll: false });
+        },
+        [router, searchParams],
+    );
 
 	// Redirect to spin tab if trying to access admin without permissions
 	useEffect(() => {
@@ -359,7 +298,6 @@ function GachaDetailPageContent() {
 		if (activeTab === "rewards" && userAddress) {
 			// Refetch all rewards-related data with better error handling
 			const refetchAllRewardsData = async () => {
-				setIsRefetchingRewards(true);
 				try {
 					await Promise.allSettled([
 						refetchUserAnalytics(),
@@ -373,8 +311,6 @@ function GachaDetailPageContent() {
 					]);
 				} catch (error) {
 					console.warn("Some rewards data failed to refetch:", error);
-				} finally {
-					setIsRefetchingRewards(false);
 				}
 			};
 
@@ -392,86 +328,6 @@ function GachaDetailPageContent() {
 		refetchEpicClaimable,
 		refetchLegendaryClaimable,
 	]);
-
-	const handleClaimRewards = async () => {
-		// Enhanced debugging
-		console.log("Claim attempt:", {
-			userAddress,
-			totalClaimable: totalClaimable?.toString(),
-			rewardsManager: contracts.rewardsManager,
-			isConnected,
-			isRewardsManagerPaused,
-		});
-
-		if (!userAddress || !totalClaimable || totalClaimable === BigInt(0)) {
-			console.warn(
-				"Cannot claim rewards: missing user address or no claimable amount",
-				{ userAddress, totalClaimable: totalClaimable?.toString() },
-			);
-			return;
-		}
-
-		if (!contracts.trackers) {
-			console.error("No tracker contract addresses available");
-			return;
-		}
-
-		// Set optimistic state
-		setOptimisticClaim(true);
-		setOptimisticClaimedAmount(totalClaimable);
-
-		try {
-			console.log("Initiating individual tracker claims...");
-
-			// Find the first tracker with claimable rewards and claim from it
-			// Users will need to call this multiple times if they have rewards in multiple rarities
-			let trackerToClaim: `0x${string}` | null = null;
-			let amountToClaim = BigInt(0);
-
-			if (commonClaimable && commonClaimable > BigInt(0)) {
-				trackerToClaim = contracts.trackers.common;
-				amountToClaim = commonClaimable;
-			} else if (uncommonClaimable && uncommonClaimable > BigInt(0)) {
-				trackerToClaim = contracts.trackers.uncommon;
-				amountToClaim = uncommonClaimable;
-			} else if (rareClaimable && rareClaimable > BigInt(0)) {
-				trackerToClaim = contracts.trackers.rare;
-				amountToClaim = rareClaimable;
-			} else if (epicClaimable && epicClaimable > BigInt(0)) {
-				trackerToClaim = contracts.trackers.epic;
-				amountToClaim = epicClaimable;
-			} else if (legendaryClaimable && legendaryClaimable > BigInt(0)) {
-				trackerToClaim = contracts.trackers.legendary;
-				amountToClaim = legendaryClaimable;
-			}
-
-			if (!trackerToClaim) {
-				console.warn("No claimable rewards found");
-				setOptimisticClaim(false);
-				setOptimisticClaimedAmount(null);
-				return;
-			}
-
-			console.log(
-				`Claiming ${formatTokenAmountLocal(amountToClaim)} from tracker: ${trackerToClaim}`,
-			);
-
-			claimRewards({
-				address: trackerToClaim,
-				abi: rarityDividendTrackerAbi,
-				functionName: "withdrawFunds",
-			});
-		} catch (error) {
-			console.error("Failed to initiate claim transaction:", error);
-			// Reset optimistic state on immediate error
-			setOptimisticClaim(false);
-			setOptimisticClaimedAmount(null);
-		}
-	};
-
-	const retryClaimRewards = () => {
-		handleClaimRewards();
-	};
 
 	if (!gachaId) {
 		return (
@@ -646,6 +502,24 @@ function GachaDetailPageContent() {
 							id="tabpanel-spin-&-play"
 							aria-labelledby="tab-spin-&-play"
 						>
+							<motion.div
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.1 }}
+								className="mb-8"
+							>
+								<h1
+									className={`${glassTypography({ variant: "mainHeading" })} flex items-center gap-3 mb-2`}
+								>
+									<div className="w-8 h-8 bg-gradient-to-r from-warning/20 to-orange-400/20 rounded-lg flex items-center justify-center border border-warning/30">
+										<SparklesIcon className="w-5 h-5 text-warning" />
+									</div>
+									Spin & Play
+								</h1>
+								<p className={glassTypography({ variant: "bodySecondary" })}>
+									Try your luck and win amazing NFTs from the treasury!
+								</p>
+							</motion.div>
 							<GachaSpinner />
 						</div>
 					)}
@@ -656,6 +530,25 @@ function GachaDetailPageContent() {
 							id="tabpanel-deposits"
 							aria-labelledby="tab-deposits"
 						>
+							<motion.div
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.1 }}
+								className="mb-8"
+							>
+								<h1
+									className={`${glassTypography({ variant: "mainHeading" })} flex items-center gap-3 mb-2`}
+								>
+									<div className="w-8 h-8 bg-gradient-to-r from-success/20 to-primary/20 rounded-lg flex items-center justify-center border border-success/30">
+										<GiftIcon className="w-5 h-5 text-success" />
+									</div>
+									NFT Deposits
+								</h1>
+								<p className={glassTypography({ variant: "bodySecondary" })}>
+									Deposit your NFTs to the treasury and earn rewards from every
+									spin!
+								</p>
+							</motion.div>
 							<NFTAvailabilitySection />
 						</div>
 					)}
@@ -666,6 +559,25 @@ function GachaDetailPageContent() {
 							id="tabpanel-analytics"
 							aria-labelledby="tab-analytics"
 						>
+							<motion.div
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.1 }}
+								className="mb-8"
+							>
+								<h1
+									className={`${glassTypography({ variant: "mainHeading" })} flex items-center gap-3 mb-2`}
+								>
+									<div className="w-8 h-8 bg-gradient-to-r from-primary/20 to-info/20 rounded-lg flex items-center justify-center border border-primary/30">
+										<ChartBarIcon className="w-5 h-5 text-primary" />
+									</div>
+									Analytics & Insights
+								</h1>
+								<p className={glassTypography({ variant: "bodySecondary" })}>
+									Explore platform statistics, treasury health, and global
+									activity metrics.
+								</p>
+							</motion.div>
 							<PlatformAnalytics />
 						</div>
 					)}
@@ -676,6 +588,24 @@ function GachaDetailPageContent() {
 							id="tabpanel-my-rewards"
 							aria-labelledby="tab-my-rewards"
 						>
+							<motion.div
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.1 }}
+								className="mb-8"
+							>
+								<h1
+									className={`${glassTypography({ variant: "mainHeading" })} flex items-center gap-3 mb-2`}
+								>
+									<div className="w-8 h-8 bg-gradient-to-r from-rarity-legendary-500/20 to-rarity-epic-500/20 rounded-lg flex items-center justify-center border border-rarity-legendary-500/30">
+										<UserCircleIcon className="w-5 h-5 text-rarity-legendary-300" />
+									</div>
+									My Profile & Rewards
+								</h1>
+								<p className={glassTypography({ variant: "bodySecondary" })}>
+									View your stats, claim rewards, and track your gacha journey.
+								</p>
+							</motion.div>
 							<ProfileDashboard />
 						</div>
 					)}
@@ -686,6 +616,25 @@ function GachaDetailPageContent() {
 							id="tabpanel-admin"
 							aria-labelledby="tab-admin"
 						>
+							<motion.div
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.1 }}
+								className="mb-8"
+							>
+								<h1
+									className={`${glassTypography({ variant: "mainHeading" })} flex items-center gap-3 mb-2`}
+								>
+									<div className="w-8 h-8 bg-gradient-to-r from-danger/20 to-warning/20 rounded-lg flex items-center justify-center border border-danger/30">
+										<CogIcon className="w-5 h-5 text-danger" />
+									</div>
+									Admin Controls
+								</h1>
+								<p className={glassTypography({ variant: "bodySecondary" })}>
+									Manage gacha settings, treasury parameters, and system
+									configuration.
+								</p>
+							</motion.div>
 							<AdminControls gacha={gacha} />
 						</div>
 					)}

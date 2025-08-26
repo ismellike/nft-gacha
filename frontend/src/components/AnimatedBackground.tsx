@@ -15,27 +15,9 @@ interface FloatingElement {
 }
 
 export const AnimatedBackground = memo(() => {
-	const [elements, setElements] = useState<FloatingElement[]>([]);
-	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-	const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 });
+    const [elements, setElements] = useState<FloatingElement[]>([]);
 
-	useEffect(() => {
-		// Set initial dimensions
-		setDimensions({
-			width: window.innerWidth,
-			height: window.innerHeight,
-		});
-
-		const handleResize = () => {
-			setDimensions({
-				width: window.innerWidth,
-				height: window.innerHeight,
-			});
-		};
-
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, []);
+    // Removed window resize tracking (not used in animations)
 
 	useEffect(() => {
 		const generateElements = () => {
@@ -89,27 +71,11 @@ export const AnimatedBackground = memo(() => {
 		generateElements();
 	}, []);
 
-	const handleMouseMove = useCallback(
-		(e: MouseEvent) => {
-			setMousePosition({
-				x: e.clientX / dimensions.width,
-				y: e.clientY / dimensions.height,
-			});
-		},
-		[dimensions],
-	);
+    // Removed mouse tracking to avoid unused state and simplify dependencies
 
-	useEffect(() => {
-		window.addEventListener("mousemove", handleMouseMove);
-		return () => window.removeEventListener("mousemove", handleMouseMove);
-	}, [handleMouseMove]);
-
-	const getElementComponent = useCallback(
-		(element: FloatingElement) => {
-			const parallaxX = (mousePosition.x - 0.5) * 20;
-			const parallaxY = (mousePosition.y - 0.5) * 20;
-
-			switch (element.type) {
+    const getElementComponent = useCallback(
+        (element: FloatingElement) => {
+            switch (element.type) {
 				case "orb":
 					return (
 						<motion.div
@@ -195,9 +161,9 @@ export const AnimatedBackground = memo(() => {
 				default:
 					return null;
 			}
-		},
-		[mousePosition],
-	);
+        },
+        [],
+    );
 
 	return (
 		<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

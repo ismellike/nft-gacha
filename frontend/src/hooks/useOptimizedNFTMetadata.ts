@@ -389,45 +389,43 @@ export function useBulkNFTMetadata(
 		return [...nfts].sort((a, b) => (b.priority || 0) - (a.priority || 0));
 	}, [nfts]);
 
-	useEffect(() => {
-		if (!enabled || nfts.length === 0) {
-			return;
-		}
+    useEffect(() => {
+        if (!enabled || nfts.length === 0) {
+            return;
+        }
 
 		// Load in batches to avoid overwhelming the network
 		const loadBatch = async (startIndex: number) => {
 			const batch = sortedNFTs.slice(startIndex, startIndex + batchSize);
 
-			const batchPromises = batch.map(
-				async ({ collection, tokenId, priority = 0 }) => {
-					const cacheKey = getCacheKey(collection, tokenId);
+			const batchPromises = batch.map(async ({ collection, tokenId }) => {
+				const cacheKey = getCacheKey(collection, tokenId);
 
-					// Check cache first
-					const cached = getCachedData(cacheKey);
-					if (cached) {
-						return { key: cacheKey, data: cached };
-					}
+				// Check cache first
+				const cached = getCachedData(cacheKey);
+				if (cached) {
+					return { key: cacheKey, data: cached };
+				}
 
-					// This would need to be implemented to work with the hook
-					// For now, we'll just return a loading state
-					const loadingState: NFTWithMetadata = {
-						collection,
-						tokenId,
-						tokenURI: null,
-						metadata: null,
-						imageUrl: null,
-						isLoading: true,
-						error: null,
-					};
+				// This would need to be implemented to work with the hook
+				// For now, we'll just return a loading state
+				const loadingState: NFTWithMetadata = {
+					collection,
+					tokenId,
+					tokenURI: null,
+					metadata: null,
+					imageUrl: null,
+					isLoading: true,
+					error: null,
+				};
 
-					return { key: cacheKey, data: loadingState };
-				},
-			);
+				return { key: cacheKey, data: loadingState };
+			});
 
 			const batchResults = await Promise.allSettled(batchPromises);
 
 			const newResults: Record<string, NFTWithMetadata> = {};
-			batchResults.forEach((result, index) => {
+			batchResults.forEach((result) => {
 				if (result.status === "fulfilled") {
 					newResults[result.value.key] = result.value.data;
 				}
@@ -442,7 +440,7 @@ export function useBulkNFTMetadata(
 		};
 
 		loadBatch(0);
-	}, [sortedNFTs, enabled, batchSize]);
+    }, [sortedNFTs, enabled, batchSize, nfts.length]);
 
 	return results;
 }

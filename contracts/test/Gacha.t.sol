@@ -581,4 +581,136 @@ contract GachaTest is Test {
         vm.expectRevert(abi.encodeWithSelector(Gacha.CannotReclaimFulfilledSpin.selector));
         gacha.reclaimFailedSpin(triggerId);
     }
+
+    function testUserSpinCountIncrement() public {
+        // Setup users with tokens
+        vm.startPrank(user1);
+        feeToken.mint(user1, SPIN_FEE * 3);
+        feeToken.approve(address(gacha), SPIN_FEE * 3);
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        feeToken.mint(user2, SPIN_FEE * 2);
+        feeToken.approve(address(gacha), SPIN_FEE * 2);
+        vm.stopPrank();
+
+        // Initial spin counts should be 0
+        assertEq(gacha.getUserSpinCount(user1), 0);
+        assertEq(gacha.getUserSpinCount(user2), 0);
+
+        // User1 performs 3 spins
+        vm.startPrank(user1);
+        uint256 trigger1 = gacha.spin();
+        uint256 trigger2 = gacha.spin();
+        uint256 trigger3 = gacha.spin();
+        vm.stopPrank();
+
+        // User2 performs 2 spins  
+        vm.startPrank(user2);
+        uint256 trigger4 = gacha.spin();
+        uint256 trigger5 = gacha.spin();
+        vm.stopPrank();
+
+        // Spin counts should still be 0 before fulfillment
+        assertEq(gacha.getUserSpinCount(user1), 0);
+        assertEq(gacha.getUserSpinCount(user2), 0);
+
+        // Fulfill user1's spins
+        bytes32 randomness = bytes32(uint256(5000));
+        gacha.fulfillRandomness(trigger1, randomness);
+        assertEq(gacha.getUserSpinCount(user1), 1);
+
+        gacha.fulfillRandomness(trigger2, randomness);
+        assertEq(gacha.getUserSpinCount(user1), 2);
+
+        gacha.fulfillRandomness(trigger3, randomness);
+        assertEq(gacha.getUserSpinCount(user1), 3);
+
+        // User2 should still have 0 spins
+        assertEq(gacha.getUserSpinCount(user2), 0);
+
+        // Fulfill user2's spins
+        gacha.fulfillRandomness(trigger4, randomness);
+        assertEq(gacha.getUserSpinCount(user2), 1);
+
+        gacha.fulfillRandomness(trigger5, randomness);
+        assertEq(gacha.getUserSpinCount(user2), 2);
+
+        // Final check - user1 should still have 3, user2 should have 2
+        assertEq(gacha.getUserSpinCount(user1), 3);
+        assertEq(gacha.getUserSpinCount(user2), 2);
+    }
+
+    function testComprehensiveAnalytics() public {
+        // Setup user with tokens
+        vm.startPrank(user1);
+        feeToken.mint(user1, SPIN_FEE * 5);
+        feeToken.approve(address(gacha), SPIN_FEE * 5);
+        vm.stopPrank();
+
+        // Initial analytics should be all zeros
+        (uint256 totalSpins, uint256 totalRefunds, uint256 totalReclaims, uint256[5] memory rarityWins) = 
+            gacha.getUserAnalytics(user1);
+        assertEq(totalSpins, 0);
+        assertEq(totalRefunds, 0);
+        assertEq(totalReclaims, 0);
+        for (uint256 i = 0; i < 5; i++) {
+            assertEq(rarityWins[i], 0);
+        }
+
+        // Perform multiple spins
+        vm.startPrank(user1);
+        uint256 trigger1 = gacha.spin();
+        uint256 trigger2 = gacha.spin();
+        uint256 trigger3 = gacha.spin();
+        vm.stopPrank();
+
+        // Fulfill some spins (with different rarities based on randomness)
+        // Default weights: Common (0-6999), Uncommon (7000-8999), Rare (9000-9599), Epic (9600-9899), Legendary (9900-9999)
+        gacha.fulfillRandomness(trigger1, bytes32(uint256(1000))); // Should be common (1000 < 7000)
+        gacha.fulfillRandomness(trigger2, bytes32(uint256(9100))); // Should be rare (9000 <= 9100 < 9600)
+        gacha.fulfillRandomness(trigger3, bytes32(uint256(9700))); // Should be epic (9600 <= 9700 < 9900)
+
+        // Check analytics after fulfillment
+        (totalSpins, totalRefunds, totalReclaims, rarityWins) = gacha.getUserAnalytics(user1);
+        assertEq(totalSpins, 3, "Should have 3 completed spins");
+        assertEq(totalRefunds, 0, "Should have 0 refunds");
+        assertEq(totalReclaims, 0, "Should have 0 reclaims");
+
+        // Should have wins in different rarities
+        assertEq(rarityWins[0], 1, "Should have 1 common win");
+        assertEq(rarityWins[1], 0, "Should have 0 uncommon wins");
+        assertEq(rarityWins[2], 1, "Should have 1 rare win");
+        assertEq(rarityWins[3], 1, "Should have 1 epic win");
+        assertEq(rarityWins[4], 0, "Should have 0 legendary wins");
+
+        // Check global analytics
+        (uint256 globalSpins, uint256 globalRefunds, uint256 globalReclaims, uint256[5] memory globalRarityWinCounts) = 
+            gacha.getGlobalAnalytics();
+        assertEq(globalSpins, 3, "Global spins should be 3");
+        assertEq(globalRefunds, 0, "Global refunds should be 0");
+        assertEq(globalReclaims, 0, "Global reclaims should be 0");
+        assertEq(globalRarityWinCounts[0], 1, "Global common wins should be 1");
+        assertEq(globalRarityWinCounts[2], 1, "Global rare wins should be 1");
+        assertEq(globalRarityWinCounts[3], 1, "Global epic wins should be 1");
+
+        // Test reclaim functionality
+        vm.startPrank(user1);
+        uint256 trigger4 = gacha.spin();
+        vm.stopPrank();
+
+        // Reclaim the spin (simulate timeout)
+        vm.prank(user1);
+        gacha.reclaimFailedSpin(trigger4);
+
+        // Check updated analytics
+        (totalSpins, totalRefunds, totalReclaims,) = gacha.getUserAnalytics(user1);
+        assertEq(totalSpins, 3, "Spins should still be 3 (reclaim doesn't count as completed)");
+        assertEq(totalReclaims, 1, "Should have 1 reclaim");
+
+        // Check global analytics after reclaim
+        (globalSpins, globalRefunds, globalReclaims,) = gacha.getGlobalAnalytics();
+        assertEq(globalSpins, 3, "Global spins should still be 3");
+        assertEq(globalReclaims, 1, "Global reclaims should be 1");
+    }
 }

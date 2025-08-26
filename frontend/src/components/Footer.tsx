@@ -1,5 +1,3 @@
-import { cn } from "../lib/theme-config";
-
 export function Footer() {
 	return (
 		<footer className="border-t border-white/10 bg-content1/20 backdrop-blur-xl py-20 shadow-inner">

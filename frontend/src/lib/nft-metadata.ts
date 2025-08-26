@@ -9,7 +9,7 @@ export interface NFTMetadata {
 		trait_type: string;
 		value: string | number;
 	}>;
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 export interface NFTMetadataResult {
@@ -46,7 +46,7 @@ export async function fetchNFTMetadata(
 	}
 
 	try {
-		let url = tokenURI;
+		const url = tokenURI;
 
 		// Handle IPFS URLs - try multiple gateways for better reliability
 		if (tokenURI.startsWith("ipfs://")) {
@@ -70,7 +70,6 @@ export async function fetchNFTMetadata(
 					}
 				} catch (error) {
 					console.warn(`IPFS gateway ${gateway} failed:`, error);
-					continue;
 				}
 			}
 			throw new Error("All IPFS gateways failed");
@@ -145,7 +144,7 @@ async function fetchWithRetry(
 			if (!response.ok) {
 				if (response.status === 429) {
 					// Rate limited - wait before retry
-					const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+					const delay = Math.min(1000 * 2 ** attempt, 5000);
 					await new Promise((resolve) => setTimeout(resolve, delay));
 					throw new Error(`Rate limited (${response.status})`);
 				}
@@ -195,13 +194,13 @@ async function fetchWithRetry(
 
 			// Wait before retry (exponential backoff)
 			if (attempt < maxRetries) {
-				const delay = Math.min(1000 * Math.pow(2, attempt), 3000);
+				const delay = Math.min(1000 * 2 ** attempt, 3000);
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			}
 		}
 	}
 
-	throw lastError!;
+	throw lastError as Error;
 }
 
 /**
