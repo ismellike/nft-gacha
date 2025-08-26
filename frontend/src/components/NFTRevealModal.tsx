@@ -155,7 +155,7 @@ export default function NFTRevealModal({
 										<NFTHeroCard
 											collection={nftResult.collection}
 											tokenId={nftResult.tokenId}
-											imageUrl={enhancedResult?.imageUrl || nftResult.imageUrl}
+											imageUrl={enhancedResult?.imageUrl || nftResult.imageUrl || ""}
 											showAppraisal={true}
 											appraisalContractAddress={appraisalContractAddress}
 											animate={true}

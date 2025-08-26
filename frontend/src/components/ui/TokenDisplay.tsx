@@ -341,10 +341,10 @@ export function TokenFeeDisplay({
 						Entry Fee
 					</p>
 					<TokenDisplay
-						address={address}
-						name={name}
-						symbol={symbol}
-						amount={amount}
+						address={address || "0x0"}
+						{...(name && { name })}
+						{...(symbol && { symbol })}
+						{...(amount && { amount })}
 						size="md"
 						showName={false}
 						showSymbol={true}

@@ -369,13 +369,13 @@ export const DepositableNFTCard = ({
 			<UnifiedNFTCard
 				collection={collection}
 				tokenId={tokenId}
-				onClick={hasValidAppraisal ? undefined : handleNFTClick}
+				{...(!hasValidAppraisal && { onClick: handleNFTClick })}
 				size="md"
 				variant="detailed"
 				showAppraisal={true} // Use built-in appraisal display for consistency
 				priority={hasValidAppraisal ? 8 : 5}
 				animate={true}
-				extraDetails={extraDetails}
+				{...(extraDetails ? { extraDetails } : {})}
 				actionSlot={actionSlot}
 				{...nftCardProps}
 				appraisalContractAddress={contracts.appraisal || "0x0"}

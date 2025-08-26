@@ -56,7 +56,7 @@ export const GlassCard = memo<GlassCardProps>(
 			<CardComponent
 				className={cardStyles}
 				isPressable={!!onClick}
-				onPress={onClick}
+				{...(onClick && { onPress: onClick })}
 				{...motionProps}
 			>
 				{header && (

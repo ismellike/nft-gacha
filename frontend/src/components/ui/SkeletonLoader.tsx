@@ -154,22 +154,4 @@ export function StatsGridSkeleton({ columns = 3 }: { columns?: number }) {
     );
 }
 
-// Tab Content Skeleton
-function _TabContentSkeleton() {
-	return (
-		<div className="space-y-8">
-			<div className="text-center">
-				<Skeleton className="h-10 w-64 mx-auto mb-4" />
-				<Skeleton className="h-6 w-96 mx-auto" />
-			</div>
-			<StatsGridSkeleton />
-			<div className="bg-content1/20 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-6">
-				<div className="flex justify-between items-center mb-6">
-					<Skeleton className="h-8 w-48" />
-					<Skeleton className="h-12 w-32 rounded-xl" />
-				</div>
-				<RarityBreakdownSkeleton />
-			</div>
-		</div>
-	);
-}
+// (removed unused local skeleton component to satisfy TS noUnusedLocals)

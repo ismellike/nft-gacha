@@ -70,6 +70,7 @@ export default function SpinControls({
         query: { enabled: !!contracts.gacha },
     });
 
+    // @ts-expect-error - Known TypeScript limitation with deeply nested wagmi contract types
     const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
         address: contracts.treasury as `0x${string}` | undefined,
         query: { enabled: !!contracts.treasury },
@@ -498,9 +499,9 @@ export default function SpinControls({
 						Gacha Spinner
 					</h2>
 					<TokenFeeDisplay
-						address={feeToken}
-						name={tokenName}
-						symbol={tokenSymbol}
+						{...(feeToken && { address: feeToken })}
+						{...(tokenName && { name: tokenName })}
+						{...(tokenSymbol && { symbol: tokenSymbol })}
 						amount={formatSpinFee()}
 					/>
 				</div>

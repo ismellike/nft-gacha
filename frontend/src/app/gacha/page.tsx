@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, Suspense, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAccount, useWriteContract } from "wagmi";
-import { formatTokenAmount } from "../../lib/utils";
 import GachaSpinner from "../../components/GachaSpinner";
 import { AdminControls } from "../../components/AdminControls";
 import { NFTAvailabilitySection } from "../../components/NFTAvailabilitySection";
@@ -28,7 +27,6 @@ import {
     useReadGachaRewardsManagerGetUserRarityClaimableRewards,
     useReadGachaRewardsManagerGetRewardsAnalytics,
     useReadGachaTreasuryGetUserAllDepositCounts,
-    useReadErc20Decimals,
     useReadGachaFeeToken,
     useReadGachaOwner,
     useReadGachaTreasuryOwner,
@@ -37,6 +35,7 @@ import {
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
+import { useClientSearchParam, useUpdateSearchParams } from "../../hooks/useClientSearchParams";
 // import { RARITY_CONFIG, Rarity } from "../../lib/rarityConfig";
 
 // interface RarityReward {
@@ -49,13 +48,13 @@ import { useGachaId } from "../../hooks/useGachaId";
 
 function GachaDetailPageContent() {
 	const router = useRouter();
-	const searchParams = useSearchParams();
 	const { address: userAddress, isConnected } = useAccount();
 	const [, setOptimisticClaim] = useState(false);
 	const [, setOptimisticClaimedAmount] = useState<bigint | null>(null);
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	const sectionParam = searchParams.get("section");
+	const sectionParam = useClientSearchParam("section");
+	const updateSearchParams = useUpdateSearchParams();
 	const validSections = [
 		"spin",
 		"deposits",
@@ -75,20 +74,20 @@ function GachaDetailPageContent() {
 	const gacha = gachaId ? getGachaConfig(gachaId) : null;
 
 	// Owner checks for admin access
-	const { data: gachaOwner } = useReadGachaOwner({
-		address: gacha?.address as `0x${string}`,
-		query: { enabled: !!gacha },
-	});
+    const { data: gachaOwner } = useReadGachaOwner({
+        address: gacha?.address as `0x${string}`,
+        query: { enabled: !!gacha },
+    } as Parameters<typeof useReadGachaOwner>[0]);
 
-	const { data: treasuryOwner } = useReadGachaTreasuryOwner({
-		address: gacha?.treasuryAddress as `0x${string}`,
-		query: { enabled: !!gacha },
-	});
+    const { data: treasuryOwner } = useReadGachaTreasuryOwner({
+        address: gacha?.treasuryAddress as `0x${string}`,
+        query: { enabled: !!gacha },
+    } as Parameters<typeof useReadGachaTreasuryOwner>[0]);
 
-	const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
-		address: contracts.rewardsManager,
-		query: { enabled: !!contracts.rewardsManager },
-	});
+    const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
+        address: contracts.rewardsManager,
+        query: { enabled: !!contracts.rewardsManager },
+    } as Parameters<typeof useReadGachaRewardsManagerOwner>[0]);
 
 	const isOwner =
 		userAddress &&
@@ -103,15 +102,12 @@ function GachaDetailPageContent() {
     });
 
 	// Contract reads for rewards functionality
-    const { data: feeToken } = useReadGachaFeeToken({
+    useReadGachaFeeToken({
         address: contracts.gacha as `0x${string}` | undefined,
         query: { enabled: !!contracts.gacha },
-    });
+    } as Parameters<typeof useReadGachaFeeToken>[0]);
 
-	const { data: tokenDecimals } = useReadErc20Decimals({
-		address: feeToken,
-		query: { enabled: !!feeToken },
-	});
+    // decimals not used on this page; omit to keep types clean
 
 	const { refetch: refetchUserAnalytics } =
 		useReadGachaRewardsManagerGetRewardsAnalytics({
@@ -125,14 +121,14 @@ function GachaDetailPageContent() {
             address: contracts.rewardsManager,
             args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
             query: { enabled: !!userAddress && !!contracts.rewardsManager },
-        });
+        } as Parameters<typeof useReadGachaRewardsManagerGetUserTotalClaimableRewards>[0]);
 
     const { refetch: refetchDepositCounts } =
         useReadGachaTreasuryGetUserAllDepositCounts({
             address: contracts.treasury,
             args: userAddress && contracts.treasury ? [userAddress] : undefined,
             query: { enabled: !!userAddress && !!contracts.treasury },
-        });
+        } as Parameters<typeof useReadGachaTreasuryGetUserAllDepositCounts>[0]);
 
 	// Individual rarity claimable amounts
     const { refetch: refetchCommonClaimable } =
@@ -181,25 +177,14 @@ function GachaDetailPageContent() {
         error: claimError,
     } = useWriteContract();
 
-	// Format token amounts with enhanced precision and clean display
-    const _formatTokenAmountLocal = (amount: bigint | undefined) => {
-        if (!amount || !tokenDecimals) return "0";
-        return formatTokenAmount(amount, tokenDecimals, {
-            maxDecimals: 6,
-            minDecimals: 0,
-            useGrouping: true,
-            notation: "standard",
-        });
-    };
+    // Local formatter was unused; rely on shared formatters in lib/utils
 
 	// Handle tab navigation via URL
     const handleTabChange = useCallback(
         (section: ValidSection) => {
-            const newSearchParams = new URLSearchParams(searchParams.toString());
-            newSearchParams.set("section", section);
-            router.push(`/gacha?${newSearchParams.toString()}`, { scroll: false });
+            updateSearchParams({ section });
         },
-        [router, searchParams],
+        [updateSearchParams],
     );
 
 	// Redirect to spin tab if trying to access admin without permissions
@@ -648,18 +633,5 @@ function GachaDetailPageContent() {
 }
 
 export default function GachaDetailPage() {
-	return (
-		<Suspense
-			fallback={
-				<div className="min-h-screen bg-background flex items-center justify-center">
-					<div className="text-center space-y-4">
-						<div className="w-8 h-8 border-4 border-warning border-t-transparent rounded-full animate-spin mx-auto" />
-						<p className="text-foreground/70">Loading gacha...</p>
-					</div>
-				</div>
-			}
-		>
-			<GachaDetailPageContent />
-		</Suspense>
-	);
+	return <GachaDetailPageContent />;
 }

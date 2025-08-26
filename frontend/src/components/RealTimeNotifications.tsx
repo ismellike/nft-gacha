@@ -124,7 +124,7 @@ export const RealTimeNotifications: React.FC = () => {
 								? `You won a ${config.name} NFT: ${formatTokenId(tokenId.toString())}`
 								: `${formatAddress(spinner)} won a ${config.name} NFT!`,
 							rarity: rarityEnum,
-                            txHash: (log as { transactionHash?: string }).transactionHash,
+                            txHash: (log as { transactionHash?: string }).transactionHash || "",
                             autoClose: !isUserSpin, // Keep user's own spins longer
                         });
 					} catch (error) {
@@ -170,7 +170,7 @@ export const RealTimeNotifications: React.FC = () => {
 								? `Your ${config.name} NFT has been deposited successfully`
 								: `New ${config.name} NFT available for gacha!`,
 							rarity: rarityEnum,
-                            txHash: (log as { transactionHash?: string }).transactionHash,
+                            txHash: (log as { transactionHash?: string }).transactionHash || "",
                             autoClose: !isUserDeposit,
                         });
 					} catch (error) {

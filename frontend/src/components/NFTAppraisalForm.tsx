@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useSearchParams } from "next/navigation";
+import { useClientSearchParam } from "../hooks/useClientSearchParams";
 import { useAccount, useWriteContract } from "wagmi";
 import { isAddress } from "viem";
 import {
@@ -52,7 +52,10 @@ export function NFTAppraisalForm({
 	const { address: userAddress, isConnected } = useAccount();
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	const searchParams = useSearchParams();
+	
+	// Get URL params for pre-filled forms
+	const collectionParam = useClientSearchParam("collection");
+	const tokenIdParam = useClientSearchParam("tokenId");
 
 	const [formData, setFormData] = useState<FormData>({
 		collection: "",
@@ -64,9 +67,6 @@ export function NFTAppraisalForm({
 
 	// Populate form with URL parameters
 	useEffect(() => {
-		const collectionParam = searchParams.get("collection");
-		const tokenIdParam = searchParams.get("tokenId");
-
 		if (collectionParam || tokenIdParam) {
 			setFormData({
 				collection: collectionParam || "",
@@ -74,7 +74,7 @@ export function NFTAppraisalForm({
 			});
 			setIsPrePopulated(true);
 		}
-	}, [searchParams]);
+	}, [collectionParam, tokenIdParam]);
 
 	// Contract reads for appraisal fee and token info
 	const { data: appraisalFee } = useReadNftAppraisalAppraisalFee({
@@ -256,7 +256,11 @@ export function NFTAppraisalForm({
 
 		// Clear general error when user starts typing
 		if (errors.general) {
-			setErrors((prev) => ({ ...prev, general: undefined }));
+			setErrors((prev) => {
+				const newErrors = { ...prev };
+				delete newErrors.general;
+				return newErrors;
+			});
 		}
 	};
 
@@ -320,16 +324,18 @@ export function NFTAppraisalForm({
 
 							<div className="flex justify-center mb-4">
 								<div className="w-64">
-									<UnifiedNFTCard
-										collection={formData.collection}
-										tokenId={formData.tokenId}
-										variant="detailed"
-										size="md"
-										showAppraisal={true}
-										animate={true}
-                                    appraisalContractAddress={contracts.appraisal}
-										priority={8}
-									/>
+                            {contracts.appraisal && (
+                                <UnifiedNFTCard
+                                collection={formData.collection}
+                                tokenId={formData.tokenId}
+                                variant="detailed"
+                                size="md"
+                                showAppraisal={true}
+                                animate={true}
+                                appraisalContractAddress={contracts.appraisal as `0x${string}`}
+                                priority={8}
+                                />
+                            )}
 								</div>
 							</div>
 
@@ -490,7 +496,7 @@ export function NFTAppraisalForm({
 								!formData.collection.trim() ||
 								!formData.tokenId.trim()
 							}
-							startIcon={isPending ? undefined : "trending"}
+							{...(!isPending && { startIcon: "trending" })}
 						>
 							{needsApproval()
 								? "Approve & Request Appraisal"

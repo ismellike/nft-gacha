@@ -66,6 +66,7 @@ export const ProfileDashboard: React.FC = () => {
             query: { enabled: !!contracts.rewardsManager && !!userAddress },
         });
 
+    // @ts-ignore — suppress deep instantiation error from generics
     const { data: userDepositCounts } =
         useReadGachaTreasuryGetUserAllDepositCounts({
             address: contracts.treasury as `0x${string}` | undefined,
@@ -390,9 +391,9 @@ export const ProfileDashboard: React.FC = () => {
 								<RarityRewardCard
 									rarity={rarity}
 									userAddress={userAddress}
-                                    rewardsManagerAddress={contracts.rewardsManager as `0x${string}` | undefined}
-									tokenSymbol={tokenSymbol}
-									tokenDecimals={tokenDecimals}
+									{...(contracts.rewardsManager && { rewardsManagerAddress: contracts.rewardsManager as `0x${string}` })}
+									{...(tokenSymbol && { tokenSymbol })}
+									{...(tokenDecimals !== undefined && { tokenDecimals })}
 								/>
 							</motion.div>
 						))}
@@ -404,11 +405,11 @@ export const ProfileDashboard: React.FC = () => {
 };
 
 const RarityRewardCard: React.FC<{
-	rarity: Rarity;
-	userAddress: `0x${string}`;
-	rewardsManagerAddress: `0x${string}`;
-	tokenSymbol?: string;
-	tokenDecimals?: number;
+    rarity: Rarity;
+    userAddress: `0x${string}`;
+    rewardsManagerAddress?: `0x${string}`;
+    tokenSymbol?: string;
+    tokenDecimals?: number;
 }> = ({
 	rarity,
 	userAddress,

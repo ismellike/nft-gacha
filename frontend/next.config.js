@@ -4,11 +4,14 @@ const nextConfig = {
 	// Performance optimizations
 	reactStrictMode: true,
 
-	// Build configuration
+	// Build configuration for SPA
 	output: "export",
 	trailingSlash: true,
 	distDir: "dist",
 	poweredByHeader: false,
+	
+	// Disable server-side features for true SPA
+	skipTrailingSlashRedirect: true,
 
 	// Image optimization
 	images: {

@@ -222,21 +222,21 @@ export function GlassButton({
 			className={buttonStyles}
 			isLoading={false} // Handle loading state manually for better control
 			isDisabled={isDisabled || isLoading}
-			onPress={onClick}
-			aria-label={ariaLabel}
-			aria-labelledby={ariaLabelledBy}
-			aria-describedby={ariaDescribedBy}
-			aria-expanded={ariaExpanded}
-			aria-controls={ariaControls}
-			aria-pressed={ariaPressed}
-			aria-haspopup={ariaHasPopup}
-			role={role}
+			{...(onClick && { onPress: onClick })}
+			{...(ariaLabel && { "aria-label": ariaLabel })}
+			{...(ariaLabelledBy && { "aria-labelledby": ariaLabelledBy })}
+			{...(ariaDescribedBy && { "aria-describedby": ariaDescribedBy })}
+			{...(ariaExpanded !== undefined && { "aria-expanded": ariaExpanded })}
+			{...(ariaControls && { "aria-controls": ariaControls })}
+			{...(ariaPressed !== undefined && { "aria-pressed": ariaPressed })}
+			{...(ariaHasPopup !== undefined && { "aria-haspopup": ariaHasPopup })}
+			{...(role && { role })}
 			data-testid={dataTestId}
 			tabIndex={tabIndex}
-			form={form}
-			formAction={formAction}
-			formMethod={formMethod}
-			formTarget={formTarget}
+			{...(form && { form })}
+			{...(formAction && { formAction })}
+			{...(formMethod && { formMethod })}
+			{...(formTarget && { formTarget })}
 			{...motionProps}
 		>
 			{/* Shimmer effect for primary variant */}

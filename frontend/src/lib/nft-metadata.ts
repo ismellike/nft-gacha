@@ -122,10 +122,10 @@ export async function fetchNFTMetadata(
  * Helper function to fetch with retry logic and proper error handling
  */
 async function fetchWithRetry(
-	url: string,
-	maxRetries = 3,
+    url: string,
+    maxRetries = 3,
 ): Promise<NFTMetadata | null> {
-	let lastError: Error;
+    let lastError: unknown;
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
 		try {
@@ -168,7 +168,7 @@ async function fetchWithRetry(
 				throw new Error("Empty response body");
 			}
 
-			const metadata = JSON.parse(text) as NFTMetadata;
+            const metadata = JSON.parse(text) as NFTMetadata;
 
 			// Basic validation
 			if (typeof metadata !== "object" || metadata === null) {
@@ -176,8 +176,8 @@ async function fetchWithRetry(
 			}
 
 			return metadata;
-		} catch (error) {
-			lastError = error as Error;
+        } catch (error) {
+            lastError = error;
 
 			// Don't retry for certain errors
 			const errorObj = error as Error;
@@ -200,7 +200,8 @@ async function fetchWithRetry(
 		}
 	}
 
-	throw lastError as Error;
+    if (lastError instanceof Error) throw lastError;
+    throw new Error(String(lastError ?? "Unknown error"));
 }
 
 /**

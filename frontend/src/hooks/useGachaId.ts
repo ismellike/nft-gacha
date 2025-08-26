@@ -1,4 +1,4 @@
-import { useSearchParams } from "next/navigation";
+import { useClientSearchParam } from "./useClientSearchParams";
 import { DEFAULT_GACHA_ID } from "../lib/gacha-config/contracts";
 
 /**
@@ -6,8 +6,7 @@ import { DEFAULT_GACHA_ID } from "../lib/gacha-config/contracts";
  * Falls back to default gacha if not specified
  */
 export function useGachaId(): string {
-	const searchParams = useSearchParams();
-	const gachaId = searchParams.get("id") || DEFAULT_GACHA_ID;
+	const gachaId = useClientSearchParam("id") || DEFAULT_GACHA_ID;
 
 	return gachaId;
 }

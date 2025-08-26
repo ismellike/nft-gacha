@@ -703,8 +703,8 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 			? {
 					initial: { opacity: 0, y: 10, scale: 0.98 },
 					animate: { opacity: 1, y: 0, scale: 1 },
-					whileHover: isInteractive ? cardVariants.hover : undefined,
-					whileTap: isInteractive ? cardVariants.tap : undefined,
+					...(isInteractive && { whileHover: cardVariants.hover }),
+					...(isInteractive && { whileTap: cardVariants.tap }),
 					transition: { duration: 0.2, ease: "easeOut" as const },
 				}
 			: {};
@@ -784,13 +784,13 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					{/* NFT Image */}
 					<div className="flex justify-center">
 						<UnifiedNFTImage
-							imageUrl={imageUrl}
+							{...(imageUrl && { imageUrl })}
 							collection={collection}
 							tokenId={tokenId}
 							size={size}
-							animate={animate}
-							priority={priority}
-							rarity={rarity}
+							{...(animate !== undefined && { animate })}
+							{...(priority !== undefined && { priority })}
+							{...(rarity && { rarity })}
 							enabled={true}
 							metadata={nftData.metadata}
 						/>

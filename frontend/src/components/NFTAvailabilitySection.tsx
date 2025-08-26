@@ -87,7 +87,7 @@ export function NFTAvailabilitySection({
 			return {
 				collection: ownedNFT.collection,
 				tokenId: ownedNFT.tokenId.toString(),
-				collectionName: ownedNFT.collectionName,
+				collectionName: ownedNFT.collectionName || "",
 				isAppraised: false, // Will be determined by contract data in UserNFTCard
 				appraisalValue: BigInt(0), // Will be fetched by contract data in UserNFTCard
 			};

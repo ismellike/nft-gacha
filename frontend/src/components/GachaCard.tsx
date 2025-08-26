@@ -33,20 +33,20 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	// Fetch gacha-specific data
 	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
-	const { data: isAvailable, isLoading: isAvailableLoading } =
-		useReadGachaTreasuryIsGachaAvailable({
-			address: treasuryAddress,
-		});
+    const { data: isAvailable, isLoading: isAvailableLoading } =
+        useReadGachaTreasuryIsGachaAvailable({
+            address: treasuryAddress,
+        } as Parameters<typeof useReadGachaTreasuryIsGachaAvailable>[0]);
 
-	const { data: totalItemsCount, isLoading: isTotalItemsLoading } =
-		useReadGachaTreasuryGetTotalItemsCount({
-			address: treasuryAddress,
-		});
+    const { data: totalItemsCount, isLoading: isTotalItemsLoading } =
+        useReadGachaTreasuryGetTotalItemsCount({
+            address: treasuryAddress,
+        } as Parameters<typeof useReadGachaTreasuryGetTotalItemsCount>[0]);
 
-	const { data: rarityCounts, isLoading: isRarityCountsLoading } =
-		useReadGachaTreasuryGetAllRarityCounts({
-			address: treasuryAddress,
-		});
+    const { data: rarityCounts, isLoading: isRarityCountsLoading } =
+        useReadGachaTreasuryGetAllRarityCounts({
+            address: treasuryAddress,
+        } as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
 
 	const { data: spinFee, isLoading: isSpinFeeLoading } = useReadGachaSpinFee({
 		address: gacha.address as `0x${string}`,
@@ -68,14 +68,18 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
 
-	const formattedSpinFee =
-		spinFee && feeTokenDecimals && feeTokenSymbol
-			? formatTokenAmount(spinFee, feeTokenDecimals, {
-					maxDecimals: 4,
-					suffix: ` ${feeTokenSymbol}`,
-					useGrouping: true,
-				})
-			: "Loading...";
+    const formattedSpinFee =
+        spinFee && feeTokenDecimals && feeTokenSymbol
+            ? formatTokenAmount(spinFee, feeTokenDecimals, {
+                    maxDecimals: 4,
+                    suffix: ` ${feeTokenSymbol}`,
+                    useGrouping: true,
+                })
+            : "Loading...";
+
+    const rarityCountsArray: readonly bigint[] = Array.isArray(rarityCounts)
+        ? (rarityCounts as readonly bigint[])
+        : [];
 
 	const handleExplore = useCallback(() => {
 		router.push(`/gacha?id=${gacha.id}&section=spin`);
@@ -192,7 +196,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 								Rarity Distribution
 							</div>
 							<div className="flex gap-2">
-                            {rarityCounts?.map((count, index) => {
+                            {rarityCountsArray.map((count: bigint, index: number) => {
                                 const rarityColors = [
                                     "from-rarity-common-500 to-rarity-common-600",
                                     "from-rarity-uncommon-500 to-rarity-uncommon-600",

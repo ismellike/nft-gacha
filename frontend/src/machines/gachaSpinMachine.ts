@@ -290,10 +290,10 @@ export const gachaSpinMachine = createMachine(
 					id: "pollForSpinFulfillment",
 					src: "pollForSpinFulfillment",
                     input: ({ context }) => ({
-                        triggerId: context.triggerId as bigint,
-                        userAddress: context.userAddress as `0x${string}`,
+                        triggerId: context.triggerId as unknown as bigint,
+                        userAddress: context.userAddress as unknown as `0x${string}`,
                         publicClient: context.publicClient as unknown,
-                        gachaAddress: context.gachaAddress as `0x${string}`,
+                        gachaAddress: context.gachaAddress as unknown as `0x${string}`,
                     }),
 					onDone: {
 						target: "revealing",

@@ -130,21 +130,19 @@ const VirtualizedGridItem = memo<{
 			<motion.div
 				initial={animate ? { opacity: 0, y: 20, scale: 0.9 } : false}
 				animate={animate ? { opacity: 1, y: 0, scale: 1 } : false}
-				transition={
-					animate
-						? {
-								duration: 0.3,
-								delay: Math.min(index * 0.05, 1), // Stagger with max 1s delay
-								ease: "easeOut",
-							}
-						: undefined
-				}
+				{...(animate && {
+					transition: {
+						duration: 0.3,
+						delay: Math.min(index * 0.05, 1), // Stagger with max 1s delay
+						ease: "easeOut",
+					}
+				})}
 			>
 				<UnifiedNFTCard
 					collection={item.collection}
 					tokenId={item.tokenId}
-					imageUrl={item.imageUrl}
-					rarity={item.rarity}
+					{...(item.imageUrl && { imageUrl: item.imageUrl })}
+					{...(item.rarity && { rarity: item.rarity })}
 					size={config.cardSize}
 					variant="detailed"
 					showAppraisal={showAppraisal}
@@ -211,7 +209,7 @@ const NFTGrid = memo<NFTGridProps>(
 						animate={animate}
 						priorityLoadCount={priorityLoadCount}
 						enableLazyLoading={enableLazyLoading}
-						onItemClick={onItemClick}
+						{...(onItemClick && { onItemClick })}
 					/>
 				))}
 			</div>
@@ -323,7 +321,7 @@ export function useTreasuryItemsToGridItems(
 		return treasuryItems.map((item, index) => ({
 			collection: item.collection,
 			tokenId: item.tokenId.toString(),
-			rarity,
+			...(rarity && { rarity }),
 			priority: index < 20 ? 8 : index < 50 ? 5 : 2, // Higher priority for first items
 		}));
 	}, [treasuryItems, rarity]);

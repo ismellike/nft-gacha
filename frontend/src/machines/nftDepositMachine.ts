@@ -79,10 +79,10 @@ const waitForApprovalConfirmation = fromPromise(
 
 			throw new Error("NFT not approved - please approve first");
         } catch (_error) {
-			throw new Error(
-				`Failed to check approval status: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
+            throw new Error(
+                `Failed to check approval status: ${_error instanceof Error ? _error.message : "Unknown error"}`,
+            );
+        }
 	},
 );
 
@@ -160,10 +160,10 @@ export const nftDepositMachine = createMachine(
 					id: "waitForApprovalConfirmation",
 					src: "waitForApprovalConfirmation",
                     input: ({ context }) => ({
-                        collection: context.collection as `0x${string}`,
-                        tokenId: context.tokenId as bigint,
-                        treasuryAddress: context.treasuryAddress as `0x${string}`,
-                        userAddress: context.userAddress as `0x${string}`,
+                        collection: context.collection as unknown as `0x${string}`,
+                        tokenId: context.tokenId as unknown as bigint,
+                        treasuryAddress: context.treasuryAddress as unknown as `0x${string}`,
+                        userAddress: context.userAddress as unknown as `0x${string}`,
                         publicClient: context.publicClient as unknown,
                     }),
 					onDone: {
@@ -220,10 +220,10 @@ export const nftDepositMachine = createMachine(
 					id: "waitForDepositConfirmation",
 					src: "waitForDepositConfirmation",
                     input: ({ context }) => ({
-                        collection: context.collection as `0x${string}`,
-                        tokenId: context.tokenId as bigint,
-                        treasuryAddress: context.treasuryAddress as `0x${string}`,
-                        userAddress: context.userAddress as `0x${string}`,
+                        collection: context.collection as unknown as `0x${string}`,
+                        tokenId: context.tokenId as unknown as bigint,
+                        treasuryAddress: context.treasuryAddress as unknown as `0x${string}`,
+                        userAddress: context.userAddress as unknown as `0x${string}`,
                         publicClient: context.publicClient as unknown,
                     }),
 					onDone: {

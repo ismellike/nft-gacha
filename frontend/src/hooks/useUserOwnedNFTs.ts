@@ -230,7 +230,7 @@ export function useUserOwnedNFTsMultipleCollections(
 								allUserNFTs.push({
 									collection: collectionAddress,
 									tokenId,
-									collectionName,
+									collectionName: collectionName || "",
 								});
 								ownedTokenIds.push(tokenId);
 							}

@@ -1,6 +1,5 @@
 import "../styles/globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
-import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 
 import { Providers } from "./providers";
@@ -21,12 +20,6 @@ const jetbrainsMono = JetBrains_Mono({
 	variable: "--font-jetbrains-mono",
 });
 
-export const metadata: Metadata = {
-	title: "Spin-Fi - Provably Fair NFT Gacha",
-	description:
-		"Experience the future of fair NFT gaming with cryptographically guaranteed randomness",
-};
-
 export default function RootLayout({
 	children,
 }: {
@@ -35,6 +28,9 @@ export default function RootLayout({
 	return (
 		<html lang="en" className="dark">
 			<head>
+				<title>Spin-Fi - Provably Fair NFT Gacha</title>
+				<meta name="description" content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness" />
+				<meta name="viewport" content="width=device-width, initial-scale=1" />
 				<link href="/logo.svg" type="image/svg+xml" rel="icon" />
 			</head>
 			<body className={`${inter.variable} ${jetbrainsMono.variable} font-spin`}>
