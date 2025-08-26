@@ -97,17 +97,17 @@ export const RealTimeNotifications: React.FC = () => {
 	);
 
 	// Watch for spin completion events
-    useWatchGachaSpinCompleted({
-        address: contracts.gacha as `0x${string}` | undefined,
-        enabled: !!contracts.gacha && isEnabled,
-        onLogs: useCallback(
-            (logs: unknown[]) => {
-                logs.forEach((log: unknown) => {
-                    try {
-                        const { args } = (log as { args?: unknown }).args
-                            ? (log as { args?: unknown })
-                            : { args: undefined };
-                        if (!args) return;
+	useWatchGachaSpinCompleted({
+		address: contracts.gacha as `0x${string}` | undefined,
+		enabled: !!contracts.gacha && isEnabled,
+		onLogs: useCallback(
+			(logs: unknown[]) => {
+				logs.forEach((log: unknown) => {
+					try {
+						const { args } = (log as { args?: unknown }).args
+							? (log as { args?: unknown })
+							: { args: undefined };
+						if (!args) return;
 
 						const [spinner, _triggerId, _collection, tokenId, rarity] =
 							args as [`0x${string}`, bigint, `0x${string}`, bigint, number];
@@ -117,16 +117,17 @@ export const RealTimeNotifications: React.FC = () => {
 						const isUserSpin =
 							spinner.toLowerCase() === userAddress?.toLowerCase();
 
-                        addNotification({
-                            type: "spin_completed",
+						addNotification({
+							type: "spin_completed",
 							title: isUserSpin ? "🎉 Spin Completed!" : "🎰 Someone Won!",
 							message: isUserSpin
 								? `You won a ${config.name} NFT: ${formatTokenId(tokenId.toString())}`
 								: `${formatAddress(spinner)} won a ${config.name} NFT!`,
 							rarity: rarityEnum,
-                            txHash: (log as { transactionHash?: string }).transactionHash || "",
-                            autoClose: !isUserSpin, // Keep user's own spins longer
-                        });
+							txHash:
+								(log as { transactionHash?: string }).transactionHash || "",
+							autoClose: !isUserSpin, // Keep user's own spins longer
+						});
 					} catch (error) {
 						console.error("Error parsing spin completed event:", error);
 					}
@@ -137,17 +138,17 @@ export const RealTimeNotifications: React.FC = () => {
 	});
 
 	// Watch for NFT deposits
-    useWatchGachaTreasuryNftDeposited({
-        address: contracts.treasury as `0x${string}` | undefined,
-        enabled: !!contracts.treasury && isEnabled,
-        onLogs: useCallback(
-            (logs: unknown[]) => {
-                logs.forEach((log: unknown) => {
-                    try {
-                        const { args } = (log as { args?: unknown }).args
-                            ? (log as { args?: unknown })
-                            : { args: undefined };
-                        if (!args) return;
+	useWatchGachaTreasuryNftDeposited({
+		address: contracts.treasury as `0x${string}` | undefined,
+		enabled: !!contracts.treasury && isEnabled,
+		onLogs: useCallback(
+			(logs: unknown[]) => {
+				logs.forEach((log: unknown) => {
+					try {
+						const { args } = (log as { args?: unknown }).args
+							? (log as { args?: unknown })
+							: { args: undefined };
+						if (!args) return;
 
 						const [_collection, _tokenId, depositor, rarity] = args as [
 							`0x${string}`,
@@ -161,8 +162,8 @@ export const RealTimeNotifications: React.FC = () => {
 						const isUserDeposit =
 							depositor.toLowerCase() === userAddress?.toLowerCase();
 
-                        addNotification({
-                            type: "nft_deposited",
+						addNotification({
+							type: "nft_deposited",
 							title: isUserDeposit
 								? "✨ NFT Deposited!"
 								: "🎁 New NFT Available!",
@@ -170,9 +171,10 @@ export const RealTimeNotifications: React.FC = () => {
 								? `Your ${config.name} NFT has been deposited successfully`
 								: `New ${config.name} NFT available for gacha!`,
 							rarity: rarityEnum,
-                            txHash: (log as { transactionHash?: string }).transactionHash || "",
-                            autoClose: !isUserDeposit,
-                        });
+							txHash:
+								(log as { transactionHash?: string }).transactionHash || "",
+							autoClose: !isUserDeposit,
+						});
 					} catch (error) {
 						console.error("Error parsing NFT deposited event:", error);
 					}
@@ -245,13 +247,13 @@ export const RealTimeNotifications: React.FC = () => {
 									<BellIcon className="w-5 h-5 text-success" />
 									<span className="font-medium text-sm">Recent Activity</span>
 								</div>
-                            <button
-                                type="button"
-                                onClick={clearAllNotifications}
-                                className="text-xs text-foreground/60 hover:text-foreground/80 transition-colors"
-                            >
-                                Clear all
-                            </button>
+								<button
+									type="button"
+									onClick={clearAllNotifications}
+									className="text-xs text-foreground/60 hover:text-foreground/80 transition-colors"
+								>
+									Clear all
+								</button>
 							</div>
 
 							{/* Notifications List */}
@@ -345,16 +347,16 @@ const NotificationItem: React.FC<{
 					<div className="flex items-center justify-between mt-2">
 						<span className="text-xs text-foreground/50">{timeAgo}</span>
 						{notification.txHash && (
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    window.open(
-                                        `https://etherscan.io/tx/${notification.txHash}`,
-                                        "_blank",
-                                    )
-                                }
-                                className="text-xs text-info hover:text-info/80 transition-colors"
-                            >
+							<button
+								type="button"
+								onClick={() =>
+									window.open(
+										`https://etherscan.io/tx/${notification.txHash}`,
+										"_blank",
+									)
+								}
+								className="text-xs text-info hover:text-info/80 transition-colors"
+							>
 								View tx →
 							</button>
 						)}
@@ -362,13 +364,13 @@ const NotificationItem: React.FC<{
 				</div>
 
 				{/* Close button */}
-                <button
-                    type="button"
-                    onClick={onRemove}
-                    className="opacity-0 group-hover:opacity-100 text-foreground/50 hover:text-foreground/80 transition-all"
-                >
-                    <XMarkIcon className="w-4 h-4" />
-                </button>
+				<button
+					type="button"
+					onClick={onRemove}
+					className="opacity-0 group-hover:opacity-100 text-foreground/50 hover:text-foreground/80 transition-all"
+				>
+					<XMarkIcon className="w-4 h-4" />
+				</button>
 			</div>
 		</div>
 	);
@@ -407,13 +409,13 @@ const ToastNotificationItem: React.FC<{
 						{notification.message}
 					</div>
 				</div>
-            <button
-                type="button"
-                onClick={onRemove}
-                className="text-foreground/50 hover:text-foreground/80 transition-colors"
-            >
-                <XMarkIcon className="w-4 h-4" />
-            </button>
+				<button
+					type="button"
+					onClick={onRemove}
+					className="text-foreground/50 hover:text-foreground/80 transition-colors"
+				>
+					<XMarkIcon className="w-4 h-4" />
+				</button>
 			</div>
 		</motion.div>
 	);

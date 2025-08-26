@@ -23,32 +23,38 @@ const rarityColors = [
 const features = [
 	{
 		icon: "coins",
-		title: "Community-Funded Pools",
+		title: "On-Chain Treasury",
 		description:
-			"Deposit your graded cards to earn yield while funding gacha pools. The community owns and operates the entire ecosystem.",
-		stats: "Earn Yield",
+			"Prize pools and deposits live entirely on-chain. No black boxes—treasury flows are enforced by contracts and visible to everyone.",
+		stats: "Transparent by Design",
 	},
 	{
 		icon: "trending",
 		title: "Real-Time Analytics",
 		description:
-			"Track treasury value, browse deposited NFTs, view spin history, and monitor platform statistics with comprehensive analytics.",
-		stats: "Full Transparency",
+			"Inspect spins, deposits, and treasury composition in real time. Every state change is queryable and auditable.",
+		stats: "Open Data",
 	},
 	{
 		icon: "trophy",
-		title: "Transparent Rewards",
+		title: "Provably Fair Spins",
 		description:
-			"All deposits and rewards are tracked on-chain. Contributors earn tokens based on their card deposits and rarity.",
-		stats: "On-Chain Tracking",
+			"Randomness is delivered via WAVS with signed proofs and verified on-chain before fulfillment—spins are cryptographically fair.",
+		stats: "WAVS-Backed RNG",
 	},
 ];
 
-const stats = [
-	{ value: "10,000+", label: "Cards Available" },
-	{ value: "5", label: "Rarity Levels" },
-	{ value: "100%", label: "Fair Drops" },
-	{ value: "24/7", label: "Available" },
+const pillars = [
+	{
+		label: "Provably Fair Randomness",
+		detail: "WAVS-signed, on-chain verified",
+	},
+	{ label: "On-Chain Treasury", detail: "Transparent prize pools" },
+	{ label: "Open Analytics", detail: "Live, queryable data" },
+	{
+		label: "Self-Custody Friendly",
+		detail: "Deposit and withdraw by contract",
+	},
 ];
 
 export default function LandingPage() {
@@ -66,15 +72,15 @@ export default function LandingPage() {
 			{/* Hero Section - Redesigned */}
 			<section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
 				{/* Animated Background Elements */}
-                <div className="absolute inset-0">
-                    {Array.from({ length: 6 }, (_, i) => `bg-${i}`).map((id, i) => (
-                        <motion.div
-                            key={id}
-                            className="absolute w-64 h-64 rounded-full"
-                            style={{
-                                background: `radial-gradient(circle, ${rarityColors[i % rarityColors.length].replace("from-", "rgba(").replace(" to-", ", 0.03) 0%, rgba(").replace("-400", "").replace("-600", ", 0.01)")} 100%)`,
-                                left: `${Math.random() * 100}%`,
-                                top: `${Math.random() * 100}%`,
+				<div className="absolute inset-0">
+					{Array.from({ length: 6 }, (_, i) => `bg-${i}`).map((id, i) => (
+						<motion.div
+							key={id}
+							className="absolute w-64 h-64 rounded-full"
+							style={{
+								background: `radial-gradient(circle, ${rarityColors[i % rarityColors.length].replace("from-", "rgba(").replace(" to-", ", 0.03) 0%, rgba(").replace("-400", "").replace("-600", ", 0.01)")} 100%)`,
+								left: `${Math.random() * 100}%`,
+								top: `${Math.random() * 100}%`,
 							}}
 							animate={{
 								x: [0, Math.random() * 100 - 50],
@@ -102,6 +108,8 @@ export default function LandingPage() {
 						<GlassBadge
 							variant="primary"
 							className="inline-flex items-center gap-2 text-sm px-4 py-2"
+							glow
+							animate
 						>
 							<CurrencyDollarIcon className="w-4 h-4" />
 							<span className="font-medium">Community-Funded NFT Gacha</span>
@@ -117,11 +125,11 @@ export default function LandingPage() {
 					>
 						<h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
 							<span className="bg-gradient-to-r from-warning via-warning to-warning-500 bg-clip-text text-transparent">
-								Spin-Fi
+								Provably Fair NFT Gacha
 							</span>
 							<br />
 							<span className="text-3xl md:text-4xl lg:text-5xl font-light text-foreground/80">
-								Deposit. Earn. Spin.
+								Deposit. Contribute. Spin with Proof.
 							</span>
 						</h1>
 					</motion.div>
@@ -131,14 +139,16 @@ export default function LandingPage() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.4, duration: 0.8 }}
-						className="text-lg md:text-xl lg:text-2xl text-foreground/70 mb-12 max-w-4xl mx-auto leading-relaxed"
+						className="text-lg md:text-xl lg:text-2xl text-foreground/80 mb-12 max-w-4xl mx-auto leading-relaxed"
 					>
-						Join the first{" "}
-						<span className="text-warning font-medium">community-owned</span>{" "}
-						trading card gacha platform. Deposit your cards to earn yield, or
-						spin to discover rare graded Pokemon cards.
-						<span className="text-warning font-medium"> Fair rewards</span> for
-						contributors and transparent mechanics for all.
+						A community-owned trading card gacha built on open, verifiable tech.
+						Deposit graded cards to fund prize pools and earn protocol rewards,
+						or spin to reveal authentic, graded Pokémon cards.
+						<span className="text-warning font-medium">
+							{" "}
+							Cryptographic fairness
+						</span>{" "}
+						and transparent mechanics from spin to settlement.
 					</motion.p>
 
 					{/* CTA Buttons */}
@@ -173,27 +183,29 @@ export default function LandingPage() {
 						</Link>
 					</motion.div>
 
-					{/* Stats Row */}
+					{/* Tech Pillars Row (no faux stats) */}
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.8, duration: 0.8 }}
-						className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto"
+						className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 max-w-4xl mx-auto"
 					>
-						{stats.map((stat, index) => (
+						{pillars.map((p, index) => (
 							<motion.div
-								key={stat.label}
-								initial={{ opacity: 0, scale: 0.8 }}
+								key={p.label}
+								initial={{ opacity: 0, scale: 0.95 }}
 								animate={{ opacity: 1, scale: 1 }}
-								transition={{ delay: 0.8 + index * 0.1, duration: 0.6 }}
-								className="text-center"
+								transition={{ delay: 0.8 + index * 0.08, duration: 0.5 }}
+								className="flex items-center justify-center"
 							>
-								<div className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-warning to-warning bg-clip-text text-transparent mb-1">
-									{stat.value}
-								</div>
-								<div className="text-sm text-foreground/60 font-medium">
-									{stat.label}
-								</div>
+								<GlassBadge
+									variant="primary"
+									size="lg"
+									glow
+									className="whitespace-nowrap"
+								>
+									{p.label}
+								</GlassBadge>
 							</motion.div>
 						))}
 					</motion.div>
@@ -211,7 +223,7 @@ export default function LandingPage() {
 						viewport={{ once: true }}
 						className="text-center mb-20"
 					>
-						<GlassBadge variant="info" className="mb-6">
+						<GlassBadge variant="primary" className="mb-6" glow animate>
 							<CurrencyDollarIcon className="w-4 h-4" />
 							<span className="ml-2">Community Benefits</span>
 						</GlassBadge>
@@ -223,9 +235,9 @@ export default function LandingPage() {
 							<span className="text-foreground">Contribute</span>
 						</h2>
 						<p className="text-xl text-foreground/70 max-w-3xl mx-auto leading-relaxed">
-							The first community-owned gacha where card holders earn yield by
-							contributing to the prize pools. Fair rewards for depositors,
-							transparent mechanics for spinners.
+							Community-owned economics meet verifiable randomness. Contributors
+							earn based on transparent rarity weights; spinners get fair
+							outcomes backed by cryptographic proofs.
 						</p>
 					</motion.div>
 
@@ -241,12 +253,12 @@ export default function LandingPage() {
 								className="group"
 							>
 								<GlassCard
-									variant="interactive"
-									className="h-full p-8 text-center relative overflow-hidden group-hover:shadow-lg group-hover:shadow-warning/10"
+									variant="highlight"
+									className="h-full p-8 text-center relative overflow-hidden group-hover:shadow-xl group-hover:shadow-warning/20"
 									animate={true}
 								>
 									{/* Icon */}
-									<div className="relative z-10 w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-warning/20 to-warning/20 rounded-2xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-warning/20 transition-all duration-300">
+									<div className="relative z-10 w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-warning/25 to-orange-400/25 rounded-2xl flex items-center justify-center ring-1 ring-warning/30 group-hover:shadow-xl group-hover:shadow-warning/30 transition-all duration-300">
 										{feature.icon === "coins" && (
 											<CurrencyDollarIcon className="w-8 h-8 text-warning" />
 										)}
@@ -268,6 +280,7 @@ export default function LandingPage() {
 												variant="primary"
 												size="sm"
 												className="text-xs"
+												glow
 											>
 												{feature.stats}
 											</GlassBadge>
@@ -291,12 +304,12 @@ export default function LandingPage() {
 					>
 						<GlassCard className="p-12">
 							<h3 className="text-2xl md:text-3xl font-bold mb-6 bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-								Rarity-Based Yield System
+								Rarity-Based Rewards
 							</h3>
 							<p className="text-foreground/70 mb-8 max-w-2xl mx-auto">
-								Higher rarity card deposits earn more yield. Contributors are
-								rewarded based on the scarcity and value they bring to the
-								community.
+								Higher-rarity deposits receive proportionally higher rewards.
+								All rarity weights and distributions are on-chain and
+								verifiable.
 							</p>
 							<div className="flex justify-center items-center gap-4 flex-wrap">
 								{["Common", "Uncommon", "Rare", "Epic", "Legendary"].map(
@@ -309,8 +322,11 @@ export default function LandingPage() {
 											transition={{ duration: 0.3 }}
 										>
 											<GlassBadge
-												variant={currentRarity === index ? "primary" : "info"}
-												className={`${currentRarity === index ? "shadow-lg shadow-warning/30" : ""}`}
+												variant={
+													currentRarity === index ? "primary" : "secondary"
+												}
+												glow={currentRarity === index}
+												className={`${currentRarity === index ? "shadow-lg shadow-warning/40" : ""}`}
 											>
 												{rarity}
 											</GlassBadge>
@@ -323,7 +339,6 @@ export default function LandingPage() {
 				</div>
 			</section>
 
-
 			{/* CTA Section - Redesigned */}
 			<section className="py-24 px-4 relative">
 				<div className="max-w-5xl mx-auto">
@@ -333,7 +348,11 @@ export default function LandingPage() {
 						transition={{ duration: 0.8 }}
 						viewport={{ once: true }}
 					>
-						<GlassCard className="p-12 md:p-16 text-center">
+						<GlassCard
+							variant="highlight"
+							className="p-12 md:p-16 text-center"
+							animate
+						>
 							<motion.div
 								animate={{ rotate: [0, 5, -5, 0] }}
 								transition={{
@@ -341,7 +360,7 @@ export default function LandingPage() {
 									repeat: Infinity,
 									ease: "easeInOut",
 								}}
-								className="w-20 h-20 mx-auto mb-8 bg-gradient-to-r from-warning to-orange-400 rounded-2xl flex items-center justify-center shadow-xl shadow-warning/30"
+								className="w-20 h-20 mx-auto mb-8 bg-gradient-to-r from-warning to-orange-400 rounded-2xl flex items-center justify-center shadow-2xl shadow-warning/40 ring-2 ring-warning/30"
 							>
 								<BoltIcon className="w-8 h-8 text-black" />
 							</motion.div>
@@ -351,10 +370,9 @@ export default function LandingPage() {
 									Join the Community
 								</span>
 							</h2>
-							<p className="text-lg md:text-xl text-foreground/70 mb-10 max-w-3xl mx-auto leading-relaxed">
-								Deposit your cards to earn yield, or spin to discover rare
-								graded Pokemon cards. Built by the community, owned by the
-								community, rewarding the community.
+							<p className="text-lg md:text-xl text-foreground/80 mb-10 max-w-3xl mx-auto leading-relaxed">
+								Deposit to contribute liquidity—or spin to reveal. Built and
+								owned by the community with transparency at every step.
 							</p>
 
 							<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

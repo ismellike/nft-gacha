@@ -52,7 +52,7 @@ export function NFTAppraisalForm({
 	const { address: userAddress, isConnected } = useAccount();
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	
+
 	// Get URL params for pre-filled forms
 	const collectionParam = useClientSearchParam("collection");
 	const tokenIdParam = useClientSearchParam("tokenId");
@@ -152,12 +152,12 @@ export function NFTAppraisalForm({
 
 		if (!formData.tokenId.trim()) {
 			newErrors.tokenId = "Token ID is required";
-    } else if (
-            Number.isNaN(Number(formData.tokenId)) ||
-            Number(formData.tokenId) < 0
-        ) {
-        newErrors.tokenId = "Please enter a valid token ID";
-    }
+		} else if (
+			Number.isNaN(Number(formData.tokenId)) ||
+			Number(formData.tokenId) < 0
+		) {
+			newErrors.tokenId = "Please enter a valid token ID";
+		}
 
 		if (!isConnected) {
 			newErrors.general = "Please connect your wallet";
@@ -231,20 +231,20 @@ export function NFTAppraisalForm({
 			if (onSubmissionSuccess) {
 				onSubmissionSuccess(formData.collection, formData.tokenId);
 			}
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : String(error);
-            console.error("Appraisal submission error:", error);
-            setErrors({
-                general: message.includes("User rejected")
-                        ? "Transaction was rejected"
-                        : message.includes("Appraisal already exists")
-                            ? "This NFT has already been submitted for appraisal"
-                            : "Failed to submit appraisal request. Please try again.",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+			console.error("Appraisal submission error:", error);
+			setErrors({
+				general: message.includes("User rejected")
+					? "Transaction was rejected"
+					: message.includes("Appraisal already exists")
+						? "This NFT has already been submitted for appraisal"
+						: "Failed to submit appraisal request. Please try again.",
+			});
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
 
 	const handleInputChange = (field: keyof FormData, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
@@ -273,9 +273,9 @@ export function NFTAppraisalForm({
 			formData.tokenId &&
 			contracts.appraisal &&
 			isAddress(formData.collection) &&
-            !Number.isNaN(Number(formData.tokenId)) &&
-            Number(formData.tokenId) >= 0
-        );
+			!Number.isNaN(Number(formData.tokenId)) &&
+			Number(formData.tokenId) >= 0
+		);
 	};
 
 	return (
@@ -324,18 +324,20 @@ export function NFTAppraisalForm({
 
 							<div className="flex justify-center mb-4">
 								<div className="w-64">
-                            {contracts.appraisal && (
-                                <UnifiedNFTCard
-                                collection={formData.collection}
-                                tokenId={formData.tokenId}
-                                variant="detailed"
-                                size="md"
-                                showAppraisal={true}
-                                animate={true}
-                                appraisalContractAddress={contracts.appraisal as `0x${string}`}
-                                priority={8}
-                                />
-                            )}
+									{contracts.appraisal && (
+										<UnifiedNFTCard
+											collection={formData.collection}
+											tokenId={formData.tokenId}
+											variant="detailed"
+											size="md"
+											showAppraisal={true}
+											animate={true}
+											appraisalContractAddress={
+												contracts.appraisal as `0x${string}`
+											}
+											priority={8}
+										/>
+									)}
 								</div>
 							</div>
 

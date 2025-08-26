@@ -29,7 +29,10 @@ export default function RootLayout({
 		<html lang="en" className="dark">
 			<head>
 				<title>Spin-Fi - Provably Fair NFT Gacha</title>
-				<meta name="description" content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness" />
+				<meta
+					name="description"
+					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness"
+				/>
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
 				<link href="/logo.svg" type="image/svg+xml" rel="icon" />
 			</head>

@@ -12,17 +12,14 @@ import {
 } from "@heroicons/react/24/outline";
 
 // Helper function to map icon names to components
-function getIconComponent(
-    iconName: string,
-    props: SVGProps<SVGSVGElement>,
-) {
-    const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
-        "shield-check": ShieldCheckIcon,
-        gem: GiftIcon,
-        trending: ChartBarIcon,
-        plus: PlusIcon,
-        link: LinkIcon,
-    };
+function getIconComponent(iconName: string, props: SVGProps<SVGSVGElement>) {
+	const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+		"shield-check": ShieldCheckIcon,
+		gem: GiftIcon,
+		trending: ChartBarIcon,
+		plus: PlusIcon,
+		link: LinkIcon,
+	};
 
 	const IconComponent = iconMap[iconName];
 	if (!IconComponent) {
@@ -101,13 +98,13 @@ export function GlassHeader({
 						{/* Feature badges */}
 						{badges.length > 0 && (
 							<div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mb-8">
-                            {badges.map((badge) => (
-                                <motion.div
-                                    key={`${badge.icon}:${badge.text}`}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20"
-                                    whileHover={{ scale: 1.05 }}
-                                    transition={{ type: "spring", stiffness: 300 }}
-                                >
+								{badges.map((badge) => (
+									<motion.div
+										key={`${badge.icon}:${badge.text}`}
+										className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20"
+										whileHover={{ scale: 1.05 }}
+										transition={{ type: "spring", stiffness: 300 }}
+									>
 										{getIconComponent(badge.icon, {
 											className: `w-4 h-4 ${
 												badge.variant === "success"

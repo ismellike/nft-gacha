@@ -36,43 +36,43 @@ export const ProfileDashboard: React.FC = () => {
 	const contracts = useGachaContracts(gachaId);
 
 	// Fee token info
-    const { data: feeTokenAddress } = useReadGachaFeeToken({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: feeTokenAddress } = useReadGachaFeeToken({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
-    const { data: tokenSymbol } = useReadErc20Symbol({
-        address: feeTokenAddress,
-        query: { enabled: !!feeTokenAddress },
-    });
+	const { data: tokenSymbol } = useReadErc20Symbol({
+		address: feeTokenAddress,
+		query: { enabled: !!feeTokenAddress },
+	});
 
-    const { data: tokenDecimals } = useReadErc20Decimals({
-        address: feeTokenAddress,
-        query: { enabled: !!feeTokenAddress },
-    });
+	const { data: tokenDecimals } = useReadErc20Decimals({
+		address: feeTokenAddress,
+		query: { enabled: !!feeTokenAddress },
+	});
 
 	// Get comprehensive user analytics from Gacha contract
-    const { data: userGachaAnalytics } = useReadGachaGetUserAnalytics({
-        address: contracts.gacha as `0x${string}` | undefined,
-        args: userAddress ? [userAddress] : undefined,
-        query: { enabled: !!contracts.gacha && !!userAddress },
-    });
+	const { data: userGachaAnalytics } = useReadGachaGetUserAnalytics({
+		address: contracts.gacha as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.gacha && !!userAddress },
+	});
 
 	// Get user rewards analytics from RewardsManager
-    const { data: userRewardsAnalytics } =
-        useReadGachaRewardsManagerGetRewardsAnalytics({
-            address: contracts.rewardsManager as `0x${string}` | undefined,
-            args: userAddress ? [userAddress] : undefined,
-            query: { enabled: !!contracts.rewardsManager && !!userAddress },
-        });
+	const { data: userRewardsAnalytics } =
+		useReadGachaRewardsManagerGetRewardsAnalytics({
+			address: contracts.rewardsManager as `0x${string}` | undefined,
+			args: userAddress ? [userAddress] : undefined,
+			query: { enabled: !!contracts.rewardsManager && !!userAddress },
+		});
 
-    // @ts-ignore — suppress deep instantiation error from generics
-    const { data: userDepositCounts } =
-        useReadGachaTreasuryGetUserAllDepositCounts({
-            address: contracts.treasury as `0x${string}` | undefined,
-            args: userAddress ? [userAddress] : undefined,
-            query: { enabled: !!contracts.treasury && !!userAddress },
-        });
+	// @ts-ignore — suppress deep instantiation error from generics
+	const { data: userDepositCounts } =
+		useReadGachaTreasuryGetUserAllDepositCounts({
+			address: contracts.treasury as `0x${string}` | undefined,
+			args: userAddress ? [userAddress] : undefined,
+			query: { enabled: !!contracts.treasury && !!userAddress },
+		});
 
 	// Extract values from analytics tuples
 	// userGachaAnalytics: [totalSpins, totalRefunds, totalReclaims, rarityWins[5]]
@@ -391,7 +391,10 @@ export const ProfileDashboard: React.FC = () => {
 								<RarityRewardCard
 									rarity={rarity}
 									userAddress={userAddress}
-									{...(contracts.rewardsManager && { rewardsManagerAddress: contracts.rewardsManager as `0x${string}` })}
+									{...(contracts.rewardsManager && {
+										rewardsManagerAddress:
+											contracts.rewardsManager as `0x${string}`,
+									})}
 									{...(tokenSymbol && { tokenSymbol })}
 									{...(tokenDecimals !== undefined && { tokenDecimals })}
 								/>
@@ -405,11 +408,11 @@ export const ProfileDashboard: React.FC = () => {
 };
 
 const RarityRewardCard: React.FC<{
-    rarity: Rarity;
-    userAddress: `0x${string}`;
-    rewardsManagerAddress?: `0x${string}`;
-    tokenSymbol?: string;
-    tokenDecimals?: number;
+	rarity: Rarity;
+	userAddress: `0x${string}`;
+	rewardsManagerAddress?: `0x${string}`;
+	tokenSymbol?: string;
+	tokenDecimals?: number;
 }> = ({
 	rarity,
 	userAddress,
@@ -440,7 +443,7 @@ const RarityRewardCard: React.FC<{
 			/>
 
 			<div
-                className={`relative bg-content2/20 border ${config.borderColor} rounded-xl p-4 hover:bg-content2/30 transition-all duration-300 ${hasRewards ? `hover:shadow-lg hover:shadow-${config.name.toLowerCase()}/20` : ""}`}
+				className={`relative bg-content2/20 border ${config.borderColor} rounded-xl p-4 hover:bg-content2/30 transition-all duration-300 ${hasRewards ? `hover:shadow-lg hover:shadow-${config.name.toLowerCase()}/20` : ""}`}
 			>
 				<div className="text-center">
 					<div className="text-3xl mb-2">{config.emoji}</div>

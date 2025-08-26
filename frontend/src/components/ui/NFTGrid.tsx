@@ -135,7 +135,7 @@ const VirtualizedGridItem = memo<{
 						duration: 0.3,
 						delay: Math.min(index * 0.05, 1), // Stagger with max 1s delay
 						ease: "easeOut",
-					}
+					},
 				})}
 			>
 				<UnifiedNFTCard
@@ -233,13 +233,13 @@ const NFTGrid = memo<NFTGridProps>(
 				{/* Pagination controls */}
 				{itemsPerPage && totalPages > 1 && (
 					<div className="flex justify-center items-center gap-2 mt-8">
-                    <button
-                        type="button"
-                        onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-                        disabled={currentPage === 0}
-                        className={cn(
-                            "px-4 py-2 rounded-lg transition-all duration-200",
-                            "bg-white/10 border border-white/20 text-white/80",
+						<button
+							type="button"
+							onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+							disabled={currentPage === 0}
+							className={cn(
+								"px-4 py-2 rounded-lg transition-all duration-200",
+								"bg-white/10 border border-white/20 text-white/80",
 								"hover:bg-white/20 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed",
 							)}
 						>
@@ -250,13 +250,13 @@ const NFTGrid = memo<NFTGridProps>(
 							Page {currentPage + 1} of {totalPages}
 						</span>
 
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
-                        }
-                        disabled={currentPage === totalPages - 1}
-                        className={cn(
+						<button
+							type="button"
+							onClick={() =>
+								setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+							}
+							disabled={currentPage === totalPages - 1}
+							className={cn(
 								"px-4 py-2 rounded-lg transition-all duration-200",
 								"bg-white/10 border border-white/20 text-white/80",
 								"hover:bg-white/20 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed",
@@ -305,15 +305,15 @@ ShowcaseNFTGrid.displayName = "ShowcaseNFTGrid";
 
 // Hook for converting treasury data to grid items
 export function useTreasuryItemsToGridItems(
-    treasuryItems:
-        | readonly {
-                collection: string;
-                tokenId: bigint;
-                depositor: string;
-                [key: string]: unknown;
-          }[]
-        | undefined,
-    rarity?: Rarity,
+	treasuryItems:
+		| readonly {
+				collection: string;
+				tokenId: bigint;
+				depositor: string;
+				[key: string]: unknown;
+		  }[]
+		| undefined,
+	rarity?: Rarity,
 ): NFTGridItem[] {
 	return useMemo(() => {
 		if (!treasuryItems) return [];

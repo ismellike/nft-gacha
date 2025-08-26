@@ -289,12 +289,12 @@ export const gachaSpinMachine = createMachine(
 				invoke: {
 					id: "pollForSpinFulfillment",
 					src: "pollForSpinFulfillment",
-                    input: ({ context }) => ({
-                        triggerId: context.triggerId as unknown as bigint,
-                        userAddress: context.userAddress as unknown as `0x${string}`,
-                        publicClient: context.publicClient as unknown,
-                        gachaAddress: context.gachaAddress as unknown as `0x${string}`,
-                    }),
+					input: ({ context }) => ({
+						triggerId: context.triggerId as unknown as bigint,
+						userAddress: context.userAddress as unknown as `0x${string}`,
+						publicClient: context.publicClient as unknown,
+						gachaAddress: context.gachaAddress as unknown as `0x${string}`,
+					}),
 					onDone: {
 						target: "revealing",
 						actions: ["setSpinResult", "clearFromStorage"],

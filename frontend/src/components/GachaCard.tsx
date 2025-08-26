@@ -33,20 +33,20 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	// Fetch gacha-specific data
 	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
-    const { data: isAvailable, isLoading: isAvailableLoading } =
-        useReadGachaTreasuryIsGachaAvailable({
-            address: treasuryAddress,
-        } as Parameters<typeof useReadGachaTreasuryIsGachaAvailable>[0]);
+	const { data: isAvailable, isLoading: isAvailableLoading } =
+		useReadGachaTreasuryIsGachaAvailable({
+			address: treasuryAddress,
+		} as Parameters<typeof useReadGachaTreasuryIsGachaAvailable>[0]);
 
-    const { data: totalItemsCount, isLoading: isTotalItemsLoading } =
-        useReadGachaTreasuryGetTotalItemsCount({
-            address: treasuryAddress,
-        } as Parameters<typeof useReadGachaTreasuryGetTotalItemsCount>[0]);
+	const { data: totalItemsCount, isLoading: isTotalItemsLoading } =
+		useReadGachaTreasuryGetTotalItemsCount({
+			address: treasuryAddress,
+		} as Parameters<typeof useReadGachaTreasuryGetTotalItemsCount>[0]);
 
-    const { data: rarityCounts, isLoading: isRarityCountsLoading } =
-        useReadGachaTreasuryGetAllRarityCounts({
-            address: treasuryAddress,
-        } as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
+	const { data: rarityCounts, isLoading: isRarityCountsLoading } =
+		useReadGachaTreasuryGetAllRarityCounts({
+			address: treasuryAddress,
+		} as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
 
 	const { data: spinFee, isLoading: isSpinFeeLoading } = useReadGachaSpinFee({
 		address: gacha.address as `0x${string}`,
@@ -68,18 +68,18 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
 
-    const formattedSpinFee =
-        spinFee && feeTokenDecimals && feeTokenSymbol
-            ? formatTokenAmount(spinFee, feeTokenDecimals, {
-                    maxDecimals: 4,
-                    suffix: ` ${feeTokenSymbol}`,
-                    useGrouping: true,
-                })
-            : "Loading...";
+	const formattedSpinFee =
+		spinFee && feeTokenDecimals && feeTokenSymbol
+			? formatTokenAmount(spinFee, feeTokenDecimals, {
+					maxDecimals: 4,
+					suffix: ` ${feeTokenSymbol}`,
+					useGrouping: true,
+				})
+			: "Loading...";
 
-    const rarityCountsArray: readonly bigint[] = Array.isArray(rarityCounts)
-        ? (rarityCounts as readonly bigint[])
-        : [];
+	const rarityCountsArray: readonly bigint[] = Array.isArray(rarityCounts)
+		? (rarityCounts as readonly bigint[])
+		: [];
 
 	const handleExplore = useCallback(() => {
 		router.push(`/gacha?id=${gacha.id}&section=spin`);
@@ -96,16 +96,16 @@ export function GachaCard({ gacha }: GachaCardProps) {
 		return <GachaCardSkeleton />;
 	}
 
-    return (
-        <motion.button
-            className="h-full cursor-pointer"
-            onClick={handleExplore}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
-            data-testid={`explore-gacha-${gacha.id}`}
-        >
+	return (
+		<motion.button
+			className="h-full cursor-pointer"
+			onClick={handleExplore}
+			whileHover={{ scale: 1.02 }}
+			whileTap={{ scale: 0.98 }}
+			transition={{ type: "spring", stiffness: 300, damping: 20 }}
+			aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
+			data-testid={`explore-gacha-${gacha.id}`}
+		>
 			<GlassCard
 				variant="interactive"
 				padding="none"
@@ -196,29 +196,29 @@ export function GachaCard({ gacha }: GachaCardProps) {
 								Rarity Distribution
 							</div>
 							<div className="flex gap-2">
-                            {rarityCountsArray.map((count: bigint, index: number) => {
-                                const rarityColors = [
-                                    "from-rarity-common-500 to-rarity-common-600",
-                                    "from-rarity-uncommon-500 to-rarity-uncommon-600",
-                                    "from-rarity-rare-500 to-rarity-rare-600",
-                                    "from-rarity-epic-500 to-rarity-epic-600",
-                                    "from-rarity-legendary-500 to-rarity-legendary-600",
-                                ];
-                                const rarityKeys = [
-                                    "common",
-                                    "uncommon",
-                                    "rare",
-                                    "epic",
-                                    "legendary",
-                                ];
-                                const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟠"];
-                                return (
-                                    <motion.div
-                                        key={rarityKeys[index]}
-                                        className="flex-1 text-center"
-                                        whileHover={{ scale: 1.05 }}
-                                        transition={{ type: "spring", stiffness: 400 }}
-                                    >
+								{rarityCountsArray.map((count: bigint, index: number) => {
+									const rarityColors = [
+										"from-rarity-common-500 to-rarity-common-600",
+										"from-rarity-uncommon-500 to-rarity-uncommon-600",
+										"from-rarity-rare-500 to-rarity-rare-600",
+										"from-rarity-epic-500 to-rarity-epic-600",
+										"from-rarity-legendary-500 to-rarity-legendary-600",
+									];
+									const rarityKeys = [
+										"common",
+										"uncommon",
+										"rare",
+										"epic",
+										"legendary",
+									];
+									const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟠"];
+									return (
+										<motion.div
+											key={rarityKeys[index]}
+											className="flex-1 text-center"
+											whileHover={{ scale: 1.05 }}
+											transition={{ type: "spring", stiffness: 400 }}
+										>
 											<div className="text-lg mb-1">{rarityEmojis[index]}</div>
 											<div
 												className={`h-2 bg-gradient-to-r ${rarityColors[index]} rounded-full mb-1 shadow-sm`}
@@ -270,6 +270,6 @@ export function GachaCard({ gacha }: GachaCardProps) {
 					</div>
 				</div>
 			</GlassCard>
-        </motion.button>
-    );
+		</motion.button>
+	);
 }

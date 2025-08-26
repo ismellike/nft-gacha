@@ -227,11 +227,11 @@ export function AppraisedNFTsList({
 	const [error, setError] = useState<string | null>(null);
 
 	// Fetch appraisal data for each submitted NFT
-    const fetchAppraisalData = useCallback(async () => {
-        if (!contracts.appraisal || userSubmittedNFTs.length === 0) {
-            setLoading(false);
-            return;
-        }
+	const fetchAppraisalData = useCallback(async () => {
+		if (!contracts.appraisal || userSubmittedNFTs.length === 0) {
+			setLoading(false);
+			return;
+		}
 
 		setLoading(true);
 		setError(null);
@@ -257,11 +257,11 @@ export function AppraisedNFTsList({
 						status: mockStatus,
 						requester: userAddress || "",
 						timestamp: BigInt(Math.floor((nft.timestamp || Date.now()) / 1000)),
-                    lastUpdated:
-                        mockStatus === 1
-                            ? BigInt(Math.floor(Date.now() / 1000))
-                            : BigInt(0),
-                };
+						lastUpdated:
+							mockStatus === 1
+								? BigInt(Math.floor(Date.now() / 1000))
+								: BigInt(0),
+					};
 
 					appraisals.push(appraisal);
 				} catch (err) {
@@ -279,11 +279,11 @@ export function AppraisedNFTsList({
 		} finally {
 			setLoading(false);
 		}
-    }, [contracts.appraisal, userSubmittedNFTs, userAddress]);
+	}, [contracts.appraisal, userSubmittedNFTs, userAddress]);
 
-    useEffect(() => {
-        fetchAppraisalData();
-    }, [fetchAppraisalData]);
+	useEffect(() => {
+		fetchAppraisalData();
+	}, [fetchAppraisalData]);
 
 	const completedAppraisals = useMemo(
 		() => appraisedNFTs.filter((nft) => nft.status === 1 || nft.status === 2),

@@ -52,8 +52,8 @@ export const useGachaStore = create<GachaStore>()(
 			removePendingSpin: (userAddress, gachaAddress) => {
 				const key = getSpinKey(userAddress, gachaAddress);
 				set((state) => {
-                const { [key]: _removed, ...remaining } = state.pendingSpins;
-                return { pendingSpins: remaining };
+					const { [key]: _removed, ...remaining } = state.pendingSpins;
+					return { pendingSpins: remaining };
 				});
 			},
 

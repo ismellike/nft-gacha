@@ -9,7 +9,7 @@ const nextConfig = {
 	trailingSlash: true,
 	distDir: "dist",
 	poweredByHeader: false,
-	
+
 	// Disable server-side features for true SPA
 	skipTrailingSlashRedirect: true,
 

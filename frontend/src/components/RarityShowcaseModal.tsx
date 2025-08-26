@@ -33,21 +33,26 @@ export default function RarityShowcaseModal({
 		data: nftItems,
 		isLoading,
 		error,
-    } = useReadGachaTreasuryGetTreasuryItems({
-        address: contracts.treasury as `0x${string}` | undefined,
-        args: rarity !== null ? [rarity] : undefined,
-        query: { enabled: rarity !== null && isOpen && !!contracts.treasury },
-    } as Parameters<typeof useReadGachaTreasuryGetTreasuryItems>[0]);
+	} = useReadGachaTreasuryGetTreasuryItems({
+		address: contracts.treasury as `0x${string}` | undefined,
+		args: rarity !== null ? [rarity] : undefined,
+		query: { enabled: rarity !== null && isOpen && !!contracts.treasury },
+	} as Parameters<typeof useReadGachaTreasuryGetTreasuryItems>[0]);
 
 	// Convert treasury items to grid items format (must be called before any early returns)
-    const treasuryItemsNormalized = Array.isArray(nftItems)
-        ? (nftItems as readonly { collection: string; tokenId: bigint; depositor: string; [key: string]: unknown }[])
-        : undefined;
+	const treasuryItemsNormalized = Array.isArray(nftItems)
+		? (nftItems as readonly {
+				collection: string;
+				tokenId: bigint;
+				depositor: string;
+				[key: string]: unknown;
+			}[])
+		: undefined;
 
-    const gridItems = useTreasuryItemsToGridItems(
-        treasuryItemsNormalized,
-        rarity ?? undefined,
-    );
+	const gridItems = useTreasuryItemsToGridItems(
+		treasuryItemsNormalized,
+		rarity ?? undefined,
+	);
 
 	if (rarity === null) return null;
 
@@ -161,17 +166,17 @@ export default function RarityShowcaseModal({
 								tier.
 							</p>
 						</motion.div>
-                    ) : contracts.appraisal ? (
-                        <StandardNFTGrid
-                            items={gridItems}
-                            appraisalContractAddress={contracts.appraisal as `0x${string}`}
-                            showAppraisal={true}
-                            animate={true}
-                            enableLazyLoading={true}
-                            priorityLoadCount={16} // Load first 16 items with high priority
-                            {...(gridItems.length > 50 && { itemsPerPage: 50 })} // Paginate if many items
-                        />
-                    ) : null}
+					) : contracts.appraisal ? (
+						<StandardNFTGrid
+							items={gridItems}
+							appraisalContractAddress={contracts.appraisal as `0x${string}`}
+							showAppraisal={true}
+							animate={true}
+							enableLazyLoading={true}
+							priorityLoadCount={16} // Load first 16 items with high priority
+							{...(gridItems.length > 50 && { itemsPerPage: 50 })} // Paginate if many items
+						/>
+					) : null}
 				</ModalBody>
 			</ModalContent>
 		</Modal>

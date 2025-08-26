@@ -38,33 +38,33 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	};
 
 	// Batch fetch all rarity counts in single RPC call
-    const { data: allRarityCounts, refetch: refetchAllRarityCounts } =
-        useReadGachaTreasuryGetAllRarityCounts({
-            address: contracts.treasury as `0x${string}` | undefined,
-            query: { enabled: !!contracts.treasury },
-        });
+	const { data: allRarityCounts, refetch: refetchAllRarityCounts } =
+		useReadGachaTreasuryGetAllRarityCounts({
+			address: contracts.treasury as `0x${string}` | undefined,
+			query: { enabled: !!contracts.treasury },
+		});
 
 	// Rarity weights from gacha contract
-    const { data: rarityWeights } = useReadGachaGetRarityWeights({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: rarityWeights } = useReadGachaGetRarityWeights({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
 	// Additional treasury data
-    const { data: _totalValueLocked } = useReadGachaGetTotalValueLocked({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: _totalValueLocked } = useReadGachaGetTotalValueLocked({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
-    const { data: _totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
-        address: contracts.treasury as `0x${string}` | undefined,
-        query: { enabled: !!contracts.treasury },
-    });
+	const { data: _totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
+		address: contracts.treasury as `0x${string}` | undefined,
+		query: { enabled: !!contracts.treasury },
+	});
 
-    const { data: averageRarityValues } = useReadGachaGetAverageRarityValues({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: averageRarityValues } = useReadGachaGetAverageRarityValues({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
 	// Expose refresh function to parent component
 	useImperativeHandle(ref, () => ({
@@ -130,13 +130,13 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 			}
 		>
 			<div className="space-y-4">
-                {rarityStats.map((rarity) => (
-                    <button
-                        type="button"
-                        key={rarity.name}
-                        className="group relative cursor-pointer text-left w-full"
-                        onClick={() => handleRarityClick(rarity.rarity)}
-                    >
+				{rarityStats.map((rarity) => (
+					<button
+						type="button"
+						key={rarity.name}
+						className="group relative cursor-pointer text-left w-full"
+						onClick={() => handleRarityClick(rarity.rarity)}
+					>
 						{/* Enhanced glow effect */}
 						<div
 							className={`absolute inset-1 bg-gradient-to-r ${rarity.bgGradient} rounded-xl blur-md opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${rarity.glowColor}`}
@@ -191,8 +191,8 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 								</span>
 							</div>
 						</div>
-                    </button>
-                ))}
+					</button>
+				))}
 			</div>
 
 			{/* Rarity Showcase Modal */}

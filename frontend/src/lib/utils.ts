@@ -292,23 +292,27 @@ export function formatErrorMessage(error: unknown): string {
 		);
 	}
 
-    if ((error as { message?: string }).message) {
+	if ((error as { message?: string }).message) {
 		// Handle rejected transactions
-        if ((error as { message: string }).message.includes("User rejected")) {
+		if ((error as { message: string }).message.includes("User rejected")) {
 			return "Transaction was rejected by user";
 		}
 
 		// Handle insufficient funds
-        if ((error as { message: string }).message.toLowerCase().includes("insufficient")) {
+		if (
+			(error as { message: string }).message
+				.toLowerCase()
+				.includes("insufficient")
+		) {
 			return "Insufficient balance for this transaction";
 		}
 
-        return formatErrorMessage((error as { message: string }).message);
+		return formatErrorMessage((error as { message: string }).message);
 	}
 
-    if ((error as { reason?: string }).reason) {
-        return formatErrorMessage((error as { reason: string }).reason);
-    }
+	if ((error as { reason?: string }).reason) {
+		return formatErrorMessage((error as { reason: string }).reason);
+	}
 
 	return "Transaction failed. Please try again.";
 }
@@ -376,9 +380,9 @@ export function isValidAddress(address: string): boolean {
  */
 export function isValidTokenAmount(amount: string): boolean {
 	if (!amount || amount.trim() === "") return false;
-    try {
-        const num = parseFloat(amount);
-        return !Number.isNaN(num) && num >= 0;
+	try {
+		const num = parseFloat(amount);
+		return !Number.isNaN(num) && num >= 0;
 	} catch {
 		return false;
 	}

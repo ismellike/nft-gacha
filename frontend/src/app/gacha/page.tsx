@@ -23,19 +23,22 @@ import { GlassCard, GlassButton, GlassHeader } from "../../components/ui";
 import { glassTypography } from "../../lib/theme-config";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";
 import {
-    useReadGachaRewardsManagerGetUserTotalClaimableRewards,
-    useReadGachaRewardsManagerGetUserRarityClaimableRewards,
-    useReadGachaRewardsManagerGetRewardsAnalytics,
-    useReadGachaTreasuryGetUserAllDepositCounts,
-    useReadGachaFeeToken,
-    useReadGachaOwner,
-    useReadGachaTreasuryOwner,
-    useReadGachaRewardsManagerOwner,
-    useReadGachaRewardsManagerPaused,
+	useReadGachaRewardsManagerGetUserTotalClaimableRewards,
+	useReadGachaRewardsManagerGetUserRarityClaimableRewards,
+	useReadGachaRewardsManagerGetRewardsAnalytics,
+	useReadGachaTreasuryGetUserAllDepositCounts,
+	useReadGachaFeeToken,
+	useReadGachaOwner,
+	useReadGachaTreasuryOwner,
+	useReadGachaRewardsManagerOwner,
+	useReadGachaRewardsManagerPaused,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { useClientSearchParam, useUpdateSearchParams } from "../../hooks/useClientSearchParams";
+import {
+	useClientSearchParam,
+	useUpdateSearchParams,
+} from "../../hooks/useClientSearchParams";
 // import { RARITY_CONFIG, Rarity } from "../../lib/rarityConfig";
 
 // interface RarityReward {
@@ -74,20 +77,20 @@ function GachaDetailPageContent() {
 	const gacha = gachaId ? getGachaConfig(gachaId) : null;
 
 	// Owner checks for admin access
-    const { data: gachaOwner } = useReadGachaOwner({
-        address: gacha?.address as `0x${string}`,
-        query: { enabled: !!gacha },
-    } as Parameters<typeof useReadGachaOwner>[0]);
+	const { data: gachaOwner } = useReadGachaOwner({
+		address: gacha?.address as `0x${string}`,
+		query: { enabled: !!gacha },
+	} as Parameters<typeof useReadGachaOwner>[0]);
 
-    const { data: treasuryOwner } = useReadGachaTreasuryOwner({
-        address: gacha?.treasuryAddress as `0x${string}`,
-        query: { enabled: !!gacha },
-    } as Parameters<typeof useReadGachaTreasuryOwner>[0]);
+	const { data: treasuryOwner } = useReadGachaTreasuryOwner({
+		address: gacha?.treasuryAddress as `0x${string}`,
+		query: { enabled: !!gacha },
+	} as Parameters<typeof useReadGachaTreasuryOwner>[0]);
 
-    const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
-        address: contracts.rewardsManager,
-        query: { enabled: !!contracts.rewardsManager },
-    } as Parameters<typeof useReadGachaRewardsManagerOwner>[0]);
+	const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
+		address: contracts.rewardsManager,
+		query: { enabled: !!contracts.rewardsManager },
+	} as Parameters<typeof useReadGachaRewardsManagerOwner>[0]);
 
 	const isOwner =
 		userAddress &&
@@ -96,18 +99,18 @@ function GachaDetailPageContent() {
 			userAddress === rewardsOwner);
 
 	// Check if rewards manager is paused
-    useReadGachaRewardsManagerPaused({
-        address: contracts.rewardsManager,
-        query: { enabled: !!contracts.rewardsManager },
-    });
+	useReadGachaRewardsManagerPaused({
+		address: contracts.rewardsManager,
+		query: { enabled: !!contracts.rewardsManager },
+	});
 
 	// Contract reads for rewards functionality
-    useReadGachaFeeToken({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    } as Parameters<typeof useReadGachaFeeToken>[0]);
+	useReadGachaFeeToken({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	} as Parameters<typeof useReadGachaFeeToken>[0]);
 
-    // decimals not used on this page; omit to keep types clean
+	// decimals not used on this page; omit to keep types clean
 
 	const { refetch: refetchUserAnalytics } =
 		useReadGachaRewardsManagerGetRewardsAnalytics({
@@ -116,76 +119,75 @@ function GachaDetailPageContent() {
 			query: { enabled: !!userAddress && !!contracts.rewardsManager },
 		});
 
-    const { refetch: refetchClaimable } =
-        useReadGachaRewardsManagerGetUserTotalClaimableRewards({
-            address: contracts.rewardsManager,
-            args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
-            query: { enabled: !!userAddress && !!contracts.rewardsManager },
-        } as Parameters<typeof useReadGachaRewardsManagerGetUserTotalClaimableRewards>[0]);
+	const { refetch: refetchClaimable } =
+		useReadGachaRewardsManagerGetUserTotalClaimableRewards({
+			address: contracts.rewardsManager,
+			args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		} as Parameters<
+			typeof useReadGachaRewardsManagerGetUserTotalClaimableRewards
+		>[0]);
 
-    const { refetch: refetchDepositCounts } =
-        useReadGachaTreasuryGetUserAllDepositCounts({
-            address: contracts.treasury,
-            args: userAddress && contracts.treasury ? [userAddress] : undefined,
-            query: { enabled: !!userAddress && !!contracts.treasury },
-        } as Parameters<typeof useReadGachaTreasuryGetUserAllDepositCounts>[0]);
+	const { refetch: refetchDepositCounts } =
+		useReadGachaTreasuryGetUserAllDepositCounts({
+			address: contracts.treasury,
+			args: userAddress && contracts.treasury ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.treasury },
+		} as Parameters<typeof useReadGachaTreasuryGetUserAllDepositCounts>[0]);
 
 	// Individual rarity claimable amounts
-    const { refetch: refetchCommonClaimable } =
-        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-            address: contracts.rewardsManager,
-            args:
-                userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined,
-            query: { enabled: !!userAddress && !!contracts.rewardsManager },
-        });
+	const { refetch: refetchCommonClaimable } =
+		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+			address: contracts.rewardsManager,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		});
 
-    const { refetch: refetchUncommonClaimable } =
-        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-            address: contracts.rewardsManager,
-            args:
-                userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined,
-            query: { enabled: !!userAddress && !!contracts.rewardsManager },
-        });
+	const { refetch: refetchUncommonClaimable } =
+		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+			address: contracts.rewardsManager,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		});
 
-    const { refetch: refetchRareClaimable } =
-        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-            address: contracts.rewardsManager,
-            args:
-                userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined,
-            query: { enabled: !!userAddress && !!contracts.rewardsManager },
-        });
+	const { refetch: refetchRareClaimable } =
+		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+			address: contracts.rewardsManager,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		});
 
-    const { refetch: refetchEpicClaimable } =
-        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-            address: contracts.rewardsManager,
-            args:
-                userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined,
-            query: { enabled: !!userAddress && !!contracts.rewardsManager },
-        });
+	const { refetch: refetchEpicClaimable } =
+		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+			address: contracts.rewardsManager,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		});
 
-    const { refetch: refetchLegendaryClaimable } =
-        useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-            address: contracts.rewardsManager,
-            args:
-                userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined,
-            query: { enabled: !!userAddress && !!contracts.rewardsManager },
-        });
+	const { refetch: refetchLegendaryClaimable } =
+		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
+			address: contracts.rewardsManager,
+			args:
+				userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined,
+			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		});
 
 	// Claim rewards mutation - use generic writeContract for individual tracker calls
-    const {
-        isSuccess: isClaimSuccess,
-        error: claimError,
-    } = useWriteContract();
+	const { isSuccess: isClaimSuccess, error: claimError } = useWriteContract();
 
-    // Local formatter was unused; rely on shared formatters in lib/utils
+	// Local formatter was unused; rely on shared formatters in lib/utils
 
 	// Handle tab navigation via URL
-    const handleTabChange = useCallback(
-        (section: ValidSection) => {
-            updateSearchParams({ section });
-        },
-        [updateSearchParams],
-    );
+	const handleTabChange = useCallback(
+		(section: ValidSection) => {
+			updateSearchParams({ section });
+		},
+		[updateSearchParams],
+	);
 
 	// Redirect to spin tab if trying to access admin without permissions
 	useEffect(() => {

@@ -389,10 +389,10 @@ export function useBulkNFTMetadata(
 		return [...nfts].sort((a, b) => (b.priority || 0) - (a.priority || 0));
 	}, [nfts]);
 
-    useEffect(() => {
-        if (!enabled || nfts.length === 0) {
-            return;
-        }
+	useEffect(() => {
+		if (!enabled || nfts.length === 0) {
+			return;
+		}
 
 		// Load in batches to avoid overwhelming the network
 		const loadBatch = async (startIndex: number) => {
@@ -440,7 +440,7 @@ export function useBulkNFTMetadata(
 		};
 
 		loadBatch(0);
-    }, [sortedNFTs, enabled, batchSize, nfts.length]);
+	}, [sortedNFTs, enabled, batchSize, nfts.length]);
 
 	return results;
 }

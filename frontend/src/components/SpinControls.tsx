@@ -55,26 +55,26 @@ export default function SpinControls({
 	const contracts = useGachaContracts(gachaId);
 
 	// Gacha contract data
-    const { data: spinFee } = useReadGachaSpinFee({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: spinFee } = useReadGachaSpinFee({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
-    const { data: paused } = useReadGachaPaused({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: paused } = useReadGachaPaused({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
-    const { data: feeToken } = useReadGachaFeeToken({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: feeToken } = useReadGachaFeeToken({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
-    // @ts-expect-error - Known TypeScript limitation with deeply nested wagmi contract types
-    const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
-        address: contracts.treasury as `0x${string}` | undefined,
-        query: { enabled: !!contracts.treasury },
-    });
+	// @ts-expect-error - Known TypeScript limitation with deeply nested wagmi contract types
+	const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
+		address: contracts.treasury as `0x${string}` | undefined,
+		query: { enabled: !!contracts.treasury },
+	});
 
 	// ERC20 token data
 	const { data: tokenDecimals } = useReadErc20Decimals({
@@ -265,8 +265,8 @@ export default function SpinControls({
 			paused,
 			isGachaAvailable,
 			tokenBalance: tokenBalance?.toString(),
-            gachaContract: contracts.gacha,
-        });
+			gachaContract: contracts.gacha,
+		});
 
 		// Handle retry for error state
 		if (gachaSpin.isError) {
@@ -334,7 +334,7 @@ export default function SpinControls({
 				primaryType: "Permit",
 				message: {
 					owner: userAddress,
-                    spender: contracts.gacha as `0x${string}`,
+					spender: contracts.gacha as `0x${string}`,
 					value: spinFee,
 					nonce: tokenNonce,
 					deadline,
@@ -374,25 +374,25 @@ export default function SpinControls({
 				// Mark signature as used to prevent reuse
 				setUsedSignature(signature);
 
-                spinWithPermit({
-                    address: contracts.gacha as `0x${string}`,
-                    args: [permitDeadline, v, r, s],
-                });
+				spinWithPermit({
+					address: contracts.gacha as `0x${string}`,
+					args: [permitDeadline, v, r, s],
+				});
 			} catch (error) {
 				console.error("[SpinControls] Error calling spinWithPermit:", error);
 				gachaSpin.reset();
 			}
 		}
-    }, [
-        signature,
-        spinFee,
-        feeToken,
-        permitDeadline,
-        usedSignature,
-        spinWithPermit,
-        gachaSpin,
-        contracts.gacha,
-    ]);
+	}, [
+		signature,
+		spinFee,
+		feeToken,
+		permitDeadline,
+		usedSignature,
+		spinWithPermit,
+		gachaSpin,
+		contracts.gacha,
+	]);
 
 	// Handle transaction receipt
 	useEffect(() => {
@@ -422,7 +422,7 @@ export default function SpinControls({
 						triggerId = decoded.args.triggerId as bigint;
 						break;
 					}
-                } catch (_error) {}
+				} catch (_error) {}
 			}
 
 			if (triggerId !== null) {
@@ -558,12 +558,12 @@ export default function SpinControls({
 
 								{/* Spin-Fi Logo */}
 								<div className="relative z-10 filter drop-shadow-2xl">
-                                    <svg
-                                        className="w-20 h-20 drop-shadow-lg text-warning"
-                                        viewBox="227 210 589 590"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <title>Spin-Fi logo</title>
+									<svg
+										className="w-20 h-20 drop-shadow-lg text-warning"
+										viewBox="227 210 589 590"
+										xmlns="http://www.w3.org/2000/svg"
+									>
+										<title>Spin-Fi logo</title>
 										<path
 											d="M0,0 L47,0 L78,4 L101,9 L125,17 L149,28 L164,37 L181,49 L194,60 L202,67 L209,74 L218,85 L228,98 L239,115 L250,135 L260,160 L267,185 L271,208 L272,218 L272,258 L269,281 L264,302 L259,319 L248,347 L236,370 L225,386 L217,396 L208,406 L201,413 L196,418 L188,426 L175,436 L160,446 L142,456 L125,464 L102,471 L80,475 L58,476 L41,475 L22,471 L7,466 L-12,457 L-23,450 L-36,440 L-48,428 L-59,414 L-68,399 L-75,383 L-79,371 L-82,353 L-83,328 L-81,310 L-76,291 L-68,275 L-56,259 L-46,249 L-31,240 L-16,234 L-7,232 L11,232 L25,236 L35,242 L42,248 L48,257 L52,268 L53,278 L49,276 L40,269 L34,267 L22,267 L12,272 L4,279 L-5,291 L-11,303 L-13,311 L-13,331 L-10,345 L-5,358 L2,368 L11,378 L21,385 L38,393 L56,397 L82,397 L98,394 L114,388 L126,382 L142,370 L155,358 L164,347 L174,333 L185,312 L192,293 L197,272 L199,251 L199,240 L197,214 L192,192 L184,171 L174,152 L163,136 L154,125 L146,117 L135,108 L122,98 L109,90 L93,82 L79,76 L58,70 L41,67 L31,66 L-1,66 L-24,69 L-47,74 L-71,82 L-98,95 L-117,107 L-134,120 L-148,132 L-163,147 L-172,158 L-185,175 L-195,190 L-205,208 L-216,231 L-222,246 L-229,271 L-234,296 L-236,312 L-237,326 L-237,348 L-234,380 L-229,406 L-223,430 L-224,432 L-230,422 L-241,399 L-249,377 L-256,349 L-260,325 L-262,304 L-262,269 L-259,240 L-254,214 L-246,188 L-238,168 L-228,148 L-215,127 L-202,110 L-191,97 L-182,87 L-165,70 L-151,59 L-136,48 L-112,33 L-97,25 L-70,14 L-45,7 L-25,3 Z "
 											fill="currentColor"
@@ -585,14 +585,14 @@ export default function SpinControls({
 						<GlassBadge variant="danger" className="text-center p-4">
 							<div>
 								<div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg
-                                        className="w-8 h-8 text-danger"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth={2}
-                                    >
-                                        <title>Error</title>
+									<svg
+										className="w-8 h-8 text-danger"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<title>Error</title>
 										<path
 											strokeLinecap="round"
 											strokeLinejoin="round"
@@ -608,19 +608,19 @@ export default function SpinControls({
 									may indicate a network issue or VRF coordinator problem.
 								</p>
 								<div className="flex flex-col gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleReclaim}
-                                        disabled={isReclaimPending}
-                                        className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
-                                    >
+									<button
+										type="button"
+										onClick={handleReclaim}
+										disabled={isReclaimPending}
+										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
+									>
 										{isReclaimPending ? "Reclaiming..." : "Reclaim Funds"}
 									</button>
-                                    <button
-                                        type="button"
-                                        onClick={gachaSpin.reset}
-                                        className="px-4 py-2 bg-content2 hover:bg-content3 text-foreground rounded-lg transition-colors text-sm"
-                                    >
+									<button
+										type="button"
+										onClick={gachaSpin.reset}
+										className="px-4 py-2 bg-content2 hover:bg-content3 text-foreground rounded-lg transition-colors text-sm"
+									>
 										Try Again
 									</button>
 									<p className="text-xs opacity-50">
@@ -637,14 +637,14 @@ export default function SpinControls({
 						<GlassBadge variant="warning" className="text-center p-4">
 							<div>
 								<div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg
-                                        className="w-8 h-8 text-warning"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth={2}
-                                    >
-                                        <title>Warning</title>
+									<svg
+										className="w-8 h-8 text-warning"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<title>Warning</title>
 										<path
 											strokeLinecap="round"
 											strokeLinejoin="round"
@@ -676,11 +676,11 @@ export default function SpinControls({
 											{tokenSymbol}
 										</p>
 									</div>
-                            <button
-                                type="button"
-                                onClick={gachaSpin.reset}
-                                className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm w-full"
-                            >
+									<button
+										type="button"
+										onClick={gachaSpin.reset}
+										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm w-full"
+									>
 										Try Another Spin
 									</button>
 									<p className="text-xs opacity-50">

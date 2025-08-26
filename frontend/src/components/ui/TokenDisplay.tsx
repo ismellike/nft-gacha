@@ -175,7 +175,7 @@ function TokenDisplay({
 		};
 
 		tryLoadImage(0);
-    }, [logoSources, address, symbol]);
+	}, [logoSources, address, symbol]);
 
 	// Generate fallback initials from token name or symbol (industry standard)
 	const getFallbackInitials = () => {
@@ -214,21 +214,21 @@ function TokenDisplay({
 
 	const TokenImage = () => {
 		if (imageUrl && !imageError) {
-            return (
-                <div className="relative">
-                    <NextImage
-                        src={imageUrl}
-                        alt={`${name || symbol} logo`}
-                        width={64}
-                        height={64}
-                        className={cn(
-                            config.image,
-                            "rounded-full object-cover border-2 border-white/10 shadow-lg bg-gradient-to-br from-content1/20 to-content1/40",
-                        )}
-                        onError={() => setImageError(true)}
-                    />
-                </div>
-            );
+			return (
+				<div className="relative">
+					<NextImage
+						src={imageUrl}
+						alt={`${name || symbol} logo`}
+						width={64}
+						height={64}
+						className={cn(
+							config.image,
+							"rounded-full object-cover border-2 border-white/10 shadow-lg bg-gradient-to-br from-content1/20 to-content1/40",
+						)}
+						onError={() => setImageError(true)}
+					/>
+				</div>
+			);
 		}
 
 		// Fallback with initials and deterministic gradient (industry standard)

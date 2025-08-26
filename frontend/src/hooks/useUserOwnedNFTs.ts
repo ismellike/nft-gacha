@@ -105,7 +105,7 @@ export function useUserOwnedNFTs(
 					if (owner.toLowerCase() === userAddress.toLowerCase()) {
 						ownedTokenIds.push(tokenId);
 					}
-				} catch (_ownershipError) { }
+				} catch (_ownershipError) {}
 			}
 
 			setTokens(ownedTokenIds);
@@ -148,9 +148,7 @@ export function useUserOwnedNFTsMultipleCollections(
 	const collectionsKey = useMemo(
 		() =>
 			JSON.stringify(
-				(collectionAddresses || [])
-					.map((a) => a.toLowerCase())
-					.sort(),
+				(collectionAddresses || []).map((a) => a.toLowerCase()).sort(),
 			),
 		[collectionAddresses],
 	);
@@ -234,7 +232,7 @@ export function useUserOwnedNFTsMultipleCollections(
 								});
 								ownedTokenIds.push(tokenId);
 							}
-						} catch (_ownershipError) { }
+						} catch (_ownershipError) {}
 					}
 				} catch (collectionError) {
 					console.warn(

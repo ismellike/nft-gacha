@@ -9,7 +9,7 @@ class SearchParamsStore {
 	constructor() {
 		if (typeof window !== "undefined") {
 			this.searchParams = new URLSearchParams(window.location.search);
-			
+
 			// Listen to browser navigation (back/forward)
 			window.addEventListener("popstate", () => {
 				this.updateFromLocation();
@@ -28,7 +28,7 @@ class SearchParamsStore {
 	}
 
 	private notifyListeners() {
-		this.listeners.forEach(listener => listener());
+		this.listeners.forEach((listener) => listener());
 	}
 
 	subscribe(listener: () => void) {
@@ -47,9 +47,13 @@ class SearchParamsStore {
 	}
 
 	// Update params and sync with URL
-	updateParams(updates: Record<string, string | null>, router: ReturnType<typeof useRouter>, pathname: string) {
+	updateParams(
+		updates: Record<string, string | null>,
+		router: ReturnType<typeof useRouter>,
+		pathname: string,
+	) {
 		const newParams = new URLSearchParams(this.searchParams);
-		
+
 		Object.entries(updates).forEach(([key, value]) => {
 			if (value === null) {
 				newParams.delete(key);
@@ -59,13 +63,13 @@ class SearchParamsStore {
 		});
 
 		const newUrl = `${pathname}?${newParams.toString()}`;
-		
+
 		// Update internal state first
 		this.searchParams = newParams;
-		
+
 		// Then update URL
 		router.push(newUrl, { scroll: false });
-		
+
 		// Notify listeners
 		this.notifyListeners();
 	}
@@ -82,7 +86,7 @@ export function useClientSearchParams(): URLSearchParams {
 	return useSyncExternalStore(
 		searchParamsStore.subscribe.bind(searchParamsStore),
 		searchParamsStore.getSnapshot.bind(searchParamsStore),
-		searchParamsStore.getServerSnapshot.bind(searchParamsStore)
+		searchParamsStore.getServerSnapshot.bind(searchParamsStore),
 	);
 }
 
@@ -103,7 +107,10 @@ export function useUpdateSearchParams() {
 	const router = useRouter();
 	const pathname = usePathname();
 
-	return useCallback((updates: Record<string, string | null>) => {
-		searchParamsStore.updateParams(updates, router, pathname);
-	}, [router, pathname]);
+	return useCallback(
+		(updates: Record<string, string | null>) => {
+			searchParamsStore.updateParams(updates, router, pathname);
+		},
+		[router, pathname],
+	);
 }

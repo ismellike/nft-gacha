@@ -35,7 +35,7 @@ export function NFTAppraisalDashboard({
 	const [viewMode, setViewMode] = useState<ViewMode>("overview");
 	const [submittedNFTs, setSubmittedNFTs] = useState<SubmittedNFT[]>([]);
 	const [showSuccess, setShowSuccess] = useState(false);
-	
+
 	// Get URL params for pre-filled forms
 	const collectionParam = useClientSearchParam("collection");
 	const tokenIdParam = useClientSearchParam("tokenId");

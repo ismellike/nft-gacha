@@ -293,22 +293,22 @@ const UnifiedNFTImage = memo<{
 					</div>
 				)}
 
-                {finalUrl && (
-                    <NextImage
-                        src={finalUrl}
-                        alt={nftData.metadata?.name || `NFT ${formatTokenId(tokenId)}`}
-                        width={512}
-                        height={512}
-                        className={cn(
-                            classes.container,
-                            classes.rounded,
-                            "object-cover relative z-0",
-                        )}
-                        crossOrigin="anonymous"
-                        priority={priority > 7}
-                        referrerPolicy="no-referrer-when-downgrade"
-                    />
-                )}
+				{finalUrl && (
+					<NextImage
+						src={finalUrl}
+						alt={nftData.metadata?.name || `NFT ${formatTokenId(tokenId)}`}
+						width={512}
+						height={512}
+						className={cn(
+							classes.container,
+							classes.rounded,
+							"object-cover relative z-0",
+						)}
+						crossOrigin="anonymous"
+						priority={priority > 7}
+						referrerPolicy="no-referrer-when-downgrade"
+					/>
+				)}
 			</div>
 		);
 	},
@@ -459,13 +459,13 @@ const UnifiedTraitDisplay = memo<{
 							{isCourtyardNFT ? "Details" : "Traits"}
 						</span>
 						{enableExpansion && finalHasMoreTraits && (
-                            <button
-                                type="button"
-                                onClick={onToggle}
-                                className={cn(
-                                    "text-white/60 hover:text-white/90 transition-colors",
-                                    styles.text,
-                                )}
+							<button
+								type="button"
+								onClick={onToggle}
+								className={cn(
+									"text-white/60 hover:text-white/90 transition-colors",
+									styles.text,
+								)}
 							>
 								{isExpanded
 									? "Less"
@@ -821,11 +821,11 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					{/* Extra Details */}
 					{extraDetails && extraDetails.length > 0 && (
 						<div className="space-y-1">
-                            {extraDetails.map((detail) => (
-                                <div
-                                    key={`${detail.label}:${detail.value}`}
-                                    className="bg-white/5 backdrop-blur-md rounded-xl border border-white/20 p-2"
-                                >
+							{extraDetails.map((detail) => (
+								<div
+									key={`${detail.label}:${detail.value}`}
+									className="bg-white/5 backdrop-blur-md rounded-xl border border-white/20 p-2"
+								>
 									<p
 										className={cn(
 											"text-white/60 uppercase tracking-wide font-medium mb-1",

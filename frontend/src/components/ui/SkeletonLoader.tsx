@@ -75,14 +75,14 @@ export function GachaCardSkeleton() {
 				{/* Rarity Distribution */}
 				<div className="space-y-2">
 					<Skeleton className="h-4 w-24" />
-                    <div className="grid grid-cols-5 gap-1">
-                        {Array.from({ length: 5 }, (_, i) => `slot-${i}`).map((id) => (
-                            <div key={id} className="text-center">
-                                <Skeleton className="h-2 w-full rounded-full mb-1" />
-                                <Skeleton className="h-3 w-4 mx-auto" />
-                            </div>
-                        ))}
-                    </div>
+					<div className="grid grid-cols-5 gap-1">
+						{Array.from({ length: 5 }, (_, i) => `slot-${i}`).map((id) => (
+							<div key={id} className="text-center">
+								<Skeleton className="h-2 w-full rounded-full mb-1" />
+								<Skeleton className="h-3 w-4 mx-auto" />
+							</div>
+						))}
+					</div>
 				</div>
 
 				{/* Button */}
@@ -113,10 +113,10 @@ function RewardsCardSkeleton() {
 export function RarityBreakdownSkeleton() {
 	return (
 		<div className="space-y-3">
-            {["common","uncommon","rare","epic","legendary"].map((key) => (
-                <div key={key} className="relative group">
-                    <div className="bg-content1/20 backdrop-blur-xl rounded-lg border border-white/20 p-4 shadow-lg">
-                        <div className="flex items-center justify-between">
+			{["common", "uncommon", "rare", "epic", "legendary"].map((key) => (
+				<div key={key} className="relative group">
+					<div className="bg-content1/20 backdrop-blur-xl rounded-lg border border-white/20 p-4 shadow-lg">
+						<div className="flex items-center justify-between">
 							<div className="flex items-center gap-3">
 								<div className="flex items-center gap-2 px-3 py-1 bg-content1/30 rounded-full">
 									<Skeleton className="w-4 h-4 rounded-full" />
@@ -143,15 +143,15 @@ export function RarityBreakdownSkeleton() {
 
 // Stats Grid Skeleton
 export function StatsGridSkeleton({ columns = 3 }: { columns?: number }) {
-    return (
-        <div
-            className={`grid gap-6 ${columns === 2 ? "md:grid-cols-2" : columns === 3 ? "sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
-        >
-            {Array.from({ length: columns }, (_, i) => `col-${i}`).map((id) => (
-                <RewardsCardSkeleton key={id} />
-            ))}
-        </div>
-    );
+	return (
+		<div
+			className={`grid gap-6 ${columns === 2 ? "md:grid-cols-2" : columns === 3 ? "sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
+		>
+			{Array.from({ length: columns }, (_, i) => `col-${i}`).map((id) => (
+				<RewardsCardSkeleton key={id} />
+			))}
+		</div>
+	);
 }
 
 // (removed unused local skeleton component to satisfy TS noUnusedLocals)

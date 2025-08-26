@@ -29,12 +29,12 @@ type IconSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 
 // Helper function to map icon names to components
 function getIconComponent(iconName: string, className: string) {
-    const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
-        trending: ChartBarIcon,
-        gem: GiftIcon,
-        gift: GiftIcon,
-        clock: ClockIcon,
-        check: CheckIcon,
+	const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+		trending: ChartBarIcon,
+		gem: GiftIcon,
+		gift: GiftIcon,
+		clock: ClockIcon,
+		check: CheckIcon,
 		coins: CurrencyDollarIcon,
 		"x-circle": XCircleIcon,
 		dice: CubeIcon,

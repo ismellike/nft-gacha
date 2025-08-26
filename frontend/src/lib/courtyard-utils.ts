@@ -510,7 +510,7 @@ export function getGradeColorScheme(grade: string | number | undefined): {
 
 	const numGrade = Number(grade);
 
-    if (!Number.isNaN(numGrade)) {
+	if (!Number.isNaN(numGrade)) {
 		if (numGrade === 10) {
 			return {
 				gradient: "from-yellow-400 via-yellow-500 to-yellow-600",

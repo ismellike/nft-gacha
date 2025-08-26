@@ -15,9 +15,9 @@ interface FloatingElement {
 }
 
 export const AnimatedBackground = memo(() => {
-    const [elements, setElements] = useState<FloatingElement[]>([]);
+	const [elements, setElements] = useState<FloatingElement[]>([]);
 
-    // Removed window resize tracking (not used in animations)
+	// Removed window resize tracking (not used in animations)
 
 	useEffect(() => {
 		const generateElements = () => {
@@ -71,99 +71,96 @@ export const AnimatedBackground = memo(() => {
 		generateElements();
 	}, []);
 
-    // Removed mouse tracking to avoid unused state and simplify dependencies
+	// Removed mouse tracking to avoid unused state and simplify dependencies
 
-    const getElementComponent = useCallback(
-        (element: FloatingElement) => {
-            switch (element.type) {
-				case "orb":
-					return (
-						<motion.div
-							key={element.id}
-							className="absolute rounded-full bg-gradient-to-br from-warning/30 via-warning/20 to-transparent blur-2xl"
-							style={{
-								left: `${element.x}%`,
-								top: `${element.y}%`,
-								width: element.size,
-								height: element.size,
-								opacity: element.opacity,
-							}}
-							animate={{
-								x: [0, 30, 0, -20, 0],
-								y: [0, -25, 0, 20, 0],
-								scale: [1, 1.1, 0.9, 1.05, 1],
-							}}
-							transition={{
-								duration: element.duration,
-								delay: element.delay,
-								repeat: Infinity,
-								ease: "easeInOut",
-							}}
-						/>
-					);
+	const getElementComponent = useCallback((element: FloatingElement) => {
+		switch (element.type) {
+			case "orb":
+				return (
+					<motion.div
+						key={element.id}
+						className="absolute rounded-full bg-gradient-to-br from-warning/30 via-warning/20 to-transparent blur-2xl"
+						style={{
+							left: `${element.x}%`,
+							top: `${element.y}%`,
+							width: element.size,
+							height: element.size,
+							opacity: element.opacity,
+						}}
+						animate={{
+							x: [0, 30, 0, -20, 0],
+							y: [0, -25, 0, 20, 0],
+							scale: [1, 1.1, 0.9, 1.05, 1],
+						}}
+						transition={{
+							duration: element.duration,
+							delay: element.delay,
+							repeat: Infinity,
+							ease: "easeInOut",
+						}}
+					/>
+				);
 
-				case "crystal":
-					return (
-						<motion.div
-							key={element.id}
-							className="absolute"
-							style={{
-								left: `${element.x}%`,
-								top: `${element.y}%`,
-								width: element.size * 3, // Made bigger
-								height: element.size * 3,
-								opacity: element.opacity,
-							}}
-							animate={{
-								x: [0, 40, -20, 0],
-								y: [0, -30, 20, 0],
-								rotate: [0, 45, 90, 135, 180, 225, 270, 315, 360],
-								scale: [1, 2, 1.5, 1],
-							}}
-							transition={{
-								duration: element.duration,
-								delay: element.delay,
-								repeat: Infinity,
-								ease: "easeInOut",
-							}}
-						>
-							<div className="w-full h-full bg-gradient-to-br from-warning/80 to-warning/60 rotate-45 rounded-lg shadow-2xl shadow-warning/50 border border-warning/30" />
-						</motion.div>
-					);
+			case "crystal":
+				return (
+					<motion.div
+						key={element.id}
+						className="absolute"
+						style={{
+							left: `${element.x}%`,
+							top: `${element.y}%`,
+							width: element.size * 3, // Made bigger
+							height: element.size * 3,
+							opacity: element.opacity,
+						}}
+						animate={{
+							x: [0, 40, -20, 0],
+							y: [0, -30, 20, 0],
+							rotate: [0, 45, 90, 135, 180, 225, 270, 315, 360],
+							scale: [1, 2, 1.5, 1],
+						}}
+						transition={{
+							duration: element.duration,
+							delay: element.delay,
+							repeat: Infinity,
+							ease: "easeInOut",
+						}}
+					>
+						<div className="w-full h-full bg-gradient-to-br from-warning/80 to-warning/60 rotate-45 rounded-lg shadow-2xl shadow-warning/50 border border-warning/30" />
+					</motion.div>
+				);
 
-				case "particle":
-					return (
-						<motion.div
-							key={element.id}
-							className="absolute rounded-full bg-gradient-to-br from-white/80 to-warning/60 shadow-lg shadow-warning/30 border border-white/20"
-							style={{
-								left: `${element.x}%`,
-								top: `${element.y}%`,
-								width: element.size * 4, // Made much bigger
-								height: element.size * 4,
-								opacity: element.opacity,
-							}}
-							animate={{
-								x: [0, 60, -40, 0],
-								y: [0, -50, 30, 0],
-								scale: [0, 2, 1, 2, 0],
-								opacity: [0, 1, 0.5, 1, 0],
-							}}
-							transition={{
-								duration: element.duration,
-								delay: element.delay,
-								repeat: Infinity,
-								ease: "easeInOut",
-							}}
-						/>
-					);
+			case "particle":
+				return (
+					<motion.div
+						key={element.id}
+						className="absolute rounded-full bg-gradient-to-br from-white/80 to-warning/60 shadow-lg shadow-warning/30 border border-white/20"
+						style={{
+							left: `${element.x}%`,
+							top: `${element.y}%`,
+							width: element.size * 4, // Made much bigger
+							height: element.size * 4,
+							opacity: element.opacity,
+						}}
+						animate={{
+							x: [0, 60, -40, 0],
+							y: [0, -50, 30, 0],
+							scale: [0, 2, 1, 2, 0],
+							opacity: [0, 1, 0.5, 1, 0],
+						}}
+						transition={{
+							duration: element.duration,
+							delay: element.delay,
+							repeat: Infinity,
+							ease: "easeInOut",
+						}}
+					/>
+				);
 
-				default:
-					return null;
-			}
-        },
-        [],
-    );
+			default:
+				return null;
+		}
+	}, []);
 
 	return (
 		<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

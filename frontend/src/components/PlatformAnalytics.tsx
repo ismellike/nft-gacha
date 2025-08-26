@@ -29,42 +29,42 @@ export const PlatformAnalytics: React.FC = () => {
 	const contracts = useGachaContracts(gachaId);
 
 	// Fee token info
-    const { data: feeTokenAddress } = useReadGachaFeeToken({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: feeTokenAddress } = useReadGachaFeeToken({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
-    const { data: tokenSymbol } = useReadErc20Symbol({
-        address: feeTokenAddress,
-        query: { enabled: !!feeTokenAddress },
-    });
+	const { data: tokenSymbol } = useReadErc20Symbol({
+		address: feeTokenAddress,
+		query: { enabled: !!feeTokenAddress },
+	});
 
-    const { data: tokenDecimals } = useReadErc20Decimals({
-        address: feeTokenAddress,
-        query: { enabled: !!feeTokenAddress },
-    });
+	const { data: tokenDecimals } = useReadErc20Decimals({
+		address: feeTokenAddress,
+		query: { enabled: !!feeTokenAddress },
+	});
 
 	// Platform data
-    const { data: allRarityCounts } = useReadGachaTreasuryGetAllRarityCounts({
-        address: contracts.treasury as `0x${string}` | undefined,
-        query: { enabled: !!contracts.treasury },
-    });
+	const { data: allRarityCounts } = useReadGachaTreasuryGetAllRarityCounts({
+		address: contracts.treasury as `0x${string}` | undefined,
+		query: { enabled: !!contracts.treasury },
+	});
 
-    const { data: totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
-        address: contracts.treasury as `0x${string}` | undefined,
-        query: { enabled: !!contracts.treasury },
-    });
+	const { data: totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
+		address: contracts.treasury as `0x${string}` | undefined,
+		query: { enabled: !!contracts.treasury },
+	});
 
-    const { data: totalFeesDistributed } =
-        useReadGachaRewardsManagerTotalFeesDistributed({
-            address: contracts.rewardsManager as `0x${string}` | undefined,
-            query: { enabled: !!contracts.rewardsManager },
-        });
+	const { data: totalFeesDistributed } =
+		useReadGachaRewardsManagerTotalFeesDistributed({
+			address: contracts.rewardsManager as `0x${string}` | undefined,
+			query: { enabled: !!contracts.rewardsManager },
+		});
 
-    const { data: gachaGlobalAnalytics } = useReadGachaGetGlobalAnalytics({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    });
+	const { data: gachaGlobalAnalytics } = useReadGachaGetGlobalAnalytics({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	});
 
 	const totalSpinCount = gachaGlobalAnalytics?.[0];
 

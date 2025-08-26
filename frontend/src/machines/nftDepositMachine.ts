@@ -78,11 +78,11 @@ const waitForApprovalConfirmation = fromPromise(
 			}
 
 			throw new Error("NFT not approved - please approve first");
-        } catch (_error) {
-            throw new Error(
-                `Failed to check approval status: ${_error instanceof Error ? _error.message : "Unknown error"}`,
-            );
-        }
+		} catch (_error) {
+			throw new Error(
+				`Failed to check approval status: ${_error instanceof Error ? _error.message : "Unknown error"}`,
+			);
+		}
 	},
 );
 
@@ -118,7 +118,7 @@ const waitForDepositConfirmation = fromPromise(
 
 			console.log("✅ [NFTDepositMachine] NFT successfully deposited");
 			return "deposit-confirmed";
-        } catch (_error) {
+		} catch (_error) {
 			// If ownerOf fails, the token might not exist or might be deposited
 			// Let's assume success if we can't verify ownership
 			console.log(
@@ -159,13 +159,14 @@ export const nftDepositMachine = createMachine(
 				invoke: {
 					id: "waitForApprovalConfirmation",
 					src: "waitForApprovalConfirmation",
-                    input: ({ context }) => ({
-                        collection: context.collection as unknown as `0x${string}`,
-                        tokenId: context.tokenId as unknown as bigint,
-                        treasuryAddress: context.treasuryAddress as unknown as `0x${string}`,
-                        userAddress: context.userAddress as unknown as `0x${string}`,
-                        publicClient: context.publicClient as unknown,
-                    }),
+					input: ({ context }) => ({
+						collection: context.collection as unknown as `0x${string}`,
+						tokenId: context.tokenId as unknown as bigint,
+						treasuryAddress:
+							context.treasuryAddress as unknown as `0x${string}`,
+						userAddress: context.userAddress as unknown as `0x${string}`,
+						publicClient: context.publicClient as unknown,
+					}),
 					onDone: {
 						target: "readyToDeposit",
 						actions: "setApprovalConfirmed",
@@ -219,13 +220,14 @@ export const nftDepositMachine = createMachine(
 				invoke: {
 					id: "waitForDepositConfirmation",
 					src: "waitForDepositConfirmation",
-                    input: ({ context }) => ({
-                        collection: context.collection as unknown as `0x${string}`,
-                        tokenId: context.tokenId as unknown as bigint,
-                        treasuryAddress: context.treasuryAddress as unknown as `0x${string}`,
-                        userAddress: context.userAddress as unknown as `0x${string}`,
-                        publicClient: context.publicClient as unknown,
-                    }),
+					input: ({ context }) => ({
+						collection: context.collection as unknown as `0x${string}`,
+						tokenId: context.tokenId as unknown as bigint,
+						treasuryAddress:
+							context.treasuryAddress as unknown as `0x${string}`,
+						userAddress: context.userAddress as unknown as `0x${string}`,
+						publicClient: context.publicClient as unknown,
+					}),
 					onDone: {
 						target: "completed",
 						actions: "setDepositCompleted",
