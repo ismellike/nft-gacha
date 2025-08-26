@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Modal, ModalContent, ModalBody } from "@heroui/react";
+import { Modal, ModalContent, ModalBody, glassModalClasses } from "./ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTHeroCard } from "./ui";
-import { glassModal } from "../lib/theme-config";
 import { useEnhancedSpinResult } from "../hooks/useNFTWithMetadata";
 
 interface SpinResult {
@@ -49,8 +48,6 @@ export default function NFTRevealModal({
 		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
 	const rarityConfig = getRarityConfig(resultRarity);
 
-	const modalStyles = glassModal({ size: "full" });
-
 	return (
 		<Modal
 			isOpen={isVisible}
@@ -58,10 +55,9 @@ export default function NFTRevealModal({
 			size="full"
 			hideCloseButton
 			classNames={{
-				wrapper: modalStyles.wrapper(),
-				backdrop: modalStyles.backdrop(),
-				base: modalStyles.base(),
-				body: modalStyles.body(),
+				backdrop: glassModalClasses.backdrop,
+				base: glassModalClasses.contentDark,
+				body: glassModalClasses.body,
 			}}
 			placement="center"
 		>

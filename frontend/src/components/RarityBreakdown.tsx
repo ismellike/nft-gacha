@@ -3,7 +3,7 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { glassTypography } from "../lib/theme-config";
-import { GlassCard } from "./ui";
+import { Card } from "./ui";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
@@ -32,17 +32,20 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		setIsModalOpen(true);
 	};
 
-	const handleModalClose = () => {
-		setIsModalOpen(false);
-		setSelectedRarity(null);
+	const handleModalOpenChange = (open: boolean) => {
+		setIsModalOpen(open);
+		if (!open) {
+			setSelectedRarity(null);
+		}
 	};
 
 	// Batch fetch all rarity counts in single RPC call
-	const { data: allRarityCounts, refetch: refetchAllRarityCounts } =
-		useReadGachaTreasuryGetAllRarityCounts({
-			address: contracts.treasury as `0x${string}` | undefined,
-			query: { enabled: !!contracts.treasury },
-		});
+	// @ts-expect-error Treasury hooks have deep type instantiation issues
+	const rarityCountsQuery = useReadGachaTreasuryGetAllRarityCounts({
+		address: contracts.treasury,
+		query: { enabled: !!contracts.treasury },
+	});
+	const { data: allRarityCounts } = rarityCountsQuery;
 
 	// Rarity weights from gacha contract
 	const { data: rarityWeights } = useReadGachaGetRarityWeights({
@@ -70,7 +73,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	useImperativeHandle(ref, () => ({
 		refreshCounts: () => {
 			console.log("🔄 Refreshing rarity counts after spin completion");
-			refetchAllRarityCounts();
+			rarityCountsQuery.refetch();
 		},
 	}));
 
@@ -119,17 +122,13 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	] as const;
 
 	return (
-		<GlassCard
-			className="h-full"
-			variant="base"
-			animate={false}
-			header={
+		<Card glassVariant="glass" className="h-full">
+			<div className="p-6 pb-2 border-b border-white/10">
 				<h3 className={glassTypography({ variant: "secondaryHeading" })}>
 					Drop Rates
 				</h3>
-			}
-		>
-			<div className="space-y-4">
+			</div>
+			<div className="p-6 pt-4 space-y-4">
 				{rarityStats.map((rarity) => (
 					<button
 						type="button"
@@ -198,10 +197,10 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 			{/* Rarity Showcase Modal */}
 			<RarityShowcaseModal
 				isOpen={isModalOpen}
-				onClose={handleModalClose}
+				onOpenChange={handleModalOpenChange}
 				rarity={selectedRarity}
 			/>
-		</GlassCard>
+		</Card>
 	);
 });
 

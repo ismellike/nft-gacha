@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardBody } from "@heroui/react";
+import { Card } from "./ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { formatAddress, formatTokenId } from "../lib/utils";
 
@@ -28,7 +28,7 @@ export default function LastSpinResult({ result }: LastSpinResultProps) {
 				<div
 					className={`absolute inset-0 bg-gradient-to-br ${rarityConfig.bgGradient}/5`}
 				></div>
-				<CardBody className="py-6 px-8 relative z-10">
+				<div className="py-6 px-8 relative z-10">
 					<div className="flex items-center justify-center space-x-3">
 						<div
 							className={`w-8 h-8 bg-gradient-to-br ${rarityConfig.bgGradient} rounded-full flex items-center justify-center shadow-lg`}
@@ -56,7 +56,7 @@ export default function LastSpinResult({ result }: LastSpinResultProps) {
 							<span className="text-sm">✨</span>
 						</div>
 					</div>
-				</CardBody>
+				</div>
 			</Card>
 		</div>
 	);

@@ -8,7 +8,7 @@ import {
 	getRarityConfig,
 	getAllRarities,
 } from "../lib/rarityConfig";
-import { GlassCard, GlassButton } from "./ui";
+import { Card, Button } from "./ui";
 import { glassTypography } from "../lib/theme-config";
 import {
 	useReadGachaRewardsManagerGetRewardsAnalytics,
@@ -99,7 +99,7 @@ export const ProfileDashboard: React.FC = () => {
 					animate={{ opacity: 1, scale: 1 }}
 					transition={{ duration: 0.5 }}
 				>
-					<GlassCard className="text-center p-12 max-w-md">
+					<Card className="text-center p-12 max-w-md bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 						<UserCircleIcon className="w-20 h-20 mx-auto mb-6 text-foreground/30" />
 						<h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
 							Connect Wallet
@@ -108,7 +108,7 @@ export const ProfileDashboard: React.FC = () => {
 							Connect your wallet to view your profile, track rewards, and
 							manage your NFT collection.
 						</p>
-					</GlassCard>
+					</Card>
 				</motion.div>
 			</div>
 		);
@@ -126,7 +126,7 @@ export const ProfileDashboard: React.FC = () => {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.6, delay: 0.1 }}
 				>
-					<GlassCard className="p-6 hover:bg-content2/30 transition-colors">
+					<Card className="p-6 hover:bg-content2/30 transition-colors bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="flex items-center justify-between mb-4">
 							<div className="w-12 h-12 bg-gradient-to-br from-rarity-rare-500/20 to-rarity-rare-600/20 rounded-lg flex items-center justify-center">
 								<SparklesIcon className="w-6 h-6 text-rarity-rare-300" />
@@ -146,7 +146,7 @@ export const ProfileDashboard: React.FC = () => {
 								}}
 							/>
 						</div>
-					</GlassCard>
+					</Card>
 				</motion.div>
 
 				<motion.div
@@ -154,7 +154,7 @@ export const ProfileDashboard: React.FC = () => {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.6, delay: 0.2 }}
 				>
-					<GlassCard className="p-6 hover:bg-content2/30 transition-colors">
+					<Card className="p-6 hover:bg-content2/30 transition-colors bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="flex items-center justify-between mb-4">
 							<div className="w-12 h-12 bg-gradient-to-br from-rarity-uncommon-500/20 to-rarity-uncommon-600/20 rounded-lg flex items-center justify-center">
 								<GiftIcon className="w-6 h-6 text-rarity-uncommon-300" />
@@ -172,7 +172,7 @@ export const ProfileDashboard: React.FC = () => {
 								style={{ width: `${Math.min(totalDeposits * 5, 100)}%` }}
 							/>
 						</div>
-					</GlassCard>
+					</Card>
 				</motion.div>
 
 				<motion.div
@@ -180,7 +180,7 @@ export const ProfileDashboard: React.FC = () => {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.6, delay: 0.3 }}
 				>
-					<GlassCard className="p-6 hover:bg-content2/30 transition-colors">
+					<Card className="p-6 hover:bg-content2/30 transition-colors bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="flex items-center justify-between mb-4">
 							<div className="w-12 h-12 bg-gradient-to-br from-rarity-legendary-500/20 to-rarity-legendary-600/20 rounded-lg flex items-center justify-center">
 								<CurrencyDollarIcon className="w-6 h-6 text-rarity-legendary-300" />
@@ -205,7 +205,7 @@ export const ProfileDashboard: React.FC = () => {
 								}}
 							/>
 						</div>
-					</GlassCard>
+					</Card>
 				</motion.div>
 
 				<motion.div
@@ -213,7 +213,7 @@ export const ProfileDashboard: React.FC = () => {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.6, delay: 0.4 }}
 				>
-					<GlassCard className="p-6 hover:bg-content2/30 transition-colors">
+					<Card className="p-6 hover:bg-content2/30 transition-colors bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="flex items-center justify-between mb-4">
 							<div className="w-12 h-12 bg-gradient-to-br from-rarity-epic-500/20 to-rarity-epic-600/20 rounded-lg flex items-center justify-center">
 								<ClockIcon className="w-6 h-6 text-rarity-epic-300" />
@@ -235,7 +235,7 @@ export const ProfileDashboard: React.FC = () => {
 								}}
 							/>
 						</div>
-					</GlassCard>
+					</Card>
 				</motion.div>
 			</div>
 
@@ -248,7 +248,7 @@ export const ProfileDashboard: React.FC = () => {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.6, delay: 0.5 }}
 						>
-							<GlassCard className="p-6 border-warning/30">
+							<Card className="p-6 border border-warning/30 bg-content1/20 backdrop-blur-xl rounded-2xl shadow-xl">
 								<div className="flex items-center justify-between mb-4">
 									<div className="w-12 h-12 bg-gradient-to-br from-warning/20 to-warning/30 rounded-lg flex items-center justify-center">
 										<SparklesIcon className="w-6 h-6 text-warning" />
@@ -266,7 +266,7 @@ export const ProfileDashboard: React.FC = () => {
 									Spins automatically refunded when selected rarity pools were
 									empty
 								</div>
-							</GlassCard>
+							</Card>
 						</motion.div>
 					)}
 
@@ -276,7 +276,7 @@ export const ProfileDashboard: React.FC = () => {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.6, delay: 0.6 }}
 						>
-							<GlassCard className="p-6 border-danger/30">
+							<Card className="p-6 border border-danger/30 bg-content1/20 backdrop-blur-xl rounded-2xl shadow-xl">
 								<div className="flex items-center justify-between mb-4">
 									<div className="w-12 h-12 bg-gradient-to-br from-danger/20 to-danger/30 rounded-lg flex items-center justify-center">
 										<ClockIcon className="w-6 h-6 text-danger" />
@@ -293,7 +293,7 @@ export const ProfileDashboard: React.FC = () => {
 								<div className="text-xs text-foreground/70 leading-relaxed">
 									Spins manually reclaimed due to timeout or service issues
 								</div>
-							</GlassCard>
+							</Card>
 						</motion.div>
 					)}
 				</div>
@@ -305,7 +305,7 @@ export const ProfileDashboard: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.7 }}
 			>
-				<GlassCard className="p-8">
+				<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<h2
 						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
 					>
@@ -363,7 +363,7 @@ export const ProfileDashboard: React.FC = () => {
 							);
 						})}
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 
 			{/* Rewards by Rarity */}
@@ -372,7 +372,7 @@ export const ProfileDashboard: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.4 }}
 			>
-				<GlassCard className="p-8">
+				<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<h2
 						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
 					>
@@ -401,7 +401,7 @@ export const ProfileDashboard: React.FC = () => {
 							</motion.div>
 						))}
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		</div>
 	);
@@ -456,14 +456,12 @@ const RarityRewardCard: React.FC<{
 							{tokenSymbol}
 						</span>
 					</div>
-					<GlassButton
-						variant={hasRewards ? "primary" : "secondary"}
-						size="sm"
-						className="w-full"
-						isDisabled={!hasRewards}
+					<Button
+						className={`w-full rounded-xl ${hasRewards ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground"}`}
+						disabled={!hasRewards}
 					>
 						{hasRewards ? "Claim" : "No rewards"}
-					</GlassButton>
+					</Button>
 				</div>
 			</div>
 		</div>

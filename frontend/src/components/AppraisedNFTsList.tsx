@@ -11,7 +11,8 @@ import {
 	ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
-import { GlassCard, GlassButton, LoadingState } from "./ui";
+import { Card, Button } from "./ui";
+import { LoadingState } from "./ui";
 import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -93,7 +94,7 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 			transition={{ duration: 0.4 }}
 			className="group"
 		>
-			<GlassCard variant="interactive" className="h-full">
+			<Card className="h-full bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 				<div className="p-6 space-y-4">
 					{/* Status Badge */}
 					<div className="flex items-center justify-between">
@@ -210,7 +211,7 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 						</div>
 					)}
 				</div>
-			</GlassCard>
+			</Card>
 		</motion.div>
 	);
 };
@@ -302,12 +303,12 @@ export function AppraisedNFTsList({
 				animate={{ opacity: 1 }}
 				className={className}
 			>
-				<GlassCard variant="base" padding="lg">
+				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<div className="text-center space-y-4">
 						<LoadingState size="lg" />
 						<p className="text-foreground/70">Loading your appraisals...</p>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		);
 	}
@@ -319,7 +320,7 @@ export function AppraisedNFTsList({
 				animate={{ opacity: 1 }}
 				className={className}
 			>
-				<GlassCard variant="error" padding="lg">
+				<Card className="p-6 bg-danger/10 border border-danger/20 rounded-2xl shadow-lg">
 					<div className="text-center space-y-4">
 						<ExclamationTriangleIcon className="w-12 h-12 text-danger mx-auto" />
 						<div>
@@ -327,12 +328,15 @@ export function AppraisedNFTsList({
 								Error Loading Appraisals
 							</h3>
 							<p className="text-foreground/70 mb-4">{error}</p>
-							<GlassButton variant="danger" onClick={fetchAppraisalData}>
+							<Button
+								className="rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
+								onPress={fetchAppraisalData}
+							>
 								Try Again
-							</GlassButton>
+							</Button>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		);
 	}
@@ -344,7 +348,7 @@ export function AppraisedNFTsList({
 				animate={{ opacity: 1, y: 0 }}
 				className={className}
 			>
-				<GlassCard variant="base" padding="lg">
+				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<div className="text-center space-y-4">
 						<div className="w-16 h-16 bg-gradient-to-br from-content1/20 to-content1/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
 							<MagnifyingGlassIcon className="w-8 h-8 text-foreground/60" />
@@ -358,7 +362,7 @@ export function AppraisedNFTsList({
 							</p>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		);
 	}
@@ -385,7 +389,7 @@ export function AppraisedNFTsList({
 
 				{/* Statistics */}
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<GlassCard variant="floating" padding="md">
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Total Submitted
@@ -394,9 +398,9 @@ export function AppraisedNFTsList({
 								{appraisedNFTs.length}
 							</p>
 						</div>
-					</GlassCard>
+					</Card>
 
-					<GlassCard variant="floating" padding="md">
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Completed
@@ -405,9 +409,9 @@ export function AppraisedNFTsList({
 								{completedAppraisals.length}
 							</p>
 						</div>
-					</GlassCard>
+					</Card>
 
-					<GlassCard variant="floating" padding="md">
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Pending
@@ -416,7 +420,7 @@ export function AppraisedNFTsList({
 								{pendingAppraisals.length}
 							</p>
 						</div>
-					</GlassCard>
+					</Card>
 				</div>
 
 				{/* Completed Appraisals */}
@@ -461,14 +465,13 @@ export function AppraisedNFTsList({
 
 				{/* Refresh Button */}
 				<div className="flex justify-center pt-4">
-					<GlassButton
-						variant="secondary"
-						startIcon="refresh"
-						onClick={fetchAppraisalData}
+					<Button
+						className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+						onPress={fetchAppraisalData}
 						isLoading={loading}
 					>
 						Refresh Status
-					</GlassButton>
+					</Button>
 				</div>
 			</div>
 		</motion.div>

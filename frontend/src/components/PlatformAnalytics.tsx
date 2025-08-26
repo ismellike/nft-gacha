@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { GlassCard } from "./ui";
+import { Card } from "./ui";
 import { glassTypography } from "../lib/theme-config";
 import {
 	ChartBarIcon,
@@ -114,7 +114,7 @@ export const PlatformAnalytics: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.5 }}
 			>
-				<GlassCard className="p-8">
+				<Card glassVariant="glass" className="p-8">
 					<h2
 						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
 					>
@@ -175,7 +175,7 @@ export const PlatformAnalytics: React.FC = () => {
 							);
 						})}
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 
 			{/* Activity Timeline */}
@@ -184,7 +184,7 @@ export const PlatformAnalytics: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.6 }}
 			>
-				<GlassCard className="p-8">
+				<Card glassVariant="glass" className="p-8">
 					<h2
 						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
 					>
@@ -260,7 +260,7 @@ export const PlatformAnalytics: React.FC = () => {
 							</div>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		</div>
 	);
@@ -278,7 +278,7 @@ const MetricCard: React.FC<{
 		animate={{ opacity: 1, y: 0 }}
 		transition={{ duration: 0.6, delay }}
 	>
-		<GlassCard className="p-6 hover:bg-content2/30 transition-all duration-300 group">
+		<Card glassVariant="glassInteractive" className="p-6 group">
 			<div
 				className={`w-12 h-12 bg-gradient-to-br ${gradient}/20 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
 			>
@@ -290,7 +290,7 @@ const MetricCard: React.FC<{
 			</div>
 			<div className="text-2xl font-bold mb-1">{value}</div>
 			<div className="text-sm text-foreground/60">{title}</div>
-		</GlassCard>
+		</Card>
 	</motion.div>
 );
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { motion, AnimatePresence } from "framer-motion";
-import { GlassCard, GlassButton, GlassBadge } from "@/components/ui";
+import { Card, Button, Chip } from "./ui";
 import {
 	ShieldCheckIcon,
 	XCircleIcon,
@@ -48,7 +48,6 @@ import {
 import { parseUnits } from "viem";
 import {
 	formatTokenAmount,
-	formatAddress,
 	formatPercentage,
 } from "@/lib/utils";
 import { RARITY_CONFIG } from "@/lib/rarityConfig";
@@ -132,7 +131,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 	if (!isConnected) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
-				<GlassCard className="p-12 text-center max-w-md">
+				<Card className="p-12 text-center max-w-md bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<WalletIcon className="w-8 h-8 mx-auto mb-6 text-warning" />
 					<h2 className="text-2xl font-bold text-foreground mb-4">
 						Connect Your Wallet
@@ -140,7 +139,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 					<p className="text-foreground/70 mb-6">
 						Please connect your wallet to access admin controls for this gacha.
 					</p>
-				</GlassCard>
+				</Card>
 			</div>
 		);
 	}
@@ -148,7 +147,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 	if (isOwnerChecked && !isOwner) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
-				<GlassCard className="p-12 text-center max-w-md">
+				<Card className="p-12 text-center max-w-md bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<ShieldCheckIcon className="w-8 h-8 mx-auto mb-6 text-danger" />
 					<h2 className="text-2xl font-bold text-foreground mb-4">
 						Access Denied
@@ -157,42 +156,13 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 						You are not authorized to access admin controls for this gacha. Only
 						contract owners can access these settings.
 					</p>
-				</GlassCard>
+				</Card>
 			</div>
 		);
 	}
 
 	return (
 		<div className="space-y-8">
-			{/* Header */}
-			<motion.div
-				initial={{ opacity: 0, y: -20 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.6 }}
-				className="text-center"
-			>
-				<h2 className="text-4xl font-light mb-4 tracking-tight">
-					<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-						Admin Controls
-					</span>
-				</h2>
-				<p className="text-xl text-foreground/70 max-w-3xl mx-auto leading-relaxed font-light">
-					Manage settings and operations for {gacha.title}
-				</p>
-
-				<div className="flex items-center justify-center gap-3 mt-6">
-					<GlassBadge variant="success">
-						<ShieldCheckIcon className="w-4 h-4" />
-						<span className="ml-1">Authorized Owner</span>
-					</GlassBadge>
-					<GlassBadge variant="info">
-						<span className="font-mono text-xs">
-							{userAddress ? formatAddress(userAddress) : ""}
-						</span>
-					</GlassBadge>
-				</div>
-			</motion.div>
-
 			<div className="grid lg:grid-cols-4 gap-8">
 				{/* Sidebar Navigation */}
 				<motion.div
@@ -201,7 +171,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 					transition={{ duration: 0.6, delay: 0.1 }}
 					className="lg:col-span-1"
 				>
-					<GlassCard className="p-6">
+					<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 						<h3 className="text-lg font-semibold text-foreground mb-4">
 							Control Sections
 						</h3>
@@ -236,7 +206,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 								</button>
 							))}
 						</div>
-					</GlassCard>
+					</Card>
 				</motion.div>
 
 				{/* Main Content */}
@@ -313,7 +283,7 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 	};
 
 	return (
-		<GlassCard className="p-8">
+		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="flex items-center justify-between mb-8">
 				<div>
 					<h2 className="text-2xl font-bold text-foreground mb-2">
@@ -324,9 +294,11 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 						equal 10,000.
 					</p>
 				</div>
-				<GlassBadge variant={isValidTotal ? "success" : "danger"}>
+				<Chip
+					className={`px-3 py-1.5 rounded-xl backdrop-blur-xl ${isValidTotal ? "bg-success/20 border border-success/30 text-success" : "bg-danger/20 border border-danger/30 text-danger"}`}
+				>
 					Total: {totalWeight.toLocaleString()}/10,000
-				</GlassBadge>
+				</Chip>
 			</div>
 
 			<div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -370,27 +342,27 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 			</div>
 
 			<div className="flex justify-end gap-4">
-				<GlassButton
-					variant="secondary"
-					onClick={() =>
+				<Button
+					className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+					onPress={() =>
 						currentWeights &&
 						setWeights(currentWeights.map((w: bigint) => Number(w)))
 					}
 				>
 					Reset to Current
-				</GlassButton>
-				<GlassButton
-					variant="primary"
-					startIcon="check"
-					onClick={handleSave}
+				</Button>
+				<Button
+					className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+					onPress={handleSave}
 					isDisabled={!isValidTotal}
 					isLoading={isPending}
-					loadingText="Updating..."
 				>
-					Save Changes
-				</GlassButton>
+					<span className="inline-flex items-center gap-2">
+						<CheckIcon className="w-4 h-4" /> Save Changes
+					</span>
+				</Button>
 			</div>
-		</GlassCard>
+		</Card>
 	);
 }
 
@@ -418,7 +390,7 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 	};
 
 	return (
-		<GlassCard className="p-8">
+		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
 					Spin Fee Configuration
@@ -465,28 +437,29 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 				</div>
 
 				<div className="flex justify-end gap-4">
-					<GlassButton variant="secondary" onClick={() => setNewFee("")}>
+					<Button
+						className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+						onPress={() => setNewFee("")}
+					>
 						Clear
-					</GlassButton>
-					<GlassButton
-						variant="primary"
-						startIcon="coins"
-						onClick={handleSave}
-						isDisabled={!newFee}
+					</Button>
+					<Button
+						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+						onPress={handleSave}
+						disabled={!newFee}
 						isLoading={isPending}
-						loadingText="Updating..."
 					>
 						Update Fee
-					</GlassButton>
+					</Button>
 				</div>
 			</div>
-		</GlassCard>
+		</Card>
 	);
 }
 
 function WhitelistSection() {
 	return (
-		<GlassCard className="p-8">
+		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
 					Collection Whitelist
@@ -505,13 +478,13 @@ function WhitelistSection() {
 					Whitelist management interface will be available in the next update.
 				</p>
 			</div>
-		</GlassCard>
+		</Card>
 	);
 }
 
 function DepositsSection() {
 	return (
-		<GlassCard className="p-8">
+		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
 					Pending Deposits
@@ -531,7 +504,7 @@ function DepositsSection() {
 					review.
 				</p>
 			</div>
-		</GlassCard>
+		</Card>
 	);
 }
 
@@ -558,7 +531,7 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 	};
 
 	return (
-		<GlassCard className="p-8">
+		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
 					Emergency Controls
@@ -578,41 +551,41 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 							Current operational state of the gacha contract
 						</p>
 					</div>
-					<GlassBadge variant={isPaused ? "danger" : "success"} size="lg">
+					<Chip
+						className={`px-3 py-1.5 rounded-xl backdrop-blur-xl ${isPaused ? "bg-danger/20 border border-danger/30 text-danger" : "bg-success/20 border border-success/30 text-success"}`}
+					>
 						{isPaused ? (
 							<XCircleIcon className="w-4 h-4" />
 						) : (
 							<CheckIcon className="w-4 h-4" />
 						)}
 						<span className="ml-2">{isPaused ? "PAUSED" : "ACTIVE"}</span>
-					</GlassBadge>
+					</Chip>
 				</div>
 
 				<div className="flex gap-4">
 					{!isPaused ? (
-						<GlassButton
-							variant="danger"
-							size="lg"
-							startIcon="x-circle"
-							onClick={handlePause}
+						<Button
+							className="flex-1 rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
+							onPress={handlePause}
 							isLoading={isPausing}
-							loadingText="Pausing..."
-							className="flex-1"
 						>
-							Pause Contract
-						</GlassButton>
+							<span className="inline-flex items-center gap-2">
+								<XCircleIcon className="w-4 h-4" />
+								Pause Contract
+							</span>
+						</Button>
 					) : (
-						<GlassButton
-							variant="primary"
-							size="lg"
-							startIcon="check"
-							onClick={handleUnpause}
+						<Button
+							className="flex-1 rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+							onPress={handleUnpause}
 							isLoading={isUnpausing}
-							loadingText="Unpausing..."
-							className="flex-1"
 						>
-							Unpause Contract
-						</GlassButton>
+							<span className="inline-flex items-center gap-2">
+								<CheckIcon className="w-4 h-4" />
+								Unpause Contract
+							</span>
+						</Button>
 					)}
 				</div>
 
@@ -632,6 +605,6 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 					</div>
 				</div>
 			</div>
-		</GlassCard>
+		</Card>
 	);
 }

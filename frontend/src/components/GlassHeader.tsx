@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import type { ComponentType, ReactNode, SVGProps } from "react";
-import { GlassCard } from "./ui";
+import { Card, Chip } from "./ui";
 import {
 	ShieldCheckIcon,
 	GiftIcon,
@@ -60,12 +60,8 @@ export function GlassHeader({
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.8 }}
 		>
-			{/* Glassmorphism Header Card */}
-			<GlassCard
-				variant="highlight"
-				padding="none"
-				className="relative overflow-hidden border border-white/20 mb-12"
-			>
+			{/* Header Card using HeroUI */}
+			<Card className="relative overflow-hidden border border-white/20 mb-12 bg-content1/20 backdrop-blur-xl rounded-2xl shadow-2xl">
 				{/* Clean glassmorphism overlays for depth */}
 				<div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
 				<div className="absolute inset-0 bg-gradient-to-b from-white/8 via-transparent to-black/10"></div>
@@ -97,31 +93,17 @@ export function GlassHeader({
 
 						{/* Feature badges */}
 						{badges.length > 0 && (
-							<div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mb-8">
+							<div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8">
 								{badges.map((badge) => (
-									<motion.div
+									<Chip
 										key={`${badge.icon}:${badge.text}`}
-										className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20"
-										whileHover={{ scale: 1.05 }}
-										transition={{ type: "spring", stiffness: 300 }}
+										className="px-4 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl"
 									>
-										{getIconComponent(badge.icon, {
-											className: `w-4 h-4 ${
-												badge.variant === "success"
-													? "text-success"
-													: badge.variant === "warning"
-														? "text-warning"
-														: badge.variant === "info"
-															? "text-primary"
-															: badge.variant === "primary"
-																? "text-warning"
-																: "text-foreground/60"
-											}`,
-										})}
-										<span className="text-sm font-medium text-foreground/90">
-											{badge.text}
+										<span className="inline-flex items-center gap-2">
+											{getIconComponent(badge.icon, { className: "w-4 h-4" })}
+											<span className="font-medium">{badge.text}</span>
 										</span>
-									</motion.div>
+									</Chip>
 								))}
 							</div>
 						)}
@@ -130,7 +112,7 @@ export function GlassHeader({
 						{children}
 					</motion.div>
 				</div>
-			</GlassCard>
+			</Card>
 		</motion.div>
 	);
 }

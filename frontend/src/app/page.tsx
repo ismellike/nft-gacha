@@ -1,6 +1,6 @@
 "use client";
 
-import { GlassCard, GlassButton, GlassBadge } from "@/components/ui";
+import { Card, Button, Chip } from "../components/ui";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -8,6 +8,7 @@ import {
 	BoltIcon,
 	TrophyIcon,
 	ChartBarIcon,
+	CubeIcon,
 } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
 import { RealTimeNotifications } from "../components/RealTimeNotifications";
@@ -105,15 +106,14 @@ export default function LandingPage() {
 						transition={{ delay: 0.1, duration: 0.6 }}
 						className="mb-8"
 					>
-						<GlassBadge
-							variant="primary"
-							className="inline-flex items-center gap-2 text-sm px-4 py-2"
-							glow
-							animate
-						>
-							<CurrencyDollarIcon className="w-4 h-4" />
-							<span className="font-medium">Community-Funded NFT Gacha</span>
-						</GlassBadge>
+						<motion.div initial={{ opacity: 0.9 }} animate={{ opacity: 1 }}>
+							<Chip
+								startContent={<CurrencyDollarIcon className="w-4 h-4" />}
+								className="inline-flex items-center gap-2 text-sm px-4 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl"
+							>
+								<span className="font-medium">Community-Funded NFT Gacha</span>
+							</Chip>
+						</motion.div>
 					</motion.div>
 
 					{/* Main Heading */}
@@ -159,27 +159,21 @@ export default function LandingPage() {
 						className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
 					>
 						<Link href="/gacha/?id=graded-pokemon&section=spin">
-							<GlassButton
-								variant="primary"
-								size="lg"
-								startIcon="dice"
-								className="min-w-56 h-14 text-lg font-semibold"
-								animate={true}
-							>
-								Start Spinning
-							</GlassButton>
+							<Button className="min-w-56 h-14 text-lg font-semibold rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black shadow-[0_0_8px_rgba(255,191,0,0.25),0_0_16px_rgba(255,191,0,0.08)] hover:from-warning/90 hover:to-orange-500/90">
+								<span className="flex items-center gap-2">
+									<CubeIcon className="w-5 h-5" />
+									Start Spinning
+								</span>
+							</Button>
 						</Link>
 
 						<Link href="/gacha/?id=graded-pokemon&section=analytics">
-							<GlassButton
-								variant="secondary"
-								size="lg"
-								startIcon="trending"
-								className="min-w-56 h-14 text-lg"
-								animate={true}
-							>
-								View Analytics
-							</GlassButton>
+							<Button className="min-w-56 h-14 text-lg rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30 hover:border-white/30">
+								<span className="flex items-center gap-2">
+									<ChartBarIcon className="w-5 h-5" />
+									View Analytics
+								</span>
+							</Button>
 						</Link>
 					</motion.div>
 
@@ -198,14 +192,9 @@ export default function LandingPage() {
 								transition={{ delay: 0.8 + index * 0.08, duration: 0.5 }}
 								className="flex items-center justify-center"
 							>
-								<GlassBadge
-									variant="primary"
-									size="lg"
-									glow
-									className="whitespace-nowrap"
-								>
+								<Chip className="px-4 py-2 text-sm md:text-base bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl whitespace-nowrap">
 									{p.label}
-								</GlassBadge>
+								</Chip>
 							</motion.div>
 						))}
 					</motion.div>
@@ -223,10 +212,12 @@ export default function LandingPage() {
 						viewport={{ once: true }}
 						className="text-center mb-20"
 					>
-						<GlassBadge variant="primary" className="mb-6" glow animate>
-							<CurrencyDollarIcon className="w-4 h-4" />
+						<Chip
+							startContent={<CurrencyDollarIcon className="w-4 h-4" />}
+							className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl"
+						>
 							<span className="ml-2">Community Benefits</span>
-						</GlassBadge>
+						</Chip>
 						<h2 className="text-4xl md:text-6xl font-bold mb-8">
 							<span className="bg-gradient-to-r from-warning to-warning bg-clip-text text-transparent">
 								Earn While You
@@ -252,11 +243,7 @@ export default function LandingPage() {
 								viewport={{ once: true }}
 								className="group"
 							>
-								<GlassCard
-									variant="highlight"
-									className="h-full p-8 text-center relative overflow-hidden group-hover:shadow-xl group-hover:shadow-warning/20"
-									animate={true}
-								>
+								<Card className="h-full p-8 text-center relative overflow-hidden bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl transition-all hover:bg-content1/30 hover:border-white/20 hover:shadow-3xl">
 									{/* Icon */}
 									<div className="relative z-10 w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-warning/25 to-orange-400/25 rounded-2xl flex items-center justify-center ring-1 ring-warning/30 group-hover:shadow-xl group-hover:shadow-warning/30 transition-all duration-300">
 										{feature.icon === "coins" && (
@@ -276,20 +263,15 @@ export default function LandingPage() {
 											<h3 className="text-xl font-bold text-foreground">
 												{feature.title}
 											</h3>
-											<GlassBadge
-												variant="primary"
-												size="sm"
-												className="text-xs"
-												glow
-											>
+											<Chip className="px-2 py-1 text-xs bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl">
 												{feature.stats}
-											</GlassBadge>
+											</Chip>
 										</div>
-										<p className="text-foreground/70 leading-relaxed">
+										<p className="text-foreground/80 leading-relaxed">
 											{feature.description}
 										</p>
 									</div>
-								</GlassCard>
+								</Card>
 							</motion.div>
 						))}
 					</div>
@@ -302,7 +284,7 @@ export default function LandingPage() {
 						viewport={{ once: true }}
 						className="text-center"
 					>
-						<GlassCard className="p-12">
+						<Card className="p-12 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 							<h3 className="text-2xl md:text-3xl font-bold mb-6 bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
 								Rarity-Based Rewards
 							</h3>
@@ -321,20 +303,20 @@ export default function LandingPage() {
 											}
 											transition={{ duration: 0.3 }}
 										>
-											<GlassBadge
-												variant={
-													currentRarity === index ? "primary" : "secondary"
-												}
-												glow={currentRarity === index}
-												className={`${currentRarity === index ? "shadow-lg shadow-warning/40" : ""}`}
+											<Chip
+												className={`${
+													currentRarity === index
+														? "bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning shadow-lg shadow-warning/40"
+														: "bg-content1/20 border border-white/20 text-foreground/80"
+												} px-3 py-1.5 rounded-xl backdrop-blur-xl`}
 											>
 												{rarity}
-											</GlassBadge>
+											</Chip>
 										</motion.div>
 									),
 								)}
 							</div>
-						</GlassCard>
+						</Card>
 					</motion.div>
 				</div>
 			</section>
@@ -348,11 +330,7 @@ export default function LandingPage() {
 						transition={{ duration: 0.8 }}
 						viewport={{ once: true }}
 					>
-						<GlassCard
-							variant="highlight"
-							className="p-12 md:p-16 text-center"
-							animate
-						>
+						<Card className="p-12 md:p-16 text-center bg-content1/20 backdrop-blur-xl border border-warning/30 rounded-2xl shadow-xl shadow-warning/10">
 							<motion.div
 								animate={{ rotate: [0, 5, -5, 0] }}
 								transition={{
@@ -377,15 +355,12 @@ export default function LandingPage() {
 
 							<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
 								<Link href="/gacha">
-									<GlassButton
-										variant="primary"
-										size="lg"
-										className="min-w-64 h-16 text-xl font-bold"
-										startIcon="dice"
-										animate={true}
-									>
-										Enter Gacha Platform
-									</GlassButton>
+									<Button className="min-w-64 h-16 text-xl font-bold rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black shadow-[0_0_8px_rgba(255,191,0,0.25),0_0_16px_rgba(255,191,0,0.08)] hover:from-warning/90 hover:to-orange-500/90">
+										<span className="flex items-center gap-2">
+											<CubeIcon className="w-5 h-5" />
+											Enter Gacha Platform
+										</span>
+									</Button>
 								</Link>
 
 								<div className="flex items-center gap-3 text-foreground/60">
@@ -395,7 +370,7 @@ export default function LandingPage() {
 									</span>
 								</div>
 							</div>
-						</GlassCard>
+						</Card>
 					</motion.div>
 				</div>
 			</section>

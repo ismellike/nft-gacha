@@ -20,7 +20,8 @@ import {
 	XCircleIcon,
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { GlassCard, GlassBadge, GachaCardSkeleton } from "./ui";
+import { Card, Chip } from "./ui";
+import { GachaCardSkeleton } from "./ui";
 import { GachaCardHeader } from "./GachaCardHeader";
 import type { GachaConfig } from "../lib/gacha-config";
 
@@ -106,12 +107,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 			aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
 			data-testid={`explore-gacha-${gacha.id}`}
 		>
-			<GlassCard
-				variant="interactive"
-				padding="none"
-				animate={false}
-				className="h-full overflow-hidden group border border-white/10 hover:border-warning/30 transition-all duration-300"
-			>
+			<Card className="h-full overflow-hidden group border border-white/10 hover:border-warning/30 transition-all duration-300 bg-content1/20 backdrop-blur-xl rounded-2xl shadow-2xl">
 				{/* Enhanced Header */}
 				<GachaCardHeader theme={gacha.theme}>
 					<div className="flex justify-between items-start mb-6">
@@ -261,15 +257,15 @@ export function GachaCard({ gacha }: GachaCardProps) {
 								transition={{ delay: 0.2 }}
 								className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center"
 							>
-								<GlassBadge variant="danger" className="text-lg px-4 py-2">
+								<Chip className="text-lg px-4 py-2 bg-danger/20 border border-danger/30 text-danger rounded-xl backdrop-blur-xl">
 									<XCircleIcon className="w-4 h-4 mr-2" />
 									Temporarily Unavailable
-								</GlassBadge>
+								</Chip>
 							</motion.div>
 						)}
 					</div>
 				</div>
-			</GlassCard>
+			</Card>
 		</motion.button>
 	);
 }

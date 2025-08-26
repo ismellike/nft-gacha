@@ -10,7 +10,7 @@ import {
 	InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
-import { GlassCard, GlassButton } from "./ui";
+import { Card, Button } from "./ui";
 import { NFTAppraisalForm } from "./NFTAppraisalForm";
 import { AppraisedNFTsList } from "./AppraisedNFTsList";
 
@@ -108,7 +108,7 @@ export function NFTAppraisalDashboard({
 				animate={{ opacity: 1, y: 0 }}
 				className={className}
 			>
-				<GlassCard variant="base" padding="lg">
+				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<div className="text-center space-y-4">
 						<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
 							<MagnifyingGlassIcon className="w-8 h-8 text-warning" />
@@ -122,7 +122,7 @@ export function NFTAppraisalDashboard({
 							</p>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		);
 	}
@@ -150,27 +150,24 @@ export function NFTAppraisalDashboard({
 
 				{/* Navigation */}
 				<div className="flex flex-col sm:flex-row gap-3 justify-center">
-					<GlassButton
-						variant={viewMode === "overview" ? "primary" : "secondary"}
-						startIcon="trending"
-						onClick={() => setViewMode("overview")}
+					<Button
+						className={`rounded-xl ${viewMode === "overview" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
+						onPress={() => setViewMode("overview")}
 					>
 						Overview
-					</GlassButton>
-					<GlassButton
-						variant={viewMode === "form" ? "primary" : "secondary"}
-						startIcon="gem"
-						onClick={() => setViewMode("form")}
+					</Button>
+					<Button
+						className={`rounded-xl ${viewMode === "form" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
+						onPress={() => setViewMode("form")}
 					>
 						Submit NFT
-					</GlassButton>
-					<GlassButton
-						variant={viewMode === "list" ? "primary" : "secondary"}
-						startIcon="gift"
-						onClick={() => setViewMode("list")}
+					</Button>
+					<Button
+						className={`rounded-xl ${viewMode === "list" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
+						onPress={() => setViewMode("list")}
 					>
 						My Appraisals ({totalSubmitted})
-					</GlassButton>
+					</Button>
 				</div>
 
 				{/* Content */}
@@ -186,7 +183,7 @@ export function NFTAppraisalDashboard({
 							<div className="grid gap-8">
 								{/* Statistics Cards */}
 								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-									<GlassCard variant="floating" animate={true} padding="lg">
+									<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 										<div className="flex items-center justify-between">
 											<div>
 												<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
@@ -200,9 +197,9 @@ export function NFTAppraisalDashboard({
 												<MagnifyingGlassIcon className="w-8 h-8 text-info" />
 											</div>
 										</div>
-									</GlassCard>
+									</Card>
 
-									<GlassCard variant="floating" animate={true} padding="lg">
+									<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 										<div className="flex items-center justify-between">
 											<div>
 												<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
@@ -216,9 +213,9 @@ export function NFTAppraisalDashboard({
 												<CheckBadgeIcon className="w-8 h-8 text-warning" />
 											</div>
 										</div>
-									</GlassCard>
+									</Card>
 
-									<GlassCard variant="floating" animate={true} padding="lg">
+									<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 										<div className="flex items-center justify-between">
 											<div>
 												<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
@@ -233,11 +230,11 @@ export function NFTAppraisalDashboard({
 												<CheckBadgeIcon className="w-8 h-8 text-success" />
 											</div>
 										</div>
-									</GlassCard>
+									</Card>
 								</div>
 
 								{/* How it Works */}
-								<GlassCard variant="base" padding="lg">
+								<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 									<div className="space-y-6">
 										<h3 className="text-2xl font-light text-foreground text-center">
 											How NFT Appraisal Works
@@ -288,27 +285,23 @@ export function NFTAppraisalDashboard({
 											</div>
 										</div>
 									</div>
-								</GlassCard>
+								</Card>
 
 								{/* Quick Actions */}
 								<div className="flex flex-col sm:flex-row gap-4 justify-center">
-									<GlassButton
-										variant="primary"
-										size="lg"
-										startIcon="gem"
-										onClick={() => setViewMode("form")}
+									<Button
+										className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+										onPress={() => setViewMode("form")}
 									>
 										Submit Your First NFT
-									</GlassButton>
+									</Button>
 									{totalSubmitted > 0 && (
-										<GlassButton
-											variant="secondary"
-											size="lg"
-											startIcon="gift"
-											onClick={() => setViewMode("list")}
+										<Button
+											className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+											onPress={() => setViewMode("list")}
 										>
 											View My Appraisals
-										</GlassButton>
+										</Button>
 									)}
 								</div>
 							</div>
@@ -353,7 +346,7 @@ export function NFTAppraisalDashboard({
 							exit={{ opacity: 0, scale: 0.95 }}
 							className="fixed bottom-8 right-8 z-50 max-w-sm"
 						>
-							<GlassCard variant="success" className="p-4 border-success/20">
+							<Card className="p-4 bg-success/10 border border-success/20 rounded-xl shadow-lg">
 								<div className="flex items-center gap-3">
 									<CheckBadgeIcon className="w-6 h-6 text-success flex-shrink-0" />
 									<div>
@@ -365,16 +358,13 @@ export function NFTAppraisalDashboard({
 										</p>
 									</div>
 								</div>
-							</GlassCard>
+							</Card>
 						</motion.div>
 					)}
 				</AnimatePresence>
 
 				{/* Info Banner */}
-				<GlassCard
-					variant="base"
-					className="bg-gradient-to-r from-info/10 to-secondary/10 border-info/20"
-				>
+				<Card className="bg-gradient-to-r from-info/10 to-secondary/10 border border-info/20 rounded-2xl shadow-xl">
 					<div className="flex items-start gap-3 p-4">
 						<InformationCircleIcon className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
 						<div className="text-sm text-foreground/70">
@@ -388,7 +378,7 @@ export function NFTAppraisalDashboard({
 							</p>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			</div>
 		</motion.div>
 	);

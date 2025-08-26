@@ -1,28 +1,35 @@
 "use client";
 
-import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
+import {
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    glassModalClasses,
+    Chip,
+} from "./ui";
 import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { type Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
-import { GlassBadge, StandardNFTGrid, useTreasuryItemsToGridItems } from "./ui";
+import { StandardNFTGrid, useTreasuryItemsToGridItems } from "./ui";
 import {
 	ExclamationTriangleIcon,
 	ArchiveBoxIcon,
 } from "@heroicons/react/24/outline";
-import { glassModal } from "../lib/theme-config";
 
 interface RarityShowcaseModalProps {
 	isOpen: boolean;
-	onClose: () => void;
+	onOpenChange: (open: boolean) => void;
 	rarity: Rarity | null;
 }
 
 export default function RarityShowcaseModal({
-	isOpen,
-	onClose,
-	rarity,
+    isOpen,
+    onOpenChange,
+    rarity,
 }: RarityShowcaseModalProps) {
 	// Get gacha ID and contract addresses
 	const gachaId = useGachaId();
@@ -58,127 +65,167 @@ export default function RarityShowcaseModal({
 
 	const rarityConfig = getRarityConfig(rarity);
 
-	const modalStyles = glassModal({ size: "7xl" });
 
-	return (
-		<Modal
-			isOpen={isOpen}
-			onClose={onClose}
-			size="full"
-			scrollBehavior="inside"
-			classNames={{
-				wrapper: modalStyles.wrapper(),
-				backdrop: modalStyles.backdrop(),
-				base: modalStyles.base(),
-				header: modalStyles.header(),
-				body: modalStyles.body(),
-				footer: modalStyles.footer(),
-			}}
-			motionProps={{
-				variants: {
-					enter: {
-						scale: 1,
-						opacity: 1,
-						transition: {
-							type: "spring",
-							stiffness: 300,
-							damping: 30,
-						},
-					},
-					exit: {
-						scale: 0.95,
-						opacity: 0,
-						transition: {
-							duration: 0.2,
-						},
-					},
-				},
-			}}
-		>
-			<ModalContent>
-				<ModalHeader className="flex-col gap-3">
-					<div className="flex items-center space-x-4">
-						<motion.div
-							className={`px-4 py-2 rounded-lg bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg border border-white/20`}
-							whileHover={{ scale: 1.02 }}
-							transition={{ type: "spring", stiffness: 400 }}
-						>
-							<span className="text-lg font-bold text-white drop-shadow-sm flex items-center gap-2">
-								<span className="text-xl">{rarityConfig.emoji}</span>
-								{rarityConfig.name} NFTs
-							</span>
-						</motion.div>
-						{!isLoading && (
-							<GlassBadge variant="primary" size="md">
-								{gridItems.length} Available
-							</GlassBadge>
-						)}
-					</div>
-					<p className="text-sm text-foreground/70 font-normal max-w-2xl text-left">
-						{rarityConfig.description}
-					</p>
-				</ModalHeader>
+    return (
+        <Modal
+            isOpen={isOpen}
+            onOpenChange={onOpenChange}
+            size="full"
+            hideCloseButton
+            classNames={{
+                backdrop: glassModalClasses.backdrop,
+                base: glassModalClasses.contentDark,
+                header: glassModalClasses.headerDark,
+                body: glassModalClasses.body,
+                footer: glassModalClasses.footerDark,
+            }}
+            placement="center"
+            motionProps={{
+                variants: {
+                    enter: {
+                        opacity: 1,
+                        scale: 1,
+                        transition: { type: "spring", stiffness: 280, damping: 28 },
+                    },
+                    exit: {
+                        opacity: 0,
+                        scale: 0.98,
+                        transition: { duration: 0.2 },
+                    },
+                },
+            }}
+        >
+            <ModalContent>
+                {/* Compact Header with floating close button */}
+                <ModalHeader className="relative px-6 py-4">
+                    <div className="flex items-center gap-3">
+                        <div
+                            className={`px-3 py-1.5 rounded-lg bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg border border-white/20`}
+                        >
+                            <span className="text-sm font-bold text-white drop-shadow-sm flex items-center gap-2">
+                                <span className="text-base">{rarityConfig.emoji}</span>
+                                {rarityConfig.name} NFTs
+                            </span>
+                        </div>
+                        {!isLoading && (
+                            <Chip className="px-2.5 py-1 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl text-xs">
+                                {gridItems.length} Available
+                            </Chip>
+                        )}
+                    </div>
 
-				<ModalBody>
-					{isLoading ? (
-						<motion.div
-							className="flex flex-col items-center justify-center py-32"
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-						>
-							<div className="relative">
-								<motion.div
-									className="w-16 h-16 border-4 border-white/20 border-t-warning rounded-full"
-									animate={{ rotate: 360 }}
-									transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-								/>
-							</div>
-							<p className="text-foreground/70 mt-6 text-lg">
-								Loading {rarityConfig.name} NFTs...
-							</p>
-						</motion.div>
-					) : error ? (
-						<motion.div
-							className="text-center py-32"
-							initial={{ opacity: 0, scale: 0.95 }}
-							animate={{ opacity: 1, scale: 1 }}
-						>
-							<ExclamationTriangleIcon className="w-10 h-10 text-danger mb-6 mx-auto" />
-							<h4 className="text-2xl font-semibold text-danger mb-4">
-								Failed to Load NFTs
-							</h4>
-							<p className="text-foreground/70 text-lg">
-								Unable to fetch {rarityConfig.name} NFTs. Please try again.
-							</p>
-						</motion.div>
-					) : gridItems.length === 0 ? (
-						<motion.div
-							className="text-center py-32"
-							initial={{ opacity: 0, scale: 0.95 }}
-							animate={{ opacity: 1, scale: 1 }}
-						>
-							<ArchiveBoxIcon className="w-10 h-10 text-foreground/50 mb-6 mx-auto" />
-							<h4 className="text-2xl font-semibold text-foreground mb-4">
-								No NFTs Available
-							</h4>
-							<p className="text-foreground/70 text-lg">
-								There are currently no NFTs in the {rarityConfig.name} rarity
-								tier.
-							</p>
-						</motion.div>
-					) : contracts.appraisal ? (
-						<StandardNFTGrid
-							items={gridItems}
-							appraisalContractAddress={contracts.appraisal as `0x${string}`}
-							showAppraisal={true}
-							animate={true}
-							enableLazyLoading={true}
-							priorityLoadCount={16} // Load first 16 items with high priority
-							{...(gridItems.length > 50 && { itemsPerPage: 50 })} // Paginate if many items
-						/>
-					) : null}
-				</ModalBody>
-			</ModalContent>
-		</Modal>
-	);
+                    {/* Floating Close Button in header corner */}
+                    <motion.button
+                        onClick={() => onOpenChange(false)}
+                        className="absolute top-3 right-4 z-50 w-10 h-10 bg-content1/60 hover:bg-content1/80 rounded-lg border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors"
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        whileHover={{ scale: 1.06 }}
+                        whileTap={{ scale: 0.95 }}
+                        aria-label="Close"
+                    >
+                        <svg
+                            className="w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2.5}
+                        >
+                            <title>Close</title>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </motion.button>
+                </ModalHeader>
+
+                <ModalBody className="relative overflow-hidden p-0 min-h-[calc(100vh-8rem)] flex flex-col">
+                    
+
+                    {/* Background Glow */}
+                    <motion.div
+                        className="absolute inset-0 overflow-hidden"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.8 }}
+                    >
+                        <motion.div
+                            className="absolute top-1/3 left-1/2 -translate-x-1/2"
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            transition={{ duration: 1.2, ease: "easeOut" }}
+                        >
+                            <motion.div
+                                className={`w-[26rem] h-[26rem] ${rarityConfig.bgGradient} rounded-full blur-3xl opacity-40`}
+                                animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.5, 0.3] }}
+                                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                        </motion.div>
+                    </motion.div>
+
+                    {/* Body Content */}
+                    <div className="relative z-10 w-full flex-1 p-8 overflow-auto">
+                        {isLoading ? (
+                            <motion.div
+                                className="flex flex-col items-center justify-center py-32"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                            >
+                                <div className="relative">
+                                    <motion.div
+                                        className="w-16 h-16 border-4 border-white/20 border-t-warning rounded-full"
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    />
+                                </div>
+                                <p className="text-foreground/70 mt-6 text-lg">
+                                    Loading {rarityConfig.name} NFTs...
+                                </p>
+                            </motion.div>
+                        ) : error ? (
+                            <motion.div
+                                className="text-center py-32"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                            >
+                                <ExclamationTriangleIcon className="w-10 h-10 text-danger mb-6 mx-auto" />
+                                <h4 className="text-2xl font-semibold text-danger mb-4">Failed to Load NFTs</h4>
+                                <p className="text-foreground/70 text-lg">
+                                    Unable to fetch {rarityConfig.name} NFTs. Please try again.
+                                </p>
+                            </motion.div>
+                        ) : gridItems.length === 0 ? (
+                            <motion.div
+                                className="text-center py-32"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                            >
+                                <ArchiveBoxIcon className="w-10 h-10 text-foreground/50 mb-6 mx-auto" />
+                                <h4 className="text-2xl font-semibold text-foreground mb-4">No NFTs Available</h4>
+                                <p className="text-foreground/70 text-lg">
+                                    There are currently no NFTs in the {rarityConfig.name} rarity tier.
+                                </p>
+                            </motion.div>
+                        ) : contracts.appraisal ? (
+                            <StandardNFTGrid
+                                items={gridItems}
+                                appraisalContractAddress={contracts.appraisal as `0x${string}`}
+                                showAppraisal={true}
+                                animate={true}
+                                enableLazyLoading={true}
+                                priorityLoadCount={16}
+                                {...(gridItems.length > 50 && { itemsPerPage: 50 })}
+                            />
+                        ) : null}
+                    </div>
+                </ModalBody>
+
+                {/* Footer with bottom text */}
+                <ModalFooter className="px-6 py-4">
+                    <p className="text-sm text-foreground/70">
+                        {rarityConfig.description}
+                    </p>
+                </ModalFooter>
+            </ModalContent>
+        </Modal>
+    );
 }

@@ -8,7 +8,8 @@ import {
 	useChainId,
 } from "wagmi";
 import { glassTypography, cn } from "../lib/theme-config";
-import { GlassCard, GlassButton, GlassBadge, TokenFeeDisplay } from "./ui";
+import { Card, Button, Chip } from "./ui";
+import { TokenFeeDisplay } from "./ui";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -70,7 +71,7 @@ export default function SpinControls({
 		query: { enabled: !!contracts.gacha },
 	});
 
-	// @ts-expect-error - Known TypeScript limitation with deeply nested wagmi contract types
+	// @ts-expect-error Treasury hooks have deep type instantiation issues
 	const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 		address: contracts.treasury as `0x${string}` | undefined,
 		query: { enabled: !!contracts.treasury },
@@ -209,13 +210,6 @@ export default function SpinControls({
 		return "SPIN NOW";
 	};
 
-	const getButtonColor = () => {
-		if (!isConnected) return "primary";
-		if (paused || !hasSufficientBalance || isGachaAvailable === false)
-			return "danger";
-		if (gachaSpin.isError) return "warning";
-		return "warning";
-	};
 
 	const isButtonDisabled = () => {
 		return (
@@ -492,21 +486,18 @@ export default function SpinControls({
 	}, [isReclaimReceiptSuccess, gachaSpin, refetchBalance, refetchNonce]);
 
 	return (
-		<GlassCard
-			header={
-				<div className="flex justify-between items-center w-full">
-					<h2 className={glassTypography({ variant: "mainHeading" })}>
-						Gacha Spinner
-					</h2>
-					<TokenFeeDisplay
-						{...(feeToken && { address: feeToken })}
-						{...(tokenName && { name: tokenName })}
-						{...(tokenSymbol && { symbol: tokenSymbol })}
-						amount={formatSpinFee()}
-					/>
-				</div>
-			}
-		>
+		<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+			<div className="flex justify-between items-center w-full">
+				<h2 className={glassTypography({ variant: "mainHeading" })}>
+					Gacha Spinner
+				</h2>
+				<TokenFeeDisplay
+					{...(feeToken && { address: feeToken })}
+					{...(tokenName && { name: tokenName })}
+					{...(tokenSymbol && { symbol: tokenSymbol })}
+					amount={formatSpinFee()}
+				/>
+			</div>
 			<div className="py-16">
 				<div className="flex flex-col items-center space-y-10">
 					{/* Enhanced Spinner Visual with Lottie Animation */}
@@ -582,7 +573,7 @@ export default function SpinControls({
 
 					{/* Timeout Display */}
 					{gachaSpin.isTimeout && (
-						<GlassBadge variant="danger" className="text-center p-4">
+						<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
 							<div>
 								<div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-3">
 									<svg
@@ -629,12 +620,12 @@ export default function SpinControls({
 									</p>
 								</div>
 							</div>
-						</GlassBadge>
+						</Card>
 					)}
 
 					{/* Refund Display */}
 					{gachaSpin.isRefunded && gachaSpin.refundResult && (
-						<GlassBadge variant="warning" className="text-center p-4">
+						<Card className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl">
 							<div>
 								<div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-3">
 									<svg
@@ -688,38 +679,38 @@ export default function SpinControls({
 									</p>
 								</div>
 							</div>
-						</GlassBadge>
+						</Card>
 					)}
 
 					{/* Error Display Only */}
 					{gachaSpin.isError &&
 						!gachaSpin.isTimeout &&
 						!gachaSpin.isRefunded && (
-							<GlassBadge variant="danger" className="text-center p-4">
+							<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
 								<div>
 									<p className="text-sm mb-2">{gachaSpin.error}</p>
 									<p className="text-xs opacity-60">
 										Retry attempts: {gachaSpin.retryCount}/5
 									</p>
 								</div>
-							</GlassBadge>
+							</Card>
 						)}
 
 					{/* Gacha Unavailable Warning */}
 					{isConnected && isGachaAvailable === false && (
-						<GlassBadge variant="warning" className="text-center p-4">
+						<Card className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl">
 							<div>
 								<p className="text-sm mb-2">Gacha System Unavailable</p>
 								<p className="text-xs opacity-60">
 									No whitelisted collections or NFTs available for spinning
 								</p>
 							</div>
-						</GlassBadge>
+						</Card>
 					)}
 
 					{/* User balance display */}
 					{isConnected && (
-						<GlassBadge variant="info">
+						<Chip className="px-3 py-1.5 bg-primary/10 border border-primary/20 text-primary rounded-xl backdrop-blur-xl">
 							<div className="text-center">
 								<p className={glassTypography({ variant: "bodyMuted" })}>
 									Your Balance
@@ -733,7 +724,7 @@ export default function SpinControls({
 									{formattedBalance} {tokenSymbol || "TOKENS"}
 								</p>
 							</div>
-						</GlassBadge>
+						</Chip>
 					)}
 
 					{/* Error display for transaction errors */}
@@ -741,7 +732,7 @@ export default function SpinControls({
 						spinWithPermitReceiptError ||
 						signatureError ||
 						reclaimError) && (
-						<GlassBadge variant="danger" className="text-center p-4">
+						<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
 							<div>
 								<p className="text-sm mb-2">
 									Transaction failed. Please try again.
@@ -752,42 +743,24 @@ export default function SpinControls({
 									</p>
 								)}
 							</div>
-						</GlassBadge>
+						</Card>
 					)}
 
 					{/* Spin Button */}
-					<GlassButton
-						variant={
-							getButtonColor() === "primary"
-								? "primary"
-								: getButtonColor() === "danger"
-									? "danger"
-									: "secondary"
-						}
-						size="lg"
+					<Button
+						color="glassPrimary"
+						size="xl"
 						className="px-20 py-5 text-xl tracking-wide"
+						onPress={onSpinClick}
+						disabled={isButtonDisabled()}
 						isLoading={
 							isSignaturePending ||
 							isProcessingTransaction ||
 							gachaSpin.isSpinning
 						}
-						loadingText={
-							isSignaturePending
-								? "Sign Permit..."
-								: isProcessingTransaction
-									? "Confirming..."
-									: gachaSpin.isSpinning
-										? "Preparing..."
-										: gachaSpin.isWaitingForFulfillment
-											? "Awaiting..."
-											: "Processing..."
-						}
-						onClick={onSpinClick}
-						isDisabled={isButtonDisabled()}
-						animate={true}
 					>
 						{getButtonText()}
-					</GlassButton>
+					</Button>
 
 					{/* Countdown Display - Under Button */}
 					{gachaSpin.isWaitingForFulfillment && (
@@ -799,6 +772,6 @@ export default function SpinControls({
 					)}
 				</div>
 			</div>
-		</GlassCard>
+		</Card>
 	);
 }

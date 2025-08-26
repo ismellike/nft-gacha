@@ -14,7 +14,7 @@ import {
 	InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
-import { GlassCard, GlassButton } from "./ui";
+import { Card, Button } from "./ui";
 import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -285,7 +285,7 @@ export function NFTAppraisalForm({
 			transition={{ duration: 0.6 }}
 			className={className}
 		>
-			<GlassCard variant="base" padding="lg">
+			<Card glassVariant="glass" className="p-6">
 				<form onSubmit={handleSubmit} className="space-y-6">
 					{/* Header */}
 					<div className="text-center space-y-3">
@@ -478,19 +478,11 @@ export function NFTAppraisalForm({
 
 					{/* Submit Button */}
 					<div className="pt-2">
-						<GlassButton
+						<Button
 							type="submit"
-							variant="primary"
-							size="lg"
+							color="glassPrimary"
 							className="w-full"
 							isLoading={isPending}
-							loadingText={
-								isApproving
-									? "Approving tokens..."
-									: isRequestingAppraisal
-										? "Requesting appraisal..."
-										: "Submitting..."
-							}
 							isDisabled={
 								!isConnected ||
 								isPending ||
@@ -498,12 +490,17 @@ export function NFTAppraisalForm({
 								!formData.collection.trim() ||
 								!formData.tokenId.trim()
 							}
-							{...(!isPending && { startIcon: "trending" })}
 						>
-							{needsApproval()
-								? "Approve & Request Appraisal"
-								: "Request Appraisal"}
-						</GlassButton>
+							{isPending 
+								? (isApproving
+									? "Approving tokens..."
+									: isRequestingAppraisal
+										? "Requesting appraisal..."
+										: "Submitting...")
+								: (needsApproval()
+									? "Approve & Request Appraisal"
+									: "Request Appraisal")}
+						</Button>
 					</div>
 
 					{/* Wallet Balance Info */}
@@ -515,7 +512,7 @@ export function NFTAppraisalForm({
 						</div>
 					)}
 				</form>
-			</GlassCard>
+			</Card>
 		</motion.div>
 	);
 }

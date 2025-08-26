@@ -11,7 +11,8 @@ import {
 	WalletIcon,
 } from "@heroicons/react/24/outline";
 
-import { GlassCard, GlassButton, LoadingState } from "./ui";
+import { Card, Button } from "./ui";
+import { LoadingState } from "./ui";
 import { DepositableNFTCard } from "./ui/DepositableNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -179,7 +180,7 @@ export function NFTAvailabilitySection({
 				animate={{ opacity: 1, y: 0 }}
 				className={className}
 			>
-				<GlassCard variant="base" padding="lg">
+				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<div className="text-center space-y-4">
 						<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
 							<WalletIcon className="w-8 h-8 text-warning" />
@@ -193,7 +194,7 @@ export function NFTAvailabilitySection({
 							</p>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		);
 	}
@@ -205,12 +206,12 @@ export function NFTAvailabilitySection({
 				animate={{ opacity: 1 }}
 				className={className}
 			>
-				<GlassCard variant="base" padding="lg">
+				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<div className="text-center space-y-4">
 						<LoadingState size="lg" />
 						<p className="text-foreground/70">Loading available NFTs...</p>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		);
 	}
@@ -222,18 +223,21 @@ export function NFTAvailabilitySection({
 				animate={{ opacity: 1 }}
 				className={className}
 			>
-				<GlassCard variant="error" padding="lg">
+				<Card className="p-6 bg-danger/10 border border-danger/20 rounded-2xl shadow-lg">
 					<div className="text-center space-y-4">
 						<ExclamationTriangleIcon className="w-12 h-12 text-danger mx-auto" />
 						<div>
 							<h3 className="text-lg font-medium text-danger mb-2">Error</h3>
 							<p className="text-foreground/70 mb-4">{error}</p>
-							<GlassButton variant="danger" onClick={refetchNFTs}>
+							<Button
+								className="rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
+								onPress={refetchNFTs}
+							>
 								Try Again
-							</GlassButton>
+							</Button>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		);
 	}
@@ -245,7 +249,7 @@ export function NFTAvailabilitySection({
 				animate={{ opacity: 1, y: 0 }}
 				className={className}
 			>
-				<GlassCard variant="base" padding="lg">
+				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<div className="text-center space-y-4">
 						<div className="w-16 h-16 bg-gradient-to-br from-content1/20 to-content1/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
 							<MagnifyingGlassIcon className="w-8 h-8 text-foreground/60" />
@@ -258,16 +262,15 @@ export function NFTAvailabilitySection({
 								You don't have any NFTs from the whitelisted collections for
 								this gacha, or they haven't been loaded yet.
 							</p>
-							<GlassButton
-								variant="secondary"
-								startIcon="refresh"
-								onClick={refetchNFTs}
+							<Button
+								className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+								onPress={refetchNFTs}
 							>
 								Refresh
-							</GlassButton>
+							</Button>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			</motion.div>
 		);
 	}
@@ -280,22 +283,9 @@ export function NFTAvailabilitySection({
 			className={className}
 		>
 			<div className="space-y-8">
-				{/* Header */}
-				<div className="text-center space-y-4">
-					<h2 className="text-3xl font-light tracking-tight">
-						<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-							Your NFTs from Whitelisted Collections
-						</span>
-					</h2>
-					<p className="text-foreground/70 max-w-2xl mx-auto">
-						NFTs from collections accepted by this gacha. Ready NFTs can be
-						deposited immediately.
-					</p>
-				</div>
-
 				{/* Statistics */}
 				<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-					<GlassCard variant="floating" padding="md">
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Total NFTs
@@ -304,9 +294,9 @@ export function NFTAvailabilitySection({
 								{userNFTs.length}
 							</p>
 						</div>
-					</GlassCard>
+					</Card>
 
-					<GlassCard variant="floating" padding="md">
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Ready to Deposit
@@ -315,9 +305,9 @@ export function NFTAvailabilitySection({
 								{readyToDepositNFTs.length}
 							</p>
 						</div>
-					</GlassCard>
+					</Card>
 
-					<GlassCard variant="floating" padding="md">
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Needs Appraisal
@@ -326,9 +316,9 @@ export function NFTAvailabilitySection({
 								{needsAppraisalNFTs.length}
 							</p>
 						</div>
-					</GlassCard>
+					</Card>
 
-					<GlassCard variant="floating" padding="md">
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
 								Collections
@@ -337,7 +327,7 @@ export function NFTAvailabilitySection({
 								{new Set(userNFTs.map((nft) => nft.collection)).size}
 							</p>
 						</div>
-					</GlassCard>
+					</Card>
 				</div>
 
 				{/* Ready to Deposit Section */}
@@ -393,10 +383,7 @@ export function NFTAvailabilitySection({
 				)}
 
 				{/* Info Banner */}
-				<GlassCard
-					variant="base"
-					className="bg-gradient-to-r from-info/10 to-secondary/10 border-info/20"
-				>
+				<Card className="bg-gradient-to-r from-info/10 to-secondary/10 border border-info/20 rounded-2xl shadow-xl">
 					<div className="flex items-start gap-3 p-4">
 						<InformationCircleIcon className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
 						<div className="text-sm text-foreground/70">
@@ -410,7 +397,7 @@ export function NFTAvailabilitySection({
 							</p>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 
 				{/* Success Toast */}
 				<AnimatePresence>
@@ -421,7 +408,7 @@ export function NFTAvailabilitySection({
 							exit={{ opacity: 0, scale: 0.95 }}
 							className="fixed bottom-8 right-8 z-50 max-w-sm"
 						>
-							<GlassCard variant="success" className="p-4 border-success/20">
+							<Card className="p-4 bg-success/10 border border-success/20 rounded-xl shadow-lg">
 								<div className="flex items-center gap-3">
 									<CheckBadgeIcon className="w-6 h-6 text-success flex-shrink-0" />
 									<div>
@@ -433,7 +420,7 @@ export function NFTAvailabilitySection({
 										</p>
 									</div>
 								</div>
-							</GlassCard>
+							</Card>
 						</motion.div>
 					)}
 				</AnimatePresence>

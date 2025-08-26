@@ -1,13 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { PlusIcon } from "@heroicons/react/24/outline";
-import {
-	GlassCard,
-	GlassBadge,
-	GlassHeader,
-	GachaCard,
-} from "../../components/ui";
+import { PlusIcon, ChartBarIcon } from "@heroicons/react/24/outline";
+import { Card, Chip } from "../../components/ui";
+import { GlassHeader, GachaCard } from "../../components/ui";
 import { getAllActiveGachas } from "../../lib/gacha-config";
 
 export default function DiscoverPage() {
@@ -24,37 +20,9 @@ export default function DiscoverPage() {
 					badges={[
 						{ icon: "shield-check", text: "Provably Fair", variant: "success" },
 						{ icon: "gem", text: "Authentic Graded Cards", variant: "primary" },
-						{ icon: "trending", text: "Live Analytics", variant: "info" },
+						{ icon: "trending", text: "Live Analytics", variant: "primary" },
 					]}
 				>
-					{/* Platform Stats */}
-					<motion.div
-						className="flex flex-wrap justify-center gap-8"
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8, delay: 0.4 }}
-					>
-						<div className="text-center">
-							<div className="text-4xl font-bold text-warning mb-2">
-								{gachas.length}
-							</div>
-							<div className="text-sm text-foreground/60 uppercase tracking-wide">
-								Card Collections
-							</div>
-						</div>
-						<div className="text-center">
-							<div className="text-4xl font-bold text-warning mb-2">100%</div>
-							<div className="text-sm text-foreground/60 uppercase tracking-wide">
-								Provably Fair
-							</div>
-						</div>
-						<div className="text-center">
-							<div className="text-4xl font-bold text-warning mb-2">∞</div>
-							<div className="text-sm text-foreground/60 uppercase tracking-wide">
-								Possibilities
-							</div>
-						</div>
-					</motion.div>
 				</GlassHeader>
 
 				{/* Gacha Grid */}
@@ -77,7 +45,7 @@ export default function DiscoverPage() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.4, duration: 0.6 }}
 				>
-					<GlassCard variant="base" padding="lg" className="text-center">
+					<Card className="text-center p-8 md:p-10 bg-content1/20 backdrop-blur-xl border border-warning/30 rounded-2xl shadow-xl shadow-warning/10">
 						<div className="space-y-6">
 							<div className="w-16 h-16 mx-auto bg-gradient-to-br from-warning/20 to-orange-400/20 rounded-full flex items-center justify-center">
 								<PlusIcon className="w-8 h-8 text-warning" />
@@ -86,15 +54,17 @@ export default function DiscoverPage() {
 								<h3 className="text-2xl font-medium text-foreground mb-3">
 									More Card Collections Coming Soon
 								</h3>
-								<p className="text-foreground/70 max-w-2xl mx-auto">
+								<p className="text-foreground/80 max-w-2xl mx-auto">
 									We're constantly adding new trading card gacha experiences
 									with unique themes, mechanics, and card collections. Stay
 									tuned for more exciting opportunities!
 								</p>
 							</div>
-							<GlassBadge variant="info">🚀 Next Launch: Q2 2024</GlassBadge>
+							<Chip startContent={<ChartBarIcon className="w-4 h-4" />} className="px-3 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl">
+								New Drops Incoming
+							</Chip>
 						</div>
-					</GlassCard>
+					</Card>
 				</motion.div>
 			</div>
 		</div>

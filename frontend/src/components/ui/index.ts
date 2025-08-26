@@ -3,9 +3,6 @@
  * Centralized export for all reusable UI components
  */
 
-export { GlassCard } from "./GlassCard";
-export { GlassButton } from "./GlassButton";
-export { GlassBadge } from "./GlassBadge";
 export { GlassHeader } from "../GlassHeader";
 export { GachaCard } from "../GachaCard";
 export { LoadingState } from "./LoadingState";
@@ -17,5 +14,18 @@ export {
 } from "./SkeletonLoader";
 export { StandardNFTGrid, useTreasuryItemsToGridItems } from "./NFTGrid";
 export { NFTHeroCard } from "./UnifiedNFTCard";
+
+// Glass Components with custom HeroUI variants
+export {
+	Button,
+	Card,
+	Chip,
+	Modal,
+	ModalContent,
+	ModalHeader,
+	ModalBody,
+	ModalFooter,
+	glassModalClasses,
+} from "./GlassComponents";
 
 // Courtyard functionality is now built into UnifiedNFTCard

@@ -6,7 +6,14 @@ import { useAccount, useWriteContract, usePublicClient } from "wagmi";
 import { useMachine } from "@xstate/react";
 
 import { UnifiedNFTCard, type UnifiedNFTCardProps } from "./UnifiedNFTCard";
-import { GlassButton } from "./index";
+import { Button } from "../ui";
+import {
+	GiftIcon,
+	ShieldCheckIcon,
+	CheckIcon,
+	ArrowPathIcon,
+	SparklesIcon,
+} from "@heroicons/react/24/outline";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import {
@@ -231,122 +238,100 @@ export const DepositableNFTCard = ({
 	const actionSlot = (
 		<div className="space-y-2">
 			{!hasValidAppraisal ? (
-				<GlassButton
-					variant="secondary"
-					size="md"
-					className="w-full"
-					startIcon="gem"
-					onClick={() => onAction(collection, tokenId, hasValidAppraisal)}
-					animate={true}
+				<Button
+					className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+					onPress={() => onAction(collection, tokenId, hasValidAppraisal)}
 				>
-					Get Appraised
-				</GlassButton>
+					<span className="flex items-center justify-center gap-2">
+						<SparklesIcon className="w-4 h-4" /> Get Appraised
+					</span>
+				</Button>
 			) : (
 				<div className="space-y-2">
 					{/* Main action button based on state */}
 					{currentDepositState === "idle" && (
-						<GlassButton
-							variant="primary"
-							size="md"
-							className="w-full"
-							startIcon="gift"
-							onClick={handleDeposit}
-							animate={true}
+						<Button
+							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+							onPress={handleDeposit}
 						>
-							Deposit to Gacha
-						</GlassButton>
+							<span className="flex items-center justify-center gap-2">
+								<GiftIcon className="w-4 h-4" /> Deposit to Gacha
+							</span>
+						</Button>
 					)}
 
 					{currentDepositState === "checkingApproval" && (
-						<GlassButton
-							variant="primary"
-							size="md"
-							className="w-full"
-							isLoading={true}
-							loadingText="Checking approval..."
-							animate={true}
+						<Button
+							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+							isLoading
 						>
-							Checking...
-						</GlassButton>
+							Checking approval...
+						</Button>
 					)}
 
 					{currentDepositState === "needsApproval" && (
-						<GlassButton
-							variant="secondary"
-							size="md"
-							className="w-full"
-							startIcon="shield-check"
-							onClick={handleApproval}
-							animate={true}
+						<Button
+							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+							onPress={handleApproval}
 						>
-							Approve NFT
-						</GlassButton>
+							<span className="flex items-center justify-center gap-2">
+								<ShieldCheckIcon className="w-4 h-4" /> Approve NFT
+							</span>
+						</Button>
 					)}
 
 					{currentDepositState === "readyToDeposit" && (
-						<GlassButton
-							variant="primary"
-							size="md"
-							className="w-full"
-							startIcon="gift"
-							onClick={handleDepositTransaction}
-							animate={true}
+						<Button
+							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+							onPress={handleDepositTransaction}
 						>
-							Deposit to Treasury
-						</GlassButton>
+							<span className="flex items-center justify-center gap-2">
+								<GiftIcon className="w-4 h-4" /> Deposit to Treasury
+							</span>
+						</Button>
 					)}
 
 					{currentDepositState === "depositing" && (
-						<GlassButton
-							variant="primary"
-							size="md"
-							className="w-full"
-							isLoading={true}
-							loadingText="Depositing..."
-							animate={true}
+						<Button
+							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+							isLoading
 						>
 							Depositing...
-						</GlassButton>
+						</Button>
 					)}
 
 					{currentDepositState === "needsDeposit" && (
-						<GlassButton
-							variant="secondary"
-							size="md"
-							className="w-full"
-							startIcon="refresh"
-							onClick={handleDepositTransaction}
-							animate={true}
+						<Button
+							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+							onPress={handleDepositTransaction}
 						>
-							Retry Deposit
-						</GlassButton>
+							<span className="flex items-center justify-center gap-2">
+								<ArrowPathIcon className="w-4 h-4" /> Retry Deposit
+							</span>
+						</Button>
 					)}
 
 					{currentDepositState === "completed" && (
-						<GlassButton
-							variant="primary"
-							size="md"
-							className="w-full"
-							startIcon="check"
-							isDisabled={true}
-							animate={true}
+						<Button
+							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+							isDisabled
 						>
-							Deposited Successfully
-						</GlassButton>
+							<span className="flex items-center justify-center gap-2">
+								<CheckIcon className="w-4 h-4" /> Deposited Successfully
+							</span>
+						</Button>
 					)}
 
 					{currentDepositState === "error" && (
 						<div className="space-y-2">
-							<GlassButton
-								variant="danger"
-								size="md"
-								className="w-full"
-								startIcon="refresh"
-								onClick={() => sendDepositEvent({ type: "RESET" })}
-								animate={true}
+							<Button
+								className="w-full rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
+								onPress={() => sendDepositEvent({ type: "RESET" })}
 							>
-								Reset & Try Again
-							</GlassButton>
+								<span className="flex items-center justify-center gap-2">
+									<ArrowPathIcon className="w-4 h-4" /> Reset & Try Again
+								</span>
+							</Button>
 							{depositStateError && (
 								<p className="text-xs text-danger text-center">
 									{depositStateError}

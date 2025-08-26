@@ -19,7 +19,9 @@ import {
 	CogIcon,
 } from "@heroicons/react/24/outline";
 
-import { GlassCard, GlassButton, GlassHeader } from "../../components/ui";
+import { GlassHeader } from "../../components/ui";
+import { Button, Card } from "../../components/ui";
+import { ArrowLeftIcon, BoltIcon } from "@heroicons/react/24/outline";
 import { glassTypography } from "../../lib/theme-config";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";
 import {
@@ -319,7 +321,7 @@ function GachaDetailPageContent() {
 	if (!gachaId) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
-				<GlassCard padding="lg" className="text-center">
+				<Card className="p-6 text-center bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<XCircleIcon className="w-8 h-8 mx-auto mb-4 text-warning" />
 					<h2 className="text-2xl font-medium text-foreground mb-2">
 						Missing Gacha ID
@@ -327,14 +329,15 @@ function GachaDetailPageContent() {
 					<p className="text-foreground/70 mb-6">
 						Please provide a gacha ID in the URL parameters.
 					</p>
-					<GlassButton
-						variant="primary"
-						startIcon="arrow-left"
-						onClick={() => router.push("/discover")}
+					<Button
+						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+						onPress={() => router.push("/discover")}
 					>
-						Back to Discovery
-					</GlassButton>
-				</GlassCard>
+						<span className="inline-flex items-center gap-2">
+							<ArrowLeftIcon className="w-4 h-4" /> Back to Discovery
+						</span>
+					</Button>
+				</Card>
 			</div>
 		);
 	}
@@ -342,7 +345,7 @@ function GachaDetailPageContent() {
 	if (!gacha) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
-				<GlassCard padding="lg" className="text-center">
+				<Card className="p-6 text-center bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<XCircleIcon className="w-8 h-8 mx-auto mb-4 text-warning" />
 					<h2 className="text-2xl font-medium text-foreground mb-2">
 						Gacha Not Found
@@ -350,14 +353,15 @@ function GachaDetailPageContent() {
 					<p className="text-foreground/70 mb-6">
 						The gacha "{gachaId}" is not recognized or configured.
 					</p>
-					<GlassButton
-						variant="primary"
-						startIcon="arrow-left"
-						onClick={() => router.push("/discover")}
+					<Button
+						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+						onPress={() => router.push("/discover")}
 					>
-						Back to Discovery
-					</GlassButton>
-				</GlassCard>
+						<span className="inline-flex items-center gap-2">
+							<ArrowLeftIcon className="w-4 h-4" /> Back to Discovery
+						</span>
+					</Button>
+				</Card>
 			</div>
 		);
 	}
@@ -367,15 +371,16 @@ function GachaDetailPageContent() {
 			<div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 max-w-7xl">
 				{/* Header */}
 				<div className="flex items-center gap-4 mb-8 lg:mb-12">
-					<GlassButton
-						variant="secondary"
-						size="md"
-						startIcon="arrow-left"
-						onClick={() => router.push("/discover")}
+					<Button
+						className="px-4 py-2 rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30 hover:border-white/30"
+						onPress={() => router.push("/discover")}
 					>
-						<span className="hidden sm:inline">Back to Discovery</span>
-						<span className="sm:hidden">Back</span>
-					</GlassButton>
+						<span className="flex items-center gap-2">
+							<ArrowLeftIcon className="w-4 h-4" />
+							<span className="hidden sm:inline">Back to Discovery</span>
+							<span className="sm:hidden">Back</span>
+						</span>
+					</Button>
 				</div>
 
 				<GlassHeader
@@ -387,7 +392,7 @@ function GachaDetailPageContent() {
 						{
 							icon: "link",
 							text: formatGachaAddress(gacha.address),
-							variant: "info",
+							variant: "secondary",
 						},
 					]}
 				/>
@@ -399,81 +404,81 @@ function GachaDetailPageContent() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.2, duration: 0.6 }}
 				>
-					<GlassCard variant="base" className="p-3 lg:p-4">
+					<Card className="p-3 lg:p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 						<div
 							role="tablist"
 							aria-label="Gacha navigation tabs"
 							className="flex flex-col sm:flex-row gap-3 lg:gap-4"
 						>
-							<GlassButton
-								variant={activeTab === "spin" ? "primary" : "secondary"}
-								size="md"
-								startIcon="zap"
-								onClick={() => handleTabChange("spin")}
+							<Button
+								className={`flex-1 sm:flex-initial rounded-xl ${activeTab === "spin" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
+								onPress={() => handleTabChange("spin")}
 								role="tab"
 								aria-selected={activeTab === "spin"}
 								aria-controls="tabpanel-spin-&-play"
 								tabIndex={activeTab === "spin" ? 0 : -1}
-								className="flex-1 sm:flex-initial"
 							>
-								Spin & Play
-							</GlassButton>
-							<GlassButton
-								variant={activeTab === "deposits" ? "primary" : "secondary"}
-								size="md"
-								startIcon="gem"
-								onClick={() => handleTabChange("deposits")}
+								<span className="flex items-center gap-2">
+									<BoltIcon className="w-4 h-4" />
+									Spin & Play
+								</span>
+							</Button>
+							<Button
+								className={`flex-1 sm:flex-initial rounded-xl ${activeTab === "deposits" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
+								onPress={() => handleTabChange("deposits")}
 								role="tab"
 								aria-selected={activeTab === "deposits"}
 								aria-controls="tabpanel-deposits"
 								tabIndex={activeTab === "deposits" ? 0 : -1}
-								className="flex-1 sm:flex-initial"
 							>
-								NFT Deposits
-							</GlassButton>
-							<GlassButton
-								variant={activeTab === "analytics" ? "primary" : "secondary"}
-								size="md"
-								startIcon="trending"
-								onClick={() => handleTabChange("analytics")}
+								<span className="flex items-center gap-2">
+									<GiftIcon className="w-4 h-4" />
+									NFT Deposits
+								</span>
+							</Button>
+							<Button
+								className={`flex-1 sm:flex-initial rounded-xl ${activeTab === "analytics" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
+								onPress={() => handleTabChange("analytics")}
 								role="tab"
 								aria-selected={activeTab === "analytics"}
 								aria-controls="tabpanel-analytics"
 								tabIndex={activeTab === "analytics" ? 0 : -1}
-								className="flex-1 sm:flex-initial"
 							>
-								Analytics
-							</GlassButton>
-							<GlassButton
-								variant={activeTab === "rewards" ? "primary" : "secondary"}
-								size="md"
-								startIcon="user-circle"
-								onClick={() => handleTabChange("rewards")}
+								<span className="flex items-center gap-2">
+									<ChartBarIcon className="w-4 h-4" />
+									Analytics
+								</span>
+							</Button>
+							<Button
+								className={`flex-1 sm:flex-initial rounded-xl ${activeTab === "rewards" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
+								onPress={() => handleTabChange("rewards")}
 								role="tab"
 								aria-selected={activeTab === "rewards"}
 								aria-controls="tabpanel-my-rewards"
 								tabIndex={activeTab === "rewards" ? 0 : -1}
-								className="flex-1 sm:flex-initial"
 							>
-								My Profile
-							</GlassButton>
+								<span className="flex items-center gap-2">
+									<UserCircleIcon className="w-4 h-4" />
+									My Profile
+								</span>
+							</Button>
 							{isOwner && (
-								<GlassButton
-									variant={activeTab === "admin" ? "primary" : "secondary"}
-									size="md"
-									startIcon="settings"
-									onClick={() => handleTabChange("admin")}
+								<Button
+									className={`flex-1 sm:flex-initial rounded-xl ${activeTab === "admin" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
+									onPress={() => handleTabChange("admin")}
 									role="tab"
 									aria-selected={activeTab === "admin"}
 									aria-controls="tabpanel-admin"
 									tabIndex={activeTab === "admin" ? 0 : -1}
-									className="flex-1 sm:flex-initial"
 								>
-									Admin
-								</GlassButton>
+									<span className="flex items-center gap-2">
+										<CogIcon className="w-4 h-4" />
+										Admin
+									</span>
+								</Button>
 							)}
 						</div>
-					</GlassCard>
+					</Card>
 				</motion.div>
 
 				{/* Tab Content */}
