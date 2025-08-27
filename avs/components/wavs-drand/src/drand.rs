@@ -3,11 +3,16 @@ use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
+#[cfg(not(test))]
+use crate::bindings::wasi::keyvalue::store::open;
+use crate::bindings::wasi::keyvalue::store::Bucket;
+
 /// Drand client for fetching randomness
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DrandClient {
     pub url: String,
     pub chain_hash: String,
+    cache_bucket: Option<Bucket>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,11 +24,32 @@ pub struct DrandRound {
 
 impl DrandClient {
     pub fn new(url: String, chain_hash: String) -> Self {
-        Self { url, chain_hash }
+        Self {
+            url,
+            chain_hash,
+            #[cfg(not(test))]
+            cache_bucket: open("drand-cache").ok(),
+            #[cfg(test)]
+            cache_bucket: None,
+        }
     }
 
     /// Get drand randomness for a specific round
     pub async fn get_round(&self, round: u64) -> Result<B256> {
+        let cache_key = format!("round_{}", round);
+
+        // Try to get from cache first
+        if let Some(ref bucket) = self.cache_bucket {
+            if let Ok(Some(cached_data)) = bucket.get(&cache_key) {
+                if cached_data.len() == 32 {
+                    let mut bytes = [0u8; 32];
+                    bytes.copy_from_slice(&cached_data);
+                    return Ok(B256::from(bytes));
+                }
+            }
+        }
+
+        // Fetch from drand API
         let url = format!("{}/{}/public/{}", self.url, self.chain_hash, round);
 
         let request =
@@ -49,8 +75,14 @@ impl DrandClient {
 
         let mut bytes = [0u8; 32];
         bytes.copy_from_slice(&randomness_bytes);
+        let result = B256::from(bytes);
 
-        Ok(B256::from(bytes))
+        // Cache the result
+        if let Some(ref bucket) = self.cache_bucket {
+            let _ = bucket.set(&cache_key, &randomness_bytes);
+        }
+
+        Ok(result)
     }
 }
 
