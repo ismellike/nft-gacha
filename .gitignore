@@ -23,3 +23,5 @@ target
 */.claude/*.local.*
 .env
 .env.local
+.task/
+Cargo-component.lock

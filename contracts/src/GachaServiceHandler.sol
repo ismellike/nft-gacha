@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IWavsServiceHandler} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
 import {Gacha} from "./Gacha.sol";
+import {WavsDrandPayload} from "./interfaces/WavsDrandTypes.sol";
 
 /**
  * @title GachaServiceHandler - WAVS Randomness Integration
@@ -18,14 +19,7 @@ contract GachaServiceHandler is IWavsServiceHandler {
     /// @notice Gacha contract that receives randomness
     Gacha private immutable _gacha;
 
-    /// @notice Payload structure for WAVS-DRAND randomness
-    struct WavsDrandPayload {
-        uint256 triggerId;
-        /// @dev Unique identifier for the randomness request
-        bytes32 randomness;
-    }
     /// @dev Random bytes from DRAND beacon
-
     /// @notice Events for tracking randomness operations
     event RandomnessReceived(bytes32 randomness);
 

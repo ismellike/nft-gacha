@@ -19,6 +19,8 @@ includes:
     taskfile: ./taskfile/cli.yml
   pricing:
     taskfile: ./taskfile/pricing.yml
+  component:
+    taskfile: ./taskfile/component.yml
 
 tasks:
   clean-env:
@@ -49,3 +51,10 @@ tasks:
     dir: "avs"
     cmds:
       - task bootstrap
+
+  lint:
+    desc: "Run code formatting and linting checks"
+    cmds:
+      - cargo fmt --all -- --check
+      - cargo fix --allow-dirty --allow-staged
+      - cargo clippy --all-targets -- -D warnings

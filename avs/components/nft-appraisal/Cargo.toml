@@ -1,0 +1,19 @@
+[package]
+name = "nft-appraisal"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "component:nft-appraisal"
+target = "wavs:operator@0.6.0-alpha.8"
+
+[dependencies]
+wit-bindgen-rt = { workspace = true }

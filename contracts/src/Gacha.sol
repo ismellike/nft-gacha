@@ -9,6 +9,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {GachaRewardsManager} from "./GachaRewardsManager.sol";
+import {RandomnessRequested} from "./interfaces/WavsDrandTypes.sol";
 
 /**
  * @title Gacha - NFT Gacha Game Contract with Price-Based Treasury
@@ -73,9 +74,6 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     uint256 public rareWeight = 600; // 6%
     uint256 public epicWeight = 300; // 3%
     uint256 public legendaryWeight = 100; // 1%
-
-    /// @notice Events for tracking contract activity
-    event RandomnessRequested(uint256 indexed triggerId);
 
     event SpinCompleted(
         uint256 indexed triggerId,
@@ -242,7 +240,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
             // Track refund statistics
             userRefundCount[request.requester]++;
             totalRefundCount++;
-            
+
             // Refund the user if selected rarity is empty
             if (spinFee > 0) {
                 feeToken.safeTransfer(request.requester, spinFee);
@@ -417,20 +415,15 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     /// @return totalRefunds Total refunded spins
     /// @return totalReclaims Total reclaimed spins
     /// @return rarityWins Array of wins per rarity [Common, Uncommon, Rare, Epic, Legendary]
-    function getUserAnalytics(address user) 
-        external 
-        view 
-        returns (
-            uint256 totalSpins,
-            uint256 totalRefunds, 
-            uint256 totalReclaims,
-            uint256[5] memory rarityWins
-        ) 
+    function getUserAnalytics(address user)
+        external
+        view
+        returns (uint256 totalSpins, uint256 totalRefunds, uint256 totalReclaims, uint256[5] memory rarityWins)
     {
         totalSpins = userSpinCount[user];
         totalRefunds = userRefundCount[user];
         totalReclaims = userReclaimCount[user];
-        
+
         for (uint256 i = 0; i < 5; i++) {
             rarityWins[i] = userRarityWins[user][GachaTreasury.Rarity(i)];
         }
@@ -441,9 +434,9 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     /// @return totalRefunds Total refunded spins
     /// @return totalReclaims Total reclaimed spins
     /// @return globalRarityWinCounts Array of global wins per rarity
-    function getGlobalAnalytics() 
-        external 
-        view 
+    function getGlobalAnalytics()
+        external
+        view
         returns (
             uint256 totalSpins,
             uint256 totalRefunds,
@@ -454,20 +447,20 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         totalSpins = totalSpinCount;
         totalRefunds = totalRefundCount;
         totalReclaims = totalReclaimCount;
-        
+
         for (uint256 i = 0; i < 5; i++) {
             globalRarityWinCounts[i] = globalRarityWins[GachaTreasury.Rarity(i)];
         }
     }
 
     /// @notice Gets user's win count for a specific rarity
-    /// @param user The user address to query  
+    /// @param user The user address to query
     /// @param rarity The rarity to check
     /// @return winCount Number of wins for that rarity
-    function getUserRarityWinCount(address user, GachaTreasury.Rarity rarity) 
-        external 
-        view 
-        returns (uint256 winCount) 
+    function getUserRarityWinCount(address user, GachaTreasury.Rarity rarity)
+        external
+        view
+        returns (uint256 winCount)
     {
         return userRarityWins[user][rarity];
     }

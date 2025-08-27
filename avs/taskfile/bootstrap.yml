@@ -4,9 +4,12 @@ includes:
   bootstrap-common:
     taskfile: ./bootstrap-common.yml
     flatten: true
+  bootstrap-component:
+    taskfile: ./bootstrap-components.yml
+    flatten: true
 
 tasks:
-  contracts:
+  contracts-deploy:
     desc: "Deploy contracts with WAVS service manager address"
     vars:
       WAVS_SERVICE_MANAGER_ADDRESS:
@@ -21,6 +24,8 @@ tasks:
       SERVICE_JSON_CMD: 'service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}"'
       TRIGGER_CHAIN: "local"
       SUBMIT_CHAIN: "local"
+      COMPONENT_DIGEST:
+        sh: task get-component-digest COMPONENT="wavs_drand"
       SERVICE_MANAGER_ADDRESS:
         sh: task get-service-manager-address
       RANDOMNESS_REQUESTED_EVENT_HASH:
@@ -43,7 +48,7 @@ tasks:
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id ${WORKFLOW_ID} component set-source-registry --package {{.AGGREGATOR_COMPONENT_PACKAGE}}
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id ${WORKFLOW_ID} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
 
-        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id ${WORKFLOW_ID} set-source-registry --package {{.COMPONENT_PACKAGE}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id ${WORKFLOW_ID} set-source-digest --digest {{.COMPONENT_DIGEST}}
           
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id ${WORKFLOW_ID} permissions --http-hosts '*' --file-system true
           
