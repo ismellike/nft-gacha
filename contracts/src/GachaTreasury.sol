@@ -99,10 +99,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @notice User deposit tracking for rewards
     mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
     mapping(address => uint256) public userTotalDeposits;
-    
+
     /// @notice Value-weighted dividend tracking
-    mapping(address => mapping(Rarity => uint256)) public userDepositValues;  // Total USD value deposited by user per rarity
-    mapping(Rarity => uint256) public totalRarityValue;  // Total USD value in each rarity pool
+    mapping(address => mapping(Rarity => uint256)) public userDepositValues; // Total USD value deposited by user per rarity
+    mapping(Rarity => uint256) public totalRarityValue; // Total USD value in each rarity pool
 
     /// @notice Collection whitelist management
     mapping(address => bool) public whitelistedCollections;
@@ -226,11 +226,11 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Track user deposit counts for rewards
         userDepositCounts[msg.sender][rarity]++;
         userTotalDeposits[msg.sender]++;
-        
+
         // Track value-weighted deposits for enhanced rewards
         userDepositValues[msg.sender][rarity] += priceUSD;
         totalRarityValue[rarity] += priceUSD;
-        
+
         // Notify rewards manager about the deposit to update dividend corrections
         if (treasuryRewardsManager != address(0)) {
             (bool success,) = treasuryRewardsManager.call(
@@ -296,6 +296,9 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             --rarityCount[currentRarity];
         }
 
+        // Capture old price before updating
+        uint256 oldPrice = item.appraisedPrice;
+
         // Update item with new price and rarity
         item.appraisedPrice = newPriceUSD;
         item.rarity = newRarity;
@@ -312,14 +315,13 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Update user deposit counts
         userDepositCounts[item.depositor][currentRarity]--;
         userDepositCounts[item.depositor][newRarity]++;
-        
+
         // Update value-weighted tracking for dividend rewards
-        uint256 oldPrice = item.appraisedPrice; // Use original price before update
         userDepositValues[item.depositor][currentRarity] -= oldPrice;
         userDepositValues[item.depositor][newRarity] += newPriceUSD;
         totalRarityValue[currentRarity] -= oldPrice;
         totalRarityValue[newRarity] += newPriceUSD;
-        
+
         // Notify rewards manager about the value change (update dividend corrections)
         if (treasuryRewardsManager != address(0)) {
             // Update corrections for both old and new rarities
@@ -329,12 +331,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             (bool success2,) = treasuryRewardsManager.call(
                 abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", item.depositor, uint8(newRarity))
             );
-            success1; success2; // Silence unused variable warnings
+            success1;
+            success2; // Silence unused variable warnings
         }
 
         emit RarityMigrated(collection, tokenId, currentRarity, newRarity, newPriceUSD);
     }
-
 
     /// @notice Allows users to withdraw their own deposited NFTs
     /// @param collection NFT collection address
@@ -342,18 +344,18 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     function withdrawMyNFT(address collection, uint256 tokenId) external whenNotPaused nonReentrant {
         if (collection == address(0)) revert InvalidCollectionAddress();
         if (!depositedNFTs[collection][tokenId]) revert NFTNotDeposited();
-        
+
         // Get the NFT's current rarity and treasury index
         Rarity rarity = nftCurrentRarity[collection][tokenId];
         uint256 index = nftToTreasuryIndex[collection][tokenId];
-        
+
         if (index >= treasury[rarity].length) revert InvalidIndex();
-        
+
         NFTItem storage item = treasury[rarity][index];
-        
+
         // Verify the caller is the original depositor
         if (item.depositor != msg.sender) revert NotNFTDepositor();
-        
+
         // Move the last item to the current position and pop
         uint256 lastIndex = treasury[rarity].length - 1;
         if (index != lastIndex) {
@@ -362,27 +364,27 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             nftToTreasuryIndex[lastItem.collection][lastItem.tokenId] = index;
         }
         treasury[rarity].pop();
-        
+
         // Update counts
         unchecked {
             --rarityCount[rarity];
         }
-        
+
         // Update user deposit tracking (affects their rewards)
         if (userDepositCounts[item.depositor][rarity] > 0) {
             --userDepositCounts[item.depositor][rarity];
             --userTotalDeposits[item.depositor];
         }
-        
+
         // Update value tracking - subtract the NFT's value from user and total
         userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
         totalRarityValue[rarity] -= item.appraisedPrice;
-        
+
         // Clean up mappings
         depositedNFTs[collection][tokenId] = false;
         delete nftToTreasuryIndex[collection][tokenId];
         delete nftCurrentRarity[collection][tokenId];
-        
+
         // Notify rewards manager about the withdrawal (update dividend corrections)
         if (treasuryRewardsManager != address(0)) {
             (bool success,) = treasuryRewardsManager.call(
@@ -390,10 +392,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             );
             success; // Silence unused variable warning
         }
-        
+
         // Transfer NFT back to the user
         IERC721(collection).safeTransferFrom(address(this), msg.sender, tokenId);
-        
+
         emit NFTWithdrawn(collection, tokenId, rarity, msg.sender);
     }
 
@@ -427,7 +429,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             --userDepositCounts[item.depositor][rarity];
             --userTotalDeposits[item.depositor];
         }
-        
+
         // Update value tracking - subtract the NFT's value from user and total
         userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
         totalRarityValue[rarity] -= item.appraisedPrice;
@@ -646,11 +648,11 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             // Track user deposit counts for rewards
             userDepositCounts[msg.sender][rarity]++;
             userTotalDeposits[msg.sender]++;
-            
+
             // Track value-weighted deposits for enhanced rewards
             userDepositValues[msg.sender][rarity] += priceUSD;
             totalRarityValue[rarity] += priceUSD;
-            
+
             // Notify rewards manager about the deposit to update dividend corrections
             if (treasuryRewardsManager != address(0)) {
                 (bool success,) = treasuryRewardsManager.call(
@@ -664,7 +666,6 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         emit BatchDeposited(length, Rarity.Common); // Use a placeholder for the event
     }
-
 
     // Helper functions
     function _isValidNFTContract(address collection) private view returns (bool) {
@@ -744,7 +745,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     // ============ VALUE-WEIGHTED DIVIDEND FUNCTIONS ============
 
-    /// @notice Gets user's total deposited value for a specific rarity  
+    /// @notice Gets user's total deposited value for a specific rarity
     /// @param user User address
     /// @param rarity Rarity to check
     /// @return value Total USD value (in 18 decimals) deposited by user for the rarity
@@ -754,7 +755,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @notice Gets total value in a specific rarity pool
-    /// @param rarity Rarity to check  
+    /// @param rarity Rarity to check
     /// @return totalValue Total USD value (in 18 decimals) in the rarity pool
     function getRarityTotalValue(Rarity rarity) external view returns (uint256 totalValue) {
         return totalRarityValue[rarity];
@@ -786,41 +787,41 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     function migrateBatchNFTValues(Rarity rarity, uint256 startIndex, uint256 endIndex) external onlyOwner {
         if (endIndex > treasury[rarity].length) endIndex = treasury[rarity].length;
         if (endIndex - startIndex > 50) revert TooManyItems(); // Limit batch size
-        
+
         for (uint256 i = startIndex; i < endIndex; i++) {
             NFTItem memory item = treasury[rarity][i];
-            
+
             // Only add if not already migrated (avoid double counting)
             if (!_isNFTValueMigrated(item.collection, item.tokenId)) {
                 userDepositValues[item.depositor][rarity] += item.appraisedPrice;
                 totalRarityValue[rarity] += item.appraisedPrice;
-                
+
                 // Mark as migrated
                 _markNFTValueMigrated(item.collection, item.tokenId);
             }
         }
     }
-    
+
     // Track which NFTs have been migrated to avoid double counting
     mapping(address => mapping(uint256 => bool)) private nftValueMigrated;
-    
+
     function _isNFTValueMigrated(address collection, uint256 tokenId) private view returns (bool) {
         return nftValueMigrated[collection][tokenId];
     }
-    
+
     function _markNFTValueMigrated(address collection, uint256 tokenId) private {
         nftValueMigrated[collection][tokenId] = true;
     }
 
     /// @notice Sends a pseudo-random NFT to winner (optimized for gas)
-    /// @param rarity Rarity tier to select from  
+    /// @param rarity Rarity tier to select from
     /// @param randomSeed Random seed for selection (from VRF or similar)
     /// @param winner Winner's address
     /// @return item The NFT item that was sent
-    function sendRandomNFTToWinner(Rarity rarity, uint256 randomSeed, address winner) 
-        external 
-        onlyGacha 
-        returns (NFTItem memory item) 
+    function sendRandomNFTToWinner(Rarity rarity, uint256 randomSeed, address winner)
+        external
+        onlyGacha
+        returns (NFTItem memory item)
     {
         uint256 totalCount = treasury[rarity].length;
         if (totalCount == 0) revert NoNFTsAvailable(rarity);
@@ -836,10 +837,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @param index Index to remove
     /// @param winner Winner receiving the NFT
     /// @return item Removed NFT item
-    function _removeNFTAtIndex(Rarity rarity, uint256 index, address winner) 
-        private 
-        returns (NFTItem memory item) 
-    {
+    function _removeNFTAtIndex(Rarity rarity, uint256 index, address winner) private returns (NFTItem memory item) {
         NFTItem[] storage rarityTreasury = treasury[rarity];
         if (index >= rarityTreasury.length) revert InvalidIndex();
 
@@ -861,7 +859,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             --userDepositCounts[item.depositor][rarity];
             --userTotalDeposits[item.depositor];
         }
-        
+
         userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
         totalRarityValue[rarity] -= item.appraisedPrice;
 

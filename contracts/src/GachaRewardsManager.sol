@@ -328,11 +328,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     /// @param user User address to get analytics for
     /// @return totalClaimed Total rewards claimed by user
     /// @return totalClaimable Current claimable rewards
-    function getRewardsAnalytics(address user)
-        external
-        view
-        returns (uint256 totalClaimed, uint256 totalClaimable)
-    {
+    function getRewardsAnalytics(address user) external view returns (uint256 totalClaimed, uint256 totalClaimable) {
         totalClaimed = userTotalRewardsClaimed[user];
 
         // Calculate total claimable rewards across all rarities

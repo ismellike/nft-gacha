@@ -23,16 +23,13 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     error InvalidProtocolAddress();
     error InvalidCollection();
     error InvalidTokenId();
-    error AppraisalFeeRequired();
-    error FeePaymentFailed();
+    // Removed unused fee-related errors to reduce bytecode size
     error AppraisalNotFound();
     error AppraisalAlreadyExists();
-    error UnauthorizedOracle();
+    error AppraisalNotPending();
+    error UnauthorizedServiceHandler();
     error InvalidPrice();
-    error NoFeesToWithdraw();
-    error InvalidRecipient();
-    error OracleAlreadyAuthorized();
-    error OracleNotAuthorized();
+    // Removed unused recipient/withdrawal errors to reduce bytecode size
     error InvalidTreasuryAddress();
     error TreasuryAlreadyWhitelisted();
     error TreasuryNotWhitelisted();
@@ -59,9 +56,8 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     uint256 public appraisalFee; // Fee amount for appraisal requests
     address public protocolAddress; // Address receiving protocol fees
 
-    /// @notice Oracle management
-    mapping(address => bool) public authorizedOracles; // Approved external oracles
-    address[] public oracleList; // List of all oracles
+    /// @notice Service handler management
+    address public serviceHandler; // Authorized service handler for WAVS integration
 
     /// @notice Treasury management for automatic migration
     mapping(address => bool) public whitelistedTreasuries; // Treasuries that trigger auto-migration
@@ -90,10 +86,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
     event PriceUpdated(address indexed collection, uint256 indexed tokenId, uint256 oldPriceUSD, uint256 newPriceUSD);
 
-    event OracleAuthorized(address indexed oracle);
-    event OracleRevoked(address indexed oracle);
+    event ServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
     event AppraisalFeeUpdated(uint256 oldFee, uint256 newFee);
-    
+
     event TreasuryWhitelisted(address indexed treasury);
     event TreasuryUnwhitelisted(address indexed treasury);
     event AutoMigrationTriggered(address indexed treasury, address indexed collection, uint256 indexed tokenId);
@@ -109,9 +104,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         uint256 timestamp
     );
 
-    /// @notice Restricts access to authorized oracles
-    modifier onlyAuthorizedOracle() {
-        if (!authorizedOracles[msg.sender]) revert UnauthorizedOracle();
+    /// @notice Restricts access to authorized service handler
+    modifier onlyServiceHandler() {
+        if (msg.sender != serviceHandler) revert UnauthorizedServiceHandler();
         _;
     }
 
@@ -232,15 +227,16 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Oracle sets the appraised price for an NFT
+     * @notice Service handler sets the appraised price for an NFT
      * @param collection NFT collection address
      * @param tokenId Token ID that was appraised
      * @param priceUSD Appraised price in USD (scaled by 1e18)
      */
     function setAppraisedPrice(address collection, uint256 tokenId, uint256 priceUSD)
         external
-        onlyAuthorizedOracle
+        onlyServiceHandler
         whenNotPaused
+        nonReentrant
     {
         Appraisal storage appraisal = appraisals[collection][tokenId];
         if (appraisal.timestamp == 0) revert AppraisalNotFound();
@@ -258,7 +254,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
         if (oldPrice != priceUSD) {
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
-            
+
             // Trigger automatic migration if NFT is in a whitelisted treasury
             _triggerAutoMigration(collection, tokenId);
         }
@@ -275,6 +271,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         external
         onlyOwner
         whenNotPaused
+        nonReentrant
     {
         if (collection == address(0)) revert InvalidCollection();
         if (priceUSD == 0) revert InvalidPrice();
@@ -283,12 +280,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         uint256 oldPrice = appraisal.priceUSD;
         AppraisalStatus oldStatus = appraisal.status;
 
-        // Create appraisal if it doesn't exist
-        if (appraisal.timestamp == 0) {
-            appraisal.requester = msg.sender;
-            appraisal.timestamp = block.timestamp;
-            oldStatus = AppraisalStatus.Pending;
-        }
+        appraisal.requester = msg.sender;
+        appraisal.timestamp = block.timestamp;
+        oldStatus = AppraisalStatus.Pending;
 
         appraisal.priceUSD = priceUSD;
         appraisal.status = AppraisalStatus.OwnerOverride;
@@ -299,7 +293,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
         if (oldPrice != priceUSD) {
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
-            
+
             // Trigger automatic migration if NFT is in a whitelisted treasury
             _triggerAutoMigration(collection, tokenId);
         }
@@ -389,58 +383,36 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    // ============ ORACLE MANAGEMENT ============
+    // ============ SERVICE HANDLER MANAGEMENT ============
 
     /**
-     * @notice Authorizes an oracle to set appraisal prices
-     * @param oracle Address to authorize as oracle
+     * @notice Sets the authorized service handler address
+     * @param _serviceHandler Address of the NFTAppraisalServiceHandler contract
      */
-    function authorizeOracle(address oracle) external onlyOwner {
-        if (oracle == address(0)) revert UnauthorizedOracle();
-        if (authorizedOracles[oracle]) revert OracleAlreadyAuthorized();
+    function setServiceHandler(address _serviceHandler) external onlyOwner {
+        if (_serviceHandler == address(0)) revert UnauthorizedServiceHandler();
 
-        authorizedOracles[oracle] = true;
-        oracleList.push(oracle);
+        address oldHandler = serviceHandler;
+        serviceHandler = _serviceHandler;
 
-        emit OracleAuthorized(oracle);
+        emit ServiceHandlerUpdated(oldHandler, _serviceHandler);
     }
 
     /**
-     * @notice Revokes oracle authorization
-     * @param oracle Address to revoke authorization from
+     * @notice Gets the current service handler address
+     * @return handler Address of the authorized service handler
      */
-    function revokeOracle(address oracle) external onlyOwner {
-        if (!authorizedOracles[oracle]) revert OracleNotAuthorized();
-
-        authorizedOracles[oracle] = false;
-
-        // Remove from oracle list
-        for (uint256 i = 0; i < oracleList.length; i++) {
-            if (oracleList[i] == oracle) {
-                oracleList[i] = oracleList[oracleList.length - 1];
-                oracleList.pop();
-                break;
-            }
-        }
-
-        emit OracleRevoked(oracle);
+    function getServiceHandler() external view returns (address handler) {
+        return serviceHandler;
     }
 
     /**
-     * @notice Gets all authorized oracles
-     * @return oracles Array of authorized oracle addresses
+     * @notice Checks if an address is the authorized service handler
+     * @param handler Address to check
+     * @return isAuthorized True if address is the authorized service handler
      */
-    function getAuthorizedOracles() external view returns (address[] memory oracles) {
-        return oracleList;
-    }
-
-    /**
-     * @notice Checks if an address is an authorized oracle
-     * @param oracle Address to check
-     * @return isAuthorized True if address is authorized oracle
-     */
-    function isAuthorizedOracle(address oracle) external view returns (bool isAuthorized) {
-        return authorizedOracles[oracle];
+    function isServiceHandler(address handler) external view returns (bool isAuthorized) {
+        return handler == serviceHandler;
     }
 
     // ============ CONFIGURATION MANAGEMENT ============
@@ -494,13 +466,13 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
     /**
      * @notice Remove a treasury from the whitelist
-     * @param treasury Treasury contract address  
+     * @param treasury Treasury contract address
      */
     function unwhitelistTreasury(address treasury) external onlyOwner {
         if (!whitelistedTreasuries[treasury]) revert TreasuryNotWhitelisted();
 
         whitelistedTreasuries[treasury] = false;
-        
+
         // Remove from treasuryList array
         for (uint256 i = 0; i < treasuryList.length; i++) {
             if (treasuryList[i] == treasury) {
@@ -509,7 +481,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
                 break;
             }
         }
-        
+
         emit TreasuryUnwhitelisted(treasury);
     }
 
@@ -521,14 +493,14 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     function _triggerAutoMigration(address collection, uint256 tokenId) internal {
         // Check if the NFT owner is a whitelisted treasury
         address nftOwner = IERC721(collection).ownerOf(tokenId);
-        
+
         if (whitelistedTreasuries[nftOwner]) {
             // Call the treasury's migration function
             // Use low-level call to prevent revert from failing this transaction
-            (bool success,) = nftOwner.call(
+            (bool success,) = nftOwner.call{gas: 100_000}(
                 abi.encodeWithSignature("migrateNFTRarity(address,uint256)", collection, tokenId)
             );
-            
+
             if (success) {
                 emit AutoMigrationTriggered(nftOwner, collection, tokenId);
             }

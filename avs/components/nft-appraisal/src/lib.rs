@@ -21,28 +21,7 @@ use erc721_client::ERC721Client;
 use event_parser::{AppraisalRequest, EventParser};
 use pokemon_client::PokemonPriceClient;
 
-// Define the NFT appraisal request event structure
-sol! {
-    event AppraisalRequested(address indexed nftContract, uint256 indexed tokenId);
-}
-
-// Define distinct ABI payloads for success vs error
-sol! {
-    struct AppraisalSuccess {
-        string chain;
-        address contractAddress;
-        uint256 tokenId;
-        uint256 price; // USDC-style 6 decimals
-        bytes32 txHash;
-    }
-    struct AppraisalError {
-        string chain;
-        address contractAddress;
-        uint256 tokenId;
-        string error;
-        bytes32 txHash;
-    }
-}
+sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 
 struct Component;
 

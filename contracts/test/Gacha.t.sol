@@ -605,7 +605,7 @@ contract GachaTest is Test {
         uint256 trigger3 = gacha.spin();
         vm.stopPrank();
 
-        // User2 performs 2 spins  
+        // User2 performs 2 spins
         vm.startPrank(user2);
         uint256 trigger4 = gacha.spin();
         uint256 trigger5 = gacha.spin();
@@ -649,7 +649,7 @@ contract GachaTest is Test {
         vm.stopPrank();
 
         // Initial analytics should be all zeros
-        (uint256 totalSpins, uint256 totalRefunds, uint256 totalReclaims, uint256[5] memory rarityWins) = 
+        (uint256 totalSpins, uint256 totalRefunds, uint256 totalReclaims, uint256[5] memory rarityWins) =
             gacha.getUserAnalytics(user1);
         assertEq(totalSpins, 0);
         assertEq(totalRefunds, 0);
@@ -685,7 +685,7 @@ contract GachaTest is Test {
         assertEq(rarityWins[4], 0, "Should have 0 legendary wins");
 
         // Check global analytics
-        (uint256 globalSpins, uint256 globalRefunds, uint256 globalReclaims, uint256[5] memory globalRarityWinCounts) = 
+        (uint256 globalSpins, uint256 globalRefunds, uint256 globalReclaims, uint256[5] memory globalRarityWinCounts) =
             gacha.getGlobalAnalytics();
         assertEq(globalSpins, 3, "Global spins should be 3");
         assertEq(globalRefunds, 0, "Global refunds should be 0");

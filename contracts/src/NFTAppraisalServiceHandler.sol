@@ -4,6 +4,12 @@ pragma solidity ^0.8.27;
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IWavsServiceHandler} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
 import {NFTAppraisal} from "./NFTAppraisal.sol";
+import {
+    AppraisalSuccess,
+    AppraisalError,
+    AppraisalSuccessReceived,
+    AppraisalErrorReceived
+} from "./interfaces/NFTAppraisalTypes.sol";
 
 /**
  * @title NFTAppraisalServiceHandler - WAVS Randomness Integration for NFT Appraisal
@@ -18,20 +24,7 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
     /// @notice NFT Appraisal contract that receives appraisal data
     NFTAppraisal private immutable _appraisalContract;
 
-    /// @notice Payload structure for WAVS-based NFT appraisal data
-    struct AppraisalPayload {
-        address collection; // NFT collection address
-        uint256 tokenId; // Token ID being appraised
-        uint256 priceUSD; // Appraised price in USD (scaled by 1e18)
-        bytes32 requestId; // Unique identifier for the appraisal request
-        uint256 timestamp; // Timestamp of the appraisal
-    }
-
     /// @notice Events for tracking appraisal operations
-    event AppraisalDataReceived(
-        address indexed collection, uint256 indexed tokenId, uint256 priceUSD, bytes32 requestId, uint256 timestamp
-    );
-
     event AppraisalProcessed(
         address indexed collection, uint256 indexed tokenId, uint256 priceUSD, bool success, uint256 timestamp
     );
@@ -87,44 +80,113 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
         // Validate the envelope signature through WAVS service manager
         _serviceManager.validate(envelope, signatureData);
 
-        // Decode the appraisal payload
-        AppraisalPayload memory payload = abi.decode(envelope.payload, (AppraisalPayload));
+        // Try to decode as AppraisalSuccess first
+        (bool isSuccess, bool success) = _tryProcessSuccess(envelope.payload);
 
-        // Validate appraisal data
-        if (payload.collection == address(0)) revert InvalidAppraisalData();
-        if (payload.priceUSD == 0) revert InvalidAppraisalData();
-
-        // Emit event for monitoring
-        emit AppraisalDataReceived(
-            payload.collection, payload.tokenId, payload.priceUSD, payload.requestId, block.timestamp
-        );
-
-        // Set the appraised price in the NFTAppraisal contract
-        bool success = _processAppraisal(payload);
-
-        emit AppraisalProcessed(payload.collection, payload.tokenId, payload.priceUSD, success, block.timestamp);
-
-        if (!success) {
-            emit ServiceHandlerStatusUpdate("processAppraisal", false, "Failed to process appraisal", block.timestamp);
-            revert AppraisalProcessingFailed();
-        } else {
+        if (isSuccess) {
+            if (!success) {
+                emit ServiceHandlerStatusUpdate(
+                    "processAppraisal", false, "Failed to process successful appraisal", block.timestamp
+                );
+                revert AppraisalProcessingFailed();
+            }
             emit ServiceHandlerStatusUpdate(
                 "processAppraisal", true, "Successfully processed appraisal", block.timestamp
             );
+            return;
+        }
+
+        // If not success payload, try to decode as AppraisalError
+        _processError(envelope.payload);
+    }
+
+    /**
+     * @dev Internal function to try processing a successful appraisal payload
+     * @param payload The encoded payload to decode and process
+     * @return isSuccess True if payload was successfully decoded as AppraisalSuccess
+     * @return processed True if the appraisal was successfully processed
+     */
+    function _tryProcessSuccess(bytes calldata payload) internal returns (bool isSuccess, bool processed) {
+        try this._decodeSuccess(payload) returns (AppraisalSuccess memory successPayload) {
+            // Validate appraisal data
+            if (successPayload.contractAddress == address(0)) return (true, false);
+            if (successPayload.price == 0) return (true, false);
+
+            // Emit event for monitoring
+            emit AppraisalSuccessReceived(
+                successPayload.chain,
+                successPayload.contractAddress,
+                successPayload.tokenId,
+                successPayload.price,
+                successPayload.txHash
+            );
+
+            // Convert USDC 6-decimal price to 18-decimal for contract
+            uint256 priceUSD18 = successPayload.price * 1e12;
+
+            // Set the appraised price in the NFTAppraisal contract
+            try _appraisalContract.setAppraisedPrice(successPayload.contractAddress, successPayload.tokenId, priceUSD18)
+            {
+                emit AppraisalProcessed(
+                    successPayload.contractAddress, successPayload.tokenId, priceUSD18, true, block.timestamp
+                );
+                return (true, true);
+            } catch {
+                emit AppraisalProcessed(
+                    successPayload.contractAddress, successPayload.tokenId, priceUSD18, false, block.timestamp
+                );
+                return (true, false);
+            }
+        } catch {
+            return (false, false);
         }
     }
 
     /**
-     * @dev Internal function to process the appraisal by calling the NFTAppraisal contract
-     * @param payload The appraisal data payload
-     * @return success True if the appraisal was successfully processed
+     * @dev Internal function to process an error appraisal payload
+     * @param payload The encoded error payload to decode and emit
      */
-    function _processAppraisal(AppraisalPayload memory payload) internal returns (bool success) {
-        try _appraisalContract.setAppraisedPrice(payload.collection, payload.tokenId, payload.priceUSD) {
-            return true;
+    function _processError(bytes calldata payload) internal {
+        try this._decodeError(payload) returns (AppraisalError memory errorPayload) {
+            // Emit error event for monitoring
+            emit AppraisalErrorReceived(
+                errorPayload.chain,
+                errorPayload.contractAddress,
+                errorPayload.tokenId,
+                errorPayload.error,
+                errorPayload.txHash
+            );
+
+            emit ServiceHandlerStatusUpdate(
+                "processAppraisal",
+                false,
+                string(abi.encodePacked("Appraisal error: ", errorPayload.error)),
+                block.timestamp
+            );
         } catch {
-            return false;
+            emit ServiceHandlerStatusUpdate(
+                "processAppraisal", false, "Failed to decode appraisal payload as success or error", block.timestamp
+            );
+            revert InvalidAppraisalData();
         }
+    }
+
+    /**
+     * @dev External function for safe ABI decoding of success payload
+     * @param payload The encoded success payload
+     * @return The decoded AppraisalSuccess struct
+     */
+    function _decodeSuccess(bytes calldata payload) external pure returns (AppraisalSuccess memory) {
+        return abi.decode(payload, (AppraisalSuccess));
+    }
+
+    /**
+     * @dev External function for safe ABI decoding of error payload
+     * @param payload The encoded error payload
+     * @return The decoded AppraisalError struct
+     */
+    function _decodeError(bytes calldata payload) external pure returns (AppraisalError memory) {
+        return abi.decode(payload, (AppraisalError));
     }
 
     /**
