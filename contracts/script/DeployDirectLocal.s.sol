@@ -83,6 +83,7 @@ contract DeployDirectLocal is Script {
             deployer,
             address(gacha), // real gacha address
             address(treasury),
+            address(appraisalContract),
             deployer, // protocol address
             address(testToken)
         );
@@ -116,27 +117,7 @@ contract DeployDirectLocal is Script {
         treasury.setPriceRange(GachaTreasury.Rarity.Epic, 400 * 1e18, 999 * 1e18); // $400-999 (6 cards)
         treasury.setPriceRange(GachaTreasury.Rarity.Legendary, 1000 * 1e18, type(uint256).max); // $1000+ (4 cards)
 
-        console.log("Deploying rarity dividend trackers...");
-        rewardsManager.deployAllRarityTokens();
-
-        // Get the deployed rarity token addresses
-        address commonTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Common));
-        address uncommonTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Uncommon));
-        address rareTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Rare));
-        address epicTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Epic));
-        address legendaryTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Legendary));
-
-        console.log("Common Tracker:      ", commonTracker);
-        console.log("Uncommon Tracker:    ", uncommonTracker);
-        console.log("Rare Tracker:        ", rareTracker);
-        console.log("Epic Tracker:        ", epicTracker);
-        console.log("Legendary Tracker:   ", legendaryTracker);
-
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Common, 10000);
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Uncommon, 12000);
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Rare, 15000);
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Epic, 20000);
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Legendary, 30000);
+        console.log("Rewards manager deployed and configured...");
         treasury.setTreasuryRewardsManager(address(rewardsManager));
 
         console.log("\\n=== System Deployed Successfully ===");
@@ -180,11 +161,6 @@ contract DeployDirectLocal is Script {
             address(appraisalContract),
             address(treasury),
             address(rewardsManager),
-            commonTracker,
-            uncommonTracker,
-            rareTracker,
-            epicTracker,
-            legendaryTracker,
             address(pokemonNFT)
         );
 
@@ -219,10 +195,10 @@ contract DeployDirectLocal is Script {
             console.log("Minted Pokemon NFT", i + 1, "with token ID:", tokenId);
             console.log("Estimated value: $", estimatedValue / 1e18);
 
-            // Appraise cards 3-35 to include all rarities (skip first 3 common cards)
+            // TODO: Implement proper card ID linking and appraisal in test setup
+            // For now, we'll skip card-level testing and focus on rarity-level functionality
             if (i >= 3 && i < 36) {
-                appraisalContract.overrideAppraisal(address(nftContract), tokenId, estimatedValue);
-                console.log("Appraised NFT", tokenId, "at $", estimatedValue / 1e18);
+                console.log("TODO: Add card-level appraisal for NFT", tokenId, "at $", estimatedValue / 1e18);
 
                 // Add to deposit arrays (shift index since we start from i=3)
                 depositTokens[i - 3] = address(nftContract);
@@ -364,11 +340,6 @@ contract DeployDirectLocal is Script {
         address nftAppraisal,
         address treasury,
         address rewardsManager,
-        address commonTracker,
-        address uncommonTracker,
-        address rareTracker,
-        address epicTracker,
-        address legendaryTracker,
         address nftCollection
     ) internal {
         string memory addresses = string(
@@ -388,21 +359,6 @@ contract DeployDirectLocal is Script {
                 "\n",
                 "REWARDS_MANAGER_ADDRESS=",
                 vm.toString(rewardsManager),
-                "\n",
-                "COMMON_TRACKER_ADDRESS=",
-                vm.toString(commonTracker),
-                "\n",
-                "UNCOMMON_TRACKER_ADDRESS=",
-                vm.toString(uncommonTracker),
-                "\n",
-                "RARE_TRACKER_ADDRESS=",
-                vm.toString(rareTracker),
-                "\n",
-                "EPIC_TRACKER_ADDRESS=",
-                vm.toString(epicTracker),
-                "\n",
-                "LEGENDARY_TRACKER_ADDRESS=",
-                vm.toString(legendaryTracker),
                 "\n",
                 "NFT_COLLECTION_ADDRESS=",
                 vm.toString(nftCollection),

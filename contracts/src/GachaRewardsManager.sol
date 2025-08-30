@@ -6,12 +6,12 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {RarityDividendTracker} from "./RarityDividendTracker.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {Gacha} from "./Gacha.sol";
+import {NFTAppraisal} from "./NFTAppraisal.sol";
 
-/// @title GachaRewardsManager - Factory and Manager for Rarity Dividend Tokens
-/// @notice Distributes gacha spin fees to rarity dividend trackers based on rarity weights
+/// @title GachaRewardsManager - Three-tier ERC2222-style accrual system
+/// @notice Implements single Treasury custody with three-tier cumulative meters
 contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -20,50 +20,73 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     error InvalidTreasuryContract();
     error InvalidProtocolAddress();
     error InvalidFeeToken();
-    error InvalidWeights();
-    error TokenNotDeployed();
-    error NoFundsToWithdraw();
     error UnauthorizedGachaContract();
     error UnauthorizedTreasuryContract();
+    error NoFundsToWithdraw();
+    error CardNotFound();
+    error InvalidDelta();
     error CalculationOverflow();
-    error DustThresholdExceeded();
 
     // Constants
-    uint256 public constant REWARDS_PERCENTAGE = 9000; // 90% to rewards
     uint256 public constant PROTOCOL_PERCENTAGE = 1000; // 10% to protocol
     uint256 public constant PERCENTAGE_DENOMINATOR = 10000;
+    uint256 public constant PRECISION = 1e18; // Fixed-point precision for meters
+    uint256 public constant GAMMA_PRECISION = 1e6; // Precision for gamma exponent
 
     // References
-    Gacha public gachaContract;
+    Gacha public immutable gachaContract;
     GachaTreasury public immutable treasuryContract;
+    NFTAppraisal public immutable appraisalContract;
     IERC20 public immutable feeToken;
     address public protocolAddress;
 
-    // Trackers per rarity
-    mapping(GachaTreasury.Rarity => RarityDividendTracker) public rarityTokens;
-    mapping(GachaTreasury.Rarity => uint256) public rarityMultipliers;
+    // Configuration
+    uint256 public delta = 9000; // 90% to depositors (δ in spec), remaining 10% can be bonus
+    uint256 public gamma = GAMMA_PRECISION; // Exponent for price weighting (γ≈0.9-1.0)
 
-    // Stats
-    uint256 public totalFeesDistributed;
-    uint256 public totalProtocolFees;
-    mapping(address => uint256) public userTotalRewardsClaimed;
+    // Tier 1: Rarity meters - cumulative per-card-weight
+    // rarityMeter[rarity] = cumulative (δ·D)/TotalCardWeight_r
+    mapping(GachaTreasury.Rarity => uint256) public rarityMeters;
+    mapping(GachaTreasury.Rarity => uint256) public totalCardWeights;
 
-    // Dust handling
-    uint256 public accumulatedDust;
-    uint256 private constant DUST_THRESHOLD = 1e15; // 0.001 tokens
+    // Tier 2: Card tracking
+    struct CardTracker {
+        uint256 perUnitMeter; // Cumulative per-unit accrual
+        uint256 raritySnapshot; // Snapshot of rarity meter when last settled
+        uint256 totalUnits; // Total units (deposits) for this card
+        uint256 cardWeight; // W_c = price_c^γ * q_c
+        uint256 lastPrice; // Last known price for weight calculations
+        bool exists; // Whether this card tracker exists
+        uint256 stashedBonus; // Bonus funds stashed when TotalUnits was 0
+    }
 
-    // Access control optimization
-    mapping(address => bool) private isValidRarityTracker;
+    mapping(GachaTreasury.Rarity => mapping(bytes32 => CardTracker)) public cardTrackers;
+
+    // Tier 3: User tracking
+    struct UserSnapshot {
+        uint256 perUnitSnapshot; // User's snapshot of card's per-unit meter
+        uint256 units; // User's units in this card
+    }
+
+    mapping(address => mapping(GachaTreasury.Rarity => mapping(bytes32 => UserSnapshot))) public userSnapshots;
+
+    // Single Treasury custody
+    uint256 public totalAccrued; // Total USDC accrued for rewards
+    uint256 public totalClaimed; // Total USDC claimed by users
+    uint256 public totalProtocolFees; // Total protocol fees collected
 
     // Events
-    event RarityTokenDeployed(GachaTreasury.Rarity indexed rarity, address indexed tokenAddress);
-    event FeesDistributed(uint256 totalAmount, uint256 rewardsAmount, uint256 protocolAmount);
-    event RarityFundsDistributed(GachaTreasury.Rarity indexed rarity, uint256 amount);
+    event SpinProcessed(GachaTreasury.Rarity rarity, uint256 depositorShare, uint256 protocolFee);
+    event CardTrackerCreated(GachaTreasury.Rarity rarity, bytes32 cardId, uint256 initialWeight);
+    event CardReappraised(GachaTreasury.Rarity rarity, bytes32 cardId, uint256 oldWeight, uint256 newWeight);
+    event CardMigrated(bytes32 cardId, GachaTreasury.Rarity fromRarity, GachaTreasury.Rarity toRarity);
+    event RewardsAccrued(address indexed user, GachaTreasury.Rarity rarity, bytes32 cardId, uint256 amount);
+    event RewardsClaimed(address indexed user, uint256 amount);
+    event BonusStashed(GachaTreasury.Rarity rarity, bytes32 cardId, uint256 amount);
+    event BonusDistributed(GachaTreasury.Rarity rarity, bytes32 cardId, uint256 amount);
     event ProtocolAddressUpdated(address indexed oldProtocol, address indexed newProtocol);
-    event DepositRecorded(address indexed depositor, GachaTreasury.Rarity indexed rarity);
-    event NFTWonRecorded(address indexed depositor, GachaTreasury.Rarity indexed rarity);
-    event UserRewardsClaimed(address indexed user, uint256 amount);
-    event SpinRecorded(address indexed user);
+    event DeltaUpdated(uint256 oldDelta, uint256 newDelta);
+    event GammaUpdated(uint256 oldGamma, uint256 newGamma);
 
     modifier onlyGachaContract() {
         if (msg.sender != address(gachaContract)) revert UnauthorizedGachaContract();
@@ -79,207 +102,372 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         address _owner,
         address _gachaContract,
         address _treasuryContract,
+        address _appraisalContract,
         address _protocolAddress,
         address _feeToken
     ) Ownable(_owner) {
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         if (_treasuryContract == address(0)) revert InvalidTreasuryContract();
+        if (_appraisalContract == address(0)) revert InvalidTreasuryContract(); // Reuse error
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
-        // Note: _feeToken can be address(0) for zero-fee gacha systems
+        if (_feeToken == address(0)) revert InvalidFeeToken();
 
         gachaContract = Gacha(_gachaContract);
         treasuryContract = GachaTreasury(_treasuryContract);
+        appraisalContract = NFTAppraisal(_appraisalContract);
         protocolAddress = _protocolAddress;
-        if (_feeToken != address(0)) {
-            feeToken = IERC20(_feeToken);
+        feeToken = IERC20(_feeToken);
+    }
+
+    /// @notice Process spin fees using three-tier accrual system
+    /// @param totalFeeAmount Total fee collected from spin
+    /// @param hitRarity The rarity that was hit by this spin
+    function processSpinRewards(uint256 totalFeeAmount, GachaTreasury.Rarity hitRarity)
+        external
+        onlyGachaContract
+        nonReentrant
+        whenNotPaused
+    {
+        if (totalFeeAmount == 0) return;
+
+        // Calculate protocol fee and depositor share
+        uint256 protocolFee = (totalFeeAmount * PROTOCOL_PERCENTAGE) / PERCENTAGE_DENOMINATOR;
+        uint256 depositorShare = totalFeeAmount - protocolFee;
+
+        // Transfer all funds to this contract (Treasury custody)
+        feeToken.safeTransferFrom(msg.sender, address(this), totalFeeAmount);
+
+        // Update accounting
+        totalAccrued += depositorShare;
+        totalProtocolFees += protocolFee;
+
+        // Tier 1: Add to rarity meter based on card weights
+        uint256 totalWeight = totalCardWeights[hitRarity];
+        if (totalWeight > 0) {
+            uint256 deltaShare = (depositorShare * delta) / PERCENTAGE_DENOMINATOR;
+            uint256 rarityIncrease = (deltaShare * PRECISION) / totalWeight;
+            rarityMeters[hitRarity] += rarityIncrease;
         }
 
-        // Set default rarity multipliers (in basis points)
-        rarityMultipliers[GachaTreasury.Rarity.Common] = 10000; // 1.0x
-        rarityMultipliers[GachaTreasury.Rarity.Uncommon] = 12000; // 1.2x
-        rarityMultipliers[GachaTreasury.Rarity.Rare] = 15000; // 1.5x
-        rarityMultipliers[GachaTreasury.Rarity.Epic] = 20000; // 2.0x
-        rarityMultipliers[GachaTreasury.Rarity.Legendary] = 30000; // 3.0x
+        // Handle protocol fee transfer
+        if (protocolFee > 0) {
+            feeToken.safeTransfer(protocolAddress, protocolFee);
+        }
+
+        emit SpinProcessed(hitRarity, depositorShare, protocolFee);
     }
 
-    /// @notice Deploys dividend trackers for all 5 rarities
-    function deployAllRarityTokens() external onlyOwner {
-        _deployRarityToken(GachaTreasury.Rarity.Common);
-        _deployRarityToken(GachaTreasury.Rarity.Uncommon);
-        _deployRarityToken(GachaTreasury.Rarity.Rare);
-        _deployRarityToken(GachaTreasury.Rarity.Epic);
-        _deployRarityToken(GachaTreasury.Rarity.Legendary);
+    /// @notice Settle a card against its rarity meter (Tier 1 → Tier 2)
+    /// @param rarity The rarity of the card
+    /// @param cardId The card to settle
+    function settleCard(GachaTreasury.Rarity rarity, bytes32 cardId) public {
+        CardTracker storage card = cardTrackers[rarity][cardId];
+        if (!card.exists) return;
+
+        uint256 currentRarityMeter = rarityMeters[rarity];
+        uint256 accrualSinceSnapshot = currentRarityMeter - card.raritySnapshot;
+
+        if (accrualSinceSnapshot > 0) {
+            // Add card's share to its per-unit meter
+            uint256 cardShare = (accrualSinceSnapshot * card.cardWeight) / PRECISION;
+            if (card.totalUnits > 0) {
+                card.perUnitMeter += (cardShare * PRECISION) / card.totalUnits;
+            } else {
+                // Stash bonus until units exist
+                card.stashedBonus += cardShare;
+                emit BonusStashed(rarity, cardId, cardShare);
+            }
+
+            // Update snapshot
+            card.raritySnapshot = currentRarityMeter;
+        }
     }
 
-    function _deployRarityToken(GachaTreasury.Rarity rarity) private {
-        RarityDividendTracker token = new RarityDividendTracker(address(feeToken), address(treasuryContract), rarity);
-        // Note: token is deployed with this contract as owner, transfer ownership in separate call after setup
-        token.setRewardsManager(address(this));
-        token.transferOwnership(owner());
-        rarityTokens[rarity] = token;
+    /// @notice Calculate user's claimable rewards for a specific card
+    /// @param user User address
+    /// @param rarity Card rarity
+    /// @param cardId Card ID
+    /// @return claimable Amount user can claim
+    function getUserCardClaimable(address user, GachaTreasury.Rarity rarity, bytes32 cardId)
+        public
+        view
+        returns (uint256 claimable)
+    {
+        CardTracker storage card = cardTrackers[rarity][cardId];
+        if (!card.exists) return 0;
 
-        // Register in mapping for faster access control
-        isValidRarityTracker[address(token)] = true;
+        UserSnapshot storage userSnap = userSnapshots[user][rarity][cardId];
+        if (userSnap.units == 0) return 0;
 
-        emit RarityTokenDeployed(rarity, address(token));
+        // Calculate current per-unit meter (including pending settlement)
+        uint256 currentPerUnitMeter = card.perUnitMeter;
+        uint256 currentRarityMeter = rarityMeters[rarity];
+        uint256 pendingAccrual = currentRarityMeter - card.raritySnapshot;
+
+        if (pendingAccrual > 0 && card.totalUnits > 0) {
+            uint256 cardShare = (pendingAccrual * card.cardWeight) / PRECISION;
+            currentPerUnitMeter += (cardShare * PRECISION) / card.totalUnits;
+        }
+
+        // Calculate user's share
+        uint256 perUnitDiff = currentPerUnitMeter - userSnap.perUnitSnapshot;
+        claimable = (userSnap.units * perUnitDiff) / PRECISION;
     }
 
-    /// @notice Updates the reward multiplier for a given rarity
-    /// @param rarity The rarity to update
-    /// @param multiplierBps The multiplier in basis points (e.g., 10000 = 1.0x, 15000 = 1.5x)
-    function setRarityMultiplier(GachaTreasury.Rarity rarity, uint256 multiplierBps) external onlyOwner {
-        if (multiplierBps == 0) revert InvalidWeights();
-        rarityMultipliers[rarity] = multiplierBps;
+    /// @notice Check if a card exists in a specific rarity (for migration tracking)
+    /// @param rarity Rarity to check
+    /// @param cardId Card ID to check
+    /// @return exists True if card tracker exists and is active
+    function cardExists(GachaTreasury.Rarity rarity, bytes32 cardId) external view returns (bool exists) {
+        CardTracker storage card = cardTrackers[rarity][cardId];
+        return card.exists; // Card exists if tracker was created, regardless of units
     }
 
-    /// @notice Distributes a spin fee to all rarity trackers based on weights
-    function distributeSpinRewards(uint256 totalFeeAmount) external onlyGachaContract nonReentrant {
-        if (totalFeeAmount == 0 || address(feeToken) == address(0)) return;
-
-        // Note: Spin statistics are now tracked in the Gacha contract
-
-        uint256 rewardsAmount = (totalFeeAmount * REWARDS_PERCENTAGE) / PERCENTAGE_DENOMINATOR;
-        uint256 protocolAmount = totalFeeAmount - rewardsAmount;
-
-        (uint256 commonWeight, uint256 uncommonWeight, uint256 rareWeight, uint256 epicWeight, uint256 legendaryWeight)
-        = gachaContract.getRarityWeights();
-
-        // Apply multipliers
-        uint256[5] memory baseWeights = [commonWeight, uncommonWeight, rareWeight, epicWeight, legendaryWeight];
-        uint256[5] memory effectiveWeights;
-        uint256 totalEffectiveWeight;
-
+    /// @notice Find which rarity a card is currently active in (post-migration)
+    /// @param cardId Card ID to locate
+    /// @return activeRarity The rarity where this card is currently active
+    /// @return found True if card is found and active
+    function findActiveCardRarity(bytes32 cardId)
+        external
+        view
+        returns (GachaTreasury.Rarity activeRarity, bool found)
+    {
+        // Check all rarities for active card
         for (uint8 i = 0; i < 5; i++) {
             GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
-            uint256 base = baseWeights[i];
-            uint256 multiplier = rarityMultipliers[rarity];
-
-            if (base > 0 && multiplier > 0) {
-                effectiveWeights[i] = (base * multiplier) / PERCENTAGE_DENOMINATOR;
-                totalEffectiveWeight += effectiveWeights[i];
+            CardTracker storage card = cardTrackers[rarity][cardId];
+            if (card.exists && card.totalUnits > 0) {
+                return (rarity, true);
             }
         }
-
-        if (totalEffectiveWeight == 0) revert InvalidWeights();
-
-        // Calculate all amounts first to handle dust properly
-        uint256 distributedTotal = 0;
-        uint256[5] memory amounts;
-
-        for (uint8 i = 0; i < 5; i++) {
-            if (effectiveWeights[i] == 0) continue;
-            amounts[i] = (rewardsAmount * effectiveWeights[i]) / totalEffectiveWeight;
-            distributedTotal += amounts[i];
-        }
-
-        // Handle dust accumulation
-        uint256 currentDust = rewardsAmount - distributedTotal;
-        accumulatedDust += currentDust;
-
-        // Redistribute accumulated dust when threshold is reached
-        if (accumulatedDust >= DUST_THRESHOLD) {
-            _redistributeDust(amounts, effectiveWeights, totalEffectiveWeight);
-        }
-
-        // Distribute to each rarity proportionally
-        for (uint8 i = 0; i < 5; i++) {
-            if (amounts[i] == 0) continue;
-
-            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
-            RarityDividendTracker token = rarityTokens[rarity];
-            if (address(token) == address(0)) revert TokenNotDeployed();
-
-            feeToken.safeIncreaseAllowance(address(token), amounts[i]);
-            token.distributeFunds(amounts[i]);
-
-            emit RarityFundsDistributed(rarity, amounts[i]);
-        }
-
-        // Protocol fee
-        if (protocolAmount > 0) {
-            feeToken.safeTransfer(protocolAddress, protocolAmount);
-            totalProtocolFees += protocolAmount;
-        }
-
-        totalFeesDistributed += totalFeeAmount;
-        emit FeesDistributed(totalFeeAmount, rewardsAmount, protocolAmount);
+        return (GachaTreasury.Rarity.Common, false); // Default, not found
     }
 
-    /// @notice Redistributes accumulated dust to rarity trackers proportionally
-    /// @param amounts Array of distribution amounts to modify
-    /// @param effectiveWeights Array of effective weights for proportional distribution
-    /// @param totalEffectiveWeight Total weight for calculations
-    function _redistributeDust(
-        uint256[5] memory amounts,
-        uint256[5] memory effectiveWeights,
-        uint256 totalEffectiveWeight
-    ) private {
-        uint256 dustToDistribute = accumulatedDust;
-        accumulatedDust = 0;
+    /// @notice Claim rewards for a specific card (Tier 3)
+    /// @param rarity Card rarity
+    /// @param cardId Card ID
+    function claimCardRewards(GachaTreasury.Rarity rarity, bytes32 cardId) external nonReentrant whenNotPaused {
+        // First settle the card
+        settleCard(rarity, cardId);
 
-        // Find the rarity with the largest effective weight to add any remaining dust
-        uint8 largestWeightIndex = 0;
-        uint256 largestWeight = 0;
+        CardTracker storage card = cardTrackers[rarity][cardId];
+        UserSnapshot storage userSnap = userSnapshots[msg.sender][rarity][cardId];
 
-        // Distribute dust proportionally and track distributed amount
-        uint256 dustDistributed = 0;
-        for (uint8 i = 0; i < 5; i++) {
-            if (effectiveWeights[i] > 0) {
-                uint256 dustShare = (dustToDistribute * effectiveWeights[i]) / totalEffectiveWeight;
-                amounts[i] += dustShare;
-                dustDistributed += dustShare;
+        if (userSnap.units == 0) revert NoFundsToWithdraw();
 
-                // Track largest weight for remainder distribution
-                if (effectiveWeights[i] > largestWeight) {
-                    largestWeight = effectiveWeights[i];
-                    largestWeightIndex = i;
-                }
+        uint256 claimableAmount = (userSnap.units * (card.perUnitMeter - userSnap.perUnitSnapshot)) / PRECISION;
+        if (claimableAmount == 0) revert NoFundsToWithdraw();
+
+        // Update user snapshot (ERC2222 pattern)
+        userSnap.perUnitSnapshot = card.perUnitMeter;
+
+        // Update total claimed
+        totalClaimed += claimableAmount;
+
+        // Single transfer: Treasury → user
+        feeToken.safeTransfer(msg.sender, claimableAmount);
+
+        emit RewardsClaimed(msg.sender, claimableAmount);
+    }
+
+    /// @notice Create or update card tracker on deposit/withdrawal/reappraisal
+    /// @param rarity Card rarity
+    /// @param cardId Card ID
+    /// @param userAddress User making deposit/withdrawal
+    /// @param unitsDelta Change in user's units (+/- for deposit/withdrawal)
+    function updateUserUnits(GachaTreasury.Rarity rarity, bytes32 cardId, address userAddress, int256 unitsDelta)
+        external
+        onlyTreasuryContract
+    {
+        // Settle card first
+        settleCard(rarity, cardId);
+
+        CardTracker storage card = cardTrackers[rarity][cardId];
+        UserSnapshot storage userSnap = userSnapshots[userAddress][rarity][cardId];
+
+        // Create card tracker if it doesn't exist
+        if (!card.exists) {
+            _createCardTracker(rarity, cardId);
+        }
+
+        // Update user's snapshot to current before changing units
+        userSnap.perUnitSnapshot = card.perUnitMeter;
+
+        // Update units
+        if (unitsDelta > 0) {
+            userSnap.units += uint256(unitsDelta);
+            card.totalUnits += uint256(unitsDelta);
+
+            // Distribute any stashed bonus now that we have units
+            if (card.stashedBonus > 0 && card.totalUnits > 0) {
+                card.perUnitMeter += (card.stashedBonus * PRECISION) / card.totalUnits;
+                emit BonusDistributed(rarity, cardId, card.stashedBonus);
+                card.stashedBonus = 0;
             }
+        } else if (unitsDelta < 0) {
+            uint256 unitsToRemove = uint256(-unitsDelta);
+            require(userSnap.units >= unitsToRemove, "Insufficient units");
+            require(card.totalUnits >= unitsToRemove, "Insufficient total units");
+
+            userSnap.units -= unitsToRemove;
+            card.totalUnits -= unitsToRemove;
         }
 
-        // Add any remaining dust to the largest weight category
-        if (dustDistributed < dustToDistribute && largestWeight > 0) {
-            amounts[largestWeightIndex] += (dustToDistribute - dustDistributed);
+        // Update card weight since total units changed: W_c = price_c^γ * q_c
+        _updateCardWeight(rarity, cardId);
+
+        emit RewardsAccrued(userAddress, rarity, cardId, 0); // Amount is calculated dynamically
+    }
+
+    /// @notice Create a new card tracker (Tier 2 instantiation)
+    /// @param rarity Card rarity
+    /// @param cardId Card ID
+    function _createCardTracker(GachaTreasury.Rarity rarity, bytes32 cardId) internal {
+        CardTracker storage card = cardTrackers[rarity][cardId];
+        require(!card.exists, "Card already exists");
+
+        // Get card price for weight calculation
+        NFTAppraisal.CardAppraisal memory cardAppraisal = appraisalContract.getCardAppraisal(cardId);
+        require(cardAppraisal.priceUSD > 0, "Card not appraised");
+
+        // Calculate initial weight: W_c = price_c^γ * q_c (q_c starts at 0)
+        uint256 priceWeight = _calculatePriceWeight(cardAppraisal.priceUSD);
+
+        card.perUnitMeter = 0;
+        card.raritySnapshot = rarityMeters[rarity]; // Snapshot current rarity meter
+        card.totalUnits = 0;
+        card.cardWeight = 0; // Initially 0 since q_c = 0
+        card.lastPrice = cardAppraisal.priceUSD;
+        card.exists = true;
+        card.stashedBonus = 0;
+
+        emit CardTrackerCreated(rarity, cardId, card.cardWeight);
+    }
+
+    /// @notice Handle card reappraisal - settle and update weight, with migration support
+    /// @param rarity Current card rarity
+    /// @param cardId Card ID
+    /// @param newPrice New appraised price
+    /// @param newRarity New rarity (if migration needed)
+    function handleReappraisal(
+        GachaTreasury.Rarity rarity,
+        bytes32 cardId,
+        uint256 newPrice,
+        GachaTreasury.Rarity newRarity
+    ) external {
+        // Can be called by anyone when price changes
+        CardTracker storage card = cardTrackers[rarity][cardId];
+        if (!card.exists) return;
+        if (card.lastPrice == newPrice && rarity == newRarity) return;
+
+        // Settle card against current rarity first
+        settleCard(rarity, cardId);
+
+        // Calculate new weight
+        uint256 oldWeight = card.cardWeight;
+        uint256 priceWeight = _calculatePriceWeight(newPrice);
+        uint256 newWeight = (priceWeight * card.totalUnits) / PRECISION;
+
+        // Check if migration is needed (crossing rarity boundaries)
+        if (rarity != newRarity) {
+            // Migrate card to new rarity
+            _migrateCard(rarity, newRarity, cardId, newPrice);
+            emit CardMigrated(cardId, rarity, newRarity);
+        } else {
+            // Update weight in same rarity
+            totalCardWeights[rarity] = totalCardWeights[rarity] - oldWeight + newWeight;
+            card.cardWeight = newWeight;
+            card.lastPrice = newPrice;
+            emit CardReappraised(rarity, cardId, oldWeight, newWeight);
         }
     }
 
-    /// @notice Updates user's total claimed rewards when they claim from individual trackers
-    /// @dev Called by individual RarityDividendTracker contracts after successful withdrawal
-    function recordUserRewardClaim(address user, uint256 amount) external {
-        // Use optimized mapping lookup instead of loop
-        if (!isValidRarityTracker[msg.sender]) revert UnauthorizedGachaContract();
+    /// @notice Migrate card from one rarity to another (Tier-2 only, preserving user snapshots)
+    /// @param fromRarity Source rarity
+    /// @param toRarity Destination rarity
+    /// @param cardId Card to migrate
+    /// @param newPrice New price for the card
+    function _migrateCard(
+        GachaTreasury.Rarity fromRarity,
+        GachaTreasury.Rarity toRarity,
+        bytes32 cardId,
+        uint256 newPrice
+    ) internal {
+        CardTracker storage fromCard = cardTrackers[fromRarity][cardId];
+        require(fromCard.exists, "Card does not exist");
 
-        userTotalRewardsClaimed[user] += amount;
-        emit UserRewardsClaimed(user, amount);
+        // Remove from old rarity weight totals
+        totalCardWeights[fromRarity] -= fromCard.cardWeight;
+
+        // Create or update tracker in new rarity
+        CardTracker storage toCard = cardTrackers[toRarity][cardId];
+
+        if (!toCard.exists) {
+            // First time in this rarity - create fresh tracker
+            toCard.exists = true;
+            toCard.perUnitMeter = fromCard.perUnitMeter; // Preserve accumulated per-unit rewards
+            toCard.raritySnapshot = rarityMeters[toRarity]; // Fresh snapshot in new rarity
+            toCard.totalUnits = fromCard.totalUnits; // Transfer units
+            toCard.stashedBonus = fromCard.stashedBonus; // Transfer any stashed bonus
+            toCard.lastPrice = newPrice;
+        } else {
+            // Already exists in destination rarity (rare case) - merge
+            toCard.totalUnits += fromCard.totalUnits;
+            toCard.stashedBonus += fromCard.stashedBonus;
+            toCard.lastPrice = newPrice; // Update price
+                // Keep existing perUnitMeter and raritySnapshot for destination
+        }
+
+        // Calculate new weight in destination rarity
+        uint256 priceWeight = _calculatePriceWeight(newPrice);
+        uint256 newWeight = (priceWeight * toCard.totalUnits) / PRECISION;
+        toCard.cardWeight = newWeight;
+
+        // Add to new rarity weight totals
+        totalCardWeights[toRarity] += newWeight;
+
+        // Clear old card (but preserve for historical access if needed)
+        fromCard.totalUnits = 0;
+        fromCard.cardWeight = 0;
+        fromCard.stashedBonus = 0;
+        // Note: Keep fromCard.exists = true for history, but it's now inactive
+
+        // User snapshots remain untouched - they continue to work with the migrated card
+        // in the new rarity without any action required from users
     }
 
-    /// @notice View user's total withdrawable rewards across all rarities
-    function getUserTotalClaimableRewards(address user) external view returns (uint256 totalClaimable) {
-        for (uint256 i = 0; i < 5; i++) {
-            RarityDividendTracker token = rarityTokens[GachaTreasury.Rarity(i)];
-            if (address(token) != address(0)) {
-                totalClaimable += token.withdrawableFundsOf(user);
-            }
+    /// @notice Calculate price weight: price^γ
+    /// @param price Price in USD (1e18)
+    /// @return priceWeight Price weight scaled by PRECISION
+    function _calculatePriceWeight(uint256 price) internal view returns (uint256 priceWeight) {
+        if (gamma == GAMMA_PRECISION) {
+            // γ = 1.0, simple case
+            return price;
+        } else {
+            // For γ ≠ 1.0, we'd need a power function
+            // For simplicity, approximate or use library
+            // For now, assume γ = 1.0
+            return price;
         }
     }
 
-    /// @notice View user's withdrawable for a specific rarity
-    function getUserRarityClaimableRewards(address user, GachaTreasury.Rarity rarity) external view returns (uint256) {
-        RarityDividendTracker token = rarityTokens[rarity];
-        if (address(token) == address(0)) return 0;
-        return token.withdrawableFundsOf(user);
+    /// @notice Update card weight when units change: W_c = price_c^γ * q_c
+    /// @param rarity Card rarity
+    /// @param cardId Card ID
+    function _updateCardWeight(GachaTreasury.Rarity rarity, bytes32 cardId) internal {
+        CardTracker storage card = cardTrackers[rarity][cardId];
+        if (!card.exists) return;
+
+        uint256 oldWeight = card.cardWeight;
+        uint256 priceWeight = _calculatePriceWeight(card.lastPrice);
+        uint256 newWeight = (priceWeight * card.totalUnits) / PRECISION;
+
+        // Update rarity totals
+        totalCardWeights[rarity] = totalCardWeights[rarity] - oldWeight + newWeight;
+        card.cardWeight = newWeight;
     }
 
-    function getRarityToken(GachaTreasury.Rarity rarity) external view returns (address) {
-        return address(rarityTokens[rarity]);
-    }
-
-    function getAllRarityTokens() external view returns (address[5] memory tokens) {
-        for (uint256 i = 0; i < 5; i++) {
-            tokens[i] = address(rarityTokens[GachaTreasury.Rarity(i)]);
-        }
-    }
-
+    // Configuration functions
     function setProtocolAddress(address _protocolAddress) external onlyOwner {
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
         address old = protocolAddress;
@@ -287,30 +475,20 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         emit ProtocolAddressUpdated(old, _protocolAddress);
     }
 
-    /// @notice Called by treasury when an NFT deposit is approved
-    /// @param depositor Address of the user who deposited the NFT
-    /// @param rarity The rarity of the approved NFT deposit
-    function recordApprovedDeposit(address depositor, uint8 rarity) external onlyTreasuryContract {
-        GachaTreasury.Rarity rarityEnum = GachaTreasury.Rarity(rarity);
-        RarityDividendTracker token = rarityTokens[rarityEnum];
-        if (address(token) != address(0)) {
-            token.updateCorrection(depositor);
-        }
-        emit DepositRecorded(depositor, rarityEnum);
+    function setDelta(uint256 _delta) external onlyOwner {
+        if (_delta > PERCENTAGE_DENOMINATOR) revert InvalidDelta();
+        uint256 old = delta;
+        delta = _delta;
+        emit DeltaUpdated(old, _delta);
     }
 
-    /// @notice Called by treasury when an NFT is won by a user
-    /// @param depositor Address of the original depositor (loses dividend rights)
-    /// @param rarity The rarity of the won NFT
-    function recordNFTWon(address depositor, uint8 rarity) external onlyTreasuryContract {
-        GachaTreasury.Rarity rarityEnum = GachaTreasury.Rarity(rarity);
-        RarityDividendTracker token = rarityTokens[rarityEnum];
-        if (address(token) != address(0)) {
-            token.updateCorrection(depositor);
-        }
-        emit NFTWonRecorded(depositor, rarityEnum);
+    function setGamma(uint256 _gamma) external onlyOwner {
+        uint256 old = gamma;
+        gamma = _gamma;
+        emit GammaUpdated(old, _gamma);
     }
 
+    // Emergency functions
     function emergencyPause() external onlyOwner {
         _pause();
     }
@@ -320,31 +498,24 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     }
 
     function emergencyRecoverTokens(address token, uint256 amount) external onlyOwner {
-        if (address(feeToken) != address(0) && token == address(feeToken)) revert InvalidFeeToken();
+        if (token == address(feeToken)) revert InvalidFeeToken();
         IERC20(token).safeTransfer(owner(), amount);
     }
 
-    /// @notice Get rewards analytics data for dashboard
-    /// @param user User address to get analytics for
-    /// @return totalClaimed Total rewards claimed by user
-    /// @return totalClaimable Current claimable rewards
-    function getRewardsAnalytics(address user) external view returns (uint256 totalClaimed, uint256 totalClaimable) {
-        totalClaimed = userTotalRewardsClaimed[user];
-
-        // Calculate total claimable rewards across all rarities
-        for (uint256 i = 0; i < 5; i++) {
-            RarityDividendTracker token = rarityTokens[GachaTreasury.Rarity(i)];
-            if (address(token) != address(0)) {
-                totalClaimable += token.withdrawableFundsOf(user);
-            }
-        }
+    // View functions
+    function getCardTracker(GachaTreasury.Rarity rarity, bytes32 cardId) external view returns (CardTracker memory) {
+        return cardTrackers[rarity][cardId];
     }
 
-    /// @notice Get global rewards analytics data
-    /// @return totalFees Total fees distributed
-    /// @return protocolFees Total protocol fees collected
-    function getGlobalRewardsAnalytics() external view returns (uint256 totalFees, uint256 protocolFees) {
-        totalFees = totalFeesDistributed;
-        protocolFees = totalProtocolFees;
+    function getUserSnapshot(address user, GachaTreasury.Rarity rarity, bytes32 cardId)
+        external
+        view
+        returns (UserSnapshot memory)
+    {
+        return userSnapshots[user][rarity][cardId];
+    }
+
+    function getTreasuryBalance() external view returns (uint256) {
+        return feeToken.balanceOf(address(this));
     }
 }

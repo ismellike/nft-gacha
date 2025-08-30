@@ -254,7 +254,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
 
         // Distribute rewards from spin fee
         if (spinFee > 0) {
-            _distributeSpinRewards();
+            _distributeSpinRewards(selectedRarity);
         }
 
         // Send NFT from treasury to requester using optimized random selection
@@ -387,13 +387,18 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @notice Internal function to distribute spin rewards
-    function _distributeSpinRewards() private {
+    function _distributeSpinRewards(GachaTreasury.Rarity hitRarity) private {
         uint256 totalFeeBalance = feeToken.balanceOf(address(this));
         if (totalFeeBalance == 0) return;
 
-        // Transfer fees to rewards manager and let it handle distribution
-        feeToken.safeTransfer(address(rewardsManager), totalFeeBalance);
-        rewardsManager.distributeSpinRewards(totalFeeBalance);
+        // For new three-tier rewards system, approve the rewards manager to spend our tokens
+        feeToken.safeIncreaseAllowance(address(rewardsManager), totalFeeBalance);
+        
+        // Call new rewards manager with hit rarity information
+        (bool success,) = address(rewardsManager).call(
+            abi.encodeWithSignature("processSpinRewards(uint256,uint8)", totalFeeBalance, uint8(hitRarity))
+        );
+        require(success, "Rewards distribution failed");
 
         emit RewardsDistributed(totalFeeBalance); // Manager handles the split
     }

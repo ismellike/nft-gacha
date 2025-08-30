@@ -36,7 +36,7 @@ contract GachaTest is Test {
 
         // Deploy a temporary rewards manager just to satisfy gacha constructor
         GachaRewardsManager tempRewardsManager =
-            new GachaRewardsManager(owner, address(this), address(treasury), owner, address(feeToken));
+            new GachaRewardsManager(owner, address(this), address(treasury), address(mockAppraisal), owner, address(feeToken));
 
         // Deploy gacha with temp rewards manager (using test contract as service handler for simplicity)
         gacha =
@@ -47,14 +47,13 @@ contract GachaTest is Test {
 
         // Now deploy the real rewards manager with the correct gacha address
         GachaRewardsManager rewardsManager =
-            new GachaRewardsManager(owner, address(gacha), address(treasury), owner, address(feeToken));
+            new GachaRewardsManager(owner, address(gacha), address(treasury), address(mockAppraisal), owner, address(feeToken));
 
         // Update gacha to use the correct rewards manager
         gacha.setRewardsManager(address(rewardsManager));
 
         // Setup the rewards system
         treasury.setTreasuryRewardsManager(address(rewardsManager));
-        rewardsManager.deployAllRarityTokens();
         vm.stopPrank();
 
         vm.prank(owner);
@@ -315,7 +314,7 @@ contract GachaTest is Test {
         // Deploy minimal treasury and rewards manager for zero fee test
         GachaTreasury zeroTreasury = new GachaTreasury(owner, address(0x997), address(mockAppraisal));
         GachaRewardsManager zeroRewards =
-            new GachaRewardsManager(owner, address(0x997), address(zeroTreasury), owner, address(0));
+            new GachaRewardsManager(owner, address(0x997), address(zeroTreasury), address(mockAppraisal), owner, address(feeToken));
         Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury), address(zeroRewards));
         GachaTreasury zeroFeeGachaTreasury = zeroTreasury;
 
@@ -435,7 +434,7 @@ contract GachaTest is Test {
         // Deploy minimal treasury and rewards manager for zero fee test
         GachaTreasury zeroTreasury2 = new GachaTreasury(owner, address(0x996), address(mockAppraisal));
         GachaRewardsManager zeroRewards2 =
-            new GachaRewardsManager(owner, address(0x996), address(zeroTreasury2), owner, address(0));
+            new GachaRewardsManager(owner, address(0x996), address(zeroTreasury2), address(mockAppraisal), owner, address(feeToken));
         Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury2), address(zeroRewards2));
         GachaTreasury zeroFeeGachaTreasury = zeroTreasury2;
 
