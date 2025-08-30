@@ -1,5 +1,7 @@
-use super::{card_parser::CardParser, integrity::IntegrityVerifier, types::*};
+use super::{card_parser::{CardParser, GradedCardAttributes}, integrity::IntegrityVerifier, types::*};
 use anyhow::{anyhow, Result};
+use alloy_primitives::B256;
+use sha3::{Digest, Keccak256};
 
 #[derive(Debug)]
 pub struct CourtyardClient {
@@ -41,26 +43,60 @@ impl CourtyardClient {
         Ok(metadata)
     }
 
-    /// Parse Pokemon card information from NFT metadata
-    pub fn parse_pokemon_card_info(&self, metadata: &NFTMetadata) -> Result<PokemonCardInfo> {
-        // Prefer explicit title/subject from attributes; fallback to parsing the name string
-        let card_name = CardParser::extract_title_from_attributes(&metadata.attributes)
-            .or_else(|| CardParser::extract_card_name(&metadata.name).ok())
-            .ok_or_else(|| anyhow!("Unable to determine card name from metadata"))?;
+    /// Parse graded card information from NFT metadata and generate card ID
+    pub fn parse_graded_card_info(&self, metadata: &NFTMetadata) -> Result<(GradedCardAttributes, B256)> {
+        // Parse the graded card attributes
+        let attributes = CardParser::parse_graded_card_attributes(metadata)?;
+        
+        // Generate card ID from attributes
+        let card_id = self.generate_card_id(&attributes)?;
+        
+        Ok((attributes, card_id))
+    }
 
-        let set = CardParser::extract_set_from_attributes(&metadata.attributes);
-        let grade = CardParser::extract_grade_from_attributes(&metadata.attributes);
-        let card_number = CardParser::extract_card_number_from_attributes(&metadata.attributes);
-        let rarity = CardParser::extract_rarity_from_attributes(&metadata.attributes)
-            .or_else(|| CardParser::extract_rarity_from_name(&metadata.name));
-
-        Ok(PokemonCardInfo {
-            name: card_name,
-            set,
-            grade,
-            card_number,
-            rarity,
-        })
+    /// Generate card ID hash from graded card attributes
+    /// Format: keccak256(Grader, Grade, Set, Title/Subject, Language, Card Number)
+    pub fn generate_card_id(&self, attributes: &GradedCardAttributes) -> Result<B256> {
+        // Build the components for hashing
+        let mut components = Vec::new();
+        
+        components.push(attributes.grader.as_bytes());
+        components.push(attributes.grade.as_bytes());
+        
+        // Use set if available, otherwise empty string
+        if let Some(set) = &attributes.set {
+            components.push(set.as_bytes());
+        } else {
+            components.push(b"");
+        }
+        
+        components.push(attributes.title.as_bytes());
+        
+        // Use language if available, otherwise default to "English"  
+        if let Some(language) = &attributes.language {
+            components.push(language.as_bytes());
+        } else {
+            components.push(b"English");
+        }
+        
+        components.push(attributes.card_number.as_bytes());
+        
+        // Join components with separator
+        let separator = b"|";
+        let mut data = Vec::new();
+        for (i, component) in components.iter().enumerate() {
+            if i > 0 {
+                data.extend_from_slice(separator);
+            }
+            data.extend_from_slice(component);
+        }
+        
+        // Hash the combined data
+        let mut hasher = Keccak256::new();
+        hasher.update(&data);
+        let hash = hasher.finalize();
+        
+        Ok(B256::from_slice(&hash))
     }
 
     /// Verify proof of integrity for a Courtyard NFT

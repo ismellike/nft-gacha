@@ -11,6 +11,9 @@ struct AppraisalSuccess {
     string chain;
     address contractAddress;
     uint256 tokenId;
+    // Card grouping identifier constructed offchain as
+    // keccak256(Grader, Grade, Set, Title/Subject, Language, Card Number)
+    bytes32 cardId;
     uint256 price; // USDC-style 6 decimals
     bytes32 txHash;
 }
@@ -21,6 +24,7 @@ struct AppraisalError {
     string chain;
     address contractAddress;
     uint256 tokenId;
+    bytes32 cardId;
     string error;
     bytes32 txHash;
 }

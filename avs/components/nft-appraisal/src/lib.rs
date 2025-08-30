@@ -23,7 +23,35 @@ use pokemon_client::PokemonPriceClient;
 
 sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 
+use crate::bindings::wasi::keyvalue::store::open;
+use serde::{Deserialize, Serialize};
+
 struct Component;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CachedCardPrice {
+    price: Option<f64>,
+    timestamp: u64,
+}
+
+impl CachedCardPrice {
+    fn new(price: Option<f64>) -> Self {
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        Self { price, timestamp }
+    }
+    
+    fn is_expired(&self) -> bool {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        // 1 hour TTL
+        now - self.timestamp > 3600
+    }
+}
 
 impl Guest for Component {
     fn run(action: TriggerAction) -> std::result::Result<Option<WasmResponse>, String> {
@@ -80,11 +108,12 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
     let tx_hash = B256::from(tx_hash_bytes);
 
     // Helper to create error response
-    let create_error = |error_msg: String| -> WasmResponse {
+    let create_error = |error_msg: String, card_id: B256| -> WasmResponse {
         let payload = AppraisalError {
             chain: request.chain.clone(),
             contractAddress: contract_address,
             tokenId: token_id,
+            cardId: card_id,
             error: error_msg,
             txHash: tx_hash,
         }
@@ -99,7 +128,7 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
     // Load and validate configuration
     let config = match Config::from_env().and_then(|c| c.validate().map(|_| c)) {
         Ok(config) => config,
-        Err(e) => return Ok(create_error(format!("Configuration error: {}", e))),
+        Err(e) => return Ok(create_error(format!("Configuration error: {}", e), B256::ZERO)),
     };
 
     // Query tokenURI from ERC721 contract
@@ -109,13 +138,14 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
         .await
     {
         Ok(uri) => uri,
-        Err(e) => return Ok(create_error(format!("Failed to fetch tokenURI: {}", e))),
+        Err(e) => return Ok(create_error(format!("Failed to fetch tokenURI: {}", e), B256::ZERO)),
     };
 
     // Check if this is a Courtyard NFT based on URI pattern
     if !token_uri.contains(&config.courtyard_base_url) {
         return Ok(create_error(
             "NFT appraisal only supports Courtyard NFTs".to_string(),
+            B256::ZERO,
         ));
     }
 
@@ -127,18 +157,18 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
             return Ok(create_error(format!(
                 "Failed to fetch Courtyard metadata: {}",
                 e
-            )))
+            ), B256::ZERO))
         }
     };
 
-    // Parse Pokemon card information from metadata
-    let card_info = match courtyard_client.parse_pokemon_card_info(&nft_metadata) {
-        Ok(info) => info,
+    // Parse graded card information from metadata and generate card ID
+    let (card_attributes, card_id) = match courtyard_client.parse_graded_card_info(&nft_metadata) {
+        Ok((attributes, card_id)) => (attributes, card_id),
         Err(e) => {
             return Ok(create_error(format!(
-                "Failed to parse Pokemon card info: {}",
+                "Failed to parse graded card info: {}",
                 e
-            )))
+            ), B256::ZERO))
         }
     };
 
@@ -149,27 +179,106 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
             return Ok(create_error(
                 "Proof of integrity verification failed - NFT authenticity cannot be verified"
                     .to_string(),
+                card_id,
             ));
         }
         Err(e) => {
             return Ok(create_error(format!(
                 "Proof of integrity verification error: {}",
                 e
-            )));
+            ), card_id));
         }
     }
 
-    // Create Pokemon Price Tracker client and perform appraisal
-    let pokemon_client = PokemonPriceClient::new(config.pokemon_api_key);
+    // Try to get cached price using cardId as key
+    let cache_bucket = open("nft-card-price-cache").ok();
+    let cache_key = format!("{:x}", card_id);
+    
+    let price_result = if let Some(ref bucket) = cache_bucket {
+        // Check cache first
+        if let Ok(Some(cached_data)) = bucket.get(&cache_key) {
+            if let Ok(cached_str) = String::from_utf8(cached_data) {
+                if let Ok(cached_price) = serde_json::from_str::<CachedCardPrice>(&cached_str) {
+                    if !cached_price.is_expired() {
+                        // Use cached result
+                        Ok(cached_price.price)
+                    } else {
+                        // Cache expired, fetch new price
+                        let pokemon_client = PokemonPriceClient::new(config.pokemon_api_key);
+                        let result = pokemon_client
+                            .appraise_card(
+                                &card_attributes.title,
+                                card_attributes.set.as_deref(),
+                                Some(&card_attributes.grade),
+                            )
+                            .await;
+                        
+                        // Cache the result
+                        if let Ok(price) = &result {
+                            let cached_price = CachedCardPrice::new(*price);
+                            if let Ok(serialized) = serde_json::to_string(&cached_price) {
+                                let _ = bucket.set(&cache_key, serialized.as_bytes());
+                            }
+                        }
+                        
+                        result
+                    }
+                } else {
+                    // Failed to parse cache, fetch new
+                    let pokemon_client = PokemonPriceClient::new(config.pokemon_api_key);
+                    pokemon_client
+                        .appraise_card(
+                            &card_attributes.title,
+                            card_attributes.set.as_deref(),
+                            Some(&card_attributes.grade),
+                        )
+                        .await
+                }
+            } else {
+                // Failed to decode cache, fetch new
+                let pokemon_client = PokemonPriceClient::new(config.pokemon_api_key);
+                pokemon_client
+                    .appraise_card(
+                        &card_attributes.title,
+                        card_attributes.set.as_deref(),
+                        Some(&card_attributes.grade),
+                    )
+                    .await
+            }
+        } else {
+            // No cache entry, fetch new price
+            let pokemon_client = PokemonPriceClient::new(config.pokemon_api_key);
+            let result = pokemon_client
+                .appraise_card(
+                    &card_attributes.title,
+                    card_attributes.set.as_deref(),
+                    Some(&card_attributes.grade),
+                )
+                .await;
+            
+            // Cache the result
+            if let Ok(price) = &result {
+                let cached_price = CachedCardPrice::new(*price);
+                if let Ok(serialized) = serde_json::to_string(&cached_price) {
+                    let _ = bucket.set(&cache_key, serialized.as_bytes());
+                }
+            }
+            
+            result
+        }
+    } else {
+        // No cache bucket available, just fetch directly
+        let pokemon_client = PokemonPriceClient::new(config.pokemon_api_key);
+        pokemon_client
+            .appraise_card(
+                &card_attributes.title,
+                card_attributes.set.as_deref(),
+                Some(&card_attributes.grade),
+            )
+            .await
+    };
 
-    match pokemon_client
-        .appraise_card(
-            &card_info.name,
-            card_info.set.as_deref(),
-            card_info.grade.as_deref(),
-        )
-        .await
-    {
+    match price_result {
         Ok(Some(price)) if price > 0.0 => {
             // Success case - create AppraisalSuccess
             let scaled_price = scale_to_usdc6(price).unwrap_or(U256::ZERO);
@@ -177,6 +286,7 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
                 chain: request.chain,
                 contractAddress: contract_address,
                 tokenId: token_id,
+                cardId: card_id,
                 price: scaled_price,
                 txHash: tx_hash,
             }
@@ -189,18 +299,18 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
         }
         Ok(Some(_)) => {
             // Price is zero or negative
-            Ok(create_error("Price unavailable or zero".to_string()))
+            Ok(create_error("Price unavailable or zero".to_string(), card_id))
         }
         Ok(None) => {
             // Card not found
-            Ok(create_error("Card not found in price database".to_string()))
+            Ok(create_error("Card not found in price database".to_string(), card_id))
         }
         Err(e) => {
             // API error
             Ok(create_error(format!(
                 "Pokemon Price Tracker API error: {}",
                 e
-            )))
+            ), card_id))
         }
     }
 }
@@ -225,6 +335,7 @@ fn create_error_response(evm_event: &TriggerDataEvmContractEvent, error: String)
         chain: evm_event.chain_name.clone(),
         contractAddress: contract_address,
         tokenId: token_id,
+        cardId: B256::ZERO, // No cardId available for errors before parsing
         error,
         txHash: B256::from(tx_hash_bytes),
     }
@@ -270,6 +381,7 @@ mod tests {
                 .parse()
                 .unwrap(),
             tokenId: U256::from(0x123u32),
+            cardId: B256::ZERO,
             price: U256::from(100_500_000u32), // $100.50 in USDC 6 decimals
             txHash: B256::ZERO,
         };
@@ -290,6 +402,7 @@ mod tests {
                 .parse()
                 .unwrap(),
             tokenId: U256::from(0x123u32),
+            cardId: B256::ZERO,
             error: "Card not found in price database".to_string(),
             txHash: B256::ZERO,
         };

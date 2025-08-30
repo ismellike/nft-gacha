@@ -1,154 +1,83 @@
-use super::types::NFTAttribute;
+use super::types::{NFTAttribute, NFTMetadata};
 use anyhow::{anyhow, Result};
+use std::collections::HashMap;
 
 pub struct CardParser;
 
 impl CardParser {
-    /// Extract a clean rarity from the NFT name when attributes are missing.
-    /// Example: "... Infernape - Art Rare (PSA 10 GEM MINT)" -> "Art Rare"
-    pub fn extract_rarity_from_name(name: &str) -> Option<String> {
-        let mut s = name;
-        // Find segment after " - " if present
-        if let Some(idx) = s.find(" - ") {
-            s = &s[idx + 3..];
-        } else {
-            return None;
+    /// Parse graded card attributes from Courtyard metadata
+    pub fn parse_graded_card_attributes(metadata: &NFTMetadata) -> Result<GradedCardAttributes> {
+        // Verify this is a graded card
+        if metadata.product_type.as_deref() != Some("GRADED_CARD") {
+            return Err(anyhow!("NFT is not a graded card (product_type: {:?})", metadata.product_type));
         }
-        // Cut off grade/parenthetical
-        if let Some(p) = s.find("(") {
-            s = &s[..p];
-        }
-        let rarity = s.trim();
-        if rarity.is_empty() {
-            None
-        } else {
-            Some(rarity.to_string())
-        }
-    }
 
-    /// Extract a better card name from attributes if available.
-    /// Prefer "Title/Subject", then "Title" or "Subject".
-    pub fn extract_title_from_attributes(attributes: &[NFTAttribute]) -> Option<String> {
+        // Convert attributes to map for easy lookup
+        let attr_map = Self::attributes_to_map(&metadata.attributes);
+        
+        // Extract required fields using normalized trait types
+        let grader = attr_map.get("Grader")
+            .ok_or_else(|| anyhow!("Missing required Grader attribute"))?
+            .clone();
+            
+        let grade = attr_map.get("Grade")
+            .ok_or_else(|| anyhow!("Missing required Grade attribute"))?
+            .clone();
+            
+        let title = attr_map.get("Title/Subject")
+            .ok_or_else(|| anyhow!("Missing required Title/Subject attribute"))?
+            .clone();
+            
+        let card_number = attr_map.get("Card Number")
+            .ok_or_else(|| anyhow!("Missing required Card Number attribute"))?
+            .clone();
+            
+        let year = attr_map.get("Year")
+            .ok_or_else(|| anyhow!("Missing required Year attribute"))?
+            .clone();
+            
+        // Optional fields
+        let set = attr_map.get("Set").cloned();
+        let language = attr_map.get("Language").cloned();
+        let category = attr_map.get("Category").cloned();
+        let serial = attr_map.get("Serial").cloned();
+        
+        Ok(GradedCardAttributes {
+            grader,
+            grade,
+            title,
+            card_number,
+            year,
+            set,
+            language,
+            category,
+            serial,
+        })
+    }
+    
+    /// Convert attributes to a simple map for easy lookups
+    fn attributes_to_map(attributes: &[NFTAttribute]) -> HashMap<String, String> {
+        let mut map = HashMap::new();
         for attr in attributes {
             if let Some(trait_type) = &attr.trait_type {
-                let key = trait_type.to_lowercase();
-                if key == "title/subject"
-                    || key == "title"
-                    || key == "subject"
-                    || key == "card title"
-                {
-                    if let Some(v) = attr.value.as_str() {
-                        let t = v.trim();
-                        if !t.is_empty() {
-                            return Some(t.to_string());
-                        }
-                    }
+                if let Some(value) = attr.value.as_str() {
+                    map.insert(trait_type.clone(), value.to_string());
                 }
             }
         }
-        None
+        map
     }
-    /// Extract card name from NFT name (remove set info, numbers, etc.)
-    pub fn extract_card_name(name: &str) -> Result<String> {
-        if name.trim().is_empty() {
-            return Err(anyhow!("NFT name cannot be empty"));
-        }
+}
 
-        // Common patterns in Pokemon card names:
-        // "Charizard #004/102 - Base Set"
-        // "Pikachu (PSA 10)"
-        // "Charizard VMAX - Champion's Path #020/073"
-
-        let mut card_name = name.to_string();
-
-        // Remove set information in parentheses or after dashes
-        if let Some(pos) = card_name.find(" - ") {
-            card_name = card_name[..pos].to_string();
-        }
-
-        // Remove card numbers like "#004/102"
-        if let Some(pos) = card_name.find(" #") {
-            card_name = card_name[..pos].to_string();
-        }
-
-        // Remove grade information in parentheses like "(PSA 10)"
-        if let Some(pos) = card_name.find(" (") {
-            if card_name.contains("PSA") {
-                card_name = card_name[..pos].to_string();
-            }
-        }
-
-        let cleaned_name = card_name.trim().to_string();
-        if cleaned_name.is_empty() {
-            return Err(anyhow!("Could not extract card name from: {}", name));
-        }
-
-        Ok(cleaned_name)
-    }
-
-    /// Extract set information from NFT attributes
-    pub fn extract_set_from_attributes(attributes: &[NFTAttribute]) -> Option<String> {
-        for attr in attributes {
-            if let Some(trait_type) = &attr.trait_type {
-                match trait_type.to_lowercase().as_str() {
-                    "set" | "expansion" | "series" => {
-                        return attr.value.as_str().map(|s| s.to_string())
-                    }
-                    _ => continue,
-                }
-            }
-        }
-        None
-    }
-
-    /// Extract grade information from NFT attributes
-    pub fn extract_grade_from_attributes(attributes: &[NFTAttribute]) -> Option<String> {
-        for attr in attributes {
-            if let Some(trait_type) = &attr.trait_type {
-                match trait_type.to_lowercase().as_str() {
-                    "grade" | "condition" | "grading" => {
-                        let grade_str = attr.value.as_str()?.to_uppercase();
-                        if grade_str.contains("10") {
-                            return Some("PSA 10".to_string());
-                        } else if grade_str.contains("9") {
-                            return Some("PSA 9".to_string());
-                        } else if grade_str.contains("RAW") || grade_str.contains("UNGRADED") {
-                            return Some("raw".to_string());
-                        }
-                        return attr.value.as_str().map(|s| s.to_string());
-                    }
-                    _ => continue,
-                }
-            }
-        }
-        None
-    }
-
-    /// Extract card number from NFT attributes
-    pub fn extract_card_number_from_attributes(attributes: &[NFTAttribute]) -> Option<String> {
-        for attr in attributes {
-            if let Some(trait_type) = &attr.trait_type {
-                match trait_type.to_lowercase().as_str() {
-                    "card number" | "number" | "card_number" => {
-                        return attr.value.as_str().map(|s| s.to_string())
-                    }
-                    _ => continue,
-                }
-            }
-        }
-        None
-    }
-
-    /// Extract rarity from NFT attributes  
-    pub fn extract_rarity_from_attributes(attributes: &[NFTAttribute]) -> Option<String> {
-        for attr in attributes {
-            if let Some(trait_type) = &attr.trait_type {
-                match trait_type.to_lowercase().as_str() {
-                    "rarity" | "card_rarity" => return attr.value.as_str().map(|s| s.to_string()),
-                    _ => continue,
-                }
-            }
-        }
-        None
-    }
+#[derive(Debug, Clone)]
+pub struct GradedCardAttributes {
+    pub grader: String,
+    pub grade: String, 
+    pub title: String,
+    pub card_number: String,
+    pub year: String,
+    pub set: Option<String>,
+    pub language: Option<String>,
+    pub category: Option<String>,
+    pub serial: Option<String>,
 }

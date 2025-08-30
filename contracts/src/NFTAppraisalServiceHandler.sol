@@ -124,9 +124,13 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
             // Convert USDC 6-decimal price to 18-decimal for contract
             uint256 priceUSD18 = successPayload.price * 1e12;
 
-            // Set the appraised price in the NFTAppraisal contract
-            try _appraisalContract.setAppraisedPrice(successPayload.contractAddress, successPayload.tokenId, priceUSD18)
-            {
+            // Link token to card and set the card-level appraised price
+            try _appraisalContract.setAppraisalForTokenWithCard(
+                successPayload.contractAddress,
+                successPayload.tokenId,
+                successPayload.cardId,
+                priceUSD18
+            ) {
                 emit AppraisalProcessed(
                     successPayload.contractAddress, successPayload.tokenId, priceUSD18, true, block.timestamp
                 );

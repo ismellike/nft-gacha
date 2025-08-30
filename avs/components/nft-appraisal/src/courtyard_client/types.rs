@@ -68,11 +68,3 @@ pub struct CourtyardNFTResponse {
     pub token_uri: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PokemonCardInfo {
-    pub name: String,
-    pub set: Option<String>,
-    pub grade: Option<String>,
-    pub card_number: Option<String>,
-    pub rarity: Option<String>,
-}

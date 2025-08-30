@@ -60,9 +60,9 @@ contract NFTAppraisalTest is Test {
         nft.mint(user);
         nft.mint(user); // Add third NFT for tokenId 2
 
-        // Authorize oracle
+        // Set service handler
         vm.prank(owner);
-        appraisal.authorizeOracle(oracle);
+        appraisal.setServiceHandler(oracle);
 
         // Approve fee tokens
         vm.prank(user);
@@ -84,15 +84,13 @@ contract NFTAppraisalTest is Test {
             feeToken.balanceOf(protocol), protocolBalanceBefore + 10e18, "Protocol should receive exactly 10 tokens"
         );
 
-        // Check appraisal record has exact values
-        (address requester, uint256 price, NFTAppraisal.AppraisalStatus status, uint256 timestamp, uint256 lastUpdated)
-        = appraisal.appraisals(address(nft), tokenId);
-
-        assertEq(requester, user, "Requester should be user");
-        assertEq(price, 0, "Initial price should be 0");
-        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.Pending), "Status should be Pending");
-        assertGt(timestamp, 0, "Timestamp should be set");
-        assertEq(lastUpdated, 0, "LastUpdated should be 0 initially");
+        // Check request via composed getter
+        NFTAppraisal.Appraisal memory info0 = appraisal.getAppraisal(address(nft), tokenId);
+        assertEq(info0.requester, user, "Requester should be user");
+        assertEq(info0.priceUSD, 0, "Initial price should be 0");
+        assertEq(uint256(info0.status), uint256(NFTAppraisal.AppraisalStatus.Pending), "Status should be Pending");
+        assertGt(info0.timestamp, 0, "Timestamp should be set");
+        assertEq(info0.lastUpdated, 0, "LastUpdated should be 0 initially");
     }
 
     function testRequestAppraisalRevertsForInvalidCollection() public {
@@ -127,7 +125,7 @@ contract NFTAppraisalTest is Test {
         emit AppraisalCompleted(address(nft), tokenId, 100e18, oracle, block.timestamp);
 
         vm.prank(oracle);
-        appraisal.setAppraisedPrice(address(nft), tokenId, 100e18);
+        appraisal.setAppraisalForTokenWithCard(address(nft), tokenId, keccak256("card-1a"), 100e18);
 
         // Check appraisal was updated with exact values
         (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), tokenId);
@@ -143,14 +141,14 @@ contract NFTAppraisalTest is Test {
         appraisal.requestAppraisal(address(nft), 1);
 
         vm.prank(user);
-        vm.expectRevert(NFTAppraisal.UnauthorizedOracle.selector);
-        appraisal.setAppraisedPrice(address(nft), 1, NFT_PRICE_100);
+        vm.expectRevert(NFTAppraisal.UnauthorizedServiceHandler.selector);
+        appraisal.setAppraisalForTokenWithCard(address(nft), 1, keccak256("card-unauth2"), NFT_PRICE_100);
     }
 
     function testSetAppraisedPriceRevertsForNonexistentAppraisal() public {
         vm.prank(oracle);
         vm.expectRevert(NFTAppraisal.AppraisalNotFound.selector);
-        appraisal.setAppraisedPrice(address(nft), 1, NFT_PRICE_100);
+        appraisal.setAppraisalForTokenWithCard(address(nft), 1, keccak256("card-notfound"), NFT_PRICE_100);
     }
 
     function testSetAppraisedPriceRevertsForZeroPrice() public {
@@ -159,24 +157,22 @@ contract NFTAppraisalTest is Test {
 
         vm.prank(oracle);
         vm.expectRevert(NFTAppraisal.InvalidPrice.selector);
-        appraisal.setAppraisedPrice(address(nft), 1, 0);
+        appraisal.setAppraisalForTokenWithCard(address(nft), 1, keccak256("card-zero2"), 0);
     }
 
-    function testOverrideAppraisal() public {
+    function testOverrideCardAppraisal() public {
         uint256 tokenId = 1;
+        bytes32 cardId = keccak256(abi.encodePacked("card-ovr"));
 
         // Request and complete appraisal first
         vm.prank(user);
         appraisal.requestAppraisal(address(nft), tokenId);
 
         vm.prank(oracle);
-        appraisal.setAppraisedPrice(address(nft), tokenId, 100e18);
-
-        vm.expectEmit(true, true, true, true);
-        emit AppraisalOverridden(address(nft), tokenId, 100e18, 1000e18, owner);
+        appraisal.setAppraisalForTokenWithCard(address(nft), tokenId, cardId, 100e18);
 
         vm.prank(owner);
-        appraisal.overrideAppraisal(address(nft), tokenId, 1000e18);
+        appraisal.overrideCardAppraisal(cardId, 1000e18);
 
         // Check override worked with exact values
         (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), tokenId);
@@ -185,67 +181,28 @@ contract NFTAppraisalTest is Test {
         assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Status should be OwnerOverride");
     }
 
-    function testOverrideAppraisalCreatesNewRecord() public {
+    function testOverrideAppraisalThenLinkToken() public {
         uint256 tokenId = 2;
+        bytes32 cardId = keccak256(abi.encodePacked("card-new"));
 
-        vm.expectEmit(true, true, true, true);
-        emit AppraisalOverridden(address(nft), tokenId, 0, 1000e18, owner);
-
+        // Override card first (no token linked yet)
         vm.prank(owner);
-        appraisal.overrideAppraisal(address(nft), tokenId, 1000e18);
+        appraisal.overrideCardAppraisal(cardId, 1000e18);
 
-        // Check new appraisal was created with exact values
+        // Link token to the overridden card via service handler
+        vm.prank(user);
+        appraisal.requestAppraisal(address(nft), tokenId);
+
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(nft), tokenId, cardId, 1000e18);
+
         (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), tokenId);
-
-        assertEq(price, 1000e18, "New override price should be exactly $1000");
-        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Status should be OwnerOverride");
-        assertTrue(appraisal.hasAppraisal(address(nft), tokenId), "Should have new appraisal record");
+        assertEq(price, 1000e18, "Price should reflect overridden card price");
+        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.Completed), "Should be completed after link");
+        assertTrue(appraisal.hasAppraisal(address(nft), tokenId), "Should have completed appraisal");
     }
 
-    function testAuthorizeOracle() public {
-        address newOracle = makeAddr("newOracle");
-
-        vm.prank(owner);
-        appraisal.authorizeOracle(newOracle);
-
-        assertTrue(appraisal.isAuthorizedOracle(newOracle));
-
-        address[] memory oracles = appraisal.getAuthorizedOracles();
-        bool found = false;
-        for (uint256 i = 0; i < oracles.length; i++) {
-            if (oracles[i] == newOracle) {
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found);
-    }
-
-    function testAuthorizeOracleRevertsForDuplicate() public {
-        vm.prank(owner);
-        vm.expectRevert(NFTAppraisal.OracleAlreadyAuthorized.selector);
-        appraisal.authorizeOracle(oracle);
-    }
-
-    function testRevokeOracle() public {
-        vm.prank(owner);
-        appraisal.revokeOracle(oracle);
-
-        assertFalse(appraisal.isAuthorizedOracle(oracle));
-
-        address[] memory oracles = appraisal.getAuthorizedOracles();
-        for (uint256 i = 0; i < oracles.length; i++) {
-            assertNotEq(oracles[i], oracle);
-        }
-    }
-
-    function testRevokeOracleRevertsForNonexistent() public {
-        address fakeOracle = makeAddr("fakeOracle");
-
-        vm.prank(owner);
-        vm.expectRevert(NFTAppraisal.OracleNotAuthorized.selector);
-        appraisal.revokeOracle(fakeOracle);
-    }
+    // Oracle auth model removed; using a single service handler.
 
     function testSetAppraisalFee() public {
         uint256 newFee = 20e18;
@@ -321,7 +278,7 @@ contract NFTAppraisalTest is Test {
         appraisal.requestAppraisal(address(nft), tokenId);
 
         vm.prank(oracle);
-        appraisal.setAppraisedPrice(address(nft), tokenId, 100e18);
+        appraisal.setAppraisalForTokenWithCard(address(nft), tokenId, keccak256("card-get2"), 100e18);
 
         NFTAppraisal.Appraisal memory result = appraisal.getAppraisal(address(nft), tokenId);
 
@@ -343,7 +300,7 @@ contract NFTAppraisalTest is Test {
         assertFalse(appraisal.hasAppraisal(address(nft), tokenId), "Should not have appraisal after request (pending)");
 
         vm.prank(oracle);
-        appraisal.setAppraisedPrice(address(nft), tokenId, 100e18);
+        appraisal.setAppraisalForTokenWithCard(address(nft), tokenId, keccak256("card-has"), 100e18);
 
         assertTrue(
             appraisal.hasAppraisal(address(nft), tokenId), "Should have appraisal after completion with $100 price"
@@ -382,13 +339,13 @@ contract NFTAppraisalTest is Test {
 
         // Complete appraisals with different prices
         vm.prank(oracle);
-        appraisal.setAppraisedPrice(address(nft), 1, 50e18); // $50
+        appraisal.setAppraisalForTokenWithCard(address(nft), 1, keccak256("card-1-50"), 50e18); // $50
 
         vm.prank(oracle);
-        appraisal.setAppraisedPrice(address(nft), 2, 500e18); // $500
+        appraisal.setAppraisalForTokenWithCard(address(nft), 2, keccak256("card-2-500"), 500e18); // $500
 
         vm.prank(oracle);
-        appraisal.setAppraisedPrice(address(nft), 3, 5000e18); // $5000
+        appraisal.setAppraisalForTokenWithCard(address(nft), 3, keccak256("card-3-5000"), 5000e18); // $5000
 
         // Verify all appraisals completed with exact prices
         (uint256 price1,) = appraisal.getAppraisedPrice(address(nft), 1);
