@@ -2,13 +2,13 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {GachaTreasury} from "../src/GachaTreasury.sol";
-import {SimpleERC721} from "../src/SimpleERC721.sol";
+import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
+import {BaseERC721} from "../src/tokens/BaseERC721.sol";
 import {MockNFTAppraisal} from "./mocks/MockNFTAppraisal.sol";
 
 contract GachaTreasuryTest is Test {
     GachaTreasury public treasury;
-    SimpleERC721 public nft;
+    BaseERC721 public nft;
     MockNFTAppraisal public mockAppraisal;
     address public owner = address(0x1);
     address public user = address(0x2);
@@ -20,7 +20,7 @@ contract GachaTreasuryTest is Test {
         address mockGacha = address(0x999);
         treasury = new GachaTreasury(owner, mockGacha, address(mockAppraisal));
         vm.prank(owner);
-        nft = new SimpleERC721("TestNFT", "TNFT");
+        nft = new BaseERC721("TestNFT", "TNFT", owner);
     }
 
     function testDeployment() public view {
@@ -340,7 +340,7 @@ contract GachaTreasuryTest is Test {
 
     function testMultipleCollectionsWhitelist() public {
         vm.prank(owner);
-        SimpleERC721 nft2 = new SimpleERC721("TestNFT2", "TNFT2");
+        BaseERC721 nft2 = new BaseERC721("TestNFT2", "TNFT2", owner);
 
         vm.startPrank(owner);
         treasury.addToWhitelist(address(nft));

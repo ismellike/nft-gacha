@@ -7,7 +7,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {NFTAppraisal} from "./NFTAppraisal.sol";
+import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
 
 /**
  * @title GachaTreasury - Price-Based NFT Treasury Management

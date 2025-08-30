@@ -2,18 +2,18 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Gacha} from "../src/Gacha.sol";
-import {GachaTreasury} from "../src/GachaTreasury.sol";
-import {GachaRewardsManager} from "../src/GachaRewardsManager.sol";
-import {SimpleERC721} from "../src/SimpleERC721.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {Gacha} from "../src/gacha/Gacha.sol";
+import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
+import {GachaRewardsManager} from "../src/rewards/GachaRewardsManager.sol";
+import {BaseERC721} from "../src/tokens/BaseERC721.sol";
+import {BaseERC20} from "../src/tokens/BaseERC20.sol";
 import {MockNFTAppraisal} from "./mocks/MockNFTAppraisal.sol";
 
 contract GachaTest is Test {
     Gacha public gacha;
     GachaTreasury public treasury;
-    SimpleERC721 public nft;
-    ERC20Mock public feeToken;
+    BaseERC721 public nft;
+    BaseERC20 public feeToken;
     MockNFTAppraisal public mockAppraisal;
 
     address public owner = address(0x1);
@@ -23,7 +23,7 @@ contract GachaTest is Test {
     uint256 public constant SPIN_FEE = 100 * 10 ** 18; // 100 tokens
 
     function setUp() public {
-        feeToken = new ERC20Mock();
+        feeToken = new BaseERC20("Fee Token", "FEE", address(this));
 
         // Simplified approach for testing - deploy in correct order
         vm.startPrank(owner);
@@ -57,7 +57,7 @@ contract GachaTest is Test {
         vm.stopPrank();
 
         vm.prank(owner);
-        nft = new SimpleERC721("TestNFT", "TNFT");
+        nft = new BaseERC721("TestNFT", "TNFT", owner);
 
         // Setup treasury with some NFTs (owner deposits directly)
         _setupTreasuryWithNFTs();
@@ -221,7 +221,7 @@ contract GachaTest is Test {
     }
 
     function testSetFeeToken() public {
-        ERC20Mock newToken = new ERC20Mock();
+        BaseERC20 newToken = new BaseERC20("New Token", "NEW", address(this));
 
         vm.prank(owner);
         vm.expectEmit(false, false, false, true);
@@ -496,8 +496,8 @@ contract GachaTest is Test {
 
     function testReclaimFailedSpin() public {
         // Setup user with exact spin fee amount
-        vm.startPrank(user1);
         feeToken.mint(user1, SPIN_FEE);
+        vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE);
 
         // Record initial balances
@@ -528,8 +528,8 @@ contract GachaTest is Test {
 
     function testReclaimFailedSpinPreventsLateFulfillment() public {
         // Setup user with tokens
-        vm.startPrank(user1);
         feeToken.mint(user1, SPIN_FEE);
+        vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE);
 
         // Start a spin
@@ -547,8 +547,8 @@ contract GachaTest is Test {
 
     function testReclaimFailedSpinOnlyByOriginalRequester() public {
         // Setup user1 with tokens
-        vm.startPrank(user1);
         feeToken.mint(user1, SPIN_FEE);
+        vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE);
 
         // Start a spin
@@ -563,8 +563,8 @@ contract GachaTest is Test {
 
     function testCannotReclaimAlreadyFulfilledSpin() public {
         // Setup user with tokens
-        vm.startPrank(user1);
         feeToken.mint(user1, SPIN_FEE);
+        vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE);
 
         // Start a spin
@@ -583,13 +583,13 @@ contract GachaTest is Test {
 
     function testUserSpinCountIncrement() public {
         // Setup users with tokens
-        vm.startPrank(user1);
         feeToken.mint(user1, SPIN_FEE * 3);
+        vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE * 3);
         vm.stopPrank();
 
-        vm.startPrank(user2);
         feeToken.mint(user2, SPIN_FEE * 2);
+        vm.startPrank(user2);
         feeToken.approve(address(gacha), SPIN_FEE * 2);
         vm.stopPrank();
 
@@ -642,8 +642,8 @@ contract GachaTest is Test {
 
     function testComprehensiveAnalytics() public {
         // Setup user with tokens
-        vm.startPrank(user1);
         feeToken.mint(user1, SPIN_FEE * 5);
+        vm.startPrank(user1);
         feeToken.approve(address(gacha), SPIN_FEE * 5);
         vm.stopPrank();
 

@@ -279,22 +279,60 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    /// @notice Owner override by cardId
-    function overrideCardAppraisal(bytes32 cardId, uint256 priceUSD) external onlyOwner whenNotPaused nonReentrant {
+    /**
+     * @notice Owner sets the card-level appraised price and links the token to the card without a prior request
+     * @dev Avoids charging fees or requiring requestAppraisal; useful for seeding local environments
+     */
+    function ownerSetAppraisalForTokenWithCard(address collection, uint256 tokenId, bytes32 cardId, uint256 priceUSD)
+        external
+        onlyOwner
+        whenNotPaused
+        nonReentrant
+    {
+        if (collection == address(0)) revert InvalidCollection();
+        if (!_isValidNFTContract(collection)) revert InvalidCollection();
         if (priceUSD == 0) revert InvalidPrice();
 
+        // Verify token exists
+        try IERC721(collection).ownerOf(tokenId) returns (address) {
+            // Token exists
+        } catch {
+            revert InvalidTokenId();
+        }
+
+        // Link token to card
+        bytes32 existing = tokenCardIds[collection][tokenId];
+        if (existing != bytes32(0) && existing != cardId) revert CardIdMismatch();
+        if (existing == bytes32(0)) {
+            tokenCardIds[collection][tokenId] = cardId;
+            emit TokenLinkedToCard(collection, tokenId, cardId);
+        }
+
+        // Update card appraisal as owner override
         CardAppraisal storage ca = cardAppraisals[cardId];
         uint256 oldPrice = ca.priceUSD;
         AppraisalStatus oldStatus = ca.status;
         if (ca.firstTimestamp == 0) ca.firstTimestamp = block.timestamp;
-
         ca.priceUSD = priceUSD;
         ca.status = AppraisalStatus.OwnerOverride;
         ca.lastUpdated = block.timestamp;
 
-        emit AppraisalOverridden(address(0), 0, oldPrice, priceUSD, msg.sender);
+        // Create/update token request record for completeness
+        TokenRequest storage tr = tokenRequests[collection][tokenId];
+        if (tr.timestamp == 0) {
+            tr.requester = msg.sender;
+            tr.timestamp = block.timestamp;
+        }
+        tr.status = AppraisalStatus.OwnerOverride;
+        tr.lastUpdated = block.timestamp;
+
+        // Emit events mirroring normal flow
+        emit AppraisalOverridden(collection, tokenId, oldPrice, priceUSD, msg.sender);
+        emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.OwnerOverride, block.timestamp);
         if (oldPrice != priceUSD) {
             emit CardPriceUpdated(cardId, oldPrice, priceUSD);
+            emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
+            _triggerAutoMigration(collection, tokenId);
         }
     }
 

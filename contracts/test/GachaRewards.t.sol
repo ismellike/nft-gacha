@@ -2,10 +2,10 @@
 pragma solidity ^0.8.27;
 
 import {Test, console} from "forge-std/Test.sol";
-import {GachaRewardsManager} from "../src/GachaRewardsManager.sol";
-import {UserDividendTracker} from "../src/UserDividendTracker.sol";
-import {GachaTreasury} from "../src/GachaTreasury.sol";
-import {NFTAppraisal} from "../src/NFTAppraisal.sol";
+import {GachaRewardsManager} from "../src/rewards/GachaRewardsManager.sol";
+import {UserDividendTracker} from "../src/rewards/UserDividendTracker.sol";
+import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
+import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract TestToken is ERC20 {

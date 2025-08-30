@@ -9,7 +9,7 @@ import {
     AppraisalError,
     AppraisalSuccessReceived,
     AppraisalErrorReceived
-} from "./interfaces/NFTAppraisalTypes.sol";
+} from "../interfaces/NFTAppraisalTypes.sol";
 
 /**
  * @title NFTAppraisalServiceHandler - WAVS Randomness Integration for NFT Appraisal

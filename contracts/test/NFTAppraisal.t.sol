@@ -2,15 +2,15 @@
 pragma solidity ^0.8.27;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {NFTAppraisal} from "../src/NFTAppraisal.sol";
-import {SimpleERC721} from "../src/SimpleERC721.sol";
-import {TestToken} from "../src/TestToken.sol";
+import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
+import {BaseERC721} from "../src/tokens/BaseERC721.sol";
+import {BaseERC20} from "../src/tokens/BaseERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract NFTAppraisalTest is Test {
     NFTAppraisal public appraisal;
-    SimpleERC721 public nft;
-    TestToken public feeToken;
+    BaseERC721 public nft;
+    BaseERC20 public feeToken;
 
     address public owner = makeAddr("owner");
     address public oracle = makeAddr("oracle");
@@ -47,8 +47,8 @@ contract NFTAppraisalTest is Test {
 
     function setUp() public {
         // Deploy contracts
-        feeToken = new TestToken("Fee Token", "FEE", address(this));
-        nft = new SimpleERC721("Test NFT", "TNFT");
+        feeToken = new BaseERC20("Fee Token", "FEE", address(this));
+        nft = new BaseERC721("Test NFT", "TNFT", address(this));
 
         vm.prank(owner);
         appraisal = new NFTAppraisal(owner, address(feeToken), APPRAISAL_FEE, protocol);
@@ -229,7 +229,7 @@ contract NFTAppraisalTest is Test {
     }
 
     function testSetFeeToken() public {
-        TestToken newFeeToken = new TestToken("New Fee", "NFEE", address(this));
+        BaseERC20 newFeeToken = new BaseERC20("New Fee", "NFEE", address(this));
 
         vm.prank(owner);
         appraisal.setFeeToken(address(newFeeToken));

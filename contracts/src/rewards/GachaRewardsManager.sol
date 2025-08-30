@@ -6,9 +6,9 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {GachaTreasury} from "./GachaTreasury.sol";
-import {Gacha} from "./Gacha.sol";
-import {NFTAppraisal} from "./NFTAppraisal.sol";
+import {GachaTreasury} from "../gacha/GachaTreasury.sol";
+import {Gacha} from "../gacha/Gacha.sol";
+import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
 
 /// @title GachaRewardsManager - Three-tier ERC2222-style accrual system
 /// @notice Implements single Treasury custody with three-tier cumulative meters

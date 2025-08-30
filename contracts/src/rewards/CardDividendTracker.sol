@@ -5,8 +5,8 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {GachaTreasury} from "./GachaTreasury.sol";
-import {NFTAppraisal} from "./NFTAppraisal.sol";
+import {GachaTreasury} from "../gacha/GachaTreasury.sol";
+import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
 
 interface IGachaRewardsManager {
     function recordUserRewardClaim(address user, uint256 amount) external;

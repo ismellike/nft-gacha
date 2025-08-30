@@ -8,8 +8,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
-import {GachaRewardsManager} from "./GachaRewardsManager.sol";
-import {RandomnessRequested} from "./interfaces/WavsDrandTypes.sol";
+import {GachaRewardsManager} from "../rewards/GachaRewardsManager.sol";
+import {RandomnessRequested} from "../interfaces/WavsDrandTypes.sol";
 
 /**
  * @title Gacha - NFT Gacha Game Contract with Price-Based Treasury
