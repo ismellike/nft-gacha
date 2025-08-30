@@ -1,6 +1,10 @@
-use super::{card_parser::{CardParser, GradedCardAttributes}, integrity::IntegrityVerifier, types::*};
-use anyhow::{anyhow, Result};
+use super::{
+    card_parser::{CardParser, GradedCardAttributes},
+    integrity::IntegrityVerifier,
+    types::*,
+};
 use alloy_primitives::B256;
+use anyhow::{anyhow, Result};
 use sha3::{Digest, Keccak256};
 
 #[derive(Debug)]
@@ -44,13 +48,16 @@ impl CourtyardClient {
     }
 
     /// Parse graded card information from NFT metadata and generate card ID
-    pub fn parse_graded_card_info(&self, metadata: &NFTMetadata) -> Result<(GradedCardAttributes, B256)> {
+    pub fn parse_graded_card_info(
+        &self,
+        metadata: &NFTMetadata,
+    ) -> Result<(GradedCardAttributes, B256)> {
         // Parse the graded card attributes
         let attributes = CardParser::parse_graded_card_attributes(metadata)?;
-        
+
         // Generate card ID from attributes
         let card_id = self.generate_card_id(&attributes)?;
-        
+
         Ok((attributes, card_id))
     }
 
@@ -59,28 +66,28 @@ impl CourtyardClient {
     pub fn generate_card_id(&self, attributes: &GradedCardAttributes) -> Result<B256> {
         // Build the components for hashing
         let mut components = Vec::new();
-        
+
         components.push(attributes.grader.as_bytes());
         components.push(attributes.grade.as_bytes());
-        
+
         // Use set if available, otherwise empty string
         if let Some(set) = &attributes.set {
             components.push(set.as_bytes());
         } else {
             components.push(b"");
         }
-        
+
         components.push(attributes.title.as_bytes());
-        
-        // Use language if available, otherwise default to "English"  
+
+        // Use language if available, otherwise default to "English"
         if let Some(language) = &attributes.language {
             components.push(language.as_bytes());
         } else {
             components.push(b"English");
         }
-        
+
         components.push(attributes.card_number.as_bytes());
-        
+
         // Join components with separator
         let separator = b"|";
         let mut data = Vec::new();
@@ -90,12 +97,12 @@ impl CourtyardClient {
             }
             data.extend_from_slice(component);
         }
-        
+
         // Hash the combined data
         let mut hasher = Keccak256::new();
         hasher.update(&data);
         let hash = hasher.finalize();
-        
+
         Ok(B256::from_slice(&hash))
     }
 

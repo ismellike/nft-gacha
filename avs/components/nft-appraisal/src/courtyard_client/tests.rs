@@ -7,80 +7,116 @@ mod card_parser_tests {
     use super::*;
 
     #[test]
-    fn test_extract_card_name() {
-        // Test various card name formats
-        assert_eq!(
-            CardParser::extract_card_name("Charizard #004/102 - Base Set").unwrap(),
-            "Charizard"
-        );
-        assert_eq!(
-            CardParser::extract_card_name("Pikachu (PSA 10)").unwrap(),
-            "Pikachu"
-        );
-        assert_eq!(
-            CardParser::extract_card_name("Charizard VMAX - Champion's Path #020/073").unwrap(),
-            "Charizard VMAX"
-        );
-        assert_eq!(CardParser::extract_card_name("Mew").unwrap(), "Mew");
-        assert_eq!(
-            CardParser::extract_card_name("Dark Charizard #4/82").unwrap(),
-            "Dark Charizard"
-        );
+    fn test_parse_graded_card_attributes_valid() {
+        let metadata = NFTMetadata {
+            collection_name: Some("Graded Cards".to_string()),
+            name: "2024 Pokémon Sv5a-Crimson Haze #070 Infernape - Art Rare (PSA 10 GEM MINT)"
+                .to_string(),
+            description: None,
+            external_url: None,
+            image: None,
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: serde_json::Value::String("10".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Title/Subject".to_string()),
+                    value: serde_json::Value::String("Infernape".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: serde_json::Value::String("070".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Year".to_string()),
+                    value: serde_json::Value::String("2024".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: serde_json::Value::String("Sv5a-Crimson Haze".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Language".to_string()),
+                    value: serde_json::Value::String("Japanese".to_string()),
+                },
+            ],
+            product_type: Some("GRADED_CARD".to_string()),
+        };
 
-        // Test error cases
-        assert!(CardParser::extract_card_name("").is_err());
-        assert!(CardParser::extract_card_name("   ").is_err());
+        let result = CardParser::parse_graded_card_attributes(&metadata);
+        assert!(result.is_ok());
+
+        let attributes = result.unwrap();
+        assert_eq!(attributes.grader, "PSA");
+        assert_eq!(attributes.grade, "10");
+        assert_eq!(attributes.title, "Infernape");
+        assert_eq!(attributes.card_number, "070");
+        assert_eq!(attributes.year, "2024");
+        assert_eq!(attributes.set, Some("Sv5a-Crimson Haze".to_string()));
+        assert_eq!(attributes.language, Some("Japanese".to_string()));
     }
 
     #[test]
-    fn test_extract_grade_from_attributes() {
-        let attributes = vec![NFTAttribute {
-            trait_type: Some("Grade".to_string()),
-            value: serde_json::Value::String("PSA 10".to_string()),
-        }];
-        assert_eq!(
-            CardParser::extract_grade_from_attributes(&attributes),
-            Some("PSA 10".to_string())
-        );
+    fn test_parse_graded_card_attributes_not_graded_card() {
+        let metadata = NFTMetadata {
+            collection_name: Some("Regular NFTs".to_string()),
+            name: "Regular NFT".to_string(),
+            description: None,
+            external_url: None,
+            image: None,
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            attributes: vec![],
+            product_type: Some("NFT".to_string()),
+        };
 
-        let attributes = vec![NFTAttribute {
-            trait_type: Some("condition".to_string()),
-            value: serde_json::Value::String("10".to_string()),
-        }];
-        assert_eq!(
-            CardParser::extract_grade_from_attributes(&attributes),
-            Some("PSA 10".to_string())
-        );
-
-        let attributes = vec![NFTAttribute {
-            trait_type: Some("Grade".to_string()),
-            value: serde_json::Value::String("raw".to_string()),
-        }];
-        assert_eq!(
-            CardParser::extract_grade_from_attributes(&attributes),
-            Some("raw".to_string())
-        );
+        let result = CardParser::parse_graded_card_attributes(&metadata);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("not a graded card"));
     }
 
     #[test]
-    fn test_extract_set_from_attributes() {
-        let attributes = vec![NFTAttribute {
-            trait_type: Some("Set".to_string()),
-            value: serde_json::Value::String("Base Set".to_string()),
-        }];
-        assert_eq!(
-            CardParser::extract_set_from_attributes(&attributes),
-            Some("Base Set".to_string())
-        );
+    fn test_parse_graded_card_attributes_missing_required() {
+        let metadata = NFTMetadata {
+            collection_name: Some("Graded Cards".to_string()),
+            name: "Incomplete Card".to_string(),
+            description: None,
+            external_url: None,
+            image: None,
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
+                },
+                // Missing other required attributes
+            ],
+            product_type: Some("GRADED_CARD".to_string()),
+        };
 
-        let attributes = vec![NFTAttribute {
-            trait_type: Some("expansion".to_string()),
-            value: serde_json::Value::String("Jungle".to_string()),
-        }];
-        assert_eq!(
-            CardParser::extract_set_from_attributes(&attributes),
-            Some("Jungle".to_string())
-        );
+        let result = CardParser::parse_graded_card_attributes(&metadata);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Missing required"));
     }
 }
 
@@ -174,12 +210,13 @@ mod client_tests {
     }
 
     #[test]
-    fn test_parse_pokemon_card_info() {
+    fn test_parse_graded_card_info() {
         let client = CourtyardClient::new();
 
         let metadata = NFTMetadata {
-            collection_name: Some("Pokemon Cards".to_string()),
-            name: "Charizard #004/102 - Base Set".to_string(),
+            collection_name: Some("Graded Cards".to_string()),
+            name: "2024 Pokémon Sv5a-Crimson Haze #070 Infernape - Art Rare (PSA 10 GEM MINT)"
+                .to_string(),
             description: None,
             external_url: None,
             image: None,
@@ -190,24 +227,43 @@ mod client_tests {
             item_info: None,
             attributes: vec![
                 NFTAttribute {
-                    trait_type: Some("Set".to_string()),
-                    value: serde_json::Value::String("Base Set".to_string()),
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
                 },
                 NFTAttribute {
                     trait_type: Some("Grade".to_string()),
-                    value: serde_json::Value::String("PSA 10".to_string()),
+                    value: serde_json::Value::String("10".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Title/Subject".to_string()),
+                    value: serde_json::Value::String("Infernape".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: serde_json::Value::String("070".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Year".to_string()),
+                    value: serde_json::Value::String("2024".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: serde_json::Value::String("Sv5a-Crimson Haze".to_string()),
                 },
             ],
-            product_type: None,
+            product_type: Some("GRADED_CARD".to_string()),
         };
 
-        let result = client.parse_pokemon_card_info(&metadata);
+        let result = client.parse_graded_card_info(&metadata);
         assert!(result.is_ok());
 
-        let card_info = result.unwrap();
-        assert_eq!(card_info.name, "Charizard");
-        assert_eq!(card_info.set, Some("Base Set".to_string()));
-        assert_eq!(card_info.grade, Some("PSA 10".to_string()));
+        let (card_info, card_id) = result.unwrap();
+        assert_eq!(card_info.grader, "PSA");
+        assert_eq!(card_info.grade, "10");
+        assert_eq!(card_info.title, "Infernape");
+        assert_eq!(card_info.set, Some("Sv5a-Crimson Haze".to_string()));
+        // Verify card_id is generated (32 bytes)
+        assert_eq!(card_id.len(), 32);
     }
 
     #[test]

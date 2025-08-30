@@ -67,4 +67,3 @@ pub struct CourtyardNFTResponse {
     pub owner: Option<String>,
     pub token_uri: Option<String>,
 }
-
