@@ -280,6 +280,34 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
+     * @notice Owner batch sets appraised prices for multiple tokens with cards
+     * @dev Gas-optimized for seeding local environments
+     */
+    function ownerBatchSetAppraisalForTokensWithCards(
+        address[] calldata collections,
+        uint256[] calldata tokenIds, 
+        bytes32[] calldata cardIds,
+        uint256[] calldata pricesUSD
+    )
+        external
+        onlyOwner
+        whenNotPaused
+        nonReentrant
+    {
+        require(
+            collections.length == tokenIds.length && 
+            tokenIds.length == cardIds.length && 
+            cardIds.length == pricesUSD.length, 
+            "Array length mismatch"
+        );
+        require(collections.length <= 50, "Too many items");
+
+        for (uint256 i = 0; i < collections.length; i++) {
+            _setAppraisalForTokenWithCard(collections[i], tokenIds[i], cardIds[i], pricesUSD[i], true);
+        }
+    }
+
+    /**
      * @notice Owner sets the card-level appraised price and links the token to the card without a prior request
      * @dev Avoids charging fees or requiring requestAppraisal; useful for seeding local environments
      */
@@ -289,10 +317,16 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         whenNotPaused
         nonReentrant
     {
-        if (collection == address(0)) revert InvalidCollection();
-        if (!_isValidNFTContract(collection)) revert InvalidCollection();
-        if (priceUSD == 0) revert InvalidPrice();
+        _setAppraisalForTokenWithCard(collection, tokenId, cardId, priceUSD, true);
+    }
 
+    function _setAppraisalForTokenWithCard(
+        address collection, 
+        uint256 tokenId, 
+        bytes32 cardId, 
+        uint256 priceUSD,
+        bool isOwnerOverride
+    ) internal {
         // Verify token exists
         try IERC721(collection).ownerOf(tokenId) returns (address) {
             // Token exists
@@ -308,13 +342,13 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
             emit TokenLinkedToCard(collection, tokenId, cardId);
         }
 
-        // Update card appraisal as owner override
+        // Update card appraisal
         CardAppraisal storage ca = cardAppraisals[cardId];
         uint256 oldPrice = ca.priceUSD;
         AppraisalStatus oldStatus = ca.status;
         if (ca.firstTimestamp == 0) ca.firstTimestamp = block.timestamp;
         ca.priceUSD = priceUSD;
-        ca.status = AppraisalStatus.OwnerOverride;
+        ca.status = isOwnerOverride ? AppraisalStatus.OwnerOverride : AppraisalStatus.Completed;
         ca.lastUpdated = block.timestamp;
 
         // Create/update token request record for completeness
@@ -323,12 +357,17 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
             tr.requester = msg.sender;
             tr.timestamp = block.timestamp;
         }
-        tr.status = AppraisalStatus.OwnerOverride;
+        tr.status = isOwnerOverride ? AppraisalStatus.OwnerOverride : AppraisalStatus.Completed;
         tr.lastUpdated = block.timestamp;
 
-        // Emit events mirroring normal flow
-        emit AppraisalOverridden(collection, tokenId, oldPrice, priceUSD, msg.sender);
-        emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.OwnerOverride, block.timestamp);
+        // Emit events
+        if (isOwnerOverride) {
+            emit AppraisalOverridden(collection, tokenId, oldPrice, priceUSD, msg.sender);
+        } else {
+            emit AppraisalCompleted(collection, tokenId, priceUSD, msg.sender, block.timestamp);
+        }
+        
+        emit AppraisalStatusChanged(collection, tokenId, oldStatus, tr.status, block.timestamp);
         if (oldPrice != priceUSD) {
             emit CardPriceUpdated(cardId, oldPrice, priceUSD);
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);

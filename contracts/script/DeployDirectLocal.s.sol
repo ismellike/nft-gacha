@@ -168,25 +168,230 @@ contract DeployDirectLocal is Script {
         BaseERC721 nft,
         address deployer
     ) internal {
-        // Common: 10 @ $50
+        // Total: 15 Common + 10 Uncommon + 10 Rare + 10 Epic + 5 Legendary = 50 appraised NFTs
+        // Plus 10 non-appraised NFTs for testing = 60 total
+        
+        console.log("=== Minting NFTs with Real Courtyard TokenURIs ===");
+        
+        // Create all tokenURIs using real Courtyard API endpoints
+        string[] memory tokenURIs = new string[](60);
+        uint256[] memory prices = new uint256[](60);
+        uint256 idx = 0;
+        
+        // Common NFTs (15 appraised) - Real Courtyard token IDs (repeated for variety)
+        string[15] memory commonTokenIds = [
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy CGC 8.5
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", 
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f"
+        ];
+        
+        for (uint256 i = 0; i < 15; i++) {
+            tokenURIs[idx] = _generateCourtyardTokenURI(commonTokenIds[i]);
+            prices[idx] = (50 + (i * 5)) * 1e18; // $50-120
+            idx++;
+        }
+        
+        // Uncommon NFTs (10 appraised)
+        string[10] memory uncommonTokenIds = [
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong CGC 9
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19", // Beldum CGC 9
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19"
+        ];
+        
         for (uint256 i = 0; i < 10; i++) {
-            _mintAppraiseDeposit(treasury, appraisalContract, nft, deployer, 50e18, 0);
+            tokenURIs[idx] = _generateCourtyardTokenURI(uncommonTokenIds[i]);
+            prices[idx] = (150 + (i * 10)) * 1e18; // $150-240
+            idx++;
         }
-        // Uncommon: 5 @ $250
+        
+        // Rare NFTs (10 appraised)
+        string[10] memory rareTokenIds = [
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck PSA 9
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9"
+        ];
+        
+        for (uint256 i = 0; i < 10; i++) {
+            tokenURIs[idx] = _generateCourtyardTokenURI(rareTokenIds[i]);
+            prices[idx] = (300 + (i * 50)) * 1e18; // $300-750
+            idx++;
+        }
+        
+        // Epic NFTs (10 appraised)
+        string[10] memory epicTokenIds = [
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr PSA 10
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b"
+        ];
+        
+        for (uint256 i = 0; i < 10; i++) {
+            tokenURIs[idx] = _generateCourtyardTokenURI(epicTokenIds[i]);
+            prices[idx] = (2000 + (i * 200)) * 1e18; // $2000-3800
+            idx++;
+        }
+        
+        // Legendary NFTs (5 appraised)
+        string[5] memory legendaryTokenIds = [
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c", // Charizard Base Set 2 PSA 8
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Charizard V BGS 10 PRISTINE 
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c",
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c"
+        ];
+        
         for (uint256 i = 0; i < 5; i++) {
-            _mintAppraiseDeposit(treasury, appraisalContract, nft, deployer, 250e18, 1);
+            tokenURIs[idx] = _generateCourtyardTokenURI(legendaryTokenIds[i]);
+            prices[idx] = (12000 + (i * 2000)) * 1e18; // $12000-20000
+            idx++;
         }
-        // Rare: 3 @ $1000
-        for (uint256 i = 0; i < 3; i++) {
-            _mintAppraiseDeposit(treasury, appraisalContract, nft, deployer, 1000e18, 2);
+        
+        // Non-appraised test NFTs (10) - Use the known working token ID as base
+        string[10] memory testTokenIds = [
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Known working
+            "0x9234567890123456789012345678901234567890123456789012345678901235",
+            "0x9234567890123456789012345678901234567890123456789012345678901236",
+            "0x9234567890123456789012345678901234567890123456789012345678901237",
+            "0x9234567890123456789012345678901234567890123456789012345678901238",
+            "0x9234567890123456789012345678901234567890123456789012345678901239",
+            "0x9234567890123456789012345678901234567890123456789012345678901240",
+            "0x9234567890123456789012345678901234567890123456789012345678901241",
+            "0x9234567890123456789012345678901234567890123456789012345678901242",
+            "0x9234567890123456789012345678901234567890123456789012345678901243"
+        ];
+        
+        for (uint256 i = 0; i < 10; i++) {
+            tokenURIs[idx] = _generateCourtyardTokenURI(testTokenIds[i]);
+            prices[idx] = 0; // No price set - for testing appraisal
+            idx++;
         }
-        // Epic: 2 @ $5000
-        for (uint256 i = 0; i < 2; i++) {
-            _mintAppraiseDeposit(treasury, appraisalContract, nft, deployer, 5000e18, 3);
+        
+        // Batch mint all NFTs with URIs
+        uint256[] memory tokenIds = nft.batchMintWithURIs(deployer, tokenURIs);
+        console.log("Minted", tokenIds.length, "NFTs with Courtyard tokenURIs");
+        
+        // Prepare arrays for appraised NFTs only (first 50)
+        address[] memory collections = new address[](50);
+        uint256[] memory appraisedTokenIds = new uint256[](50);
+        bytes32[] memory cardIds = new bytes32[](50);
+        uint256[] memory appraisalPrices = new uint256[](50);
+        
+        // Generate cardIds based on card attributes (like NFTAppraisal AVS component does)
+        // Format: keccak256(Grader|Grade|Set|Title/Subject|Language|Card Number)
+        for (uint256 i = 0; i < 50; i++) {
+            collections[i] = address(nft);
+            appraisedTokenIds[i] = tokenIds[i];
+            
+            // Generate cardId from REAL card attributes based on actual Courtyard metadata
+            if (i < 15) {
+                // Common: Fire Energy CGC 8.5 (no card number in metadata)
+                cardIds[i] = _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "");
+            } else if (i < 25) {
+                // Uncommon: Alternating between Bronzong and Beldum
+                if ((i - 15) % 2 == 0) {
+                    // Bronzong CGC 9
+                    cardIds[i] = _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Bronzong", "English", "16");
+                } else {
+                    // Beldum CGC 9 
+                    cardIds[i] = _generateCardId("CGC", "9 MINT", "EX Hidden Legends", "Beldum", "English", "29");
+                }
+            } else if (i < 35) {
+                // Rare: Using Psyduck for variety
+                cardIds[i] = _generateCardId("PSA", "9 MINT", "Black Star", "Psyduck", "English", "20");
+            } else if (i < 45) {
+                // Epic: Japanese Feraligatr PSA 10
+                cardIds[i] = _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Feraligatr", "Japanese", "016/P");
+            } else {
+                // Legendary: Alternating between two Charizard cards
+                if ((i - 45) % 2 == 0) {
+                    // Charizard Base Set 2 PSA 8
+                    cardIds[i] = _generateCardId("PSA", "8 NM-MT", "Base Set 2", "Charizard", "English", "4");
+                } else {
+                    // Charizard V BGS 10 PRISTINE
+                    cardIds[i] = _generateCardId("BGS", "10 PRISTINE", "Champion's Path", "Charizard V", "English", "079");
+                }
+            }
+            
+            appraisalPrices[i] = prices[i];
         }
-        // Legendary: 1 @ $15000
-        _mintAppraiseDeposit(treasury, appraisalContract, nft, deployer, 15000e18, 4);
+        
+        console.log("=== Setting Appraisals ===");
+        // Batch set appraisals for first 50 NFTs
+        appraisalContract.ownerBatchSetAppraisalForTokensWithCards(
+            collections, appraisedTokenIds, cardIds, appraisalPrices
+        );
+        console.log("Set appraisals for", collections.length, "NFTs");
+        
+        console.log("=== Depositing to Treasury ===");
+        // Batch approve and deposit appraised NFTs only
+        nft.setApprovalForAll(address(treasury), true);
+        treasury.batchDepositNFT(collections, appraisedTokenIds);
+        console.log("Deposited", collections.length, "appraised NFTs to treasury");
+        console.log("Remaining", tokenIds.length - collections.length, "NFTs are non-appraised for testing");
     }
+
+    function _generateCourtyardTokenURI(string memory tokenId) internal pure returns (string memory) {
+        // Generate real Courtyard API URLs
+        return string(abi.encodePacked(
+            "https://api.courtyard.io/index/token/polygon/",
+            "0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD/",
+            tokenId,
+            "/metadata.json"
+        ));
+    }
+
+    function _generateCardId(
+        string memory grader,
+        string memory grade, 
+        string memory set,
+        string memory title,
+        string memory language,
+        string memory cardNumber
+    ) internal pure returns (bytes32) {
+        // Format: keccak256(Grader|Grade|Set|Title/Subject|Language|Card Number)
+        // This matches the NFTAppraisal AVS component logic
+        return keccak256(abi.encodePacked(
+            grader, "|",
+            grade, "|", 
+            set, "|",
+            title, "|",
+            language, "|",
+            cardNumber
+        ));
+    }
+
 
     function _mintAppraiseDeposit(
         GachaTreasury treasury,

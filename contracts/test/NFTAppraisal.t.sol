@@ -172,7 +172,7 @@ contract NFTAppraisalTest is Test {
         appraisal.setAppraisalForTokenWithCard(address(nft), tokenId, cardId, 100e18);
 
         vm.prank(owner);
-        appraisal.overrideCardAppraisal(cardId, 1000e18);
+        appraisal.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, 1000e18);
 
         // Check override worked with exact values
         (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), tokenId);
@@ -185,9 +185,9 @@ contract NFTAppraisalTest is Test {
         uint256 tokenId = 2;
         bytes32 cardId = keccak256(abi.encodePacked("card-new"));
 
-        // Override card first (no token linked yet)
+        // Set appraisal directly via owner (no token linked yet)
         vm.prank(owner);
-        appraisal.overrideCardAppraisal(cardId, 1000e18);
+        appraisal.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, 1000e18);
 
         // Link token to the overridden card via service handler
         vm.prank(user);
