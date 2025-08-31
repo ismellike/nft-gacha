@@ -25,9 +25,8 @@ import { ArrowLeftIcon, BoltIcon } from "@heroicons/react/24/outline";
 import { glassTypography } from "../../lib/theme-config";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";
 import {
-	useReadGachaRewardsManagerGetUserTotalClaimableRewards,
-	useReadGachaRewardsManagerGetUserRarityClaimableRewards,
-	useReadGachaRewardsManagerGetRewardsAnalytics,
+	useReadUserDividendTrackerWithdrawableFundsOf,
+	useReadUserDividendTrackerAccumulativeFundsOf,
 	useReadGachaTreasuryGetUserAllDepositCounts,
 	useReadGachaFeeToken,
 	useReadGachaOwner,
@@ -114,69 +113,94 @@ function GachaDetailPageContent() {
 
 	// decimals not used on this page; omit to keep types clean
 
-	const { refetch: refetchUserAnalytics } =
-		useReadGachaRewardsManagerGetRewardsAnalytics({
-			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
-		});
+	// User analytics via per-rarity UserDividendTrackers
+	const { refetch: refetchAccCommon } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.common,
+		args: userAddress && contracts.trackers?.common ? [userAddress] : undefined,
+		query: { enabled: !!userAddress && !!contracts.trackers?.common },
+	});
+	const { refetch: refetchAccUncommon } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.uncommon,
+		args: userAddress && contracts.trackers?.uncommon ? [userAddress] : undefined,
+		query: { enabled: !!userAddress && !!contracts.trackers?.uncommon },
+	});
+	const { refetch: refetchAccRare } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.rare,
+		args: userAddress && contracts.trackers?.rare ? [userAddress] : undefined,
+		query: { enabled: !!userAddress && !!contracts.trackers?.rare },
+	});
+	const { refetch: refetchAccEpic } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.epic,
+		args: userAddress && contracts.trackers?.epic ? [userAddress] : undefined,
+		query: { enabled: !!userAddress && !!contracts.trackers?.epic },
+	});
+	const { refetch: refetchAccLegendary } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.legendary,
+		args: userAddress && contracts.trackers?.legendary ? [userAddress] : undefined,
+		query: { enabled: !!userAddress && !!contracts.trackers?.legendary },
+	});
 
-	const { refetch: refetchClaimable } =
-		useReadGachaRewardsManagerGetUserTotalClaimableRewards({
-			address: contracts.rewardsManager,
-			args: userAddress && contracts.rewardsManager ? [userAddress] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
-		} as Parameters<
-			typeof useReadGachaRewardsManagerGetUserTotalClaimableRewards
-		>[0]);
+	const refetchUserAnalytics = async () => {
+		await Promise.all([
+			refetchAccCommon(),
+			refetchAccUncommon(),
+			refetchAccRare(),
+			refetchAccEpic(),
+			refetchAccLegendary(),
+		]);
+	};
 
-	const { refetch: refetchDepositCounts } =
-		useReadGachaTreasuryGetUserAllDepositCounts({
-			address: contracts.treasury,
-			args: userAddress && contracts.treasury ? [userAddress] : undefined,
-			query: { enabled: !!userAddress && !!contracts.treasury },
-		} as Parameters<typeof useReadGachaTreasuryGetUserAllDepositCounts>[0]);
-
-	// Individual rarity claimable amounts
+	// Total claimable via per-rarity withdrawable funds
 	const { refetch: refetchCommonClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 0] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.common,
+			args: userAddress && contracts.trackers?.common ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.common },
 		});
 
 	const { refetch: refetchUncommonClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 1] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.uncommon,
+			args: userAddress && contracts.trackers?.uncommon ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.uncommon },
 		});
 
 	const { refetch: refetchRareClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 2] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.rare,
+			args: userAddress && contracts.trackers?.rare ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.rare },
 		});
 
 	const { refetch: refetchEpicClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 3] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.epic,
+			args: userAddress && contracts.trackers?.epic ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.epic },
 		});
 
 	const { refetch: refetchLegendaryClaimable } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: contracts.rewardsManager,
-			args:
-				userAddress && contracts.rewardsManager ? [userAddress, 4] : undefined,
-			query: { enabled: !!userAddress && !!contracts.rewardsManager },
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.legendary,
+			args: userAddress && contracts.trackers?.legendary ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.legendary },
 		});
+
+	const refetchClaimable = async () => {
+		await Promise.all([
+			refetchCommonClaimable(),
+			refetchUncommonClaimable(),
+			refetchRareClaimable(),
+			refetchEpicClaimable(),
+			refetchLegendaryClaimable(),
+		]);
+	};
+
+	const { refetch: refetchDepositCounts } = useReadGachaTreasuryGetUserAllDepositCounts({
+			address: contracts.treasury,
+			args: userAddress && contracts.treasury ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.treasury },
+	});
 
 	// Claim rewards mutation - use generic writeContract for individual tracker calls
 	const { isSuccess: isClaimSuccess, error: claimError } = useWriteContract();

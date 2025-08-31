@@ -15,7 +15,7 @@ import { useGachaId } from "../hooks/useGachaId";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaTreasuryGetTotalItemsCount,
-	useReadGachaRewardsManagerTotalFeesDistributed,
+	useReadGachaRewardsManagerTotalAccrued,
 	useReadGachaGetGlobalAnalytics,
 	useReadGachaFeeToken,
 	useReadErc20Symbol,
@@ -55,11 +55,12 @@ export const PlatformAnalytics: React.FC = () => {
 		query: { enabled: !!contracts.treasury },
 	});
 
-	const { data: totalFeesDistributed } =
-		useReadGachaRewardsManagerTotalFeesDistributed({
-			address: contracts.rewardsManager as `0x${string}` | undefined,
-			query: { enabled: !!contracts.rewardsManager },
-		});
+
+	// New contracts expose depositor share via totalAccrued
+	const { data: totalAccrued } = useReadGachaRewardsManagerTotalAccrued({
+		address: contracts.rewardsManager as `0x${string}` | undefined,
+		query: { enabled: !!contracts.rewardsManager },
+	});
 
 	const { data: gachaGlobalAnalytics } = useReadGachaGetGlobalAnalytics({
 		address: contracts.gacha as `0x${string}` | undefined,
@@ -69,10 +70,7 @@ export const PlatformAnalytics: React.FC = () => {
 	const totalSpinCount = gachaGlobalAnalytics?.[0];
 
 	const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
-	const totalValue = formatTokenAmount(
-		totalFeesDistributed || BigInt(0),
-		tokenDecimals || 18,
-	);
+	const totalValue = formatTokenAmount(totalAccrued || BigInt(0), tokenDecimals || 18);
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">

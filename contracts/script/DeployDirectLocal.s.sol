@@ -111,12 +111,13 @@ contract DeployDirectLocal is Script {
         gacha.setRarityWeights(7000, 2000, 600, 300, 100); // 70%, 20%, 6%, 3%, 1%
 
         // Configure price ranges for proper rarity distribution
-        console.log("Setting price ranges for rarity tiers...");
-        treasury.setPriceRange(GachaTreasury.Rarity.Common, 0, 99 * 1e18); // $0-99 (5 cards)
-        treasury.setPriceRange(GachaTreasury.Rarity.Uncommon, 100 * 1e18, 199 * 1e18); // $100-199 (7 cards)
-        treasury.setPriceRange(GachaTreasury.Rarity.Rare, 200 * 1e18, 399 * 1e18); // $200-399 (8 cards)
-        treasury.setPriceRange(GachaTreasury.Rarity.Epic, 400 * 1e18, 999 * 1e18); // $400-999 (6 cards)
-        treasury.setPriceRange(GachaTreasury.Rarity.Legendary, 1000 * 1e18, type(uint256).max); // $1000+ (4 cards)
+        // We control seed prices, so set canonical compact bands and seed accordingly
+        console.log("Setting price ranges for rarity tiers (canonical)...");
+        treasury.setPriceRange(GachaTreasury.Rarity.Common, 0, 99 * 1e18); // $0-99 (Common)
+        treasury.setPriceRange(GachaTreasury.Rarity.Uncommon, 100 * 1e18, 199 * 1e18); // $100-199 (Uncommon)
+        treasury.setPriceRange(GachaTreasury.Rarity.Rare, 200 * 1e18, 399 * 1e18); // $200-399 (Rare)
+        treasury.setPriceRange(GachaTreasury.Rarity.Epic, 400 * 1e18, 999 * 1e18); // $400-999 (Epic)
+        treasury.setPriceRange(GachaTreasury.Rarity.Legendary, 1000 * 1e18, type(uint256).max); // $1000+ (Legendary)
 
         console.log("Rewards manager deployed and configured...");
         treasury.setTreasuryRewardsManager(address(rewardsManager));
@@ -199,7 +200,8 @@ contract DeployDirectLocal is Script {
         
         for (uint256 i = 0; i < 15; i++) {
             tokenURIs[idx] = _generateCourtyardTokenURI(commonTokenIds[i]);
-            prices[idx] = (50 + (i * 5)) * 1e18; // $50-120
+            // Seed strictly within Common band ($50–$95)
+            prices[idx] = (50 + ((i % 10) * 5)) * 1e18; // 50,55,...,95 then repeat
             idx++;
         }
         
@@ -219,7 +221,8 @@ contract DeployDirectLocal is Script {
         
         for (uint256 i = 0; i < 10; i++) {
             tokenURIs[idx] = _generateCourtyardTokenURI(uncommonTokenIds[i]);
-            prices[idx] = (150 + (i * 10)) * 1e18; // $150-240
+            // Seed within Uncommon band ($110–$190)
+            prices[idx] = (110 + (i * 8)) * 1e18; // 110,118,...,182 (fits < 199)
             idx++;
         }
         
@@ -239,7 +242,8 @@ contract DeployDirectLocal is Script {
         
         for (uint256 i = 0; i < 10; i++) {
             tokenURIs[idx] = _generateCourtyardTokenURI(rareTokenIds[i]);
-            prices[idx] = (300 + (i * 50)) * 1e18; // $300-750
+            // Seed within Rare band ($220–$382)
+            prices[idx] = (220 + (i * 18)) * 1e18;
             idx++;
         }
         
@@ -259,7 +263,8 @@ contract DeployDirectLocal is Script {
         
         for (uint256 i = 0; i < 10; i++) {
             tokenURIs[idx] = _generateCourtyardTokenURI(epicTokenIds[i]);
-            prices[idx] = (2000 + (i * 200)) * 1e18; // $2000-3800
+            // Seed within Epic band ($500–$950)
+            prices[idx] = (500 + (i * 50)) * 1e18;
             idx++;
         }
         
@@ -274,7 +279,7 @@ contract DeployDirectLocal is Script {
         
         for (uint256 i = 0; i < 5; i++) {
             tokenURIs[idx] = _generateCourtyardTokenURI(legendaryTokenIds[i]);
-            prices[idx] = (12000 + (i * 2000)) * 1e18; // $12000-20000
+            prices[idx] = (1200 + (i * 200)) * 1e18; // $1200-2000 fits Legendary >= 1000
             idx++;
         }
         

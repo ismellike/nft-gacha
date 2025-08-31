@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAccount, usePublicClient } from "wagmi";
+import { parseAbiItem } from "viem";
 import {
-	useReadSimpleErc721BalanceOf,
-	useReadSimpleErc721TotalSupply,
-	simpleErc721Abi,
+	baseErc721Abi,
+	useReadBaseErc721BalanceOf,
 } from "../generated";
 
 export interface UserOwnedNFT {
@@ -47,26 +47,14 @@ export function useUserOwnedNFTs(
 	const [error, setError] = useState<string | null>(null);
 
 	// Get user's balance to optimize the search
-	const { data: userBalance } = useReadSimpleErc721BalanceOf({
+	const { data: userBalance } = useReadBaseErc721BalanceOf({
 		address: collectionAddress as `0x${string}`,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!userAddress && !!collectionAddress },
 	});
 
-	// Get total supply to know the range of token IDs to check
-	const { data: totalSupply } = useReadSimpleErc721TotalSupply({
-		address: collectionAddress as `0x${string}`,
-		query: { enabled: !!collectionAddress },
-	});
-
 	const fetchUserTokens = useCallback(async () => {
-		if (
-			!userAddress ||
-			!collectionAddress ||
-			!publicClient ||
-			totalSupply === undefined ||
-			userBalance === undefined
-		) {
+		if (!userAddress || !collectionAddress || !publicClient || userBalance === undefined) {
 			setTokens([]);
 			return;
 		}
@@ -81,32 +69,50 @@ export function useUserOwnedNFTs(
 		setError(null);
 
 		try {
-			const ownedTokenIds: bigint[] = [];
+			// Compute ownership from Transfer logs for this user on this collection
+			const transferEvent = parseAbiItem(
+				"event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+			);
 
-			// Iterate through all possible token IDs (0 to totalSupply-1)
-			// This is efficient for reasonably sized collections
-			for (
-				let i = 0;
-				i < Number(totalSupply) && ownedTokenIds.length < Number(userBalance);
-				i++
-			) {
-				const tokenId = BigInt(i);
+			const [logsTo, logsFrom] = await Promise.all([
+				publicClient.getLogs({
+					address: collectionAddress as `0x${string}`,
+					event: transferEvent,
+					args: { to: userAddress as `0x${string}` },
+					fromBlock: 0n,
+					toBlock: "latest",
+				}),
+				publicClient.getLogs({
+					address: collectionAddress as `0x${string}`,
+					event: transferEvent,
+					args: { from: userAddress as `0x${string}` },
+					fromBlock: 0n,
+					toBlock: "latest",
+				}),
+			]);
 
-				try {
-					// Use publicClient to call ownerOf directly
-					const owner = await publicClient.readContract({
-						address: collectionAddress as `0x${string}`,
-						abi: simpleErc721Abi,
-						functionName: "ownerOf",
-						args: [tokenId],
-					});
+			// Merge and sort logs to determine final ownership state per tokenId
+			const allLogs = [...logsTo, ...logsFrom].sort((a, b) => {
+				if (a.blockNumber !== b.blockNumber) {
+					return Number(a.blockNumber - b.blockNumber);
+				}
+				return Number((a.logIndex ?? 0n) - (b.logIndex ?? 0n));
+			});
 
-					// Check if the current user owns this token
-					if (owner.toLowerCase() === userAddress.toLowerCase()) {
-						ownedTokenIds.push(tokenId);
-					}
-				} catch (_ownershipError) {}
+			const ownership = new Map<bigint, boolean>();
+			for (const log of allLogs) {
+				const { from, to, tokenId } = log.args as {
+					from: `0x${string}`;
+					to: `0x${string}`;
+					tokenId: bigint;
+				};
+				if (to?.toLowerCase() === userAddress.toLowerCase()) ownership.set(tokenId, true);
+				if (from?.toLowerCase() === userAddress.toLowerCase()) ownership.set(tokenId, false);
 			}
+
+			const ownedTokenIds = Array.from(ownership.entries())
+				.filter(([, isOwned]) => isOwned)
+				.map(([id]) => id);
 
 			setTokens(ownedTokenIds);
 		} catch (err) {
@@ -116,7 +122,7 @@ export function useUserOwnedNFTs(
 		} finally {
 			setIsLoading(false);
 		}
-	}, [userAddress, collectionAddress, publicClient, totalSupply, userBalance]);
+	}, [userAddress, collectionAddress, publicClient, userBalance]);
 
 	// Fetch tokens when dependencies change
 	useEffect(() => {
@@ -175,7 +181,7 @@ export function useUserOwnedNFTsMultipleCollections(
 					// Get user's balance for this collection
 					const userBalance = await publicClient.readContract({
 						address: collectionAddress as `0x${string}`,
-						abi: simpleErc721Abi,
+						abi: baseErc721Abi,
 						functionName: "balanceOf",
 						args: [userAddress],
 					});
@@ -185,54 +191,66 @@ export function useUserOwnedNFTsMultipleCollections(
 						continue;
 					}
 
-					// Get total supply to know the range of token IDs to check
-					const totalSupply = await publicClient.readContract({
-						address: collectionAddress as `0x${string}`,
-						abi: simpleErc721Abi,
-						functionName: "totalSupply",
-					});
-
 					// Get collection name for display
 					let collectionName: string | undefined;
 					try {
 						collectionName = await publicClient.readContract({
 							address: collectionAddress as `0x${string}`,
-							abi: simpleErc721Abi,
+							abi: baseErc721Abi,
 							functionName: "name",
 						});
 					} catch {
 						// Name is optional, continue without it
 					}
 
-					const ownedTokenIds: bigint[] = [];
+					// Determine owned token IDs via Transfer logs for this user/collection
+					const transferEvent = parseAbiItem(
+						"event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+					);
 
-					// Iterate through all possible token IDs (0 to totalSupply-1)
-					for (
-						let i = 0;
-						i < Number(totalSupply) &&
-						ownedTokenIds.length < Number(userBalance);
-						i++
-					) {
-						const tokenId = BigInt(i);
+					const [logsTo, logsFrom] = await Promise.all([
+						publicClient.getLogs({
+							address: collectionAddress as `0x${string}`,
+							event: transferEvent,
+							args: { to: userAddress as `0x${string}` },
+							fromBlock: 0n,
+							toBlock: "latest",
+						}),
+						publicClient.getLogs({
+							address: collectionAddress as `0x${string}`,
+							event: transferEvent,
+							args: { from: userAddress as `0x${string}` },
+							fromBlock: 0n,
+							toBlock: "latest",
+						}),
+					]);
 
-						try {
-							// Check if the current user owns this token
-							const owner = await publicClient.readContract({
-								address: collectionAddress as `0x${string}`,
-								abi: simpleErc721Abi,
-								functionName: "ownerOf",
-								args: [tokenId],
+					const allLogs = [...logsTo, ...logsFrom].sort((a, b) => {
+						if (a.blockNumber !== b.blockNumber) {
+							return Number(a.blockNumber - b.blockNumber);
+						}
+						return Number((a.logIndex ?? 0n) - (b.logIndex ?? 0n));
+					});
+
+					const ownership = new Map<bigint, boolean>();
+					for (const log of allLogs) {
+						const { from, to, tokenId } = log.args as {
+							from: `0x${string}`;
+							to: `0x${string}`;
+							tokenId: bigint;
+						};
+						if (to?.toLowerCase() === userAddress.toLowerCase()) ownership.set(tokenId, true);
+						if (from?.toLowerCase() === userAddress.toLowerCase()) ownership.set(tokenId, false);
+					}
+
+					for (const [tokenId, isOwned] of ownership.entries()) {
+						if (isOwned) {
+							allUserNFTs.push({
+								collection: collectionAddress,
+								tokenId,
+								collectionName: collectionName || "",
 							});
-
-							if (owner.toLowerCase() === userAddress.toLowerCase()) {
-								allUserNFTs.push({
-									collection: collectionAddress,
-									tokenId,
-									collectionName: collectionName || "",
-								});
-								ownedTokenIds.push(tokenId);
-							}
-						} catch (_ownershipError) {}
+						}
 					}
 				} catch (collectionError) {
 					console.warn(

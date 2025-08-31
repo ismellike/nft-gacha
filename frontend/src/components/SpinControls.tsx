@@ -23,9 +23,10 @@ import {
 	useReadErc20Symbol,
 	useReadErc20Name,
 	useReadErc20BalanceOf,
-	useReadTestTokenNonces,
+	useReadIerc20PermitNonces,
 	useReadGachaTreasuryIsGachaAvailable,
 	useWriteGachaReclaimFailedSpin,
+	useWriteGachaSpin,
 	gachaAbi,
 } from "../generated";
 import type { UseGachaSpinMachineReturn } from "../hooks/useGachaSpinMachine";
@@ -71,11 +72,10 @@ export default function SpinControls({
 		query: { enabled: !!contracts.gacha },
 	});
 
-	// @ts-expect-error Treasury hooks have deep type instantiation issues
-	const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
-		address: contracts.treasury as `0x${string}` | undefined,
-		query: { enabled: !!contracts.treasury },
-	});
+const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
+	address: contracts.treasury as `0x${string}` | undefined,
+	query: { enabled: !!contracts.treasury },
+} as Parameters<typeof useReadGachaTreasuryIsGachaAvailable>[0]);
 
 	// ERC20 token data
 	const { data: tokenDecimals } = useReadErc20Decimals({
@@ -101,11 +101,18 @@ export default function SpinControls({
 		},
 	);
 
-	const { data: tokenNonce, refetch: refetchNonce } = useReadTestTokenNonces({
+	const { data: tokenNonce, refetch: refetchNonce, error: noncesError } = useReadIerc20PermitNonces({
 		address: feeToken,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!(feeToken && userAddress) },
 	});
+
+	// Fallback: direct spin path if token doesn't support permit
+	const {
+		writeContract: spin,
+		data: spinTxHash,
+		isPending: isSpinPending,
+	} = useWriteGachaSpin();
 
 	// Handle refund detection to refresh balances
 	useEffect(() => {
@@ -162,8 +169,13 @@ export default function SpinControls({
 	});
 
 	// Derived state from state machine
+	const spinWait = useWaitForTransactionReceipt({ hash: spinTxHash });
+	const isSpinConfirming = spinWait.isLoading;
+	const isSpinSuccess = spinWait.isSuccess;
+	const spinReceipt = spinWait.data;
+
 	const isProcessingTransaction =
-		isSpinWithPermitPending || isSpinWithPermitConfirming;
+		isSpinWithPermitPending || isSpinWithPermitConfirming || isSpinPending || isSpinConfirming;
 	const hasSufficientBalance =
 		spinFee && tokenBalance ? tokenBalance >= spinFee : false;
 	const canSpin =
@@ -205,7 +217,8 @@ export default function SpinControls({
 
 		// Validation checks
 		if (!hasSufficientBalance) return "Insufficient Balance";
-		if (tokenNonce === undefined) return "Loading...";
+		const hasPermitSupport = !noncesError;
+		if (hasPermitSupport && tokenNonce === undefined) return "Loading...";
 
 		return "SPIN NOW";
 	};
@@ -220,7 +233,7 @@ export default function SpinControls({
 			isProcessingTransaction ||
 			gachaSpin.isSpinning ||
 			gachaSpin.isWaitingForFulfillment ||
-			tokenNonce === undefined
+			(!noncesError && tokenNonce === undefined)
 		);
 	};
 
@@ -273,13 +286,14 @@ export default function SpinControls({
 		}
 
 		// Validate spin conditions
+		const hasPermitSupport = !noncesError;
 		if (
 			!isConnected ||
 			!canSpin ||
 			!userAddress ||
 			!feeToken ||
 			!spinFee ||
-			tokenNonce === undefined
+			(hasPermitSupport && tokenNonce === undefined)
 		) {
 			console.log("❌ [SpinControls] Spin conditions not met:", {
 				isConnected,
@@ -294,7 +308,7 @@ export default function SpinControls({
 					no_user_address: !userAddress,
 					no_fee_token: !feeToken,
 					no_spin_fee: !spinFee,
-					no_token_nonce: tokenNonce === undefined,
+					no_token_nonce: hasPermitSupport && tokenNonce === undefined,
 				},
 			});
 			return;
@@ -304,6 +318,13 @@ export default function SpinControls({
 			// Start the spin in the state machine
 			gachaSpin.startSpin();
 
+			const hasPermitSupport = !noncesError;
+			if (!hasPermitSupport) {
+				// Fallback: call spin() directly (requires pre-approval)
+				spin({ address: contracts.gacha as `0x${string}` });
+				return;
+			}
+
 			// Create permit signature
 			const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now
 			setPermitDeadline(deadline);
@@ -311,7 +332,7 @@ export default function SpinControls({
 			console.log("📝 [SpinControls] Requesting permit signature...");
 			signTypedData({
 				domain: {
-					name: tokenName,
+					name: tokenName || "Token",
 					version: "1",
 					chainId: chainId,
 					verifyingContract: feeToken,
@@ -330,7 +351,7 @@ export default function SpinControls({
 					owner: userAddress,
 					spender: contracts.gacha as `0x${string}`,
 					value: spinFee,
-					nonce: tokenNonce,
+					nonce: tokenNonce as bigint,
 					deadline,
 				},
 			});
@@ -391,10 +412,8 @@ export default function SpinControls({
 	// Handle transaction receipt
 	useEffect(() => {
 		if (
-			isSpinWithPermitSuccess &&
-			spinReceiptData &&
-			spinWithPermitTxHash &&
-			processedTxHash !== spinWithPermitTxHash
+			(isSpinWithPermitSuccess && spinWithPermitTxHash && processedTxHash !== spinWithPermitTxHash) ||
+			(isSpinSuccess && spinTxHash && processedTxHash !== spinTxHash)
 		) {
 			console.log(
 				"📋 [SpinControls] Processing spin transaction receipt:",
@@ -404,7 +423,9 @@ export default function SpinControls({
 			// Extract trigger ID from RandomnessRequested event in transaction logs
 			let triggerId: bigint | null = null;
 
-			for (const log of spinReceiptData.logs) {
+			const receipt = isSpinWithPermitSuccess ? spinReceiptData : spinReceipt;
+			if (!receipt) return;
+			for (const log of receipt.logs) {
 				try {
 					const decoded = decodeEventLog({
 						abi: gachaAbi,
@@ -425,7 +446,7 @@ export default function SpinControls({
 					triggerId,
 				);
 				gachaSpin.confirmTransaction(triggerId);
-				setProcessedTxHash(spinWithPermitTxHash); // Mark as processed
+				setProcessedTxHash(isSpinWithPermitSuccess ? (spinWithPermitTxHash as string) : (spinTxHash as string)); // Mark as processed
 			}
 
 			// Refetch balance after successful spin
@@ -443,6 +464,8 @@ export default function SpinControls({
 		refetchBalance,
 		refetchNonce,
 		gachaSpin,
+		isSpinSuccess,
+		spinTxHash,
 	]);
 
 	// Countdown timer effect

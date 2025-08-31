@@ -2,11 +2,12 @@
 pragma solidity ^0.8.27;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title BaseERC721
 /// @notice Minimal owner-mintable ERC721 for local deploys and tests with tokenURI support
-contract BaseERC721 is ERC721, Ownable {
+contract BaseERC721 is ERC721Enumerable, Ownable {
     uint256 private _nextId;
 
     /// @notice Mapping from token ID to token URI

@@ -11,13 +11,13 @@ import {
 import { Card, Button } from "./ui";
 import { glassTypography } from "../lib/theme-config";
 import {
-	useReadGachaRewardsManagerGetRewardsAnalytics,
 	useReadGachaTreasuryGetUserAllDepositCounts,
-	useReadGachaRewardsManagerGetUserRarityClaimableRewards,
 	useReadGachaFeeToken,
 	useReadErc20Symbol,
 	useReadErc20Decimals,
 	useReadGachaGetUserAnalytics,
+	useReadUserDividendTrackerWithdrawableFundsOf,
+	useReadUserDividendTrackerAccumulativeFundsOf,
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -58,13 +58,59 @@ export const ProfileDashboard: React.FC = () => {
 		query: { enabled: !!contracts.gacha && !!userAddress },
 	});
 
-	// Get user rewards analytics from RewardsManager
-	const { data: userRewardsAnalytics } =
-		useReadGachaRewardsManagerGetRewardsAnalytics({
-			address: contracts.rewardsManager as `0x${string}` | undefined,
-			args: userAddress ? [userAddress] : undefined,
-			query: { enabled: !!contracts.rewardsManager && !!userAddress },
-		});
+
+	// Rewards totals via per-rarity UserDividendTrackers
+	const { data: withdrawCommon } = useReadUserDividendTrackerWithdrawableFundsOf({
+		address: contracts.trackers?.common as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.common && !!userAddress },
+	});
+	const { data: withdrawUncommon } = useReadUserDividendTrackerWithdrawableFundsOf({
+		address: contracts.trackers?.uncommon as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.uncommon && !!userAddress },
+	});
+	const { data: withdrawRare } = useReadUserDividendTrackerWithdrawableFundsOf({
+		address: contracts.trackers?.rare as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.rare && !!userAddress },
+	});
+	const { data: withdrawEpic } = useReadUserDividendTrackerWithdrawableFundsOf({
+		address: contracts.trackers?.epic as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.epic && !!userAddress },
+	});
+	const { data: withdrawLegendary } = useReadUserDividendTrackerWithdrawableFundsOf({
+		address: contracts.trackers?.legendary as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.legendary && !!userAddress },
+	});
+
+	const { data: accumCommon } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.common as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.common && !!userAddress },
+	});
+	const { data: accumUncommon } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.uncommon as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.uncommon && !!userAddress },
+	});
+	const { data: accumRare } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.rare as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.rare && !!userAddress },
+	});
+	const { data: accumEpic } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.epic as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.epic && !!userAddress },
+	});
+	const { data: accumLegendary } = useReadUserDividendTrackerAccumulativeFundsOf({
+		address: contracts.trackers?.legendary as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.trackers?.legendary && !!userAddress },
+	});
 
 	// @ts-ignore — suppress deep instantiation error from generics
 	const { data: userDepositCounts } =
@@ -76,7 +122,6 @@ export const ProfileDashboard: React.FC = () => {
 
 	// Extract values from analytics tuples
 	// userGachaAnalytics: [totalSpins, totalRefunds, totalReclaims, rarityWins[5]]
-	// userRewardsAnalytics: [totalClaimed, totalClaimable]
 	const userSpinCount = userGachaAnalytics?.[0] || BigInt(0);
 	const userRefundCount = userGachaAnalytics?.[1] || BigInt(0);
 	const userReclaimCount = userGachaAnalytics?.[2] || BigInt(0);
@@ -88,8 +133,25 @@ export const ProfileDashboard: React.FC = () => {
 		BigInt(0),
 	];
 
-	const totalRewardsClaimed = userRewardsAnalytics?.[0] || BigInt(0);
-	const totalClaimableRewards = userRewardsAnalytics?.[1] || BigInt(0);
+	// Rewards totals from trackers: claimed = accumulative - withdrawable (sum over rarities)
+	const totalClaimableRewards =
+		(withdrawCommon || 0n) +
+		(withdrawUncommon || 0n) +
+		(withdrawRare || 0n) +
+		(withdrawEpic || 0n) +
+		(withdrawLegendary || 0n);
+
+	const totalAccumulativeRewards =
+		(accumCommon || 0n) +
+		(accumUncommon || 0n) +
+		(accumRare || 0n) +
+		(accumEpic || 0n) +
+		(accumLegendary || 0n);
+
+	const totalRewardsClaimed =
+		totalAccumulativeRewards > totalClaimableRewards
+			? totalAccumulativeRewards - totalClaimableRewards
+			: 0n;
 
 	if (!userAddress) {
 		return (
@@ -391,10 +453,6 @@ export const ProfileDashboard: React.FC = () => {
 								<RarityRewardCard
 									rarity={rarity}
 									userAddress={userAddress}
-									{...(contracts.rewardsManager && {
-										rewardsManagerAddress:
-											contracts.rewardsManager as `0x${string}`,
-									})}
 									{...(tokenSymbol && { tokenSymbol })}
 									{...(tokenDecimals !== undefined && { tokenDecimals })}
 								/>
@@ -410,23 +468,30 @@ export const ProfileDashboard: React.FC = () => {
 const RarityRewardCard: React.FC<{
 	rarity: Rarity;
 	userAddress: `0x${string}`;
-	rewardsManagerAddress?: `0x${string}`;
 	tokenSymbol?: string;
 	tokenDecimals?: number;
-}> = ({
-	rarity,
-	userAddress,
-	rewardsManagerAddress,
-	tokenSymbol,
-	tokenDecimals,
-}) => {
+}> = ({ rarity, userAddress, tokenSymbol, tokenDecimals }) => {
 	const config = getRarityConfig(rarity);
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
+
+	// Map rarity to tracker address
+	const trackerAddress =
+		rarity === 0
+			? (contracts.trackers?.common as `0x${string}` | undefined)
+			: rarity === 1
+				? (contracts.trackers?.uncommon as `0x${string}` | undefined)
+				: rarity === 2
+					? (contracts.trackers?.rare as `0x${string}` | undefined)
+					: rarity === 3
+						? (contracts.trackers?.epic as `0x${string}` | undefined)
+						: (contracts.trackers?.legendary as `0x${string}` | undefined);
 
 	const { data: claimableAmount } =
-		useReadGachaRewardsManagerGetUserRarityClaimableRewards({
-			address: rewardsManagerAddress,
-			args: [userAddress, rarity],
-			query: { enabled: !!rewardsManagerAddress && !!userAddress },
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: trackerAddress,
+			args: [userAddress],
+			query: { enabled: !!trackerAddress && !!userAddress },
 		});
 
 	const amount = Number(claimableAmount || 0);
