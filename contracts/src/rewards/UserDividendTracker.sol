@@ -7,10 +7,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {GachaTreasury} from "../gacha/GachaTreasury.sol";
 import {IFundsDistributionToken} from "../interfaces/IFundsDistributionToken.sol";
-
-interface IGachaRewardsManager {
-    function recordUserRewardClaim(address user, uint256 amount) external;
-}
+import {IGachaRewardsManager} from "../interfaces/IGachaRewardsManager.sol";
 
 /// @title UserDividendTracker - ERC2222-style dividend distribution tracker
 /// @notice Distributes rewards to users based on their weighted shares

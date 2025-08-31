@@ -7,10 +7,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {GachaTreasury} from "../gacha/GachaTreasury.sol";
 import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
-
-interface IGachaRewardsManager {
-    function recordUserRewardClaim(address user, uint256 amount) external;
-}
+import {IGachaRewardsManager} from "../interfaces/IGachaRewardsManager.sol";
 
 /// @title CardDividendTracker - Card-level dividend distribution for NFT deposits
 /// @notice Distributes rewards to users based on their NFT deposits of specific card IDs
