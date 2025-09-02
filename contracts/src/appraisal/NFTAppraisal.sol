@@ -153,20 +153,22 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
             revert InvalidTokenId();
         }
 
-        // Check if request already exists
-        if (tokenRequests[collection][tokenId].timestamp != 0) revert AppraisalAlreadyExists();
+        // Allow re-appraisals for migration purposes, but charge fee again
+        // If already exists, this is a re-appraisal request
 
         // Collect appraisal fee
         if (appraisalFee > 0) {
             feeToken.safeTransferFrom(msg.sender, protocolAddress, appraisalFee);
         }
 
-        // Create token request
+        // Create or update token request (supporting re-appraisals)
+        bool isReAppraisal = tokenRequests[collection][tokenId].timestamp != 0;
+        
         tokenRequests[collection][tokenId] = TokenRequest({
             requester: msg.sender,
             status: AppraisalStatus.Pending,
             timestamp: block.timestamp,
-            lastUpdated: 0
+            lastUpdated: isReAppraisal ? block.timestamp : 0
         });
 
         emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee, block.timestamp);

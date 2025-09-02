@@ -141,13 +141,9 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         totalAccrued += depositorShare;
         totalProtocolFees += protocolFee;
 
-        // Tier 1: Add to rarity meter based on card weights
-        uint256 totalWeight = totalCardWeights[hitRarity];
-        if (totalWeight > 0) {
-            uint256 deltaShare = (depositorShare * delta) / PERCENTAGE_DENOMINATOR;
-            uint256 rarityIncrease = (deltaShare * PRECISION) / totalWeight;
-            rarityMeters[hitRarity] += rarityIncrease;
-        }
+        // Tier 1: Distribute to ALL rarities (not just hit rarity)
+        uint256 deltaShare = (depositorShare * delta) / PERCENTAGE_DENOMINATOR;
+        _distributeToAllRarities(deltaShare);
 
         // Handle protocol fee transfer
         if (protocolFee > 0) {
@@ -434,6 +430,32 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
 
         // User snapshots remain untouched - they continue to work with the migrated card
         // in the new rarity without any action required from users
+    }
+
+    /// @notice Distribute rewards to all rarities proportionally by their total card weights
+    /// @param amount Total amount to distribute across all rarities
+    function _distributeToAllRarities(uint256 amount) internal {
+        if (amount == 0) return;
+
+        // Calculate total weight across ALL rarities
+        uint256 totalWeightAllRarities = 0;
+        for (uint8 i = 0; i < 5; i++) {
+            totalWeightAllRarities += totalCardWeights[GachaTreasury.Rarity(i)];
+        }
+
+        if (totalWeightAllRarities == 0) return;
+
+        // Distribute proportionally to each rarity based on its weight
+        for (uint8 i = 0; i < 5; i++) {
+            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            uint256 rarityWeight = totalCardWeights[rarity];
+            
+            if (rarityWeight > 0) {
+                uint256 rarityShare = (amount * rarityWeight) / totalWeightAllRarities;
+                uint256 rarityIncrease = (rarityShare * PRECISION) / rarityWeight;
+                rarityMeters[rarity] += rarityIncrease;
+            }
+        }
     }
 
     /// @notice Calculate price weight: price^γ

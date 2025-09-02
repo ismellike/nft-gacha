@@ -105,13 +105,28 @@ contract NFTAppraisalTest is Test {
         appraisal.requestAppraisal(address(nft), 999);
     }
 
-    function testRequestAppraisalRevertsForDuplicate() public {
+    function testRequestAppraisalAllowsReappraisals() public {
+        // First appraisal request
         vm.prank(user);
         appraisal.requestAppraisal(address(nft), 1);
 
+        // Complete first appraisal
+        bytes32 cardId1 = keccak256(abi.encodePacked("card-1"));
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(nft), 1, cardId1, 100e18);
+
+        // Should allow re-appraisal for migration purposes
         vm.prank(user);
-        vm.expectRevert(NFTAppraisal.AppraisalAlreadyExists.selector);
         appraisal.requestAppraisal(address(nft), 1);
+
+        // Complete re-appraisal with same card but different price (price update)
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(nft), 1, cardId1, 200e18);
+
+        // Verify final price reflects the re-appraisal
+        (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), 1);
+        assertEq(price, 200e18, "Price should reflect re-appraisal");
+        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.Completed), "Should be completed");
     }
 
     function testSetAppraisedPrice() public {
@@ -189,7 +204,7 @@ contract NFTAppraisalTest is Test {
         vm.prank(owner);
         appraisal.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, 1000e18);
 
-        // Link token to the overridden card via service handler
+        // Should be able to request appraisal again for re-appraisal/migration
         vm.prank(user);
         appraisal.requestAppraisal(address(nft), tokenId);
 
