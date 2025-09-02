@@ -7,8 +7,6 @@ import { Card } from "./ui";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
-	useReadGachaGetTotalValueLocked,
-	useReadGachaTreasuryGetTotalItemsCount,
 	useReadGachaGetAverageRarityValues,
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -39,35 +37,27 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		}
 	};
 
-	// Batch fetch all rarity counts in single RPC call
-	// @ts-expect-error Treasury hooks have deep type instantiation issues
-	const rarityCountsQuery = useReadGachaTreasuryGetAllRarityCounts({
-		address: contracts.treasury,
-		query: { enabled: !!contracts.treasury },
-	});
-	const { data: allRarityCounts } = rarityCountsQuery;
+    // Batch fetch all rarity counts in single RPC call
+    const rarityCountsQuery = useReadGachaTreasuryGetAllRarityCounts({
+        address: contracts.treasury,
+        query: { enabled: !!contracts.treasury },
+    } as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
+    const allRarityCounts = rarityCountsQuery.data as unknown as readonly bigint[] | undefined;
 
 	// Rarity weights from gacha contract
-	const { data: rarityWeights } = useReadGachaGetRarityWeights({
-		address: contracts.gacha as `0x${string}` | undefined,
-		query: { enabled: !!contracts.gacha },
-	});
+    const rarityWeightsQuery = useReadGachaGetRarityWeights({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    } as Parameters<typeof useReadGachaGetRarityWeights>[0]);
+    const rarityWeights = rarityWeightsQuery.data as unknown as readonly bigint[] | undefined;
 
-	// Additional treasury data
-	const { data: _totalValueLocked } = useReadGachaGetTotalValueLocked({
-		address: contracts.gacha as `0x${string}` | undefined,
-		query: { enabled: !!contracts.gacha },
-	});
+    // Additional treasury data (omitted for now)
 
-	const { data: _totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
-		address: contracts.treasury as `0x${string}` | undefined,
-		query: { enabled: !!contracts.treasury },
-	});
-
-	const { data: averageRarityValues } = useReadGachaGetAverageRarityValues({
-		address: contracts.gacha as `0x${string}` | undefined,
-		query: { enabled: !!contracts.gacha },
-	});
+    const averageRarityValuesQuery = useReadGachaGetAverageRarityValues({
+        address: contracts.gacha as `0x${string}` | undefined,
+        query: { enabled: !!contracts.gacha },
+    } as Parameters<typeof useReadGachaGetAverageRarityValues>[0]);
+    const averageRarityValues = averageRarityValuesQuery.data as unknown as readonly bigint[] | undefined;
 
 	// Expose refresh function to parent component
 	useImperativeHandle(ref, () => ({

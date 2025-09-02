@@ -40,4 +40,8 @@ contract MockNFTAppraisal {
     function getTokenCardId(address collection, uint256 tokenId) external view returns (bytes32) {
         return tokenCardIds[collection][tokenId];
     }
+
+    function setTokenCardId(address collection, uint256 tokenId, bytes32 cardId) external {
+        tokenCardIds[collection][tokenId] = cardId;
+    }
 }

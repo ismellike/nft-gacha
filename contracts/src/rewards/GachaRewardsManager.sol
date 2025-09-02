@@ -518,4 +518,116 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     function getTreasuryBalance() external view returns (uint256) {
         return feeToken.balanceOf(address(this));
     }
+
+    // ========= Batch Claim Helpers =========
+
+    /// @notice Preview claimable rewards across multiple cards for the caller
+    /// @param rarity The rarity of the provided cardIds
+    /// @param cardIds Array of card IDs to preview
+    /// @return total Amount claimable across all provided cards
+    function previewClaimForCards(GachaTreasury.Rarity rarity, bytes32[] calldata cardIds)
+        external
+        view
+        returns (uint256 total)
+    {
+        address user = msg.sender;
+        for (uint256 i = 0; i < cardIds.length; i++) {
+            bytes32 cardId = cardIds[i];
+            CardTracker storage card = cardTrackers[rarity][cardId];
+            if (!card.exists) continue;
+
+            UserSnapshot storage userSnap = userSnapshots[user][rarity][cardId];
+            if (userSnap.units == 0) continue;
+
+            uint256 currentPerUnitMeter = card.perUnitMeter;
+            uint256 pendingAccrual = rarityMeters[rarity] - card.raritySnapshot;
+            if (pendingAccrual > 0 && card.totalUnits > 0) {
+                uint256 cardShare = (pendingAccrual * card.cardWeight) / PRECISION;
+                currentPerUnitMeter += (cardShare * PRECISION) / card.totalUnits;
+            }
+
+            uint256 perUnitDiff = currentPerUnitMeter - userSnap.perUnitSnapshot;
+            total += (userSnap.units * perUnitDiff) / PRECISION;
+        }
+    }
+
+    /// @notice Claim rewards across multiple cards in a single transaction
+    /// @param rarity The rarity of the provided cardIds
+    /// @param cardIds Array of card IDs to claim for
+    function claimRewardsForCards(GachaTreasury.Rarity rarity, bytes32[] calldata cardIds)
+        external
+        nonReentrant
+        whenNotPaused
+    {
+        address user = msg.sender;
+        uint256 totalAmount;
+
+        for (uint256 i = 0; i < cardIds.length; i++) {
+            bytes32 cardId = cardIds[i];
+            CardTracker storage card = cardTrackers[rarity][cardId];
+            if (!card.exists) continue;
+
+            // Settle card to include rarity accrual since last snapshot
+            settleCard(rarity, cardId);
+
+            UserSnapshot storage userSnap = userSnapshots[user][rarity][cardId];
+            if (userSnap.units == 0) continue;
+
+            uint256 claimableAmount = (userSnap.units * (card.perUnitMeter - userSnap.perUnitSnapshot)) / PRECISION;
+            if (claimableAmount == 0) continue;
+
+            // Update user snapshot to current
+            userSnap.perUnitSnapshot = card.perUnitMeter;
+            totalAmount += claimableAmount;
+        }
+
+        if (totalAmount == 0) revert NoFundsToWithdraw();
+
+        // Update global claimed and transfer
+        totalClaimed += totalAmount;
+        feeToken.safeTransfer(user, totalAmount);
+
+        emit RewardsClaimed(user, totalAmount);
+    }
+
+    /// @notice Claim rewards across multiple rarities in a single transaction
+    /// @param rarities Array of rarities matching the nested cardIdsByRarity
+    /// @param cardIdsByRarity Nested array of card IDs per rarity
+    function claimRewardsForMultipleRarities(
+        GachaTreasury.Rarity[] calldata rarities,
+        bytes32[][] calldata cardIdsByRarity
+    ) external nonReentrant whenNotPaused {
+        require(rarities.length == cardIdsByRarity.length, "Array length mismatch");
+
+        address user = msg.sender;
+        uint256 totalAmount;
+
+        for (uint256 r = 0; r < rarities.length; r++) {
+            GachaTreasury.Rarity rarity = rarities[r];
+            bytes32[] calldata cardIds = cardIdsByRarity[r];
+
+            for (uint256 i = 0; i < cardIds.length; i++) {
+                bytes32 cardId = cardIds[i];
+                CardTracker storage card = cardTrackers[rarity][cardId];
+                if (!card.exists) continue;
+
+                settleCard(rarity, cardId);
+
+                UserSnapshot storage userSnap = userSnapshots[user][rarity][cardId];
+                if (userSnap.units == 0) continue;
+
+                uint256 claimableAmount = (userSnap.units * (card.perUnitMeter - userSnap.perUnitSnapshot)) / PRECISION;
+                if (claimableAmount == 0) continue;
+
+                userSnap.perUnitSnapshot = card.perUnitMeter;
+                totalAmount += claimableAmount;
+            }
+        }
+
+        if (totalAmount == 0) revert NoFundsToWithdraw();
+
+        totalClaimed += totalAmount;
+        feeToken.safeTransfer(user, totalAmount);
+        emit RewardsClaimed(user, totalAmount);
+    }
 }

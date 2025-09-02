@@ -3,12 +3,9 @@
 import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { formatTokenAmount } from "../lib/utils";
-import {
-	type Rarity,
-	getRarityConfig,
-	getAllRarities,
-} from "../lib/rarityConfig";
-import { Card, Button } from "./ui";
+import { getRarityConfig } from "../lib/rarityConfig";
+import { Card } from "./ui";
+import { CardRewardsList } from "./CardRewardsList";
 import { glassTypography } from "../lib/theme-config";
 import {
 	useReadGachaTreasuryGetUserAllDepositCounts,
@@ -112,13 +109,11 @@ export const ProfileDashboard: React.FC = () => {
 		query: { enabled: !!contracts.trackers?.legendary && !!userAddress },
 	});
 
-	// @ts-ignore — suppress deep instantiation error from generics
-	const { data: userDepositCounts } =
-		useReadGachaTreasuryGetUserAllDepositCounts({
-			address: contracts.treasury as `0x${string}` | undefined,
-			args: userAddress ? [userAddress] : undefined,
-			query: { enabled: !!contracts.treasury && !!userAddress },
-		});
+    const { data: userDepositCounts } = useReadGachaTreasuryGetUserAllDepositCounts({
+        address: contracts.treasury as `0x${string}` | undefined,
+        args: userAddress ? [userAddress] : undefined,
+        query: { enabled: !!contracts.treasury && !!userAddress },
+    } as Parameters<typeof useReadGachaTreasuryGetUserAllDepositCounts>[0]);
 
 	// Extract values from analytics tuples
 	// userGachaAnalytics: [totalSpins, totalRefunds, totalReclaims, rarityWins[5]]
@@ -153,6 +148,7 @@ export const ProfileDashboard: React.FC = () => {
 			? totalAccumulativeRewards - totalClaimableRewards
 			: 0n;
 
+
 	if (!userAddress) {
 		return (
 			<div className="flex items-center justify-center min-h-[60vh]">
@@ -176,8 +172,8 @@ export const ProfileDashboard: React.FC = () => {
 		);
 	}
 
-	const totalDeposits =
-		userDepositCounts?.reduce((sum, count) => sum + Number(count || 0), 0) || 0;
+    const depositCountsArr = userDepositCounts as unknown as readonly bigint[] | undefined;
+    const totalDeposits = depositCountsArr?.reduce((sum, count) => sum + Number(count || 0), 0) || 0;
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">
@@ -299,7 +295,17 @@ export const ProfileDashboard: React.FC = () => {
 						</div>
 					</Card>
 				</motion.div>
-			</div>
+            </div>
+
+
+			{/* Rewards by Card */}
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.6, delay: 0.4 }}
+			>
+				<CardRewardsList />
+			</motion.div>
 
 			{/* Advanced Statistics */}
 			{(userRefundCount > BigInt(0) || userReclaimCount > BigInt(0)) && (
@@ -376,8 +382,8 @@ export const ProfileDashboard: React.FC = () => {
 					</h2>
 
 					<div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-						{getAllRarities().map((rarity, index) => {
-							const config = getRarityConfig(rarity);
+                    {[0,1,2,3,4].map((rarity, index) => {
+                        const config = getRarityConfig(rarity as any);
 							const winCount = Number(userRarityWins[index] || 0);
 							const totalSpins = Number(userSpinCount);
 							const winRate =
@@ -428,107 +434,9 @@ export const ProfileDashboard: React.FC = () => {
 				</Card>
 			</motion.div>
 
-			{/* Rewards by Rarity */}
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.6, delay: 0.4 }}
-			>
-				<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-					<h2
-						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
-					>
-						<CurrencyDollarIcon className="w-6 h-6 inline mr-2" />
-						Rewards by Rarity
-					</h2>
-
-					<div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-						{getAllRarities().map((rarity, index) => (
-							<motion.div
-								key={rarity}
-								initial={{ opacity: 0, scale: 0.95 }}
-								animate={{ opacity: 1, scale: 1 }}
-								transition={{ duration: 0.5, delay: 0.1 * index }}
-							>
-								<RarityRewardCard
-									rarity={rarity}
-									userAddress={userAddress}
-									{...(tokenSymbol && { tokenSymbol })}
-									{...(tokenDecimals !== undefined && { tokenDecimals })}
-								/>
-							</motion.div>
-						))}
-					</div>
-				</Card>
-			</motion.div>
+			{/* Rewards by Rarity removed in favor of Rewards by Card */}
 		</div>
 	);
 };
 
-const RarityRewardCard: React.FC<{
-	rarity: Rarity;
-	userAddress: `0x${string}`;
-	tokenSymbol?: string;
-	tokenDecimals?: number;
-}> = ({ rarity, userAddress, tokenSymbol, tokenDecimals }) => {
-	const config = getRarityConfig(rarity);
-	const gachaId = useGachaId();
-	const contracts = useGachaContracts(gachaId);
-
-	// Map rarity to tracker address
-	const trackerAddress =
-		rarity === 0
-			? (contracts.trackers?.common as `0x${string}` | undefined)
-			: rarity === 1
-				? (contracts.trackers?.uncommon as `0x${string}` | undefined)
-				: rarity === 2
-					? (contracts.trackers?.rare as `0x${string}` | undefined)
-					: rarity === 3
-						? (contracts.trackers?.epic as `0x${string}` | undefined)
-						: (contracts.trackers?.legendary as `0x${string}` | undefined);
-
-	const { data: claimableAmount } =
-		useReadUserDividendTrackerWithdrawableFundsOf({
-			address: trackerAddress,
-			args: [userAddress],
-			query: { enabled: !!trackerAddress && !!userAddress },
-		});
-
-	const amount = Number(claimableAmount || 0);
-	const formattedAmount = formatTokenAmount(
-		claimableAmount || BigInt(0),
-		tokenDecimals || 18,
-	);
-	const hasRewards = amount > 0;
-
-	return (
-		<div className="group relative">
-			<div
-				className={`absolute inset-0 bg-gradient-to-br ${config.bgGradient} rounded-xl opacity-0 group-hover:opacity-10 transition-opacity duration-300 blur-sm`}
-			/>
-
-			<div
-				className={`relative bg-content2/20 border ${config.borderColor} rounded-xl p-4 hover:bg-content2/30 transition-all duration-300 ${hasRewards ? `hover:shadow-lg hover:shadow-${config.name.toLowerCase()}/20` : ""}`}
-			>
-				<div className="text-center">
-					<div className="text-3xl mb-2">{config.emoji}</div>
-					<div className={`font-bold text-sm ${config.textColor} mb-1`}>
-						{config.name}
-					</div>
-					<div className="text-lg font-bold mb-3">
-						{formattedAmount}
-						<span className="text-xs text-foreground/60 ml-1">
-							{tokenSymbol}
-						</span>
-					</div>
-					<Button
-						className={`w-full rounded-xl ${hasRewards ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground"}`}
-						disabled={!hasRewards}
-					>
-						{hasRewards ? "Claim" : "No rewards"}
-					</Button>
-				</div>
-			</div>
-		</div>
-	);
-};
+// RarityRewardCard removed

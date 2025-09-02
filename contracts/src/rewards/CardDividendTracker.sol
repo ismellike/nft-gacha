@@ -156,17 +156,17 @@ contract CardDividendTracker is Ownable, ReentrancyGuard, Pausable {
         pointsCorrection[account] = int256(targetPoints) - int256(sharePoints);
     }
 
-    /// @notice Gets the total number of deposits for this specific card ID within the rarity
+    /// @notice Gets the total number of deposits for this specific card ID
     /// @return Total deposits count for this card
     function _getTotalCardDeposits() internal view returns (uint256) {
-        return treasury.getCardTotalDeposits(rarity, cardId);
+        return treasury.getCardTotalDeposits(cardId);
     }
 
-    /// @notice Gets the number of deposits a user has for this specific card ID within the rarity
+    /// @notice Gets the number of deposits a user has for this specific card ID
     /// @param account User address to check
     /// @return Number of deposits the user has for this card
     function _getUserCardDeposits(address account) internal view returns (uint256) {
-        return treasury.getUserCardDeposits(account, rarity, cardId);
+        return treasury.getUserCardDeposits(account, cardId);
     }
 
     // Optional: helper views

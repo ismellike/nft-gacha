@@ -105,8 +105,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     mapping(Rarity => uint256) public totalRarityValue; // Total USD value in each rarity pool
 
     /// @notice Card-level deposit tracking for enhanced rewards
-    mapping(address => mapping(Rarity => mapping(bytes32 => uint256))) public userCardDeposits; // user => rarity => cardId => count
-    mapping(Rarity => mapping(bytes32 => uint256)) public cardTotalDeposits; // rarity => cardId => total count
+    mapping(address => mapping(bytes32 => uint256)) public userCardDeposits; // user => cardId => count
+    mapping(bytes32 => uint256) public cardTotalDeposits; // cardId => total count
+
+    /// @notice Per-user list of active cardIds for pagination and batching
+    mapping(address => bytes32[]) private userCardIds; // user => cardIds
+    mapping(address => mapping(bytes32 => uint256)) private userCardIdIndex; // index+1
 
     /// @notice Collection whitelist management
     mapping(address => bool) public whitelistedCollections;
@@ -238,8 +242,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Track card-level deposits for enhanced rewards
         bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
         if (cardId != bytes32(0)) {
-            userCardDeposits[msg.sender][rarity][cardId]++;
-            cardTotalDeposits[rarity][cardId]++;
+            // If first time this user has this cardId, add to list
+            if (userCardDeposits[msg.sender][cardId] == 0) {
+                _addUserCardId(msg.sender, cardId);
+            }
+            userCardDeposits[msg.sender][cardId]++;
+            cardTotalDeposits[cardId]++;
         }
 
         // Notify rewards manager about the deposit - using new three-tier system
@@ -334,18 +342,10 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         totalRarityValue[currentRarity] -= oldPrice;
         totalRarityValue[newRarity] += newPriceUSD;
 
-        // Update card-level tracking for migration
+        // Update card-level tracking for migration - no changes needed
+        // Cards are tracked globally, not per rarity
         bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
-        if (cardId != bytes32(0)) {
-            // Decrease from old rarity
-            if (userCardDeposits[item.depositor][currentRarity][cardId] > 0) {
-                userCardDeposits[item.depositor][currentRarity][cardId]--;
-                cardTotalDeposits[currentRarity][cardId]--;
-            }
-            // Increase in new rarity  
-            userCardDeposits[item.depositor][newRarity][cardId]++;
-            cardTotalDeposits[newRarity][cardId]++;
-        }
+        // Card counts remain the same during rarity migration
 
         // Notify rewards manager about migration - handle at card level (Tier-2)
         if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
@@ -417,6 +417,18 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             success; // Silence unused variable warning
         }
 
+        // Update card tracking for withdrawal
+        if (cardId != bytes32(0)) {
+            if (userCardDeposits[item.depositor][cardId] > 0) {
+                userCardDeposits[item.depositor][cardId]--;
+                cardTotalDeposits[cardId]--;
+                // If user no longer holds this cardId, remove from list
+                if (userCardDeposits[item.depositor][cardId] == 0) {
+                    _removeUserCardId(item.depositor, cardId);
+                }
+            }
+        }
+
         // Transfer NFT back to the user
         IERC721(collection).safeTransferFrom(address(this), msg.sender, tokenId);
 
@@ -473,6 +485,19 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
+        // Update card tracking for won NFT
+        bytes32 wonCardId = appraisalContract.getTokenCardId(item.collection, item.tokenId);
+        if (wonCardId != bytes32(0)) {
+            if (userCardDeposits[item.depositor][wonCardId] > 0) {
+                userCardDeposits[item.depositor][wonCardId]--;
+                cardTotalDeposits[wonCardId]--;
+                // If user no longer holds this cardId, remove from list
+                if (userCardDeposits[item.depositor][wonCardId] == 0) {
+                    _removeUserCardId(item.depositor, wonCardId);
+                }
+            }
+        }
+
         emit NFTWithdrawn(item.collection, item.tokenId, rarity, winner);
     }
 
@@ -491,6 +516,78 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     function getRarityCount(Rarity rarity) external view returns (uint256) {
         return rarityCount[rarity];
+    }
+
+    /// @notice Returns the number of distinct cardIds a user has
+    function getUserCardIdsLength(address user) external view returns (uint256) {
+        return userCardIds[user].length;
+    }
+
+    /// @notice Returns a paginated slice of the user's cardIds
+    /// @param user The user address
+    /// @param offset Starting index (0-based)
+    /// @param limit Maximum number of items to return (1-100)
+    /// @return cardIds Array of cardIds for this page
+    /// @return total Total number of cardIds the user has
+    /// @return hasMore Whether there are more items after this page
+    function getUserCardIds(
+        address user,
+        uint256 offset,
+        uint256 limit
+    ) external view returns (bytes32[] memory cardIds, uint256 total, bool hasMore) {
+        require(limit > 0 && limit <= 100, "Invalid limit: must be 1-100");
+        
+        bytes32[] storage list = userCardIds[user];
+        total = list.length;
+        
+        if (offset >= total) {
+            return (new bytes32[](0), total, false);
+        }
+        
+        uint256 end = offset + limit;
+        if (end > total) {
+            end = total;
+        }
+        
+        uint256 resultLength = end - offset;
+        cardIds = new bytes32[](resultLength);
+        
+        for (uint256 i = 0; i < resultLength; i++) {
+            cardIds[i] = list[offset + i];
+        }
+        
+        hasMore = end < total;
+    }
+
+    /// @notice Returns all cardIds for a user
+    /// @param user The user address
+    /// @return cardIds Array of all cardIds the user has deposited
+    function getAllUserCardIds(address user) external view returns (bytes32[] memory cardIds) {
+        return userCardIds[user];
+    }
+
+    /// @dev Internal: add a cardId to user's list if absent
+    function _addUserCardId(address user, bytes32 cardId) internal {
+        if (userCardIdIndex[user][cardId] == 0) {
+            userCardIds[user].push(cardId);
+            userCardIdIndex[user][cardId] = userCardIds[user].length; // 1-based
+        }
+    }
+
+    /// @dev Internal: remove a cardId from user's list if present
+    function _removeUserCardId(address user, bytes32 cardId) internal {
+        uint256 idxPlus = userCardIdIndex[user][cardId];
+        if (idxPlus == 0) return; // not present
+        uint256 idx = idxPlus - 1;
+        bytes32[] storage list = userCardIds[user];
+        uint256 lastIndex = list.length - 1;
+        if (idx != lastIndex) {
+            bytes32 last = list[lastIndex];
+            list[idx] = last;
+            userCardIdIndex[user][last] = idx + 1;
+        }
+        list.pop();
+        delete userCardIdIndex[user][cardId];
     }
 
     /// @notice Gets all rarity counts in a single call to reduce RPC usage
@@ -677,7 +774,27 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             userDepositValues[msg.sender][rarity] += priceUSD;
             totalRarityValue[rarity] += priceUSD;
 
-            // Notify rewards manager about the deposit to update dividend corrections
+            // Track card-level deposits for enhanced rewards
+            bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
+            if (cardId != bytes32(0)) {
+                // If first time this user has this cardId, add to list
+                if (userCardDeposits[msg.sender][cardId] == 0) {
+                    _addUserCardId(msg.sender, cardId);
+                }
+                userCardDeposits[msg.sender][cardId]++;
+                cardTotalDeposits[cardId]++;
+            }
+
+            // Notify rewards manager about the deposit - using new three-tier system
+            if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
+                (bool success,) = treasuryRewardsManager.call(
+                    abi.encodeWithSignature("updateUserUnits(uint8,bytes32,address,int256)", 
+                    uint8(rarity), cardId, msg.sender, int256(1))
+                );
+                success; // Silence unused variable warning
+            }
+
+            // Also notify for rarity-level tracking (legacy)
             if (treasuryRewardsManager != address(0)) {
                 (bool success,) = treasuryRewardsManager.call(
                     abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", msg.sender, uint8(rarity))
@@ -1015,22 +1132,20 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         return IERC721Receiver.onERC721Received.selector;
     }
 
-    /// @notice Gets user's deposit count for a specific card ID within a rarity
+    /// @notice Gets user's deposit count for a specific card ID
     /// @param user User address
-    /// @param rarity Rarity to check
     /// @param cardId Card ID to check
     /// @return count Number of deposits by user for the card
-    function getUserCardDeposits(address user, Rarity rarity, bytes32 cardId) external view returns (uint256 count) {
+    function getUserCardDeposits(address user, bytes32 cardId) external view returns (uint256 count) {
         if (user == address(0) || cardId == bytes32(0)) return 0;
-        return userCardDeposits[user][rarity][cardId];
+        return userCardDeposits[user][cardId];
     }
 
-    /// @notice Gets total deposit count for a specific card ID within a rarity
-    /// @param rarity Rarity to check
+    /// @notice Gets total deposit count for a specific card ID
     /// @param cardId Card ID to check
     /// @return totalCount Total number of deposits for the card
-    function getCardTotalDeposits(Rarity rarity, bytes32 cardId) external view returns (uint256 totalCount) {
+    function getCardTotalDeposits(bytes32 cardId) external view returns (uint256 totalCount) {
         if (cardId == bytes32(0)) return 0;
-        return cardTotalDeposits[rarity][cardId];
+        return cardTotalDeposits[cardId];
     }
 }

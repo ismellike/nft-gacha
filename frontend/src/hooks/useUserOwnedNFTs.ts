@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAccount, usePublicClient } from "wagmi";
-import { parseAbiItem } from "viem";
 import {
 	baseErc721Abi,
 	useReadBaseErc721BalanceOf,
@@ -69,50 +68,26 @@ export function useUserOwnedNFTs(
 		setError(null);
 
 		try {
-			// Compute ownership from Transfer logs for this user on this collection
-			const transferEvent = parseAbiItem(
-				"event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
-			);
+			// Prefer ERC721Enumerable path to enumerate exact token IDs
+			let ownedTokenIds: bigint[] = [];
+			const enumerable = (await publicClient.readContract({
+				address: collectionAddress as `0x${string}`,
+				abi: baseErc721Abi,
+				functionName: "supportsInterface",
+				args: ["0x780e9d63"], // IERC721Enumerable
+			})) as boolean;
 
-			const [logsTo, logsFrom] = await Promise.all([
-				publicClient.getLogs({
-					address: collectionAddress as `0x${string}`,
-					event: transferEvent,
-					args: { to: userAddress as `0x${string}` },
-					fromBlock: 0n,
-					toBlock: "latest",
-				}),
-				publicClient.getLogs({
-					address: collectionAddress as `0x${string}`,
-					event: transferEvent,
-					args: { from: userAddress as `0x${string}` },
-					fromBlock: 0n,
-					toBlock: "latest",
-				}),
-			]);
-
-			// Merge and sort logs to determine final ownership state per tokenId
-			const allLogs = [...logsTo, ...logsFrom].sort((a, b) => {
-				if (a.blockNumber !== b.blockNumber) {
-					return Number(a.blockNumber - b.blockNumber);
+			if (enumerable) {
+				for (let i = 0n; i < (userBalance as bigint); i++) {
+					const tokenId = (await publicClient.readContract({
+						address: collectionAddress as `0x${string}`,
+						abi: baseErc721Abi,
+						functionName: "tokenOfOwnerByIndex",
+						args: [userAddress as `0x${string}`, i],
+					})) as bigint;
+					ownedTokenIds.push(tokenId);
 				}
-				return Number((a.logIndex ?? 0n) - (b.logIndex ?? 0n));
-			});
-
-			const ownership = new Map<bigint, boolean>();
-			for (const log of allLogs) {
-				const { from, to, tokenId } = log.args as {
-					from: `0x${string}`;
-					to: `0x${string}`;
-					tokenId: bigint;
-				};
-				if (to?.toLowerCase() === userAddress.toLowerCase()) ownership.set(tokenId, true);
-				if (from?.toLowerCase() === userAddress.toLowerCase()) ownership.set(tokenId, false);
 			}
-
-			const ownedTokenIds = Array.from(ownership.entries())
-				.filter(([, isOwned]) => isOwned)
-				.map(([id]) => id);
 
 			setTokens(ownedTokenIds);
 		} catch (err) {
@@ -203,53 +178,32 @@ export function useUserOwnedNFTsMultipleCollections(
 						// Name is optional, continue without it
 					}
 
-					// Determine owned token IDs via Transfer logs for this user/collection
-					const transferEvent = parseAbiItem(
-						"event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
-					);
-
-					const [logsTo, logsFrom] = await Promise.all([
-						publicClient.getLogs({
+					// Prefer ERC721Enumerable to enumerate token IDs
+					let enumerable = false;
+					try {
+						enumerable = (await publicClient.readContract({
 							address: collectionAddress as `0x${string}`,
-							event: transferEvent,
-							args: { to: userAddress as `0x${string}` },
-							fromBlock: 0n,
-							toBlock: "latest",
-						}),
-						publicClient.getLogs({
-							address: collectionAddress as `0x${string}`,
-							event: transferEvent,
-							args: { from: userAddress as `0x${string}` },
-							fromBlock: 0n,
-							toBlock: "latest",
-						}),
-					]);
+							abi: baseErc721Abi,
+							functionName: "supportsInterface",
+							args: ["0x780e9d63"],
+						})) as boolean;
+					} catch {}
 
-					const allLogs = [...logsTo, ...logsFrom].sort((a, b) => {
-						if (a.blockNumber !== b.blockNumber) {
-							return Number(a.blockNumber - b.blockNumber);
-						}
-						return Number((a.logIndex ?? 0n) - (b.logIndex ?? 0n));
-					});
-
-					const ownership = new Map<bigint, boolean>();
-					for (const log of allLogs) {
-						const { from, to, tokenId } = log.args as {
-							from: `0x${string}`;
-							to: `0x${string}`;
-							tokenId: bigint;
-						};
-						if (to?.toLowerCase() === userAddress.toLowerCase()) ownership.set(tokenId, true);
-						if (from?.toLowerCase() === userAddress.toLowerCase()) ownership.set(tokenId, false);
-					}
-
-					for (const [tokenId, isOwned] of ownership.entries()) {
-						if (isOwned) {
-							allUserNFTs.push({
-								collection: collectionAddress,
-								tokenId,
-								collectionName: collectionName || "",
-							});
+					if (enumerable) {
+						for (let i = 0n; i < (userBalance as bigint); i++) {
+							try {
+								const tokenId = (await publicClient.readContract({
+									address: collectionAddress as `0x${string}`,
+									abi: baseErc721Abi,
+									functionName: "tokenOfOwnerByIndex",
+									args: [userAddress as `0x${string}`, i],
+								})) as bigint;
+								allUserNFTs.push({
+									collection: collectionAddress,
+									tokenId,
+									collectionName: collectionName || "",
+								});
+							} catch {}
 						}
 					}
 				} catch (collectionError) {

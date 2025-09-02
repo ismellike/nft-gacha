@@ -2864,6 +2864,38 @@ export const gachaRewardsManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'claimRewardsForCards',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarities',
+        internalType: 'enum GachaTreasury.Rarity[]',
+        type: 'uint8[]',
+      },
+      {
+        name: 'cardIdsByRarity',
+        internalType: 'bytes32[][]',
+        type: 'bytes32[][]',
+      },
+    ],
+    name: 'claimRewardsForMultipleRarities',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'delta',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -3036,6 +3068,20 @@ export const gachaRewardsManagerAbi = [
     inputs: [],
     name: 'paused',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'previewClaimForCards',
+    outputs: [{ name: 'total', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -3662,10 +3708,7 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
-      { name: '', internalType: 'bytes32', type: 'bytes32' },
-    ],
+    inputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     name: 'cardTotalDeposits',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -3748,14 +3791,16 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getAllUserCardIds',
+    outputs: [
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
     ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
     name: 'getCardTotalDeposits',
     outputs: [{ name: 'totalCount', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -3945,15 +3990,32 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       { name: 'user', internalType: 'address', type: 'address' },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
       { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
     ],
     name: 'getUserCardDeposits',
     outputs: [{ name: 'count', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getUserCardIds',
+    outputs: [
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'hasMore', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserCardIdsLength',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -4299,7 +4361,6 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
       { name: '', internalType: 'bytes32', type: 'bytes32' },
     ],
     name: 'userCardDeposits',
@@ -6171,6 +6232,17 @@ export const mockNftAppraisalAbi = [
       { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'setMockAppraisal',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'setTokenCardId',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -10413,6 +10485,15 @@ export const useReadGachaRewardsManagerPaused =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"previewClaimForCards"`
+ */
+export const useReadGachaRewardsManagerPreviewClaimForCards =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'previewClaimForCards',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"protocolAddress"`
  */
 export const useReadGachaRewardsManagerProtocolAddress =
@@ -10497,6 +10578,24 @@ export const useWriteGachaRewardsManagerClaimCardRewards =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaRewardsManagerAbi,
     functionName: 'claimCardRewards',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimRewardsForCards"`
+ */
+export const useWriteGachaRewardsManagerClaimRewardsForCards =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimRewardsForCards',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimRewardsForMultipleRarities"`
+ */
+export const useWriteGachaRewardsManagerClaimRewardsForMultipleRarities =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimRewardsForMultipleRarities',
   })
 
 /**
@@ -10620,6 +10719,24 @@ export const useSimulateGachaRewardsManagerClaimCardRewards =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaRewardsManagerAbi,
     functionName: 'claimCardRewards',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimRewardsForCards"`
+ */
+export const useSimulateGachaRewardsManagerClaimRewardsForCards =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimRewardsForCards',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimRewardsForMultipleRarities"`
+ */
+export const useSimulateGachaRewardsManagerClaimRewardsForMultipleRarities =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimRewardsForMultipleRarities',
   })
 
 /**
@@ -11038,6 +11155,15 @@ export const useReadGachaTreasuryGetAllRarityTotalValues =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllUserCardIds"`
+ */
+export const useReadGachaTreasuryGetAllUserCardIds =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getAllUserCardIds',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getCardTotalDeposits"`
  */
 export const useReadGachaTreasuryGetCardTotalDeposits =
@@ -11161,6 +11287,24 @@ export const useReadGachaTreasuryGetUserCardDeposits =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getUserCardDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardIds"`
+ */
+export const useReadGachaTreasuryGetUserCardIds =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserCardIds',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardIdsLength"`
+ */
+export const useReadGachaTreasuryGetUserCardIdsLength =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserCardIdsLength',
   })
 
 /**
@@ -13222,6 +13366,15 @@ export const useWriteMockNftAppraisalSetMockAppraisal =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"setTokenCardId"`
+ */
+export const useWriteMockNftAppraisalSetTokenCardId =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'setTokenCardId',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__
  */
 export const useSimulateMockNftAppraisalContract =
@@ -13234,6 +13387,15 @@ export const useSimulateMockNftAppraisalSetMockAppraisal =
   /*#__PURE__*/ createUseSimulateContract({
     abi: mockNftAppraisalAbi,
     functionName: 'setMockAppraisal',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"setTokenCardId"`
+ */
+export const useSimulateMockNftAppraisalSetTokenCardId =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'setTokenCardId',
   })
 
 /**

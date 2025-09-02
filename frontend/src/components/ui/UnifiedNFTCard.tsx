@@ -44,6 +44,7 @@ export interface UnifiedNFTCardProps {
 	// Extended details and actions
 	collectionName?: string; // Custom collection name to display
 	extraDetails?: Array<{ label: string; value: string; highlight?: boolean }>; // Additional detail rows
+	rewardsSlot?: React.ReactNode; // Custom rewards section
 	actionSlot?: React.ReactNode; // Custom action button/content
 }
 
@@ -533,6 +534,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		preload = false,
 		collectionName,
 		extraDetails,
+		rewardsSlot,
 		actionSlot,
 	}) => {
 		const isInteractive = !!onClick;
@@ -847,6 +849,9 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 							))}
 						</div>
 					)}
+
+					{/* Rewards Slot */}
+					{rewardsSlot && <div className="mt-2">{rewardsSlot}</div>}
 
 					{/* Action Slot */}
 					{actionSlot && <div className="mt-2">{actionSlot}</div>}
