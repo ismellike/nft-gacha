@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useReadErc721TokenUri } from "../generated";
+import { usePublicClient } from "wagmi";
 import {
 	fetchNFTMetadata,
 	processImageUrl,
@@ -30,6 +30,16 @@ const metadataCache = new Map<
 		data: NFTWithMetadata;
 		timestamp: number;
 		priority: number;
+	}
+>();
+
+// Deduplication cache for tokenURI calls - same collection+tokenId should only be called once
+const tokenURICache = new Map<
+	string,
+	{
+		tokenURI: string | null;
+		timestamp: number;
+		promise?: Promise<string | null>;
 	}
 >();
 
@@ -82,9 +92,24 @@ class FetchQueue {
 
 const fetchQueue = new FetchQueue();
 
+// ERC721 ABI for tokenURI function
+const erc721TokenURIAbi = [
+	{
+		type: "function",
+		name: "tokenURI",
+		stateMutability: "view",
+		inputs: [{ name: "tokenId", type: "uint256" }],
+		outputs: [{ name: "", type: "string" }],
+	},
+] as const;
+
 // Cache management utilities
 function getCacheKey(collection: string, tokenId: string): string {
 	return `${collection}-${tokenId}`;
+}
+
+function getTokenURICacheKey(collection: string, tokenId: string): string {
+	return `tokenuri-${collection}-${tokenId}`;
 }
 
 function getCachedData(key: string): NFTWithMetadata | null {
@@ -99,6 +124,39 @@ function getCachedData(key: string): NFTWithMetadata | null {
 	}
 
 	return null;
+}
+
+function getCachedTokenURI(key: string): string | null | undefined {
+	const cached = tokenURICache.get(key);
+	if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+		return cached.tokenURI;
+	}
+
+	// Remove expired entries
+	if (cached) {
+		tokenURICache.delete(key);
+	}
+
+	return undefined; // undefined means not cached, null means cached as null
+}
+
+function setCachedTokenURI(key: string, tokenURI: string | null, promise?: Promise<string | null>) {
+	const entry: { tokenURI: string | null; timestamp: number; promise?: Promise<string | null> } = {
+		tokenURI,
+		timestamp: Date.now(),
+	};
+	if (promise !== undefined) {
+		entry.promise = promise;
+	}
+	tokenURICache.set(key, entry);
+}
+
+function getCachedTokenURIPromise(key: string): Promise<string | null> | undefined {
+	const cached = tokenURICache.get(key);
+	if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+		return cached.promise;
+	}
+	return undefined;
 }
 
 function setCachedData(
@@ -129,6 +187,90 @@ function setCachedData(
 		timestamp: Date.now(),
 		priority,
 	});
+}
+
+/**
+ * Custom hook for fetching tokenURI with deduplication
+ * Prevents multiple calls to the same collection+tokenId combination
+ */
+function useDedupedTokenURI(collection: string, tokenId: string, enabled: boolean = true) {
+	const publicClient = usePublicClient();
+	const [state, setState] = useState<{
+		data: string | null;
+		isLoading: boolean;
+		error: Error | null;
+	}>({
+		data: null,
+		isLoading: false,
+		error: null,
+	});
+
+	useEffect(() => {
+		if (!enabled || !collection || !tokenId || !publicClient) {
+			setState({ data: null, isLoading: false, error: null });
+			return;
+		}
+
+		const tokenURICacheKey = getTokenURICacheKey(collection, tokenId);
+
+		// Check cache first
+		const cachedResult = getCachedTokenURI(tokenURICacheKey);
+		if (cachedResult !== undefined) {
+			setState({ data: cachedResult, isLoading: false, error: null });
+			return;
+		}
+
+		// Check if there's already a promise for this tokenURI
+		const existingPromise = getCachedTokenURIPromise(tokenURICacheKey);
+		if (existingPromise) {
+			setState(prev => ({ ...prev, isLoading: true, error: null }));
+			existingPromise
+				.then(result => {
+					setState({ data: result, isLoading: false, error: null });
+				})
+				.catch(error => {
+					setState({ data: null, isLoading: false, error });
+				});
+			return;
+		}
+
+		// Create new promise and cache it
+		setState(prev => ({ ...prev, isLoading: true, error: null }));
+		
+		const fetchPromise = publicClient.readContract({
+			address: collection as `0x${string}`,
+			abi: erc721TokenURIAbi,
+			functionName: "tokenURI",
+			args: [BigInt(tokenId)],
+		}) as Promise<string>;
+
+    const wrappedPromise = fetchPromise
+        .then(result => {
+            const tokenURI = result || null;
+            // Only cache on success with a non-empty tokenURI. Avoid caching failures/nulls
+            if (tokenURI) {
+                setCachedTokenURI(tokenURICacheKey, tokenURI);
+            }
+            return tokenURI;
+        })
+        .catch(error => {
+            // Do not cache null on failure so we can retry on subsequent renders
+            throw error;
+        });
+
+		setCachedTokenURI(tokenURICacheKey, null, wrappedPromise);
+
+		wrappedPromise
+			.then(result => {
+				setState({ data: result, isLoading: false, error: null });
+			})
+			.catch(error => {
+				setState({ data: null, isLoading: false, error });
+			});
+
+	}, [collection, tokenId, enabled, publicClient]);
+
+	return state;
 }
 
 /**
@@ -170,20 +312,12 @@ export function useOptimizedNFTMetadata(
 		};
 	});
 
-	// Get tokenURI from the NFT collection contract
+	// Get tokenURI from the NFT collection contract with deduplication
 	const {
 		data: tokenURI,
 		isLoading: isTokenURILoading,
 		error: tokenURIError,
-	} = useReadErc721TokenUri({
-		address: collection as `0x${string}`,
-		args: tokenId ? [BigInt(tokenId)] : undefined,
-		query: {
-			enabled: enabled && !!collection && !!tokenId,
-			staleTime: 60000, // Cache for 1 minute
-			retry: 2,
-		},
-	});
+	} = useDedupedTokenURI(collection, tokenId, enabled && !!collection && !!tokenId);
 
 	// Memoized fetch function
 	const fetchMetadata = useCallback(
@@ -341,19 +475,21 @@ export function useOptimizedNFTMetadata(
 			error: null,
 		}));
 
-		fetchMetadata(tokenURI, collection, tokenId, priority)
-			.then((result) => {
+		// Call fetchMetadata directly instead of using the memoized version to avoid dependency loop
+		(async () => {
+			try {
+				const result = await fetchMetadata(tokenURI, collection, tokenId, priority);
 				setState(result);
-			})
-			.catch((error) => {
+			} catch (error) {
 				setState((prev) => ({
 					...prev,
 					metadata: null,
 					imageUrl: null,
 					isLoading: false,
-					error: `Failed to fetch metadata: ${error.message}`,
+					error: `Failed to fetch metadata: ${(error as Error).message}`,
 				}));
-			});
+			}
+		})();
 	}, [
 		tokenURI,
 		isTokenURILoading,

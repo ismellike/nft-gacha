@@ -11,9 +11,7 @@ struct AppraisalSuccess {
     string chain;
     address contractAddress;
     uint256 tokenId;
-    // Card grouping identifier constructed offchain as
-    // keccak256(Grader, Grade, Set, Title/Subject, Language, Card Number)
-    bytes32 cardId;
+    bytes32 groupId;
     uint256 price; // USDC-style 6 decimals
     bytes32 txHash;
 }
@@ -21,19 +19,14 @@ struct AppraisalSuccess {
 /// @notice Error appraisal payload from NFT appraisal component
 /// @dev Contains error information for failed appraisals
 struct AppraisalError {
-    string chain;
     address contractAddress;
     uint256 tokenId;
-    bytes32 cardId;
+    bytes32 groupId;
     string error;
     bytes32 txHash;
 }
 
 /// @notice Events for tracking appraisal operations
-event AppraisalSuccessReceived(
-    string indexed chain, address indexed contractAddress, uint256 indexed tokenId, uint256 price, bytes32 txHash
-);
+event AppraisalSuccessReceived(address indexed contractAddress, uint256 indexed tokenId, uint256 price, bytes32 txHash);
 
-event AppraisalErrorReceived(
-    string indexed chain, address indexed contractAddress, uint256 indexed tokenId, string error, bytes32 txHash
-);
+event AppraisalErrorReceived(address indexed contractAddress, uint256 indexed tokenId, string error, bytes32 txHash);

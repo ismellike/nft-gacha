@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import type { Address, Hex } from "viem";
 
-// Updated ABI for simplified card structure without rarity separation
+// Updated ABI for new paginated card deposit queries
 const treasuryUserCardsAbi = [
   {
     type: "function",
@@ -15,7 +15,7 @@ const treasuryUserCardsAbi = [
   },
   {
     type: "function",
-    name: "getUserCardIds",
+    name: "getUserCardDepositsPage", 
     stateMutability: "view",
     inputs: [
       { name: "user", type: "address" },
@@ -23,43 +23,49 @@ const treasuryUserCardsAbi = [
       { name: "limit", type: "uint256" },
     ],
     outputs: [
-      { name: "cardIds", type: "bytes32[]" },
+      { name: "deposits", type: "tuple[]", components: [
+        { name: "cardId", type: "bytes32" },
+        { name: "depositCount", type: "uint256" },
+        { name: "totalCardDeposits", type: "uint256" }
+      ]},
       { name: "total", type: "uint256" },
       { name: "hasMore", type: "bool" },
     ],
   },
   {
     type: "function",
-    name: "getAllUserCardIds",
-    stateMutability: "view",
+    name: "getAllUserCardDeposits",
+    stateMutability: "view", 
     inputs: [
       { name: "user", type: "address" },
     ],
     outputs: [
-      { name: "cardIds", type: "bytes32[]" },
+      { name: "deposits", type: "tuple[]", components: [
+        { name: "cardId", type: "bytes32" },
+        { name: "depositCount", type: "uint256" },
+        { name: "totalCardDeposits", type: "uint256" }
+      ]},
     ],
-  },
-  {
-    type: "function",
-    name: "getUserCardDeposits",
-    stateMutability: "view",
-    inputs: [
-      { name: "user", type: "address" },
-      { name: "cardId", type: "bytes32" },
-    ],
-    outputs: [{ name: "count", type: "uint256" }],
   },
 ] as const;
 
-export interface PaginatedCardIds {
-  cardIds: Hex[];
+export interface PaginatedCardDeposits {
+  deposits: UserCardDeposit[];
   total: bigint;
   hasMore: boolean;
 }
 
+export interface UserCardDeposit {
+  cardId: Hex;
+  depositCount: bigint;
+  totalCardDeposits: bigint;
+}
+
+// Legacy interface for backward compatibility
 export interface CardDepositInfo {
   cardId: Hex;
   depositCount: bigint;
+  groupData: Hex;
 }
 
 /**
@@ -83,73 +89,62 @@ export function useTreasuryUserCards(treasury?: Address) {
     [publicClient, treasury, user],
   );
 
-  const getUserCardIdsPage = useCallback(
-    async (offset: bigint, limit: bigint): Promise<PaginatedCardIds> => {
-      if (!publicClient || !treasury || !user) return { cardIds: [], total: 0n, hasMore: false };
-      const [cardIds, total, hasMore] = (await publicClient.readContract({
+  const getUserCardDepositsPage = useCallback(
+    async (offset: bigint, limit: bigint): Promise<PaginatedCardDeposits> => {
+      if (!publicClient || !treasury || !user) return { deposits: [], total: 0n, hasMore: false };
+      const [deposits, total, hasMore] = (await publicClient.readContract({
         address: treasury,
         abi: treasuryUserCardsAbi,
-        functionName: "getUserCardIds",
+        functionName: "getUserCardDepositsPage",
         args: [user, offset, limit],
-      })) as unknown as [Hex[], bigint, boolean];
-      return { cardIds: cardIds as Hex[], total: total as bigint, hasMore: hasMore as boolean };
+      })) as unknown as [UserCardDeposit[], bigint, boolean];
+      return { deposits: deposits as UserCardDeposit[], total: total as bigint, hasMore: hasMore as boolean };
     },
     [publicClient, treasury, user],
   );
 
-  const getAllUserCardIds = useCallback(
-    async (): Promise<Hex[]> => {
+  const getAllUserCardDeposits = useCallback(
+    async (): Promise<UserCardDeposit[]> => {
       if (!publicClient || !treasury || !user) {
         console.log("❌ Missing dependencies:", { publicClient: !!publicClient, treasury, user });
         return [];
       }
       
-      console.log("🔍 Querying getAllUserCardIds for:", user, "from treasury:", treasury);
+      console.log("🔍 Querying getAllUserCardDeposits for:", user, "from treasury:", treasury);
       
       try {
         const result = await publicClient.readContract({
           address: treasury,
           abi: treasuryUserCardsAbi,
-          functionName: "getAllUserCardIds",
+          functionName: "getAllUserCardDeposits",
           args: [user],
         });
         
         console.log("✅ Contract returned:", result);
-        return [...result] as Hex[]; // Convert readonly to mutable array
+        return [...result] as UserCardDeposit[]; // Convert readonly to mutable array
       } catch (error) {
-        console.error("❌ Error calling getAllUserCardIds:", error);
+        console.error("❌ Error calling getAllUserCardDeposits:", error);
         return [];
       }
     },
     [publicClient, treasury, user],
   );
 
-  const getUserCardDeposits = useCallback(
-    async (cardId: Hex): Promise<bigint> => {
-      if (!publicClient || !treasury || !user) return 0n;
-      return publicClient.readContract({
-        address: treasury,
-        abi: treasuryUserCardsAbi,
-        functionName: "getUserCardDeposits",
-        args: [user, cardId],
-      });
-    },
-    [publicClient, treasury, user],
-  );
 
+  // Removed: getUserCardDeposits function - use getAllUserCardDeposits instead for better efficiency
+
+  // Backward compatibility function for existing code
   const loadAllCardDeposits = useCallback(
-    async (): Promise<CardDepositInfo[]> => {
-      const cardIds = await getAllUserCardIds();
-      const results: CardDepositInfo[] = [];
-      
-      for (const cardId of cardIds) {
-        const depositCount = await getUserCardDeposits(cardId);
-        results.push({ cardId, depositCount });
-      }
-      
-      return results;
+    async (): Promise<{cardId: Hex; depositCount: bigint; groupData: Hex}[]> => {
+      const deposits = await getAllUserCardDeposits();
+      // Transform to old format for backward compatibility
+      return deposits.map(deposit => ({
+        cardId: deposit.cardId,
+        depositCount: deposit.depositCount,
+        groupData: deposit.cardId, // groupData is the same as cardId
+      }));
     },
-    [getAllUserCardIds, getUserCardDeposits],
+    [getAllUserCardDeposits],
   );
 
   const getWhitelistedNFTs = useCallback(
@@ -297,28 +292,31 @@ export function useTreasuryUserCards(treasury?: Address) {
           return;
         }
         
-        // Check specific card deposits
-        const cardId = "0xbe8e564966cf82accd6250abf50f7227746ee1002165921d303529b3748046ea";
-        const cardDeposits = await getUserCardDeposits(cardId as `0x${string}`);
-        console.log("🎴 User deposits for cardId", cardId, ":", cardDeposits.toString());
+        // Check specific card deposits using the new batch function
+        const allDeposits = await getAllUserCardDeposits();
+        const specificCard = allDeposits.find(d => d.cardId === "0xbe8e564966cf82accd6250abf50f7227746ee1002165921d303529b3748046ea");
+        console.log("🎴 User deposits for specific cardId:", specificCard?.depositCount?.toString() || "0");
         
-        // Check total card deposits  
-        const totalCardDeposits = await publicClient.readContract({
-          address: treasury,
-          abi: [
-            {
-              type: "function",
-              name: "getCardTotalDeposits",
-              stateMutability: "view", 
-              inputs: [{ name: "cardId", type: "bytes32" }],
-              outputs: [{ name: "totalCount", type: "uint256" }],
-            },
-          ] as const,
-          functionName: "getCardTotalDeposits",
-          args: [cardId as `0x${string}`],
-        });
-        
-        console.log("🎴 Total deposits for cardId", cardId, ":", totalCardDeposits.toString());
+        // Check total card deposits for the first deposit found
+        if (allDeposits.length > 0) {
+          const firstCardId = allDeposits[0].cardId;
+          const totalCardDeposits = await publicClient.readContract({
+            address: treasury,
+            abi: [
+              {
+                type: "function",
+                name: "getCardTotalDeposits",
+                stateMutability: "view", 
+                inputs: [{ name: "cardId", type: "bytes32" }],
+                outputs: [{ name: "totalCount", type: "uint256" }],
+              },
+            ] as const,
+            functionName: "getCardTotalDeposits",
+            args: [firstCardId],
+          });
+          
+          console.log("🎴 Total deposits for cardId", firstCardId, ":", totalCardDeposits.toString());
+        }
         
         // NEW: Check what cardIds exist for higher token IDs (maybe different NFTs were deposited)
         console.log("🔍 Checking cardIds for tokens 45-50 (which should have been deposited):");
@@ -359,9 +357,10 @@ export function useTreasuryUserCards(treasury?: Address) {
             console.log(`🎴 Token ${tokenId} cardId:`, tokenCardId);
             
             if (tokenCardId !== "0x0000000000000000000000000000000000000000000000000000000000000000") {
-              // Check deposits for this cardId
-              const depositsForThisCard = await getUserCardDeposits(tokenCardId as `0x${string}`);
-              console.log(`🎴 User deposits for token ${tokenId} cardId:`, depositsForThisCard.toString());
+              // Check deposits for this cardId using batch query
+              const allUserDeposits = await getAllUserCardDeposits();
+              const depositsForThisCard = allUserDeposits.find(d => d.cardId === tokenCardId);
+              console.log(`🎴 User deposits for token ${tokenId} cardId:`, depositsForThisCard?.depositCount?.toString() || "0");
             }
           } catch (error) {
             console.log(`❌ Error checking token ${tokenId}:`, error);
@@ -372,15 +371,14 @@ export function useTreasuryUserCards(treasury?: Address) {
         console.error("❌ Error in debugUserDeposits:", error);
       }
     },
-    [publicClient, treasury, user, getWhitelistedNFTs, getUserCardDeposits],
+    [publicClient, treasury, user, getWhitelistedNFTs, getAllUserCardDeposits],
   );
 
   return { 
     getUserCardIdsLength, 
-    getUserCardIdsPage, 
-    getAllUserCardIds,
-    getUserCardDeposits,
-    loadAllCardDeposits,
+    getUserCardDepositsPage,
+    getAllUserCardDeposits,
+    loadAllCardDeposits, // Backward compatibility
     debugCardIds,
     debugUserDeposits
   };

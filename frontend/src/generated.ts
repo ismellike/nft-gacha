@@ -3792,6 +3792,28 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getAllUserCardDeposits',
+    outputs: [
+      {
+        name: 'deposits',
+        internalType: 'struct GachaTreasury.UserCardDeposit[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'depositCount', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'totalCardDeposits',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
     name: 'getAllUserCardIds',
     outputs: [
       { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
@@ -3994,6 +4016,34 @@ export const gachaTreasuryAbi = [
     ],
     name: 'getUserCardDeposits',
     outputs: [{ name: 'count', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getUserCardDepositsPage',
+    outputs: [
+      {
+        name: 'deposits',
+        internalType: 'struct GachaTreasury.UserCardDeposit[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'depositCount', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'totalCardDeposits',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+        ],
+      },
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'hasMore', internalType: 'bool', type: 'bool' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -6293,6 +6343,12 @@ export const nftAppraisalAbi = [
       },
       { name: 'firstTimestamp', internalType: 'uint256', type: 'uint256' },
       { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'canonicalContractAddress',
+        internalType: 'address',
+        type: 'address',
+      },
+      { name: 'canonicalTokenId', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -6396,6 +6452,49 @@ export const nftAppraisalAbi = [
           },
           { name: 'firstTimestamp', internalType: 'uint256', type: 'uint256' },
           { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'canonicalContractAddress',
+            internalType: 'address',
+            type: 'address',
+          },
+          {
+            name: 'canonicalTokenId',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' }],
+    name: 'getCardAppraisals',
+    outputs: [
+      {
+        name: 'appraisals',
+        internalType: 'struct NFTAppraisal.CardAppraisal[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'status',
+            internalType: 'enum NFTAppraisal.AppraisalStatus',
+            type: 'uint8',
+          },
+          { name: 'firstTimestamp', internalType: 'uint256', type: 'uint256' },
+          { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'canonicalContractAddress',
+            internalType: 'address',
+            type: 'address',
+          },
+          {
+            name: 'canonicalTokenId',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
         ],
       },
     ],
@@ -7140,10 +7239,9 @@ export const nftAppraisalServiceHandlerAbi = [
         internalType: 'struct AppraisalError',
         type: 'tuple',
         components: [
-          { name: 'chain', internalType: 'string', type: 'string' },
           { name: 'contractAddress', internalType: 'address', type: 'address' },
           { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'groupId', internalType: 'bytes32', type: 'bytes32' },
           { name: 'error', internalType: 'string', type: 'string' },
           { name: 'txHash', internalType: 'bytes32', type: 'bytes32' },
         ],
@@ -7164,7 +7262,7 @@ export const nftAppraisalServiceHandlerAbi = [
           { name: 'chain', internalType: 'string', type: 'string' },
           { name: 'contractAddress', internalType: 'address', type: 'address' },
           { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'groupId', internalType: 'bytes32', type: 'bytes32' },
           { name: 'price', internalType: 'uint256', type: 'uint256' },
           { name: 'txHash', internalType: 'bytes32', type: 'bytes32' },
         ],
@@ -7231,7 +7329,6 @@ export const nftAppraisalServiceHandlerAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
-      { name: 'chain', internalType: 'string', type: 'string', indexed: true },
       {
         name: 'contractAddress',
         internalType: 'address',
@@ -7290,7 +7387,6 @@ export const nftAppraisalServiceHandlerAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
-      { name: 'chain', internalType: 'string', type: 'string', indexed: true },
       {
         name: 'contractAddress',
         internalType: 'address',
@@ -11155,6 +11251,15 @@ export const useReadGachaTreasuryGetAllRarityTotalValues =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllUserCardDeposits"`
+ */
+export const useReadGachaTreasuryGetAllUserCardDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getAllUserCardDeposits',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllUserCardIds"`
  */
 export const useReadGachaTreasuryGetAllUserCardIds =
@@ -11287,6 +11392,15 @@ export const useReadGachaTreasuryGetUserCardDeposits =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getUserCardDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardDepositsPage"`
+ */
+export const useReadGachaTreasuryGetUserCardDepositsPage =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserCardDepositsPage',
   })
 
 /**
@@ -13465,6 +13579,15 @@ export const useReadNftAppraisalGetCardAppraisal =
   /*#__PURE__*/ createUseReadContract({
     abi: nftAppraisalAbi,
     functionName: 'getCardAppraisal',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getCardAppraisals"`
+ */
+export const useReadNftAppraisalGetCardAppraisals =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getCardAppraisals',
   })
 
 /**

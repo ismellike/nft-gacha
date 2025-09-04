@@ -69,7 +69,7 @@ export function useUserOwnedNFTs(
 
 		try {
 			// Prefer ERC721Enumerable path to enumerate exact token IDs
-			let ownedTokenIds: bigint[] = [];
+			const ownedTokenIds: bigint[] = [];
 			const enumerable = (await publicClient.readContract({
 				address: collectionAddress as `0x${string}`,
 				abi: baseErc721Abi,

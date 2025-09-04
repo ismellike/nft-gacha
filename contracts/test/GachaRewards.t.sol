@@ -79,7 +79,7 @@ contract MockNFTAppraisal {
 
     struct CardAppraisal {
         uint256 priceUSD;
-        uint8 status; // Mock status as uint8
+        uint8 status; // Mock status as uint8 (matches enum underlying type)
         uint256 firstTimestamp;
         uint256 lastUpdated;
     }

@@ -172,7 +172,9 @@ export const ProfileDashboard: React.FC = () => {
 		);
 	}
 
-    const depositCountsArr = userDepositCounts as unknown as readonly bigint[] | undefined;
+    const depositCountsArr = Array.isArray(userDepositCounts)
+        ? (userDepositCounts as readonly bigint[])
+        : undefined;
     const totalDeposits = depositCountsArr?.reduce((sum, count) => sum + Number(count || 0), 0) || 0;
 
 	return (
@@ -383,7 +385,7 @@ export const ProfileDashboard: React.FC = () => {
 
 					<div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     {[0,1,2,3,4].map((rarity, index) => {
-                        const config = getRarityConfig(rarity as any);
+                        const config = getRarityConfig(rarity as 0 | 1 | 2 | 3 | 4);
 							const winCount = Number(userRarityWins[index] || 0);
 							const totalSpins = Number(userSpinCount);
 							const winRate =

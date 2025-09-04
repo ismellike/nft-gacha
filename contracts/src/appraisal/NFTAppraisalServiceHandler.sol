@@ -112,24 +112,19 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
             if (successPayload.contractAddress == address(0)) return (true, false);
             if (successPayload.price == 0) return (true, false);
 
-            // Emit event for monitoring
+            // Emit event for monitoring (exclude chain per interface definition)
             emit AppraisalSuccessReceived(
-                successPayload.chain,
-                successPayload.contractAddress,
-                successPayload.tokenId,
-                successPayload.price,
-                successPayload.txHash
+                successPayload.contractAddress, successPayload.tokenId, successPayload.price, successPayload.txHash
             );
 
             // Convert USDC 6-decimal price to 18-decimal for contract
             uint256 priceUSD18 = successPayload.price * 1e12;
 
             // Link token to card and set the card-level appraised price
+            // Derive a stable bytes32 cardId from the variable-length groupId bytes
+            bytes32 derivedCardId = successPayload.groupId;
             try _appraisalContract.setAppraisalForTokenWithCard(
-                successPayload.contractAddress,
-                successPayload.tokenId,
-                successPayload.cardId,
-                priceUSD18
+                successPayload.contractAddress, successPayload.tokenId, derivedCardId, priceUSD18
             ) {
                 emit AppraisalProcessed(
                     successPayload.contractAddress, successPayload.tokenId, priceUSD18, true, block.timestamp
@@ -152,13 +147,9 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
      */
     function _processError(bytes calldata payload) internal {
         try this._decodeError(payload) returns (AppraisalError memory errorPayload) {
-            // Emit error event for monitoring
+            // Emit error event for monitoring (exclude chain per interface definition)
             emit AppraisalErrorReceived(
-                errorPayload.chain,
-                errorPayload.contractAddress,
-                errorPayload.tokenId,
-                errorPayload.error,
-                errorPayload.txHash
+                errorPayload.contractAddress, errorPayload.tokenId, errorPayload.error, errorPayload.txHash
             );
 
             emit ServiceHandlerStatusUpdate(

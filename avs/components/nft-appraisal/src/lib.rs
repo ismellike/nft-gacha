@@ -42,7 +42,7 @@ impl CachedCardPrice {
             .as_secs();
         Self { price, timestamp }
     }
-    
+
     fn is_expired(&self) -> bool {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -108,12 +108,11 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
     let tx_hash = B256::from(tx_hash_bytes);
 
     // Helper to create error response
-    let create_error = |error_msg: String, card_id: B256| -> WasmResponse {
+    let create_error = |error_msg: String, group_id: [u8; 32]| -> WasmResponse {
         let payload = AppraisalError {
-            chain: request.chain.clone(),
             contractAddress: contract_address,
             tokenId: token_id,
-            cardId: card_id,
+            groupId: group_id.into(),
             error: error_msg,
             txHash: tx_hash,
         }
@@ -128,7 +127,12 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
     // Load and validate configuration
     let config = match Config::from_env().and_then(|c| c.validate().map(|_| c)) {
         Ok(config) => config,
-        Err(e) => return Ok(create_error(format!("Configuration error: {}", e), B256::ZERO)),
+        Err(e) => {
+            return Ok(create_error(
+                format!("Configuration error: {}", e),
+                [0u8; 32],
+            ))
+        }
     };
 
     // Query tokenURI from ERC721 contract
@@ -138,14 +142,19 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
         .await
     {
         Ok(uri) => uri,
-        Err(e) => return Ok(create_error(format!("Failed to fetch tokenURI: {}", e), B256::ZERO)),
+        Err(e) => {
+            return Ok(create_error(
+                format!("Failed to fetch tokenURI: {}", e),
+                [0u8; 32],
+            ))
+        }
     };
 
     // Check if this is a Courtyard NFT based on URI pattern
     if !token_uri.contains(&config.courtyard_base_url) {
         return Ok(create_error(
             "NFT appraisal only supports Courtyard NFTs".to_string(),
-            B256::ZERO,
+            [0u8; 32],
         ));
     }
 
@@ -154,23 +163,26 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
     let nft_metadata = match courtyard_client.get_nft_metadata_from_uri(&token_uri).await {
         Ok(metadata) => metadata,
         Err(e) => {
-            return Ok(create_error(format!(
-                "Failed to fetch Courtyard metadata: {}",
-                e
-            ), B256::ZERO))
+            return Ok(create_error(
+                format!("Failed to fetch Courtyard metadata: {}", e),
+                [0u8; 32],
+            ))
         }
     };
 
-    // Parse graded card information from metadata and generate card ID
-    let (card_attributes, card_id) = match courtyard_client.parse_graded_card_info(&nft_metadata) {
-        Ok((attributes, card_id)) => (attributes, card_id),
+    // Parse graded card information from metadata
+    let card_attributes = match courtyard_client.parse_graded_card_info(&nft_metadata) {
+        Ok(attributes) => attributes,
         Err(e) => {
-            return Ok(create_error(format!(
-                "Failed to parse graded card info: {}",
-                e
-            ), B256::ZERO))
+            return Ok(create_error(
+                format!("Failed to parse graded card info: {}", e),
+                [0u8; 32], // Zero hash on error
+            ));
         }
     };
+
+    // Generate keccak hash for group ID
+    let group_id_hash = card_attributes.to_keccak_hash();
 
     // Verify proof of integrity
     match courtyard_client.verify_proof_of_integrity(&nft_metadata) {
@@ -179,21 +191,21 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
             return Ok(create_error(
                 "Proof of integrity verification failed - NFT authenticity cannot be verified"
                     .to_string(),
-                card_id,
+                group_id_hash,
             ));
         }
         Err(e) => {
-            return Ok(create_error(format!(
-                "Proof of integrity verification error: {}",
-                e
-            ), card_id));
+            return Ok(create_error(
+                format!("Proof of integrity verification error: {}", e),
+                group_id_hash,
+            ));
         }
     }
 
-    // Try to get cached price using cardId as key
+    // Try to get cached price using card attributes keccak hash as key
     let cache_bucket = open("nft-card-price-cache").ok();
-    let cache_key = format!("{:x}", card_id);
-    
+    let cache_key = hex::encode(group_id_hash);
+
     let price_result = if let Some(ref bucket) = cache_bucket {
         // Check cache first
         if let Ok(Some(cached_data)) = bucket.get(&cache_key) {
@@ -212,7 +224,7 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
                                 Some(&card_attributes.grade),
                             )
                             .await;
-                        
+
                         // Cache the result
                         if let Ok(price) = &result {
                             let cached_price = CachedCardPrice::new(*price);
@@ -220,7 +232,7 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
                                 let _ = bucket.set(&cache_key, serialized.as_bytes());
                             }
                         }
-                        
+
                         result
                     }
                 } else {
@@ -255,7 +267,7 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
                     Some(&card_attributes.grade),
                 )
                 .await;
-            
+
             // Cache the result
             if let Ok(price) = &result {
                 let cached_price = CachedCardPrice::new(*price);
@@ -263,7 +275,7 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
                     let _ = bucket.set(&cache_key, serialized.as_bytes());
                 }
             }
-            
+
             result
         }
     } else {
@@ -286,7 +298,7 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
                 chain: request.chain,
                 contractAddress: contract_address,
                 tokenId: token_id,
-                cardId: card_id,
+                groupId: group_id_hash.into(),
                 price: scaled_price,
                 txHash: tx_hash,
             }
@@ -299,18 +311,24 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
         }
         Ok(Some(_)) => {
             // Price is zero or negative
-            Ok(create_error("Price unavailable or zero".to_string(), card_id))
+            Ok(create_error(
+                "Price unavailable or zero".to_string(),
+                group_id_hash,
+            ))
         }
         Ok(None) => {
             // Card not found
-            Ok(create_error("Card not found in price database".to_string(), card_id))
+            Ok(create_error(
+                "Card not found in price database".to_string(),
+                group_id_hash,
+            ))
         }
         Err(e) => {
             // API error
-            Ok(create_error(format!(
-                "Pokemon Price Tracker API error: {}",
-                e
-            ), card_id))
+            Ok(create_error(
+                format!("Pokemon Price Tracker API error: {}", e),
+                group_id_hash,
+            ))
         }
     }
 }
@@ -332,10 +350,9 @@ fn create_error_response(evm_event: &TriggerDataEvmContractEvent, error: String)
     }
 
     let payload = AppraisalError {
-        chain: evm_event.chain_name.clone(),
         contractAddress: contract_address,
         tokenId: token_id,
-        cardId: B256::ZERO, // No cardId available for errors before parsing
+        groupId: [0u8; 32].into(), // Zero hash for early errors
         error,
         txHash: B256::from(tx_hash_bytes),
     }
@@ -381,7 +398,11 @@ mod tests {
                 .parse()
                 .unwrap(),
             tokenId: U256::from(0x123u32),
-            cardId: B256::ZERO,
+            groupId: [
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+                24, 25, 26, 27, 28, 29, 30, 31, 32,
+            ]
+            .into(), // Sample keccak hash
             price: U256::from(100_500_000u32), // $100.50 in USDC 6 decimals
             txHash: B256::ZERO,
         };
@@ -397,12 +418,11 @@ mod tests {
     #[test]
     fn test_appraisal_error_abi_encoding() {
         let error = AppraisalError {
-            chain: "polygon".to_string(),
             contractAddress: "0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD"
                 .parse()
                 .unwrap(),
             tokenId: U256::from(0x123u32),
-            cardId: B256::ZERO,
+            groupId: [0u8; 32].into(), // Zero hash for error
             error: "Card not found in price database".to_string(),
             txHash: B256::ZERO,
         };
@@ -427,5 +447,42 @@ mod tests {
         assert_eq!(scale_to_usdc6(-1.0), None);
         assert_eq!(scale_to_usdc6(f64::NAN), None);
         assert_eq!(scale_to_usdc6(f64::INFINITY), None);
+    }
+
+    #[test]
+    fn test_graded_card_attributes_serialization() {
+        use courtyard_client::card_parser::GradedCardAttributes;
+        use std::collections::HashMap;
+
+        let mut other_attributes = HashMap::new();
+        other_attributes.insert("Serial".to_string(), "61182446".to_string());
+
+        let card_attributes = GradedCardAttributes {
+            grader: "PSA".to_string(),
+            grade: "10".to_string(),
+            title: "Pikachu".to_string(),
+            card_number: "25".to_string(),
+            year: "1998".to_string(),
+            set: Some("Base Set".to_string()),
+            language: Some("English".to_string()),
+            category: Some("Pokemon".to_string()),
+            event: None,
+            tags: vec!["electric".to_string(), "yellow".to_string()], // pre-sorted
+            other_attributes,
+        };
+
+        // Test keccak hash generation
+        let hash = card_attributes.to_keccak_hash();
+        assert_eq!(hash.len(), 32); // Should be 32 bytes
+
+        // Hash should be deterministic - same input should produce same hash
+        let hash2 = card_attributes.to_keccak_hash();
+        assert_eq!(hash, hash2);
+
+        // Different attributes should produce different hashes
+        let mut different_attributes = card_attributes.clone();
+        different_attributes.grader = "BGS".to_string();
+        let different_hash = different_attributes.to_keccak_hash();
+        assert_ne!(hash, different_hash);
     }
 }

@@ -77,6 +77,13 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         uint256 depositTime; // When NFT was deposited
     }
 
+    /// @notice User's card deposit information for frontend display
+    struct UserCardDeposit {
+        bytes32 cardId; // Card ID (group identifier)
+        uint256 depositCount; // Number of tokens deposited for this card
+        uint256 totalCardDeposits; // Total deposits across all users for this card
+    }
+
     /// @notice Core treasury storage
     mapping(Rarity => NFTItem[]) public treasury;
     /// @dev NFTs organized by rarity
@@ -108,9 +115,9 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     mapping(address => mapping(bytes32 => uint256)) public userCardDeposits; // user => cardId => count
     mapping(bytes32 => uint256) public cardTotalDeposits; // cardId => total count
 
-    /// @notice Per-user list of active cardIds for pagination and batching
-    mapping(address => bytes32[]) private userCardIds; // user => cardIds
-    mapping(address => mapping(bytes32 => uint256)) private userCardIdIndex; // index+1
+    /// @notice Per-user list of active groupIds (bytes32 hashes) for pagination and batching
+    mapping(address => bytes32[]) private userGroupIds; // user => groupIds
+    mapping(address => mapping(bytes32 => uint256)) private userCardIdIndex; // index+1 by cardId
 
     /// @notice Collection whitelist management
     mapping(address => bool) public whitelistedCollections;
@@ -242,19 +249,17 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Track card-level deposits for enhanced rewards
         bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
         if (cardId != bytes32(0)) {
-            // If first time this user has this cardId, add to list
-            if (userCardDeposits[msg.sender][cardId] == 0) {
-                _addUserCardId(msg.sender, cardId);
-            }
             userCardDeposits[msg.sender][cardId]++;
             cardTotalDeposits[cardId]++;
+            _addUserGroupId(msg.sender, cardId);
         }
 
         // Notify rewards manager about the deposit - using new three-tier system
         if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
             (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("updateUserUnits(uint8,bytes32,address,int256)", 
-                    uint8(rarity), cardId, msg.sender, int256(1)) // +1 unit
+                abi.encodeWithSignature(
+                    "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, msg.sender, int256(1)
+                ) // +1 unit
             );
             success; // Silence unused variable warning
         }
@@ -351,8 +356,13 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
             // Use handleReappraisal which includes migration logic
             (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("handleReappraisal(uint8,bytes32,uint256,uint8)", 
-                    uint8(currentRarity), cardId, newPriceUSD, uint8(newRarity))
+                abi.encodeWithSignature(
+                    "handleReappraisal(uint8,bytes32,uint256,uint8)",
+                    uint8(currentRarity),
+                    cardId,
+                    newPriceUSD,
+                    uint8(newRarity)
+                )
             );
             success; // Silence unused variable warning
         }
@@ -411,8 +421,9 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
         if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
             (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("updateUserUnits(uint8,bytes32,address,int256)", 
-                    uint8(rarity), cardId, item.depositor, int256(-1)) // -1 unit
+                abi.encodeWithSignature(
+                    "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, item.depositor, int256(-1)
+                ) // -1 unit
             );
             success; // Silence unused variable warning
         }
@@ -424,7 +435,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
                 cardTotalDeposits[cardId]--;
                 // If user no longer holds this cardId, remove from list
                 if (userCardDeposits[item.depositor][cardId] == 0) {
-                    _removeUserCardId(item.depositor, cardId);
+                    _removeUserGroupId(item.depositor, cardId);
                 }
             }
         }
@@ -493,7 +504,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
                 cardTotalDeposits[wonCardId]--;
                 // If user no longer holds this cardId, remove from list
                 if (userCardDeposits[item.depositor][wonCardId] == 0) {
-                    _removeUserCardId(item.depositor, wonCardId);
+                    _removeUserGroupId(item.depositor, wonCardId);
                 }
             }
         }
@@ -518,73 +529,75 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         return rarityCount[rarity];
     }
 
-    /// @notice Returns the number of distinct cardIds a user has
+    /// @notice Returns the number of distinct groupIds a user has
     function getUserCardIdsLength(address user) external view returns (uint256) {
-        return userCardIds[user].length;
+        return userGroupIds[user].length;
     }
 
-    /// @notice Returns a paginated slice of the user's cardIds
+    /// @notice Returns a paginated slice of the user's cardIds (keccak256 hashes)
     /// @param user The user address
     /// @param offset Starting index (0-based)
     /// @param limit Maximum number of items to return (1-100)
     /// @return cardIds Array of cardIds for this page
     /// @return total Total number of cardIds the user has
     /// @return hasMore Whether there are more items after this page
-    function getUserCardIds(
-        address user,
-        uint256 offset,
-        uint256 limit
-    ) external view returns (bytes32[] memory cardIds, uint256 total, bool hasMore) {
+    function getUserCardIds(address user, uint256 offset, uint256 limit)
+        external
+        view
+        returns (bytes32[] memory cardIds, uint256 total, bool hasMore)
+    {
         require(limit > 0 && limit <= 100, "Invalid limit: must be 1-100");
-        
-        bytes32[] storage list = userCardIds[user];
+
+        bytes32[] storage list = userGroupIds[user];
         total = list.length;
-        
+
         if (offset >= total) {
             return (new bytes32[](0), total, false);
         }
-        
+
         uint256 end = offset + limit;
         if (end > total) {
             end = total;
         }
-        
+
         uint256 resultLength = end - offset;
         cardIds = new bytes32[](resultLength);
-        
         for (uint256 i = 0; i < resultLength; i++) {
             cardIds[i] = list[offset + i];
         }
-        
+
         hasMore = end < total;
     }
 
-    /// @notice Returns all cardIds for a user
+    /// @notice Returns all cardIds (keccak256 hashes) for a user
+    /// @dev DEPRECATED: Use getAllUserCardDeposits() for richer data, or getUserCardDepositsPage() for pagination
     /// @param user The user address
     /// @return cardIds Array of all cardIds the user has deposited
     function getAllUserCardIds(address user) external view returns (bytes32[] memory cardIds) {
-        return userCardIds[user];
+        return userGroupIds[user];
     }
 
-    /// @dev Internal: add a cardId to user's list if absent
-    function _addUserCardId(address user, bytes32 cardId) internal {
+    /// @dev Internal: add a cardId (bytes32 hash) to user's list if absent, using cardId index
+    function _addUserGroupId(address user, bytes32 cardId) internal {
         if (userCardIdIndex[user][cardId] == 0) {
-            userCardIds[user].push(cardId);
-            userCardIdIndex[user][cardId] = userCardIds[user].length; // 1-based
+            userGroupIds[user].push(cardId);
+            userCardIdIndex[user][cardId] = userGroupIds[user].length; // 1-based
         }
     }
 
-    /// @dev Internal: remove a cardId from user's list if present
-    function _removeUserCardId(address user, bytes32 cardId) internal {
+    /// @dev Internal: remove a groupId (by cardId) from user's list if present
+    function _removeUserGroupId(address user, bytes32 cardId) internal {
         uint256 idxPlus = userCardIdIndex[user][cardId];
         if (idxPlus == 0) return; // not present
         uint256 idx = idxPlus - 1;
-        bytes32[] storage list = userCardIds[user];
+        bytes32[] storage list = userGroupIds[user];
         uint256 lastIndex = list.length - 1;
         if (idx != lastIndex) {
             bytes32 last = list[lastIndex];
             list[idx] = last;
-            userCardIdIndex[user][last] = idx + 1;
+            // Update the index for the moved element using its cardId hash
+            bytes32 movedCardId = last;
+            userCardIdIndex[user][movedCardId] = idx + 1;
         }
         list.pop();
         delete userCardIdIndex[user][cardId];
@@ -777,19 +790,17 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             // Track card-level deposits for enhanced rewards
             bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
             if (cardId != bytes32(0)) {
-                // If first time this user has this cardId, add to list
-                if (userCardDeposits[msg.sender][cardId] == 0) {
-                    _addUserCardId(msg.sender, cardId);
-                }
                 userCardDeposits[msg.sender][cardId]++;
                 cardTotalDeposits[cardId]++;
+                _addUserGroupId(msg.sender, cardId);
             }
 
             // Notify rewards manager about the deposit - using new three-tier system
             if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
                 (bool success,) = treasuryRewardsManager.call(
-                    abi.encodeWithSignature("updateUserUnits(uint8,bytes32,address,int256)", 
-                    uint8(rarity), cardId, msg.sender, int256(1))
+                    abi.encodeWithSignature(
+                        "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, msg.sender, int256(1)
+                    )
                 );
                 success; // Silence unused variable warning
             }
@@ -1136,6 +1147,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @param user User address
     /// @param cardId Card ID to check
     /// @return count Number of deposits by user for the card
+    /// @dev DEPRECATED: Use getAllUserCardDeposits() or getUserCardDepositsPage() for batch queries
     function getUserCardDeposits(address user, bytes32 cardId) external view returns (uint256 count) {
         if (user == address(0) || cardId == bytes32(0)) return 0;
         return userCardDeposits[user][cardId];
@@ -1147,5 +1159,71 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     function getCardTotalDeposits(bytes32 cardId) external view returns (uint256 totalCount) {
         if (cardId == bytes32(0)) return 0;
         return cardTotalDeposits[cardId];
+    }
+
+    /// @notice Gets paginated user card deposits with deposit counts (optimized for frontend)
+    /// @param user The user address
+    /// @param offset Starting index (0-based)
+    /// @param limit Maximum number of items to return (1-50)
+    /// @return deposits Array of UserCardDeposit structs for this page
+    /// @return total Total number of cards the user has deposited
+    /// @return hasMore Whether there are more items after this page
+    function getUserCardDepositsPage(address user, uint256 offset, uint256 limit)
+        external
+        view
+        returns (UserCardDeposit[] memory deposits, uint256 total, bool hasMore)
+    {
+        require(limit > 0 && limit <= 50, "Invalid limit: must be 1-50");
+        if (user == address(0)) {
+            return (new UserCardDeposit[](0), 0, false);
+        }
+
+        bytes32[] storage userCards = userGroupIds[user];
+        total = userCards.length;
+
+        if (offset >= total) {
+            return (new UserCardDeposit[](0), total, false);
+        }
+
+        uint256 end = offset + limit;
+        if (end > total) {
+            end = total;
+        }
+
+        uint256 resultLength = end - offset;
+        deposits = new UserCardDeposit[](resultLength);
+        
+        for (uint256 i = 0; i < resultLength; i++) {
+            bytes32 cardId = userCards[offset + i];
+            deposits[i] = UserCardDeposit({
+                cardId: cardId,
+                depositCount: userCardDeposits[user][cardId],
+                totalCardDeposits: cardTotalDeposits[cardId]
+            });
+        }
+
+        hasMore = end < total;
+    }
+
+    /// @notice Gets all user card deposits with deposit counts (for smaller datasets)
+    /// @param user The user address
+    /// @return deposits Array of all UserCardDeposit structs for the user
+    function getAllUserCardDeposits(address user) external view returns (UserCardDeposit[] memory deposits) {
+        if (user == address(0)) {
+            return new UserCardDeposit[](0);
+        }
+
+        bytes32[] storage userCards = userGroupIds[user];
+        uint256 length = userCards.length;
+        deposits = new UserCardDeposit[](length);
+        
+        for (uint256 i = 0; i < length; i++) {
+            bytes32 cardId = userCards[i];
+            deposits[i] = UserCardDeposit({
+                cardId: cardId,
+                depositCount: userCardDeposits[user][cardId],
+                totalCardDeposits: cardTotalDeposits[cardId]
+            });
+        }
     }
 }

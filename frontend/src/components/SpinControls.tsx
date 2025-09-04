@@ -466,6 +466,7 @@ const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 		gachaSpin,
 		isSpinSuccess,
 		spinTxHash,
+		spinReceipt,
 	]);
 
 	// Countdown timer effect

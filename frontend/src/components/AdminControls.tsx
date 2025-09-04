@@ -104,17 +104,20 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 	const [isOwnerChecked, setIsOwnerChecked] = useState(false);
 
 	// Owner checks
-	const { data: gachaOwner } = useReadGachaOwner({
-		address: gacha.address as `0x${string}`,
-	});
+    const { data: gachaOwner } = useReadGachaOwner({
+        address: gacha.address as `0x${string}`,
+    } as Parameters<typeof useReadGachaOwner>[0]);
 
-	const { data: treasuryOwner } = useReadGachaTreasuryOwner({
-		address: gacha.treasuryAddress as `0x${string}`,
-	});
+    const { data: treasuryOwner } = useReadGachaTreasuryOwner({
+        address: gacha.treasuryAddress as `0x${string}`,
+    } as Parameters<typeof useReadGachaTreasuryOwner>[0]);
 
-	const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
-		address: process.env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as `0x${string}`,
-	});
+    const rewardsManager = process.env
+        .NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as `0x${string}` | undefined;
+    const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
+        address: rewardsManager,
+        query: { enabled: !!rewardsManager },
+    } as Parameters<typeof useReadGachaRewardsManagerOwner>[0]);
 
 	const isOwner =
 		userAddress &&

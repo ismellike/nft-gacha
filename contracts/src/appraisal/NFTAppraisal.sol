@@ -47,6 +47,8 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         AppraisalStatus status; // Completed/OwnerOverride
         uint256 firstTimestamp; // First time a price was recorded
         uint256 lastUpdated; // When price was last updated
+        address canonicalContractAddress; // Contract address of the first appraised token
+        uint256 canonicalTokenId; // Token ID of the first appraised token
     }
 
     /// @notice Per-token request tracking
@@ -163,7 +165,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
         // Create or update token request (supporting re-appraisals)
         bool isReAppraisal = tokenRequests[collection][tokenId].timestamp != 0;
-        
+
         tokenRequests[collection][tokenId] = TokenRequest({
             requester: msg.sender,
             status: AppraisalStatus.Pending,
@@ -236,7 +238,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @notice Service handler sets the card-level appraised price and links the token to the card
      * @param collection NFT collection address
      * @param tokenId Token ID that was appraised
-     * @param cardId Card grouping identifier
+     * @param cardId Group identifier (bytes32)
      * @param priceUSD Appraised price in 1e18 USD
      */
     function setAppraisalForTokenWithCard(address collection, uint256 tokenId, bytes32 cardId, uint256 priceUSD)
@@ -261,7 +263,11 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         CardAppraisal storage ca = cardAppraisals[cardId];
         uint256 oldPrice = ca.priceUSD;
         AppraisalStatus oldStatus = ca.status;
-        if (ca.firstTimestamp == 0) ca.firstTimestamp = block.timestamp;
+        if (ca.firstTimestamp == 0) {
+            ca.firstTimestamp = block.timestamp;
+            ca.canonicalContractAddress = collection;
+            ca.canonicalTokenId = tokenId;
+        }
         ca.priceUSD = priceUSD;
         ca.status = AppraisalStatus.Completed;
         ca.lastUpdated = block.timestamp;
@@ -287,19 +293,13 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      */
     function ownerBatchSetAppraisalForTokensWithCards(
         address[] calldata collections,
-        uint256[] calldata tokenIds, 
+        uint256[] calldata tokenIds,
         bytes32[] calldata cardIds,
         uint256[] calldata pricesUSD
-    )
-        external
-        onlyOwner
-        whenNotPaused
-        nonReentrant
-    {
+    ) external onlyOwner whenNotPaused nonReentrant {
         require(
-            collections.length == tokenIds.length && 
-            tokenIds.length == cardIds.length && 
-            cardIds.length == pricesUSD.length, 
+            collections.length == tokenIds.length && tokenIds.length == cardIds.length
+                && cardIds.length == pricesUSD.length,
             "Array length mismatch"
         );
         require(collections.length <= 50, "Too many items");
@@ -323,9 +323,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _setAppraisalForTokenWithCard(
-        address collection, 
-        uint256 tokenId, 
-        bytes32 cardId, 
+        address collection,
+        uint256 tokenId,
+        bytes32 cardId,
         uint256 priceUSD,
         bool isOwnerOverride
     ) internal {
@@ -348,10 +348,15 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         CardAppraisal storage ca = cardAppraisals[cardId];
         uint256 oldPrice = ca.priceUSD;
         AppraisalStatus oldStatus = ca.status;
-        if (ca.firstTimestamp == 0) ca.firstTimestamp = block.timestamp;
+        if (ca.firstTimestamp == 0) {
+            ca.firstTimestamp = block.timestamp;
+            ca.canonicalContractAddress = collection;
+            ca.canonicalTokenId = tokenId;
+        }
         ca.priceUSD = priceUSD;
         ca.status = isOwnerOverride ? AppraisalStatus.OwnerOverride : AppraisalStatus.Completed;
         ca.lastUpdated = block.timestamp;
+        // group namespace removed; grouping is implicit in cardId
 
         // Create/update token request record for completeness
         TokenRequest storage tr = tokenRequests[collection][tokenId];
@@ -368,7 +373,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         } else {
             emit AppraisalCompleted(collection, tokenId, priceUSD, msg.sender, block.timestamp);
         }
-        
+
         emit AppraisalStatusChanged(collection, tokenId, oldStatus, tr.status, block.timestamp);
         if (oldPrice != priceUSD) {
             emit CardPriceUpdated(cardId, oldPrice, priceUSD);
@@ -500,6 +505,13 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
     function getCardAppraisal(bytes32 cardId) external view returns (CardAppraisal memory) {
         return cardAppraisals[cardId];
+    }
+
+    function getCardAppraisals(bytes32[] calldata cardIds) external view returns (CardAppraisal[] memory appraisals) {
+        appraisals = new CardAppraisal[](cardIds.length);
+        for (uint256 i = 0; i < cardIds.length; i++) {
+            appraisals[i] = cardAppraisals[cardIds[i]];
+        }
     }
 
     // ============ SERVICE HANDLER MANAGEMENT ============

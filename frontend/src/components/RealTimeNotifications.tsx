@@ -100,6 +100,7 @@ export const RealTimeNotifications: React.FC = () => {
 	useWatchGachaSpinCompleted({
 		address: contracts.gacha as `0x${string}` | undefined,
 		enabled: !!contracts.gacha && isEnabled,
+		pollingInterval: 5000, // Poll every 5 seconds instead of default 1 second
 		onLogs: useCallback(
 			(logs: unknown[]) => {
 				logs.forEach((log: unknown) => {
@@ -141,6 +142,7 @@ export const RealTimeNotifications: React.FC = () => {
 	useWatchGachaTreasuryNftDeposited({
 		address: contracts.treasury as `0x${string}` | undefined,
 		enabled: !!contracts.treasury && isEnabled,
+		pollingInterval: 5000, // Poll every 5 seconds instead of default 1 second
 		onLogs: useCallback(
 			(logs: unknown[]) => {
 				logs.forEach((log: unknown) => {

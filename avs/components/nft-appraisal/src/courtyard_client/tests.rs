@@ -257,13 +257,24 @@ mod client_tests {
         let result = client.parse_graded_card_info(&metadata);
         assert!(result.is_ok());
 
-        let (card_info, card_id) = result.unwrap();
+        let card_info = result.unwrap();
         assert_eq!(card_info.grader, "PSA");
         assert_eq!(card_info.grade, "10");
         assert_eq!(card_info.title, "Infernape");
         assert_eq!(card_info.set, Some("Sv5a-Crimson Haze".to_string()));
-        // Verify card_id is generated (32 bytes)
-        assert_eq!(card_id.len(), 32);
+        // Verify keccak hash generation
+        let hash = card_info.to_keccak_hash();
+        assert_eq!(hash.len(), 32); // Should be 32 bytes
+
+        // Hash should be deterministic
+        let hash2 = card_info.to_keccak_hash();
+        assert_eq!(hash, hash2);
+
+        // Different grader should produce different hash
+        let mut different_info = card_info.clone();
+        different_info.grader = "BGS".to_string();
+        let different_hash = different_info.to_keccak_hash();
+        assert_ne!(hash, different_hash);
     }
 
     #[test]

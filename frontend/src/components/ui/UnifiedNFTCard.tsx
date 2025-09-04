@@ -4,7 +4,7 @@ import { useState, memo, useMemo } from "react";
 import NextImage from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/theme-config";
-import { formatAddress, formatTokenId, formatCurrency } from "../../lib/utils";
+import { formatAddress, formatTokenId, formatCurrency, isValidAddress } from "../../lib/utils";
 import {
 	useReadNftAppraisalGetAppraisedPrice,
 	useReadNftAppraisalHasAppraisal,
@@ -14,12 +14,12 @@ import { type Rarity, getRarityConfig } from "../../lib/rarityConfig";
 import { useOptimizedNFTMetadata } from "../../hooks/useOptimizedNFTMetadata";
 import { NFTLoadingPlaceholder } from "./NFTLoadingPlaceholder";
 import {
-	isCourtyardTokenURI,
-	type CourtyardMetadata,
-	processCourtyardImageUrl,
-	parseCourtyardMetadata,
-	formatCardTitle,
-	formatGradeDisplay,
+    isCourtyardTokenURI,
+    type CourtyardMetadata,
+    processCourtyardImageUrl,
+    parseCourtyardMetadata,
+    formatCardTitle,
+    formatGradeDisplay,
 } from "../../lib/courtyard-utils";
 import { useImageWithFallbacks } from "../../lib/image-proxy";
 import { processImageUrl, type NFTMetadata } from "../../lib/nft-metadata";
@@ -49,41 +49,45 @@ export interface UnifiedNFTCardProps {
 }
 
 // Enhanced appraisal display with better caching
-const UnifiedAppraisalDisplay = memo<{
-	collection: `0x${string}`;
-	tokenId: string;
-	appraisalContractAddress: `0x${string}`;
-	size: UnifiedNFTCardProps["size"];
-}>(({ collection, tokenId, appraisalContractAddress, size }) => {
+const UnifiedAppraisalDisplay: React.FC<{
+    collection: `0x${string}`;
+    tokenId: string;
+    appraisalContractAddress: `0x${string}`;
+    size: UnifiedNFTCardProps["size"];
+}> = ({ collection, tokenId, appraisalContractAddress, size }) => {
+    // Only use appraisal hooks when the contract address is a valid, non-zero address
+    const appraisalAddrUsable =
+        isValidAddress(appraisalContractAddress) &&
+        !/^0x0{40}$/i.test(appraisalContractAddress);
 	const {
 		data: hasAppraisal,
 		isLoading: checkingAppraisal,
 		error: appraisalCheckError,
-	} = useReadNftAppraisalHasAppraisal({
-		address: appraisalContractAddress,
-		args: [collection, BigInt(tokenId)],
-		query: {
-			enabled: !!appraisalContractAddress && !!collection && !!tokenId,
-			staleTime: 60000,
-			gcTime: 300000,
-			retry: 1,
-		},
-	});
+    } = useReadNftAppraisalHasAppraisal({
+        address: appraisalContractAddress,
+        args: [collection, BigInt(tokenId)],
+        query: {
+            enabled: appraisalAddrUsable && !!collection && !!tokenId,
+            staleTime: 60000,
+            gcTime: 300000,
+            retry: 1,
+        },
+    });
 
 	const {
 		data: appraisalPrice,
 		isLoading: loadingPrice,
 		error: priceError,
-	} = useReadNftAppraisalGetAppraisedPrice({
-		address: appraisalContractAddress,
-		args: [collection, BigInt(tokenId)],
-		query: {
-			enabled: !!hasAppraisal && !!appraisalContractAddress,
-			staleTime: 60000,
-			gcTime: 300000,
-			retry: 1,
-		},
-	});
+    } = useReadNftAppraisalGetAppraisedPrice({
+        address: appraisalContractAddress,
+        args: [collection, BigInt(tokenId)],
+        query: {
+            enabled: appraisalAddrUsable && !!hasAppraisal,
+            staleTime: 60000,
+            gcTime: 300000,
+            retry: 1,
+        },
+    });
 
 	const isLoading = checkingAppraisal || loadingPrice;
 	const priceUSD = Array.isArray(appraisalPrice)
@@ -105,9 +109,19 @@ const UnifiedAppraisalDisplay = memo<{
 
 	const styles = sizeStyles[size || "md"];
 
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center gap-1">
+    if (!appraisalAddrUsable) {
+        return (
+            <div className="text-center">
+                <span className={cn("text-warning-300", sizeStyles[size || "md"].text)}>
+                    No appraisal
+                </span>
+            </div>
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center gap-1">
 				<motion.div
 					className={cn(
 						styles.icon,
@@ -157,75 +171,56 @@ const UnifiedAppraisalDisplay = memo<{
 		);
 	}
 
-	return (
-		<div className="text-center">
-			<span className={cn("text-warning-300", styles.text)}>No appraisal</span>
-		</div>
-	);
-});
-UnifiedAppraisalDisplay.displayName = "UnifiedAppraisalDisplay";
+    return (
+        <div className="text-center">
+            <span className={cn("text-warning-300", styles.text)}>No appraisal</span>
+        </div>
+    );
+};
 
 // Enhanced NFT image with progressive loading
-const UnifiedNFTImage = memo<{
-	imageUrl?: string;
-	collection: string;
-	tokenId: string;
-	size: UnifiedNFTCardProps["size"];
-	animate?: boolean;
-	priority?: number;
-	rarity?: Rarity;
-	enabled: boolean;
-	metadata?: NFTMetadata | null;
-}>(
-	({
-		imageUrl,
-		collection,
-		tokenId,
-		size,
-		priority = 0,
-		rarity,
-		enabled,
-		metadata,
-	}) => {
-		// Use optimized metadata loading
-		const nftData = useOptimizedNFTMetadata(collection, tokenId, {
-			priority,
-			enabled,
-			preload: priority > 5,
-		});
+const UnifiedNFTImage: React.FC<{
+    imageUrl?: string; // explicit override
+    fallbackImageUrl?: string | null; // from parent hook
+    tokenId: string;
+    size: UnifiedNFTCardProps["size"];
+    animate?: boolean;
+    priority?: number;
+    rarity?: Rarity;
+    metadata?: NFTMetadata | null; // from parent hook
+    tokenURI?: string | null; // from parent hook
+}> = ({
+        imageUrl,
+        fallbackImageUrl,
+        tokenId,
+        size,
+        priority = 0,
+        rarity,
+        metadata,
+        tokenURI,
+    }) => {
+        // Determine the best image URL using the unified metadata provided by parent
+        const actualImageUrl = useMemo(() => {
+            // Priority: provided imageUrl > fallbackImageUrl from hook > processed from metadata
+            if (imageUrl) return imageUrl;
+            if (fallbackImageUrl) return fallbackImageUrl;
 
-		// Determine the best image URL using the unified metadata system
-		const actualImageUrl = useMemo(() => {
-			// Priority: provided imageUrl > nftData.imageUrl > processed from metadata
-			if (imageUrl) return imageUrl;
-			if (nftData.imageUrl) return nftData.imageUrl;
+            if (metadata) {
+                if (isCourtyardTokenURI(tokenURI || "")) {
+                    return processCourtyardImageUrl(metadata as CourtyardMetadata);
+                }
+                return processImageUrl(metadata.image, metadata);
+            }
 
-			// Process image URL from metadata
-			const metadataToUse = metadata || nftData.metadata;
-			if (metadataToUse) {
-				// Check if this is Courtyard metadata
-				if (isCourtyardTokenURI(nftData.tokenURI || "")) {
-					return processCourtyardImageUrl(metadataToUse as CourtyardMetadata);
-				} else {
-					return processImageUrl(metadataToUse.image, metadataToUse);
-				}
-			}
-
-			return null;
-		}, [
-			imageUrl,
-			nftData.imageUrl,
-			nftData.metadata,
-			nftData.tokenURI,
-			metadata,
-		]);
+            return null;
+        }, [imageUrl, fallbackImageUrl, metadata, tokenURI]);
 
 		// Use image proxy with optimized settings
-		const {
-			finalUrl,
-			isLoading: isProxyLoading,
-			error: proxyError,
-		} = useImageWithFallbacks(actualImageUrl);
+        const {
+            finalUrl,
+            isLoading: isProxyLoading,
+            error: proxyError,
+        } = useImageWithFallbacks(actualImageUrl);
 
 		// Size configurations optimized for performance - made images take up more space
 		const sizeClasses = {
@@ -238,13 +233,10 @@ const UnifiedNFTImage = memo<{
 
 		const classes = sizeClasses[size || "md"];
 
-		const isMetadataLoading =
-			nftData.isLoading || (!nftData.tokenURI && !nftData.error);
-		const isLoading = isMetadataLoading || isProxyLoading || !nftData.tokenURI;
-		const hasError =
-			(!isMetadataLoading && nftData.error) ||
-			(!isProxyLoading && proxyError) ||
-			(!isProxyLoading && !finalUrl && nftData.tokenURI);
+        const isLoading = isProxyLoading;
+        // Only show error state when we actually had an image URL to try and it failed.
+        const attemptedImageLoad = !!actualImageUrl;
+        const hasError = !isProxyLoading && attemptedImageLoad && (proxyError || !finalUrl);
 
 		const rarityConfig = rarity ? getRarityConfig(rarity) : null;
 
@@ -297,7 +289,7 @@ const UnifiedNFTImage = memo<{
 				{finalUrl && (
 					<NextImage
 						src={finalUrl}
-						alt={nftData.metadata?.name || `NFT ${formatTokenId(tokenId)}`}
+                    alt={(metadata?.name as string | undefined) || `NFT ${formatTokenId(tokenId)}`}
 						width={512}
 						height={512}
 						className={cn(
@@ -312,9 +304,7 @@ const UnifiedNFTImage = memo<{
 				)}
 			</div>
 		);
-	},
-);
-UnifiedNFTImage.displayName = "UnifiedNFTImage";
+    };
 
 // Standard NFT trait filtering following industry best practices
 function filterNFTTraits(
@@ -373,15 +363,14 @@ function filterNFTTraits(
 }
 
 // Enhanced trait display system with expandable functionality
-const UnifiedTraitDisplay = memo<{
+const UnifiedTraitDisplay: React.FC<{
 	metadata: NFTMetadata;
 	size: UnifiedNFTCardProps["size"];
 	isExpanded: boolean;
 	onToggle: () => void;
 	enableExpansion: boolean;
 	isCourtyardNFT: boolean;
-}>(
-	({
+}> = ({
 		metadata,
 		size,
 		isExpanded,
@@ -389,9 +378,41 @@ const UnifiedTraitDisplay = memo<{
 		enableExpansion,
 		isCourtyardNFT,
 	}) => {
-		const traits = filterNFTTraits(metadata.attributes, isCourtyardNFT);
+		// Start with standard traits array
+		let traits = filterNFTTraits(metadata.attributes, isCourtyardNFT);
 
-		if (!traits.length) return null;
+		// For Courtyard NFTs, synthesize a minimal trait set if none present
+		const parsedData = isCourtyardNFT
+			? parseCourtyardMetadata(metadata as CourtyardMetadata)
+			: null;
+
+		if (isCourtyardNFT && traits.length === 0 && parsedData) {
+			const fallback: Array<{ trait_type: string; value: string | number }> = [];
+			if (parsedData.setInfo.set) {
+				fallback.push({ trait_type: "Set", value: parsedData.setInfo.set });
+			}
+			if (parsedData.setInfo.cardNumber) {
+				fallback.push({ trait_type: "Card No.", value: parsedData.setInfo.cardNumber });
+			}
+			if (parsedData.setInfo.year) {
+				fallback.push({ trait_type: "Year", value: parsedData.setInfo.year });
+			}
+			if (parsedData.cardDetails.category) {
+				fallback.push({ trait_type: "Category", value: parsedData.cardDetails.category });
+			}
+			if (parsedData.cardDetails.variant) {
+				fallback.push({ trait_type: "Variant", value: parsedData.cardDetails.variant });
+			}
+			if (parsedData.setInfo.edition) {
+				fallback.push({ trait_type: "Edition", value: parsedData.setInfo.edition });
+			}
+			if (parsedData.setInfo.rarity) {
+				fallback.push({ trait_type: "Rarity", value: parsedData.setInfo.rarity });
+			}
+			traits = fallback;
+		}
+
+		if (!traits.length && !(isCourtyardNFT && parsedData?.grading.grade)) return null;
 
 		// Size-responsive styling
 		const sizeStyles = {
@@ -404,10 +425,7 @@ const UnifiedTraitDisplay = memo<{
 
 		const styles = sizeStyles[size || "md"];
 
-		// For Courtyard NFTs, parse the structured data
-		const parsedData = isCourtyardNFT
-			? parseCourtyardMetadata(metadata as CourtyardMetadata)
-			: null;
+		// parsedData already computed above
 
 		// Limit traits shown when collapsed
 		const maxCollapsedTraits = size === "xs" ? 2 : size === "sm" ? 3 : 4;
@@ -511,9 +529,7 @@ const UnifiedTraitDisplay = memo<{
 				</div>
 			</div>
 		);
-	},
-);
-UnifiedTraitDisplay.displayName = "UnifiedTraitDisplay";
+	};
 
 // Main unified NFT card component
 export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
@@ -556,8 +572,36 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 			},
 		});
 
-		// Check if this is a Courtyard NFT
-		const isCourtyardNFT = isCourtyardTokenURI(nftData.tokenURI || "");
+        // Robust Courtyard detection: prefer tokenURI, fallback to metadata signals
+        const metadataLooksCourtyard = useMemo(() => {
+            const md = nftData.metadata as CourtyardMetadata | null;
+            if (!md) return false;
+            if (
+                md.grading_company !== undefined ||
+                md.cert_number !== undefined ||
+                md.set !== undefined ||
+                md.card_number !== undefined ||
+                md.category !== undefined
+            ) {
+                return true;
+            }
+            if (Array.isArray(md.attributes)) {
+                const lower = md.attributes.map((a) => a.trait_type?.toLowerCase() || "");
+                const keys = ["grader", "grade", "card number", "set", "category", "title/subject"];
+                return keys.some((k) => lower.some((t) => t.includes(k)));
+            }
+            return false;
+        }, [nftData.metadata]);
+
+        const isCourtyardNFT = isCourtyardTokenURI(nftData.tokenURI || "") || metadataLooksCourtyard;
+        console.log('[UnifiedNFTCard] token', {
+          collection,
+          tokenId,
+          tokenURI: nftData.tokenURI,
+          isCourtyardNFT,
+          hasMetadata: !!nftData.metadata,
+          hasImageUrl: !!nftData.imageUrl,
+        });
 
 		// Get rarity theming
 		const rarityConfig = rarity ? getRarityConfig(rarity) : null;
@@ -770,7 +814,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					)}
 
 					{/* NFT Name/Title */}
-					{(variant === "detailed" || variant === "showcase") && nftName && (
+					{(variant === "detailed" || variant === "showcase") && (
 						<div className="text-center">
 							<h3
 								className={cn(
@@ -787,21 +831,22 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					<div className="flex justify-center">
 						<UnifiedNFTImage
 							{...(imageUrl && { imageUrl })}
-							collection={collection}
-							tokenId={tokenId}
+                        tokenId={tokenId}
 							size={size}
 							{...(animate !== undefined && { animate })}
 							{...(priority !== undefined && { priority })}
-							{...(rarity && { rarity })}
-							enabled={true}
-							metadata={nftData.metadata}
+                        {...(rarity && { rarity })}
+                        metadata={nftData.metadata}
+                        tokenURI={nftData.tokenURI}
+                        fallbackImageUrl={nftData.imageUrl}
 						/>
 					</div>
 
 					{/* Traits Display */}
-					{variantConfig.showTraits && nftData.metadata?.attributes && (
+					{variantConfig.showTraits && !!nftData.metadata && (
 						<UnifiedTraitDisplay
-							metadata={nftData.metadata}
+							key={`traits-${collection}-${tokenId}-${nftData.tokenURI || ""}`}
+							metadata={nftData.metadata as NFTMetadata}
 							size={size}
 							isExpanded={traitsExpanded}
 							onToggle={() => setTraitsExpanded(!traitsExpanded)}
@@ -811,14 +856,17 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					)}
 
 					{/* Appraisal */}
-					{showAppraisal && variantConfig.showAppraisal && (
-						<UnifiedAppraisalDisplay
-							collection={collection as `0x${string}`}
-							tokenId={tokenId}
-							appraisalContractAddress={appraisalContractAddress}
-							size={size}
-						/>
-					)}
+                    {showAppraisal &&
+                        variantConfig.showAppraisal &&
+                        isValidAddress(appraisalContractAddress) &&
+                        !/^0x0{40}$/i.test(appraisalContractAddress) && (
+                        <UnifiedAppraisalDisplay
+                            collection={collection as `0x${string}`}
+                            tokenId={tokenId}
+                            appraisalContractAddress={appraisalContractAddress}
+                            size={size}
+                        />
+                    )}
 
 					{/* Extra Details */}
 					{extraDetails && extraDetails.length > 0 && (
