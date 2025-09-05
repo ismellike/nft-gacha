@@ -105,10 +105,12 @@ export const RealTimeNotifications: React.FC = () => {
 			(logs: unknown[]) => {
 				logs.forEach((log: unknown) => {
 					try {
-						const { args } = (log as { args?: unknown }).args
-							? (log as { args?: unknown })
-							: { args: undefined };
-						if (!args) return;
+						const logWithArgs = log as { args?: unknown };
+						if (!logWithArgs.args) return;
+						const args = logWithArgs.args;
+						
+						// Ensure args is an array with the expected length
+						if (!Array.isArray(args) || args.length < 5) return;
 
 						const [spinner, _triggerId, _collection, tokenId, rarity] =
 							args as [`0x${string}`, bigint, `0x${string}`, bigint, number];
@@ -147,10 +149,12 @@ export const RealTimeNotifications: React.FC = () => {
 			(logs: unknown[]) => {
 				logs.forEach((log: unknown) => {
 					try {
-						const { args } = (log as { args?: unknown }).args
-							? (log as { args?: unknown })
-							: { args: undefined };
-						if (!args) return;
+						const logWithArgs = log as { args?: unknown };
+						if (!logWithArgs.args) return;
+						const args = logWithArgs.args;
+						
+						// Ensure args is an array with the expected length
+						if (!Array.isArray(args) || args.length < 4) return;
 
 						const [_collection, _tokenId, depositor, rarity] = args as [
 							`0x${string}`,

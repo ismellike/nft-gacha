@@ -46,6 +46,8 @@ export interface UnifiedNFTCardProps {
 	extraDetails?: Array<{ label: string; value: string; highlight?: boolean }>; // Additional detail rows
 	rewardsSlot?: React.ReactNode; // Custom rewards section
 	actionSlot?: React.ReactNode; // Custom action button/content
+    // Optional appraisal override to avoid extra RPCs when price is known
+    appraisalOverride?: { hasAppraisal: boolean; priceUSD: bigint };
 }
 
 // Enhanced appraisal display with better caching
@@ -54,49 +56,63 @@ const UnifiedAppraisalDisplay: React.FC<{
     tokenId: string;
     appraisalContractAddress: `0x${string}`;
     size: UnifiedNFTCardProps["size"];
-}> = ({ collection, tokenId, appraisalContractAddress, size }) => {
+    override?: { hasAppraisal: boolean; priceUSD: bigint };
+}> = ({ collection, tokenId, appraisalContractAddress, size, override }) => {
     // Only use appraisal hooks when the contract address is a valid, non-zero address
     const appraisalAddrUsable =
         isValidAddress(appraisalContractAddress) &&
         !/^0x0{40}$/i.test(appraisalContractAddress);
-	const {
-		data: hasAppraisal,
-		isLoading: checkingAppraisal,
-		error: appraisalCheckError,
-    } = useReadNftAppraisalHasAppraisal({
-        address: appraisalContractAddress,
-        args: [collection, BigInt(tokenId)],
-        query: {
-            enabled: appraisalAddrUsable && !!collection && !!tokenId,
-            staleTime: 60000,
-            gcTime: 300000,
-            retry: 1,
-        },
-    });
 
-	const {
-		data: appraisalPrice,
-		isLoading: loadingPrice,
-		error: priceError,
-    } = useReadNftAppraisalGetAppraisedPrice({
-        address: appraisalContractAddress,
-        args: [collection, BigInt(tokenId)],
-        query: {
-            enabled: appraisalAddrUsable && !!hasAppraisal,
-            staleTime: 60000,
-            gcTime: 300000,
-            retry: 1,
-        },
-    });
+    // If an override is provided, use it and skip querying hooks
+    const useOverride = override && typeof override.priceUSD === "bigint";
+
+	const { data: hasAppraisal, isLoading: checkingAppraisal, error: appraisalCheckError } =
+        useOverride
+            ? { data: override?.hasAppraisal, isLoading: false, error: undefined as unknown }
+            : useReadNftAppraisalHasAppraisal({
+                  address: appraisalContractAddress,
+                  args: [collection, BigInt(tokenId)],
+                  query: {
+                      enabled: appraisalAddrUsable && !!collection && !!tokenId,
+                      staleTime: 60000,
+                      gcTime: 300000,
+                      retry: 1,
+                  },
+              });
+
+	const { data: appraisalPrice, isLoading: loadingPrice, error: priceError } =
+        useOverride
+            ? { data: override?.priceUSD, isLoading: false, error: undefined as unknown }
+            : useReadNftAppraisalGetAppraisedPrice({
+                  address: appraisalContractAddress,
+                  args: [collection, BigInt(tokenId)],
+                  query: {
+                      enabled: appraisalAddrUsable && !!hasAppraisal,
+                      staleTime: 60000,
+                      gcTime: 300000,
+                      retry: 1,
+                  },
+              });
 
 	const isLoading = checkingAppraisal || loadingPrice;
 	const priceUSD = Array.isArray(appraisalPrice)
-		? appraisalPrice[0]
+		? (appraisalPrice as readonly unknown[])[0]
 		: appraisalPrice;
-	const hasValidAppraisal = Boolean(
-		hasAppraisal && priceUSD && Number(priceUSD) > 0,
-	);
-	const hasError = appraisalCheckError || priceError;
+
+    // Normalize to bigint for safe comparison
+    let priceAsBigInt: bigint = 0n;
+    if (typeof priceUSD === "bigint") {
+        priceAsBigInt = priceUSD;
+    } else if (priceUSD != null && (priceUSD as any).toString) {
+        try {
+            priceAsBigInt = BigInt((priceUSD as any).toString());
+        } catch {
+            priceAsBigInt = 0n;
+        }
+    }
+
+	const hasValidAppraisal = Boolean(hasAppraisal && priceAsBigInt > 0n);
+	const hasError = (appraisalCheckError as unknown as boolean) || (priceError as unknown as boolean);
 
 	// Size-responsive styling
 	const sizeStyles = {
@@ -552,6 +568,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		extraDetails,
 		rewardsSlot,
 		actionSlot,
+		appraisalOverride,
 	}) => {
 		const isInteractive = !!onClick;
 		const [traitsExpanded, setTraitsExpanded] = useState(false);
@@ -865,6 +882,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
                             tokenId={tokenId}
                             appraisalContractAddress={appraisalContractAddress}
                             size={size}
+                            {...(appraisalOverride && { override: appraisalOverride })}
                         />
                     )}
 

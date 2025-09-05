@@ -571,11 +571,11 @@ export function CardRewardsList() {
                         </span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-white/60">Card ID:</span>
-                      <span className="text-white font-medium">{card.cardId.slice(2, 10).toUpperCase()}</span>
-                    </div>
                     <div className="space-y-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-white/60">Card ID:</span>
+                        <span className="text-white font-medium">{card.cardId.slice(2, 10).toUpperCase()}</span>
+                      </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-white/60">Deposited:</span>
                         <span className="text-white font-medium">{card.depositCount.toString()}</span>
@@ -612,19 +612,13 @@ export function CardRewardsList() {
                     variant="detailed"
                     appraisalContractAddress={contracts.appraisal as `0x${string}`}
                     {...(card.activeRarity !== null && { rarity: card.activeRarity })}
-                    showAppraisal={false} // We'll show price in extra details instead
+                    showAppraisal={true}
+                    appraisalOverride={{
+                      hasAppraisal: (appraisal.status === 1 || appraisal.status === 2) && appraisal.priceUSD > 0n,
+                      priceUSD: appraisal.priceUSD,
+                    }}
                     rewardsSlot={rewardsSlot}
-                    extraDetails={[
-                      {
-                        label: "Appraised Price",
-                        value: formatTokenAmount(appraisal.priceUSD, 18, { suffix: " USD" }),
-                        highlight: true,
-                      },
-                      {
-                        label: "Card ID",
-                        value: card.cardId.slice(2, 10).toUpperCase(),
-                      },
-                    ]}
+                    extraDetails={[]}
                   />
                 );
               }
@@ -642,6 +636,12 @@ export function CardRewardsList() {
                           {rarityConfig.name}
                         </span>
                       )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-white/60">Card ID:</span>
+                        <span className="text-white font-medium">{card.cardId.slice(2, 10).toUpperCase()}</span>
+                      </div>
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between items-center text-xs">
@@ -681,6 +681,10 @@ export function CardRewardsList() {
                     appraisalContractAddress={contracts.appraisal as `0x${string}`}
                     {...(card.activeRarity !== null && { rarity: card.activeRarity })}
                     showAppraisal={true}
+                    appraisalOverride={{
+                      hasAppraisal: (appraisal.status === 1 || appraisal.status === 2) && appraisal.priceUSD > 0n,
+                      priceUSD: appraisal.priceUSD,
+                    }}
                     rewardsSlot={rewardsSlot}
                     extraDetails={[
                       // Keep extra details minimal; appraisal rendered by card header
