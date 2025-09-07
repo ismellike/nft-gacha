@@ -91,7 +91,6 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
-    event FeeTokenUpdated(address oldToken, address newToken);
 
     event RarityWeightsUpdated(uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary);
 
@@ -305,17 +304,6 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         emit FeeUpdated(oldFee, _newFee);
     }
 
-    /**
-     * @notice Updates the fee token contract
-     * @param _newFeeToken Address of the new fee token
-     * @dev Only owner can call this function. Cannot set to zero address if fee > 0
-     */
-    function setFeeToken(address _newFeeToken) external onlyOwner {
-        if (_newFeeToken == address(0) && spinFee > 0) revert InvalidFeeToken();
-        address oldToken = address(feeToken);
-        feeToken = IERC20(_newFeeToken);
-        emit FeeTokenUpdated(oldToken, _newFeeToken);
-    }
 
     /// @notice Withdraws collected fees to specified address
     /// @param to Recipient address for fee withdrawal
@@ -564,5 +552,62 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
                 totalValueUSD += items[j].appraisedPrice;
             }
         }
+    }
+
+    /// @notice Gets comprehensive gacha configuration in a single call (BATCH FUNCTION)
+    /// @return feeTokenAddr Fee token contract address
+    /// @return spinFeeAmount Cost to spin in fee token units
+    /// @return isPaused Whether the gacha is currently paused
+    /// @return rarityWeights Current rarity weights [Common, Uncommon, Rare, Epic, Legendary] 
+    /// @return totalWeight Sum of all rarity weights
+    /// @return isAvailable Whether gacha has NFTs available
+    function getGachaConfigBatch() external view returns (
+        address feeTokenAddr,
+        uint256 spinFeeAmount,
+        bool isPaused,
+        uint256[5] memory rarityWeights,
+        uint256 totalWeight,
+        bool isAvailable
+    ) {
+        feeTokenAddr = address(feeToken);
+        spinFeeAmount = spinFee;
+        isPaused = paused();
+        
+        // Get rarity weights from storage
+        rarityWeights[0] = commonWeight;
+        rarityWeights[1] = uncommonWeight;
+        rarityWeights[2] = rareWeight;
+        rarityWeights[3] = epicWeight;
+        rarityWeights[4] = legendaryWeight;
+        totalWeight = TOTAL_WEIGHT;
+        
+        isAvailable = treasury.isGachaAvailable();
+    }
+
+    /// @notice Gets user-specific gacha data in a single call (BATCH FUNCTION) 
+    /// @param user User address to get data for
+    /// @return totalSpins Total spins by user
+    /// @return totalRefunds Total refunds for user  
+    /// @return totalReclaims Total reclaims for user
+    /// @return rarityWins Wins per rarity [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return spinCount Total spin count (same as totalSpins, for compatibility)
+    function getUserGachaBatch(address user) external view returns (
+        uint256 totalSpins,
+        uint256 totalRefunds,
+        uint256 totalReclaims,
+        uint256[5] memory rarityWins,
+        uint256 spinCount
+    ) {
+        // Get user analytics inline
+        totalSpins = userSpinCount[user];
+        totalRefunds = userRefundCount[user];
+        totalReclaims = userReclaimCount[user];
+        
+        // Get rarity wins
+        for (uint256 i = 0; i < 5; i++) {
+            rarityWins[i] = userRarityWins[user][GachaTreasury.Rarity(i)];
+        }
+        
+        spinCount = totalSpins; // Same value for compatibility
     }
 }

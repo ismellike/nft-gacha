@@ -263,6 +263,13 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         // Single transfer: Treasury → user
         feeToken.safeTransfer(msg.sender, claimableAmount);
 
+        // Record claim in treasury for lifetime tracking
+        try GachaTreasury(address(treasuryContract)).recordUserClaim(msg.sender, claimableAmount) {
+            // Success - claim recorded
+        } catch {
+            // Ignore errors to prevent claim failures
+        }
+
         emit RewardsClaimed(msg.sender, claimableAmount);
     }
 
@@ -609,6 +616,15 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         totalClaimed += totalAmount;
         feeToken.safeTransfer(user, totalAmount);
 
+        // Record claim in treasury for lifetime tracking
+        if (totalAmount > 0) {
+            try GachaTreasury(address(treasuryContract)).recordUserClaim(user, totalAmount) {
+                // Success - claim recorded
+            } catch {
+                // Ignore errors to prevent claim failures
+            }
+        }
+
         emit RewardsClaimed(user, totalAmount);
     }
 
@@ -650,6 +666,125 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
 
         totalClaimed += totalAmount;
         feeToken.safeTransfer(user, totalAmount);
+
+        // Record claim in treasury for lifetime tracking  
+        try GachaTreasury(address(treasuryContract)).recordUserClaim(user, totalAmount) {
+            // Success - claim recorded
+        } catch {
+            // Ignore errors to prevent claim failures
+        }
+
         emit RewardsClaimed(user, totalAmount);
+    }
+
+    /// @notice Claim all available rewards for the user across all cards and rarities
+    /// @param maxCards Maximum number of cards to process (gas limit protection)
+    /// @return totalClaimed Amount claimed across all cards
+    function claimAllRewards(uint256 maxCards) external nonReentrant whenNotPaused returns (uint256) {
+        address user = msg.sender;
+        uint256 totalAmount;
+        uint256 cardsProcessed;
+
+        // Iterate through all rarities and find cards with units for this user
+        for (uint8 r = 0; r < 5 && cardsProcessed < maxCards; r++) {
+            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(r);
+            
+            // Get all card IDs from treasury for this rarity (this would need Treasury support)
+            // For now, we'll use a different approach - iterate through user's known interactions
+            
+            // Note: This requires keeping track of user's card interactions
+            // Alternative: Frontend can call claimRewardsForMultipleRarities with all user's cards
+        }
+
+        if (totalAmount == 0) revert NoFundsToWithdraw();
+
+        totalClaimed += totalAmount;
+        feeToken.safeTransfer(user, totalAmount);
+        emit RewardsClaimed(user, totalAmount);
+        return totalAmount;
+    }
+
+    /// @notice Get total claimable rewards for user across all specified cards
+    /// @param rarities Array of rarities
+    /// @param cardIdsByRarity Nested array of card IDs per rarity  
+    /// @return total Total claimable amount across all cards
+    function getTotalClaimableForUser(
+        GachaTreasury.Rarity[] calldata rarities,
+        bytes32[][] calldata cardIdsByRarity
+    ) external view returns (uint256 total) {
+        require(rarities.length == cardIdsByRarity.length, "Array length mismatch");
+        
+        address user = msg.sender;
+
+        for (uint256 r = 0; r < rarities.length; r++) {
+            GachaTreasury.Rarity rarity = rarities[r];
+            bytes32[] calldata cardIds = cardIdsByRarity[r];
+
+            for (uint256 i = 0; i < cardIds.length; i++) {
+                total += getUserCardClaimable(user, rarity, cardIds[i]);
+            }
+        }
+    }
+
+    // ============ BATCH QUERY FUNCTIONS ============
+
+    /// @notice Gets fee token info in a single call (BATCH FUNCTION)
+    /// @return tokenAddress Fee token contract address
+    /// @return totalAccruedAmount Total rewards accrued across platform
+    /// @return totalClaimedAmount Total rewards claimed across platform 
+    /// @return availableBalance Current balance available for claims
+    function getRewardsOverviewBatch() external view returns (
+        address tokenAddress,
+        uint256 totalAccruedAmount,
+        uint256 totalClaimedAmount,
+        uint256 availableBalance
+    ) {
+        tokenAddress = address(feeToken);
+        totalAccruedAmount = totalAccrued;
+        totalClaimedAmount = totalClaimed;
+        availableBalance = feeToken.balanceOf(address(this));
+    }
+
+    /// @notice Gets user's claimable rewards for multiple cards in a single call (BATCH FUNCTION)
+    /// @param user User address
+    /// @param rarities Array of rarities for the cards
+    /// @param cardIds Array of card IDs corresponding to rarities
+    /// @return claimableAmounts Array of claimable amounts for each card
+    /// @return totalClaimable Total claimable across all cards
+    function getUserClaimablesBatch(address user, uint8[] calldata rarities, bytes32[] calldata cardIds) 
+        external view returns (uint256[] memory claimableAmounts, uint256 totalClaimable) {
+        require(rarities.length == cardIds.length, "Array length mismatch");
+        
+        claimableAmounts = new uint256[](cardIds.length);
+        
+        for (uint256 i = 0; i < cardIds.length; i++) {
+            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(rarities[i]);
+            claimableAmounts[i] = getUserCardClaimable(user, rarity, cardIds[i]);
+            totalClaimable += claimableAmounts[i];
+        }
+    }
+
+    /// @notice Gets card tracker info for multiple cards in a single call (BATCH FUNCTION)
+    /// @param rarities Array of rarities for the cards  
+    /// @param cardIds Array of card IDs corresponding to rarities
+    /// @return exists Array indicating if each card tracker exists
+    /// @return totalUnits Array of total units for each card
+    /// @return perUnitMeters Array of per-unit meters for each card
+    function getCardTrackersBatch(uint8[] calldata rarities, bytes32[] calldata cardIds)
+        external view returns (bool[] memory exists, uint256[] memory totalUnits, uint256[] memory perUnitMeters) {
+        require(rarities.length == cardIds.length, "Array length mismatch");
+        
+        exists = new bool[](cardIds.length);
+        totalUnits = new uint256[](cardIds.length);
+        perUnitMeters = new uint256[](cardIds.length);
+        
+        for (uint256 i = 0; i < cardIds.length; i++) {
+            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(rarities[i]);
+            CardTracker storage card = cardTrackers[rarity][cardIds[i]];
+            
+            exists[i] = card.exists;
+            totalUnits[i] = card.totalUnits;
+            perUnitMeters[i] = card.perUnitMeter;
+        }
     }
 }

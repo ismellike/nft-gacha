@@ -21,6 +21,7 @@ target
 #.idea/
 .claude/*.local.*
 */.claude/*.local.*
+/.claude/*.json
 .env
 .env.local
 .task/

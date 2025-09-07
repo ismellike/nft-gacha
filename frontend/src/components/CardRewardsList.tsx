@@ -58,7 +58,7 @@ export function CardRewardsList() {
   const treasury = contracts.treasury as Address | undefined;
   const rewardsManager = contracts.rewardsManager as Address | undefined;
   const { loadAllCardDeposits } = useTreasuryUserCards(treasury);
-  const { claimForCard, claimForRarity, isPending } = useRewardsClaiming(rewardsManager);
+  const { claimForCard, claimAllUserCards, isPending } = useRewardsClaiming(rewardsManager);
   const { address: user } = useAccount();
   const publicClient = usePublicClient();
 
@@ -335,11 +335,12 @@ export function CardRewardsList() {
     }
   };
 
-  const handleClaimPage = async () => {
-    // Group cards by rarity for batch claiming
+
+  const handleClaimAll = async () => {
+    // Group all cards with claimable rewards by rarity
     const cardsByRarity: Record<number, Hex[]> = {};
     
-    for (const card of paginatedCards) {
+    for (const card of cards) {
       if (card.activeRarity !== null && (card.claimableAmount ?? 0n) > 0n) {
         if (!cardsByRarity[card.activeRarity]) {
           cardsByRarity[card.activeRarity] = [];
@@ -348,22 +349,23 @@ export function CardRewardsList() {
       }
     }
     
-    // Claim for each rarity that has cards
     try {
-      for (const [rarity, cardIds] of Object.entries(cardsByRarity)) {
-        if (cardIds.length > 0) {
-          await claimForRarity(Number(rarity) as Rarity, cardIds);
-        }
+      const cardsByRarityTyped = Object.fromEntries(
+        Object.entries(cardsByRarity).map(([rarity, cardIds]) => [Number(rarity) as Rarity, cardIds])
+      ) as Record<Rarity, Hex[]>;
+      
+      if (Object.keys(cardsByRarityTyped).length > 0) {
+        await claimAllUserCards(cardsByRarityTyped);
       }
       
-      // Refresh claimable amounts after successful claims
+      // Refresh all claimable amounts after successful claims
       setTimeout(() => {
-        paginatedCards.forEach((c) => {
+        cards.forEach((c) => {
           fetchClaimableById(c.cardId);
         });
       }, 1000);
     } catch (error) {
-      console.error("Failed to claim page rewards:", error);
+      console.error("Failed to claim all rewards:", error);
     }
   };
 
@@ -436,9 +438,14 @@ export function CardRewardsList() {
     () => paginatedCards.filter((c) => (c.claimableAmount ?? 0n) > 0n).length,
     [paginatedCards],
   );
-  const pageClaimableTotal = useMemo(
-    () => paginatedCards.reduce((sum, c) => sum + (c.claimableAmount ?? 0n), 0n),
-    [paginatedCards],
+
+  const allClaimableCount = useMemo(
+    () => cards.filter((c) => (c.claimableAmount ?? 0n) > 0n).length,
+    [cards],
+  );
+  const allClaimableTotal = useMemo(
+    () => cards.reduce((sum, c) => sum + (c.claimableAmount ?? 0n), 0n),
+    [cards],
   );
 
   const refreshPageClaimables = useCallback(() => {
@@ -466,20 +473,38 @@ export function CardRewardsList() {
 
   return (
     <Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
-          <h3 className={glassTypography({ variant: "secondaryHeading" })}>Rewards by Card</h3>
-          <div className="mt-1 text-xs text-foreground/60">{cards.length} cards deposited</div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
-            <BanknotesIcon className="w-4 h-4 text-warning" />
-            <span className="text-sm text-foreground/70">{pageClaimableCount} claimable</span>
-            <span className="text-sm font-medium text-foreground">{formatClaimable(pageClaimableTotal)}</span>
+          <h2 className={glassTypography({ variant: "mainHeading" })}>
+            💎 Card Rewards & Claims
+          </h2>
+          <div className="mt-2 text-sm text-foreground/70">
+            {cards.length} unique cards deposited • Manage your rewards efficiently with batch claiming
           </div>
-          <Button size="sm" onPress={refreshPageClaimables} className="rounded-lg bg-content2 hover:bg-content3">
-            <span className="inline-flex items-center gap-1"><ArrowPathIcon className="w-4 h-4" /> Refresh</span>
-          </Button>
+        </div>
+        <div className="flex flex-col sm:items-end gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2">
+              <BanknotesIcon className="w-5 h-5 text-warning" />
+              <div className="text-right">
+                <div className="text-sm font-bold text-foreground">{formatClaimable(allClaimableTotal)}</div>
+                <div className="text-xs text-foreground/60">{allClaimableCount} cards claimable</div>
+              </div>
+            </div>
+            <Button size="sm" onPress={refreshPageClaimables} className="rounded-lg bg-content2 hover:bg-content3">
+              <ArrowPathIcon className="w-4 h-4" />
+            </Button>
+          </div>
+          {allClaimableCount > 0 && (
+            <Button 
+              size="md" 
+              isLoading={isPending}
+              onPress={handleClaimAll} 
+              className="rounded-xl bg-gradient-to-r from-success to-primary text-white font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+            >
+              🎁 Claim All Rewards ({allClaimableCount})
+            </Button>
+          )}
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
               <Button
@@ -508,19 +533,10 @@ export function CardRewardsList() {
         <p className="text-foreground/60">No deposited cards found for this wallet.</p>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-center">
             <div className="text-sm text-foreground/60 inline-flex items-center gap-2">
-              <TrophyIcon className="w-4 h-4" /> {pageClaimableCount} cards have claimable rewards
+              <TrophyIcon className="w-4 h-4" /> {pageClaimableCount} cards on this page have claimable rewards
             </div>
-            <Button
-              size="sm"
-              isLoading={isPending}
-              isDisabled={pageClaimableCount === 0}
-              onPress={handleClaimPage}
-              className="rounded-lg bg-gradient-to-r from-primary to-secondary"
-            >
-              Claim Page ({pageClaimableCount} cards)
-            </Button>
           </div>
           
           <div className="grid md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">

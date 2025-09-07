@@ -49,10 +49,9 @@ export function NFTAvailabilitySection({
 
 	// Get whitelisted collections
 	const treasuryAddress = contracts.treasury as `0x${string}` | undefined;
-	// @ts-expect-error - Type instantiation is excessively deep with generated Wagmi types
 	const whitelistedCollectionsQuery = useReadGachaTreasuryGetWhitelistedCollections({
 		address: treasuryAddress,
-	});
+	} as any);
 	const whitelistedCollections = whitelistedCollectionsQuery.data;
 
 	// Get user's actual NFTs from all whitelisted collections

@@ -26,6 +26,26 @@ const rewardsClaimingAbi = [
   },
   {
     type: "function",
+    name: "claimRewardsForMultipleRarities",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "rarities", type: "uint8[]" },
+      { name: "cardIdsByRarity", type: "bytes32[][]" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "getTotalClaimableForUser",
+    stateMutability: "view",
+    inputs: [
+      { name: "rarities", type: "uint8[]" },
+      { name: "cardIdsByRarity", type: "bytes32[][]" },
+    ],
+    outputs: [{ name: "total", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "findActiveCardRarity",
     stateMutability: "view",
     inputs: [{ name: "cardId", type: "bytes32" }],
@@ -96,15 +116,71 @@ export function useRewardsClaiming(rewardsManager?: Address) {
         }
       }
       
-      // Claim for each rarity that has cards
-      for (const [rarity, cards] of Object.entries(cardsByRarity)) {
-        if (cards.length > 0) {
-          await claimForRarity(Number(rarity) as Rarity, cards);
-        }
+      // Use new cross-rarity batch claim function
+      const rarities = Object.keys(cardsByRarity).map(Number) as Rarity[];
+      const cardIdsByRarity = rarities.map(rarity => cardsByRarity[rarity]);
+      
+      if (rarities.length > 0) {
+        await writeContract({
+          address: rewardsManager,
+          abi: rewardsClaimingAbi,
+          functionName: "claimRewardsForMultipleRarities",
+          args: [rarities, cardIdsByRarity],
+        });
       }
     },
-    [rewardsManager, user, publicClient, claimForRarity],
+    [rewardsManager, user, publicClient, writeContract],
   );
 
-  return { claimForCard, claimForRarity, claimForCards, isPending };
+  const claimAllUserCards = useCallback(
+    async (cardsByRarity: Record<Rarity, Hex[]>) => {
+      if (!rewardsManager || !user || Object.keys(cardsByRarity).length === 0) return;
+
+      const rarities = Object.keys(cardsByRarity).map(Number) as Rarity[];
+      const cardIdsByRarity = rarities.map(rarity => cardsByRarity[rarity]);
+
+      await writeContract({
+        address: rewardsManager,
+        abi: rewardsClaimingAbi,
+        functionName: "claimRewardsForMultipleRarities",
+        args: [rarities, cardIdsByRarity],
+      });
+    },
+    [rewardsManager, user, writeContract],
+  );
+
+  const getTotalClaimable = useCallback(
+    async (cardsByRarity: Record<Rarity, Hex[]>): Promise<bigint> => {
+      if (!rewardsManager || !user || !publicClient || Object.keys(cardsByRarity).length === 0) {
+        return 0n;
+      }
+
+      const rarities = Object.keys(cardsByRarity).map(Number) as Rarity[];
+      const cardIdsByRarity = rarities.map(rarity => cardsByRarity[rarity]);
+
+      try {
+        const total = await publicClient.readContract({
+          address: rewardsManager,
+          abi: rewardsClaimingAbi,
+          functionName: "getTotalClaimableForUser",
+          args: [rarities, cardIdsByRarity],
+        }) as bigint;
+
+        return total;
+      } catch (error) {
+        console.warn("Failed to get total claimable", error);
+        return 0n;
+      }
+    },
+    [rewardsManager, user, publicClient],
+  );
+
+  return { 
+    claimForCard, 
+    claimForRarity, 
+    claimForCards, 
+    claimAllUserCards,
+    getTotalClaimable,
+    isPending 
+  };
 }

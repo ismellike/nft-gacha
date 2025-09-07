@@ -8,13 +8,8 @@ import { Card } from "./ui";
 import { CardRewardsList } from "./CardRewardsList";
 import { glassTypography } from "../lib/theme-config";
 import {
-	useReadGachaTreasuryGetUserAllDepositCounts,
-	useReadGachaFeeToken,
-	useReadErc20Symbol,
-	useReadErc20Decimals,
-	useReadGachaGetUserAnalytics,
-	useReadUserDividendTrackerWithdrawableFundsOf,
-	useReadUserDividendTrackerAccumulativeFundsOf,
+	useReadGachaTreasuryGetUserProfileBatch,
+	useReadGachaGetUserGachaBatch,
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -32,121 +27,30 @@ export const ProfileDashboard: React.FC = () => {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
-	// Fee token info
-	const { data: feeTokenAddress } = useReadGachaFeeToken({
-		address: contracts.gacha as `0x${string}` | undefined,
-		query: { enabled: !!contracts.gacha },
-	});
 
-	const { data: tokenSymbol } = useReadErc20Symbol({
-		address: feeTokenAddress,
-		query: { enabled: !!feeTokenAddress },
-	});
+	// 🚀 BATCH OPTIMIZED: Get all user data in 2 calls instead of 3!
+	const { data: userProfileData } = useReadGachaTreasuryGetUserProfileBatch({
+		address: contracts.treasury as `0x${string}` | undefined,
+		args: userAddress ? [userAddress] : undefined,
+		query: { enabled: !!contracts.treasury && !!userAddress },
+	} as any);
 
-	const { data: tokenDecimals } = useReadErc20Decimals({
-		address: feeTokenAddress,
-		query: { enabled: !!feeTokenAddress },
-	});
-
-	// Get comprehensive user analytics from Gacha contract
-	const { data: userGachaAnalytics } = useReadGachaGetUserAnalytics({
+	const { data: userGachaData } = useReadGachaGetUserGachaBatch({
 		address: contracts.gacha as `0x${string}` | undefined,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!contracts.gacha && !!userAddress },
-	});
+	} as any);
 
+	// Extract data from batch calls
+	// userProfileData: [depositCounts[5], totalDeposits, lifetimeClaimed, lifetimeDeposited, lifetimeWithdrawn, netContribution]
+	const userTotalDeposits = userProfileData?.[1] || 0n;
+	const lifetimeClaimed = userProfileData?.[2] || 0n;
 
-	// Rewards totals via per-rarity UserDividendTrackers
-	const { data: withdrawCommon } = useReadUserDividendTrackerWithdrawableFundsOf({
-		address: contracts.trackers?.common as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.common && !!userAddress },
-	});
-	const { data: withdrawUncommon } = useReadUserDividendTrackerWithdrawableFundsOf({
-		address: contracts.trackers?.uncommon as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.uncommon && !!userAddress },
-	});
-	const { data: withdrawRare } = useReadUserDividendTrackerWithdrawableFundsOf({
-		address: contracts.trackers?.rare as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.rare && !!userAddress },
-	});
-	const { data: withdrawEpic } = useReadUserDividendTrackerWithdrawableFundsOf({
-		address: contracts.trackers?.epic as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.epic && !!userAddress },
-	});
-	const { data: withdrawLegendary } = useReadUserDividendTrackerWithdrawableFundsOf({
-		address: contracts.trackers?.legendary as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.legendary && !!userAddress },
-	});
-
-	const { data: accumCommon } = useReadUserDividendTrackerAccumulativeFundsOf({
-		address: contracts.trackers?.common as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.common && !!userAddress },
-	});
-	const { data: accumUncommon } = useReadUserDividendTrackerAccumulativeFundsOf({
-		address: contracts.trackers?.uncommon as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.uncommon && !!userAddress },
-	});
-	const { data: accumRare } = useReadUserDividendTrackerAccumulativeFundsOf({
-		address: contracts.trackers?.rare as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.rare && !!userAddress },
-	});
-	const { data: accumEpic } = useReadUserDividendTrackerAccumulativeFundsOf({
-		address: contracts.trackers?.epic as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.epic && !!userAddress },
-	});
-	const { data: accumLegendary } = useReadUserDividendTrackerAccumulativeFundsOf({
-		address: contracts.trackers?.legendary as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.trackers?.legendary && !!userAddress },
-	});
-
-    const { data: userDepositCounts } = useReadGachaTreasuryGetUserAllDepositCounts({
-        address: contracts.treasury as `0x${string}` | undefined,
-        args: userAddress ? [userAddress] : undefined,
-        query: { enabled: !!contracts.treasury && !!userAddress },
-    } as Parameters<typeof useReadGachaTreasuryGetUserAllDepositCounts>[0]);
-
-	// Extract values from analytics tuples
-	// userGachaAnalytics: [totalSpins, totalRefunds, totalReclaims, rarityWins[5]]
-	const userSpinCount = userGachaAnalytics?.[0] || BigInt(0);
-	const userRefundCount = userGachaAnalytics?.[1] || BigInt(0);
-	const userReclaimCount = userGachaAnalytics?.[2] || BigInt(0);
-	const userRarityWins = userGachaAnalytics?.[3] || [
-		BigInt(0),
-		BigInt(0),
-		BigInt(0),
-		BigInt(0),
-		BigInt(0),
-	];
-
-	// Rewards totals from trackers: claimed = accumulative - withdrawable (sum over rarities)
-	const totalClaimableRewards =
-		(withdrawCommon || 0n) +
-		(withdrawUncommon || 0n) +
-		(withdrawRare || 0n) +
-		(withdrawEpic || 0n) +
-		(withdrawLegendary || 0n);
-
-	const totalAccumulativeRewards =
-		(accumCommon || 0n) +
-		(accumUncommon || 0n) +
-		(accumRare || 0n) +
-		(accumEpic || 0n) +
-		(accumLegendary || 0n);
-
-	const totalRewardsClaimed =
-		totalAccumulativeRewards > totalClaimableRewards
-			? totalAccumulativeRewards - totalClaimableRewards
-			: 0n;
+	// userGachaData: [totalSpins, totalRefunds, totalReclaims, rarityWins[5], spinCount]
+	const userSpinCount = userGachaData?.[0] || BigInt(0);
+	const userRefundCount = userGachaData?.[1] || BigInt(0);
+	const userReclaimCount = userGachaData?.[2] || BigInt(0);
+	const userRarityWins = userGachaData?.[3] || [BigInt(0), BigInt(0), BigInt(0), BigInt(0), BigInt(0)];
 
 
 	if (!userAddress) {
@@ -172,15 +76,12 @@ export const ProfileDashboard: React.FC = () => {
 		);
 	}
 
-    const depositCountsArr = Array.isArray(userDepositCounts)
-        ? (userDepositCounts as readonly bigint[])
-        : undefined;
-    const totalDeposits = depositCountsArr?.reduce((sum, count) => sum + Number(count || 0), 0) || 0;
+    const totalDeposits = Number(userTotalDeposits);
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">
-			{/* Stats Grid */}
-			<div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+			{/* Enhanced Stats Grid */}
+			<div className="grid md:grid-cols-3 gap-6">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -202,7 +103,7 @@ export const ProfileDashboard: React.FC = () => {
 							<div
 								className="bg-gradient-to-r from-rarity-rare-500 to-rarity-rare-400 h-2 rounded-full"
 								style={{
-									width: `${Math.min(Number(userSpinCount || 0) * 10, 100)}%`,
+									width: `${Math.min(Number(userSpinCount || 0) * 2, 100)}%`,
 								}}
 							/>
 						</div>
@@ -229,7 +130,7 @@ export const ProfileDashboard: React.FC = () => {
 						<div className="w-full bg-content2/30 rounded-full h-2">
 							<div
 								className="bg-gradient-to-r from-rarity-uncommon-500 to-rarity-uncommon-400 h-2 rounded-full"
-								style={{ width: `${Math.min(totalDeposits * 5, 100)}%` }}
+								style={{ width: `${Math.min(totalDeposits * 3, 100)}%` }}
 							/>
 						</div>
 					</Card>
@@ -247,64 +148,31 @@ export const ProfileDashboard: React.FC = () => {
 							</div>
 							<div className="text-right">
 								<div className="text-2xl font-bold text-rarity-legendary-300">
-									{formatTokenAmount(
-										totalClaimableRewards,
-										tokenDecimals || 18,
-									)}
+									{lifetimeClaimed ? formatTokenAmount(lifetimeClaimed, 18, { maxDecimals: 2 }) : "0"}
 								</div>
-								<div className="text-sm text-foreground/60">
-									{tokenSymbol} Available
-								</div>
+								<div className="text-sm text-foreground/60">Lifetime Claimed</div>
 							</div>
 						</div>
 						<div className="w-full bg-content2/30 rounded-full h-2">
 							<div
 								className="bg-gradient-to-r from-rarity-legendary-500 to-rarity-legendary-400 h-2 rounded-full"
-								style={{
-									width: `${totalClaimableRewards > BigInt(0) ? 100 : 0}%`,
-								}}
+								style={{ width: `${lifetimeClaimed && lifetimeClaimed > 0n ? 100 : 0}%` }}
 							/>
+						</div>
+						<div className="mt-2 text-xs text-foreground/50">
+							Total rewards claimed across all time
 						</div>
 					</Card>
 				</motion.div>
 
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.6, delay: 0.4 }}
-				>
-					<Card className="p-6 hover:bg-content2/30 transition-colors bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-						<div className="flex items-center justify-between mb-4">
-							<div className="w-12 h-12 bg-gradient-to-br from-rarity-epic-500/20 to-rarity-epic-600/20 rounded-lg flex items-center justify-center">
-								<ClockIcon className="w-6 h-6 text-rarity-epic-300" />
-							</div>
-							<div className="text-right">
-								<div className="text-2xl font-bold text-rarity-epic-300">
-									{formatTokenAmount(totalRewardsClaimed, tokenDecimals || 18)}
-								</div>
-								<div className="text-sm text-foreground/60">
-									{tokenSymbol} Claimed
-								</div>
-							</div>
-						</div>
-						<div className="w-full bg-content2/30 rounded-full h-2">
-							<div
-								className="bg-gradient-to-r from-rarity-epic-500 to-rarity-epic-400 h-2 rounded-full"
-								style={{
-									width: `${totalRewardsClaimed > BigInt(0) ? 100 : 0}%`,
-								}}
-							/>
-						</div>
-					</Card>
-				</motion.div>
             </div>
 
 
-			{/* Rewards by Card */}
+			{/* Rewards by Card - Main Feature */}
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.6, delay: 0.4 }}
+				transition={{ duration: 0.6, delay: 0.5 }}
 			>
 				<CardRewardsList />
 			</motion.div>

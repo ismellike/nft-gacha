@@ -1220,6 +1220,55 @@ export const erc20Abi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ERC20BatchQuery
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const erc20BatchQueryAbi = [
+  {
+    type: 'function',
+    inputs: [
+      { name: 'tokenAddress', internalType: 'address', type: 'address' },
+      { name: 'userAddress', internalType: 'address', type: 'address' },
+      { name: 'spenderAddress', internalType: 'address', type: 'address' },
+    ],
+    name: 'getBalanceAndAllowanceBatch',
+    outputs: [
+      { name: 'balance', internalType: 'uint256', type: 'uint256' },
+      { name: 'allowance', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'tokenAddress', internalType: 'address', type: 'address' },
+      { name: 'userAddresses', internalType: 'address[]', type: 'address[]' },
+    ],
+    name: 'getMultipleBalancesBatch',
+    outputs: [
+      { name: 'balances', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'tokenAddress', internalType: 'address', type: 'address' },
+      { name: 'userAddress', internalType: 'address', type: 'address' },
+    ],
+    name: 'getTokenInfoBatch',
+    outputs: [
+      { name: 'name', internalType: 'string', type: 'string' },
+      { name: 'symbol', internalType: 'string', type: 'string' },
+      { name: 'decimals', internalType: 'uint8', type: 'uint8' },
+      { name: 'totalSupply', internalType: 'uint256', type: 'uint256' },
+      { name: 'userBalance', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ERC20Permit
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2061,6 +2110,20 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'getGachaConfigBatch',
+    outputs: [
+      { name: 'feeTokenAddr', internalType: 'address', type: 'address' },
+      { name: 'spinFeeAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'isPaused', internalType: 'bool', type: 'bool' },
+      { name: 'rarityWeights', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'totalWeight', internalType: 'uint256', type: 'uint256' },
+      { name: 'isAvailable', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'getGlobalAnalytics',
     outputs: [
       { name: 'totalSpins', internalType: 'uint256', type: 'uint256' },
@@ -2138,6 +2201,19 @@ export const gachaAbi = [
       { name: 'totalRefunds', internalType: 'uint256', type: 'uint256' },
       { name: 'totalReclaims', internalType: 'uint256', type: 'uint256' },
       { name: 'rarityWins', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserGachaBatch',
+    outputs: [
+      { name: 'totalSpins', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalRefunds', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalReclaims', internalType: 'uint256', type: 'uint256' },
+      { name: 'rarityWins', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'spinCount', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -2850,6 +2926,13 @@ export const gachaRewardsManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'maxCards', internalType: 'uint256', type: 'uint256' }],
+    name: 'claimAllRewards',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [
       {
         name: 'rarity',
@@ -2991,6 +3074,50 @@ export const gachaRewardsManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'rarities', internalType: 'uint8[]', type: 'uint8[]' },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'getCardTrackersBatch',
+    outputs: [
+      { name: 'exists', internalType: 'bool[]', type: 'bool[]' },
+      { name: 'totalUnits', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'perUnitMeters', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getRewardsOverviewBatch',
+    outputs: [
+      { name: 'tokenAddress', internalType: 'address', type: 'address' },
+      { name: 'totalAccruedAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimedAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'availableBalance', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarities',
+        internalType: 'enum GachaTreasury.Rarity[]',
+        type: 'uint8[]',
+      },
+      {
+        name: 'cardIdsByRarity',
+        internalType: 'bytes32[][]',
+        type: 'bytes32[][]',
+      },
+    ],
+    name: 'getTotalClaimableForUser',
+    outputs: [{ name: 'total', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'getTreasuryBalance',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -3009,6 +3136,24 @@ export const gachaRewardsManagerAbi = [
     ],
     name: 'getUserCardClaimable',
     outputs: [{ name: 'claimable', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'rarities', internalType: 'uint8[]', type: 'uint8[]' },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'getUserClaimablesBatch',
+    outputs: [
+      {
+        name: 'claimableAmounts',
+        internalType: 'uint256[]',
+        type: 'uint256[]',
+      },
+      { name: 'totalClaimable', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -3829,6 +3974,17 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getGlobalStats',
+    outputs: [
+      { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'activeUsers', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       {
         name: 'rarity',
@@ -3852,6 +4008,19 @@ export const gachaTreasuryAbi = [
     name: 'getNFTCurrentRarity',
     outputs: [
       { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getPlatformOverviewBatch',
+    outputs: [
+      { name: 'rarityCounts', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'totalItems', internalType: 'uint256', type: 'uint256' },
+      { name: 'gachaAvailable', internalType: 'bool', type: 'bool' },
+      { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -4099,6 +4268,53 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserLifetimeClaimed',
+    outputs: [{ name: 'claimed', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserLifetimeDeposited',
+    outputs: [{ name: 'deposited', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserLifetimeStats',
+    outputs: [
+      { name: 'deposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'withdrawn', internalType: 'uint256', type: 'uint256' },
+      { name: 'claimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'netContribution', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserLifetimeWithdrawn',
+    outputs: [{ name: 'withdrawn', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserProfileBatch',
+    outputs: [
+      { name: 'depositCounts', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'totalDeposits', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeClaimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeWithdrawn', internalType: 'uint256', type: 'uint256' },
+      { name: 'netContribution', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
     name: 'getUserTotalDepositCount',
     outputs: [{ name: 'totalCount', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -4117,6 +4333,20 @@ export const gachaTreasuryAbi = [
     outputs: [
       { name: 'collections', internalType: 'address[]', type: 'address[]' },
     ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'globalLifetimeClaimed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'globalLifetimeDeposited',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -4142,21 +4372,6 @@ export const gachaTreasuryAbi = [
     name: 'isNFTDeposited',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-      { name: 'startIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'endIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'migrateBatchNFTValues',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -4236,6 +4451,16 @@ export const gachaTreasuryAbi = [
     name: 'rarityCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'claimedAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'recordUserClaim',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -4434,6 +4659,27 @@ export const gachaTreasuryAbi = [
       { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
     ],
     name: 'userDepositValues',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeClaimed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeDeposited',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeWithdrawn',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -4778,6 +5024,20 @@ export const gachaTreasuryAbi = [
       },
     ],
     name: 'Unpaused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'UserClaimedRewards',
   },
   { type: 'error', inputs: [], name: 'AppraisalRequired' },
   { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
@@ -9134,6 +9394,39 @@ export const useWatchErc20Transfer = /*#__PURE__*/ createUseWatchContractEvent({
 })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20BatchQueryAbi}__
+ */
+export const useReadErc20BatchQueryContract =
+  /*#__PURE__*/ createUseReadContract({ abi: erc20BatchQueryAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20BatchQueryAbi}__ and `functionName` set to `"getBalanceAndAllowanceBatch"`
+ */
+export const useReadErc20BatchQueryGetBalanceAndAllowanceBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc20BatchQueryAbi,
+    functionName: 'getBalanceAndAllowanceBatch',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20BatchQueryAbi}__ and `functionName` set to `"getMultipleBalancesBatch"`
+ */
+export const useReadErc20BatchQueryGetMultipleBalancesBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc20BatchQueryAbi,
+    functionName: 'getMultipleBalancesBatch',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20BatchQueryAbi}__ and `functionName` set to `"getTokenInfoBatch"`
+ */
+export const useReadErc20BatchQueryGetTokenInfoBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc20BatchQueryAbi,
+    functionName: 'getTokenInfoBatch',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20PermitAbi}__
  */
 export const useReadErc20PermitContract = /*#__PURE__*/ createUseReadContract({
@@ -9801,6 +10094,15 @@ export const useReadGachaGetBatchSpinRequests =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getGachaConfigBatch"`
+ */
+export const useReadGachaGetGachaConfigBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getGachaConfigBatch',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getGlobalAnalytics"`
  */
 export const useReadGachaGetGlobalAnalytics =
@@ -9864,6 +10166,15 @@ export const useReadGachaGetTreasuryDistribution =
 export const useReadGachaGetUserAnalytics = /*#__PURE__*/ createUseReadContract(
   { abi: gachaAbi, functionName: 'getUserAnalytics' },
 )
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getUserGachaBatch"`
+ */
+export const useReadGachaGetUserGachaBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getUserGachaBatch',
+  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getUserRarityWinCount"`
@@ -10536,6 +10847,33 @@ export const useReadGachaRewardsManagerGetCardTracker =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getCardTrackersBatch"`
+ */
+export const useReadGachaRewardsManagerGetCardTrackersBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getCardTrackersBatch',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getRewardsOverviewBatch"`
+ */
+export const useReadGachaRewardsManagerGetRewardsOverviewBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getRewardsOverviewBatch',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getTotalClaimableForUser"`
+ */
+export const useReadGachaRewardsManagerGetTotalClaimableForUser =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getTotalClaimableForUser',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getTreasuryBalance"`
  */
 export const useReadGachaRewardsManagerGetTreasuryBalance =
@@ -10551,6 +10889,15 @@ export const useReadGachaRewardsManagerGetUserCardClaimable =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
     functionName: 'getUserCardClaimable',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getUserClaimablesBatch"`
+ */
+export const useReadGachaRewardsManagerGetUserClaimablesBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getUserClaimablesBatch',
   })
 
 /**
@@ -10666,6 +11013,15 @@ export const useReadGachaRewardsManagerUserSnapshots =
  */
 export const useWriteGachaRewardsManagerContract =
   /*#__PURE__*/ createUseWriteContract({ abi: gachaRewardsManagerAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimAllRewards"`
+ */
+export const useWriteGachaRewardsManagerClaimAllRewards =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimAllRewards',
+  })
 
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimCardRewards"`
@@ -10807,6 +11163,15 @@ export const useWriteGachaRewardsManagerUpdateUserUnits =
  */
 export const useSimulateGachaRewardsManagerContract =
   /*#__PURE__*/ createUseSimulateContract({ abi: gachaRewardsManagerAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimAllRewards"`
+ */
+export const useSimulateGachaRewardsManagerClaimAllRewards =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimAllRewards',
+  })
 
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimCardRewards"`
@@ -11278,6 +11643,15 @@ export const useReadGachaTreasuryGetCardTotalDeposits =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getGlobalStats"`
+ */
+export const useReadGachaTreasuryGetGlobalStats =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getGlobalStats',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getMigrationBatchInfo"`
  */
 export const useReadGachaTreasuryGetMigrationBatchInfo =
@@ -11293,6 +11667,15 @@ export const useReadGachaTreasuryGetNftCurrentRarity =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getNFTCurrentRarity',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getPlatformOverviewBatch"`
+ */
+export const useReadGachaTreasuryGetPlatformOverviewBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getPlatformOverviewBatch',
   })
 
 /**
@@ -11440,6 +11823,51 @@ export const useReadGachaTreasuryGetUserDepositValue =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeClaimed"`
+ */
+export const useReadGachaTreasuryGetUserLifetimeClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserLifetimeClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeDeposited"`
+ */
+export const useReadGachaTreasuryGetUserLifetimeDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserLifetimeDeposited',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeStats"`
+ */
+export const useReadGachaTreasuryGetUserLifetimeStats =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserLifetimeStats',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeWithdrawn"`
+ */
+export const useReadGachaTreasuryGetUserLifetimeWithdrawn =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserLifetimeWithdrawn',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserProfileBatch"`
+ */
+export const useReadGachaTreasuryGetUserProfileBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserProfileBatch',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserTotalDepositCount"`
  */
 export const useReadGachaTreasuryGetUserTotalDepositCount =
@@ -11464,6 +11892,24 @@ export const useReadGachaTreasuryGetWhitelistedCollections =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getWhitelistedCollections',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"globalLifetimeClaimed"`
+ */
+export const useReadGachaTreasuryGlobalLifetimeClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'globalLifetimeClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"globalLifetimeDeposited"`
+ */
+export const useReadGachaTreasuryGlobalLifetimeDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'globalLifetimeDeposited',
   })
 
 /**
@@ -11607,6 +12053,33 @@ export const useReadGachaTreasuryUserDepositValues =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userLifetimeClaimed"`
+ */
+export const useReadGachaTreasuryUserLifetimeClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'userLifetimeClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userLifetimeDeposited"`
+ */
+export const useReadGachaTreasuryUserLifetimeDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'userLifetimeDeposited',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userLifetimeWithdrawn"`
+ */
+export const useReadGachaTreasuryUserLifetimeWithdrawn =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'userLifetimeWithdrawn',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userTotalDeposits"`
  */
 export const useReadGachaTreasuryUserTotalDeposits =
@@ -11694,21 +12167,21 @@ export const useWriteGachaTreasuryEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateBatchNFTValues"`
- */
-export const useWriteGachaTreasuryMigrateBatchNftValues =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'migrateBatchNFTValues',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateNFTRarity"`
  */
 export const useWriteGachaTreasuryMigrateNftRarity =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
     functionName: 'migrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"recordUserClaim"`
+ */
+export const useWriteGachaTreasuryRecordUserClaim =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'recordUserClaim',
   })
 
 /**
@@ -11853,21 +12326,21 @@ export const useSimulateGachaTreasuryEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateBatchNFTValues"`
- */
-export const useSimulateGachaTreasuryMigrateBatchNftValues =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'migrateBatchNFTValues',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateNFTRarity"`
  */
 export const useSimulateGachaTreasuryMigrateNftRarity =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'migrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"recordUserClaim"`
+ */
+export const useSimulateGachaTreasuryRecordUserClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'recordUserClaim',
   })
 
 /**
@@ -12090,6 +12563,15 @@ export const useWatchGachaTreasuryUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
     eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"UserClaimedRewards"`
+ */
+export const useWatchGachaTreasuryUserClaimedRewards =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'UserClaimedRewards',
   })
 
 /**

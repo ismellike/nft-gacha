@@ -13,8 +13,7 @@ import {
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import {
-	useReadGachaTreasuryGetAllRarityCounts,
-	useReadGachaTreasuryGetTotalItemsCount,
+	useReadGachaTreasuryGetPlatformOverviewBatch,
 	useReadGachaRewardsManagerTotalAccrued,
 	useReadGachaGetGlobalAnalytics,
 	useReadGachaFeeToken,
@@ -44,16 +43,15 @@ export const PlatformAnalytics: React.FC = () => {
 		query: { enabled: !!feeTokenAddress },
 	});
 
-	// Platform data
-	const { data: allRarityCounts } = useReadGachaTreasuryGetAllRarityCounts({
+	// 🚀 BATCH OPTIMIZED: Get platform data in 1 call instead of 2!
+	const { data: platformData } = useReadGachaTreasuryGetPlatformOverviewBatch({
 		address: contracts.treasury as `0x${string}` | undefined,
 		query: { enabled: !!contracts.treasury },
-	});
+	} as any);
 
-	const { data: totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
-		address: contracts.treasury as `0x${string}` | undefined,
-		query: { enabled: !!contracts.treasury },
-	});
+	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
+	const allRarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = platformData?.[1] || 0n;
 
 
 	// New contracts expose depositor share via totalAccrued
