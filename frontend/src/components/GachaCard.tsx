@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { formatTokenAmount } from "../lib/utils";
 import {
-	useReadGachaTreasuryIsGachaAvailable,
-	useReadGachaTreasuryGetAllRarityCounts,
-	useReadGachaTreasuryGetTotalItemsCount,
-	useReadGachaSpinFee,
-	useReadGachaFeeToken,
+	useReadGachaTreasuryGetPlatformOverviewBatch,
+	useReadGachaGetGachaConfigBatch,
 	useReadErc20Symbol,
 	useReadErc20Decimals,
 } from "../generated";
@@ -32,30 +29,25 @@ interface GachaCardProps {
 export function GachaCard({ gacha }: GachaCardProps) {
 	const router = useRouter();
 
-	// Fetch gacha-specific data
+	// 🚀 BATCH OPTIMIZED: Get all data in 2 calls instead of 5!
 	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
-	const { data: isAvailable, isLoading: isAvailableLoading } =
-		useReadGachaTreasuryIsGachaAvailable({
-			address: treasuryAddress,
-		} as Parameters<typeof useReadGachaTreasuryIsGachaAvailable>[0]);
+	
+	const { data: platformData, isLoading: isPlatformLoading } = useReadGachaTreasuryGetPlatformOverviewBatch({
+		address: treasuryAddress,
+	} as any);
 
-	const { data: totalItemsCount, isLoading: isTotalItemsLoading } =
-		useReadGachaTreasuryGetTotalItemsCount({
-			address: treasuryAddress,
-		} as Parameters<typeof useReadGachaTreasuryGetTotalItemsCount>[0]);
-
-	const { data: rarityCounts, isLoading: isRarityCountsLoading } =
-		useReadGachaTreasuryGetAllRarityCounts({
-			address: treasuryAddress,
-		} as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
-
-	const { data: spinFee, isLoading: isSpinFeeLoading } = useReadGachaSpinFee({
+	const { data: gachaConfig, isLoading: isGachaConfigLoading } = useReadGachaGetGachaConfigBatch({
 		address: gacha.address as `0x${string}`,
-	});
+	} as any);
 
-	const { data: feeToken } = useReadGachaFeeToken({
-		address: gacha.address as `0x${string}`,
-	});
+	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
+	const rarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = platformData?.[1] || 0n;
+	const isAvailable = platformData?.[2] || false;
+
+	// Extract gacha config: [feeTokenAddr, spinFeeAmount, isPaused, rarityWeights[5], totalWeight, isAvailable]
+	const feeToken = gachaConfig?.[0];
+	const spinFee = gachaConfig?.[1] || 0n;
 
 	const { data: feeTokenSymbol } = useReadErc20Symbol({
 		address: feeToken,
@@ -87,11 +79,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 	}, [router, gacha.id]);
 
 	// Show skeleton while essential data is loading
-	const isLoading =
-		isAvailableLoading ||
-		isRarityCountsLoading ||
-		isSpinFeeLoading ||
-		isTotalItemsLoading;
+	const isLoading = isPlatformLoading || isGachaConfigLoading;
 
 	if (isLoading) {
 		return <GachaCardSkeleton />;

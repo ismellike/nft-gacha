@@ -3,9 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import {
-	useReadSimpleErc721BalanceOf,
-	useReadSimpleErc721TotalSupply,
-	simpleErc721Abi,
+	baseErc721Abi,
+	useReadBaseErc721BalanceOf,
 } from "../generated";
 
 export interface UserOwnedNFT {
@@ -47,26 +46,14 @@ export function useUserOwnedNFTs(
 	const [error, setError] = useState<string | null>(null);
 
 	// Get user's balance to optimize the search
-	const { data: userBalance } = useReadSimpleErc721BalanceOf({
+	const { data: userBalance } = useReadBaseErc721BalanceOf({
 		address: collectionAddress as `0x${string}`,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!userAddress && !!collectionAddress },
 	});
 
-	// Get total supply to know the range of token IDs to check
-	const { data: totalSupply } = useReadSimpleErc721TotalSupply({
-		address: collectionAddress as `0x${string}`,
-		query: { enabled: !!collectionAddress },
-	});
-
 	const fetchUserTokens = useCallback(async () => {
-		if (
-			!userAddress ||
-			!collectionAddress ||
-			!publicClient ||
-			totalSupply === undefined ||
-			userBalance === undefined
-		) {
+		if (!userAddress || !collectionAddress || !publicClient || userBalance === undefined) {
 			setTokens([]);
 			return;
 		}
@@ -81,31 +68,25 @@ export function useUserOwnedNFTs(
 		setError(null);
 
 		try {
+			// Prefer ERC721Enumerable path to enumerate exact token IDs
 			const ownedTokenIds: bigint[] = [];
+			const enumerable = (await publicClient.readContract({
+				address: collectionAddress as `0x${string}`,
+				abi: baseErc721Abi,
+				functionName: "supportsInterface",
+				args: ["0x780e9d63"], // IERC721Enumerable
+			})) as boolean;
 
-			// Iterate through all possible token IDs (0 to totalSupply-1)
-			// This is efficient for reasonably sized collections
-			for (
-				let i = 0;
-				i < Number(totalSupply) && ownedTokenIds.length < Number(userBalance);
-				i++
-			) {
-				const tokenId = BigInt(i);
-
-				try {
-					// Use publicClient to call ownerOf directly
-					const owner = await publicClient.readContract({
+			if (enumerable) {
+				for (let i = 0n; i < (userBalance as bigint); i++) {
+					const tokenId = (await publicClient.readContract({
 						address: collectionAddress as `0x${string}`,
-						abi: simpleErc721Abi,
-						functionName: "ownerOf",
-						args: [tokenId],
-					});
-
-					// Check if the current user owns this token
-					if (owner.toLowerCase() === userAddress.toLowerCase()) {
-						ownedTokenIds.push(tokenId);
-					}
-				} catch (_ownershipError) {}
+						abi: baseErc721Abi,
+						functionName: "tokenOfOwnerByIndex",
+						args: [userAddress as `0x${string}`, i],
+					})) as bigint;
+					ownedTokenIds.push(tokenId);
+				}
 			}
 
 			setTokens(ownedTokenIds);
@@ -116,7 +97,7 @@ export function useUserOwnedNFTs(
 		} finally {
 			setIsLoading(false);
 		}
-	}, [userAddress, collectionAddress, publicClient, totalSupply, userBalance]);
+	}, [userAddress, collectionAddress, publicClient, userBalance]);
 
 	// Fetch tokens when dependencies change
 	useEffect(() => {
@@ -175,7 +156,7 @@ export function useUserOwnedNFTsMultipleCollections(
 					// Get user's balance for this collection
 					const userBalance = await publicClient.readContract({
 						address: collectionAddress as `0x${string}`,
-						abi: simpleErc721Abi,
+						abi: baseErc721Abi,
 						functionName: "balanceOf",
 						args: [userAddress],
 					});
@@ -185,54 +166,45 @@ export function useUserOwnedNFTsMultipleCollections(
 						continue;
 					}
 
-					// Get total supply to know the range of token IDs to check
-					const totalSupply = await publicClient.readContract({
-						address: collectionAddress as `0x${string}`,
-						abi: simpleErc721Abi,
-						functionName: "totalSupply",
-					});
-
 					// Get collection name for display
 					let collectionName: string | undefined;
 					try {
 						collectionName = await publicClient.readContract({
 							address: collectionAddress as `0x${string}`,
-							abi: simpleErc721Abi,
+							abi: baseErc721Abi,
 							functionName: "name",
 						});
 					} catch {
 						// Name is optional, continue without it
 					}
 
-					const ownedTokenIds: bigint[] = [];
+					// Prefer ERC721Enumerable to enumerate token IDs
+					let enumerable = false;
+					try {
+						enumerable = (await publicClient.readContract({
+							address: collectionAddress as `0x${string}`,
+							abi: baseErc721Abi,
+							functionName: "supportsInterface",
+							args: ["0x780e9d63"],
+						})) as boolean;
+					} catch {}
 
-					// Iterate through all possible token IDs (0 to totalSupply-1)
-					for (
-						let i = 0;
-						i < Number(totalSupply) &&
-						ownedTokenIds.length < Number(userBalance);
-						i++
-					) {
-						const tokenId = BigInt(i);
-
-						try {
-							// Check if the current user owns this token
-							const owner = await publicClient.readContract({
-								address: collectionAddress as `0x${string}`,
-								abi: simpleErc721Abi,
-								functionName: "ownerOf",
-								args: [tokenId],
-							});
-
-							if (owner.toLowerCase() === userAddress.toLowerCase()) {
+					if (enumerable) {
+						for (let i = 0n; i < (userBalance as bigint); i++) {
+							try {
+								const tokenId = (await publicClient.readContract({
+									address: collectionAddress as `0x${string}`,
+									abi: baseErc721Abi,
+									functionName: "tokenOfOwnerByIndex",
+									args: [userAddress as `0x${string}`, i],
+								})) as bigint;
 								allUserNFTs.push({
 									collection: collectionAddress,
 									tokenId,
 									collectionName: collectionName || "",
 								});
-								ownedTokenIds.push(tokenId);
-							}
-						} catch (_ownershipError) {}
+							} catch {}
+						}
 					}
 				} catch (collectionError) {
 					console.warn(

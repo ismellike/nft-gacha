@@ -23,35 +23,40 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     error InvalidProtocolAddress();
     error InvalidCollection();
     error InvalidTokenId();
-    error AppraisalFeeRequired();
-    error FeePaymentFailed();
     error AppraisalNotFound();
     error AppraisalAlreadyExists();
-    error UnauthorizedOracle();
+    error AppraisalNotPending();
+    error UnauthorizedServiceHandler();
     error InvalidPrice();
-    error NoFeesToWithdraw();
-    error InvalidRecipient();
-    error OracleAlreadyAuthorized();
-    error OracleNotAuthorized();
+    error CardIdMismatch();
+    error CardIdRequired();
     error InvalidTreasuryAddress();
     error TreasuryAlreadyWhitelisted();
     error TreasuryNotWhitelisted();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
-        Pending, // Awaiting external service response
-        Completed, // Price set by oracle
-        OwnerOverride // Price manually set by owner
-
+        Pending,
+        Completed,
+        OwnerOverride
     }
 
-    /// @notice Represents an NFT appraisal record
-    struct Appraisal {
-        address requester; // User who requested appraisal
-        uint256 priceUSD; // Appraised price in USD (scaled by 1e18)
-        AppraisalStatus status; // Current status
-        uint256 timestamp; // When appraisal was requested
+    /// @notice Card-level appraisal (shared across multiple tokens)
+    struct CardAppraisal {
+        uint256 priceUSD; // Appraised price in USD (1e18)
+        AppraisalStatus status; // Completed/OwnerOverride
+        uint256 firstTimestamp; // First time a price was recorded
         uint256 lastUpdated; // When price was last updated
+        address canonicalContractAddress; // Contract address of the first appraised token
+        uint256 canonicalTokenId; // Token ID of the first appraised token
+    }
+
+    /// @notice Per-token request tracking
+    struct TokenRequest {
+        address requester; // requester of this token's appraisal
+        AppraisalStatus status; // mirrors card status once linked
+        uint256 timestamp; // request time
+        uint256 lastUpdated; // last status update time
     }
 
     /// @notice Configuration variables
@@ -59,17 +64,17 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     uint256 public appraisalFee; // Fee amount for appraisal requests
     address public protocolAddress; // Address receiving protocol fees
 
-    /// @notice Oracle management
-    mapping(address => bool) public authorizedOracles; // Approved external oracles
-    address[] public oracleList; // List of all oracles
+    /// @notice Service handler authorized to set appraisals
+    address public serviceHandler;
 
     /// @notice Treasury management for automatic migration
-    mapping(address => bool) public whitelistedTreasuries; // Treasuries that trigger auto-migration
-    address[] public treasuryList; // List of all whitelisted treasuries
+    mapping(address => bool) public whitelistedTreasuries;
+    address[] public treasuryList;
 
-    /// @notice Appraisal storage
-    /// @dev collection => tokenId => Appraisal
-    mapping(address => mapping(uint256 => Appraisal)) public appraisals;
+    /// @notice Token -> Card linkage and storage
+    mapping(address => mapping(uint256 => bytes32)) public tokenCardIds; // (collection, tokenId) -> cardId
+    mapping(bytes32 => CardAppraisal) public cardAppraisals; // cardId -> appraisal
+    mapping(address => mapping(uint256 => TokenRequest)) public tokenRequests;
 
     /// @notice Events for external service integration and monitoring
     event AppraisalRequested(
@@ -89,18 +94,20 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     );
 
     event PriceUpdated(address indexed collection, uint256 indexed tokenId, uint256 oldPriceUSD, uint256 newPriceUSD);
+    event CardPriceUpdated(bytes32 indexed cardId, uint256 oldPriceUSD, uint256 newPriceUSD);
+    event CardAppraisalCompleted(bytes32 indexed cardId, uint256 priceUSD, address indexed oracle, uint256 timestamp);
+    event TokenLinkedToCard(address indexed collection, uint256 indexed tokenId, bytes32 indexed cardId);
 
-    event OracleAuthorized(address indexed oracle);
-    event OracleRevoked(address indexed oracle);
+    event ServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
     event AppraisalFeeUpdated(uint256 oldFee, uint256 newFee);
-    
+
     event TreasuryWhitelisted(address indexed treasury);
     event TreasuryUnwhitelisted(address indexed treasury);
     event AutoMigrationTriggered(address indexed treasury, address indexed collection, uint256 indexed tokenId);
     event FeeTokenUpdated(address oldToken, address newToken);
     event ProtocolAddressUpdated(address oldAddress, address newAddress);
 
-    /// @notice Enhanced events for better UX
+    /// @notice Status changes
     event AppraisalStatusChanged(
         address indexed collection,
         uint256 indexed tokenId,
@@ -109,9 +116,9 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         uint256 timestamp
     );
 
-    /// @notice Restricts access to authorized oracles
-    modifier onlyAuthorizedOracle() {
-        if (!authorizedOracles[msg.sender]) revert UnauthorizedOracle();
+    /// @notice Restricts access to authorized service handler
+    modifier onlyServiceHandler() {
+        if (msg.sender != serviceHandler) revert UnauthorizedServiceHandler();
         _;
     }
 
@@ -148,23 +155,22 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
             revert InvalidTokenId();
         }
 
-        // Check if appraisal already exists
-        if (appraisals[collection][tokenId].timestamp != 0) {
-            revert AppraisalAlreadyExists();
-        }
+        // Allow re-appraisals for migration purposes, but charge fee again
+        // If already exists, this is a re-appraisal request
 
         // Collect appraisal fee
         if (appraisalFee > 0) {
             feeToken.safeTransferFrom(msg.sender, protocolAddress, appraisalFee);
         }
 
-        // Create appraisal record
-        appraisals[collection][tokenId] = Appraisal({
+        // Create or update token request (supporting re-appraisals)
+        bool isReAppraisal = tokenRequests[collection][tokenId].timestamp != 0;
+
+        tokenRequests[collection][tokenId] = TokenRequest({
             requester: msg.sender,
-            priceUSD: 0,
             status: AppraisalStatus.Pending,
             timestamp: block.timestamp,
-            lastUpdated: 0
+            lastUpdated: isReAppraisal ? block.timestamp : 0
         });
 
         emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee, block.timestamp);
@@ -209,15 +215,12 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
                 revert InvalidTokenId();
             }
 
-            // Check if appraisal already exists
-            if (appraisals[collection][tokenId].timestamp != 0) {
-                revert AppraisalAlreadyExists();
-            }
+            // Check if request already exists
+            if (tokenRequests[collection][tokenId].timestamp != 0) revert AppraisalAlreadyExists();
 
-            // Create appraisal record
-            appraisals[collection][tokenId] = Appraisal({
+            // Create token request record
+            tokenRequests[collection][tokenId] = TokenRequest({
                 requester: msg.sender,
-                priceUSD: 0,
                 status: AppraisalStatus.Pending,
                 timestamp: block.timestamp,
                 lastUpdated: 0
@@ -232,75 +235,149 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Oracle sets the appraised price for an NFT
+     * @notice Service handler sets the card-level appraised price and links the token to the card
      * @param collection NFT collection address
      * @param tokenId Token ID that was appraised
-     * @param priceUSD Appraised price in USD (scaled by 1e18)
+     * @param cardId Group identifier (bytes32)
+     * @param priceUSD Appraised price in 1e18 USD
      */
-    function setAppraisedPrice(address collection, uint256 tokenId, uint256 priceUSD)
+    function setAppraisalForTokenWithCard(address collection, uint256 tokenId, bytes32 cardId, uint256 priceUSD)
         external
-        onlyAuthorizedOracle
+        onlyServiceHandler
         whenNotPaused
+        nonReentrant
     {
-        Appraisal storage appraisal = appraisals[collection][tokenId];
-        if (appraisal.timestamp == 0) revert AppraisalNotFound();
         if (priceUSD == 0) revert InvalidPrice();
+        // Ensure a request exists
+        if (tokenRequests[collection][tokenId].timestamp == 0) revert AppraisalNotFound();
 
-        uint256 oldPrice = appraisal.priceUSD;
-        appraisal.priceUSD = priceUSD;
-        appraisal.status = AppraisalStatus.Completed;
-        appraisal.lastUpdated = block.timestamp;
+        // Link token to card
+        bytes32 existing = tokenCardIds[collection][tokenId];
+        if (existing != bytes32(0) && existing != cardId) revert CardIdMismatch();
+        if (existing == bytes32(0)) {
+            tokenCardIds[collection][tokenId] = cardId;
+            emit TokenLinkedToCard(collection, tokenId, cardId);
+        }
+
+        // Update card appraisal
+        CardAppraisal storage ca = cardAppraisals[cardId];
+        uint256 oldPrice = ca.priceUSD;
+        AppraisalStatus oldStatus = ca.status;
+        if (ca.firstTimestamp == 0) {
+            ca.firstTimestamp = block.timestamp;
+            ca.canonicalContractAddress = collection;
+            ca.canonicalTokenId = tokenId;
+        }
+        ca.priceUSD = priceUSD;
+        ca.status = AppraisalStatus.Completed;
+        ca.lastUpdated = block.timestamp;
+
+        // Update token request status
+        TokenRequest storage tr = tokenRequests[collection][tokenId];
+        tr.status = AppraisalStatus.Completed;
+        tr.lastUpdated = block.timestamp;
 
         emit AppraisalCompleted(collection, tokenId, priceUSD, msg.sender, block.timestamp);
-        emit AppraisalStatusChanged(
-            collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Completed, block.timestamp
-        );
-
+        emit CardAppraisalCompleted(cardId, priceUSD, msg.sender, block.timestamp);
+        emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.Completed, block.timestamp);
         if (oldPrice != priceUSD) {
+            emit CardPriceUpdated(cardId, oldPrice, priceUSD);
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
-            
-            // Trigger automatic migration if NFT is in a whitelisted treasury
             _triggerAutoMigration(collection, tokenId);
         }
     }
 
     /**
-     * @notice Owner can override any appraisal price
-     * @param collection NFT collection address
-     * @param tokenId Token ID to override
-     * @param priceUSD New price in USD (scaled by 1e18)
-     * @dev Creates appraisal record if it doesn't exist
+     * @notice Owner batch sets appraised prices for multiple tokens with cards
+     * @dev Gas-optimized for seeding local environments
      */
-    function overrideAppraisal(address collection, uint256 tokenId, uint256 priceUSD)
+    function ownerBatchSetAppraisalForTokensWithCards(
+        address[] calldata collections,
+        uint256[] calldata tokenIds,
+        bytes32[] calldata cardIds,
+        uint256[] calldata pricesUSD
+    ) external onlyOwner whenNotPaused nonReentrant {
+        require(
+            collections.length == tokenIds.length && tokenIds.length == cardIds.length
+                && cardIds.length == pricesUSD.length,
+            "Array length mismatch"
+        );
+        require(collections.length <= 50, "Too many items");
+
+        for (uint256 i = 0; i < collections.length; i++) {
+            _setAppraisalForTokenWithCard(collections[i], tokenIds[i], cardIds[i], pricesUSD[i], true);
+        }
+    }
+
+    /**
+     * @notice Owner sets the card-level appraised price and links the token to the card without a prior request
+     * @dev Avoids charging fees or requiring requestAppraisal; useful for seeding local environments
+     */
+    function ownerSetAppraisalForTokenWithCard(address collection, uint256 tokenId, bytes32 cardId, uint256 priceUSD)
         external
         onlyOwner
         whenNotPaused
+        nonReentrant
     {
-        if (collection == address(0)) revert InvalidCollection();
-        if (priceUSD == 0) revert InvalidPrice();
+        _setAppraisalForTokenWithCard(collection, tokenId, cardId, priceUSD, true);
+    }
 
-        Appraisal storage appraisal = appraisals[collection][tokenId];
-        uint256 oldPrice = appraisal.priceUSD;
-        AppraisalStatus oldStatus = appraisal.status;
-
-        // Create appraisal if it doesn't exist
-        if (appraisal.timestamp == 0) {
-            appraisal.requester = msg.sender;
-            appraisal.timestamp = block.timestamp;
-            oldStatus = AppraisalStatus.Pending;
+    function _setAppraisalForTokenWithCard(
+        address collection,
+        uint256 tokenId,
+        bytes32 cardId,
+        uint256 priceUSD,
+        bool isOwnerOverride
+    ) internal {
+        // Verify token exists
+        try IERC721(collection).ownerOf(tokenId) returns (address) {
+            // Token exists
+        } catch {
+            revert InvalidTokenId();
         }
 
-        appraisal.priceUSD = priceUSD;
-        appraisal.status = AppraisalStatus.OwnerOverride;
-        appraisal.lastUpdated = block.timestamp;
+        // Link token to card
+        bytes32 existing = tokenCardIds[collection][tokenId];
+        if (existing != bytes32(0) && existing != cardId) revert CardIdMismatch();
+        if (existing == bytes32(0)) {
+            tokenCardIds[collection][tokenId] = cardId;
+            emit TokenLinkedToCard(collection, tokenId, cardId);
+        }
 
-        emit AppraisalOverridden(collection, tokenId, oldPrice, priceUSD, msg.sender);
-        emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.OwnerOverride, block.timestamp);
+        // Update card appraisal
+        CardAppraisal storage ca = cardAppraisals[cardId];
+        uint256 oldPrice = ca.priceUSD;
+        AppraisalStatus oldStatus = ca.status;
+        if (ca.firstTimestamp == 0) {
+            ca.firstTimestamp = block.timestamp;
+            ca.canonicalContractAddress = collection;
+            ca.canonicalTokenId = tokenId;
+        }
+        ca.priceUSD = priceUSD;
+        ca.status = isOwnerOverride ? AppraisalStatus.OwnerOverride : AppraisalStatus.Completed;
+        ca.lastUpdated = block.timestamp;
+        // group namespace removed; grouping is implicit in cardId
 
+        // Create/update token request record for completeness
+        TokenRequest storage tr = tokenRequests[collection][tokenId];
+        if (tr.timestamp == 0) {
+            tr.requester = msg.sender;
+            tr.timestamp = block.timestamp;
+        }
+        tr.status = isOwnerOverride ? AppraisalStatus.OwnerOverride : AppraisalStatus.Completed;
+        tr.lastUpdated = block.timestamp;
+
+        // Emit events
+        if (isOwnerOverride) {
+            emit AppraisalOverridden(collection, tokenId, oldPrice, priceUSD, msg.sender);
+        } else {
+            emit AppraisalCompleted(collection, tokenId, priceUSD, msg.sender, block.timestamp);
+        }
+
+        emit AppraisalStatusChanged(collection, tokenId, oldStatus, tr.status, block.timestamp);
         if (oldPrice != priceUSD) {
+            emit CardPriceUpdated(cardId, oldPrice, priceUSD);
             emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
-            
-            // Trigger automatic migration if NFT is in a whitelisted treasury
             _triggerAutoMigration(collection, tokenId);
         }
     }
@@ -317,8 +394,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         view
         returns (uint256 priceUSD, AppraisalStatus status)
     {
-        Appraisal memory appraisal = appraisals[collection][tokenId];
-        return (appraisal.priceUSD, appraisal.status);
+        bytes32 cardId = tokenCardIds[collection][tokenId];
+        if (cardId == bytes32(0)) return (0, AppraisalStatus.Pending);
+        CardAppraisal memory ca = cardAppraisals[cardId];
+        return (ca.priceUSD, ca.status);
     }
 
     /**
@@ -327,8 +406,26 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @param tokenId Token ID to query
      * @return appraisal Complete appraisal record
      */
+    /// @notice Minimal view combining token request and card appraisal
+    struct Appraisal {
+        address requester;
+        uint256 priceUSD;
+        AppraisalStatus status;
+        uint256 timestamp;
+        uint256 lastUpdated;
+    }
+
     function getAppraisal(address collection, uint256 tokenId) external view returns (Appraisal memory appraisal) {
-        return appraisals[collection][tokenId];
+        TokenRequest memory tr = tokenRequests[collection][tokenId];
+        bytes32 cardId = tokenCardIds[collection][tokenId];
+        CardAppraisal memory ca = cardAppraisals[cardId];
+        return Appraisal({
+            requester: tr.requester,
+            priceUSD: ca.priceUSD,
+            status: (cardId == bytes32(0)) ? tr.status : ca.status,
+            timestamp: tr.timestamp,
+            lastUpdated: (cardId == bytes32(0)) ? tr.lastUpdated : ca.lastUpdated
+        });
     }
 
     /**
@@ -338,9 +435,10 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
      * @return True if NFT has been appraised with a price > 0
      */
     function hasAppraisal(address collection, uint256 tokenId) external view returns (bool) {
-        Appraisal memory appraisal = appraisals[collection][tokenId];
-        return appraisal.priceUSD > 0
-            && (appraisal.status == AppraisalStatus.Completed || appraisal.status == AppraisalStatus.OwnerOverride);
+        bytes32 cardId = tokenCardIds[collection][tokenId];
+        if (cardId == bytes32(0)) return false;
+        CardAppraisal memory ca = cardAppraisals[cardId];
+        return ca.priceUSD > 0 && (ca.status == AppraisalStatus.Completed || ca.status == AppraisalStatus.OwnerOverride);
     }
 
     /**
@@ -361,9 +459,15 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         statuses = new AppraisalStatus[](collections.length);
 
         for (uint256 i = 0; i < collections.length; i++) {
-            Appraisal memory appraisal = appraisals[collections[i]][tokenIds[i]];
-            prices[i] = appraisal.priceUSD;
-            statuses[i] = appraisal.status;
+            bytes32 cardId = tokenCardIds[collections[i]][tokenIds[i]];
+            if (cardId == bytes32(0)) {
+                prices[i] = 0;
+                statuses[i] = AppraisalStatus.Pending;
+            } else {
+                CardAppraisal memory ca = cardAppraisals[cardId];
+                prices[i] = ca.priceUSD;
+                statuses[i] = ca.status;
+            }
         }
     }
 
@@ -383,64 +487,63 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         hasAppraisals = new bool[](collections.length);
 
         for (uint256 i = 0; i < collections.length; i++) {
-            Appraisal memory appraisal = appraisals[collections[i]][tokenIds[i]];
-            hasAppraisals[i] = appraisal.priceUSD > 0
-                && (appraisal.status == AppraisalStatus.Completed || appraisal.status == AppraisalStatus.OwnerOverride);
-        }
-    }
-
-    // ============ ORACLE MANAGEMENT ============
-
-    /**
-     * @notice Authorizes an oracle to set appraisal prices
-     * @param oracle Address to authorize as oracle
-     */
-    function authorizeOracle(address oracle) external onlyOwner {
-        if (oracle == address(0)) revert UnauthorizedOracle();
-        if (authorizedOracles[oracle]) revert OracleAlreadyAuthorized();
-
-        authorizedOracles[oracle] = true;
-        oracleList.push(oracle);
-
-        emit OracleAuthorized(oracle);
-    }
-
-    /**
-     * @notice Revokes oracle authorization
-     * @param oracle Address to revoke authorization from
-     */
-    function revokeOracle(address oracle) external onlyOwner {
-        if (!authorizedOracles[oracle]) revert OracleNotAuthorized();
-
-        authorizedOracles[oracle] = false;
-
-        // Remove from oracle list
-        for (uint256 i = 0; i < oracleList.length; i++) {
-            if (oracleList[i] == oracle) {
-                oracleList[i] = oracleList[oracleList.length - 1];
-                oracleList.pop();
-                break;
+            bytes32 cardId = tokenCardIds[collections[i]][tokenIds[i]];
+            if (cardId == bytes32(0)) {
+                hasAppraisals[i] = false;
+            } else {
+                CardAppraisal memory ca = cardAppraisals[cardId];
+                hasAppraisals[i] = ca.priceUSD > 0
+                    && (ca.status == AppraisalStatus.Completed || ca.status == AppraisalStatus.OwnerOverride);
             }
         }
+    }
 
-        emit OracleRevoked(oracle);
+    /// Convenience getters for card-first reads
+    function getTokenCardId(address collection, uint256 tokenId) external view returns (bytes32) {
+        return tokenCardIds[collection][tokenId];
+    }
+
+    function getCardAppraisal(bytes32 cardId) external view returns (CardAppraisal memory) {
+        return cardAppraisals[cardId];
+    }
+
+    function getCardAppraisals(bytes32[] calldata cardIds) external view returns (CardAppraisal[] memory appraisals) {
+        appraisals = new CardAppraisal[](cardIds.length);
+        for (uint256 i = 0; i < cardIds.length; i++) {
+            appraisals[i] = cardAppraisals[cardIds[i]];
+        }
+    }
+
+    // ============ SERVICE HANDLER MANAGEMENT ============
+
+    /**
+     * @notice Sets the authorized service handler address
+     * @param _serviceHandler Address of the NFTAppraisalServiceHandler contract
+     */
+    function setServiceHandler(address _serviceHandler) external onlyOwner {
+        if (_serviceHandler == address(0)) revert UnauthorizedServiceHandler();
+
+        address oldHandler = serviceHandler;
+        serviceHandler = _serviceHandler;
+
+        emit ServiceHandlerUpdated(oldHandler, _serviceHandler);
     }
 
     /**
-     * @notice Gets all authorized oracles
-     * @return oracles Array of authorized oracle addresses
+     * @notice Gets the current service handler address
+     * @return handler Address of the authorized service handler
      */
-    function getAuthorizedOracles() external view returns (address[] memory oracles) {
-        return oracleList;
+    function getServiceHandler() external view returns (address handler) {
+        return serviceHandler;
     }
 
     /**
-     * @notice Checks if an address is an authorized oracle
-     * @param oracle Address to check
-     * @return isAuthorized True if address is authorized oracle
+     * @notice Checks if an address is the authorized service handler
+     * @param handler Address to check
+     * @return isAuthorized True if address is the authorized service handler
      */
-    function isAuthorizedOracle(address oracle) external view returns (bool isAuthorized) {
-        return authorizedOracles[oracle];
+    function isServiceHandler(address handler) external view returns (bool isAuthorized) {
+        return handler == serviceHandler;
     }
 
     // ============ CONFIGURATION MANAGEMENT ============
@@ -494,13 +597,13 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
     /**
      * @notice Remove a treasury from the whitelist
-     * @param treasury Treasury contract address  
+     * @param treasury Treasury contract address
      */
     function unwhitelistTreasury(address treasury) external onlyOwner {
         if (!whitelistedTreasuries[treasury]) revert TreasuryNotWhitelisted();
 
         whitelistedTreasuries[treasury] = false;
-        
+
         // Remove from treasuryList array
         for (uint256 i = 0; i < treasuryList.length; i++) {
             if (treasuryList[i] == treasury) {
@@ -509,7 +612,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
                 break;
             }
         }
-        
+
         emit TreasuryUnwhitelisted(treasury);
     }
 
@@ -521,14 +624,14 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     function _triggerAutoMigration(address collection, uint256 tokenId) internal {
         // Check if the NFT owner is a whitelisted treasury
         address nftOwner = IERC721(collection).ownerOf(tokenId);
-        
+
         if (whitelistedTreasuries[nftOwner]) {
             // Call the treasury's migration function
             // Use low-level call to prevent revert from failing this transaction
-            (bool success,) = nftOwner.call(
+            (bool success,) = nftOwner.call{gas: 100_000}(
                 abi.encodeWithSignature("migrateNFTRarity(address,uint256)", collection, tokenId)
             );
-            
+
             if (success) {
                 emit AutoMigrationTriggered(nftOwner, collection, tokenId);
             }

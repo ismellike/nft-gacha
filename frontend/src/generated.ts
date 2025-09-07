@@ -1,9 +1,1001 @@
 import {
   createUseReadContract,
-  createUseWatchContractEvent,
   createUseWriteContract,
   createUseSimulateContract,
+  createUseWatchContractEvent,
 } from 'wagmi/codegen'
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BaseERC20
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const baseErc20Abi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: 'name_', internalType: 'string', type: 'string' },
+      { name: 'symbol_', internalType: 'string', type: 'string' },
+      { name: 'initialOwner', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'DOMAIN_SEPARATOR',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'spender', internalType: 'address', type: 'address' },
+    ],
+    name: 'allowance',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'spender', internalType: 'address', type: 'address' },
+      { name: 'value', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'decimals',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'eip712Domain',
+    outputs: [
+      { name: 'fields', internalType: 'bytes1', type: 'bytes1' },
+      { name: 'name', internalType: 'string', type: 'string' },
+      { name: 'version', internalType: 'string', type: 'string' },
+      { name: 'chainId', internalType: 'uint256', type: 'uint256' },
+      { name: 'verifyingContract', internalType: 'address', type: 'address' },
+      { name: 'salt', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'extensions', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'mint',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'name',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'nonces',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'spender', internalType: 'address', type: 'address' },
+      { name: 'value', internalType: 'uint256', type: 'uint256' },
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+      { name: 'v', internalType: 'uint8', type: 'uint8' },
+      { name: 'r', internalType: 'bytes32', type: 'bytes32' },
+      { name: 's', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'permit',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'symbol',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalSupply',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'value', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'transfer',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'value', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'transferFrom',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'spender',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'value',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'Approval',
+  },
+  { type: 'event', anonymous: false, inputs: [], name: 'EIP712DomainChanged' },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address', indexed: true },
+      { name: 'to', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'value',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'Transfer',
+  },
+  { type: 'error', inputs: [], name: 'ECDSAInvalidSignature' },
+  {
+    type: 'error',
+    inputs: [{ name: 'length', internalType: 'uint256', type: 'uint256' }],
+    name: 'ECDSAInvalidSignatureLength',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 's', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'ECDSAInvalidSignatureS',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'spender', internalType: 'address', type: 'address' },
+      { name: 'allowance', internalType: 'uint256', type: 'uint256' },
+      { name: 'needed', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'ERC20InsufficientAllowance',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'sender', internalType: 'address', type: 'address' },
+      { name: 'balance', internalType: 'uint256', type: 'uint256' },
+      { name: 'needed', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'ERC20InsufficientBalance',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'approver', internalType: 'address', type: 'address' }],
+    name: 'ERC20InvalidApprover',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'receiver', internalType: 'address', type: 'address' }],
+    name: 'ERC20InvalidReceiver',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'sender', internalType: 'address', type: 'address' }],
+    name: 'ERC20InvalidSender',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'spender', internalType: 'address', type: 'address' }],
+    name: 'ERC20InvalidSpender',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'deadline', internalType: 'uint256', type: 'uint256' }],
+    name: 'ERC2612ExpiredSignature',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'signer', internalType: 'address', type: 'address' },
+      { name: 'owner', internalType: 'address', type: 'address' },
+    ],
+    name: 'ERC2612InvalidSigner',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'currentNonce', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'InvalidAccountNonce',
+  },
+  { type: 'error', inputs: [], name: 'InvalidShortString' },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
+    name: 'StringTooLong',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BaseERC721
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const baseErc721Abi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: 'name_', internalType: 'string', type: 'string' },
+      { name: 'symbol_', internalType: 'string', type: 'string' },
+      { name: 'initialOwner', internalType: 'address', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'batchMint',
+    outputs: [
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'uris', internalType: 'string[]', type: 'string[]' },
+    ],
+    name: 'batchMintWithURIs',
+    outputs: [
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getApproved',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'operator', internalType: 'address', type: 'address' },
+    ],
+    name: 'isApprovedForAll',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'to', internalType: 'address', type: 'address' }],
+    name: 'mint',
+    outputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'uri', internalType: 'string', type: 'string' },
+    ],
+    name: 'mintWithURI',
+    outputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'name',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'ownerOf',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'safeTransferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'data', internalType: 'bytes', type: 'bytes' },
+    ],
+    name: 'safeTransferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operator', internalType: 'address', type: 'address' },
+      { name: 'approved', internalType: 'bool', type: 'bool' },
+    ],
+    name: 'setApprovalForAll',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'baseURI', internalType: 'string', type: 'string' }],
+    name: 'setBaseURI',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'uri', internalType: 'string', type: 'string' },
+    ],
+    name: 'setTokenURI',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'interfaceId', internalType: 'bytes4', type: 'bytes4' }],
+    name: 'supportsInterface',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'symbol',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'index', internalType: 'uint256', type: 'uint256' }],
+    name: 'tokenByIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'tokenOfOwnerByIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'tokenURI',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalSupply',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'transferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'approved',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'Approval',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'operator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'approved', internalType: 'bool', type: 'bool', indexed: false },
+    ],
+    name: 'ApprovalForAll',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address', indexed: true },
+      { name: 'to', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'Transfer',
+  },
+  { type: 'error', inputs: [], name: 'ERC721EnumerableForbiddenBatchMint' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'sender', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'owner', internalType: 'address', type: 'address' },
+    ],
+    name: 'ERC721IncorrectOwner',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'operator', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'ERC721InsufficientApproval',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'approver', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidApprover',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidOperator',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'receiver', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidReceiver',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'sender', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidSender',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'ERC721NonexistentToken',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'ERC721OutOfBoundsIndex',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// CardDividendTracker
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const cardDividendTrackerAbi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: '_fundsToken', internalType: 'address', type: 'address' },
+      { name: '_treasury', internalType: 'address', type: 'address' },
+      { name: '_appraisalContract', internalType: 'address', type: 'address' },
+      {
+        name: '_rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: '_cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'accumulativeFundsOf',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'appraisalContract',
+    outputs: [
+      { name: '', internalType: 'contract NFTAppraisal', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'cardId',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
+    name: 'distributeFunds',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyPause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'emergencyUnpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'fundsToken',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getCardAppraisalPrice',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTotalCardDeposits',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTotalFundsDistributed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'getUserCardDeposits',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'rarity',
+    outputs: [
+      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'token', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'recoverToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'rewardsManager',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_rewardsManager', internalType: 'address', type: 'address' },
+    ],
+    name: 'setRewardsManager',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalFundsDistributed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'treasury',
+    outputs: [
+      { name: '', internalType: 'contract GachaTreasury', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'updateCorrection',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'withdrawFunds',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'withdrawableFundsOf',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'by', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'FundsDistributed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'by', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'FundsWithdrawn',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipTransferred',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Paused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Unpaused',
+  },
+  { type: 'error', inputs: [], name: 'CalculationOverflow' },
+  { type: 'error', inputs: [], name: 'CardNotFound' },
+  { type: 'error', inputs: [], name: 'EnforcedPause' },
+  { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'InvalidAddress' },
+  { type: 'error', inputs: [], name: 'InvalidAmount' },
+  { type: 'error', inputs: [], name: 'InvalidAppraisalContract' },
+  { type: 'error', inputs: [], name: 'NoDeposits' },
+  { type: 'error', inputs: [], name: 'NoFundsToWithdraw' },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'OwnableInvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'OwnableUnauthorizedAccount',
+  },
+  { type: 'error', inputs: [], name: 'PrecisionLoss' },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation',
+  },
+  { type: 'error', inputs: [], name: 'TransferFailed' },
+  { type: 'error', inputs: [], name: 'UnauthorizedCaller' },
+] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ECDSA
@@ -228,184 +1220,51 @@ export const erc20Abi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ERC20Mock
+// ERC20BatchQuery
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const erc20MockAbi = [
-  { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
+export const erc20BatchQueryAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'spender', internalType: 'address', type: 'address' },
+      { name: 'tokenAddress', internalType: 'address', type: 'address' },
+      { name: 'userAddress', internalType: 'address', type: 'address' },
+      { name: 'spenderAddress', internalType: 'address', type: 'address' },
     ],
-    name: 'allowance',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'approve',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'burn',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'mint',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'name',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'symbol',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalSupply',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transfer',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transferFrom',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'spender',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Approval',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address', indexed: true },
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Transfer',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'allowance', internalType: 'uint256', type: 'uint256' },
-      { name: 'needed', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC20InsufficientAllowance',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'sender', internalType: 'address', type: 'address' },
+    name: 'getBalanceAndAllowanceBatch',
+    outputs: [
       { name: 'balance', internalType: 'uint256', type: 'uint256' },
-      { name: 'needed', internalType: 'uint256', type: 'uint256' },
+      { name: 'allowance', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'ERC20InsufficientBalance',
+    stateMutability: 'view',
   },
   {
-    type: 'error',
-    inputs: [{ name: 'approver', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidApprover',
+    type: 'function',
+    inputs: [
+      { name: 'tokenAddress', internalType: 'address', type: 'address' },
+      { name: 'userAddresses', internalType: 'address[]', type: 'address[]' },
+    ],
+    name: 'getMultipleBalancesBatch',
+    outputs: [
+      { name: 'balances', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
   },
   {
-    type: 'error',
-    inputs: [{ name: 'receiver', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidReceiver',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'sender', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidSender',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'spender', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidSpender',
+    type: 'function',
+    inputs: [
+      { name: 'tokenAddress', internalType: 'address', type: 'address' },
+      { name: 'userAddress', internalType: 'address', type: 'address' },
+    ],
+    name: 'getTokenInfoBatch',
+    outputs: [
+      { name: 'name', internalType: 'string', type: 'string' },
+      { name: 'symbol', internalType: 'string', type: 'string' },
+      { name: 'decimals', internalType: 'uint8', type: 'uint8' },
+      { name: 'totalSupply', internalType: 'uint256', type: 'uint256' },
+      { name: 'userBalance', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
   },
 ] as const
 
@@ -881,6 +1740,266 @@ export const erc721Abi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ERC721Enumerable
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const erc721EnumerableAbi = [
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getApproved',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'operator', internalType: 'address', type: 'address' },
+    ],
+    name: 'isApprovedForAll',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'name',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'ownerOf',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'safeTransferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'data', internalType: 'bytes', type: 'bytes' },
+    ],
+    name: 'safeTransferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operator', internalType: 'address', type: 'address' },
+      { name: 'approved', internalType: 'bool', type: 'bool' },
+    ],
+    name: 'setApprovalForAll',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'interfaceId', internalType: 'bytes4', type: 'bytes4' }],
+    name: 'supportsInterface',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'symbol',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'index', internalType: 'uint256', type: 'uint256' }],
+    name: 'tokenByIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'tokenOfOwnerByIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'tokenURI',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalSupply',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'transferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'approved',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'Approval',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'operator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'approved', internalType: 'bool', type: 'bool', indexed: false },
+    ],
+    name: 'ApprovalForAll',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address', indexed: true },
+      { name: 'to', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'Transfer',
+  },
+  { type: 'error', inputs: [], name: 'ERC721EnumerableForbiddenBatchMint' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'sender', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'owner', internalType: 'address', type: 'address' },
+    ],
+    name: 'ERC721IncorrectOwner',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'operator', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'ERC721InsufficientApproval',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'approver', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidApprover',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidOperator',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidOwner',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'receiver', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidReceiver',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'sender', internalType: 'address', type: 'address' }],
+    name: 'ERC721InvalidSender',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'ERC721NonexistentToken',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'ERC721OutOfBoundsIndex',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Gacha
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -991,6 +2110,20 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'getGachaConfigBatch',
+    outputs: [
+      { name: 'feeTokenAddr', internalType: 'address', type: 'address' },
+      { name: 'spinFeeAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'isPaused', internalType: 'bool', type: 'bool' },
+      { name: 'rarityWeights', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'totalWeight', internalType: 'uint256', type: 'uint256' },
+      { name: 'isAvailable', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'getGlobalAnalytics',
     outputs: [
       { name: 'totalSpins', internalType: 'uint256', type: 'uint256' },
@@ -1068,6 +2201,19 @@ export const gachaAbi = [
       { name: 'totalRefunds', internalType: 'uint256', type: 'uint256' },
       { name: 'totalReclaims', internalType: 'uint256', type: 'uint256' },
       { name: 'rarityWins', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserGachaBatch',
+    outputs: [
+      { name: 'totalSpins', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalRefunds', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalReclaims', internalType: 'uint256', type: 'uint256' },
+      { name: 'rarityWins', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'spinCount', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -1703,6 +2849,7 @@ export const gachaRewardsManagerAbi = [
       { name: '_owner', internalType: 'address', type: 'address' },
       { name: '_gachaContract', internalType: 'address', type: 'address' },
       { name: '_treasuryContract', internalType: 'address', type: 'address' },
+      { name: '_appraisalContract', internalType: 'address', type: 'address' },
       { name: '_protocolAddress', internalType: 'address', type: 'address' },
       { name: '_feeToken', internalType: 'address', type: 'address' },
     ],
@@ -1711,7 +2858,21 @@ export const gachaRewardsManagerAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'GAMMA_PRECISION',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'PERCENTAGE_DENOMINATOR',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'PRECISION',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -1725,32 +2886,103 @@ export const gachaRewardsManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'REWARDS_PERCENTAGE',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'appraisalContract',
+    outputs: [
+      { name: '', internalType: 'contract NFTAppraisal', type: 'address' },
+    ],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'accumulatedDust',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'cardExists',
+    outputs: [{ name: 'exists', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'deployAllRarityTokens',
+    inputs: [
+      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+      { name: '', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'cardTrackers',
+    outputs: [
+      { name: 'perUnitMeter', internalType: 'uint256', type: 'uint256' },
+      { name: 'raritySnapshot', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalUnits', internalType: 'uint256', type: 'uint256' },
+      { name: 'cardWeight', internalType: 'uint256', type: 'uint256' },
+      { name: 'lastPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'exists', internalType: 'bool', type: 'bool' },
+      { name: 'stashedBonus', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'maxCards', internalType: 'uint256', type: 'uint256' }],
+    name: 'claimAllRewards',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'claimCardRewards',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     inputs: [
-      { name: 'totalFeeAmount', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
     ],
-    name: 'distributeSpinRewards',
+    name: 'claimRewardsForCards',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarities',
+        internalType: 'enum GachaTreasury.Rarity[]',
+        type: 'uint8[]',
+      },
+      {
+        name: 'cardIdsByRarity',
+        internalType: 'bytes32[][]',
+        type: 'bytes32[][]',
+      },
+    ],
+    name: 'claimRewardsForMultipleRarities',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'delta',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -1785,6 +3017,20 @@ export const gachaRewardsManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'findActiveCardRarity',
+    outputs: [
+      {
+        name: 'activeRarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'found', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'gachaContract',
     outputs: [{ name: '', internalType: 'contract Gacha', type: 'address' }],
@@ -1793,20 +3039,8 @@ export const gachaRewardsManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'getAllRarityTokens',
-    outputs: [
-      { name: 'tokens', internalType: 'address[5]', type: 'address[5]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getGlobalRewardsAnalytics',
-    outputs: [
-      { name: 'totalFees', internalType: 'uint256', type: 'uint256' },
-      { name: 'protocolFees', internalType: 'uint256', type: 'uint256' },
-    ],
+    name: 'gamma',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -1817,17 +3051,107 @@ export const gachaRewardsManagerAbi = [
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
       },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
     ],
-    name: 'getRarityToken',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'getCardTracker',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct GachaRewardsManager.CardTracker',
+        type: 'tuple',
+        components: [
+          { name: 'perUnitMeter', internalType: 'uint256', type: 'uint256' },
+          { name: 'raritySnapshot', internalType: 'uint256', type: 'uint256' },
+          { name: 'totalUnits', internalType: 'uint256', type: 'uint256' },
+          { name: 'cardWeight', internalType: 'uint256', type: 'uint256' },
+          { name: 'lastPrice', internalType: 'uint256', type: 'uint256' },
+          { name: 'exists', internalType: 'bool', type: 'bool' },
+          { name: 'stashedBonus', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getRewardsAnalytics',
+    inputs: [
+      { name: 'rarities', internalType: 'uint8[]', type: 'uint8[]' },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'getCardTrackersBatch',
     outputs: [
-      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'exists', internalType: 'bool[]', type: 'bool[]' },
+      { name: 'totalUnits', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'perUnitMeters', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getRewardsOverviewBatch',
+    outputs: [
+      { name: 'tokenAddress', internalType: 'address', type: 'address' },
+      { name: 'totalAccruedAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimedAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'availableBalance', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'rarities',
+        internalType: 'enum GachaTreasury.Rarity[]',
+        type: 'uint8[]',
+      },
+      {
+        name: 'cardIdsByRarity',
+        internalType: 'bytes32[][]',
+        type: 'bytes32[][]',
+      },
+    ],
+    name: 'getTotalClaimableForUser',
+    outputs: [{ name: 'total', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTreasuryBalance',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'getUserCardClaimable',
+    outputs: [{ name: 'claimable', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'rarities', internalType: 'uint8[]', type: 'uint8[]' },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'getUserClaimablesBatch',
+    outputs: [
+      {
+        name: 'claimableAmounts',
+        internalType: 'uint256[]',
+        type: 'uint256[]',
+      },
       { name: 'totalClaimable', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
@@ -1841,19 +3165,41 @@ export const gachaRewardsManagerAbi = [
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
       },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
     ],
-    name: 'getUserRarityClaimableRewards',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'getUserSnapshot',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct GachaRewardsManager.UserSnapshot',
+        type: 'tuple',
+        components: [
+          { name: 'perUnitSnapshot', internalType: 'uint256', type: 'uint256' },
+          { name: 'units', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserTotalClaimableRewards',
-    outputs: [
-      { name: 'totalClaimable', internalType: 'uint256', type: 'uint256' },
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'newPrice', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'newRarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
     ],
-    stateMutability: 'view',
+    name: 'handleReappraisal',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -1871,6 +3217,34 @@ export const gachaRewardsManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'previewClaimForCards',
+    outputs: [{ name: 'total', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'totalFeeAmount', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'hitRarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+    ],
+    name: 'processSpinRewards',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'protocolAddress',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
@@ -1881,59 +3255,28 @@ export const gachaRewardsManagerAbi = [
     inputs: [
       { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
     ],
-    name: 'rarityMultipliers',
+    name: 'rarityMeters',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
-    ],
-    name: 'rarityTokens',
-    outputs: [
-      {
-        name: '',
-        internalType: 'contract RarityDividendTracker',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'depositor', internalType: 'address', type: 'address' },
-      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
-    ],
-    name: 'recordApprovedDeposit',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'depositor', internalType: 'address', type: 'address' },
-      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
-    ],
-    name: 'recordNFTWon',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'recordUserRewardClaim',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [],
     name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_delta', internalType: 'uint256', type: 'uint256' }],
+    name: 'setDelta',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_gamma', internalType: 'uint256', type: 'uint256' }],
+    name: 'setGamma',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -1954,16 +3297,32 @@ export const gachaRewardsManagerAbi = [
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
       },
-      { name: 'multiplierBps', internalType: 'uint256', type: 'uint256' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
     ],
-    name: 'setRarityMultiplier',
+    name: 'settleCard',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'totalFeesDistributed',
+    name: 'totalAccrued',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+    ],
+    name: 'totalCardWeights',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalClaimed',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -1992,9 +3351,32 @@ export const gachaRewardsManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'userTotalRewardsClaimed',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+      },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'userAddress', internalType: 'address', type: 'address' },
+      { name: 'unitsDelta', internalType: 'int256', type: 'int256' },
+    ],
+    name: 'updateUserUnits',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+      { name: '', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'userSnapshots',
+    outputs: [
+      { name: 'perUnitSnapshot', internalType: 'uint256', type: 'uint256' },
+      { name: 'units', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -2002,63 +3384,169 @@ export const gachaRewardsManagerAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'depositor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
         name: 'rarity',
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
-        indexed: true,
+        indexed: false,
+      },
+      {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
       },
     ],
-    name: 'DepositRecorded',
+    name: 'BonusDistributed',
   },
   {
     type: 'event',
     anonymous: false,
     inputs: [
       {
-        name: 'totalAmount',
-        internalType: 'uint256',
-        type: 'uint256',
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
         indexed: false,
       },
       {
-        name: 'rewardsAmount',
-        internalType: 'uint256',
-        type: 'uint256',
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
         indexed: false,
       },
       {
-        name: 'protocolAmount',
+        name: 'amount',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
       },
     ],
-    name: 'FeesDistributed',
+    name: 'BonusStashed',
   },
   {
     type: 'event',
     anonymous: false,
     inputs: [
       {
-        name: 'depositor',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
       },
+      {
+        name: 'fromRarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'toRarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+    ],
+    name: 'CardMigrated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
       {
         name: 'rarity',
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
-        indexed: true,
+        indexed: false,
+      },
+      {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+      {
+        name: 'oldWeight',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newWeight',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
       },
     ],
-    name: 'NFTWonRecorded',
+    name: 'CardReappraised',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+      {
+        name: 'initialWeight',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'CardTrackerCreated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldDelta',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newDelta',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'DeltaUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldGamma',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newGamma',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'GammaUpdated',
   },
   {
     type: 'event',
@@ -2115,11 +3603,18 @@ export const gachaRewardsManagerAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
         name: 'rarity',
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
-        indexed: true,
+        indexed: false,
+      },
+      {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
       },
       {
         name: 'amount',
@@ -2128,7 +3623,21 @@ export const gachaRewardsManagerAbi = [
         indexed: false,
       },
     ],
-    name: 'RarityFundsDistributed',
+    name: 'RewardsAccrued',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RewardsClaimed',
   },
   {
     type: 'event',
@@ -2138,24 +3647,22 @@ export const gachaRewardsManagerAbi = [
         name: 'rarity',
         internalType: 'enum GachaTreasury.Rarity',
         type: 'uint8',
-        indexed: true,
+        indexed: false,
       },
       {
-        name: 'tokenAddress',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
+        name: 'depositorShare',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'protocolFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
       },
     ],
-    name: 'RarityTokenDeployed',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address', indexed: true },
-    ],
-    name: 'SpinRecorded',
+    name: 'SpinProcessed',
   },
   {
     type: 'event',
@@ -2170,29 +3677,15 @@ export const gachaRewardsManagerAbi = [
     ],
     name: 'Unpaused',
   },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'UserRewardsClaimed',
-  },
   { type: 'error', inputs: [], name: 'CalculationOverflow' },
-  { type: 'error', inputs: [], name: 'DustThresholdExceeded' },
+  { type: 'error', inputs: [], name: 'CardNotFound' },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'InvalidDelta' },
   { type: 'error', inputs: [], name: 'InvalidFeeToken' },
   { type: 'error', inputs: [], name: 'InvalidGachaContract' },
   { type: 'error', inputs: [], name: 'InvalidProtocolAddress' },
   { type: 'error', inputs: [], name: 'InvalidTreasuryContract' },
-  { type: 'error', inputs: [], name: 'InvalidWeights' },
   { type: 'error', inputs: [], name: 'NoFundsToWithdraw' },
   {
     type: 'error',
@@ -2210,7 +3703,6 @@ export const gachaRewardsManagerAbi = [
     inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
     name: 'SafeERC20FailedOperation',
   },
-  { type: 'error', inputs: [], name: 'TokenNotDeployed' },
   { type: 'error', inputs: [], name: 'UnauthorizedGachaContract' },
   { type: 'error', inputs: [], name: 'UnauthorizedTreasuryContract' },
 ] as const
@@ -2361,6 +3853,13 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'cardTotalDeposits',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
@@ -2437,6 +3936,55 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getAllUserCardDeposits',
+    outputs: [
+      {
+        name: 'deposits',
+        internalType: 'struct GachaTreasury.UserCardDeposit[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'depositCount', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'totalCardDeposits',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getAllUserCardIds',
+    outputs: [
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getCardTotalDeposits',
+    outputs: [{ name: 'totalCount', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getGlobalStats',
+    outputs: [
+      { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'activeUsers', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       {
         name: 'rarity',
@@ -2460,6 +4008,19 @@ export const gachaTreasuryAbi = [
     name: 'getNFTCurrentRarity',
     outputs: [
       { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getPlatformOverviewBatch',
+    outputs: [
+      { name: 'rarityCounts', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'totalItems', internalType: 'uint256', type: 'uint256' },
+      { name: 'gachaAvailable', internalType: 'bool', type: 'bool' },
+      { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -2620,6 +4181,66 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'getUserCardDeposits',
+    outputs: [{ name: 'count', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getUserCardDepositsPage',
+    outputs: [
+      {
+        name: 'deposits',
+        internalType: 'struct GachaTreasury.UserCardDeposit[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'depositCount', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'totalCardDeposits',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+        ],
+      },
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'hasMore', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getUserCardIds',
+    outputs: [
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'hasMore', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserCardIdsLength',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
       {
         name: 'rarity',
         internalType: 'enum GachaTreasury.Rarity',
@@ -2647,6 +4268,53 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserLifetimeClaimed',
+    outputs: [{ name: 'claimed', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserLifetimeDeposited',
+    outputs: [{ name: 'deposited', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserLifetimeStats',
+    outputs: [
+      { name: 'deposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'withdrawn', internalType: 'uint256', type: 'uint256' },
+      { name: 'claimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'netContribution', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserLifetimeWithdrawn',
+    outputs: [{ name: 'withdrawn', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserProfileBatch',
+    outputs: [
+      { name: 'depositCounts', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'totalDeposits', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeClaimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeWithdrawn', internalType: 'uint256', type: 'uint256' },
+      { name: 'netContribution', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
     name: 'getUserTotalDepositCount',
     outputs: [{ name: 'totalCount', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -2665,6 +4333,20 @@ export const gachaTreasuryAbi = [
     outputs: [
       { name: 'collections', internalType: 'address[]', type: 'address[]' },
     ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'globalLifetimeClaimed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'globalLifetimeDeposited',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -2690,21 +4372,6 @@ export const gachaTreasuryAbi = [
     name: 'isNFTDeposited',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-      { name: 'startIndex', internalType: 'uint256', type: 'uint256' },
-      { name: 'endIndex', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'migrateBatchNFTValues',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2784,6 +4451,16 @@ export const gachaTreasuryAbi = [
     name: 'rarityCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'claimedAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'recordUserClaim',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -2959,6 +4636,16 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'userCardDeposits',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
       { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
     ],
     name: 'userDepositCounts',
@@ -2972,6 +4659,27 @@ export const gachaTreasuryAbi = [
       { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
     ],
     name: 'userDepositValues',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeClaimed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeDeposited',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeWithdrawn',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -3316,6 +5024,20 @@ export const gachaTreasuryAbi = [
       },
     ],
     name: 'Unpaused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'UserClaimedRewards',
   },
   { type: 'error', inputs: [], name: 'AppraisalRequired' },
   { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
@@ -3822,6 +5544,189 @@ export const ierc5267Abi = [
     stateMutability: 'view',
   },
   { type: 'event', anonymous: false, inputs: [], name: 'EIP712DomainChanged' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IERC721Enumerable
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const ierc721EnumerableAbi = [
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: 'balance', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'getApproved',
+    outputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'operator', internalType: 'address', type: 'address' },
+    ],
+    name: 'isApprovedForAll',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'ownerOf',
+    outputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'safeTransferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'data', internalType: 'bytes', type: 'bytes' },
+    ],
+    name: 'safeTransferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'operator', internalType: 'address', type: 'address' },
+      { name: 'approved', internalType: 'bool', type: 'bool' },
+    ],
+    name: 'setApprovalForAll',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'interfaceId', internalType: 'bytes4', type: 'bytes4' }],
+    name: 'supportsInterface',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'index', internalType: 'uint256', type: 'uint256' }],
+    name: 'tokenByIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'owner', internalType: 'address', type: 'address' },
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'tokenOfOwnerByIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalSupply',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'transferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'approved',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'Approval',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'owner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'operator',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'approved', internalType: 'bool', type: 'bool', indexed: false },
+    ],
+    name: 'ApprovalForAll',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address', indexed: true },
+      { name: 'to', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'Transfer',
+  },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4615,6 +6520,16 @@ export const mockNftAppraisalAbi = [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
     ],
+    name: 'getTokenCardId',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
     name: 'hasAppraisal',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
@@ -4629,6 +6544,27 @@ export const mockNftAppraisalAbi = [
     name: 'setMockAppraisal',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'setTokenCardId',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'tokenCardIds',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
   },
 ] as const
 
@@ -4656,36 +6592,24 @@ export const nftAppraisalAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'appraisals',
+    inputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'cardAppraisals',
     outputs: [
-      { name: 'requester', internalType: 'address', type: 'address' },
       { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
       {
         name: 'status',
         internalType: 'enum NFTAppraisal.AppraisalStatus',
         type: 'uint8',
       },
-      { name: 'timestamp', internalType: 'uint256', type: 'uint256' },
+      { name: 'firstTimestamp', internalType: 'uint256', type: 'uint256' },
       { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+      {
+        name: 'canonicalContractAddress',
+        internalType: 'address',
+        type: 'address',
+      },
+      { name: 'canonicalTokenId', internalType: 'uint256', type: 'uint256' },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'oracle', internalType: 'address', type: 'address' }],
-    name: 'authorizeOracle',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '', internalType: 'address', type: 'address' }],
-    name: 'authorizedOracles',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
   {
@@ -4755,15 +6679,6 @@ export const nftAppraisalAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'getAuthorizedOracles',
-    outputs: [
-      { name: 'oracles', internalType: 'address[]', type: 'address[]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'collections', internalType: 'address[]', type: 'address[]' },
       { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
@@ -4777,6 +6692,89 @@ export const nftAppraisalAbi = [
         type: 'uint8[]',
       },
     ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getCardAppraisal',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct NFTAppraisal.CardAppraisal',
+        type: 'tuple',
+        components: [
+          { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'status',
+            internalType: 'enum NFTAppraisal.AppraisalStatus',
+            type: 'uint8',
+          },
+          { name: 'firstTimestamp', internalType: 'uint256', type: 'uint256' },
+          { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'canonicalContractAddress',
+            internalType: 'address',
+            type: 'address',
+          },
+          {
+            name: 'canonicalTokenId',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' }],
+    name: 'getCardAppraisals',
+    outputs: [
+      {
+        name: 'appraisals',
+        internalType: 'struct NFTAppraisal.CardAppraisal[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'status',
+            internalType: 'enum NFTAppraisal.AppraisalStatus',
+            type: 'uint8',
+          },
+          { name: 'firstTimestamp', internalType: 'uint256', type: 'uint256' },
+          { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'canonicalContractAddress',
+            internalType: 'address',
+            type: 'address',
+          },
+          {
+            name: 'canonicalTokenId',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getServiceHandler',
+    outputs: [{ name: 'handler', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getTokenCardId',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
   {
@@ -4812,8 +6810,8 @@ export const nftAppraisalAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'oracle', internalType: 'address', type: 'address' }],
-    name: 'isAuthorizedOracle',
+    inputs: [{ name: 'handler', internalType: 'address', type: 'address' }],
+    name: 'isServiceHandler',
     outputs: [{ name: 'isAuthorized', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
   },
@@ -4826,28 +6824,34 @@ export const nftAppraisalAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'oracleList',
+    inputs: [],
+    name: 'owner',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [
-      { name: 'collection', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+      { name: 'collections', internalType: 'address[]', type: 'address[]' },
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'pricesUSD', internalType: 'uint256[]', type: 'uint256[]' },
     ],
-    name: 'overrideAppraisal',
+    name: 'ownerBatchSetAppraisalForTokensWithCards',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'ownerSetAppraisalForTokenWithCard',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -4892,10 +6896,10 @@ export const nftAppraisalAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'oracle', internalType: 'address', type: 'address' }],
-    name: 'revokeOracle',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    inputs: [],
+    name: 'serviceHandler',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -4909,9 +6913,10 @@ export const nftAppraisalAbi = [
     inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
       { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'setAppraisedPrice',
+    name: 'setAppraisalForTokenWithCard',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -4932,6 +6937,44 @@ export const nftAppraisalAbi = [
     name: 'setProtocolAddress',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_serviceHandler', internalType: 'address', type: 'address' },
+    ],
+    name: 'setServiceHandler',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'tokenCardIds',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'tokenRequests',
+    outputs: [
+      { name: 'requester', internalType: 'address', type: 'address' },
+      {
+        name: 'status',
+        internalType: 'enum NFTAppraisal.AppraisalStatus',
+        type: 'uint8',
+      },
+      { name: 'timestamp', internalType: 'uint256', type: 'uint256' },
+      { name: 'lastUpdated', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -5160,6 +7203,62 @@ export const nftAppraisalAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      {
+        name: 'priceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'oracle',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'CardAppraisalCompleted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      {
+        name: 'oldPriceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newPriceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'CardPriceUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'oldToken',
         internalType: 'address',
         type: 'address',
@@ -5173,32 +7272,6 @@ export const nftAppraisalAbi = [
       },
     ],
     name: 'FeeTokenUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oracle',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OracleAuthorized',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oracle',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OracleRevoked',
   },
   {
     type: 'event',
@@ -5287,6 +7360,50 @@ export const nftAppraisalAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'oldHandler',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newHandler',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'ServiceHandlerUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+    ],
+    name: 'TokenLinkedToCard',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'treasury',
         internalType: 'address',
         type: 'address',
@@ -5322,21 +7439,18 @@ export const nftAppraisalAbi = [
     name: 'Unpaused',
   },
   { type: 'error', inputs: [], name: 'AppraisalAlreadyExists' },
-  { type: 'error', inputs: [], name: 'AppraisalFeeRequired' },
   { type: 'error', inputs: [], name: 'AppraisalNotFound' },
+  { type: 'error', inputs: [], name: 'AppraisalNotPending' },
+  { type: 'error', inputs: [], name: 'CardIdMismatch' },
+  { type: 'error', inputs: [], name: 'CardIdRequired' },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
-  { type: 'error', inputs: [], name: 'FeePaymentFailed' },
   { type: 'error', inputs: [], name: 'InvalidCollection' },
   { type: 'error', inputs: [], name: 'InvalidFeeToken' },
   { type: 'error', inputs: [], name: 'InvalidPrice' },
   { type: 'error', inputs: [], name: 'InvalidProtocolAddress' },
-  { type: 'error', inputs: [], name: 'InvalidRecipient' },
   { type: 'error', inputs: [], name: 'InvalidTokenId' },
   { type: 'error', inputs: [], name: 'InvalidTreasuryAddress' },
-  { type: 'error', inputs: [], name: 'NoFeesToWithdraw' },
-  { type: 'error', inputs: [], name: 'OracleAlreadyAuthorized' },
-  { type: 'error', inputs: [], name: 'OracleNotAuthorized' },
   {
     type: 'error',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
@@ -5355,7 +7469,7 @@ export const nftAppraisalAbi = [
   },
   { type: 'error', inputs: [], name: 'TreasuryAlreadyWhitelisted' },
   { type: 'error', inputs: [], name: 'TreasuryNotWhitelisted' },
-  { type: 'error', inputs: [], name: 'UnauthorizedOracle' },
+  { type: 'error', inputs: [], name: 'UnauthorizedServiceHandler' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -5374,6 +7488,47 @@ export const nftAppraisalServiceHandlerAbi = [
       { name: 'appraisalContract', internalType: 'address', type: 'address' },
     ],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'payload', internalType: 'bytes', type: 'bytes' }],
+    name: '_decodeError',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct AppraisalError',
+        type: 'tuple',
+        components: [
+          { name: 'contractAddress', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'groupId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'error', internalType: 'string', type: 'string' },
+          { name: 'txHash', internalType: 'bytes32', type: 'bytes32' },
+        ],
+      },
+    ],
+    stateMutability: 'pure',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'payload', internalType: 'bytes', type: 'bytes' }],
+    name: '_decodeSuccess',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct AppraisalSuccess',
+        type: 'tuple',
+        components: [
+          { name: 'chain', internalType: 'string', type: 'string' },
+          { name: 'contractAddress', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'groupId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'price', internalType: 'uint256', type: 'uint256' },
+          { name: 'txHash', internalType: 'bytes32', type: 'bytes32' },
+        ],
+      },
+    ],
+    stateMutability: 'pure',
   },
   {
     type: 'function',
@@ -5435,7 +7590,7 @@ export const nftAppraisalServiceHandlerAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'collection',
+        name: 'contractAddress',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -5446,26 +7601,15 @@ export const nftAppraisalServiceHandlerAbi = [
         type: 'uint256',
         indexed: true,
       },
+      { name: 'error', internalType: 'string', type: 'string', indexed: false },
       {
-        name: 'priceUSD',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'requestId',
+        name: 'txHash',
         internalType: 'bytes32',
         type: 'bytes32',
         indexed: false,
       },
-      {
-        name: 'timestamp',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
     ],
-    name: 'AppraisalDataReceived',
+    name: 'AppraisalErrorReceived',
   },
   {
     type: 'event',
@@ -5498,6 +7642,37 @@ export const nftAppraisalServiceHandlerAbi = [
       },
     ],
     name: 'AppraisalProcessed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'contractAddress',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'price',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'txHash',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: false,
+      },
+    ],
+    name: 'AppraisalSuccessReceived',
   },
   {
     type: 'event',
@@ -5653,13 +7828,106 @@ export const pausableAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// RarityDividendTracker
+// ReentrancyGuard
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const rarityDividendTrackerAbi = [
+export const reentrancyGuardAbi = [
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// SafeCast
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const safeCastAbi = [
+  {
+    type: 'error',
+    inputs: [
+      { name: 'bits', internalType: 'uint8', type: 'uint8' },
+      { name: 'value', internalType: 'int256', type: 'int256' },
+    ],
+    name: 'SafeCastOverflowedIntDowncast',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'value', internalType: 'int256', type: 'int256' }],
+    name: 'SafeCastOverflowedIntToUint',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'bits', internalType: 'uint8', type: 'uint8' },
+      { name: 'value', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'SafeCastOverflowedUintDowncast',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'value', internalType: 'uint256', type: 'uint256' }],
+    name: 'SafeCastOverflowedUintToInt',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// SafeERC20
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const safeErc20Abi = [
+  {
+    type: 'error',
+    inputs: [
+      { name: 'spender', internalType: 'address', type: 'address' },
+      { name: 'currentAllowance', internalType: 'uint256', type: 'uint256' },
+      { name: 'requestedDecrease', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'SafeERC20FailedDecreaseAllowance',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ShortStrings
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const shortStringsAbi = [
+  { type: 'error', inputs: [], name: 'InvalidShortString' },
+  {
+    type: 'error',
+    inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
+    name: 'StringTooLong',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Strings
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const stringsAbi = [
+  {
+    type: 'error',
+    inputs: [
+      { name: 'value', internalType: 'uint256', type: 'uint256' },
+      { name: 'length', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'StringsInsufficientHexLength',
+  },
+  { type: 'error', inputs: [], name: 'StringsInvalidAddressFormat' },
+  { type: 'error', inputs: [], name: 'StringsInvalidChar' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// UserDividendTracker
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const userDividendTrackerAbi = [
   {
     type: 'constructor',
     inputs: [
+      { name: '_owner', internalType: 'address', type: 'address' },
       { name: '_fundsToken', internalType: 'address', type: 'address' },
       { name: '_treasury', internalType: 'address', type: 'address' },
       {
@@ -5818,7 +8086,7 @@ export const rarityDividendTrackerAbi = [
     inputs: [
       { name: 'by', internalType: 'address', type: 'address', indexed: true },
       {
-        name: 'amount',
+        name: 'fundsDistributed',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
@@ -5832,7 +8100,7 @@ export const rarityDividendTrackerAbi = [
     inputs: [
       { name: 'by', internalType: 'address', type: 'address', indexed: true },
       {
-        name: 'amount',
+        name: 'fundsWithdrawn',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
@@ -5877,6 +8145,25 @@ export const rarityDividendTrackerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'oldManager',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newManager',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'RewardsManagerUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'account',
         internalType: 'address',
         type: 'address',
@@ -5890,6 +8177,8 @@ export const rarityDividendTrackerAbi = [
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'InvalidAddress' },
   { type: 'error', inputs: [], name: 'InvalidAmount' },
+  { type: 'error', inputs: [], name: 'InvalidFundsToken' },
+  { type: 'error', inputs: [], name: 'InvalidTreasury' },
   { type: 'error', inputs: [], name: 'NoDeposits' },
   { type: 'error', inputs: [], name: 'NoFundsToWithdraw' },
   {
@@ -5914,775 +8203,1008 @@ export const rarityDividendTrackerAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ReentrancyGuard
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const reentrancyGuardAbi = [
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// SafeCast
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const safeCastAbi = [
-  {
-    type: 'error',
-    inputs: [
-      { name: 'bits', internalType: 'uint8', type: 'uint8' },
-      { name: 'value', internalType: 'int256', type: 'int256' },
-    ],
-    name: 'SafeCastOverflowedIntDowncast',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'value', internalType: 'int256', type: 'int256' }],
-    name: 'SafeCastOverflowedIntToUint',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'bits', internalType: 'uint8', type: 'uint8' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'SafeCastOverflowedUintDowncast',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'value', internalType: 'uint256', type: 'uint256' }],
-    name: 'SafeCastOverflowedUintToInt',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// SafeERC20
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const safeErc20Abi = [
-  {
-    type: 'error',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'currentAllowance', internalType: 'uint256', type: 'uint256' },
-      { name: 'requestedDecrease', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'SafeERC20FailedDecreaseAllowance',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ShortStrings
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const shortStringsAbi = [
-  { type: 'error', inputs: [], name: 'InvalidShortString' },
-  {
-    type: 'error',
-    inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
-    name: 'StringTooLong',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// SimpleERC721
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const simpleErc721Abi = [
-  {
-    type: 'constructor',
-    inputs: [
-      { name: 'name_', internalType: 'string', type: 'string' },
-      { name: 'symbol_', internalType: 'string', type: 'string' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'approve',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      {
-        name: 'polygonContracts',
-        internalType: 'address[]',
-        type: 'address[]',
-      },
-      { name: 'polygonTokenIds', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
-    name: 'batchMintWithPolygonReferences',
-    outputs: [
-      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getApproved',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
-    name: 'getPolygonReference',
-    outputs: [
-      { name: 'contractAddress', internalType: 'address', type: 'address' },
-      { name: 'polygonTokenId', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'operator', internalType: 'address', type: 'address' },
-    ],
-    name: 'isApprovedForAll',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'to', internalType: 'address', type: 'address' }],
-    name: 'mint',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'polygonContract', internalType: 'address', type: 'address' },
-      { name: 'polygonTokenId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'mintWithPolygonReference',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'name',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
-    name: 'ownerOf',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'safeTransferFrom',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      { name: 'data', internalType: 'bytes', type: 'bytes' },
-    ],
-    name: 'safeTransferFrom',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'operator', internalType: 'address', type: 'address' },
-      { name: 'approved', internalType: 'bool', type: 'bool' },
-    ],
-    name: 'setApprovalForAll',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      { name: 'polygonContract', internalType: 'address', type: 'address' },
-      { name: 'polygonTokenId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'setPolygonReference',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'interfaceId', internalType: 'bytes4', type: 'bytes4' }],
-    name: 'supportsInterface',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'symbol',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
-    name: 'tokenURI',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalSupply',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transferFrom',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'approved',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'tokenId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-    ],
-    name: 'Approval',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'operator',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      { name: 'approved', internalType: 'bool', type: 'bool', indexed: false },
-    ],
-    name: 'ApprovalForAll',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address', indexed: true },
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'tokenId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-    ],
-    name: 'Transfer',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'sender', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      { name: 'owner', internalType: 'address', type: 'address' },
-    ],
-    name: 'ERC721IncorrectOwner',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'operator', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC721InsufficientApproval',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'approver', internalType: 'address', type: 'address' }],
-    name: 'ERC721InvalidApprover',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'operator', internalType: 'address', type: 'address' }],
-    name: 'ERC721InvalidOperator',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'ERC721InvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'receiver', internalType: 'address', type: 'address' }],
-    name: 'ERC721InvalidReceiver',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'sender', internalType: 'address', type: 'address' }],
-    name: 'ERC721InvalidSender',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
-    name: 'ERC721NonexistentToken',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Strings
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const stringsAbi = [
-  {
-    type: 'error',
-    inputs: [
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-      { name: 'length', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'StringsInsufficientHexLength',
-  },
-  { type: 'error', inputs: [], name: 'StringsInvalidAddressFormat' },
-  { type: 'error', inputs: [], name: 'StringsInvalidChar' },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// TestToken
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const testTokenAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      { name: 'name_', internalType: 'string', type: 'string' },
-      { name: 'symbol_', internalType: 'string', type: 'string' },
-      { name: 'owner_', internalType: 'address', type: 'address' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'DOMAIN_SEPARATOR',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'spender', internalType: 'address', type: 'address' },
-    ],
-    name: 'allowance',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'approve',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'eip712Domain',
-    outputs: [
-      { name: 'fields', internalType: 'bytes1', type: 'bytes1' },
-      { name: 'name', internalType: 'string', type: 'string' },
-      { name: 'version', internalType: 'string', type: 'string' },
-      { name: 'chainId', internalType: 'uint256', type: 'uint256' },
-      { name: 'verifyingContract', internalType: 'address', type: 'address' },
-      { name: 'salt', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'extensions', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'faucet',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'mint',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'mintToSelf',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'name',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'nonces',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
-      { name: 'v', internalType: 'uint8', type: 'uint8' },
-      { name: 'r', internalType: 'bytes32', type: 'bytes32' },
-      { name: 's', internalType: 'bytes32', type: 'bytes32' },
-    ],
-    name: 'permit',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'symbol',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalSupply',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transfer',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transferFrom',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'spender',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Approval',
-  },
-  { type: 'event', anonymous: false, inputs: [], name: 'EIP712DomainChanged' },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address', indexed: true },
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Transfer',
-  },
-  { type: 'error', inputs: [], name: 'ECDSAInvalidSignature' },
-  {
-    type: 'error',
-    inputs: [{ name: 'length', internalType: 'uint256', type: 'uint256' }],
-    name: 'ECDSAInvalidSignatureLength',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 's', internalType: 'bytes32', type: 'bytes32' }],
-    name: 'ECDSAInvalidSignatureS',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'allowance', internalType: 'uint256', type: 'uint256' },
-      { name: 'needed', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC20InsufficientAllowance',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'sender', internalType: 'address', type: 'address' },
-      { name: 'balance', internalType: 'uint256', type: 'uint256' },
-      { name: 'needed', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC20InsufficientBalance',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'approver', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidApprover',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'receiver', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidReceiver',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'sender', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidSender',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'spender', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidSpender',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'deadline', internalType: 'uint256', type: 'uint256' }],
-    name: 'ERC2612ExpiredSignature',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'signer', internalType: 'address', type: 'address' },
-      { name: 'owner', internalType: 'address', type: 'address' },
-    ],
-    name: 'ERC2612InvalidSigner',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'currentNonce', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'InvalidAccountNonce',
-  },
-  { type: 'error', inputs: [], name: 'InvalidShortString' },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
-    name: 'StringTooLong',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // React
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__
+ */
+export const useReadBaseErc20Contract = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"DOMAIN_SEPARATOR"`
+ */
+export const useReadBaseErc20DomainSeparator =
+  /*#__PURE__*/ createUseReadContract({
+    abi: baseErc20Abi,
+    functionName: 'DOMAIN_SEPARATOR',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"allowance"`
+ */
+export const useReadBaseErc20Allowance = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+  functionName: 'allowance',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"balanceOf"`
+ */
+export const useReadBaseErc20BalanceOf = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+  functionName: 'balanceOf',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"decimals"`
+ */
+export const useReadBaseErc20Decimals = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+  functionName: 'decimals',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"eip712Domain"`
+ */
+export const useReadBaseErc20Eip712Domain = /*#__PURE__*/ createUseReadContract(
+  { abi: baseErc20Abi, functionName: 'eip712Domain' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"name"`
+ */
+export const useReadBaseErc20Name = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+  functionName: 'name',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"nonces"`
+ */
+export const useReadBaseErc20Nonces = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+  functionName: 'nonces',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"owner"`
+ */
+export const useReadBaseErc20Owner = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"symbol"`
+ */
+export const useReadBaseErc20Symbol = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+  functionName: 'symbol',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"totalSupply"`
+ */
+export const useReadBaseErc20TotalSupply = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc20Abi,
+  functionName: 'totalSupply',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__
+ */
+export const useWriteBaseErc20Contract = /*#__PURE__*/ createUseWriteContract({
+  abi: baseErc20Abi,
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"approve"`
+ */
+export const useWriteBaseErc20Approve = /*#__PURE__*/ createUseWriteContract({
+  abi: baseErc20Abi,
+  functionName: 'approve',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"mint"`
+ */
+export const useWriteBaseErc20Mint = /*#__PURE__*/ createUseWriteContract({
+  abi: baseErc20Abi,
+  functionName: 'mint',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"permit"`
+ */
+export const useWriteBaseErc20Permit = /*#__PURE__*/ createUseWriteContract({
+  abi: baseErc20Abi,
+  functionName: 'permit',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useWriteBaseErc20RenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc20Abi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"transfer"`
+ */
+export const useWriteBaseErc20Transfer = /*#__PURE__*/ createUseWriteContract({
+  abi: baseErc20Abi,
+  functionName: 'transfer',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"transferFrom"`
+ */
+export const useWriteBaseErc20TransferFrom =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc20Abi,
+    functionName: 'transferFrom',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useWriteBaseErc20TransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc20Abi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__
+ */
+export const useSimulateBaseErc20Contract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: baseErc20Abi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"approve"`
+ */
+export const useSimulateBaseErc20Approve =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'approve',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"mint"`
+ */
+export const useSimulateBaseErc20Mint = /*#__PURE__*/ createUseSimulateContract(
+  { abi: baseErc20Abi, functionName: 'mint' },
+)
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"permit"`
+ */
+export const useSimulateBaseErc20Permit =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'permit',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useSimulateBaseErc20RenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"transfer"`
+ */
+export const useSimulateBaseErc20Transfer =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'transfer',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"transferFrom"`
+ */
+export const useSimulateBaseErc20TransferFrom =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'transferFrom',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useSimulateBaseErc20TransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc20Abi}__
+ */
+export const useWatchBaseErc20Contract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: baseErc20Abi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc20Abi}__ and `eventName` set to `"Approval"`
+ */
+export const useWatchBaseErc20Approval =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc20Abi,
+    eventName: 'Approval',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc20Abi}__ and `eventName` set to `"EIP712DomainChanged"`
+ */
+export const useWatchBaseErc20Eip712DomainChanged =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc20Abi,
+    eventName: 'EIP712DomainChanged',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc20Abi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useWatchBaseErc20OwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc20Abi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc20Abi}__ and `eventName` set to `"Transfer"`
+ */
+export const useWatchBaseErc20Transfer =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc20Abi,
+    eventName: 'Transfer',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__
+ */
+export const useReadBaseErc721Contract = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc721Abi,
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"balanceOf"`
+ */
+export const useReadBaseErc721BalanceOf = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc721Abi,
+  functionName: 'balanceOf',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"getApproved"`
+ */
+export const useReadBaseErc721GetApproved = /*#__PURE__*/ createUseReadContract(
+  { abi: baseErc721Abi, functionName: 'getApproved' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"isApprovedForAll"`
+ */
+export const useReadBaseErc721IsApprovedForAll =
+  /*#__PURE__*/ createUseReadContract({
+    abi: baseErc721Abi,
+    functionName: 'isApprovedForAll',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"name"`
+ */
+export const useReadBaseErc721Name = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc721Abi,
+  functionName: 'name',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"owner"`
+ */
+export const useReadBaseErc721Owner = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc721Abi,
+  functionName: 'owner',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"ownerOf"`
+ */
+export const useReadBaseErc721OwnerOf = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc721Abi,
+  functionName: 'ownerOf',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"supportsInterface"`
+ */
+export const useReadBaseErc721SupportsInterface =
+  /*#__PURE__*/ createUseReadContract({
+    abi: baseErc721Abi,
+    functionName: 'supportsInterface',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"symbol"`
+ */
+export const useReadBaseErc721Symbol = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc721Abi,
+  functionName: 'symbol',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"tokenByIndex"`
+ */
+export const useReadBaseErc721TokenByIndex =
+  /*#__PURE__*/ createUseReadContract({
+    abi: baseErc721Abi,
+    functionName: 'tokenByIndex',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"tokenOfOwnerByIndex"`
+ */
+export const useReadBaseErc721TokenOfOwnerByIndex =
+  /*#__PURE__*/ createUseReadContract({
+    abi: baseErc721Abi,
+    functionName: 'tokenOfOwnerByIndex',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"tokenURI"`
+ */
+export const useReadBaseErc721TokenUri = /*#__PURE__*/ createUseReadContract({
+  abi: baseErc721Abi,
+  functionName: 'tokenURI',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"totalSupply"`
+ */
+export const useReadBaseErc721TotalSupply = /*#__PURE__*/ createUseReadContract(
+  { abi: baseErc721Abi, functionName: 'totalSupply' },
+)
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__
+ */
+export const useWriteBaseErc721Contract = /*#__PURE__*/ createUseWriteContract({
+  abi: baseErc721Abi,
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"approve"`
+ */
+export const useWriteBaseErc721Approve = /*#__PURE__*/ createUseWriteContract({
+  abi: baseErc721Abi,
+  functionName: 'approve',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"batchMint"`
+ */
+export const useWriteBaseErc721BatchMint = /*#__PURE__*/ createUseWriteContract(
+  { abi: baseErc721Abi, functionName: 'batchMint' },
+)
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"batchMintWithURIs"`
+ */
+export const useWriteBaseErc721BatchMintWithUrIs =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'batchMintWithURIs',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"mint"`
+ */
+export const useWriteBaseErc721Mint = /*#__PURE__*/ createUseWriteContract({
+  abi: baseErc721Abi,
+  functionName: 'mint',
+})
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"mintWithURI"`
+ */
+export const useWriteBaseErc721MintWithUri =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'mintWithURI',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useWriteBaseErc721RenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"safeTransferFrom"`
+ */
+export const useWriteBaseErc721SafeTransferFrom =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'safeTransferFrom',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"setApprovalForAll"`
+ */
+export const useWriteBaseErc721SetApprovalForAll =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'setApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"setBaseURI"`
+ */
+export const useWriteBaseErc721SetBaseUri =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'setBaseURI',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"setTokenURI"`
+ */
+export const useWriteBaseErc721SetTokenUri =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'setTokenURI',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"transferFrom"`
+ */
+export const useWriteBaseErc721TransferFrom =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'transferFrom',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useWriteBaseErc721TransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__
+ */
+export const useSimulateBaseErc721Contract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: baseErc721Abi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"approve"`
+ */
+export const useSimulateBaseErc721Approve =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'approve',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"batchMint"`
+ */
+export const useSimulateBaseErc721BatchMint =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'batchMint',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"batchMintWithURIs"`
+ */
+export const useSimulateBaseErc721BatchMintWithUrIs =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'batchMintWithURIs',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"mint"`
+ */
+export const useSimulateBaseErc721Mint =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'mint',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"mintWithURI"`
+ */
+export const useSimulateBaseErc721MintWithUri =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'mintWithURI',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useSimulateBaseErc721RenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"safeTransferFrom"`
+ */
+export const useSimulateBaseErc721SafeTransferFrom =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'safeTransferFrom',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"setApprovalForAll"`
+ */
+export const useSimulateBaseErc721SetApprovalForAll =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'setApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"setBaseURI"`
+ */
+export const useSimulateBaseErc721SetBaseUri =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'setBaseURI',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"setTokenURI"`
+ */
+export const useSimulateBaseErc721SetTokenUri =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'setTokenURI',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"transferFrom"`
+ */
+export const useSimulateBaseErc721TransferFrom =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'transferFrom',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useSimulateBaseErc721TransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc721Abi}__
+ */
+export const useWatchBaseErc721Contract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: baseErc721Abi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc721Abi}__ and `eventName` set to `"Approval"`
+ */
+export const useWatchBaseErc721Approval =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc721Abi,
+    eventName: 'Approval',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc721Abi}__ and `eventName` set to `"ApprovalForAll"`
+ */
+export const useWatchBaseErc721ApprovalForAll =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc721Abi,
+    eventName: 'ApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc721Abi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useWatchBaseErc721OwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc721Abi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc721Abi}__ and `eventName` set to `"Transfer"`
+ */
+export const useWatchBaseErc721Transfer =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc721Abi,
+    eventName: 'Transfer',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__
+ */
+export const useReadCardDividendTrackerContract =
+  /*#__PURE__*/ createUseReadContract({ abi: cardDividendTrackerAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"accumulativeFundsOf"`
+ */
+export const useReadCardDividendTrackerAccumulativeFundsOf =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'accumulativeFundsOf',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"appraisalContract"`
+ */
+export const useReadCardDividendTrackerAppraisalContract =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'appraisalContract',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"cardId"`
+ */
+export const useReadCardDividendTrackerCardId =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'cardId',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"fundsToken"`
+ */
+export const useReadCardDividendTrackerFundsToken =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'fundsToken',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"getCardAppraisalPrice"`
+ */
+export const useReadCardDividendTrackerGetCardAppraisalPrice =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'getCardAppraisalPrice',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"getTotalCardDeposits"`
+ */
+export const useReadCardDividendTrackerGetTotalCardDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'getTotalCardDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"getTotalFundsDistributed"`
+ */
+export const useReadCardDividendTrackerGetTotalFundsDistributed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'getTotalFundsDistributed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"getUserCardDeposits"`
+ */
+export const useReadCardDividendTrackerGetUserCardDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'getUserCardDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"owner"`
+ */
+export const useReadCardDividendTrackerOwner =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'owner',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"paused"`
+ */
+export const useReadCardDividendTrackerPaused =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'paused',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"rarity"`
+ */
+export const useReadCardDividendTrackerRarity =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'rarity',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"rewardsManager"`
+ */
+export const useReadCardDividendTrackerRewardsManager =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'rewardsManager',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"totalFundsDistributed"`
+ */
+export const useReadCardDividendTrackerTotalFundsDistributed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'totalFundsDistributed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"treasury"`
+ */
+export const useReadCardDividendTrackerTreasury =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'treasury',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"withdrawableFundsOf"`
+ */
+export const useReadCardDividendTrackerWithdrawableFundsOf =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'withdrawableFundsOf',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__
+ */
+export const useWriteCardDividendTrackerContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: cardDividendTrackerAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"distributeFunds"`
+ */
+export const useWriteCardDividendTrackerDistributeFunds =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'distributeFunds',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useWriteCardDividendTrackerEmergencyPause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"emergencyUnpause"`
+ */
+export const useWriteCardDividendTrackerEmergencyUnpause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"recoverToken"`
+ */
+export const useWriteCardDividendTrackerRecoverToken =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'recoverToken',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useWriteCardDividendTrackerRenounceOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"setRewardsManager"`
+ */
+export const useWriteCardDividendTrackerSetRewardsManager =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'setRewardsManager',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useWriteCardDividendTrackerTransferOwnership =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"updateCorrection"`
+ */
+export const useWriteCardDividendTrackerUpdateCorrection =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'updateCorrection',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"withdrawFunds"`
+ */
+export const useWriteCardDividendTrackerWithdrawFunds =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'withdrawFunds',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__
+ */
+export const useSimulateCardDividendTrackerContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: cardDividendTrackerAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"distributeFunds"`
+ */
+export const useSimulateCardDividendTrackerDistributeFunds =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'distributeFunds',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"emergencyPause"`
+ */
+export const useSimulateCardDividendTrackerEmergencyPause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'emergencyPause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"emergencyUnpause"`
+ */
+export const useSimulateCardDividendTrackerEmergencyUnpause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'emergencyUnpause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"recoverToken"`
+ */
+export const useSimulateCardDividendTrackerRecoverToken =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'recoverToken',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"renounceOwnership"`
+ */
+export const useSimulateCardDividendTrackerRenounceOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"setRewardsManager"`
+ */
+export const useSimulateCardDividendTrackerSetRewardsManager =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'setRewardsManager',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"transferOwnership"`
+ */
+export const useSimulateCardDividendTrackerTransferOwnership =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'transferOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"updateCorrection"`
+ */
+export const useSimulateCardDividendTrackerUpdateCorrection =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'updateCorrection',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `functionName` set to `"withdrawFunds"`
+ */
+export const useSimulateCardDividendTrackerWithdrawFunds =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardDividendTrackerAbi,
+    functionName: 'withdrawFunds',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardDividendTrackerAbi}__
+ */
+export const useWatchCardDividendTrackerContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: cardDividendTrackerAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `eventName` set to `"FundsDistributed"`
+ */
+export const useWatchCardDividendTrackerFundsDistributed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardDividendTrackerAbi,
+    eventName: 'FundsDistributed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `eventName` set to `"FundsWithdrawn"`
+ */
+export const useWatchCardDividendTrackerFundsWithdrawn =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardDividendTrackerAbi,
+    eventName: 'FundsWithdrawn',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ */
+export const useWatchCardDividendTrackerOwnershipTransferred =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardDividendTrackerAbi,
+    eventName: 'OwnershipTransferred',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `eventName` set to `"Paused"`
+ */
+export const useWatchCardDividendTrackerPaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardDividendTrackerAbi,
+    eventName: 'Paused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardDividendTrackerAbi}__ and `eventName` set to `"Unpaused"`
+ */
+export const useWatchCardDividendTrackerUnpaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardDividendTrackerAbi,
+    eventName: 'Unpaused',
+  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link eip712Abi}__
@@ -6872,177 +9394,36 @@ export const useWatchErc20Transfer = /*#__PURE__*/ createUseWatchContractEvent({
 })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20MockAbi}__
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20BatchQueryAbi}__
  */
-export const useReadErc20MockContract = /*#__PURE__*/ createUseReadContract({
-  abi: erc20MockAbi,
-})
+export const useReadErc20BatchQueryContract =
+  /*#__PURE__*/ createUseReadContract({ abi: erc20BatchQueryAbi })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"allowance"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20BatchQueryAbi}__ and `functionName` set to `"getBalanceAndAllowanceBatch"`
  */
-export const useReadErc20MockAllowance = /*#__PURE__*/ createUseReadContract({
-  abi: erc20MockAbi,
-  functionName: 'allowance',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"balanceOf"`
- */
-export const useReadErc20MockBalanceOf = /*#__PURE__*/ createUseReadContract({
-  abi: erc20MockAbi,
-  functionName: 'balanceOf',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"decimals"`
- */
-export const useReadErc20MockDecimals = /*#__PURE__*/ createUseReadContract({
-  abi: erc20MockAbi,
-  functionName: 'decimals',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"name"`
- */
-export const useReadErc20MockName = /*#__PURE__*/ createUseReadContract({
-  abi: erc20MockAbi,
-  functionName: 'name',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"symbol"`
- */
-export const useReadErc20MockSymbol = /*#__PURE__*/ createUseReadContract({
-  abi: erc20MockAbi,
-  functionName: 'symbol',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"totalSupply"`
- */
-export const useReadErc20MockTotalSupply = /*#__PURE__*/ createUseReadContract({
-  abi: erc20MockAbi,
-  functionName: 'totalSupply',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc20MockAbi}__
- */
-export const useWriteErc20MockContract = /*#__PURE__*/ createUseWriteContract({
-  abi: erc20MockAbi,
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"approve"`
- */
-export const useWriteErc20MockApprove = /*#__PURE__*/ createUseWriteContract({
-  abi: erc20MockAbi,
-  functionName: 'approve',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"burn"`
- */
-export const useWriteErc20MockBurn = /*#__PURE__*/ createUseWriteContract({
-  abi: erc20MockAbi,
-  functionName: 'burn',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"mint"`
- */
-export const useWriteErc20MockMint = /*#__PURE__*/ createUseWriteContract({
-  abi: erc20MockAbi,
-  functionName: 'mint',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"transfer"`
- */
-export const useWriteErc20MockTransfer = /*#__PURE__*/ createUseWriteContract({
-  abi: erc20MockAbi,
-  functionName: 'transfer',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"transferFrom"`
- */
-export const useWriteErc20MockTransferFrom =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: erc20MockAbi,
-    functionName: 'transferFrom',
+export const useReadErc20BatchQueryGetBalanceAndAllowanceBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc20BatchQueryAbi,
+    functionName: 'getBalanceAndAllowanceBatch',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc20MockAbi}__
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20BatchQueryAbi}__ and `functionName` set to `"getMultipleBalancesBatch"`
  */
-export const useSimulateErc20MockContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: erc20MockAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"approve"`
- */
-export const useSimulateErc20MockApprove =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: erc20MockAbi,
-    functionName: 'approve',
+export const useReadErc20BatchQueryGetMultipleBalancesBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc20BatchQueryAbi,
+    functionName: 'getMultipleBalancesBatch',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"burn"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc20BatchQueryAbi}__ and `functionName` set to `"getTokenInfoBatch"`
  */
-export const useSimulateErc20MockBurn = /*#__PURE__*/ createUseSimulateContract(
-  { abi: erc20MockAbi, functionName: 'burn' },
-)
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"mint"`
- */
-export const useSimulateErc20MockMint = /*#__PURE__*/ createUseSimulateContract(
-  { abi: erc20MockAbi, functionName: 'mint' },
-)
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"transfer"`
- */
-export const useSimulateErc20MockTransfer =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: erc20MockAbi,
-    functionName: 'transfer',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc20MockAbi}__ and `functionName` set to `"transferFrom"`
- */
-export const useSimulateErc20MockTransferFrom =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: erc20MockAbi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link erc20MockAbi}__
- */
-export const useWatchErc20MockContract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: erc20MockAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link erc20MockAbi}__ and `eventName` set to `"Approval"`
- */
-export const useWatchErc20MockApproval =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: erc20MockAbi,
-    eventName: 'Approval',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link erc20MockAbi}__ and `eventName` set to `"Transfer"`
- */
-export const useWatchErc20MockTransfer =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: erc20MockAbi,
-    eventName: 'Transfer',
+export const useReadErc20BatchQueryGetTokenInfoBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc20BatchQueryAbi,
+    functionName: 'getTokenInfoBatch',
   })
 
 /**
@@ -7426,6 +9807,227 @@ export const useWatchErc721Transfer = /*#__PURE__*/ createUseWatchContractEvent(
 )
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__
+ */
+export const useReadErc721EnumerableContract =
+  /*#__PURE__*/ createUseReadContract({ abi: erc721EnumerableAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"balanceOf"`
+ */
+export const useReadErc721EnumerableBalanceOf =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'balanceOf',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"getApproved"`
+ */
+export const useReadErc721EnumerableGetApproved =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'getApproved',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"isApprovedForAll"`
+ */
+export const useReadErc721EnumerableIsApprovedForAll =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'isApprovedForAll',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"name"`
+ */
+export const useReadErc721EnumerableName = /*#__PURE__*/ createUseReadContract({
+  abi: erc721EnumerableAbi,
+  functionName: 'name',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"ownerOf"`
+ */
+export const useReadErc721EnumerableOwnerOf =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'ownerOf',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"supportsInterface"`
+ */
+export const useReadErc721EnumerableSupportsInterface =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'supportsInterface',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"symbol"`
+ */
+export const useReadErc721EnumerableSymbol =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'symbol',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"tokenByIndex"`
+ */
+export const useReadErc721EnumerableTokenByIndex =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'tokenByIndex',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"tokenOfOwnerByIndex"`
+ */
+export const useReadErc721EnumerableTokenOfOwnerByIndex =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'tokenOfOwnerByIndex',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"tokenURI"`
+ */
+export const useReadErc721EnumerableTokenUri =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'tokenURI',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"totalSupply"`
+ */
+export const useReadErc721EnumerableTotalSupply =
+  /*#__PURE__*/ createUseReadContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'totalSupply',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc721EnumerableAbi}__
+ */
+export const useWriteErc721EnumerableContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: erc721EnumerableAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"approve"`
+ */
+export const useWriteErc721EnumerableApprove =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'approve',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"safeTransferFrom"`
+ */
+export const useWriteErc721EnumerableSafeTransferFrom =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'safeTransferFrom',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"setApprovalForAll"`
+ */
+export const useWriteErc721EnumerableSetApprovalForAll =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'setApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"transferFrom"`
+ */
+export const useWriteErc721EnumerableTransferFrom =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'transferFrom',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc721EnumerableAbi}__
+ */
+export const useSimulateErc721EnumerableContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: erc721EnumerableAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"approve"`
+ */
+export const useSimulateErc721EnumerableApprove =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'approve',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"safeTransferFrom"`
+ */
+export const useSimulateErc721EnumerableSafeTransferFrom =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'safeTransferFrom',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"setApprovalForAll"`
+ */
+export const useSimulateErc721EnumerableSetApprovalForAll =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'setApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `functionName` set to `"transferFrom"`
+ */
+export const useSimulateErc721EnumerableTransferFrom =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: erc721EnumerableAbi,
+    functionName: 'transferFrom',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link erc721EnumerableAbi}__
+ */
+export const useWatchErc721EnumerableContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: erc721EnumerableAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `eventName` set to `"Approval"`
+ */
+export const useWatchErc721EnumerableApproval =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: erc721EnumerableAbi,
+    eventName: 'Approval',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `eventName` set to `"ApprovalForAll"`
+ */
+export const useWatchErc721EnumerableApprovalForAll =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: erc721EnumerableAbi,
+    eventName: 'ApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link erc721EnumerableAbi}__ and `eventName` set to `"Transfer"`
+ */
+export const useWatchErc721EnumerableTransfer =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: erc721EnumerableAbi,
+    eventName: 'Transfer',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__
  */
 export const useReadGachaContract = /*#__PURE__*/ createUseReadContract({
@@ -7492,6 +10094,15 @@ export const useReadGachaGetBatchSpinRequests =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getGachaConfigBatch"`
+ */
+export const useReadGachaGetGachaConfigBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getGachaConfigBatch',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getGlobalAnalytics"`
  */
 export const useReadGachaGetGlobalAnalytics =
@@ -7555,6 +10166,15 @@ export const useReadGachaGetTreasuryDistribution =
 export const useReadGachaGetUserAnalytics = /*#__PURE__*/ createUseReadContract(
   { abi: gachaAbi, functionName: 'getUserAnalytics' },
 )
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getUserGachaBatch"`
+ */
+export const useReadGachaGetUserGachaBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getUserGachaBatch',
+  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getUserRarityWinCount"`
@@ -8110,12 +10730,30 @@ export const useReadGachaRewardsManagerContract =
   /*#__PURE__*/ createUseReadContract({ abi: gachaRewardsManagerAbi })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"GAMMA_PRECISION"`
+ */
+export const useReadGachaRewardsManagerGammaPrecision =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'GAMMA_PRECISION',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"PERCENTAGE_DENOMINATOR"`
  */
 export const useReadGachaRewardsManagerPercentageDenominator =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
     functionName: 'PERCENTAGE_DENOMINATOR',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"PRECISION"`
+ */
+export const useReadGachaRewardsManagerPrecision =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'PRECISION',
   })
 
 /**
@@ -8128,21 +10766,39 @@ export const useReadGachaRewardsManagerProtocolPercentage =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"REWARDS_PERCENTAGE"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"appraisalContract"`
  */
-export const useReadGachaRewardsManagerRewardsPercentage =
+export const useReadGachaRewardsManagerAppraisalContract =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'REWARDS_PERCENTAGE',
+    functionName: 'appraisalContract',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"accumulatedDust"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"cardExists"`
  */
-export const useReadGachaRewardsManagerAccumulatedDust =
+export const useReadGachaRewardsManagerCardExists =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'accumulatedDust',
+    functionName: 'cardExists',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"cardTrackers"`
+ */
+export const useReadGachaRewardsManagerCardTrackers =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'cardTrackers',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"delta"`
+ */
+export const useReadGachaRewardsManagerDelta =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'delta',
   })
 
 /**
@@ -8155,6 +10811,15 @@ export const useReadGachaRewardsManagerFeeToken =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"findActiveCardRarity"`
+ */
+export const useReadGachaRewardsManagerFindActiveCardRarity =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'findActiveCardRarity',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"gachaContract"`
  */
 export const useReadGachaRewardsManagerGachaContract =
@@ -8164,57 +10829,84 @@ export const useReadGachaRewardsManagerGachaContract =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getAllRarityTokens"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"gamma"`
  */
-export const useReadGachaRewardsManagerGetAllRarityTokens =
+export const useReadGachaRewardsManagerGamma =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'getAllRarityTokens',
+    functionName: 'gamma',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getGlobalRewardsAnalytics"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getCardTracker"`
  */
-export const useReadGachaRewardsManagerGetGlobalRewardsAnalytics =
+export const useReadGachaRewardsManagerGetCardTracker =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'getGlobalRewardsAnalytics',
+    functionName: 'getCardTracker',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getRarityToken"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getCardTrackersBatch"`
  */
-export const useReadGachaRewardsManagerGetRarityToken =
+export const useReadGachaRewardsManagerGetCardTrackersBatch =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'getRarityToken',
+    functionName: 'getCardTrackersBatch',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getRewardsAnalytics"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getRewardsOverviewBatch"`
  */
-export const useReadGachaRewardsManagerGetRewardsAnalytics =
+export const useReadGachaRewardsManagerGetRewardsOverviewBatch =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'getRewardsAnalytics',
+    functionName: 'getRewardsOverviewBatch',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getUserRarityClaimableRewards"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getTotalClaimableForUser"`
  */
-export const useReadGachaRewardsManagerGetUserRarityClaimableRewards =
+export const useReadGachaRewardsManagerGetTotalClaimableForUser =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'getUserRarityClaimableRewards',
+    functionName: 'getTotalClaimableForUser',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getUserTotalClaimableRewards"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getTreasuryBalance"`
  */
-export const useReadGachaRewardsManagerGetUserTotalClaimableRewards =
+export const useReadGachaRewardsManagerGetTreasuryBalance =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'getUserTotalClaimableRewards',
+    functionName: 'getTreasuryBalance',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getUserCardClaimable"`
+ */
+export const useReadGachaRewardsManagerGetUserCardClaimable =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getUserCardClaimable',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getUserClaimablesBatch"`
+ */
+export const useReadGachaRewardsManagerGetUserClaimablesBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getUserClaimablesBatch',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"getUserSnapshot"`
+ */
+export const useReadGachaRewardsManagerGetUserSnapshot =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'getUserSnapshot',
   })
 
 /**
@@ -8236,6 +10928,15 @@ export const useReadGachaRewardsManagerPaused =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"previewClaimForCards"`
+ */
+export const useReadGachaRewardsManagerPreviewClaimForCards =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'previewClaimForCards',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"protocolAddress"`
  */
 export const useReadGachaRewardsManagerProtocolAddress =
@@ -8245,30 +10946,39 @@ export const useReadGachaRewardsManagerProtocolAddress =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"rarityMultipliers"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"rarityMeters"`
  */
-export const useReadGachaRewardsManagerRarityMultipliers =
+export const useReadGachaRewardsManagerRarityMeters =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'rarityMultipliers',
+    functionName: 'rarityMeters',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"rarityTokens"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"totalAccrued"`
  */
-export const useReadGachaRewardsManagerRarityTokens =
+export const useReadGachaRewardsManagerTotalAccrued =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'rarityTokens',
+    functionName: 'totalAccrued',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"totalFeesDistributed"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"totalCardWeights"`
  */
-export const useReadGachaRewardsManagerTotalFeesDistributed =
+export const useReadGachaRewardsManagerTotalCardWeights =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'totalFeesDistributed',
+    functionName: 'totalCardWeights',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"totalClaimed"`
+ */
+export const useReadGachaRewardsManagerTotalClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'totalClaimed',
   })
 
 /**
@@ -8290,12 +11000,12 @@ export const useReadGachaRewardsManagerTreasuryContract =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"userTotalRewardsClaimed"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"userSnapshots"`
  */
-export const useReadGachaRewardsManagerUserTotalRewardsClaimed =
+export const useReadGachaRewardsManagerUserSnapshots =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'userTotalRewardsClaimed',
+    functionName: 'userSnapshots',
   })
 
 /**
@@ -8305,21 +11015,39 @@ export const useWriteGachaRewardsManagerContract =
   /*#__PURE__*/ createUseWriteContract({ abi: gachaRewardsManagerAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"deployAllRarityTokens"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimAllRewards"`
  */
-export const useWriteGachaRewardsManagerDeployAllRarityTokens =
+export const useWriteGachaRewardsManagerClaimAllRewards =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'deployAllRarityTokens',
+    functionName: 'claimAllRewards',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"distributeSpinRewards"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimCardRewards"`
  */
-export const useWriteGachaRewardsManagerDistributeSpinRewards =
+export const useWriteGachaRewardsManagerClaimCardRewards =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'distributeSpinRewards',
+    functionName: 'claimCardRewards',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimRewardsForCards"`
+ */
+export const useWriteGachaRewardsManagerClaimRewardsForCards =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimRewardsForCards',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimRewardsForMultipleRarities"`
+ */
+export const useWriteGachaRewardsManagerClaimRewardsForMultipleRarities =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimRewardsForMultipleRarities',
   })
 
 /**
@@ -8350,30 +11078,21 @@ export const useWriteGachaRewardsManagerEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"recordApprovedDeposit"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"handleReappraisal"`
  */
-export const useWriteGachaRewardsManagerRecordApprovedDeposit =
+export const useWriteGachaRewardsManagerHandleReappraisal =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'recordApprovedDeposit',
+    functionName: 'handleReappraisal',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"recordNFTWon"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"processSpinRewards"`
  */
-export const useWriteGachaRewardsManagerRecordNftWon =
+export const useWriteGachaRewardsManagerProcessSpinRewards =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'recordNFTWon',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"recordUserRewardClaim"`
- */
-export const useWriteGachaRewardsManagerRecordUserRewardClaim =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaRewardsManagerAbi,
-    functionName: 'recordUserRewardClaim',
+    functionName: 'processSpinRewards',
   })
 
 /**
@@ -8386,6 +11105,24 @@ export const useWriteGachaRewardsManagerRenounceOwnership =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"setDelta"`
+ */
+export const useWriteGachaRewardsManagerSetDelta =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'setDelta',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"setGamma"`
+ */
+export const useWriteGachaRewardsManagerSetGamma =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'setGamma',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"setProtocolAddress"`
  */
 export const useWriteGachaRewardsManagerSetProtocolAddress =
@@ -8395,12 +11132,12 @@ export const useWriteGachaRewardsManagerSetProtocolAddress =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"setRarityMultiplier"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"settleCard"`
  */
-export const useWriteGachaRewardsManagerSetRarityMultiplier =
+export const useWriteGachaRewardsManagerSettleCard =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'setRarityMultiplier',
+    functionName: 'settleCard',
   })
 
 /**
@@ -8413,27 +11150,54 @@ export const useWriteGachaRewardsManagerTransferOwnership =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"updateUserUnits"`
+ */
+export const useWriteGachaRewardsManagerUpdateUserUnits =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'updateUserUnits',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__
  */
 export const useSimulateGachaRewardsManagerContract =
   /*#__PURE__*/ createUseSimulateContract({ abi: gachaRewardsManagerAbi })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"deployAllRarityTokens"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimAllRewards"`
  */
-export const useSimulateGachaRewardsManagerDeployAllRarityTokens =
+export const useSimulateGachaRewardsManagerClaimAllRewards =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'deployAllRarityTokens',
+    functionName: 'claimAllRewards',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"distributeSpinRewards"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimCardRewards"`
  */
-export const useSimulateGachaRewardsManagerDistributeSpinRewards =
+export const useSimulateGachaRewardsManagerClaimCardRewards =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'distributeSpinRewards',
+    functionName: 'claimCardRewards',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimRewardsForCards"`
+ */
+export const useSimulateGachaRewardsManagerClaimRewardsForCards =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimRewardsForCards',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"claimRewardsForMultipleRarities"`
+ */
+export const useSimulateGachaRewardsManagerClaimRewardsForMultipleRarities =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'claimRewardsForMultipleRarities',
   })
 
 /**
@@ -8464,30 +11228,21 @@ export const useSimulateGachaRewardsManagerEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"recordApprovedDeposit"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"handleReappraisal"`
  */
-export const useSimulateGachaRewardsManagerRecordApprovedDeposit =
+export const useSimulateGachaRewardsManagerHandleReappraisal =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'recordApprovedDeposit',
+    functionName: 'handleReappraisal',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"recordNFTWon"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"processSpinRewards"`
  */
-export const useSimulateGachaRewardsManagerRecordNftWon =
+export const useSimulateGachaRewardsManagerProcessSpinRewards =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'recordNFTWon',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"recordUserRewardClaim"`
- */
-export const useSimulateGachaRewardsManagerRecordUserRewardClaim =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaRewardsManagerAbi,
-    functionName: 'recordUserRewardClaim',
+    functionName: 'processSpinRewards',
   })
 
 /**
@@ -8500,6 +11255,24 @@ export const useSimulateGachaRewardsManagerRenounceOwnership =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"setDelta"`
+ */
+export const useSimulateGachaRewardsManagerSetDelta =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'setDelta',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"setGamma"`
+ */
+export const useSimulateGachaRewardsManagerSetGamma =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'setGamma',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"setProtocolAddress"`
  */
 export const useSimulateGachaRewardsManagerSetProtocolAddress =
@@ -8509,12 +11282,12 @@ export const useSimulateGachaRewardsManagerSetProtocolAddress =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"setRarityMultiplier"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"settleCard"`
  */
-export const useSimulateGachaRewardsManagerSetRarityMultiplier =
+export const useSimulateGachaRewardsManagerSettleCard =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaRewardsManagerAbi,
-    functionName: 'setRarityMultiplier',
+    functionName: 'settleCard',
   })
 
 /**
@@ -8527,36 +11300,81 @@ export const useSimulateGachaRewardsManagerTransferOwnership =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `functionName` set to `"updateUserUnits"`
+ */
+export const useSimulateGachaRewardsManagerUpdateUserUnits =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaRewardsManagerAbi,
+    functionName: 'updateUserUnits',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__
  */
 export const useWatchGachaRewardsManagerContract =
   /*#__PURE__*/ createUseWatchContractEvent({ abi: gachaRewardsManagerAbi })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"DepositRecorded"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"BonusDistributed"`
  */
-export const useWatchGachaRewardsManagerDepositRecorded =
+export const useWatchGachaRewardsManagerBonusDistributed =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
-    eventName: 'DepositRecorded',
+    eventName: 'BonusDistributed',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"FeesDistributed"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"BonusStashed"`
  */
-export const useWatchGachaRewardsManagerFeesDistributed =
+export const useWatchGachaRewardsManagerBonusStashed =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
-    eventName: 'FeesDistributed',
+    eventName: 'BonusStashed',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"NFTWonRecorded"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"CardMigrated"`
  */
-export const useWatchGachaRewardsManagerNftWonRecorded =
+export const useWatchGachaRewardsManagerCardMigrated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
-    eventName: 'NFTWonRecorded',
+    eventName: 'CardMigrated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"CardReappraised"`
+ */
+export const useWatchGachaRewardsManagerCardReappraised =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaRewardsManagerAbi,
+    eventName: 'CardReappraised',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"CardTrackerCreated"`
+ */
+export const useWatchGachaRewardsManagerCardTrackerCreated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaRewardsManagerAbi,
+    eventName: 'CardTrackerCreated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"DeltaUpdated"`
+ */
+export const useWatchGachaRewardsManagerDeltaUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaRewardsManagerAbi,
+    eventName: 'DeltaUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"GammaUpdated"`
+ */
+export const useWatchGachaRewardsManagerGammaUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaRewardsManagerAbi,
+    eventName: 'GammaUpdated',
   })
 
 /**
@@ -8587,30 +11405,30 @@ export const useWatchGachaRewardsManagerProtocolAddressUpdated =
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"RarityFundsDistributed"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"RewardsAccrued"`
  */
-export const useWatchGachaRewardsManagerRarityFundsDistributed =
+export const useWatchGachaRewardsManagerRewardsAccrued =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
-    eventName: 'RarityFundsDistributed',
+    eventName: 'RewardsAccrued',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"RarityTokenDeployed"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"RewardsClaimed"`
  */
-export const useWatchGachaRewardsManagerRarityTokenDeployed =
+export const useWatchGachaRewardsManagerRewardsClaimed =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
-    eventName: 'RarityTokenDeployed',
+    eventName: 'RewardsClaimed',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"SpinRecorded"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"SpinProcessed"`
  */
-export const useWatchGachaRewardsManagerSpinRecorded =
+export const useWatchGachaRewardsManagerSpinProcessed =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
-    eventName: 'SpinRecorded',
+    eventName: 'SpinProcessed',
   })
 
 /**
@@ -8620,15 +11438,6 @@ export const useWatchGachaRewardsManagerUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaRewardsManagerAbi,
     eventName: 'Unpaused',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaRewardsManagerAbi}__ and `eventName` set to `"UserRewardsClaimed"`
- */
-export const useWatchGachaRewardsManagerUserRewardsClaimed =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: gachaRewardsManagerAbi,
-    eventName: 'UserRewardsClaimed',
   })
 
 /**
@@ -8753,6 +11562,15 @@ export const useReadGachaTreasuryAppraisalContract =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"cardTotalDeposits"`
+ */
+export const useReadGachaTreasuryCardTotalDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'cardTotalDeposits',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"depositedNFTs"`
  */
 export const useReadGachaTreasuryDepositedNfTs =
@@ -8798,6 +11616,42 @@ export const useReadGachaTreasuryGetAllRarityTotalValues =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllUserCardDeposits"`
+ */
+export const useReadGachaTreasuryGetAllUserCardDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getAllUserCardDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllUserCardIds"`
+ */
+export const useReadGachaTreasuryGetAllUserCardIds =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getAllUserCardIds',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getCardTotalDeposits"`
+ */
+export const useReadGachaTreasuryGetCardTotalDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getCardTotalDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getGlobalStats"`
+ */
+export const useReadGachaTreasuryGetGlobalStats =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getGlobalStats',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getMigrationBatchInfo"`
  */
 export const useReadGachaTreasuryGetMigrationBatchInfo =
@@ -8813,6 +11667,15 @@ export const useReadGachaTreasuryGetNftCurrentRarity =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getNFTCurrentRarity',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getPlatformOverviewBatch"`
+ */
+export const useReadGachaTreasuryGetPlatformOverviewBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getPlatformOverviewBatch',
   })
 
 /**
@@ -8906,6 +11769,42 @@ export const useReadGachaTreasuryGetUserAllDepositValues =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardDeposits"`
+ */
+export const useReadGachaTreasuryGetUserCardDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserCardDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardDepositsPage"`
+ */
+export const useReadGachaTreasuryGetUserCardDepositsPage =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserCardDepositsPage',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardIds"`
+ */
+export const useReadGachaTreasuryGetUserCardIds =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserCardIds',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardIdsLength"`
+ */
+export const useReadGachaTreasuryGetUserCardIdsLength =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserCardIdsLength',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserDepositCount"`
  */
 export const useReadGachaTreasuryGetUserDepositCount =
@@ -8921,6 +11820,51 @@ export const useReadGachaTreasuryGetUserDepositValue =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getUserDepositValue',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeClaimed"`
+ */
+export const useReadGachaTreasuryGetUserLifetimeClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserLifetimeClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeDeposited"`
+ */
+export const useReadGachaTreasuryGetUserLifetimeDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserLifetimeDeposited',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeStats"`
+ */
+export const useReadGachaTreasuryGetUserLifetimeStats =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserLifetimeStats',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeWithdrawn"`
+ */
+export const useReadGachaTreasuryGetUserLifetimeWithdrawn =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserLifetimeWithdrawn',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserProfileBatch"`
+ */
+export const useReadGachaTreasuryGetUserProfileBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserProfileBatch',
   })
 
 /**
@@ -8948,6 +11892,24 @@ export const useReadGachaTreasuryGetWhitelistedCollections =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getWhitelistedCollections',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"globalLifetimeClaimed"`
+ */
+export const useReadGachaTreasuryGlobalLifetimeClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'globalLifetimeClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"globalLifetimeDeposited"`
+ */
+export const useReadGachaTreasuryGlobalLifetimeDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'globalLifetimeDeposited',
   })
 
 /**
@@ -9064,6 +12026,15 @@ export const useReadGachaTreasuryTreasuryRewardsManager =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userCardDeposits"`
+ */
+export const useReadGachaTreasuryUserCardDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'userCardDeposits',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userDepositCounts"`
  */
 export const useReadGachaTreasuryUserDepositCounts =
@@ -9079,6 +12050,33 @@ export const useReadGachaTreasuryUserDepositValues =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'userDepositValues',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userLifetimeClaimed"`
+ */
+export const useReadGachaTreasuryUserLifetimeClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'userLifetimeClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userLifetimeDeposited"`
+ */
+export const useReadGachaTreasuryUserLifetimeDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'userLifetimeDeposited',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"userLifetimeWithdrawn"`
+ */
+export const useReadGachaTreasuryUserLifetimeWithdrawn =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'userLifetimeWithdrawn',
   })
 
 /**
@@ -9169,21 +12167,21 @@ export const useWriteGachaTreasuryEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateBatchNFTValues"`
- */
-export const useWriteGachaTreasuryMigrateBatchNftValues =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'migrateBatchNFTValues',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateNFTRarity"`
  */
 export const useWriteGachaTreasuryMigrateNftRarity =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
     functionName: 'migrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"recordUserClaim"`
+ */
+export const useWriteGachaTreasuryRecordUserClaim =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'recordUserClaim',
   })
 
 /**
@@ -9328,21 +12326,21 @@ export const useSimulateGachaTreasuryEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateBatchNFTValues"`
- */
-export const useSimulateGachaTreasuryMigrateBatchNftValues =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'migrateBatchNFTValues',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"migrateNFTRarity"`
  */
 export const useSimulateGachaTreasuryMigrateNftRarity =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'migrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"recordUserClaim"`
+ */
+export const useSimulateGachaTreasuryRecordUserClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'recordUserClaim',
   })
 
 /**
@@ -9565,6 +12563,15 @@ export const useWatchGachaTreasuryUnpaused =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
     eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"UserClaimedRewards"`
+ */
+export const useWatchGachaTreasuryUserClaimedRewards =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'UserClaimedRewards',
   })
 
 /**
@@ -9979,6 +12986,201 @@ export const useWatchIerc5267Eip712DomainChanged =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: ierc5267Abi,
     eventName: 'EIP712DomainChanged',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__
+ */
+export const useReadIerc721EnumerableContract =
+  /*#__PURE__*/ createUseReadContract({ abi: ierc721EnumerableAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"balanceOf"`
+ */
+export const useReadIerc721EnumerableBalanceOf =
+  /*#__PURE__*/ createUseReadContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'balanceOf',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"getApproved"`
+ */
+export const useReadIerc721EnumerableGetApproved =
+  /*#__PURE__*/ createUseReadContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'getApproved',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"isApprovedForAll"`
+ */
+export const useReadIerc721EnumerableIsApprovedForAll =
+  /*#__PURE__*/ createUseReadContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'isApprovedForAll',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"ownerOf"`
+ */
+export const useReadIerc721EnumerableOwnerOf =
+  /*#__PURE__*/ createUseReadContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'ownerOf',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"supportsInterface"`
+ */
+export const useReadIerc721EnumerableSupportsInterface =
+  /*#__PURE__*/ createUseReadContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'supportsInterface',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"tokenByIndex"`
+ */
+export const useReadIerc721EnumerableTokenByIndex =
+  /*#__PURE__*/ createUseReadContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'tokenByIndex',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"tokenOfOwnerByIndex"`
+ */
+export const useReadIerc721EnumerableTokenOfOwnerByIndex =
+  /*#__PURE__*/ createUseReadContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'tokenOfOwnerByIndex',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"totalSupply"`
+ */
+export const useReadIerc721EnumerableTotalSupply =
+  /*#__PURE__*/ createUseReadContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'totalSupply',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__
+ */
+export const useWriteIerc721EnumerableContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: ierc721EnumerableAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"approve"`
+ */
+export const useWriteIerc721EnumerableApprove =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'approve',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"safeTransferFrom"`
+ */
+export const useWriteIerc721EnumerableSafeTransferFrom =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'safeTransferFrom',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"setApprovalForAll"`
+ */
+export const useWriteIerc721EnumerableSetApprovalForAll =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'setApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"transferFrom"`
+ */
+export const useWriteIerc721EnumerableTransferFrom =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'transferFrom',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__
+ */
+export const useSimulateIerc721EnumerableContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: ierc721EnumerableAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"approve"`
+ */
+export const useSimulateIerc721EnumerableApprove =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'approve',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"safeTransferFrom"`
+ */
+export const useSimulateIerc721EnumerableSafeTransferFrom =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'safeTransferFrom',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"setApprovalForAll"`
+ */
+export const useSimulateIerc721EnumerableSetApprovalForAll =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'setApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `functionName` set to `"transferFrom"`
+ */
+export const useSimulateIerc721EnumerableTransferFrom =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: ierc721EnumerableAbi,
+    functionName: 'transferFrom',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link ierc721EnumerableAbi}__
+ */
+export const useWatchIerc721EnumerableContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: ierc721EnumerableAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `eventName` set to `"Approval"`
+ */
+export const useWatchIerc721EnumerableApproval =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: ierc721EnumerableAbi,
+    eventName: 'Approval',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `eventName` set to `"ApprovalForAll"`
+ */
+export const useWatchIerc721EnumerableApprovalForAll =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: ierc721EnumerableAbi,
+    eventName: 'ApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link ierc721EnumerableAbi}__ and `eventName` set to `"Transfer"`
+ */
+export const useWatchIerc721EnumerableTransfer =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: ierc721EnumerableAbi,
+    eventName: 'Transfer',
   })
 
 /**
@@ -10718,12 +13920,30 @@ export const useReadMockNftAppraisalGetAppraisedPrice =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"getTokenCardId"`
+ */
+export const useReadMockNftAppraisalGetTokenCardId =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'getTokenCardId',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"hasAppraisal"`
  */
 export const useReadMockNftAppraisalHasAppraisal =
   /*#__PURE__*/ createUseReadContract({
     abi: mockNftAppraisalAbi,
     functionName: 'hasAppraisal',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"tokenCardIds"`
+ */
+export const useReadMockNftAppraisalTokenCardIds =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'tokenCardIds',
   })
 
 /**
@@ -10742,6 +13962,15 @@ export const useWriteMockNftAppraisalSetMockAppraisal =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"setTokenCardId"`
+ */
+export const useWriteMockNftAppraisalSetTokenCardId =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'setTokenCardId',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__
  */
 export const useSimulateMockNftAppraisalContract =
@@ -10754,6 +13983,15 @@ export const useSimulateMockNftAppraisalSetMockAppraisal =
   /*#__PURE__*/ createUseSimulateContract({
     abi: mockNftAppraisalAbi,
     functionName: 'setMockAppraisal',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"setTokenCardId"`
+ */
+export const useSimulateMockNftAppraisalSetTokenCardId =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'setTokenCardId',
   })
 
 /**
@@ -10773,21 +14011,12 @@ export const useReadNftAppraisalAppraisalFee =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"appraisals"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"cardAppraisals"`
  */
-export const useReadNftAppraisalAppraisals =
+export const useReadNftAppraisalCardAppraisals =
   /*#__PURE__*/ createUseReadContract({
     abi: nftAppraisalAbi,
-    functionName: 'appraisals',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"authorizedOracles"`
- */
-export const useReadNftAppraisalAuthorizedOracles =
-  /*#__PURE__*/ createUseReadContract({
-    abi: nftAppraisalAbi,
-    functionName: 'authorizedOracles',
+    functionName: 'cardAppraisals',
   })
 
 /**
@@ -10817,21 +14046,48 @@ export const useReadNftAppraisalGetAppraisedPrice =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getAuthorizedOracles"`
- */
-export const useReadNftAppraisalGetAuthorizedOracles =
-  /*#__PURE__*/ createUseReadContract({
-    abi: nftAppraisalAbi,
-    functionName: 'getAuthorizedOracles',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getBatchAppraisals"`
  */
 export const useReadNftAppraisalGetBatchAppraisals =
   /*#__PURE__*/ createUseReadContract({
     abi: nftAppraisalAbi,
     functionName: 'getBatchAppraisals',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getCardAppraisal"`
+ */
+export const useReadNftAppraisalGetCardAppraisal =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getCardAppraisal',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getCardAppraisals"`
+ */
+export const useReadNftAppraisalGetCardAppraisals =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getCardAppraisals',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getServiceHandler"`
+ */
+export const useReadNftAppraisalGetServiceHandler =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getServiceHandler',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getTokenCardId"`
+ */
+export const useReadNftAppraisalGetTokenCardId =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getTokenCardId',
   })
 
 /**
@@ -10862,12 +14118,12 @@ export const useReadNftAppraisalHasBatchAppraisals =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"isAuthorizedOracle"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"isServiceHandler"`
  */
-export const useReadNftAppraisalIsAuthorizedOracle =
+export const useReadNftAppraisalIsServiceHandler =
   /*#__PURE__*/ createUseReadContract({
     abi: nftAppraisalAbi,
-    functionName: 'isAuthorizedOracle',
+    functionName: 'isServiceHandler',
   })
 
 /**
@@ -10877,15 +14133,6 @@ export const useReadNftAppraisalIsTreasuryWhitelisted =
   /*#__PURE__*/ createUseReadContract({
     abi: nftAppraisalAbi,
     functionName: 'isTreasuryWhitelisted',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"oracleList"`
- */
-export const useReadNftAppraisalOracleList =
-  /*#__PURE__*/ createUseReadContract({
-    abi: nftAppraisalAbi,
-    functionName: 'oracleList',
   })
 
 /**
@@ -10914,6 +14161,33 @@ export const useReadNftAppraisalProtocolAddress =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"serviceHandler"`
+ */
+export const useReadNftAppraisalServiceHandler =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'serviceHandler',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"tokenCardIds"`
+ */
+export const useReadNftAppraisalTokenCardIds =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'tokenCardIds',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"tokenRequests"`
+ */
+export const useReadNftAppraisalTokenRequests =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'tokenRequests',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"treasuryList"`
  */
 export const useReadNftAppraisalTreasuryList =
@@ -10938,15 +14212,6 @@ export const useWriteNftAppraisalContract =
   /*#__PURE__*/ createUseWriteContract({ abi: nftAppraisalAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"authorizeOracle"`
- */
-export const useWriteNftAppraisalAuthorizeOracle =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: nftAppraisalAbi,
-    functionName: 'authorizeOracle',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"emergencyPause"`
  */
 export const useWriteNftAppraisalEmergencyPause =
@@ -10965,12 +14230,21 @@ export const useWriteNftAppraisalEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"overrideAppraisal"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"ownerBatchSetAppraisalForTokensWithCards"`
  */
-export const useWriteNftAppraisalOverrideAppraisal =
+export const useWriteNftAppraisalOwnerBatchSetAppraisalForTokensWithCards =
   /*#__PURE__*/ createUseWriteContract({
     abi: nftAppraisalAbi,
-    functionName: 'overrideAppraisal',
+    functionName: 'ownerBatchSetAppraisalForTokensWithCards',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"ownerSetAppraisalForTokenWithCard"`
+ */
+export const useWriteNftAppraisalOwnerSetAppraisalForTokenWithCard =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'ownerSetAppraisalForTokenWithCard',
   })
 
 /**
@@ -11001,15 +14275,6 @@ export const useWriteNftAppraisalRequestBatchAppraisal =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"revokeOracle"`
- */
-export const useWriteNftAppraisalRevokeOracle =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: nftAppraisalAbi,
-    functionName: 'revokeOracle',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisalFee"`
  */
 export const useWriteNftAppraisalSetAppraisalFee =
@@ -11019,12 +14284,12 @@ export const useWriteNftAppraisalSetAppraisalFee =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisedPrice"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisalForTokenWithCard"`
  */
-export const useWriteNftAppraisalSetAppraisedPrice =
+export const useWriteNftAppraisalSetAppraisalForTokenWithCard =
   /*#__PURE__*/ createUseWriteContract({
     abi: nftAppraisalAbi,
-    functionName: 'setAppraisedPrice',
+    functionName: 'setAppraisalForTokenWithCard',
   })
 
 /**
@@ -11043,6 +14308,15 @@ export const useWriteNftAppraisalSetProtocolAddress =
   /*#__PURE__*/ createUseWriteContract({
     abi: nftAppraisalAbi,
     functionName: 'setProtocolAddress',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setServiceHandler"`
+ */
+export const useWriteNftAppraisalSetServiceHandler =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setServiceHandler',
   })
 
 /**
@@ -11079,15 +14353,6 @@ export const useSimulateNftAppraisalContract =
   /*#__PURE__*/ createUseSimulateContract({ abi: nftAppraisalAbi })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"authorizeOracle"`
- */
-export const useSimulateNftAppraisalAuthorizeOracle =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: nftAppraisalAbi,
-    functionName: 'authorizeOracle',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"emergencyPause"`
  */
 export const useSimulateNftAppraisalEmergencyPause =
@@ -11106,12 +14371,21 @@ export const useSimulateNftAppraisalEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"overrideAppraisal"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"ownerBatchSetAppraisalForTokensWithCards"`
  */
-export const useSimulateNftAppraisalOverrideAppraisal =
+export const useSimulateNftAppraisalOwnerBatchSetAppraisalForTokensWithCards =
   /*#__PURE__*/ createUseSimulateContract({
     abi: nftAppraisalAbi,
-    functionName: 'overrideAppraisal',
+    functionName: 'ownerBatchSetAppraisalForTokensWithCards',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"ownerSetAppraisalForTokenWithCard"`
+ */
+export const useSimulateNftAppraisalOwnerSetAppraisalForTokenWithCard =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'ownerSetAppraisalForTokenWithCard',
   })
 
 /**
@@ -11142,15 +14416,6 @@ export const useSimulateNftAppraisalRequestBatchAppraisal =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"revokeOracle"`
- */
-export const useSimulateNftAppraisalRevokeOracle =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: nftAppraisalAbi,
-    functionName: 'revokeOracle',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisalFee"`
  */
 export const useSimulateNftAppraisalSetAppraisalFee =
@@ -11160,12 +14425,12 @@ export const useSimulateNftAppraisalSetAppraisalFee =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisedPrice"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setAppraisalForTokenWithCard"`
  */
-export const useSimulateNftAppraisalSetAppraisedPrice =
+export const useSimulateNftAppraisalSetAppraisalForTokenWithCard =
   /*#__PURE__*/ createUseSimulateContract({
     abi: nftAppraisalAbi,
-    functionName: 'setAppraisedPrice',
+    functionName: 'setAppraisalForTokenWithCard',
   })
 
 /**
@@ -11184,6 +14449,15 @@ export const useSimulateNftAppraisalSetProtocolAddress =
   /*#__PURE__*/ createUseSimulateContract({
     abi: nftAppraisalAbi,
     functionName: 'setProtocolAddress',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setServiceHandler"`
+ */
+export const useSimulateNftAppraisalSetServiceHandler =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setServiceHandler',
   })
 
 /**
@@ -11274,30 +14548,30 @@ export const useWatchNftAppraisalAutoMigrationTriggered =
   })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"CardAppraisalCompleted"`
+ */
+export const useWatchNftAppraisalCardAppraisalCompleted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'CardAppraisalCompleted',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"CardPriceUpdated"`
+ */
+export const useWatchNftAppraisalCardPriceUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'CardPriceUpdated',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"FeeTokenUpdated"`
  */
 export const useWatchNftAppraisalFeeTokenUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: nftAppraisalAbi,
     eventName: 'FeeTokenUpdated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"OracleAuthorized"`
- */
-export const useWatchNftAppraisalOracleAuthorized =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: nftAppraisalAbi,
-    eventName: 'OracleAuthorized',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"OracleRevoked"`
- */
-export const useWatchNftAppraisalOracleRevoked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: nftAppraisalAbi,
-    eventName: 'OracleRevoked',
   })
 
 /**
@@ -11337,6 +14611,24 @@ export const useWatchNftAppraisalProtocolAddressUpdated =
   })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"ServiceHandlerUpdated"`
+ */
+export const useWatchNftAppraisalServiceHandlerUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'ServiceHandlerUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"TokenLinkedToCard"`
+ */
+export const useWatchNftAppraisalTokenLinkedToCard =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'TokenLinkedToCard',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"TreasuryUnwhitelisted"`
  */
 export const useWatchNftAppraisalTreasuryUnwhitelisted =
@@ -11368,6 +14660,24 @@ export const useWatchNftAppraisalUnpaused =
  */
 export const useReadNftAppraisalServiceHandlerContract =
   /*#__PURE__*/ createUseReadContract({ abi: nftAppraisalServiceHandlerAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `functionName` set to `"_decodeError"`
+ */
+export const useReadNftAppraisalServiceHandlerDecodeError =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalServiceHandlerAbi,
+    functionName: '_decodeError',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `functionName` set to `"_decodeSuccess"`
+ */
+export const useReadNftAppraisalServiceHandlerDecodeSuccess =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalServiceHandlerAbi,
+    functionName: '_decodeSuccess',
+  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `functionName` set to `"checkAppraisal"`
@@ -11437,12 +14747,12 @@ export const useWatchNftAppraisalServiceHandlerContract =
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `eventName` set to `"AppraisalDataReceived"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `eventName` set to `"AppraisalErrorReceived"`
  */
-export const useWatchNftAppraisalServiceHandlerAppraisalDataReceived =
+export const useWatchNftAppraisalServiceHandlerAppraisalErrorReceived =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: nftAppraisalServiceHandlerAbi,
-    eventName: 'AppraisalDataReceived',
+    eventName: 'AppraisalErrorReceived',
   })
 
 /**
@@ -11452,6 +14762,15 @@ export const useWatchNftAppraisalServiceHandlerAppraisalProcessed =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: nftAppraisalServiceHandlerAbi,
     eventName: 'AppraisalProcessed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalServiceHandlerAbi}__ and `eventName` set to `"AppraisalSuccessReceived"`
+ */
+export const useWatchNftAppraisalServiceHandlerAppraisalSuccessReceived =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalServiceHandlerAbi,
+    eventName: 'AppraisalSuccessReceived',
   })
 
 /**
@@ -11595,947 +14914,331 @@ export const useWatchPausableUnpaused =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__
  */
-export const useReadRarityDividendTrackerContract =
-  /*#__PURE__*/ createUseReadContract({ abi: rarityDividendTrackerAbi })
+export const useReadUserDividendTrackerContract =
+  /*#__PURE__*/ createUseReadContract({ abi: userDividendTrackerAbi })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"accumulativeFundsOf"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"accumulativeFundsOf"`
  */
-export const useReadRarityDividendTrackerAccumulativeFundsOf =
+export const useReadUserDividendTrackerAccumulativeFundsOf =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'accumulativeFundsOf',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"fundsToken"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"fundsToken"`
  */
-export const useReadRarityDividendTrackerFundsToken =
+export const useReadUserDividendTrackerFundsToken =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'fundsToken',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"getTotalFundsDistributed"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"getTotalFundsDistributed"`
  */
-export const useReadRarityDividendTrackerGetTotalFundsDistributed =
+export const useReadUserDividendTrackerGetTotalFundsDistributed =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'getTotalFundsDistributed',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"owner"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"owner"`
  */
-export const useReadRarityDividendTrackerOwner =
+export const useReadUserDividendTrackerOwner =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'owner',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"paused"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"paused"`
  */
-export const useReadRarityDividendTrackerPaused =
+export const useReadUserDividendTrackerPaused =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'paused',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"rarity"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"rarity"`
  */
-export const useReadRarityDividendTrackerRarity =
+export const useReadUserDividendTrackerRarity =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'rarity',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"rewardsManager"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"rewardsManager"`
  */
-export const useReadRarityDividendTrackerRewardsManager =
+export const useReadUserDividendTrackerRewardsManager =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'rewardsManager',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"totalFundsDistributed"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"totalFundsDistributed"`
  */
-export const useReadRarityDividendTrackerTotalFundsDistributed =
+export const useReadUserDividendTrackerTotalFundsDistributed =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'totalFundsDistributed',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"treasury"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"treasury"`
  */
-export const useReadRarityDividendTrackerTreasury =
+export const useReadUserDividendTrackerTreasury =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'treasury',
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"withdrawableFundsOf"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"withdrawableFundsOf"`
  */
-export const useReadRarityDividendTrackerWithdrawableFundsOf =
+export const useReadUserDividendTrackerWithdrawableFundsOf =
   /*#__PURE__*/ createUseReadContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'withdrawableFundsOf',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__
  */
-export const useWriteRarityDividendTrackerContract =
-  /*#__PURE__*/ createUseWriteContract({ abi: rarityDividendTrackerAbi })
+export const useWriteUserDividendTrackerContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: userDividendTrackerAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"distributeFunds"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"distributeFunds"`
  */
-export const useWriteRarityDividendTrackerDistributeFunds =
+export const useWriteUserDividendTrackerDistributeFunds =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'distributeFunds',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"emergencyPause"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"emergencyPause"`
  */
-export const useWriteRarityDividendTrackerEmergencyPause =
+export const useWriteUserDividendTrackerEmergencyPause =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'emergencyPause',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"emergencyUnpause"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"emergencyUnpause"`
  */
-export const useWriteRarityDividendTrackerEmergencyUnpause =
+export const useWriteUserDividendTrackerEmergencyUnpause =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'emergencyUnpause',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"recoverToken"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"recoverToken"`
  */
-export const useWriteRarityDividendTrackerRecoverToken =
+export const useWriteUserDividendTrackerRecoverToken =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'recoverToken',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"renounceOwnership"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
-export const useWriteRarityDividendTrackerRenounceOwnership =
+export const useWriteUserDividendTrackerRenounceOwnership =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'renounceOwnership',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"setRewardsManager"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"setRewardsManager"`
  */
-export const useWriteRarityDividendTrackerSetRewardsManager =
+export const useWriteUserDividendTrackerSetRewardsManager =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'setRewardsManager',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"transferOwnership"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"transferOwnership"`
  */
-export const useWriteRarityDividendTrackerTransferOwnership =
+export const useWriteUserDividendTrackerTransferOwnership =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'transferOwnership',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"updateCorrection"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"updateCorrection"`
  */
-export const useWriteRarityDividendTrackerUpdateCorrection =
+export const useWriteUserDividendTrackerUpdateCorrection =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'updateCorrection',
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"withdrawFunds"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"withdrawFunds"`
  */
-export const useWriteRarityDividendTrackerWithdrawFunds =
+export const useWriteUserDividendTrackerWithdrawFunds =
   /*#__PURE__*/ createUseWriteContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'withdrawFunds',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__
  */
-export const useSimulateRarityDividendTrackerContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: rarityDividendTrackerAbi })
+export const useSimulateUserDividendTrackerContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: userDividendTrackerAbi })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"distributeFunds"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"distributeFunds"`
  */
-export const useSimulateRarityDividendTrackerDistributeFunds =
+export const useSimulateUserDividendTrackerDistributeFunds =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'distributeFunds',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"emergencyPause"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"emergencyPause"`
  */
-export const useSimulateRarityDividendTrackerEmergencyPause =
+export const useSimulateUserDividendTrackerEmergencyPause =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'emergencyPause',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"emergencyUnpause"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"emergencyUnpause"`
  */
-export const useSimulateRarityDividendTrackerEmergencyUnpause =
+export const useSimulateUserDividendTrackerEmergencyUnpause =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'emergencyUnpause',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"recoverToken"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"recoverToken"`
  */
-export const useSimulateRarityDividendTrackerRecoverToken =
+export const useSimulateUserDividendTrackerRecoverToken =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'recoverToken',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"renounceOwnership"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"renounceOwnership"`
  */
-export const useSimulateRarityDividendTrackerRenounceOwnership =
+export const useSimulateUserDividendTrackerRenounceOwnership =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'renounceOwnership',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"setRewardsManager"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"setRewardsManager"`
  */
-export const useSimulateRarityDividendTrackerSetRewardsManager =
+export const useSimulateUserDividendTrackerSetRewardsManager =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'setRewardsManager',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"transferOwnership"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"transferOwnership"`
  */
-export const useSimulateRarityDividendTrackerTransferOwnership =
+export const useSimulateUserDividendTrackerTransferOwnership =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'transferOwnership',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"updateCorrection"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"updateCorrection"`
  */
-export const useSimulateRarityDividendTrackerUpdateCorrection =
+export const useSimulateUserDividendTrackerUpdateCorrection =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'updateCorrection',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `functionName` set to `"withdrawFunds"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `functionName` set to `"withdrawFunds"`
  */
-export const useSimulateRarityDividendTrackerWithdrawFunds =
+export const useSimulateUserDividendTrackerWithdrawFunds =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     functionName: 'withdrawFunds',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityDividendTrackerAbi}__
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link userDividendTrackerAbi}__
  */
-export const useWatchRarityDividendTrackerContract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: rarityDividendTrackerAbi })
+export const useWatchUserDividendTrackerContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: userDividendTrackerAbi })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `eventName` set to `"FundsDistributed"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `eventName` set to `"FundsDistributed"`
  */
-export const useWatchRarityDividendTrackerFundsDistributed =
+export const useWatchUserDividendTrackerFundsDistributed =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     eventName: 'FundsDistributed',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `eventName` set to `"FundsWithdrawn"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `eventName` set to `"FundsWithdrawn"`
  */
-export const useWatchRarityDividendTrackerFundsWithdrawn =
+export const useWatchUserDividendTrackerFundsWithdrawn =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     eventName: 'FundsWithdrawn',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `eventName` set to `"OwnershipTransferred"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `eventName` set to `"OwnershipTransferred"`
  */
-export const useWatchRarityDividendTrackerOwnershipTransferred =
+export const useWatchUserDividendTrackerOwnershipTransferred =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     eventName: 'OwnershipTransferred',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `eventName` set to `"Paused"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `eventName` set to `"Paused"`
  */
-export const useWatchRarityDividendTrackerPaused =
+export const useWatchUserDividendTrackerPaused =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
     eventName: 'Paused',
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityDividendTrackerAbi}__ and `eventName` set to `"Unpaused"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `eventName` set to `"RewardsManagerUpdated"`
  */
-export const useWatchRarityDividendTrackerUnpaused =
+export const useWatchUserDividendTrackerRewardsManagerUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
-    abi: rarityDividendTrackerAbi,
+    abi: userDividendTrackerAbi,
+    eventName: 'RewardsManagerUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link userDividendTrackerAbi}__ and `eventName` set to `"Unpaused"`
+ */
+export const useWatchUserDividendTrackerUnpaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: userDividendTrackerAbi,
     eventName: 'Unpaused',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__
- */
-export const useReadSimpleErc721Contract = /*#__PURE__*/ createUseReadContract({
-  abi: simpleErc721Abi,
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"balanceOf"`
- */
-export const useReadSimpleErc721BalanceOf = /*#__PURE__*/ createUseReadContract(
-  { abi: simpleErc721Abi, functionName: 'balanceOf' },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"getApproved"`
- */
-export const useReadSimpleErc721GetApproved =
-  /*#__PURE__*/ createUseReadContract({
-    abi: simpleErc721Abi,
-    functionName: 'getApproved',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"getPolygonReference"`
- */
-export const useReadSimpleErc721GetPolygonReference =
-  /*#__PURE__*/ createUseReadContract({
-    abi: simpleErc721Abi,
-    functionName: 'getPolygonReference',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"isApprovedForAll"`
- */
-export const useReadSimpleErc721IsApprovedForAll =
-  /*#__PURE__*/ createUseReadContract({
-    abi: simpleErc721Abi,
-    functionName: 'isApprovedForAll',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"name"`
- */
-export const useReadSimpleErc721Name = /*#__PURE__*/ createUseReadContract({
-  abi: simpleErc721Abi,
-  functionName: 'name',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"owner"`
- */
-export const useReadSimpleErc721Owner = /*#__PURE__*/ createUseReadContract({
-  abi: simpleErc721Abi,
-  functionName: 'owner',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"ownerOf"`
- */
-export const useReadSimpleErc721OwnerOf = /*#__PURE__*/ createUseReadContract({
-  abi: simpleErc721Abi,
-  functionName: 'ownerOf',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"supportsInterface"`
- */
-export const useReadSimpleErc721SupportsInterface =
-  /*#__PURE__*/ createUseReadContract({
-    abi: simpleErc721Abi,
-    functionName: 'supportsInterface',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"symbol"`
- */
-export const useReadSimpleErc721Symbol = /*#__PURE__*/ createUseReadContract({
-  abi: simpleErc721Abi,
-  functionName: 'symbol',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"tokenURI"`
- */
-export const useReadSimpleErc721TokenUri = /*#__PURE__*/ createUseReadContract({
-  abi: simpleErc721Abi,
-  functionName: 'tokenURI',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"totalSupply"`
- */
-export const useReadSimpleErc721TotalSupply =
-  /*#__PURE__*/ createUseReadContract({
-    abi: simpleErc721Abi,
-    functionName: 'totalSupply',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__
- */
-export const useWriteSimpleErc721Contract =
-  /*#__PURE__*/ createUseWriteContract({ abi: simpleErc721Abi })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"approve"`
- */
-export const useWriteSimpleErc721Approve = /*#__PURE__*/ createUseWriteContract(
-  { abi: simpleErc721Abi, functionName: 'approve' },
-)
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"batchMintWithPolygonReferences"`
- */
-export const useWriteSimpleErc721BatchMintWithPolygonReferences =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: simpleErc721Abi,
-    functionName: 'batchMintWithPolygonReferences',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"mint"`
- */
-export const useWriteSimpleErc721Mint = /*#__PURE__*/ createUseWriteContract({
-  abi: simpleErc721Abi,
-  functionName: 'mint',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"mintWithPolygonReference"`
- */
-export const useWriteSimpleErc721MintWithPolygonReference =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: simpleErc721Abi,
-    functionName: 'mintWithPolygonReference',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useWriteSimpleErc721RenounceOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: simpleErc721Abi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"safeTransferFrom"`
- */
-export const useWriteSimpleErc721SafeTransferFrom =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: simpleErc721Abi,
-    functionName: 'safeTransferFrom',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"setApprovalForAll"`
- */
-export const useWriteSimpleErc721SetApprovalForAll =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: simpleErc721Abi,
-    functionName: 'setApprovalForAll',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"setPolygonReference"`
- */
-export const useWriteSimpleErc721SetPolygonReference =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: simpleErc721Abi,
-    functionName: 'setPolygonReference',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"transferFrom"`
- */
-export const useWriteSimpleErc721TransferFrom =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: simpleErc721Abi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useWriteSimpleErc721TransferOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: simpleErc721Abi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__
- */
-export const useSimulateSimpleErc721Contract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: simpleErc721Abi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"approve"`
- */
-export const useSimulateSimpleErc721Approve =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'approve',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"batchMintWithPolygonReferences"`
- */
-export const useSimulateSimpleErc721BatchMintWithPolygonReferences =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'batchMintWithPolygonReferences',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"mint"`
- */
-export const useSimulateSimpleErc721Mint =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'mint',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"mintWithPolygonReference"`
- */
-export const useSimulateSimpleErc721MintWithPolygonReference =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'mintWithPolygonReference',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useSimulateSimpleErc721RenounceOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"safeTransferFrom"`
- */
-export const useSimulateSimpleErc721SafeTransferFrom =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'safeTransferFrom',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"setApprovalForAll"`
- */
-export const useSimulateSimpleErc721SetApprovalForAll =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'setApprovalForAll',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"setPolygonReference"`
- */
-export const useSimulateSimpleErc721SetPolygonReference =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'setPolygonReference',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"transferFrom"`
- */
-export const useSimulateSimpleErc721TransferFrom =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link simpleErc721Abi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useSimulateSimpleErc721TransferOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: simpleErc721Abi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link simpleErc721Abi}__
- */
-export const useWatchSimpleErc721Contract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: simpleErc721Abi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link simpleErc721Abi}__ and `eventName` set to `"Approval"`
- */
-export const useWatchSimpleErc721Approval =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: simpleErc721Abi,
-    eventName: 'Approval',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link simpleErc721Abi}__ and `eventName` set to `"ApprovalForAll"`
- */
-export const useWatchSimpleErc721ApprovalForAll =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: simpleErc721Abi,
-    eventName: 'ApprovalForAll',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link simpleErc721Abi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const useWatchSimpleErc721OwnershipTransferred =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: simpleErc721Abi,
-    eventName: 'OwnershipTransferred',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link simpleErc721Abi}__ and `eventName` set to `"Transfer"`
- */
-export const useWatchSimpleErc721Transfer =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: simpleErc721Abi,
-    eventName: 'Transfer',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__
- */
-export const useReadTestTokenContract = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"DOMAIN_SEPARATOR"`
- */
-export const useReadTestTokenDomainSeparator =
-  /*#__PURE__*/ createUseReadContract({
-    abi: testTokenAbi,
-    functionName: 'DOMAIN_SEPARATOR',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"allowance"`
- */
-export const useReadTestTokenAllowance = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-  functionName: 'allowance',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"balanceOf"`
- */
-export const useReadTestTokenBalanceOf = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-  functionName: 'balanceOf',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"decimals"`
- */
-export const useReadTestTokenDecimals = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-  functionName: 'decimals',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"eip712Domain"`
- */
-export const useReadTestTokenEip712Domain = /*#__PURE__*/ createUseReadContract(
-  { abi: testTokenAbi, functionName: 'eip712Domain' },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"name"`
- */
-export const useReadTestTokenName = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-  functionName: 'name',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"nonces"`
- */
-export const useReadTestTokenNonces = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-  functionName: 'nonces',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"owner"`
- */
-export const useReadTestTokenOwner = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-  functionName: 'owner',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"symbol"`
- */
-export const useReadTestTokenSymbol = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-  functionName: 'symbol',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"totalSupply"`
- */
-export const useReadTestTokenTotalSupply = /*#__PURE__*/ createUseReadContract({
-  abi: testTokenAbi,
-  functionName: 'totalSupply',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__
- */
-export const useWriteTestTokenContract = /*#__PURE__*/ createUseWriteContract({
-  abi: testTokenAbi,
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"approve"`
- */
-export const useWriteTestTokenApprove = /*#__PURE__*/ createUseWriteContract({
-  abi: testTokenAbi,
-  functionName: 'approve',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"faucet"`
- */
-export const useWriteTestTokenFaucet = /*#__PURE__*/ createUseWriteContract({
-  abi: testTokenAbi,
-  functionName: 'faucet',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"mint"`
- */
-export const useWriteTestTokenMint = /*#__PURE__*/ createUseWriteContract({
-  abi: testTokenAbi,
-  functionName: 'mint',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"mintToSelf"`
- */
-export const useWriteTestTokenMintToSelf = /*#__PURE__*/ createUseWriteContract(
-  { abi: testTokenAbi, functionName: 'mintToSelf' },
-)
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"permit"`
- */
-export const useWriteTestTokenPermit = /*#__PURE__*/ createUseWriteContract({
-  abi: testTokenAbi,
-  functionName: 'permit',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useWriteTestTokenRenounceOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: testTokenAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"transfer"`
- */
-export const useWriteTestTokenTransfer = /*#__PURE__*/ createUseWriteContract({
-  abi: testTokenAbi,
-  functionName: 'transfer',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"transferFrom"`
- */
-export const useWriteTestTokenTransferFrom =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: testTokenAbi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useWriteTestTokenTransferOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: testTokenAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__
- */
-export const useSimulateTestTokenContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: testTokenAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"approve"`
- */
-export const useSimulateTestTokenApprove =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testTokenAbi,
-    functionName: 'approve',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"faucet"`
- */
-export const useSimulateTestTokenFaucet =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testTokenAbi,
-    functionName: 'faucet',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"mint"`
- */
-export const useSimulateTestTokenMint = /*#__PURE__*/ createUseSimulateContract(
-  { abi: testTokenAbi, functionName: 'mint' },
-)
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"mintToSelf"`
- */
-export const useSimulateTestTokenMintToSelf =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testTokenAbi,
-    functionName: 'mintToSelf',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"permit"`
- */
-export const useSimulateTestTokenPermit =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testTokenAbi,
-    functionName: 'permit',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useSimulateTestTokenRenounceOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testTokenAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"transfer"`
- */
-export const useSimulateTestTokenTransfer =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testTokenAbi,
-    functionName: 'transfer',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"transferFrom"`
- */
-export const useSimulateTestTokenTransferFrom =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testTokenAbi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testTokenAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useSimulateTestTokenTransferOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testTokenAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testTokenAbi}__
- */
-export const useWatchTestTokenContract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: testTokenAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testTokenAbi}__ and `eventName` set to `"Approval"`
- */
-export const useWatchTestTokenApproval =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: testTokenAbi,
-    eventName: 'Approval',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testTokenAbi}__ and `eventName` set to `"EIP712DomainChanged"`
- */
-export const useWatchTestTokenEip712DomainChanged =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: testTokenAbi,
-    eventName: 'EIP712DomainChanged',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testTokenAbi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const useWatchTestTokenOwnershipTransferred =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: testTokenAbi,
-    eventName: 'OwnershipTransferred',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testTokenAbi}__ and `eventName` set to `"Transfer"`
- */
-export const useWatchTestTokenTransfer =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: testTokenAbi,
-    eventName: 'Transfer',
   })

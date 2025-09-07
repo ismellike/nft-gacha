@@ -5,13 +5,14 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {GachaTreasury} from "./GachaTreasury.sol";
+import {GachaTreasury} from "../gacha/GachaTreasury.sol";
+import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
+import {IGachaRewardsManager} from "../interfaces/IGachaRewardsManager.sol";
 
-interface IGachaRewardsManager {
-    function recordUserRewardClaim(address user, uint256 amount) external;
-}
-
-contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
+/// @title CardDividendTracker - Card-level dividend distribution for NFT deposits
+/// @notice Distributes rewards to users based on their NFT deposits of specific card IDs
+/// @dev Implements dividend tracking weighted by number of deposits within a card ID
+contract CardDividendTracker is Ownable, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
 
     error InvalidAmount();
@@ -22,10 +23,14 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     error UnauthorizedCaller();
     error CalculationOverflow();
     error PrecisionLoss();
+    error CardNotFound();
+    error InvalidAppraisalContract();
 
     IERC20 public immutable fundsToken;
     GachaTreasury public immutable treasury;
+    NFTAppraisal public immutable appraisalContract;
     GachaTreasury.Rarity public immutable rarity;
+    bytes32 public immutable cardId;
 
     uint256 public totalFundsDistributed;
     uint256 private constant pointsMultiplier = 2 ** 96; // Sufficient precision with overflow safety
@@ -43,17 +48,33 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     event FundsDistributed(address indexed by, uint256 amount);
     event FundsWithdrawn(address indexed by, uint256 amount);
 
-    constructor(address _fundsToken, address _treasury, GachaTreasury.Rarity _rarity) Ownable(msg.sender) {
-        require(_fundsToken != address(0) && _treasury != address(0), "Zero address");
+    constructor(
+        address _fundsToken,
+        address _treasury,
+        address _appraisalContract,
+        GachaTreasury.Rarity _rarity,
+        bytes32 _cardId
+    ) Ownable(msg.sender) {
+        require(_fundsToken != address(0) && _treasury != address(0) && _appraisalContract != address(0), "Zero address");
+        require(_cardId != bytes32(0), "Invalid card ID");
+        
         fundsToken = IERC20(_fundsToken);
         treasury = GachaTreasury(_treasury);
+        appraisalContract = NFTAppraisal(_appraisalContract);
         rarity = _rarity;
+        cardId = _cardId;
+
+        // Verify card exists in appraisal contract
+        NFTAppraisal.CardAppraisal memory cardAppraisal = appraisalContract.getCardAppraisal(_cardId);
+        if (cardAppraisal.priceUSD == 0 || (cardAppraisal.status != NFTAppraisal.AppraisalStatus.Completed && cardAppraisal.status != NFTAppraisal.AppraisalStatus.OwnerOverride)) {
+            revert CardNotFound();
+        }
     }
 
     function distributeFunds(uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert InvalidAmount();
 
-        uint256 totalShares = treasury.getRarityTotalValue(rarity);
+        uint256 totalShares = _getTotalCardDeposits();
         if (totalShares == 0) revert NoDeposits();
 
         // Check for precision loss in points calculation
@@ -98,7 +119,7 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
     }
 
     function accumulativeFundsOf(address account) public view returns (uint256) {
-        uint256 shares = treasury.getUserDepositValue(account, rarity);
+        uint256 shares = _getUserCardDeposits(account);
 
         if (shares == 0) return 0;
 
@@ -117,7 +138,7 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
         // This method should be called when treasury deposit values change
         // We need to preserve the user's already-earned dividends while updating their share value
         uint256 currentWithdrawable = withdrawableFundsOf(account);
-        uint256 newShares = treasury.getUserDepositValue(account, rarity);
+        uint256 newShares = _getUserCardDeposits(account);
         uint256 targetAccumulative = currentWithdrawable + withdrawnFunds[account];
 
         // Enhanced overflow protection for correction calculation
@@ -135,9 +156,35 @@ contract RarityDividendTracker is Ownable, ReentrancyGuard, Pausable {
         pointsCorrection[account] = int256(targetPoints) - int256(sharePoints);
     }
 
-    // Optional: helper view
+    /// @notice Gets the total number of deposits for this specific card ID
+    /// @return Total deposits count for this card
+    function _getTotalCardDeposits() internal view returns (uint256) {
+        return treasury.getCardTotalDeposits(cardId);
+    }
+
+    /// @notice Gets the number of deposits a user has for this specific card ID
+    /// @param account User address to check
+    /// @return Number of deposits the user has for this card
+    function _getUserCardDeposits(address account) internal view returns (uint256) {
+        return treasury.getUserCardDeposits(account, cardId);
+    }
+
+    // Optional: helper views
     function getTotalFundsDistributed() external view returns (uint256) {
         return totalFundsDistributed;
+    }
+
+    function getTotalCardDeposits() external view returns (uint256) {
+        return _getTotalCardDeposits();
+    }
+
+    function getUserCardDeposits(address account) external view returns (uint256) {
+        return _getUserCardDeposits(account);
+    }
+
+    function getCardAppraisalPrice() external view returns (uint256) {
+        NFTAppraisal.CardAppraisal memory cardAppraisal = appraisalContract.getCardAppraisal(cardId);
+        return cardAppraisal.priceUSD;
     }
 
     // Admin: pause controls

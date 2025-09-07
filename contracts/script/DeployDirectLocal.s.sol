@@ -3,13 +3,14 @@ pragma solidity ^0.8.27;
 
 import {Script, console} from "forge-std/Script.sol";
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
-import {Gacha} from "../src/Gacha.sol";
-import {GachaTreasury} from "../src/GachaTreasury.sol";
-import {GachaRewardsManager} from "../src/GachaRewardsManager.sol";
-import {GachaServiceHandler} from "../src/GachaServiceHandler.sol";
-import {NFTAppraisal} from "../src/NFTAppraisal.sol";
-import {TestToken} from "../src/TestToken.sol";
-import {SimpleERC721} from "../src/SimpleERC721.sol";
+import {Gacha} from "../src/gacha/Gacha.sol";
+import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
+import {GachaRewardsManager} from "../src/rewards/GachaRewardsManager.sol";
+import {GachaServiceHandler} from "../src/gacha/GachaServiceHandler.sol";
+import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {BaseERC20} from "../src/tokens/BaseERC20.sol";
+import {BaseERC721} from "../src/tokens/BaseERC721.sol";
 
 contract DeployDirectLocal is Script {
     // Polygon contract address for Courtyard NFTs
@@ -25,9 +26,9 @@ contract DeployDirectLocal is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // Deploy test token first
-        console.log("Deploying TestToken...");
-        TestToken testToken = new TestToken("Test Token", "TEST", deployer);
-        console.log("TestToken deployed to:", address(testToken));
+        console.log("Deploying Base ERC20 token...");
+        BaseERC20 testToken = new BaseERC20("Test Token", "TEST", deployer);
+        console.log("Test Token deployed to:", address(testToken));
 
         // Mint initial tokens to deployer
         testToken.mint(deployer, 1000000 * 10 ** testToken.decimals());
@@ -83,6 +84,7 @@ contract DeployDirectLocal is Script {
             deployer,
             address(gacha), // real gacha address
             address(treasury),
+            address(appraisalContract),
             deployer, // protocol address
             address(testToken)
         );
@@ -109,34 +111,15 @@ contract DeployDirectLocal is Script {
         gacha.setRarityWeights(7000, 2000, 600, 300, 100); // 70%, 20%, 6%, 3%, 1%
 
         // Configure price ranges for proper rarity distribution
-        console.log("Setting price ranges for rarity tiers...");
-        treasury.setPriceRange(GachaTreasury.Rarity.Common, 0, 99 * 1e18); // $0-99 (5 cards)
-        treasury.setPriceRange(GachaTreasury.Rarity.Uncommon, 100 * 1e18, 199 * 1e18); // $100-199 (7 cards)
-        treasury.setPriceRange(GachaTreasury.Rarity.Rare, 200 * 1e18, 399 * 1e18); // $200-399 (8 cards)
-        treasury.setPriceRange(GachaTreasury.Rarity.Epic, 400 * 1e18, 999 * 1e18); // $400-999 (6 cards)
-        treasury.setPriceRange(GachaTreasury.Rarity.Legendary, 1000 * 1e18, type(uint256).max); // $1000+ (4 cards)
+        // We control seed prices, so set canonical compact bands and seed accordingly
+        console.log("Setting price ranges for rarity tiers (canonical)...");
+        treasury.setPriceRange(GachaTreasury.Rarity.Common, 0, 99 * 1e18); // $0-99 (Common)
+        treasury.setPriceRange(GachaTreasury.Rarity.Uncommon, 100 * 1e18, 199 * 1e18); // $100-199 (Uncommon)
+        treasury.setPriceRange(GachaTreasury.Rarity.Rare, 200 * 1e18, 399 * 1e18); // $200-399 (Rare)
+        treasury.setPriceRange(GachaTreasury.Rarity.Epic, 400 * 1e18, 999 * 1e18); // $400-999 (Epic)
+        treasury.setPriceRange(GachaTreasury.Rarity.Legendary, 1000 * 1e18, type(uint256).max); // $1000+ (Legendary)
 
-        console.log("Deploying rarity dividend trackers...");
-        rewardsManager.deployAllRarityTokens();
-
-        // Get the deployed rarity token addresses
-        address commonTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Common));
-        address uncommonTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Uncommon));
-        address rareTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Rare));
-        address epicTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Epic));
-        address legendaryTracker = address(rewardsManager.rarityTokens(GachaTreasury.Rarity.Legendary));
-
-        console.log("Common Tracker:      ", commonTracker);
-        console.log("Uncommon Tracker:    ", uncommonTracker);
-        console.log("Rare Tracker:        ", rareTracker);
-        console.log("Epic Tracker:        ", epicTracker);
-        console.log("Legendary Tracker:   ", legendaryTracker);
-
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Common, 10000);
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Uncommon, 12000);
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Rare, 15000);
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Epic, 20000);
-        rewardsManager.setRarityMultiplier(GachaTreasury.Rarity.Legendary, 30000);
+        console.log("Rewards manager deployed and configured...");
         treasury.setTreasuryRewardsManager(address(rewardsManager));
 
         console.log("\\n=== System Deployed Successfully ===");
@@ -145,27 +128,21 @@ contract DeployDirectLocal is Script {
         console.log("Treasury:        ", address(treasury));
         console.log("RewardsManager:  ", address(rewardsManager));
 
-        // Deploy single NFT collection
-        console.log("\\n=== Deploying Single NFT Collection ===");
-        SimpleERC721 pokemonNFT = new SimpleERC721("Graded Pokemon Cards", "GPOKE");
+        // Deploy simple NFT collection and seed treasury
+        console.log("\\n=== Deploying Base ERC721 Collection ===");
+        BaseERC721 collection = new BaseERC721("Gacha Collection", "GACHA", deployer);
+        console.log("Collection:      ", address(collection));
 
-        console.log("Pokemon NFT:     ", address(pokemonNFT));
-
-        // Whitelist the NFT collection
         console.log("\\n=== Whitelisting NFT Collection ===");
-        treasury.addToWhitelist(address(pokemonNFT));
-
+        treasury.addToWhitelist(address(collection));
         console.log("Whitelisted 1 NFT collection");
-        console.log("Gacha Available: ", treasury.isGachaAvailable()); // Should be false (no NFTs yet)
 
-        // Mint and create NFTs with real Pokemon card data
-        console.log("\\n=== Minting NFTs with Real Pokemon Card Data ===");
-        _createPokemonNFTs(treasury, appraisalContract, pokemonNFT, deployer);
+        console.log("\\n=== Minting, Appraising, and Depositing Sample NFTs ===");
+        _seedTreasuryWithSampleNFTs(treasury, appraisalContract, collection, deployer);
 
-        // Verify gacha is now available
         console.log("\\n=== Gacha System Status ===");
         console.log("Whitelist Length:    ", treasury.getWhitelistLength());
-        console.log("Gacha Available:     ", treasury.isGachaAvailable()); // Should be true now
+        console.log("Gacha Available:     ", treasury.isGachaAvailable());
         console.log("Total NFTs:          ", treasury.getTotalItemsCount());
 
         vm.stopBroadcast();
@@ -180,173 +157,240 @@ contract DeployDirectLocal is Script {
             address(appraisalContract),
             address(treasury),
             address(rewardsManager),
-            commonTracker,
-            uncommonTracker,
-            rareTracker,
-            epicTracker,
-            legendaryTracker,
-            address(pokemonNFT)
+            address(collection)
         );
 
         console.log("All contracts deployed and configured successfully");
     }
 
-    function _createPokemonNFTs(
+    function _seedTreasuryWithSampleNFTs(
         GachaTreasury treasury,
         NFTAppraisal appraisalContract,
-        SimpleERC721 nftContract,
+        BaseERC721 nft,
         address deployer
     ) internal {
-        console.log("Creating 36 Pokemon NFTs with real blockchain metadata using 9 verified Courtyard tokens...");
+        // Total: 50 appraised (deposited) + 10 non-appraised (not deposited)
+        console.log("=== Minting NFTs with Real Courtyard TokenURIs ===");
 
-        // Using real Courtyard token IDs for authentic metadata
+        // Approve treasury once for all subsequent deposits
+        nft.setApprovalForAll(address(treasury), true);
 
-        // We'll create 36 NFTs total using VERIFIED real Courtyard tokens (reused with different rarities)
-        uint256 totalNFTs = 36;
-
-        // Create arrays for different groups - include all rarities for gacha
-        address[] memory depositTokens = new address[](33); // Include Epic and Legendary
-        uint256[] memory depositTokenIds = new uint256[](33);
-
-        // Generate 36 NFTs using 9 real tokens cycled through with different rarities and values
-        for (uint256 i = 0; i < totalNFTs; i++) {
-            // Get Polygon token ID for this card (cycle through 9 real tokens)
-            uint256 polygonTokenId = _getPolygonTokenId(i % 9);
-            uint256 estimatedValue = _getCardValue(i);
-
-            // Mint NFT with Polygon reference (automatically generates Courtyard URL)
-            uint256 tokenId = nftContract.mintWithPolygonReference(deployer, POLYGON_CONTRACT_ADDRESS, polygonTokenId);
-            console.log("Minted Pokemon NFT", i + 1, "with token ID:", tokenId);
-            console.log("Estimated value: $", estimatedValue / 1e18);
-
-            // Appraise cards 3-35 to include all rarities (skip first 3 common cards)
-            if (i >= 3 && i < 36) {
-                appraisalContract.overrideAppraisal(address(nftContract), tokenId, estimatedValue);
-                console.log("Appraised NFT", tokenId, "at $", estimatedValue / 1e18);
-
-                // Add to deposit arrays (shift index since we start from i=3)
-                depositTokens[i - 3] = address(nftContract);
-                depositTokenIds[i - 3] = tokenId;
-            } else {
-                console.log("NFT", tokenId, "left unappraised for testing");
-            }
-        }
-
-        // Approve and deposit all appraised NFTs (cards 3-35 = 33 NFTs)
-        nftContract.setApprovalForAll(address(treasury), true);
-        treasury.batchDepositNFT(depositTokens, depositTokenIds);
-
-        console.log("\\n=== VERIFIED Real Courtyard NFT Setup Complete ===");
-        console.log(
-            "Total NFTs minted:       36 (Using 9 VERIFIED REAL COURTYARD TOKENS cycled with different rarities)"
-        );
-        console.log("NFTs appraised:          33 (tokens 3-35 - includes ALL rarities)");
-        console.log("NFTs deposited:          33 (tokens 3-35)");
-        console.log("NFTs not appraised:      3 (tokens 0-2) - Available for testing appraisal");
-        console.log("Rarity Distribution in Treasury (deposited cards 3-35):");
-        console.log("  Common (15):    $35-85 range (cards 3-17)");
-        console.log("  Uncommon (9):   $120-180 range (cards 18-26)");
-        console.log("  Rare (5):       $280-350 range (cards 27-31)");
-        console.log("  Epic (3):       $450-850 range (cards 32-34)");
-        console.log("  Legendary (1):  $1200 (card 35 - exceeds $1000 threshold)");
+        _seedCommon(treasury, appraisalContract, nft, deployer);
+        _seedUncommon(treasury, appraisalContract, nft, deployer);
+        _seedRare(treasury, appraisalContract, nft, deployer);
+        _seedEpic(treasury, appraisalContract, nft, deployer);
+        _seedLegendary(treasury, appraisalContract, nft, deployer);
+        _seedNonAppraised(nft, deployer);
     }
 
-    function _getPolygonTokenId(uint256 cardIndex) internal pure returns (uint256) {
-        // Real Courtyard token IDs (hex format) from the actual Polygon contract - VERIFIED REAL TOKENS ONLY
-        string[9] memory courtyardTokenIds = [
-            "0x6274859bf9e325d0fc7c2387c8efeafbb8728d0d38b02f932c390a6aad93038c", // VERIFIED: Real token
-            "0x05f672f6cdfb808e4038ab2b331633158860809bb003a2cab4fbe8352a5f10dc", // VERIFIED: Real token
-            "0x3f8eb6e3c0993739b6923416c9fad399da687f8bcaaf92d1e75901e1c872dc3e", // VERIFIED: Real token
-            "0xb6e21e1d79445070a28fdfa9db3d199ffc4d01692d39967200113304dc114a03", // VERIFIED: Real token
-            "0x32068595c4e1c727725444478d6dc6623c7ccaa854a291e1b1b886044b5af147", // VERIFIED: Real token
-            "0x544ee57d69aa9a92cde78d297a01b847c0cb9763d4e653782d2e0fc3d6f5d4c4", // VERIFIED: Real token
-            "0x277508a1beabc304c4b89f95a1117397901b7040f1df0cdb0531f16642b5793a", // VERIFIED: Real token
-            "0xb7d232fecdc7bca4ed9b1f47328edc8cf38fe57416d4c31e8bc948c9ba7a6467", // VERIFIED: Real token
-            "0x23afbd41b540a6675d4df584bc7b79bd0f99376cb8882b49e4e4e7e34577810d" // VERIFIED: Real token
+    function _seedCommon(
+        GachaTreasury treasury,
+        NFTAppraisal appraisalContract,
+        BaseERC721 nft,
+        address deployer
+    ) internal {
+        string[15] memory ids = [
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f"
         ];
-
-        // Convert hex string to uint256
-        return _hexStringToUint256(courtyardTokenIds[cardIndex]);
-    }
-
-    function _hexStringToUint256(string memory hexString) internal pure returns (uint256) {
-        bytes memory hexBytes = bytes(hexString);
-        require(hexBytes.length == 66, "Invalid hex string length"); // 0x + 64 chars
-        require(hexBytes[0] == "0" && hexBytes[1] == "x", "Invalid hex prefix");
-
-        uint256 result = 0;
-        for (uint256 i = 2; i < hexBytes.length; i++) {
-            result = result * 16;
-            uint8 charValue = uint8(hexBytes[i]);
-
-            if (charValue >= 48 && charValue <= 57) {
-                // 0-9
-                result += charValue - 48;
-            } else if (charValue >= 97 && charValue <= 102) {
-                // a-f
-                result += charValue - 87;
-            } else if (charValue >= 65 && charValue <= 70) {
-                // A-F
-                result += charValue - 55;
-            } else {
-                revert("Invalid hex character");
-            }
-        }
-
-        return result;
-    }
-
-    function _getCardValue(uint256 cardIndex) internal pure returns (uint256) {
-        // Create 36 cards with proper rarity distribution:
-        // Most Common (18 cards): $35-85 range
-        // Uncommon (9 cards): $120-180 range
-        // Rare (5 cards): $280-350 range
-        // Epic (3 cards): $450-850 range
-        // Legendary (1 card): $1200 (exceeds $1000 threshold)
-
-        // Common cards (0-17): 18 cards, mostly low values
-        if (cardIndex < 18) {
-            uint256[6] memory commonBaseValues = [uint256(35), 45, 55, 65, 75, 85]; // Mix of low values
-            return commonBaseValues[cardIndex % 6] * 1e18;
-        }
-        // Uncommon cards (18-26): 9 cards, mid-low values
-        else if (cardIndex < 27) {
-            uint256[3] memory uncommonBaseValues = [uint256(120), 150, 180]; // Mid-range values
-            return uncommonBaseValues[(cardIndex - 18) % 3] * 1e18;
-        }
-        // Rare cards (27-31): 5 cards, mid-high values
-        else if (cardIndex < 32) {
-            uint256[5] memory rareBaseValues = [uint256(280), 300, 320, 340, 350]; // Higher values
-            return rareBaseValues[cardIndex - 27] * 1e18;
-        }
-        // Epic cards (32-34): 3 cards, high values
-        else if (cardIndex < 35) {
-            uint256[3] memory epicBaseValues = [uint256(450), 650, 850]; // High values in Epic range
-            return epicBaseValues[cardIndex - 32] * 1e18;
-        }
-        // Legendary card (35): 1 card, highest value
-        else {
-            return 1200 * 1e18; // Legendary value - exceeds $1000 threshold
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
+            uint256 price = (50 + ((i % 10) * 5)) * 1e18;
+            bytes32 cardId = _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "");
+            appraisalContract.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, price);
+            treasury.depositNFT(address(nft), tokenId);
         }
     }
 
-    function _getRarityFromValue(uint256 value) internal pure returns (GachaTreasury.Rarity) {
-        // Define rarity thresholds based on card values for proper distribution
-        if (value >= 1000 * 1e18) return GachaTreasury.Rarity.Legendary; // $1000+ (4 cards)
-        if (value >= 400 * 1e18) return GachaTreasury.Rarity.Epic; // $400-999 (6 cards)
-        if (value >= 200 * 1e18) return GachaTreasury.Rarity.Rare; // $200-399 (8 cards)
-        if (value >= 100 * 1e18) return GachaTreasury.Rarity.Uncommon; // $100-199 (7 cards)
-        return GachaTreasury.Rarity.Common; // Under $100 (5 cards)
+    function _seedUncommon(
+        GachaTreasury treasury,
+        NFTAppraisal appraisalContract,
+        BaseERC721 nft,
+        address deployer
+    ) internal {
+        string[10] memory ids = [
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19"
+        ];
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
+            uint256 price = (110 + (i * 8)) * 1e18;
+            bytes32 cardId = (i % 2 == 0)
+                ? _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Bronzong", "English", "16")
+                : _generateCardId("CGC", "9 MINT", "EX Hidden Legends", "Beldum", "English", "29");
+            appraisalContract.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, price);
+            treasury.depositNFT(address(nft), tokenId);
+        }
     }
 
-    function _getAppraisalPriceForRarity(GachaTreasury.Rarity rarity) internal pure returns (uint256) {
-        if (rarity == GachaTreasury.Rarity.Common) return 50 * 1e18; // $50
-        if (rarity == GachaTreasury.Rarity.Uncommon) return 250 * 1e18; // $250
-        if (rarity == GachaTreasury.Rarity.Rare) return 1000 * 1e18; // $1000
-        if (rarity == GachaTreasury.Rarity.Epic) return 5000 * 1e18; // $5000
-        if (rarity == GachaTreasury.Rarity.Legendary) return 15000 * 1e18; // $15000
-        return 50 * 1e18; // Default to common
+    function _seedRare(
+        GachaTreasury treasury,
+        NFTAppraisal appraisalContract,
+        BaseERC721 nft,
+        address deployer
+    ) internal {
+        string[10] memory ids = [
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9"
+        ];
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
+            uint256 price = (220 + (i * 18)) * 1e18;
+            bytes32 cardId = _generateCardId("PSA", "9 MINT", "Black Star", "Psyduck", "English", "20");
+            appraisalContract.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, price);
+            treasury.depositNFT(address(nft), tokenId);
+        }
     }
+
+    function _seedEpic(
+        GachaTreasury treasury,
+        NFTAppraisal appraisalContract,
+        BaseERC721 nft,
+        address deployer
+    ) internal {
+        string[10] memory ids = [
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b"
+        ];
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
+            uint256 price = (500 + (i * 50)) * 1e18;
+            bytes32 cardId = _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Feraligatr", "Japanese", "016/P");
+            appraisalContract.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, price);
+            treasury.depositNFT(address(nft), tokenId);
+        }
+    }
+
+    function _seedLegendary(
+        GachaTreasury treasury,
+        NFTAppraisal appraisalContract,
+        BaseERC721 nft,
+        address deployer
+    ) internal {
+        string[5] memory ids = [
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c",
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c",
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c"
+        ];
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
+            uint256 price = (1200 + (i * 200)) * 1e18;
+            bytes32 cardId = (i % 2 == 0)
+                ? _generateCardId("PSA", "8 NM-MT", "Base Set 2", "Charizard", "English", "4")
+                : _generateCardId("BGS", "10 PRISTINE", "Champion's Path", "Charizard V", "English", "079");
+            appraisalContract.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, price);
+            treasury.depositNFT(address(nft), tokenId);
+        }
+    }
+
+    function _seedNonAppraised(BaseERC721 nft, address deployer) internal {
+        string[10] memory ids = [
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            // Use the same known-good Bronzong/Beldum IDs as uncommon seeding
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c",
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19"
+        ];
+        for (uint256 i = 0; i < ids.length; i++) {
+            nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
+        }
+    }
+
+    function _generateCourtyardTokenURI(string memory tokenId) internal pure returns (string memory) {
+        // Generate real Courtyard API URLs
+        return string(abi.encodePacked(
+            "https://api.courtyard.io/index/token/polygon/",
+            "0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD/",
+            tokenId,
+            "/metadata.json"
+        ));
+    }
+
+    function _generateCardId(
+        string memory grader,
+        string memory grade, 
+        string memory set,
+        string memory title,
+        string memory language,
+        string memory cardNumber
+    ) internal pure returns (bytes32) {
+        // Format: keccak256(Grader|Grade|Set|Title/Subject|Language|Card Number)
+        // This matches the NFTAppraisal AVS component logic
+        return keccak256(abi.encodePacked(
+            grader, "|",
+            grade, "|", 
+            set, "|",
+            title, "|",
+            language, "|",
+            cardNumber
+        ));
+    }
+
+
+    function _mintAppraiseDeposit(
+        GachaTreasury treasury,
+        NFTAppraisal appraisalContract,
+        BaseERC721 nft,
+        address deployer,
+        uint256 price,
+        uint8 rarityHint
+    ) internal {
+        // Mint
+        uint256 tokenId = nft.mint(deployer);
+        // Owner directly sets appraisal and links token to a synthetic card id
+        bytes32 cardId = keccak256(abi.encodePacked("card-", rarityHint, "-", tokenId));
+        appraisalContract.ownerSetAppraisalForTokenWithCard(address(nft), tokenId, cardId, price);
+        // Approve and deposit
+        nft.approve(address(treasury), tokenId);
+        treasury.depositNFT(address(nft), tokenId);
+    }
+
+    // polygon-specific helpers removed for base deploy
 
     function _displayTreasuryStats(GachaTreasury treasury) internal view {
         console.log("\\n=== Treasury Stats ===");
@@ -364,11 +408,6 @@ contract DeployDirectLocal is Script {
         address nftAppraisal,
         address treasury,
         address rewardsManager,
-        address commonTracker,
-        address uncommonTracker,
-        address rareTracker,
-        address epicTracker,
-        address legendaryTracker,
         address nftCollection
     ) internal {
         string memory addresses = string(
@@ -388,21 +427,6 @@ contract DeployDirectLocal is Script {
                 "\n",
                 "REWARDS_MANAGER_ADDRESS=",
                 vm.toString(rewardsManager),
-                "\n",
-                "COMMON_TRACKER_ADDRESS=",
-                vm.toString(commonTracker),
-                "\n",
-                "UNCOMMON_TRACKER_ADDRESS=",
-                vm.toString(uncommonTracker),
-                "\n",
-                "RARE_TRACKER_ADDRESS=",
-                vm.toString(rareTracker),
-                "\n",
-                "EPIC_TRACKER_ADDRESS=",
-                vm.toString(epicTracker),
-                "\n",
-                "LEGENDARY_TRACKER_ADDRESS=",
-                vm.toString(legendaryTracker),
                 "\n",
                 "NFT_COLLECTION_ADDRESS=",
                 vm.toString(nftCollection),

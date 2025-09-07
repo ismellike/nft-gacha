@@ -100,14 +100,17 @@ export const RealTimeNotifications: React.FC = () => {
 	useWatchGachaSpinCompleted({
 		address: contracts.gacha as `0x${string}` | undefined,
 		enabled: !!contracts.gacha && isEnabled,
+		pollingInterval: 5000, // Poll every 5 seconds instead of default 1 second
 		onLogs: useCallback(
 			(logs: unknown[]) => {
 				logs.forEach((log: unknown) => {
 					try {
-						const { args } = (log as { args?: unknown }).args
-							? (log as { args?: unknown })
-							: { args: undefined };
-						if (!args) return;
+						const logWithArgs = log as { args?: unknown };
+						if (!logWithArgs.args) return;
+						const args = logWithArgs.args;
+						
+						// Ensure args is an array with the expected length
+						if (!Array.isArray(args) || args.length < 5) return;
 
 						const [spinner, _triggerId, _collection, tokenId, rarity] =
 							args as [`0x${string}`, bigint, `0x${string}`, bigint, number];
@@ -141,14 +144,17 @@ export const RealTimeNotifications: React.FC = () => {
 	useWatchGachaTreasuryNftDeposited({
 		address: contracts.treasury as `0x${string}` | undefined,
 		enabled: !!contracts.treasury && isEnabled,
+		pollingInterval: 5000, // Poll every 5 seconds instead of default 1 second
 		onLogs: useCallback(
 			(logs: unknown[]) => {
 				logs.forEach((log: unknown) => {
 					try {
-						const { args } = (log as { args?: unknown }).args
-							? (log as { args?: unknown })
-							: { args: undefined };
-						if (!args) return;
+						const logWithArgs = log as { args?: unknown };
+						if (!logWithArgs.args) return;
+						const args = logWithArgs.args;
+						
+						// Ensure args is an array with the expected length
+						if (!Array.isArray(args) || args.length < 4) return;
 
 						const [_collection, _tokenId, depositor, rarity] = args as [
 							`0x${string}`,

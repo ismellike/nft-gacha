@@ -7,7 +7,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {NFTAppraisal} from "./NFTAppraisal.sol";
+import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
 
 /**
  * @title GachaTreasury - Price-Based NFT Treasury Management
@@ -77,6 +77,13 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         uint256 depositTime; // When NFT was deposited
     }
 
+    /// @notice User's card deposit information for frontend display
+    struct UserCardDeposit {
+        bytes32 cardId; // Card ID (group identifier)
+        uint256 depositCount; // Number of tokens deposited for this card
+        uint256 totalCardDeposits; // Total deposits across all users for this card
+    }
+
     /// @notice Core treasury storage
     mapping(Rarity => NFTItem[]) public treasury;
     /// @dev NFTs organized by rarity
@@ -99,10 +106,25 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @notice User deposit tracking for rewards
     mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
     mapping(address => uint256) public userTotalDeposits;
-    
+
     /// @notice Value-weighted dividend tracking
-    mapping(address => mapping(Rarity => uint256)) public userDepositValues;  // Total USD value deposited by user per rarity
-    mapping(Rarity => uint256) public totalRarityValue;  // Total USD value in each rarity pool
+    mapping(address => mapping(Rarity => uint256)) public userDepositValues; // Total USD value deposited by user per rarity
+    mapping(Rarity => uint256) public totalRarityValue; // Total USD value in each rarity pool
+
+    /// @notice Lifetime user statistics tracking (industry standard)
+    mapping(address => uint256) public userLifetimeClaimed; // Total value claimed by user across all time
+    mapping(address => uint256) public userLifetimeDeposited; // Total value of NFTs deposited (for analytics)
+    mapping(address => uint256) public userLifetimeWithdrawn; // Total value of NFTs withdrawn (for analytics)
+    uint256 public globalLifetimeClaimed; // Total claimed across all users
+    uint256 public globalLifetimeDeposited; // Total deposited across all users
+
+    /// @notice Card-level deposit tracking for enhanced rewards
+    mapping(address => mapping(bytes32 => uint256)) public userCardDeposits; // user => cardId => count
+    mapping(bytes32 => uint256) public cardTotalDeposits; // cardId => total count
+
+    /// @notice Per-user list of active groupIds (bytes32 hashes) for pagination and batching
+    mapping(address => bytes32[]) private userGroupIds; // user => groupIds
+    mapping(address => mapping(bytes32 => uint256)) private userCardIdIndex; // index+1 by cardId
 
     /// @notice Collection whitelist management
     mapping(address => bool) public whitelistedCollections;
@@ -132,6 +154,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     event PriceRangeUpdated(
         Rarity indexed rarity, uint256 oldMinPrice, uint256 oldMaxPrice, uint256 newMinPrice, uint256 newMaxPrice
     );
+    event UserClaimedRewards(address indexed user, uint256 amount);
 
     /// @notice Restricts access to the authorized gacha contract
     modifier onlyGacha() {
@@ -226,15 +249,29 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Track user deposit counts for rewards
         userDepositCounts[msg.sender][rarity]++;
         userTotalDeposits[msg.sender]++;
-        
+
         // Track value-weighted deposits for enhanced rewards
         userDepositValues[msg.sender][rarity] += priceUSD;
         totalRarityValue[rarity] += priceUSD;
-        
-        // Notify rewards manager about the deposit to update dividend corrections
-        if (treasuryRewardsManager != address(0)) {
+
+        // Track lifetime statistics (industry standard)
+        userLifetimeDeposited[msg.sender] += priceUSD;
+        globalLifetimeDeposited += priceUSD;
+
+        // Track card-level deposits for enhanced rewards
+        bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
+        if (cardId != bytes32(0)) {
+            userCardDeposits[msg.sender][cardId]++;
+            cardTotalDeposits[cardId]++;
+            _addUserGroupId(msg.sender, cardId);
+        }
+
+        // Notify rewards manager about the deposit - using new three-tier system
+        if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
             (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", msg.sender, uint8(rarity))
+                abi.encodeWithSignature(
+                    "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, msg.sender, int256(1)
+                ) // +1 unit
             );
             success; // Silence unused variable warning
         }
@@ -296,6 +333,9 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             --rarityCount[currentRarity];
         }
 
+        // Capture old price before updating
+        uint256 oldPrice = item.appraisedPrice;
+
         // Update item with new price and rarity
         item.appraisedPrice = newPriceUSD;
         item.rarity = newRarity;
@@ -312,29 +352,35 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Update user deposit counts
         userDepositCounts[item.depositor][currentRarity]--;
         userDepositCounts[item.depositor][newRarity]++;
-        
+
         // Update value-weighted tracking for dividend rewards
-        uint256 oldPrice = item.appraisedPrice; // Use original price before update
         userDepositValues[item.depositor][currentRarity] -= oldPrice;
         userDepositValues[item.depositor][newRarity] += newPriceUSD;
         totalRarityValue[currentRarity] -= oldPrice;
         totalRarityValue[newRarity] += newPriceUSD;
-        
-        // Notify rewards manager about the value change (update dividend corrections)
-        if (treasuryRewardsManager != address(0)) {
-            // Update corrections for both old and new rarities
-            (bool success1,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", item.depositor, uint8(currentRarity))
+
+        // Update card-level tracking for migration - no changes needed
+        // Cards are tracked globally, not per rarity
+        bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
+        // Card counts remain the same during rarity migration
+
+        // Notify rewards manager about migration - handle at card level (Tier-2)
+        if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
+            // Use handleReappraisal which includes migration logic
+            (bool success,) = treasuryRewardsManager.call(
+                abi.encodeWithSignature(
+                    "handleReappraisal(uint8,bytes32,uint256,uint8)",
+                    uint8(currentRarity),
+                    cardId,
+                    newPriceUSD,
+                    uint8(newRarity)
+                )
             );
-            (bool success2,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", item.depositor, uint8(newRarity))
-            );
-            success1; success2; // Silence unused variable warnings
+            success; // Silence unused variable warning
         }
 
         emit RarityMigrated(collection, tokenId, currentRarity, newRarity, newPriceUSD);
     }
-
 
     /// @notice Allows users to withdraw their own deposited NFTs
     /// @param collection NFT collection address
@@ -342,18 +388,18 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     function withdrawMyNFT(address collection, uint256 tokenId) external whenNotPaused nonReentrant {
         if (collection == address(0)) revert InvalidCollectionAddress();
         if (!depositedNFTs[collection][tokenId]) revert NFTNotDeposited();
-        
+
         // Get the NFT's current rarity and treasury index
         Rarity rarity = nftCurrentRarity[collection][tokenId];
         uint256 index = nftToTreasuryIndex[collection][tokenId];
-        
+
         if (index >= treasury[rarity].length) revert InvalidIndex();
-        
+
         NFTItem storage item = treasury[rarity][index];
-        
+
         // Verify the caller is the original depositor
         if (item.depositor != msg.sender) revert NotNFTDepositor();
-        
+
         // Move the last item to the current position and pop
         uint256 lastIndex = treasury[rarity].length - 1;
         if (index != lastIndex) {
@@ -362,38 +408,56 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             nftToTreasuryIndex[lastItem.collection][lastItem.tokenId] = index;
         }
         treasury[rarity].pop();
-        
+
         // Update counts
         unchecked {
             --rarityCount[rarity];
         }
-        
+
         // Update user deposit tracking (affects their rewards)
         if (userDepositCounts[item.depositor][rarity] > 0) {
             --userDepositCounts[item.depositor][rarity];
             --userTotalDeposits[item.depositor];
         }
-        
+
         // Update value tracking - subtract the NFT's value from user and total
         userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
         totalRarityValue[rarity] -= item.appraisedPrice;
-        
+
+        // Track lifetime withdrawal statistics
+        userLifetimeWithdrawn[item.depositor] += item.appraisedPrice;
+
         // Clean up mappings
         depositedNFTs[collection][tokenId] = false;
         delete nftToTreasuryIndex[collection][tokenId];
         delete nftCurrentRarity[collection][tokenId];
-        
-        // Notify rewards manager about the withdrawal (update dividend corrections)
-        if (treasuryRewardsManager != address(0)) {
+
+        // Notify rewards manager about the withdrawal - using new three-tier system
+        bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
+        if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
             (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", item.depositor, uint8(rarity))
+                abi.encodeWithSignature(
+                    "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, item.depositor, int256(-1)
+                ) // -1 unit
             );
             success; // Silence unused variable warning
         }
-        
+
+        // Update card tracking for withdrawal
+        if (cardId != bytes32(0)) {
+            if (userCardDeposits[item.depositor][cardId] > 0) {
+                userCardDeposits[item.depositor][cardId]--;
+                cardTotalDeposits[cardId]--;
+                // If user no longer holds this cardId, remove from list
+                if (userCardDeposits[item.depositor][cardId] == 0) {
+                    _removeUserGroupId(item.depositor, cardId);
+                }
+            }
+        }
+
         // Transfer NFT back to the user
         IERC721(collection).safeTransferFrom(address(this), msg.sender, tokenId);
-        
+
         emit NFTWithdrawn(collection, tokenId, rarity, msg.sender);
     }
 
@@ -427,7 +491,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             --userDepositCounts[item.depositor][rarity];
             --userTotalDeposits[item.depositor];
         }
-        
+
         // Update value tracking - subtract the NFT's value from user and total
         userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
         totalRarityValue[rarity] -= item.appraisedPrice;
@@ -447,6 +511,19 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
+        // Update card tracking for won NFT
+        bytes32 wonCardId = appraisalContract.getTokenCardId(item.collection, item.tokenId);
+        if (wonCardId != bytes32(0)) {
+            if (userCardDeposits[item.depositor][wonCardId] > 0) {
+                userCardDeposits[item.depositor][wonCardId]--;
+                cardTotalDeposits[wonCardId]--;
+                // If user no longer holds this cardId, remove from list
+                if (userCardDeposits[item.depositor][wonCardId] == 0) {
+                    _removeUserGroupId(item.depositor, wonCardId);
+                }
+            }
+        }
+
         emit NFTWithdrawn(item.collection, item.tokenId, rarity, winner);
     }
 
@@ -465,6 +542,80 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     function getRarityCount(Rarity rarity) external view returns (uint256) {
         return rarityCount[rarity];
+    }
+
+    /// @notice Returns the number of distinct groupIds a user has
+    function getUserCardIdsLength(address user) external view returns (uint256) {
+        return userGroupIds[user].length;
+    }
+
+    /// @notice Returns a paginated slice of the user's cardIds (keccak256 hashes)
+    /// @param user The user address
+    /// @param offset Starting index (0-based)
+    /// @param limit Maximum number of items to return (1-100)
+    /// @return cardIds Array of cardIds for this page
+    /// @return total Total number of cardIds the user has
+    /// @return hasMore Whether there are more items after this page
+    function getUserCardIds(address user, uint256 offset, uint256 limit)
+        external
+        view
+        returns (bytes32[] memory cardIds, uint256 total, bool hasMore)
+    {
+        require(limit > 0 && limit <= 100, "Invalid limit: must be 1-100");
+
+        bytes32[] storage list = userGroupIds[user];
+        total = list.length;
+
+        if (offset >= total) {
+            return (new bytes32[](0), total, false);
+        }
+
+        uint256 end = offset + limit;
+        if (end > total) {
+            end = total;
+        }
+
+        uint256 resultLength = end - offset;
+        cardIds = new bytes32[](resultLength);
+        for (uint256 i = 0; i < resultLength; i++) {
+            cardIds[i] = list[offset + i];
+        }
+
+        hasMore = end < total;
+    }
+
+    /// @notice Returns all cardIds (keccak256 hashes) for a user
+    /// @dev DEPRECATED: Use getAllUserCardDeposits() for richer data, or getUserCardDepositsPage() for pagination
+    /// @param user The user address
+    /// @return cardIds Array of all cardIds the user has deposited
+    function getAllUserCardIds(address user) external view returns (bytes32[] memory cardIds) {
+        return userGroupIds[user];
+    }
+
+    /// @dev Internal: add a cardId (bytes32 hash) to user's list if absent, using cardId index
+    function _addUserGroupId(address user, bytes32 cardId) internal {
+        if (userCardIdIndex[user][cardId] == 0) {
+            userGroupIds[user].push(cardId);
+            userCardIdIndex[user][cardId] = userGroupIds[user].length; // 1-based
+        }
+    }
+
+    /// @dev Internal: remove a groupId (by cardId) from user's list if present
+    function _removeUserGroupId(address user, bytes32 cardId) internal {
+        uint256 idxPlus = userCardIdIndex[user][cardId];
+        if (idxPlus == 0) return; // not present
+        uint256 idx = idxPlus - 1;
+        bytes32[] storage list = userGroupIds[user];
+        uint256 lastIndex = list.length - 1;
+        if (idx != lastIndex) {
+            bytes32 last = list[lastIndex];
+            list[idx] = last;
+            // Update the index for the moved element using its cardId hash
+            bytes32 movedCardId = last;
+            userCardIdIndex[user][movedCardId] = idx + 1;
+        }
+        list.pop();
+        delete userCardIdIndex[user][cardId];
     }
 
     /// @notice Gets all rarity counts in a single call to reduce RPC usage
@@ -646,12 +797,30 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             // Track user deposit counts for rewards
             userDepositCounts[msg.sender][rarity]++;
             userTotalDeposits[msg.sender]++;
-            
+
             // Track value-weighted deposits for enhanced rewards
             userDepositValues[msg.sender][rarity] += priceUSD;
             totalRarityValue[rarity] += priceUSD;
-            
-            // Notify rewards manager about the deposit to update dividend corrections
+
+            // Track card-level deposits for enhanced rewards
+            bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
+            if (cardId != bytes32(0)) {
+                userCardDeposits[msg.sender][cardId]++;
+                cardTotalDeposits[cardId]++;
+                _addUserGroupId(msg.sender, cardId);
+            }
+
+            // Notify rewards manager about the deposit - using new three-tier system
+            if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
+                (bool success,) = treasuryRewardsManager.call(
+                    abi.encodeWithSignature(
+                        "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, msg.sender, int256(1)
+                    )
+                );
+                success; // Silence unused variable warning
+            }
+
+            // Also notify for rarity-level tracking (legacy)
             if (treasuryRewardsManager != address(0)) {
                 (bool success,) = treasuryRewardsManager.call(
                     abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", msg.sender, uint8(rarity))
@@ -664,7 +833,6 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         emit BatchDeposited(length, Rarity.Common); // Use a placeholder for the event
     }
-
 
     // Helper functions
     function _isValidNFTContract(address collection) private view returns (bool) {
@@ -744,7 +912,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     // ============ VALUE-WEIGHTED DIVIDEND FUNCTIONS ============
 
-    /// @notice Gets user's total deposited value for a specific rarity  
+    /// @notice Gets user's total deposited value for a specific rarity
     /// @param user User address
     /// @param rarity Rarity to check
     /// @return value Total USD value (in 18 decimals) deposited by user for the rarity
@@ -754,7 +922,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @notice Gets total value in a specific rarity pool
-    /// @param rarity Rarity to check  
+    /// @param rarity Rarity to check
     /// @return totalValue Total USD value (in 18 decimals) in the rarity pool
     function getRarityTotalValue(Rarity rarity) external view returns (uint256 totalValue) {
         return totalRarityValue[rarity];
@@ -778,49 +946,17 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    /// @notice Migrates value data for a batch of NFTs to avoid gas limits
-    /// @dev Processes NFTs in chunks to prevent out-of-gas errors
-    /// @param rarity Target rarity pool
-    /// @param startIndex Starting index in the array
-    /// @param endIndex Ending index (exclusive) - max 50 NFTs per call
-    function migrateBatchNFTValues(Rarity rarity, uint256 startIndex, uint256 endIndex) external onlyOwner {
-        if (endIndex > treasury[rarity].length) endIndex = treasury[rarity].length;
-        if (endIndex - startIndex > 50) revert TooManyItems(); // Limit batch size
-        
-        for (uint256 i = startIndex; i < endIndex; i++) {
-            NFTItem memory item = treasury[rarity][i];
-            
-            // Only add if not already migrated (avoid double counting)
-            if (!_isNFTValueMigrated(item.collection, item.tokenId)) {
-                userDepositValues[item.depositor][rarity] += item.appraisedPrice;
-                totalRarityValue[rarity] += item.appraisedPrice;
-                
-                // Mark as migrated
-                _markNFTValueMigrated(item.collection, item.tokenId);
-            }
-        }
-    }
-    
-    // Track which NFTs have been migrated to avoid double counting
-    mapping(address => mapping(uint256 => bool)) private nftValueMigrated;
-    
-    function _isNFTValueMigrated(address collection, uint256 tokenId) private view returns (bool) {
-        return nftValueMigrated[collection][tokenId];
-    }
-    
-    function _markNFTValueMigrated(address collection, uint256 tokenId) private {
-        nftValueMigrated[collection][tokenId] = true;
-    }
+    // Migration tracking removed - no longer needed with proper initialization
 
     /// @notice Sends a pseudo-random NFT to winner (optimized for gas)
-    /// @param rarity Rarity tier to select from  
+    /// @param rarity Rarity tier to select from
     /// @param randomSeed Random seed for selection (from VRF or similar)
     /// @param winner Winner's address
     /// @return item The NFT item that was sent
-    function sendRandomNFTToWinner(Rarity rarity, uint256 randomSeed, address winner) 
-        external 
-        onlyGacha 
-        returns (NFTItem memory item) 
+    function sendRandomNFTToWinner(Rarity rarity, uint256 randomSeed, address winner)
+        external
+        onlyGacha
+        returns (NFTItem memory item)
     {
         uint256 totalCount = treasury[rarity].length;
         if (totalCount == 0) revert NoNFTsAvailable(rarity);
@@ -836,10 +972,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @param index Index to remove
     /// @param winner Winner receiving the NFT
     /// @return item Removed NFT item
-    function _removeNFTAtIndex(Rarity rarity, uint256 index, address winner) 
-        private 
-        returns (NFTItem memory item) 
-    {
+    function _removeNFTAtIndex(Rarity rarity, uint256 index, address winner) private returns (NFTItem memory item) {
         NFTItem[] storage rarityTreasury = treasury[rarity];
         if (index >= rarityTreasury.length) revert InvalidIndex();
 
@@ -861,7 +994,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             --userDepositCounts[item.depositor][rarity];
             --userTotalDeposits[item.depositor];
         }
-        
+
         userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
         totalRarityValue[rarity] -= item.appraisedPrice;
 
@@ -909,6 +1042,19 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         address oldRewardsManager = treasuryRewardsManager;
         treasuryRewardsManager = _treasuryRewardsManager;
         emit RewardsManagerUpdated(oldRewardsManager, _treasuryRewardsManager);
+    }
+
+    /// @notice Records when a user claims rewards (called by rewards manager)
+    /// @param user User who claimed rewards
+    /// @param claimedAmount Amount claimed (in fee token units)
+    function recordUserClaim(address user, uint256 claimedAmount) external {
+        require(msg.sender == treasuryRewardsManager, "Only rewards manager");
+        if (user == address(0) || claimedAmount == 0) return;
+        
+        userLifetimeClaimed[user] += claimedAmount;
+        globalLifetimeClaimed += claimedAmount;
+        
+        emit UserClaimedRewards(user, claimedAmount);
     }
 
     /// @notice Emergency pause function
@@ -991,5 +1137,212 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         bytes calldata // data
     ) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
+    }
+
+    /// @notice Gets user's deposit count for a specific card ID
+    /// @param user User address
+    /// @param cardId Card ID to check
+    /// @return count Number of deposits by user for the card
+    /// @dev DEPRECATED: Use getAllUserCardDeposits() or getUserCardDepositsPage() for batch queries
+    function getUserCardDeposits(address user, bytes32 cardId) external view returns (uint256 count) {
+        if (user == address(0) || cardId == bytes32(0)) return 0;
+        return userCardDeposits[user][cardId];
+    }
+
+    /// @notice Gets total deposit count for a specific card ID
+    /// @param cardId Card ID to check
+    /// @return totalCount Total number of deposits for the card
+    function getCardTotalDeposits(bytes32 cardId) external view returns (uint256 totalCount) {
+        if (cardId == bytes32(0)) return 0;
+        return cardTotalDeposits[cardId];
+    }
+
+    /// @notice Gets paginated user card deposits with deposit counts (optimized for frontend)
+    /// @param user The user address
+    /// @param offset Starting index (0-based)
+    /// @param limit Maximum number of items to return (1-50)
+    /// @return deposits Array of UserCardDeposit structs for this page
+    /// @return total Total number of cards the user has deposited
+    /// @return hasMore Whether there are more items after this page
+    function getUserCardDepositsPage(address user, uint256 offset, uint256 limit)
+        external
+        view
+        returns (UserCardDeposit[] memory deposits, uint256 total, bool hasMore)
+    {
+        require(limit > 0 && limit <= 50, "Invalid limit: must be 1-50");
+        if (user == address(0)) {
+            return (new UserCardDeposit[](0), 0, false);
+        }
+
+        bytes32[] storage userCards = userGroupIds[user];
+        total = userCards.length;
+
+        if (offset >= total) {
+            return (new UserCardDeposit[](0), total, false);
+        }
+
+        uint256 end = offset + limit;
+        if (end > total) {
+            end = total;
+        }
+
+        uint256 resultLength = end - offset;
+        deposits = new UserCardDeposit[](resultLength);
+        
+        for (uint256 i = 0; i < resultLength; i++) {
+            bytes32 cardId = userCards[offset + i];
+            deposits[i] = UserCardDeposit({
+                cardId: cardId,
+                depositCount: userCardDeposits[user][cardId],
+                totalCardDeposits: cardTotalDeposits[cardId]
+            });
+        }
+
+        hasMore = end < total;
+    }
+
+    /// @notice Gets all user card deposits with deposit counts (for smaller datasets)
+    /// @param user The user address
+    /// @return deposits Array of all UserCardDeposit structs for the user
+    function getAllUserCardDeposits(address user) external view returns (UserCardDeposit[] memory deposits) {
+        if (user == address(0)) {
+            return new UserCardDeposit[](0);
+        }
+
+        bytes32[] storage userCards = userGroupIds[user];
+        uint256 length = userCards.length;
+        deposits = new UserCardDeposit[](length);
+        
+        for (uint256 i = 0; i < length; i++) {
+            bytes32 cardId = userCards[i];
+            deposits[i] = UserCardDeposit({
+                cardId: cardId,
+                depositCount: userCardDeposits[user][cardId],
+                totalCardDeposits: cardTotalDeposits[cardId]
+            });
+        }
+    }
+
+    // ============ LIFETIME STATISTICS FUNCTIONS ============
+
+    /// @notice Gets user's lifetime claimed rewards value
+    /// @param user User address
+    /// @return claimed Total value claimed by user across all time
+    function getUserLifetimeClaimed(address user) external view returns (uint256 claimed) {
+        if (user == address(0)) return 0;
+        return userLifetimeClaimed[user];
+    }
+
+    /// @notice Gets comprehensive user profile data in a single call (BATCH FUNCTION)
+    /// @param user User address
+    /// @return depositCounts Array of deposit counts [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return totalDeposits Total number of deposits
+    /// @return lifetimeClaimed Total rewards claimed
+    /// @return lifetimeDeposited Total value deposited
+    /// @return lifetimeWithdrawn Total value withdrawn
+    /// @return netContribution Net value contributed (deposited - withdrawn)
+    function getUserProfileBatch(address user) external view returns (
+        uint256[5] memory depositCounts,
+        uint256 totalDeposits,
+        uint256 lifetimeClaimed,
+        uint256 lifetimeDeposited,
+        uint256 lifetimeWithdrawn,
+        uint256 netContribution
+    ) {
+        if (user == address(0)) {
+            return (depositCounts, 0, 0, 0, 0, 0);
+        }
+
+        // Get deposit counts for all rarities
+        for (uint256 i = 0; i < 5; i++) {
+            depositCounts[i] = userDepositCounts[user][Rarity(i)];
+        }
+
+        totalDeposits = userTotalDeposits[user];
+        lifetimeClaimed = userLifetimeClaimed[user];
+        lifetimeDeposited = userLifetimeDeposited[user];
+        lifetimeWithdrawn = userLifetimeWithdrawn[user];
+        netContribution = lifetimeDeposited > lifetimeWithdrawn ? lifetimeDeposited - lifetimeWithdrawn : 0;
+    }
+
+    /// @notice Gets platform overview data in a single call (BATCH FUNCTION)
+    /// @return rarityCounts Array of NFT counts [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return totalItems Total NFTs in treasury
+    /// @return gachaAvailable Whether gacha is available
+    /// @return totalDeposited Global total value deposited
+    /// @return totalClaimed Global total value claimed
+    function getPlatformOverviewBatch() external view returns (
+        uint256[5] memory rarityCounts,
+        uint256 totalItems,
+        bool gachaAvailable,
+        uint256 totalDeposited,
+        uint256 totalClaimed
+    ) {
+        // Get rarity counts inline
+        for (uint256 i = 0; i < 5; i++) {
+            rarityCounts[i] = rarityCount[Rarity(i)];
+        }
+        
+        // Calculate total items inline
+        totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + 
+                    rarityCount[Rarity.Rare] + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
+        
+        // Check if gacha is available
+        gachaAvailable = whitelistedCollectionsList.length > 0 && totalItems > 0;
+        
+        // Global stats
+        totalDeposited = globalLifetimeDeposited;
+        totalClaimed = globalLifetimeClaimed;
+    }
+
+    /// @notice Gets user's lifetime deposited NFT value
+    /// @param user User address
+    /// @return deposited Total value of NFTs deposited by user
+    function getUserLifetimeDeposited(address user) external view returns (uint256 deposited) {
+        if (user == address(0)) return 0;
+        return userLifetimeDeposited[user];
+    }
+
+    /// @notice Gets user's lifetime withdrawn NFT value
+    /// @param user User address
+    /// @return withdrawn Total value of NFTs withdrawn by user
+    function getUserLifetimeWithdrawn(address user) external view returns (uint256 withdrawn) {
+        if (user == address(0)) return 0;
+        return userLifetimeWithdrawn[user];
+    }
+
+    /// @notice Gets comprehensive user lifetime statistics
+    /// @param user User address
+    /// @return deposited Total value deposited
+    /// @return withdrawn Total value withdrawn
+    /// @return claimed Total rewards claimed
+    /// @return netContribution Net value contributed (deposited - withdrawn)
+    function getUserLifetimeStats(address user) external view returns (
+        uint256 deposited,
+        uint256 withdrawn, 
+        uint256 claimed,
+        uint256 netContribution
+    ) {
+        if (user == address(0)) return (0, 0, 0, 0);
+        
+        deposited = userLifetimeDeposited[user];
+        withdrawn = userLifetimeWithdrawn[user];
+        claimed = userLifetimeClaimed[user];
+        netContribution = deposited > withdrawn ? deposited - withdrawn : 0;
+    }
+
+    /// @notice Gets global platform statistics
+    /// @return totalDeposited Total value deposited across all users
+    /// @return totalClaimed Total rewards claimed across all users
+    /// @return activeUsers Number of users who have deposited
+    function getGlobalStats() external view returns (
+        uint256 totalDeposited,
+        uint256 totalClaimed,
+        uint256 activeUsers
+    ) {
+        totalDeposited = globalLifetimeDeposited;
+        totalClaimed = globalLifetimeClaimed;
+        // activeUsers would require additional tracking or could be derived from events
+        activeUsers = 0; // Placeholder - would need separate implementation
     }
 }

@@ -13,9 +13,8 @@ import {
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import {
-	useReadGachaTreasuryGetAllRarityCounts,
-	useReadGachaTreasuryGetTotalItemsCount,
-	useReadGachaRewardsManagerTotalFeesDistributed,
+	useReadGachaTreasuryGetPlatformOverviewBatch,
+	useReadGachaRewardsManagerTotalAccrued,
 	useReadGachaGetGlobalAnalytics,
 	useReadGachaFeeToken,
 	useReadErc20Symbol,
@@ -44,22 +43,22 @@ export const PlatformAnalytics: React.FC = () => {
 		query: { enabled: !!feeTokenAddress },
 	});
 
-	// Platform data
-	const { data: allRarityCounts } = useReadGachaTreasuryGetAllRarityCounts({
+	// 🚀 BATCH OPTIMIZED: Get platform data in 1 call instead of 2!
+	const { data: platformData } = useReadGachaTreasuryGetPlatformOverviewBatch({
 		address: contracts.treasury as `0x${string}` | undefined,
 		query: { enabled: !!contracts.treasury },
-	});
+	} as any);
 
-	const { data: totalItemsCount } = useReadGachaTreasuryGetTotalItemsCount({
-		address: contracts.treasury as `0x${string}` | undefined,
-		query: { enabled: !!contracts.treasury },
-	});
+	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
+	const allRarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = platformData?.[1] || 0n;
 
-	const { data: totalFeesDistributed } =
-		useReadGachaRewardsManagerTotalFeesDistributed({
-			address: contracts.rewardsManager as `0x${string}` | undefined,
-			query: { enabled: !!contracts.rewardsManager },
-		});
+
+	// New contracts expose depositor share via totalAccrued
+	const { data: totalAccrued } = useReadGachaRewardsManagerTotalAccrued({
+		address: contracts.rewardsManager as `0x${string}` | undefined,
+		query: { enabled: !!contracts.rewardsManager },
+	});
 
 	const { data: gachaGlobalAnalytics } = useReadGachaGetGlobalAnalytics({
 		address: contracts.gacha as `0x${string}` | undefined,
@@ -69,10 +68,7 @@ export const PlatformAnalytics: React.FC = () => {
 	const totalSpinCount = gachaGlobalAnalytics?.[0];
 
 	const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
-	const totalValue = formatTokenAmount(
-		totalFeesDistributed || BigInt(0),
-		tokenDecimals || 18,
-	);
+	const totalValue = formatTokenAmount(totalAccrued || BigInt(0), tokenDecimals || 18);
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">

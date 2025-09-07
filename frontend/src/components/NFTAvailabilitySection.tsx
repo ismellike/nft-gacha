@@ -48,11 +48,11 @@ export function NFTAvailabilitySection({
 	const [needsAppraisalNFTs, setNeedsAppraisalNFTs] = useState<UserNFT[]>([]);
 
 	// Get whitelisted collections
-	const { data: whitelistedCollections } =
-		useReadGachaTreasuryGetWhitelistedCollections({
-			address: contracts.treasury,
-			query: { enabled: !!contracts.treasury },
-		});
+	const treasuryAddress = contracts.treasury as `0x${string}` | undefined;
+	const whitelistedCollectionsQuery = useReadGachaTreasuryGetWhitelistedCollections({
+		address: treasuryAddress,
+	} as any);
+	const whitelistedCollections = whitelistedCollectionsQuery.data;
 
 	// Get user's actual NFTs from all whitelisted collections
 	const {

@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IWavsServiceHandler} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
 import {Gacha} from "./Gacha.sol";
-import {WavsDrandPayload} from "./interfaces/WavsDrandTypes.sol";
+import {WavsDrandPayload} from "../interfaces/WavsDrandTypes.sol";
 
 /**
  * @title GachaServiceHandler - WAVS Randomness Integration

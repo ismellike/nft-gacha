@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 class SearchParamsStore {
 	private listeners = new Set<() => void>();
 	private searchParams = new URLSearchParams();
+	private serverSnapshot = new URLSearchParams();
 
 	constructor() {
 		if (typeof window !== "undefined") {
@@ -43,7 +44,7 @@ class SearchParamsStore {
 	}
 
 	getServerSnapshot() {
-		return new URLSearchParams();
+		return this.serverSnapshot;
 	}
 
 	// Update params and sync with URL

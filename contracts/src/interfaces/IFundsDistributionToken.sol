@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// https://github.com/atpar/funds-distribution-token/blob/master/contracts/IFundsDistributionToken.sol
+// Based on https://github.com/atpar/funds-distribution-token/blob/master/contracts/IFundsDistributionToken.sol
 pragma solidity ^0.8.27;
 
 interface IFundsDistributionToken {

@@ -59,6 +59,7 @@ export function useGachaSpinMachine(
 	useWatchContractEvent({
 		address: contracts.gacha as `0x${string}` | undefined,
 		enabled: !!contracts.gacha && Boolean(userAddress),
+		pollingInterval: 3000, // Poll every 3 seconds - more frequent for active spins
 		abi: gachaAbi,
 		eventName: "SpinCompleted",
 		args: userAddress ? { requester: userAddress } : undefined,
