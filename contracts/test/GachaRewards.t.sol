@@ -77,11 +77,19 @@ contract MockNFTAppraisal {
     mapping(bytes32 => uint256) cardPrices;
     mapping(bytes32 => bool) cardExists;
 
+    enum AppraisalStatus {
+        Pending,
+        Completed,
+        OwnerOverride
+    }
+
     struct CardAppraisal {
         uint256 priceUSD;
-        uint8 status; // Mock status as uint8 (matches enum underlying type)
+        AppraisalStatus status;
         uint256 firstTimestamp;
         uint256 lastUpdated;
+        address canonicalContractAddress;
+        uint256 canonicalTokenId;
     }
 
     function setCardPrice(bytes32 cardId, uint256 price) external {
@@ -101,9 +109,11 @@ contract MockNFTAppraisal {
         require(cardExists[cardId], "Card does not exist");
         return CardAppraisal({
             priceUSD: cardPrices[cardId],
-            status: 1, // Completed
+            status: AppraisalStatus.Completed,
             firstTimestamp: block.timestamp,
-            lastUpdated: block.timestamp
+            lastUpdated: block.timestamp,
+            canonicalContractAddress: address(0),
+            canonicalTokenId: 0
         });
     }
 }
@@ -523,8 +533,10 @@ contract GachaRewardsTest is Test {
         // Common: 10 units * $10 = weight 100
         treasury.setCardTotalDeposits(GachaTreasury.Rarity.Common, commonCard, 10);
         treasury.setUserCardDeposits(user1, GachaTreasury.Rarity.Common, commonCard, 10);
+        console.log("Before creating Common card tracker...");
         vm.prank(address(treasury));
         rewardsManager.updateUserUnits(GachaTreasury.Rarity.Common, commonCard, user1, 10);
+        console.log("After creating Common card tracker");
 
         // Uncommon: 4 units * $25 = weight 100  
         treasury.setCardTotalDeposits(GachaTreasury.Rarity.Uncommon, uncommonCard, 4);

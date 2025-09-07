@@ -35,8 +35,9 @@ contract GachaTest is Test {
         treasury = new GachaTreasury(owner, address(0x998), address(mockAppraisal)); // temp address
 
         // Deploy a temporary rewards manager just to satisfy gacha constructor
-        GachaRewardsManager tempRewardsManager =
-            new GachaRewardsManager(owner, address(this), address(treasury), address(mockAppraisal), owner, address(feeToken));
+        GachaRewardsManager tempRewardsManager = new GachaRewardsManager(
+            owner, address(this), address(treasury), address(mockAppraisal), owner, address(feeToken)
+        );
 
         // Deploy gacha with temp rewards manager (using test contract as service handler for simplicity)
         gacha =
@@ -46,8 +47,9 @@ contract GachaTest is Test {
         treasury.setGachaContract(address(gacha));
 
         // Now deploy the real rewards manager with the correct gacha address
-        GachaRewardsManager rewardsManager =
-            new GachaRewardsManager(owner, address(gacha), address(treasury), address(mockAppraisal), owner, address(feeToken));
+        GachaRewardsManager rewardsManager = new GachaRewardsManager(
+            owner, address(gacha), address(treasury), address(mockAppraisal), owner, address(feeToken)
+        );
 
         // Update gacha to use the correct rewards manager
         gacha.setRewardsManager(address(rewardsManager));
@@ -220,17 +222,6 @@ contract GachaTest is Test {
         assertEq(gacha.spinFee(), newFee);
     }
 
-    function testSetFeeToken() public {
-        BaseERC20 newToken = new BaseERC20("New Token", "NEW", address(this));
-
-        vm.prank(owner);
-        vm.expectEmit(false, false, false, true);
-        emit FeeTokenUpdated(address(feeToken), address(newToken));
-        gacha.setFeeToken(address(newToken));
-
-        assertEq(address(gacha.feeToken()), address(newToken));
-    }
-
     function testWithdrawFees() public {
         // Generate some fees
         vm.startPrank(user1);
@@ -313,8 +304,9 @@ contract GachaTest is Test {
         // Deploy gacha with zero fee
         // Deploy minimal treasury and rewards manager for zero fee test
         GachaTreasury zeroTreasury = new GachaTreasury(owner, address(0x997), address(mockAppraisal));
-        GachaRewardsManager zeroRewards =
-            new GachaRewardsManager(owner, address(0x997), address(zeroTreasury), address(mockAppraisal), owner, address(feeToken));
+        GachaRewardsManager zeroRewards = new GachaRewardsManager(
+            owner, address(0x997), address(zeroTreasury), address(mockAppraisal), owner, address(feeToken)
+        );
         Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury), address(zeroRewards));
         GachaTreasury zeroFeeGachaTreasury = zeroTreasury;
 
@@ -433,8 +425,9 @@ contract GachaTest is Test {
         // Deploy gacha with zero fee
         // Deploy minimal treasury and rewards manager for zero fee test
         GachaTreasury zeroTreasury2 = new GachaTreasury(owner, address(0x996), address(mockAppraisal));
-        GachaRewardsManager zeroRewards2 =
-            new GachaRewardsManager(owner, address(0x996), address(zeroTreasury2), address(mockAppraisal), owner, address(feeToken));
+        GachaRewardsManager zeroRewards2 = new GachaRewardsManager(
+            owner, address(0x996), address(zeroTreasury2), address(mockAppraisal), owner, address(feeToken)
+        );
         Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury2), address(zeroRewards2));
         GachaTreasury zeroFeeGachaTreasury = zeroTreasury2;
 

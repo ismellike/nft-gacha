@@ -2305,15 +2305,6 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '_newFeeToken', internalType: 'address', type: 'address' },
-    ],
-    name: 'setFeeToken',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       {
         name: '_gachaServiceHandler',
         internalType: 'address',
@@ -2496,25 +2487,6 @@ export const gachaAbi = [
       },
     ],
     name: 'EmergencyUnpause',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldToken',
-        internalType: 'address',
-        type: 'address',
-        indexed: false,
-      },
-      {
-        name: 'newToken',
-        internalType: 'address',
-        type: 'address',
-        indexed: false,
-      },
-    ],
-    name: 'FeeTokenUpdated',
   },
   {
     type: 'event',
@@ -3681,6 +3653,7 @@ export const gachaRewardsManagerAbi = [
   { type: 'error', inputs: [], name: 'CardNotFound' },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'InvalidAppraisalContract' },
   { type: 'error', inputs: [], name: 'InvalidDelta' },
   { type: 'error', inputs: [], name: 'InvalidFeeToken' },
   { type: 'error', inputs: [], name: 'InvalidGachaContract' },
@@ -10377,14 +10350,6 @@ export const useWriteGachaRenounceOwnership =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setFeeToken"`
- */
-export const useWriteGachaSetFeeToken = /*#__PURE__*/ createUseWriteContract({
-  abi: gachaAbi,
-  functionName: 'setFeeToken',
-})
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setGachaServiceHandler"`
  */
 export const useWriteGachaSetGachaServiceHandler =
@@ -10504,15 +10469,6 @@ export const useSimulateGachaRenounceOwnership =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setFeeToken"`
- */
-export const useSimulateGachaSetFeeToken =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaAbi,
-    functionName: 'setFeeToken',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setGachaServiceHandler"`
  */
 export const useSimulateGachaSetGachaServiceHandler =
@@ -10606,15 +10562,6 @@ export const useWatchGachaEmergencyUnpause =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaAbi,
     eventName: 'EmergencyUnpause',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"FeeTokenUpdated"`
- */
-export const useWatchGachaFeeTokenUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: gachaAbi,
-    eventName: 'FeeTokenUpdated',
   })
 
 /**

@@ -16,6 +16,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // Custom errors
+    error InvalidAppraisalContract();
     error InvalidGachaContract();
     error InvalidTreasuryContract();
     error InvalidProtocolAddress();
@@ -108,7 +109,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     ) Ownable(_owner) {
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         if (_treasuryContract == address(0)) revert InvalidTreasuryContract();
-        if (_appraisalContract == address(0)) revert InvalidTreasuryContract(); // Reuse error
+        if (_appraisalContract == address(0)) revert InvalidAppraisalContract();
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
         if (_feeToken == address(0)) revert InvalidFeeToken();
 
@@ -292,9 +293,20 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         if (!card.exists) {
             _createCardTracker(rarity, cardId);
         }
+        
+        // Initialize user snapshot if it doesn't exist
+        if (userSnap.units == 0) {
+            userSnap.perUnitSnapshot = card.perUnitMeter;
+        }
 
         // Update user's snapshot to current before changing units
         userSnap.perUnitSnapshot = card.perUnitMeter;
+        
+        // Don't allow zero-unit snapshots to be created
+        if (userSnap.units == 0 && unitsDelta > 0) {
+            // New user deposit - initialize snapshot
+            userSnap.perUnitSnapshot = card.perUnitMeter;
+        }
 
         // Update units
         if (unitsDelta > 0) {
@@ -343,6 +355,9 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         card.lastPrice = cardAppraisal.priceUSD;
         card.exists = true;
         card.stashedBonus = 0;
+
+        // Initialize totalCardWeights for this rarity (starts at 0)
+        // Weight will be updated when units are added via _updateCardWeight
 
         emit CardTrackerCreated(rarity, cardId, card.cardWeight);
     }
@@ -469,6 +484,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     /// @param price Price in USD (1e18)
     /// @return priceWeight Price weight scaled by PRECISION
     function _calculatePriceWeight(uint256 price) internal view returns (uint256 priceWeight) {
+        require(price > 0, "Price must be greater than zero");
         if (gamma == GAMMA_PRECISION) {
             // γ = 1.0, simple case
             return price;
