@@ -20,6 +20,7 @@ target
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 .claude/*.local.*
+.claude/*.json
 */.claude/*.local.*
 .env
 .env.local
