@@ -2,8 +2,9 @@
 #[allow(clippy::all)]
 mod bindings;
 
-use crate::bindings::wavs::operator::input::TriggerDataEvmContractEvent;
-use crate::bindings::{export, Guest, TriggerAction, WasmResponse};
+use crate::bindings::{
+    export, wavs::types::events::TriggerDataEvmContractEvent, Guest, TriggerAction, WasmResponse,
+};
 use alloy_primitives::{Address, B256, U256};
 use alloy_sol_types::{sol, SolValue};
 use anyhow::Result;

@@ -44,18 +44,18 @@ tasks:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
       SERVICE_MANAGER_ADDRESS:
         sh: task get-service-manager-address
-      CHAIN_NAME:
+      CHAIN:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-chain-name-1
     requires:
       vars: [REPO_ROOT]
     cmds:
       - >
-        curl -X POST "{{.WAVS_ENDPOINT}}/service-key" 
+        curl -X POST "{{.WAVS_ENDPOINT}}/services/signer" 
         -H "Content-Type: application/json" 
         -d "{
           \"service_manager\": {
             \"evm\": {
-              \"chain_name\": \"{{.CHAIN_NAME}}\",
+              \"chain\": \"{{.CHAIN}}\",
               \"address\": \"{{.SERVICE_MANAGER_ADDRESS}}\"
             }
           }

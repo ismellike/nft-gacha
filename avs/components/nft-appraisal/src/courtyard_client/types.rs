@@ -58,12 +58,3 @@ pub struct NFTAttribute {
     pub trait_type: Option<String>,
     pub value: serde_json::Value, // Can be string or number
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CourtyardNFTResponse {
-    pub token_id: String,
-    pub collection_id: String,
-    pub metadata: NFTMetadata,
-    pub owner: Option<String>,
-    pub token_uri: Option<String>,
-}

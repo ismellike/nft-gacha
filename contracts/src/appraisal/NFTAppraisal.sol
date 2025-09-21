@@ -8,6 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {AppraisalRequested} from "../interfaces/NFTAppraisalTypes.sol";
 
 /**
  * @title NFTAppraisal - NFT Valuation System for Gacha Treasury
@@ -77,9 +78,6 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     mapping(address => mapping(uint256 => TokenRequest)) public tokenRequests;
 
     /// @notice Events for external service integration and monitoring
-    event AppraisalRequested(
-        address indexed collection, uint256 indexed tokenId, address indexed requester, uint256 fee, uint256 timestamp
-    );
 
     event AppraisalCompleted(
         address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed oracle, uint256 timestamp
@@ -173,7 +171,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
             lastUpdated: isReAppraisal ? block.timestamp : 0
         });
 
-        emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee, block.timestamp);
+        emit AppraisalRequested(collection, tokenId);
         emit AppraisalStatusChanged(
             collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp
         );
@@ -227,7 +225,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
             });
 
             // Emit events for external service integration
-            emit AppraisalRequested(collection, tokenId, msg.sender, appraisalFee, block.timestamp);
+            emit AppraisalRequested(collection, tokenId);
             emit AppraisalStatusChanged(
                 collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp
             );

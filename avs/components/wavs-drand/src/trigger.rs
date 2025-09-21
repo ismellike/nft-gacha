@@ -3,7 +3,8 @@ use anyhow::{anyhow, Result};
 use wavs_wasi_utils::decode_event_log_data;
 
 use crate::bindings::host::{get_cosmos_chain_config, get_evm_chain_config};
-use crate::bindings::wavs::operator::input::{TriggerData, TriggerDataEvmContractEvent};
+use crate::bindings::wavs::operator::input::TriggerData;
+use crate::bindings::wavs::types::events::TriggerDataEvmContractEvent;
 use crate::bindings::TriggerAction;
 use crate::config::Config;
 use crate::utils::{get_evm_block, vec_into_fixed_bytes};
@@ -35,16 +36,8 @@ impl TriggerInfo {
 
     async fn extract_trigger_info(trigger_action: TriggerAction) -> Result<(U256, B256, u64)> {
         match trigger_action.data {
-            TriggerData::EvmContractEvent(TriggerDataEvmContractEvent { chain_name, log }) => {
-                let timestamp = if let Some(timestamp) = log.block_timestamp {
-                    timestamp
-                } else {
-                    let chain_config = get_evm_chain_config(&chain_name)
-                        .ok_or(anyhow!("Chain config for {0} not found", chain_name))?;
-                    let block = get_evm_block(chain_config, chain_name, log.block_number).await?;
-
-                    block.header.timestamp
-                };
+            TriggerData::EvmContractEvent(TriggerDataEvmContractEvent { log, .. }) => {
+                let timestamp = log.block_timestamp;
 
                 // Extract trigger ID from event data (uint256 = 32 bytes)
                 let RandomnessRequested { triggerId } = decode_event_log_data!(log.data.clone())?;
@@ -59,19 +52,19 @@ impl TriggerInfo {
                 Ok((U256::ZERO, unique_id, timestamp))
             }
             TriggerData::BlockInterval(block) => {
-                if let Some(chain_config) = get_evm_chain_config(&block.chain_name) {
+                if let Some(chain_config) = get_evm_chain_config(&block.chain) {
                     let block =
-                        get_evm_block(chain_config, block.chain_name, block.block_height).await?;
+                        get_evm_block(chain_config, block.chain, block.block_height).await?;
 
                     Ok((
                         U256::ZERO,
                         block.header.transactions_root,
                         block.header.timestamp,
                     ))
-                } else if let Some(_chain_config) = get_cosmos_chain_config(&block.chain_name) {
+                } else if let Some(_chain_config) = get_cosmos_chain_config(&block.chain) {
                     unimplemented!()
                 } else {
-                    Err(anyhow!("Chain config for {0} not found", block.chain_name))
+                    Err(anyhow!("Chain config for {0} not found", block.chain))
                 }
             }
             TriggerData::CosmosContractEvent(_event) => {

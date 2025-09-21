@@ -8,9 +8,9 @@ tasks:
   get-aggregator-simple-flags:
     desc: "Get --values flags with chain_name=address format"
     vars:
-      CHAIN_NAME:
+      CHAIN:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-chain-name-1
       SUBMISSION_ADDRESS:
         sh: task get-submission-address
     cmds:
-      - echo "--values {{.CHAIN_NAME}}={{.SUBMISSION_ADDRESS}}"
+      - echo "--values {{.CHAIN}}={{.SUBMISSION_ADDRESS}}"

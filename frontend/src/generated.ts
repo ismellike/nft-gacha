@@ -7082,7 +7082,7 @@ export const nftAppraisalAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'collection',
+        name: 'nftContract',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -7092,19 +7092,6 @@ export const nftAppraisalAbi = [
         internalType: 'uint256',
         type: 'uint256',
         indexed: true,
-      },
-      {
-        name: 'requester',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      { name: 'fee', internalType: 'uint256', type: 'uint256', indexed: false },
-      {
-        name: 'timestamp',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
       },
     ],
     name: 'AppraisalRequested',

@@ -28,7 +28,7 @@ Only accepts `TriggerData::EvmContractEvent` - all other trigger types are rejec
 ## Configuration
 
 ### Environment Variables (Secrets)
-- `POKEMON_PRICE_API_KEY`: Your Pokemon Price Tracker API key (required)
+- `WAVS_ENV_POKEMON_PRICE_API_KEY`: Your Pokemon Price Tracker API key (required)
 
 ### Host Configuration Variables (Non-Secrets)
 - `CACHE_TTL_SECONDS`: Cache expiration time in seconds (default: 86400 = 24 hours)
@@ -45,7 +45,7 @@ event AppraisalRequested(address indexed nftContract, uint256 indexed tokenId);
 The event data is automatically ABI-decoded using the WAVS event decoding pattern. The `nftContract` address and `tokenId` are extracted and converted to hex strings for processing.
 
 **Note**: The component extracts the following information:
-- `chain` from `event.chain_name` (EVM event metadata)
+- `chain` from `event.chain` (EVM event metadata)
 - `nftContract` from the ABI-decoded event data (the actual NFT contract to query)
 - `tokenId` from the ABI-decoded event data
 

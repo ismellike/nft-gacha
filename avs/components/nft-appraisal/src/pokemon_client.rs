@@ -14,15 +14,6 @@ pub struct PokemonPriceClient {
     cache_bucket: Option<Bucket>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CardSet {
-    pub id: String,
-    pub name: String,
-    pub series: Option<String>,
-    pub total_cards: Option<u32>,
-    pub release_date: Option<String>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CardPrice {
     pub id: String,
@@ -36,21 +27,6 @@ pub struct CardPrice {
     pub psa_9_price: Option<f64>,
     pub raw_price: Option<f64>,
     pub last_updated: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PriceHistory {
-    pub card_id: String,
-    pub date: String,
-    pub price: f64,
-    pub grade_type: String, // "raw", "psa_10", etc.
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ApiResponse<T> {
-    pub data: Option<T>,
-    pub error: Option<String>,
-    pub message: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -169,10 +145,11 @@ impl PokemonPriceClient {
         set_id: Option<&str>,
     ) -> Result<Option<CardPrice>> {
         let mut params = HashMap::new();
-        params.insert("name".to_string(), name.to_string());
+        params.insert("search".to_string(), name.to_string());
+        params.insert("includeEbay".to_string(), "true".to_string());
 
         if let Some(set) = set_id {
-            params.insert("setId".to_string(), set.to_string());
+            params.insert("set".to_string(), set.to_string());
         }
 
         let cards = self.get_card_prices(&params).await?;
@@ -209,8 +186,8 @@ impl PokemonPriceClient {
             }
         }
 
-        // Build URL with query parameters
-        let mut url = format!("{}/prices", self.base_url);
+        // Build URL with query parameters - using v2 endpoint
+        let mut url = format!("{}/v2/cards", self.base_url);
         if !params.is_empty() {
             let query_params: Vec<String> = params
                 .iter()
@@ -250,26 +227,99 @@ impl PokemonPriceClient {
             .await
             .map_err(|e| anyhow!("Failed to read response body: {}", e))?;
 
-        // Parse API response
-        let api_response: ApiResponse<Vec<CardPrice>> = serde_json::from_str(&response_text)
+        // Parse API response - handle v2 response format
+        let api_response: serde_json::Value = serde_json::from_str(&response_text)
             .map_err(|e| anyhow!("Failed to parse API response: {}", e))?;
 
-        // Handle API-level errors
-        if let Some(error) = api_response.error {
-            return Err(anyhow!("Pokemon Price Tracker API error: {}", error));
-        }
-
-        let prices = api_response.data.unwrap_or_default();
+        // Extract cards from v2 response format
+        let cards = if let Some(data_array) = api_response.as_array() {
+            // Parse each card in the array
+            data_array
+                .iter()
+                .filter_map(|card_value| self.parse_v2_card_response(card_value).ok())
+                .collect()
+        } else {
+            // Handle error case or different response format
+            if let Some(error_msg) = api_response.get("error").and_then(|e| e.as_str()) {
+                return Err(anyhow!("Pokemon Price Tracker API error: {}", error_msg));
+            }
+            vec![]
+        };
 
         // Cache the result
         if let Some(ref bucket) = self.cache_bucket {
-            let cached_prices = CachedCardPrices::new(prices.clone());
+            let cached_prices = CachedCardPrices::new(cards.clone());
             if let Ok(serialized) = serde_json::to_string(&cached_prices) {
                 let _ = bucket.set(&cache_key, serialized.as_bytes());
             }
         }
 
-        Ok(prices)
+        Ok(cards)
+    }
+
+    /// Parse a single card response from v2 API format
+    fn parse_v2_card_response(&self, card_value: &serde_json::Value) -> Result<CardPrice> {
+        let name = card_value
+            .get("name")
+            .and_then(|n| n.as_str())
+            .ok_or_else(|| anyhow!("Missing card name"))?
+            .to_string();
+
+        let set_id = card_value
+            .get("set")
+            .and_then(|s| s.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        let set_name = set_id.clone(); // API doesn't provide separate set name in v2
+
+        let number = card_value
+            .get("number")
+            .and_then(|n| n.as_str())
+            .map(|s| s.to_string());
+
+        let rarity = card_value
+            .get("rarity")
+            .and_then(|r| r.as_str())
+            .map(|s| s.to_string());
+
+        // Extract prices from nested structure
+        let prices = card_value.get("prices").and_then(|p| p.as_object());
+        let market_price = prices
+            .and_then(|p| p.get("market"))
+            .and_then(|m| m.as_f64());
+
+        // Extract eBay prices for graded cards
+        let ebay = card_value.get("ebay").and_then(|e| e.as_object());
+        let psa_10_price = ebay
+            .and_then(|e| e.get("psa10"))
+            .and_then(|p| p.as_object())
+            .and_then(|p| p.get("avg"))
+            .and_then(|avg| avg.as_f64());
+
+        let psa_9_price = ebay
+            .and_then(|e| e.get("psa9"))
+            .and_then(|p| p.as_object())
+            .and_then(|p| p.get("avg"))
+            .and_then(|avg| avg.as_f64());
+
+        let raw_price = prices.and_then(|p| p.get("raw")).and_then(|p| p.as_f64());
+
+        let last_updated = Some(chrono::Utc::now().to_rfc3339());
+
+        Ok(CardPrice {
+            id: format!("{}_{}", set_id, name.to_lowercase().replace(' ', "_")),
+            name,
+            set_id,
+            set_name,
+            number,
+            rarity,
+            market_price,
+            psa_10_price,
+            psa_9_price,
+            raw_price,
+            last_updated,
+        })
     }
 }
 
