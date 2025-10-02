@@ -11,7 +11,6 @@ includes:
 vars:
   SERVICE_JSON_CMD: 'service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}"'
 
-
 tasks:
   contracts-deploy:
     desc: "Deploy contracts with WAVS service manager address"
@@ -36,7 +35,7 @@ tasks:
 
         # Initialize service configuration
         task cli:wavs -- {{.SERVICE_JSON_CMD}} init --name {{.COMPONENT_NAME}}
-      
+
       - task: setup-drand-workflow
       - task: setup-appraisal-workflow
       - task: setup-service-manager
@@ -50,6 +49,8 @@ tasks:
         sh: task get-component-digest COMPONENT="wavs_drand"
       RANDOMNESS_REQUESTED_EVENT_HASH:
         sh: cast keccak "RandomnessRequested(uint256)"
+      AGGREGATOR_COMPONENT_DIGEST:
+        sh: task get-component-digest COMPONENT="{{.AGGREGATOR_COMPONENT_NAME}}"
       AGGREGATOR_COMPONENT_CONFIG:
         sh: task bootstrap:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}"
       WORKFLOW_ID: "wavs_drand"
@@ -59,13 +60,13 @@ tasks:
 
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address ${GACHA_CONTRACT_ADDRESS} --event-hash {{.RANDOMNESS_REQUESTED_EVENT_HASH}}
           
-        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} set-aggregator --url {{.WAVS_AGGREGATOR_ENDPOINT}}
-        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component set-source-registry --package {{.AGGREGATOR_COMPONENT_PACKAGE}}
-        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
-
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} set-source-digest --digest {{.WAVS_DRAND_COMPONENT_DIGEST}}
-          
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
+
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} set-aggregator --url {{.WAVS_AGGREGATOR_ENDPOINT}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component set-source-digest --digest {{.AGGREGATOR_COMPONENT_DIGEST}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component permissions --http-hosts '*' --file-system true
 
   setup-appraisal-workflow:
     desc: "Configure nft-appraisal workflow"
@@ -76,23 +77,25 @@ tasks:
         sh: task get-component-digest COMPONENT="nft_appraisal"
       APPRAISAL_REQUESTED_EVENT_HASH:
         sh: cast keccak "AppraisalRequested(address,uint256)"
+      AGGREGATOR_COMPONENT_DIGEST:
+        sh: task get-component-digest COMPONENT="{{.AGGREGATOR_COMPONENT_NAME}}"
       AGGREGATOR_COMPONENT_CONFIG:
         sh: task bootstrap:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}"
       WORKFLOW_ID: "nft_appraisals"
     cmds:
       - |
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow add --id {{.WORKFLOW_ID}}
-        
+
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address ${NFT_APPRAISAL_CONTRACT_ADDRESS} --event-hash {{.APPRAISAL_REQUESTED_EVENT_HASH}}
-        
+
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} set-source-digest --digest {{.NFT_APPRAISAL_COMPONENT_DIGEST}}
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
-        
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} env --values "WAVS_ENV_POKEMON_PRICE_API_KEY"
 
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} set-aggregator --url {{.WAVS_AGGREGATOR_ENDPOINT}}
-        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component set-source-registry --package {{.AGGREGATOR_COMPONENT_PACKAGE}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component set-source-digest --digest {{.AGGREGATOR_COMPONENT_DIGEST}}
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow submit --id {{.WORKFLOW_ID}} component permissions --http-hosts '*' --file-system true
 
   setup-service-manager:
     desc: "Configure service manager"

@@ -7,6 +7,7 @@ vars:
   WASI_COMPONENTS:
     - nft_appraisal
     - wavs_drand
+    - aggregator_simple
 
 tasks:
   components-build:
@@ -38,7 +39,10 @@ tasks:
       vars: [PROJECT, REPO_ROOT]
     cmds:
       - for: { var: WASI_COMPONENTS }
-        cmd: cd "{{.REPO_ROOT}}" && task component:upload PROJECT="{{.PROJECT}}" COMPONENT_NAME="{{.ITEM}}" WAVS_ENDPOINT="{{.WAVS_ENDPOINT}}"
+        cmd: |
+          cd "{{.REPO_ROOT}}"
+          task component:upload PROJECT="{{.PROJECT}}" COMPONENT_NAME="{{.ITEM}}" WAVS_ENDPOINT="{{.WAVS_ENDPOINT}}"
+          task component:upload-aggregator PROJECT="{{.PROJECT}}" COMPONENT_NAME="{{.AGGREGATOR_COMPONENT_NAME}}" WAVS_ENDPOINT="{{.WAVS_ENDPOINT}}"
 
   components-test:
     desc: "Test the WASI components"
