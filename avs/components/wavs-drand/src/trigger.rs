@@ -1,13 +1,16 @@
 use alloy_primitives::{keccak256, B256, U256};
+use alloy_provider::network::Ethereum;
+use alloy_provider::Provider;
 use anyhow::{anyhow, Result};
 use wavs_wasi_utils::decode_event_log_data;
+use wavs_wasi_utils::evm::new_evm_provider;
 
 use crate::bindings::host::{get_cosmos_chain_config, get_evm_chain_config};
 use crate::bindings::wavs::operator::input::TriggerData;
 use crate::bindings::wavs::types::events::TriggerDataEvmContractEvent;
 use crate::bindings::TriggerAction;
 use crate::config::Config;
-use crate::utils::{get_evm_block, vec_into_fixed_bytes};
+use crate::utils::get_evm_block;
 use crate::RandomnessRequested;
 
 /// Extracted trigger information
@@ -36,13 +39,32 @@ impl TriggerInfo {
 
     async fn extract_trigger_info(trigger_action: TriggerAction) -> Result<(U256, B256, u64)> {
         match trigger_action.data {
-            TriggerData::EvmContractEvent(TriggerDataEvmContractEvent { log, .. }) => {
-                let timestamp = log.block_timestamp;
+            TriggerData::EvmContractEvent(TriggerDataEvmContractEvent { chain, log }) => {
+                let timestamp = if let Some(timestamp) = log.block_timestamp {
+                    timestamp
+                } else {
+                    let chain_config = get_evm_chain_config(&chain)
+                        .ok_or(anyhow!("Chain config for {0} not found", chain))?;
+                    let provider = new_evm_provider::<Ethereum>(
+                        chain_config
+                            .http_endpoint
+                            .ok_or(anyhow!("Could not get http endpoint for {chain}"))?,
+                    );
+                    let block = provider
+                        .get_block_by_hash(log.block_hash.as_slice().try_into()?)
+                        .await?
+                        .ok_or(anyhow!(
+                            "Could not get block on {chain} for block hash {0:?}",
+                            log.block_hash
+                        ))?;
+
+                    block.header.timestamp
+                };
 
                 // Extract trigger ID from event data (uint256 = 32 bytes)
                 let RandomnessRequested { triggerId } = decode_event_log_data!(log.data.clone())?;
 
-                Ok((triggerId, vec_into_fixed_bytes(log.tx_hash)?, timestamp))
+                Ok((triggerId, log.tx_hash.as_slice().try_into()?, timestamp))
             }
             TriggerData::Cron(cron) => {
                 let timestamp = cron.trigger_time.nanos / 1_000_000_000;
