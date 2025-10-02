@@ -1,5 +1,3 @@
-import MillionLint from "@million/lint";
-/** @type {import('next').NextConfig} */
 const nextConfig = {
 	// Performance optimizations
 	reactStrictMode: true,
@@ -121,7 +119,4 @@ const nextConfig = {
 	},
 };
 
-export default MillionLint.next({
-	enabled: true,
-	rsc: true,
-})(nextConfig);
+export default nextConfig;

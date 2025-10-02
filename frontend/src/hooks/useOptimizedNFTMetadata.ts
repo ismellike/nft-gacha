@@ -140,8 +140,16 @@ function getCachedTokenURI(key: string): string | null | undefined {
 	return undefined; // undefined means not cached, null means cached as null
 }
 
-function setCachedTokenURI(key: string, tokenURI: string | null, promise?: Promise<string | null>) {
-	const entry: { tokenURI: string | null; timestamp: number; promise?: Promise<string | null> } = {
+function setCachedTokenURI(
+	key: string,
+	tokenURI: string | null,
+	promise?: Promise<string | null>,
+) {
+	const entry: {
+		tokenURI: string | null;
+		timestamp: number;
+		promise?: Promise<string | null>;
+	} = {
 		tokenURI,
 		timestamp: Date.now(),
 	};
@@ -151,7 +159,9 @@ function setCachedTokenURI(key: string, tokenURI: string | null, promise?: Promi
 	tokenURICache.set(key, entry);
 }
 
-function getCachedTokenURIPromise(key: string): Promise<string | null> | undefined {
+function getCachedTokenURIPromise(
+	key: string,
+): Promise<string | null> | undefined {
 	const cached = tokenURICache.get(key);
 	if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
 		return cached.promise;
@@ -193,7 +203,11 @@ function setCachedData(
  * Custom hook for fetching tokenURI with deduplication
  * Prevents multiple calls to the same collection+tokenId combination
  */
-function useDedupedTokenURI(collection: string, tokenId: string, enabled: boolean = true) {
+function useDedupedTokenURI(
+	collection: string,
+	tokenId: string,
+	enabled: boolean = true,
+) {
 	const publicClient = usePublicClient();
 	const [state, setState] = useState<{
 		data: string | null;
@@ -223,20 +237,20 @@ function useDedupedTokenURI(collection: string, tokenId: string, enabled: boolea
 		// Check if there's already a promise for this tokenURI
 		const existingPromise = getCachedTokenURIPromise(tokenURICacheKey);
 		if (existingPromise) {
-			setState(prev => ({ ...prev, isLoading: true, error: null }));
+			setState((prev) => ({ ...prev, isLoading: true, error: null }));
 			existingPromise
-				.then(result => {
+				.then((result) => {
 					setState({ data: result, isLoading: false, error: null });
 				})
-				.catch(error => {
+				.catch((error) => {
 					setState({ data: null, isLoading: false, error });
 				});
 			return;
 		}
 
 		// Create new promise and cache it
-		setState(prev => ({ ...prev, isLoading: true, error: null }));
-		
+		setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
 		const fetchPromise = publicClient.readContract({
 			address: collection as `0x${string}`,
 			abi: erc721TokenURIAbi,
@@ -244,30 +258,29 @@ function useDedupedTokenURI(collection: string, tokenId: string, enabled: boolea
 			args: [BigInt(tokenId)],
 		}) as Promise<string>;
 
-    const wrappedPromise = fetchPromise
-        .then(result => {
-            const tokenURI = result || null;
-            // Only cache on success with a non-empty tokenURI. Avoid caching failures/nulls
-            if (tokenURI) {
-                setCachedTokenURI(tokenURICacheKey, tokenURI);
-            }
-            return tokenURI;
-        })
-        .catch(error => {
-            // Do not cache null on failure so we can retry on subsequent renders
-            throw error;
-        });
+		const wrappedPromise = fetchPromise
+			.then((result) => {
+				const tokenURI = result || null;
+				// Only cache on success with a non-empty tokenURI. Avoid caching failures/nulls
+				if (tokenURI) {
+					setCachedTokenURI(tokenURICacheKey, tokenURI);
+				}
+				return tokenURI;
+			})
+			.catch((error) => {
+				// Do not cache null on failure so we can retry on subsequent renders
+				throw error;
+			});
 
 		setCachedTokenURI(tokenURICacheKey, null, wrappedPromise);
 
 		wrappedPromise
-			.then(result => {
+			.then((result) => {
 				setState({ data: result, isLoading: false, error: null });
 			})
-			.catch(error => {
+			.catch((error) => {
 				setState({ data: null, isLoading: false, error });
 			});
-
 	}, [collection, tokenId, enabled, publicClient]);
 
 	return state;
@@ -317,7 +330,11 @@ export function useOptimizedNFTMetadata(
 		data: tokenURI,
 		isLoading: isTokenURILoading,
 		error: tokenURIError,
-	} = useDedupedTokenURI(collection, tokenId, enabled && !!collection && !!tokenId);
+	} = useDedupedTokenURI(
+		collection,
+		tokenId,
+		enabled && !!collection && !!tokenId,
+	);
 
 	// Memoized fetch function
 	const fetchMetadata = useCallback(
@@ -478,7 +495,12 @@ export function useOptimizedNFTMetadata(
 		// Call fetchMetadata directly instead of using the memoized version to avoid dependency loop
 		(async () => {
 			try {
-				const result = await fetchMetadata(tokenURI, collection, tokenId, priority);
+				const result = await fetchMetadata(
+					tokenURI,
+					collection,
+					tokenId,
+					priority,
+				);
 				setState(result);
 			} catch (error) {
 				setState((prev) => ({

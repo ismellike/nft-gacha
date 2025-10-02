@@ -11,7 +11,7 @@ import {
 	WalletIcon,
 } from "@heroicons/react/24/outline";
 
-import { Card, Button } from "./ui";
+import { Card, Button } from "./ui/GlassComponents";
 import { LoadingState } from "./ui";
 import { DepositableNFTCard } from "./ui/DepositableNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -49,10 +49,12 @@ export function NFTAvailabilitySection({
 
 	// Get whitelisted collections
 	const treasuryAddress = contracts.treasury as `0x${string}` | undefined;
-	const whitelistedCollectionsQuery = useReadGachaTreasuryGetWhitelistedCollections({
-		address: treasuryAddress,
-	} as any);
-	const whitelistedCollections = whitelistedCollectionsQuery.data;
+	const whitelistedCollectionsQuery =
+		useReadGachaTreasuryGetWhitelistedCollections({
+			address: treasuryAddress,
+		} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
+	const whitelistedCollections =
+		(whitelistedCollectionsQuery.data as any) || [];
 
 	// Get user's actual NFTs from all whitelisted collections
 	const {

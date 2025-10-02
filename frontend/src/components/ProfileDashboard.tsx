@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { formatTokenAmount } from "../lib/utils";
 import { getRarityConfig } from "../lib/rarityConfig";
-import { Card } from "./ui";
+import { Card } from "./ui/GlassComponents";
 import { CardRewardsList } from "./CardRewardsList";
 import { glassTypography } from "../lib/theme-config";
 import {
@@ -27,31 +27,35 @@ export const ProfileDashboard: React.FC = () => {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
-
 	// 🚀 BATCH OPTIMIZED: Get all user data in 2 calls instead of 3!
 	const { data: userProfileData } = useReadGachaTreasuryGetUserProfileBatch({
 		address: contracts.treasury as `0x${string}` | undefined,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!contracts.treasury && !!userAddress },
-	} as any);
+	} as Parameters<typeof useReadGachaTreasuryGetUserProfileBatch>[0]);
 
 	const { data: userGachaData } = useReadGachaGetUserGachaBatch({
 		address: contracts.gacha as `0x${string}` | undefined,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!contracts.gacha && !!userAddress },
-	} as any);
+	} as Parameters<typeof useReadGachaGetUserGachaBatch>[0]);
 
 	// Extract data from batch calls
 	// userProfileData: [depositCounts[5], totalDeposits, lifetimeClaimed, lifetimeDeposited, lifetimeWithdrawn, netContribution]
-	const userTotalDeposits = userProfileData?.[1] || 0n;
-	const lifetimeClaimed = userProfileData?.[2] || 0n;
+	const userTotalDeposits = (userProfileData as any)?.[1] || 0n;
+	const lifetimeClaimed = (userProfileData as any)?.[2] || 0n;
 
 	// userGachaData: [totalSpins, totalRefunds, totalReclaims, rarityWins[5], spinCount]
-	const userSpinCount = userGachaData?.[0] || BigInt(0);
-	const userRefundCount = userGachaData?.[1] || BigInt(0);
-	const userReclaimCount = userGachaData?.[2] || BigInt(0);
-	const userRarityWins = userGachaData?.[3] || [BigInt(0), BigInt(0), BigInt(0), BigInt(0), BigInt(0)];
-
+	const userSpinCount = (userGachaData as any)?.[0] || BigInt(0);
+	const userRefundCount = (userGachaData as any)?.[1] || BigInt(0);
+	const userReclaimCount = (userGachaData as any)?.[2] || BigInt(0);
+	const userRarityWins = (userGachaData as any)?.[3] || [
+		BigInt(0),
+		BigInt(0),
+		BigInt(0),
+		BigInt(0),
+		BigInt(0),
+	];
 
 	if (!userAddress) {
 		return (
@@ -76,7 +80,7 @@ export const ProfileDashboard: React.FC = () => {
 		);
 	}
 
-    const totalDeposits = Number(userTotalDeposits);
+	const totalDeposits = Number(userTotalDeposits);
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">
@@ -148,15 +152,21 @@ export const ProfileDashboard: React.FC = () => {
 							</div>
 							<div className="text-right">
 								<div className="text-2xl font-bold text-rarity-legendary-300">
-									{lifetimeClaimed ? formatTokenAmount(lifetimeClaimed, 18, { maxDecimals: 2 }) : "0"}
+									{lifetimeClaimed
+										? formatTokenAmount(lifetimeClaimed, 18, { maxDecimals: 2 })
+										: "0"}
 								</div>
-								<div className="text-sm text-foreground/60">Lifetime Claimed</div>
+								<div className="text-sm text-foreground/60">
+									Lifetime Claimed
+								</div>
 							</div>
 						</div>
 						<div className="w-full bg-content2/30 rounded-full h-2">
 							<div
 								className="bg-gradient-to-r from-rarity-legendary-500 to-rarity-legendary-400 h-2 rounded-full"
-								style={{ width: `${lifetimeClaimed && lifetimeClaimed > 0n ? 100 : 0}%` }}
+								style={{
+									width: `${lifetimeClaimed && lifetimeClaimed > 0n ? 100 : 0}%`,
+								}}
 							/>
 						</div>
 						<div className="mt-2 text-xs text-foreground/50">
@@ -164,9 +174,7 @@ export const ProfileDashboard: React.FC = () => {
 						</div>
 					</Card>
 				</motion.div>
-
-            </div>
-
+			</div>
 
 			{/* Rewards by Card - Main Feature */}
 			<motion.div
@@ -252,8 +260,8 @@ export const ProfileDashboard: React.FC = () => {
 					</h2>
 
 					<div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    {[0,1,2,3,4].map((rarity, index) => {
-                        const config = getRarityConfig(rarity as 0 | 1 | 2 | 3 | 4);
+						{[0, 1, 2, 3, 4].map((rarity, index) => {
+							const config = getRarityConfig(rarity as 0 | 1 | 2 | 3 | 4);
 							const winCount = Number(userRarityWins[index] || 0);
 							const totalSpins = Number(userSpinCount);
 							const winRate =

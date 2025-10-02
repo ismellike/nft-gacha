@@ -1,6 +1,6 @@
 import "../styles/globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Orbitron } from "next/font/google";
 
 import { Providers } from "./providers";
 import { Header } from "../components/Header";
@@ -20,6 +20,12 @@ const jetbrainsMono = JetBrains_Mono({
 	variable: "--font-jetbrains-mono",
 });
 
+const orbitron = Orbitron({
+	subsets: ["latin"],
+	weight: ["400", "500", "600", "700", "800", "900"],
+	variable: "--font-orbitron",
+});
+
 export default function RootLayout({
 	children,
 }: {
@@ -28,15 +34,53 @@ export default function RootLayout({
 	return (
 		<html lang="en" className="dark">
 			<head>
-				<title>Spin-Fi - Provably Fair NFT Gacha</title>
+				{/* Basic Meta Tags */}
+				<title>SPINFI - Provably Fair NFT Gacha</title>
 				<meta
 					name="description"
-					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness"
+					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS"
 				/>
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
-				<link href="/logo.svg" type="image/svg+xml" rel="icon" />
+				<meta name="theme-color" content="#f59e0b" />
+				<meta name="msapplication-TileColor" content="#f59e0b" />
+
+				{/* Favicon */}
+				<link rel="icon" href="/favicon.ico" sizes="any" />
+				<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+				<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+				{/* PWA Manifest */}
+				<link rel="manifest" href="/site.webmanifest" />
+
+				{/* Open Graph / Social Media */}
+				<meta property="og:type" content="website" />
+				<meta property="og:title" content="SPINFI - Provably Fair NFT Gacha" />
+				<meta
+					property="og:description"
+					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS"
+				/>
+				<meta property="og:image" content="/logo.webp" />
+				<meta property="og:url" content="https://spinfi.xyz" />
+
+				{/* Twitter Card */}
+				<meta name="twitter:card" content="summary_large_image" />
+				<meta name="twitter:title" content="SPINFI - Provably Fair NFT Gacha" />
+				<meta
+					name="twitter:description"
+					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS"
+				/>
+				<meta name="twitter:image" content="/logo.webp" />
+
+				{/* Additional SEO */}
+				<meta
+					name="keywords"
+					content="NFT, gacha, gaming, blockchain, cryptocurrency, WAVS, provably fair, randomness, DeFi"
+				/>
+				<meta name="author" content="SPINFI Team" />
 			</head>
-			<body className={`${inter.variable} ${jetbrainsMono.variable} font-spin`}>
+			<body
+				className={`${inter.variable} ${jetbrainsMono.variable} ${orbitron.variable} font-spin`}
+			>
 				<Providers>
 					<ClientAnimatedBackground />
 					<div className="relative z-10 bg-transparent">

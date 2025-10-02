@@ -13,6 +13,7 @@ export default {
 			fontFamily: {
 				spin: ["var(--font-inter)", "system-ui", "sans-serif"],
 				"spin-mono": ["var(--font-jetbrains-mono)", "Fira Code", "monospace"],
+				orbitron: ["var(--font-orbitron)", "system-ui", "sans-serif"],
 			},
 			animation: {
 				"spin-slow": "spin 3s linear infinite",
@@ -33,17 +34,29 @@ export default {
 		heroui({
 			addCommonColors: false,
 			defaultTheme: "dark",
-			// Merge all theme customizations under a single `themes` key
 			layout: {
 				boxShadow: {
-					small: "0 2px 12px 0 rgba(0, 0, 0, 0.4)",
-					medium: "0 4px 20px 0 rgba(0, 0, 0, 0.5)",
-					large: "0 8px 30px 0 rgba(0, 0, 0, 0.6)",
+					small:
+						"0 2px 12px 0 rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 191, 0, 0.05)",
+					medium:
+						"0 4px 20px 0 rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 191, 0, 0.08)",
+					large:
+						"0 8px 30px 0 rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 191, 0, 0.1)",
+					glass:
+						"0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+					glassHover:
+						"0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+					glow: "0 0 20px rgba(255, 191, 0, 0.2), 0 0 40px rgba(255, 191, 0, 0.1)",
+					glowHover:
+						"0 0 30px rgba(255, 191, 0, 0.4), 0 0 60px rgba(255, 191, 0, 0.2)",
 				},
 				borderRadius: {
 					small: "8px",
 					medium: "12px",
 					large: "16px",
+					xl: "20px",
+					"2xl": "24px",
+					"3xl": "32px",
 				},
 			},
 			themes: {
@@ -59,21 +72,24 @@ export default {
 						divider: "rgba(255, 255, 255, 0.1)",
 						overlay: "rgba(0, 0, 0, 0.8)",
 						focus: "#eab308",
+
+						// Enhanced primary colors with gaming aesthetic
 						primary: {
-							50: "#fafafa",
-							100: "#f4f4f5",
-							200: "#e4e4e7",
-							300: "#d4d4d8",
-							400: "#a1a1aa",
-							500: "#71717a",
-							600: "#52525b",
-							700: "#3f3f46",
-							800: "#27272a",
-							900: "#18181b",
-							950: "#09090b",
-							DEFAULT: "#18181b",
-							foreground: "#fafafa",
+							50: "#fefce8",
+							100: "#fef9c3",
+							200: "#fef08a",
+							300: "#fde047",
+							400: "#facc15",
+							500: "#eab308",
+							600: "#ca8a04",
+							700: "#a16207",
+							800: "#854d0e",
+							900: "#713f12",
+							950: "#422006",
+							DEFAULT: "#eab308",
+							foreground: "#422006",
 						},
+
 						secondary: {
 							50: "#f8fafc",
 							100: "#f1f5f9",
@@ -89,6 +105,7 @@ export default {
 							DEFAULT: "#64748b",
 							foreground: "#f8fafc",
 						},
+
 						success: {
 							50: "#f0fdf4",
 							100: "#dcfce7",
@@ -104,21 +121,23 @@ export default {
 							DEFAULT: "#22c55e",
 							foreground: "#ffffff",
 						},
+
 						warning: {
-							50: "#fefce8",
-							100: "#fef9c3",
-							200: "#fef08a",
-							300: "#fde047",
-							400: "#facc15",
-							500: "#eab308",
-							600: "#ca8a04",
-							700: "#a16207",
-							800: "#854d0e",
-							900: "#713f12",
-							950: "#422006",
-							DEFAULT: "#eab308",
-							foreground: "#422006",
+							50: "#fef7ed",
+							100: "#fdedd3",
+							200: "#fcd9a5",
+							300: "#fbbf6d",
+							400: "#f89b32",
+							500: "#f57c00",
+							600: "#e65100",
+							700: "#bf360c",
+							800: "#8d2a00",
+							900: "#5d1f00",
+							950: "#3e0e00",
+							DEFAULT: "#f57c00",
+							foreground: "#ffffff",
 						},
+
 						danger: {
 							50: "#fef2f2",
 							100: "#fee2e2",
@@ -134,7 +153,7 @@ export default {
 							DEFAULT: "#ef4444",
 							foreground: "#ffffff",
 						},
-						// Additional semantic color for informational UI
+
 						info: {
 							50: "#eff6ff",
 							100: "#dbeafe",
@@ -150,7 +169,57 @@ export default {
 							DEFAULT: "#3b82f6",
 							foreground: "#ffffff",
 						},
-						// Rarity color system for NFT Gacha theming
+
+						// Gaming-specific colors
+						gaming: {
+							gold: {
+								50: "#fffdf0",
+								100: "#fefce8",
+								200: "#fef9c3",
+								300: "#fef08a",
+								400: "#fde047",
+								500: "#eab308",
+								600: "#ca8a04",
+								700: "#a16207",
+								800: "#854d0e",
+								900: "#713f12",
+								950: "#422006",
+								DEFAULT: "#eab308",
+								foreground: "#422006",
+							},
+							emerald: {
+								50: "#ecfdf5",
+								100: "#d1fae5",
+								200: "#a7f3d0",
+								300: "#6ee7b7",
+								400: "#34d399",
+								500: "#10b981",
+								600: "#059669",
+								700: "#047857",
+								800: "#065f46",
+								900: "#064e3b",
+								950: "#022c22",
+								DEFAULT: "#10b981",
+								foreground: "#ffffff",
+							},
+							crystal: {
+								50: "#f0f9ff",
+								100: "#e0f2fe",
+								200: "#bae6fd",
+								300: "#7dd3fc",
+								400: "#38bdf8",
+								500: "#0ea5e9",
+								600: "#0284c7",
+								700: "#0369a1",
+								800: "#075985",
+								900: "#0c4a6e",
+								950: "#082f49",
+								DEFAULT: "#0ea5e9",
+								foreground: "#ffffff",
+							},
+						},
+
+						// Enhanced rarity color system for NFT Gacha
 						"rarity-common": {
 							50: "#fafafa",
 							100: "#f4f4f5",
@@ -220,6 +289,17 @@ export default {
 							900: "#5d1f00",
 							950: "#3e0e00",
 							DEFAULT: "#f57c00",
+						},
+
+						// Glass morphism variants
+						glass: {
+							50: "rgba(255, 255, 255, 0.05)",
+							100: "rgba(255, 255, 255, 0.1)",
+							200: "rgba(255, 255, 255, 0.2)",
+							300: "rgba(255, 255, 255, 0.3)",
+							400: "rgba(255, 255, 255, 0.4)",
+							500: "rgba(255, 255, 255, 0.5)",
+							DEFAULT: "rgba(255, 255, 255, 0.2)",
 						},
 					},
 				},
