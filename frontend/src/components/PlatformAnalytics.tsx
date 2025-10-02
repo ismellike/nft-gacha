@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Card } from "./ui";
+import { Card } from "./ui/GlassComponents";
 import { glassTypography } from "../lib/theme-config";
 import {
 	ChartBarIcon,
@@ -47,12 +47,11 @@ export const PlatformAnalytics: React.FC = () => {
 	const { data: platformData } = useReadGachaTreasuryGetPlatformOverviewBatch({
 		address: contracts.treasury as `0x${string}` | undefined,
 		query: { enabled: !!contracts.treasury },
-	} as any);
+	} as Parameters<typeof useReadGachaTreasuryGetPlatformOverviewBatch>[0]);
 
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const allRarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
-	const totalItemsCount = platformData?.[1] || 0n;
-
+	const allRarityCounts = (platformData as any)?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = (platformData as any)?.[1] || 0n;
 
 	// New contracts expose depositor share via totalAccrued
 	const { data: totalAccrued } = useReadGachaRewardsManagerTotalAccrued({
@@ -68,7 +67,10 @@ export const PlatformAnalytics: React.FC = () => {
 	const totalSpinCount = gachaGlobalAnalytics?.[0];
 
 	const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
-	const totalValue = formatTokenAmount(totalAccrued || BigInt(0), tokenDecimals || 18);
+	const totalValue = formatTokenAmount(
+		totalAccrued || BigInt(0),
+		tokenDecimals || 18,
+	);
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">
@@ -110,7 +112,7 @@ export const PlatformAnalytics: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.5 }}
 			>
-				<Card glassVariant="glass" className="p-8">
+				<Card className="p-8">
 					<h2
 						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
 					>
@@ -180,7 +182,7 @@ export const PlatformAnalytics: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.6 }}
 			>
-				<Card glassVariant="glass" className="p-8">
+				<Card className="p-8">
 					<h2
 						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
 					>
@@ -274,7 +276,7 @@ const MetricCard: React.FC<{
 		animate={{ opacity: 1, y: 0 }}
 		transition={{ duration: 0.6, delay }}
 	>
-		<Card glassVariant="glassInteractive" className="p-6 group">
+		<Card className="p-6 group cursor-pointer">
 			<div
 				className={`w-12 h-12 bg-gradient-to-br ${gradient}/20 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
 			>

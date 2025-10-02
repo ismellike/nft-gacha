@@ -1,6 +1,6 @@
 "use client";
 
-import { Card } from "./ui";
+import { Card } from "./ui/GlassComponents";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { formatAddress, formatTokenId } from "../lib/utils";
 

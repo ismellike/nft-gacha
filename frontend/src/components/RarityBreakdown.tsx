@@ -3,7 +3,8 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { glassTypography } from "../lib/theme-config";
-import { Card } from "./ui";
+import { Card } from "./ui/GlassComponents";
+import { RarityBadge } from "./ui/RaritySystem";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
@@ -37,27 +38,33 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		}
 	};
 
-    // Batch fetch all rarity counts in single RPC call
-    const rarityCountsQuery = useReadGachaTreasuryGetAllRarityCounts({
-        address: contracts.treasury,
-        query: { enabled: !!contracts.treasury },
-    } as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
-    const allRarityCounts = rarityCountsQuery.data as unknown as readonly bigint[] | undefined;
+	// Batch fetch all rarity counts in single RPC call
+	const rarityCountsQuery = useReadGachaTreasuryGetAllRarityCounts({
+		address: contracts.treasury,
+		query: { enabled: !!contracts.treasury },
+	} as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
+	const allRarityCounts = rarityCountsQuery.data as unknown as
+		| readonly bigint[]
+		| undefined;
 
 	// Rarity weights from gacha contract
-    const rarityWeightsQuery = useReadGachaGetRarityWeights({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    } as Parameters<typeof useReadGachaGetRarityWeights>[0]);
-    const rarityWeights = rarityWeightsQuery.data as unknown as readonly bigint[] | undefined;
+	const rarityWeightsQuery = useReadGachaGetRarityWeights({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	} as Parameters<typeof useReadGachaGetRarityWeights>[0]);
+	const rarityWeights = rarityWeightsQuery.data as unknown as
+		| readonly bigint[]
+		| undefined;
 
-    // Additional treasury data (omitted for now)
+	// Additional treasury data (omitted for now)
 
-    const averageRarityValuesQuery = useReadGachaGetAverageRarityValues({
-        address: contracts.gacha as `0x${string}` | undefined,
-        query: { enabled: !!contracts.gacha },
-    } as Parameters<typeof useReadGachaGetAverageRarityValues>[0]);
-    const averageRarityValues = averageRarityValuesQuery.data as unknown as readonly bigint[] | undefined;
+	const averageRarityValuesQuery = useReadGachaGetAverageRarityValues({
+		address: contracts.gacha as `0x${string}` | undefined,
+		query: { enabled: !!contracts.gacha },
+	} as Parameters<typeof useReadGachaGetAverageRarityValues>[0]);
+	const averageRarityValues = averageRarityValuesQuery.data as unknown as
+		| readonly bigint[]
+		| undefined;
 
 	// Expose refresh function to parent component
 	useImperativeHandle(ref, () => ({
@@ -112,7 +119,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	] as const;
 
 	return (
-		<Card glassVariant="glass" className="h-full">
+		<Card className="h-full">
 			<div className="p-6 pb-2 border-b border-white/10">
 				<h3 className={glassTypography({ variant: "secondaryHeading" })}>
 					Drop Rates
@@ -137,14 +144,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 						>
 							{/* Header with rarity name and stats */}
 							<div className="flex justify-between items-center mb-3">
-								<div
-									className={`px-3 py-1.5 rounded-lg bg-gradient-to-r ${rarity.bgGradient} shadow-lg`}
-								>
-									<span className="text-sm font-bold text-white drop-shadow-sm flex items-center gap-1">
-										<span>{rarity.emoji}</span>
-										{rarity.name}
-									</span>
-								</div>
+								<RarityBadge rarity={rarity.rarity} size="sm" />
 								<div className="text-right">
 									<div
 										className={`text-lg font-bold bg-gradient-to-r ${rarity.bgGradient} bg-clip-text text-transparent`}

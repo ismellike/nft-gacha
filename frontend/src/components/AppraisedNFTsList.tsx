@@ -11,7 +11,7 @@ import {
 	ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
-import { Card, Button } from "./ui";
+import { Card, Button } from "./ui/GlassComponents";
 import { LoadingState } from "./ui";
 import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";

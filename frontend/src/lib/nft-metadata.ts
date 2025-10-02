@@ -33,7 +33,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  * Handles Courtyard API URLs, IPFS URLs, and other HTTP URLs
  */
 export async function fetchNFTMetadata(
-    tokenURI: string,
+	tokenURI: string,
 ): Promise<NFTMetadata | null> {
 	if (!tokenURI) {
 		return null;
@@ -45,19 +45,22 @@ export async function fetchNFTMetadata(
 		return cached.data;
 	}
 
-    try {
-        const needsProxy = (() => {
-            try {
-                const u = new URL(tokenURI);
-                return ["api.courtyard.io", "cloudflare-ipfs.com", "ipfs.io", "gateway.pinata.cloud"].includes(
-                    u.hostname,
-                );
-            } catch {
-                return false;
-            }
-        })();
+	try {
+		const needsProxy = (() => {
+			try {
+				const u = new URL(tokenURI);
+				return [
+					"api.courtyard.io",
+					"cloudflare-ipfs.com",
+					"ipfs.io",
+					"gateway.pinata.cloud",
+				].includes(u.hostname);
+			} catch {
+				return false;
+			}
+		})();
 
-        const url = tokenURI; // try direct first
+		const url = tokenURI; // try direct first
 
 		// Handle IPFS URLs - try multiple gateways for better reliability
 		if (tokenURI.startsWith("ipfs://")) {
@@ -107,19 +110,19 @@ export async function fetchNFTMetadata(
 			return metadata;
 		}
 
-        // Fetch from HTTP(S) endpoint (including Courtyard API)
-        let metadata: NFTMetadata | null = null;
-        try {
-            metadata = await fetchWithRetry(url);
-        } catch (e) {
-            // Try proxy as a fallback for known hosts
-            if (needsProxy) {
-                const proxied = `/api/metadata?url=${encodeURIComponent(tokenURI)}`;
-                metadata = await fetchWithRetry(proxied);
-            } else {
-                throw e;
-            }
-        }
+		// Fetch from HTTP(S) endpoint (including Courtyard API)
+		let metadata: NFTMetadata | null = null;
+		try {
+			metadata = await fetchWithRetry(url);
+		} catch (e) {
+			// Try proxy as a fallback for known hosts
+			if (needsProxy) {
+				const proxied = `/api/metadata?url=${encodeURIComponent(tokenURI)}`;
+				metadata = await fetchWithRetry(proxied);
+			} else {
+				throw e;
+			}
+		}
 		if (metadata) {
 			metadataCache.set(tokenURI, { data: metadata, timestamp: Date.now() });
 
@@ -144,8 +147,8 @@ export async function fetchNFTMetadata(
  * Helper function to fetch with retry logic and proper error handling
  */
 async function fetchWithRetry(
-    url: string,
-    maxRetries = 3,
+	url: string,
+	maxRetries = 3,
 ): Promise<NFTMetadata | null> {
 	let lastError: unknown;
 
@@ -153,14 +156,14 @@ async function fetchWithRetry(
 		try {
 			const timeoutMs = 8000 + attempt * 2000; // Increase timeout with each retry
 
-            const response = await fetch(url, {
-                method: "GET",
-                // Use only safe headers to avoid triggering CORS preflight
-                headers: {
-                    Accept: "application/json",
-                },
-                signal: AbortSignal.timeout(timeoutMs),
-            });
+			const response = await fetch(url, {
+				method: "GET",
+				// Use only safe headers to avoid triggering CORS preflight
+				headers: {
+					Accept: "application/json",
+				},
+				signal: AbortSignal.timeout(timeoutMs),
+			});
 
 			if (!response.ok) {
 				if (response.status === 429) {

@@ -17,9 +17,11 @@ import {
 	XCircleIcon,
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { Card, Chip } from "./ui";
+import { Card, Chip } from "./ui/GlassComponents";
 import { GachaCardSkeleton } from "./ui";
 import { GachaCardHeader } from "./GachaCardHeader";
+import { RarityBadge } from "./ui/RaritySystem";
+import { getAllRarities } from "../lib/rarityConfig";
 import type { GachaConfig } from "../lib/gacha-config";
 
 interface GachaCardProps {
@@ -31,23 +33,25 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	// 🚀 BATCH OPTIMIZED: Get all data in 2 calls instead of 5!
 	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
-	
-	const { data: platformData, isLoading: isPlatformLoading } = useReadGachaTreasuryGetPlatformOverviewBatch({
-		address: treasuryAddress,
-	} as any);
 
-	const { data: gachaConfig, isLoading: isGachaConfigLoading } = useReadGachaGetGachaConfigBatch({
-		address: gacha.address as `0x${string}`,
-	} as any);
+	const { data: platformData, isLoading: isPlatformLoading } =
+		useReadGachaTreasuryGetPlatformOverviewBatch({
+			address: treasuryAddress,
+		} as Parameters<typeof useReadGachaTreasuryGetPlatformOverviewBatch>[0]);
+
+	const { data: gachaConfig, isLoading: isGachaConfigLoading } =
+		useReadGachaGetGachaConfigBatch({
+			address: gacha.address as `0x${string}`,
+		} as Parameters<typeof useReadGachaGetGachaConfigBatch>[0]);
 
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const rarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
-	const totalItemsCount = platformData?.[1] || 0n;
-	const isAvailable = platformData?.[2] || false;
+	const rarityCounts = (platformData as any)?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = (platformData as any)?.[1] || 0n;
+	const isAvailable = (platformData as any)?.[2] || false;
 
 	// Extract gacha config: [feeTokenAddr, spinFeeAmount, isPaused, rarityWeights[5], totalWeight, isAvailable]
-	const feeToken = gachaConfig?.[0];
-	const spinFee = gachaConfig?.[1] || 0n;
+	const feeToken = (gachaConfig as any)?.[0];
+	const spinFee = (gachaConfig as any)?.[1] || 0n;
 
 	const { data: feeTokenSymbol } = useReadErc20Symbol({
 		address: feeToken,
@@ -95,7 +99,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 			aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
 			data-testid={`explore-gacha-${gacha.id}`}
 		>
-			<Card className="h-full overflow-hidden group border border-white/10 hover:border-warning/30 transition-all duration-300 bg-content1/20 backdrop-blur-xl rounded-2xl shadow-2xl">
+			<Card className="h-full overflow-hidden group cursor-pointer">
 				{/* Enhanced Header */}
 				<GachaCardHeader theme={gacha.theme}>
 					<div className="flex justify-between items-start mb-6">
@@ -117,14 +121,14 @@ export function GachaCard({ gacha }: GachaCardProps) {
 													"0 0 4px rgba(248, 113, 113, 0.5)",
 												],
 									}}
-									transition={{ duration: 2, repeat: Infinity }}
+									transition={{ duration: 2, repeat: 999 }}
 									aria-hidden="true"
 								></motion.div>
 								<span className="text-white/95 text-sm font-semibold drop-shadow-lg backdrop-blur-sm px-3 py-1.5 rounded-full bg-white/15 border border-white/25">
 									{isAvailable ? "Live" : "Offline"}
 								</span>
 							</div>
-							<h3 className="text-2xl font-bold text-white mb-2 drop-shadow-lg leading-tight group-hover:text-warning transition-colors duration-300">
+							<h3 className="text-2xl font-bold text-white mb-2 drop-shadow-lg leading-tight group-hover:text-warning transition-colors duration-300 font-orbitron">
 								{gacha.title}
 							</h3>
 						</div>
@@ -181,33 +185,18 @@ export function GachaCard({ gacha }: GachaCardProps) {
 							</div>
 							<div className="flex gap-2">
 								{rarityCountsArray.map((count: bigint, index: number) => {
-									const rarityColors = [
-										"from-rarity-common-500 to-rarity-common-600",
-										"from-rarity-uncommon-500 to-rarity-uncommon-600",
-										"from-rarity-rare-500 to-rarity-rare-600",
-										"from-rarity-epic-500 to-rarity-epic-600",
-										"from-rarity-legendary-500 to-rarity-legendary-600",
-									];
-									const rarityKeys = [
-										"common",
-										"uncommon",
-										"rare",
-										"epic",
-										"legendary",
-									];
-									const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟠"];
+									const rarity = getAllRarities()[index];
+									if (!rarity) return null;
+
 									return (
 										<motion.div
-											key={rarityKeys[index]}
+											key={rarity}
 											className="flex-1 text-center"
 											whileHover={{ scale: 1.05 }}
 											transition={{ type: "spring", stiffness: 400 }}
 										>
-											<div className="text-lg mb-1">{rarityEmojis[index]}</div>
-											<div
-												className={`h-2 bg-gradient-to-r ${rarityColors[index]} rounded-full mb-1 shadow-sm`}
-											></div>
-											<div className="text-xs text-foreground/70 font-medium">
+											<RarityBadge rarity={rarity} showEmoji={true} size="sm" />
+											<div className="text-xs text-foreground/70 font-medium mt-1">
 												{Number(count)}
 											</div>
 										</motion.div>
@@ -245,7 +234,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 								transition={{ delay: 0.2 }}
 								className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center"
 							>
-								<Chip className="text-lg px-4 py-2 bg-danger/20 border border-danger/30 text-danger rounded-xl backdrop-blur-xl">
+								<Chip className="px-4 py-2 bg-danger/20 border-danger/30 text-danger">
 									<XCircleIcon className="w-4 h-4 mr-2" />
 									Temporarily Unavailable
 								</Chip>
