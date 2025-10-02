@@ -2,8 +2,7 @@
 
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { glassTypography } from "../lib/theme-config";
-import { Card } from "./ui/GlassComponents";
+import { Card } from "../ui";
 import { RarityBadge } from "./ui/RaritySystem";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
@@ -120,28 +119,20 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 
 	return (
 		<Card className="h-full">
-			<div className="p-6 pb-2 border-b border-white/10">
-				<h3 className={glassTypography({ variant: "secondaryHeading" })}>
-					Drop Rates
-				</h3>
-			</div>
-			<div className="p-6 pt-4 space-y-4">
+			<div className="p-6 space-y-4">
 				{rarityStats.map((rarity) => (
-					<button
-						type="button"
+					<Card
 						key={rarity.name}
-						className="group relative cursor-pointer text-left w-full"
+						isPressable
+						className="group relative cursor-pointer text-left mb-4 last:mb-0 overflow-visible w-full"
 						onClick={() => handleRarityClick(rarity.rarity)}
 					>
 						{/* Enhanced glow effect */}
 						<div
-							className={`absolute inset-1 bg-gradient-to-r ${rarity.bgGradient} rounded-xl blur-md opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${rarity.glowColor}`}
+							className={`absolute inset-0 bg-gradient-to-r ${rarity.bgGradient} rounded-2xl blur-md opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${rarity.glowColor} -z-10`}
 						></div>
 
-						{/* Main card with rarity-specific styling */}
-						<div
-							className={`relative bg-content2/10 backdrop-blur-xl border ${rarity.borderColor} hover:${rarity.borderColor.replace("/50", "/80")} rounded-xl p-4 hover:bg-content2/20 transition-colors duration-300 shadow-md ${rarity.glowColor}`}
-						>
+						<div className="p-4">
 							{/* Header with rarity name and stats */}
 							<div className="flex justify-between items-center mb-3">
 								<RarityBadge rarity={rarity.rarity} size="sm" />
@@ -170,17 +161,14 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 								</div>
 							</div>
 
-							{/* Rarity description */}
-							<div className="mt-2 flex justify-between items-center">
-								<span className={`text-xs ${rarity.textColor} font-medium`}>
-									{rarity.description}
-								</span>
+							{/* Click indicator */}
+							<div className="mt-2 flex justify-end items-center">
 								<span className="text-xs text-foreground/50">
 									Click to view NFTs →
 								</span>
 							</div>
 						</div>
-					</button>
+					</Card>
 				))}
 			</div>
 

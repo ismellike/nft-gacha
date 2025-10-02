@@ -6,7 +6,7 @@ import { useAccount, useWriteContract, usePublicClient } from "wagmi";
 import { useMachine } from "@xstate/react";
 
 import { UnifiedNFTCard, type UnifiedNFTCardProps } from "./UnifiedNFTCard";
-import { Button } from "../ui";
+import { Button } from "../../ui";
 import {
 	GiftIcon,
 	ShieldCheckIcon,

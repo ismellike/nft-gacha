@@ -6,9 +6,8 @@ import {
 	ModalHeader,
 	ModalBody,
 	ModalFooter,
-	glassModalClasses,
-	Chip,
-} from "./ui";
+} from "@heroui/react";
+import { glassModalClasses, Chip } from "../ui";
 import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";

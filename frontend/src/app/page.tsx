@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Button } from "../components/ui/GlassComponents";
+import { Card, Button } from "../ui";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {

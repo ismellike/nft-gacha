@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import type { ComponentType, ReactNode, SVGProps } from "react";
-import { Card, Chip } from "./ui/GlassComponents";
+import { Card, Chip } from "../ui";
 import {
 	ShieldCheckIcon,
 	GiftIcon,

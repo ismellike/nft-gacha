@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Modal, ModalContent, ModalBody, glassModalClasses } from "./ui";
+import { Modal, ModalContent, ModalBody } from "@heroui/react";
+import { glassModalClasses } from "../ui/modals";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTHeroCard } from "./ui";
 import { useEnhancedSpinResult } from "../hooks/useNFTWithMetadata";

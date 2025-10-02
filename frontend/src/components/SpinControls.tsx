@@ -8,7 +8,7 @@ import {
 	useChainId,
 } from "wagmi";
 import { glassTypography, cn } from "../lib/theme-config";
-import { Card, Button, Chip } from "./ui/GlassComponents";
+import { Card, Button, Chip } from "../ui";
 import { TokenFeeDisplay } from "./ui";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
@@ -522,7 +522,7 @@ export default function SpinControls({
 	}, [isReclaimReceiptSuccess, gachaSpin, refetchBalance, refetchNonce]);
 
 	return (
-		<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+		<Card className="p-6">
 			<div className="flex justify-between items-center w-full">
 				<h2 className={glassTypography({ variant: "mainHeading" })}>
 					Gacha Spinner

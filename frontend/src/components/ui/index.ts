@@ -15,14 +15,8 @@ export {
 export { StandardNFTGrid, useTreasuryItemsToGridItems } from "./NFTGrid";
 export { NFTHeroCard } from "./UnifiedNFTCard";
 
-// Glass Components with custom HeroUI variants
-export {
-	Button,
-	Card,
-	Chip,
-	Input,
-	Badge,
-} from "./GlassComponents";
+// Glass Components are now imported directly from src/ui
+// Please import them from "../ui" in component files
 
 // Modal components (from HeroUI directly)
 export {
@@ -32,8 +26,5 @@ export {
 	ModalBody,
 	ModalFooter,
 } from "@heroui/react";
-
-// Glass modal helper classes
-export { glassModalClasses } from "./GlassComponents";
 
 // Courtyard functionality is now built into UnifiedNFTCard

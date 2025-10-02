@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Rarity } from "../../lib/rarityConfig";
 import { getRarityConfig } from "../../lib/rarityConfig";
-import { Chip } from "./GlassComponents";
+import { Chip } from "../../ui";
 
 interface RarityBadgeProps {
 	rarity: Rarity;

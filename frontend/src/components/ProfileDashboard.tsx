@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { formatTokenAmount } from "../lib/utils";
 import { getRarityConfig } from "../lib/rarityConfig";
-import { Card } from "./ui/GlassComponents";
+import { Card } from "../ui";
 import { CardRewardsList } from "./CardRewardsList";
 import { glassTypography } from "../lib/theme-config";
 import {

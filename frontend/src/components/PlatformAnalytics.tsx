@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Card } from "./ui/GlassComponents";
+import { Card } from "../ui";
 import { glassTypography } from "../lib/theme-config";
 import {
 	ChartBarIcon,

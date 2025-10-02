@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { PlusIcon, ChartBarIcon } from "@heroicons/react/24/outline";
-import { Card, Chip } from "../../components/ui";
+import { Card, Chip } from "../../ui";
 import { GlassHeader, GachaCard } from "../../components/ui";
 import { getAllActiveGachas } from "../../lib/gacha-config";
 

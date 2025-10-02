@@ -17,7 +17,7 @@ import {
 	XCircleIcon,
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { Card, Chip } from "./ui/GlassComponents";
+import { Card, Chip } from "../ui";
 import { GachaCardSkeleton } from "./ui";
 import { GachaCardHeader } from "./GachaCardHeader";
 import { RarityBadge } from "./ui/RaritySystem";
