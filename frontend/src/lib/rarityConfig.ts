@@ -92,7 +92,7 @@ export const getAllRarities = (): Rarity[] => [
 	Rarity.Uncommon,
 	Rarity.Rare,
 	Rarity.Epic,
-	Rarity.Legendary
+	Rarity.Legendary,
 ];
 
 // Utility functions for rarity operations

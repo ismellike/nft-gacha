@@ -480,7 +480,7 @@ export function NFTAppraisalForm({
 					<div className="pt-2">
 						<Button
 							type="submit"
-							color="glassPrimary"
+							color="primary"
 							className="w-full"
 							isLoading={isPending}
 							isDisabled={
@@ -491,15 +491,15 @@ export function NFTAppraisalForm({
 								!formData.tokenId.trim()
 							}
 						>
-							{isPending 
-								? (isApproving
+							{isPending
+								? isApproving
 									? "Approving tokens..."
 									: isRequestingAppraisal
 										? "Requesting appraisal..."
-										: "Submitting...")
-								: (needsApproval()
+										: "Submitting..."
+								: needsApproval()
 									? "Approve & Request Appraisal"
-									: "Request Appraisal")}
+									: "Request Appraisal"}
 						</Button>
 					</div>
 

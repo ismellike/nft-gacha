@@ -21,40 +21,44 @@ const valueProps = [
 	{
 		icon: <CpuChipIcon className="w-8 h-8" />,
 		title: "WAVS-Powered Randomness",
-		description: "Enterprise-grade verifiable randomness with on-chain cryptographic proofs",
-		highlight: "No Manipulation Possible"
+		description:
+			"Enterprise-grade verifiable randomness with on-chain cryptographic proofs",
+		highlight: "No Manipulation Possible",
 	},
 	{
 		icon: <FingerPrintIcon className="w-8 h-8" />,
 		title: "Automated Appraisals",
-		description: "WAVS components provide instant, verified card valuations on-chain",
-		highlight: "Real-time Fair Market Value"
+		description:
+			"WAVS components provide instant, verified card valuations on-chain",
+		highlight: "Real-time Fair Market Value",
 	},
 	{
 		icon: <ShieldCheckIcon className="w-8 h-8" />,
 		title: "100% Transparent Treasury",
-		description: "Every deposit, spin, and reward is publicly verifiable on-chain",
-		highlight: "Zero Black Boxes"
-	}
+		description:
+			"Every deposit, spin, and reward is publicly verifiable on-chain",
+		highlight: "Zero Black Boxes",
+	},
 ];
 
 // Simplified user journey
 const userFlow = [
 	{
 		title: "Deposit NFTs",
-		description: "Contribute graded cards to the treasury and earn yield from every spin",
-		benefit: "Passive income stream"
+		description:
+			"Contribute graded cards to the treasury and earn yield from every spin",
+		benefit: "Passive income stream",
 	},
 	{
 		title: "Spin & Win",
 		description: "Use WAVS-verified randomness to pull cards at true odds",
-		benefit: "Guaranteed fair outcomes"
+		benefit: "Guaranteed fair outcomes",
 	},
 	{
 		title: "Verify Everything",
 		description: "Check cryptographic proofs for every spin and transaction",
-		benefit: "Complete transparency"
-	}
+		benefit: "Complete transparency",
+	},
 ];
 
 export default function LandingPage() {
@@ -74,8 +78,8 @@ export default function LandingPage() {
 								className="absolute w-[600px] h-[600px] rounded-full"
 								style={{
 									background: `radial-gradient(circle, ${config.bgGradient.replace("from-", "rgba(").replace(" to-", ", 0.08) 0%, transparent")} 70%)`,
-									left: `${25 + (i * 20)}%`,
-									top: `${20 + (i * 15)}%`,
+									left: `${25 + i * 20}%`,
+									top: `${20 + i * 15}%`,
 								}}
 								animate={{
 									x: [0, 20, -15, 0],
@@ -83,7 +87,7 @@ export default function LandingPage() {
 									scale: [1, 1.1, 0.95, 1],
 								}}
 								transition={{
-									duration: 20 + (i * 3),
+									duration: 20 + i * 3,
 									repeat: Infinity,
 									ease: "easeInOut",
 								}}
@@ -100,18 +104,20 @@ export default function LandingPage() {
 						transition={{ delay: 0.2, duration: 0.6 }}
 						className="mb-12"
 					>
-	<a
-		href="https://www.wavs.xyz"
-		target="_blank"
-		rel="noopener noreferrer"
-		className="inline-flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-warning/10 via-orange-400/5 to-warning/10 backdrop-blur-xl border border-warning/30 rounded-2xl hover:border-warning/50 transition-all duration-300"
-	>
-		<CpuChipIcon className="w-5 h-5 text-warning" />
-		<span className="text-warning font-semibold">Powered by WAVS</span>
-	</a>
+						<a
+							href="https://www.wavs.xyz"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-warning/10 via-orange-400/5 to-warning/10 backdrop-blur-xl border border-warning/30 rounded-2xl hover:border-warning/50 transition-all duration-300"
+						>
+							<CpuChipIcon className="w-5 h-5 text-warning" />
+							<span className="text-warning font-semibold">
+								Powered by WAVS
+							</span>
+						</a>
 					</motion.div>
 
-					 {/* Main Headline - More Impactful */}
+					{/* Main Headline - More Impactful */}
 					<motion.div
 						initial={{ opacity: 0, y: 30 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -136,7 +142,8 @@ export default function LandingPage() {
 						transition={{ delay: 0.6, duration: 0.8 }}
 						className="text-xl md:text-2xl text-foreground/80 mb-16 max-w-4xl mx-auto leading-relaxed font-medium"
 					>
-						Verifiably fair randomness and automated appraisals powered by WAVS components.
+						Verifiably fair randomness and automated appraisals powered by WAVS
+						components.
 						<br className="hidden md:block" />
 						<span className="text-warning font-semibold">
 							No manipulation. No black boxes. Just cryptographic proof.
@@ -183,13 +190,30 @@ export default function LandingPage() {
 						className="flex flex-wrap justify-center gap-6"
 					>
 						{[
-							{ icon: <ShieldCheckIcon className="w-5 h-5" />, text: "WAVS Secured" },
-							{ icon: <FingerPrintIcon className="w-5 h-5" />, text: "On-Chain Verifiable" },
-							{ icon: <ChartBarIcon className="w-5 h-5" />, text: "Automated Appraisals" }
-						].map((signal, index) => (
-							<div key={index} className="flex items-center gap-2 px-4 py-2 bg-content1/10 backdrop-blur-sm rounded-full border border-white/20">
+							{
+								id: "wavs-secured",
+								icon: <ShieldCheckIcon className="w-5 h-5" />,
+								text: "WAVS Secured",
+							},
+							{
+								id: "on-chain-verifiable",
+								icon: <FingerPrintIcon className="w-5 h-5" />,
+								text: "On-Chain Verifiable",
+							},
+							{
+								id: "automated-appraisals",
+								icon: <ChartBarIcon className="w-5 h-5" />,
+								text: "Automated Appraisals",
+							},
+						].map((signal) => (
+							<div
+								key={signal.id}
+								className="flex items-center gap-2 px-4 py-2 bg-content1/10 backdrop-blur-sm rounded-full border border-white/20"
+							>
 								<span className="text-warning">{signal.icon}</span>
-								<span className="text-sm font-medium text-foreground/80">{signal.text}</span>
+								<span className="text-sm font-medium text-foreground/80">
+									{signal.text}
+								</span>
 							</div>
 						))}
 					</motion.div>
@@ -212,7 +236,8 @@ export default function LandingPage() {
 							</span>
 						</h2>
 						<p className="text-xl text-foreground/80 max-w-4xl mx-auto leading-relaxed font-medium">
-							Enterprise-grade infrastructure providing verifiable randomness and automated appraisals
+							Enterprise-grade infrastructure providing verifiable randomness
+							and automated appraisals
 						</p>
 					</motion.div>
 
@@ -228,9 +253,7 @@ export default function LandingPage() {
 								<Card className="h-full p-10 text-center bg-content1/10 backdrop-blur-xl border border-white/10 rounded-3xl hover:border-warning/30 transition-all duration-500 group">
 									{/* Icon Container */}
 									<div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-br from-warning/20 via-orange-400/10 to-warning/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-										<div className="text-warning">
-											{prop.icon}
-										</div>
+										<div className="text-warning">{prop.icon}</div>
 									</div>
 
 									{/* Content */}
@@ -309,8 +332,7 @@ export default function LandingPage() {
 				</div>
 			</section>
 
-	
-		{/* Simple Rarity Showcase */}
+			{/* Simple Rarity Showcase */}
 			<section className="py-24 px-4 relative">
 				<div className="max-w-7xl mx-auto">
 					<motion.div
@@ -355,7 +377,8 @@ export default function LandingPage() {
 							</h2>
 
 							<p className="text-xl text-foreground/80 mb-12 max-w-3xl mx-auto leading-relaxed">
-								Join the protocol where every spin is verifiable and every reward is transparent.
+								Join the protocol where every spin is verifiable and every
+								reward is transparent.
 							</p>
 
 							<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -383,13 +406,15 @@ export default function LandingPage() {
 								</div>
 								<div className="flex items-center gap-2">
 									<FingerPrintIcon className="w-5 h-5 text-warning" />
-									<span className="text-sm font-medium">Cryptographically Verifiable</span>
+									<span className="text-sm font-medium">
+										Cryptographically Verifiable
+									</span>
 								</div>
 							</div>
 						</Card>
 					</motion.div>
 				</div>
 			</section>
-			</div>
+		</div>
 	);
 }

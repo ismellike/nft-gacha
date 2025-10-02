@@ -5,13 +5,24 @@
  * Single unified look across all components
  */
 
-import { Button as HeroButton, Card as HeroCard, Chip as HeroChip, Input as HeroInput, Badge as HeroBadge } from "@heroui/react";
+import type React from "react";
+import {
+	Button as HeroButton,
+	Card as HeroCard,
+	Chip as HeroChip,
+	Input as HeroInput,
+	Badge as HeroBadge,
+} from "@heroui/react";
 
 // Single consistent glass styling
-const glassClasses = "bg-content1/20 backdrop-blur-xl border border-white/10 shadow-glass hover:bg-content1/30 hover:border-white/20 hover:shadow-glassHover transition-all duration-300";
+const glassClasses =
+	"bg-content1/20 backdrop-blur-xl border border-white/10 shadow-glass hover:bg-content1/30 hover:border-white/20 hover:shadow-glassHover transition-all duration-300";
 
 // Glass Button - single consistent style
-export const GlassButton = ({ className = "", ...props }: any) => (
+export const GlassButton = ({
+	className = "",
+	...props
+}: React.ComponentProps<typeof HeroButton>) => (
 	<HeroButton
 		className={`bg-gradient-to-r from-warning to-orange-400 text-black font-medium border border-warning/30 shadow-glow hover:from-warning/90 hover:to-orange-500/90 hover:shadow-glowHover hover:scale-[1.02] active:scale-[0.97] transition-all duration-300 ${className}`}
 		{...props}
@@ -19,15 +30,18 @@ export const GlassButton = ({ className = "", ...props }: any) => (
 );
 
 // Glass Card - single consistent style
-export const GlassCard = ({ className = "", ...props }: any) => (
-	<HeroCard
-		className={`${glassClasses} rounded-2xl ${className}`}
-		{...props}
-	/>
+export const GlassCard = ({
+	className = "",
+	...props
+}: React.ComponentProps<typeof HeroCard>) => (
+	<HeroCard className={`${glassClasses} rounded-2xl ${className}`} {...props} />
 );
 
 // Glass Chip - single consistent style
-export const GlassChip = ({ className = "", ...props }: any) => (
+export const GlassChip = ({
+	className = "",
+	...props
+}: React.ComponentProps<typeof HeroChip>) => (
 	<HeroChip
 		className={`bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80 transition-all duration-200 rounded-2xl ${className}`}
 		{...props}
@@ -35,7 +49,10 @@ export const GlassChip = ({ className = "", ...props }: any) => (
 );
 
 // Glass Input - single consistent style
-export const GlassInput = ({ className = "", ...props }: any) => (
+export const GlassInput = ({
+	className = "",
+	...props
+}: React.ComponentProps<typeof HeroInput>) => (
 	<HeroInput
 		className={`bg-content1/20 backdrop-blur-xl border border-white/20 transition-all duration-200 focus:bg-content1/30 focus:border-warning/50 focus:ring-2 focus:ring-warning/20 placeholder:text-foreground/40 rounded-xl ${className}`}
 		{...props}
@@ -43,7 +60,10 @@ export const GlassInput = ({ className = "", ...props }: any) => (
 );
 
 // Glass Badge - single consistent style
-export const GlassBadge = ({ className = "", ...props }: any) => (
+export const GlassBadge = ({
+	className = "",
+	...props
+}: React.ComponentProps<typeof HeroBadge>) => (
 	<HeroBadge
 		className={`bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80 transition-all duration-200 rounded-lg ${className}`}
 		{...props}
@@ -53,8 +73,10 @@ export const GlassBadge = ({ className = "", ...props }: any) => (
 // Glass modal helper classes
 export const glassModalClasses = {
 	backdrop: "bg-transparent backdrop-blur-sm",
-	content: "bg-content1/10 backdrop-blur-2xl border border-white/20 shadow-2xl max-h-[90vh] rounded-2xl",
-	contentDark: "bg-content1/5 backdrop-blur-2xl border border-white/10 shadow-2xl max-h-[90vh] rounded-2xl",
+	content:
+		"bg-content1/10 backdrop-blur-2xl border border-white/20 shadow-2xl max-h-[90vh] rounded-2xl",
+	contentDark:
+		"bg-content1/5 backdrop-blur-2xl border border-white/10 shadow-2xl max-h-[90vh] rounded-2xl",
 	header: "border-b border-white/10 backdrop-blur-xl flex-shrink-0 p-6",
 	headerDark: "border-b border-white/5 backdrop-blur-xl flex-shrink-0 p-6",
 	body: "backdrop-blur-xl overflow-auto flex-1 p-6",

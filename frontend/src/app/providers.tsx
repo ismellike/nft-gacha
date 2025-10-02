@@ -8,17 +8,17 @@ import { useRouter } from "next/navigation";
 import { config } from "../wagmi";
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000, // reduce churn for onchain reads
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-      retry: 2,
-    },
-    mutations: {
-      retry: 0,
-    },
-  },
+	defaultOptions: {
+		queries: {
+			staleTime: 30_000, // reduce churn for onchain reads
+			gcTime: 5 * 60_000,
+			refetchOnWindowFocus: false,
+			retry: 2,
+		},
+		mutations: {
+			retry: 0,
+		},
+	},
 });
 
 const customDarkTheme = darkTheme({
@@ -36,9 +36,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
 				<RainbowKitProvider theme={customDarkTheme} modalSize="compact">
-					<HeroUIProvider navigate={router.push}>
-						{children}
-					</HeroUIProvider>
+					<HeroUIProvider navigate={router.push}>{children}</HeroUIProvider>
 				</RainbowKitProvider>
 			</QueryClientProvider>
 		</WagmiProvider>

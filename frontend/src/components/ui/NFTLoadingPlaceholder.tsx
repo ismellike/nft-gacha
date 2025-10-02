@@ -65,7 +65,7 @@ export function NFTLoadingPlaceholder({
 							"flex items-center justify-center",
 						)}
 						animate={animate ? { scale: [1, 1.05, 1] } : {}}
-						transition={animate ? { duration: 2, repeat: Infinity } : {}}
+						transition={animate ? { duration: 2, repeat: 999 } : {}}
 					>
 						<svg
 							className="w-8 h-8 text-white/80"
@@ -147,7 +147,7 @@ export function NFTLoadingPlaceholder({
 						<motion.div
 							className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent rounded-2xl"
 							animate={animate ? { opacity: [0.3, 0.6, 0.3] } : {}}
-							transition={animate ? { duration: 2, repeat: Infinity } : {}}
+							transition={animate ? { duration: 2, repeat: 999 } : {}}
 						/>
 						<div className="w-4 h-4 bg-white/60 rounded-full transform -rotate-45" />
 					</motion.div>

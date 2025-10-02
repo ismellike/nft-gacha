@@ -4,6 +4,7 @@ import { memo, useMemo } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
 	HomeIcon,
@@ -64,9 +65,11 @@ export const Header = memo(() => {
 										ease: "linear",
 									}}
 								>
-									<img
+									<Image
 										src="/logo.webp"
 										alt="SPINFI Logo"
+										width={48}
+										height={48}
 										className="w-full h-full object-contain relative z-10 filter drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-300"
 									/>
 								</motion.div>
@@ -94,7 +97,11 @@ export const Header = memo(() => {
 											}`}
 											whileHover={{ scale: 1.05 }}
 											whileTap={{ scale: 0.95 }}
-											transition={{ type: "spring", stiffness: 400, damping: 17 }}
+											transition={{
+												type: "spring",
+												stiffness: 400,
+												damping: 17,
+											}}
 										>
 											<div className="flex items-center space-x-2">
 												{getNavIcon(

@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAccount, usePublicClient } from "wagmi";
-import {
-	baseErc721Abi,
-	useReadBaseErc721BalanceOf,
-} from "../generated";
+import { baseErc721Abi, useReadBaseErc721BalanceOf } from "../generated";
 
 export interface UserOwnedNFT {
 	tokenId: bigint;
@@ -53,7 +50,12 @@ export function useUserOwnedNFTs(
 	});
 
 	const fetchUserTokens = useCallback(async () => {
-		if (!userAddress || !collectionAddress || !publicClient || userBalance === undefined) {
+		if (
+			!userAddress ||
+			!collectionAddress ||
+			!publicClient ||
+			userBalance === undefined
+		) {
 			setTokens([]);
 			return;
 		}

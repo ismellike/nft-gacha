@@ -62,7 +62,7 @@ export function isCourtyardTokenURI(tokenURI: string): boolean {
  * and retry logic for better reliability
  */
 export async function fetchCourtyardMetadata(
-    tokenURI: string,
+	tokenURI: string,
 ): Promise<CourtyardMetadata | null> {
 	if (!tokenURI || !isCourtyardTokenURI(tokenURI)) {
 		console.warn("Invalid Courtyard tokenURI:", tokenURI);
@@ -72,32 +72,32 @@ export async function fetchCourtyardMetadata(
 	const maxRetries = 3;
 	let lastError: Error | undefined;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            console.log(
-                `Fetching Courtyard metadata (attempt ${attempt}/${maxRetries}):`,
-                tokenURI,
-            );
+	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+		try {
+			console.log(
+				`Fetching Courtyard metadata (attempt ${attempt}/${maxRetries}):`,
+				tokenURI,
+			);
 
-        const timeoutMs = 10000 + attempt * 3000; // Increase timeout with each retry
+			const timeoutMs = 10000 + attempt * 3000; // Increase timeout with each retry
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        // Try direct fetch first with safe headers, then proxy as fallback
-        const doFetch = async (url: string) =>
-          fetch(url, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-            signal: controller.signal,
-            cache: "default",
-          });
+			// Try direct fetch first with safe headers, then proxy as fallback
+			const doFetch = async (url: string) =>
+				fetch(url, {
+					method: "GET",
+					headers: { Accept: "application/json" },
+					signal: controller.signal,
+					cache: "default",
+				});
 
-        let response = await doFetch(tokenURI);
-        if (!response.ok) {
-          // fallback to proxy if allowed
-          const proxiedUrl = `/api/metadata?url=${encodeURIComponent(tokenURI)}`;
-          response = await doFetch(proxiedUrl);
-        }
+			let response = await doFetch(tokenURI);
+			if (!response.ok) {
+				// fallback to proxy if allowed
+				const proxiedUrl = `/api/metadata?url=${encodeURIComponent(tokenURI)}`;
+				response = await doFetch(proxiedUrl);
+			}
 
 			clearTimeout(timeoutId);
 
@@ -439,30 +439,38 @@ export function parseCourtyardMetadata(metadata: CourtyardMetadata) {
  * Excludes unique identifiers (e.g., Serial, images). Normalizes values.
  */
 
-
 /**
  * Return a human-readable breakdown of group components for display.
  */
 export function extractCourtyardGroupDisplay(metadata: CourtyardMetadata) {
-  const attrs = metadata.attributes ?? [];
-  const get = (name: string) => attrs.find(a => a.trait_type === name)?.value?.toString().trim();
-  const tags = (attrs
-    .filter(a => !a.trait_type && typeof a.value === "string" && a.value.trim().length > 0)
-    .map(a => (a.value as string).trim())
-    .sort()) as string[];
+	const attrs = metadata.attributes ?? [];
+	const get = (name: string) =>
+		attrs
+			.find((a) => a.trait_type === name)
+			?.value?.toString()
+			.trim();
+	const tags = attrs
+		.filter(
+			(a) =>
+				!a.trait_type &&
+				typeof a.value === "string" &&
+				a.value.trim().length > 0,
+		)
+		.map((a) => (a.value as string).trim())
+		.sort() as string[];
 
-  return {
-    grader: get("Grader") || "",
-    grade: get("Grade") || "",
-    set: get("Set") || "",
-    title: get("Title/Subject") || metadata.name || "",
-    language: get("Language") || "English",
-    cardNumber: get("Card Number") || "",
-    year: get("Year") || "",
-    category: get("Category") || "",
-    event: get("Event") || "",
-    tags,
-  };
+	return {
+		grader: get("Grader") || "",
+		grade: get("Grade") || "",
+		set: get("Set") || "",
+		title: get("Title/Subject") || metadata.name || "",
+		language: get("Language") || "English",
+		cardNumber: get("Card Number") || "",
+		year: get("Year") || "",
+		category: get("Category") || "",
+		event: get("Event") || "",
+		tags,
+	};
 }
 
 /**

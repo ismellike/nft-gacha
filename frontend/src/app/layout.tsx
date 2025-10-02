@@ -55,21 +55,32 @@ export default function RootLayout({
 				{/* Open Graph / Social Media */}
 				<meta property="og:type" content="website" />
 				<meta property="og:title" content="SPINFI - Provably Fair NFT Gacha" />
-				<meta property="og:description" content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS" />
+				<meta
+					property="og:description"
+					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS"
+				/>
 				<meta property="og:image" content="/logo.webp" />
 				<meta property="og:url" content="https://spinfi.xyz" />
 
 				{/* Twitter Card */}
 				<meta name="twitter:card" content="summary_large_image" />
 				<meta name="twitter:title" content="SPINFI - Provably Fair NFT Gacha" />
-				<meta name="twitter:description" content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS" />
+				<meta
+					name="twitter:description"
+					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS"
+				/>
 				<meta name="twitter:image" content="/logo.webp" />
 
 				{/* Additional SEO */}
-				<meta name="keywords" content="NFT, gacha, gaming, blockchain, cryptocurrency, WAVS, provably fair, randomness, DeFi" />
+				<meta
+					name="keywords"
+					content="NFT, gacha, gaming, blockchain, cryptocurrency, WAVS, provably fair, randomness, DeFi"
+				/>
 				<meta name="author" content="SPINFI Team" />
 			</head>
-			<body className={`${inter.variable} ${jetbrainsMono.variable} ${orbitron.variable} font-spin`}>
+			<body
+				className={`${inter.variable} ${jetbrainsMono.variable} ${orbitron.variable} font-spin`}
+			>
 				<Providers>
 					<ClientAnimatedBackground />
 					<div className="relative z-10 bg-transparent">

@@ -22,8 +22,7 @@ export default function DiscoverPage() {
 						{ icon: "gem", text: "Authentic Graded Cards", variant: "primary" },
 						{ icon: "trending", text: "Live Analytics", variant: "primary" },
 					]}
-				>
-				</GlassHeader>
+				></GlassHeader>
 
 				{/* Gacha Grid */}
 				<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-16">
@@ -60,7 +59,10 @@ export default function DiscoverPage() {
 									tuned for more exciting opportunities!
 								</p>
 							</div>
-							<Chip startContent={<ChartBarIcon className="w-4 h-4" />} className="px-3 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl">
+							<Chip
+								startContent={<ChartBarIcon className="w-4 h-4" />}
+								className="px-3 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl"
+							>
 								New Drops Incoming
 							</Chip>
 						</div>

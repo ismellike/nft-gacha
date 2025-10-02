@@ -99,10 +99,10 @@ function GachaDetailPageContent() {
 			userAddress === rewardsOwner);
 
 	// Check if rewards manager is paused
-useReadGachaRewardsManagerPaused({
-    address: contracts.rewardsManager,
-    query: { enabled: !!contracts.rewardsManager },
-} as Parameters<typeof useReadGachaRewardsManagerPaused>[0]);
+	useReadGachaRewardsManagerPaused({
+		address: contracts.rewardsManager,
+		query: { enabled: !!contracts.rewardsManager },
+	} as Parameters<typeof useReadGachaRewardsManagerPaused>[0]);
 
 	// Contract reads for rewards functionality
 	useReadGachaFeeToken({
@@ -113,31 +113,41 @@ useReadGachaRewardsManagerPaused({
 	// decimals not used on this page; omit to keep types clean
 
 	// User analytics via per-rarity UserDividendTrackers
-const { refetch: refetchAccCommon } = useReadUserDividendTrackerAccumulativeFundsOf({
-    address: contracts.trackers?.common,
-    args: userAddress && contracts.trackers?.common ? [userAddress] : undefined,
-    query: { enabled: !!userAddress && !!contracts.trackers?.common },
-} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
-const { refetch: refetchAccUncommon } = useReadUserDividendTrackerAccumulativeFundsOf({
-    address: contracts.trackers?.uncommon,
-    args: userAddress && contracts.trackers?.uncommon ? [userAddress] : undefined,
-    query: { enabled: !!userAddress && !!contracts.trackers?.uncommon },
-} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
-const { refetch: refetchAccRare } = useReadUserDividendTrackerAccumulativeFundsOf({
-    address: contracts.trackers?.rare,
-    args: userAddress && contracts.trackers?.rare ? [userAddress] : undefined,
-    query: { enabled: !!userAddress && !!contracts.trackers?.rare },
-} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
-const { refetch: refetchAccEpic } = useReadUserDividendTrackerAccumulativeFundsOf({
-    address: contracts.trackers?.epic,
-    args: userAddress && contracts.trackers?.epic ? [userAddress] : undefined,
-    query: { enabled: !!userAddress && !!contracts.trackers?.epic },
-} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
-const { refetch: refetchAccLegendary } = useReadUserDividendTrackerAccumulativeFundsOf({
-    address: contracts.trackers?.legendary,
-    args: userAddress && contracts.trackers?.legendary ? [userAddress] : undefined,
-    query: { enabled: !!userAddress && !!contracts.trackers?.legendary },
-} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
+	const { refetch: refetchAccCommon } =
+		useReadUserDividendTrackerAccumulativeFundsOf({
+			address: contracts.trackers?.common,
+			args:
+				userAddress && contracts.trackers?.common ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.common },
+		} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
+	const { refetch: refetchAccUncommon } =
+		useReadUserDividendTrackerAccumulativeFundsOf({
+			address: contracts.trackers?.uncommon,
+			args:
+				userAddress && contracts.trackers?.uncommon ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.uncommon },
+		} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
+	const { refetch: refetchAccRare } =
+		useReadUserDividendTrackerAccumulativeFundsOf({
+			address: contracts.trackers?.rare,
+			args: userAddress && contracts.trackers?.rare ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.rare },
+		} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
+	const { refetch: refetchAccEpic } =
+		useReadUserDividendTrackerAccumulativeFundsOf({
+			address: contracts.trackers?.epic,
+			args: userAddress && contracts.trackers?.epic ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.epic },
+		} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
+	const { refetch: refetchAccLegendary } =
+		useReadUserDividendTrackerAccumulativeFundsOf({
+			address: contracts.trackers?.legendary,
+			args:
+				userAddress && contracts.trackers?.legendary
+					? [userAddress]
+					: undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.legendary },
+		} as Parameters<typeof useReadUserDividendTrackerAccumulativeFundsOf>[0]);
 
 	const refetchUserAnalytics = useCallback(async () => {
 		await Promise.all([
@@ -156,40 +166,45 @@ const { refetch: refetchAccLegendary } = useReadUserDividendTrackerAccumulativeF
 	]);
 
 	// Total claimable via per-rarity withdrawable funds
-const { refetch: refetchCommonClaimable } =
-    useReadUserDividendTrackerWithdrawableFundsOf({
-        address: contracts.trackers?.common,
-        args: userAddress && contracts.trackers?.common ? [userAddress] : undefined,
-        query: { enabled: !!userAddress && !!contracts.trackers?.common },
-    } as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
+	const { refetch: refetchCommonClaimable } =
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.common,
+			args:
+				userAddress && contracts.trackers?.common ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.common },
+		} as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
 
-const { refetch: refetchUncommonClaimable } =
-    useReadUserDividendTrackerWithdrawableFundsOf({
-        address: contracts.trackers?.uncommon,
-        args: userAddress && contracts.trackers?.uncommon ? [userAddress] : undefined,
-        query: { enabled: !!userAddress && !!contracts.trackers?.uncommon },
-    } as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
+	const { refetch: refetchUncommonClaimable } =
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.uncommon,
+			args:
+				userAddress && contracts.trackers?.uncommon ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.uncommon },
+		} as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
 
-const { refetch: refetchRareClaimable } =
-    useReadUserDividendTrackerWithdrawableFundsOf({
-        address: contracts.trackers?.rare,
-        args: userAddress && contracts.trackers?.rare ? [userAddress] : undefined,
-        query: { enabled: !!userAddress && !!contracts.trackers?.rare },
-    } as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
+	const { refetch: refetchRareClaimable } =
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.rare,
+			args: userAddress && contracts.trackers?.rare ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.rare },
+		} as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
 
-const { refetch: refetchEpicClaimable } =
-    useReadUserDividendTrackerWithdrawableFundsOf({
-        address: contracts.trackers?.epic,
-        args: userAddress && contracts.trackers?.epic ? [userAddress] : undefined,
-        query: { enabled: !!userAddress && !!contracts.trackers?.epic },
-    } as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
+	const { refetch: refetchEpicClaimable } =
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.epic,
+			args: userAddress && contracts.trackers?.epic ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.epic },
+		} as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
 
-const { refetch: refetchLegendaryClaimable } =
-    useReadUserDividendTrackerWithdrawableFundsOf({
-        address: contracts.trackers?.legendary,
-        args: userAddress && contracts.trackers?.legendary ? [userAddress] : undefined,
-        query: { enabled: !!userAddress && !!contracts.trackers?.legendary },
-    } as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
+	const { refetch: refetchLegendaryClaimable } =
+		useReadUserDividendTrackerWithdrawableFundsOf({
+			address: contracts.trackers?.legendary,
+			args:
+				userAddress && contracts.trackers?.legendary
+					? [userAddress]
+					: undefined,
+			query: { enabled: !!userAddress && !!contracts.trackers?.legendary },
+		} as Parameters<typeof useReadUserDividendTrackerWithdrawableFundsOf>[0]);
 
 	const refetchClaimable = useCallback(async () => {
 		await Promise.all([
@@ -207,11 +222,12 @@ const { refetch: refetchLegendaryClaimable } =
 		refetchLegendaryClaimable,
 	]);
 
-const { refetch: refetchDepositCounts } = useReadGachaTreasuryGetUserAllDepositCounts({
-        address: contracts.treasury,
-        args: userAddress && contracts.treasury ? [userAddress] : undefined,
-        query: { enabled: !!userAddress && !!contracts.treasury },
-} as Parameters<typeof useReadGachaTreasuryGetUserAllDepositCounts>[0]);
+	const { refetch: refetchDepositCounts } =
+		useReadGachaTreasuryGetUserAllDepositCounts({
+			address: contracts.treasury,
+			args: userAddress && contracts.treasury ? [userAddress] : undefined,
+			query: { enabled: !!userAddress && !!contracts.treasury },
+		} as Parameters<typeof useReadGachaTreasuryGetUserAllDepositCounts>[0]);
 
 	const refetchDepositCountsStable = useCallback(async () => {
 		return refetchDepositCounts();
@@ -670,8 +686,7 @@ const { refetch: refetchDepositCounts } = useReadGachaTreasuryGetUserAllDepositC
 						</div>
 					)}
 				</motion.div>
-
-				</div>
+			</div>
 		</div>
 	);
 }

@@ -72,10 +72,10 @@ export default function SpinControls({
 		query: { enabled: !!contracts.gacha },
 	});
 
-const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
-	address: contracts.treasury as `0x${string}` | undefined,
-	query: { enabled: !!contracts.treasury },
-} as Parameters<typeof useReadGachaTreasuryIsGachaAvailable>[0]);
+	const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
+		address: contracts.treasury as `0x${string}` | undefined,
+		query: { enabled: !!contracts.treasury },
+	} as Parameters<typeof useReadGachaTreasuryIsGachaAvailable>[0]);
 
 	// ERC20 token data
 	const { data: tokenDecimals } = useReadErc20Decimals({
@@ -101,7 +101,11 @@ const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 		},
 	);
 
-	const { data: tokenNonce, refetch: refetchNonce, error: noncesError } = useReadIerc20PermitNonces({
+	const {
+		data: tokenNonce,
+		refetch: refetchNonce,
+		error: noncesError,
+	} = useReadIerc20PermitNonces({
 		address: feeToken,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!(feeToken && userAddress) },
@@ -175,7 +179,10 @@ const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 	const spinReceipt = spinWait.data;
 
 	const isProcessingTransaction =
-		isSpinWithPermitPending || isSpinWithPermitConfirming || isSpinPending || isSpinConfirming;
+		isSpinWithPermitPending ||
+		isSpinWithPermitConfirming ||
+		isSpinPending ||
+		isSpinConfirming;
 	const hasSufficientBalance =
 		spinFee && tokenBalance ? tokenBalance >= spinFee : false;
 	const canSpin =
@@ -222,7 +229,6 @@ const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 
 		return "SPIN NOW";
 	};
-
 
 	const isButtonDisabled = () => {
 		return (
@@ -412,7 +418,9 @@ const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 	// Handle transaction receipt
 	useEffect(() => {
 		if (
-			(isSpinWithPermitSuccess && spinWithPermitTxHash && processedTxHash !== spinWithPermitTxHash) ||
+			(isSpinWithPermitSuccess &&
+				spinWithPermitTxHash &&
+				processedTxHash !== spinWithPermitTxHash) ||
 			(isSpinSuccess && spinTxHash && processedTxHash !== spinTxHash)
 		) {
 			console.log(
@@ -446,7 +454,11 @@ const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 					triggerId,
 				);
 				gachaSpin.confirmTransaction(triggerId);
-				setProcessedTxHash(isSpinWithPermitSuccess ? (spinWithPermitTxHash as string) : (spinTxHash as string)); // Mark as processed
+				setProcessedTxHash(
+					isSpinWithPermitSuccess
+						? (spinWithPermitTxHash as string)
+						: (spinTxHash as string),
+				); // Mark as processed
 			}
 
 			// Refetch balance after successful spin
@@ -772,7 +784,7 @@ const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 
 					{/* Spin Button */}
 					<Button
-												size="xl"
+						size="lg"
 						className="px-20 py-5 text-xl tracking-wide"
 						onPress={onSpinClick}
 						disabled={isButtonDisabled()}

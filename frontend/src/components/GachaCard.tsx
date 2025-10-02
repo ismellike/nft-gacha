@@ -33,23 +33,25 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	// 🚀 BATCH OPTIMIZED: Get all data in 2 calls instead of 5!
 	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
-	
-	const { data: platformData, isLoading: isPlatformLoading } = useReadGachaTreasuryGetPlatformOverviewBatch({
-		address: treasuryAddress,
-	} as any);
 
-	const { data: gachaConfig, isLoading: isGachaConfigLoading } = useReadGachaGetGachaConfigBatch({
-		address: gacha.address as `0x${string}`,
-	} as any);
+	const { data: platformData, isLoading: isPlatformLoading } =
+		useReadGachaTreasuryGetPlatformOverviewBatch({
+			address: treasuryAddress,
+		} as Parameters<typeof useReadGachaTreasuryGetPlatformOverviewBatch>[0]);
+
+	const { data: gachaConfig, isLoading: isGachaConfigLoading } =
+		useReadGachaGetGachaConfigBatch({
+			address: gacha.address as `0x${string}`,
+		} as Parameters<typeof useReadGachaGetGachaConfigBatch>[0]);
 
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const rarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
-	const totalItemsCount = platformData?.[1] || 0n;
-	const isAvailable = platformData?.[2] || false;
+	const rarityCounts = (platformData as any)?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = (platformData as any)?.[1] || 0n;
+	const isAvailable = (platformData as any)?.[2] || false;
 
 	// Extract gacha config: [feeTokenAddr, spinFeeAmount, isPaused, rarityWeights[5], totalWeight, isAvailable]
-	const feeToken = gachaConfig?.[0];
-	const spinFee = gachaConfig?.[1] || 0n;
+	const feeToken = (gachaConfig as any)?.[0];
+	const spinFee = (gachaConfig as any)?.[1] || 0n;
 
 	const { data: feeTokenSymbol } = useReadErc20Symbol({
 		address: feeToken,
@@ -119,7 +121,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 													"0 0 4px rgba(248, 113, 113, 0.5)",
 												],
 									}}
-									transition={{ duration: 2, repeat: Infinity }}
+									transition={{ duration: 2, repeat: 999 }}
 									aria-hidden="true"
 								></motion.div>
 								<span className="text-white/95 text-sm font-semibold drop-shadow-lg backdrop-blur-sm px-3 py-1.5 rounded-full bg-white/15 border border-white/25">
@@ -193,11 +195,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 											whileHover={{ scale: 1.05 }}
 											transition={{ type: "spring", stiffness: 400 }}
 										>
-											<RarityBadge
-												rarity={rarity}
-												showEmoji={true}
-												size="sm"
-											/>
+											<RarityBadge rarity={rarity} showEmoji={true} size="sm" />
 											<div className="text-xs text-foreground/70 font-medium mt-1">
 												{Number(count)}
 											</div>

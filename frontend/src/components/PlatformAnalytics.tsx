@@ -47,12 +47,11 @@ export const PlatformAnalytics: React.FC = () => {
 	const { data: platformData } = useReadGachaTreasuryGetPlatformOverviewBatch({
 		address: contracts.treasury as `0x${string}` | undefined,
 		query: { enabled: !!contracts.treasury },
-	} as any);
+	} as Parameters<typeof useReadGachaTreasuryGetPlatformOverviewBatch>[0]);
 
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const allRarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
-	const totalItemsCount = platformData?.[1] || 0n;
-
+	const allRarityCounts = (platformData as any)?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = (platformData as any)?.[1] || 0n;
 
 	// New contracts expose depositor share via totalAccrued
 	const { data: totalAccrued } = useReadGachaRewardsManagerTotalAccrued({
@@ -68,7 +67,10 @@ export const PlatformAnalytics: React.FC = () => {
 	const totalSpinCount = gachaGlobalAnalytics?.[0];
 
 	const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
-	const totalValue = formatTokenAmount(totalAccrued || BigInt(0), tokenDecimals || 18);
+	const totalValue = formatTokenAmount(
+		totalAccrued || BigInt(0),
+		tokenDecimals || 18,
+	);
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">
@@ -110,7 +112,7 @@ export const PlatformAnalytics: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.5 }}
 			>
-				<Card  className="p-8">
+				<Card className="p-8">
 					<h2
 						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
 					>
@@ -180,7 +182,7 @@ export const PlatformAnalytics: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.6 }}
 			>
-				<Card  className="p-8">
+				<Card className="p-8">
 					<h2
 						className={`${glassTypography({ variant: "mainHeading" })} mb-8 text-center`}
 					>
