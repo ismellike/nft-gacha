@@ -9,7 +9,6 @@ import { AdminControls } from "../../components/AdminControls";
 import { NFTAvailabilitySection } from "../../components/NFTAvailabilitySection";
 import { ProfileDashboard } from "../../components/ProfileDashboard";
 import { PlatformAnalytics } from "../../components/PlatformAnalytics";
-import { RealTimeNotifications } from "../../components/RealTimeNotifications";
 import {
 	XCircleIcon,
 	GiftIcon,
@@ -672,9 +671,7 @@ const { refetch: refetchDepositCounts } = useReadGachaTreasuryGetUserAllDepositC
 					)}
 				</motion.div>
 
-				{/* Real-Time Notifications */}
-				<RealTimeNotifications />
-			</div>
+				</div>
 		</div>
 	);
 }

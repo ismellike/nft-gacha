@@ -4,6 +4,7 @@ import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { glassTypography } from "../lib/theme-config";
 import { Card } from "./ui/GlassComponents";
+import { RarityBadge } from "./ui/RaritySystem";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
@@ -137,14 +138,10 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 						>
 							{/* Header with rarity name and stats */}
 							<div className="flex justify-between items-center mb-3">
-								<div
-									className={`px-3 py-1.5 rounded-lg bg-gradient-to-r ${rarity.bgGradient} shadow-lg`}
-								>
-									<span className="text-sm font-bold text-white drop-shadow-sm flex items-center gap-1">
-										<span>{rarity.emoji}</span>
-										{rarity.name}
-									</span>
-								</div>
+								<RarityBadge
+									rarity={rarity.rarity}
+									size="sm"
+								/>
 								<div className="text-right">
 									<div
 										className={`text-lg font-bold bg-gradient-to-r ${rarity.bgGradient} bg-clip-text text-transparent`}

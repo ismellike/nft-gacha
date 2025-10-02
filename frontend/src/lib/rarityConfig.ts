@@ -35,7 +35,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-common-200",
 		chipColor: "default" as const,
 		glowColor: "shadow-rarity-common-500/20",
-		description: "70% drop rate",
+		description: "Standard cards with steady rewards and high availability",
 		emoji: "⚪",
 	},
 	[Rarity.Uncommon]: {
@@ -46,7 +46,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-uncommon-200",
 		chipColor: "success" as const,
 		glowColor: "shadow-rarity-uncommon-500/20",
-		description: "20% drop rate",
+		description: "Enhanced cards with improved reward multipliers",
 		emoji: "🟢",
 	},
 	[Rarity.Rare]: {
@@ -57,7 +57,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-rare-200",
 		chipColor: "primary" as const,
 		glowColor: "shadow-rarity-rare-500/20",
-		description: "6% drop rate",
+		description: "Valuable cards with significant reward bonuses",
 		emoji: "🔵",
 	},
 	[Rarity.Epic]: {
@@ -68,7 +68,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-epic-200",
 		chipColor: "secondary" as const,
 		glowColor: "shadow-rarity-epic-500/20",
-		description: "3% drop rate",
+		description: "Premium cards with substantial reward amplification",
 		emoji: "🟣",
 	},
 	[Rarity.Legendary]: {
@@ -79,7 +79,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-legendary-200",
 		chipColor: "warning" as const,
 		glowColor: "shadow-rarity-legendary-500/20",
-		description: "1% drop rate",
+		description: "Elite cards with maximum reward potential",
 		emoji: "🟠",
 	},
 } as const;
@@ -87,8 +87,13 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 export const getRarityConfig = (rarity: Rarity): RarityConfigItem =>
 	RARITY_CONFIG[rarity];
 
-export const getAllRarities = (): Rarity[] =>
-	Object.values(Rarity).filter((v) => typeof v === "number") as Rarity[];
+export const getAllRarities = (): Rarity[] => [
+	Rarity.Common,
+	Rarity.Uncommon,
+	Rarity.Rare,
+	Rarity.Epic,
+	Rarity.Legendary
+];
 
 // Utility functions for rarity operations
 export const getRarityByName = (name: string): Rarity | undefined => {

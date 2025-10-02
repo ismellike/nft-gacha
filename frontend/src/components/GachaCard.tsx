@@ -20,6 +20,8 @@ import {
 import { Card, Chip } from "./ui/GlassComponents";
 import { GachaCardSkeleton } from "./ui";
 import { GachaCardHeader } from "./GachaCardHeader";
+import { RarityBadge } from "./ui/RaritySystem";
+import { getAllRarities } from "../lib/rarityConfig";
 import type { GachaConfig } from "../lib/gacha-config";
 
 interface GachaCardProps {
@@ -181,33 +183,22 @@ export function GachaCard({ gacha }: GachaCardProps) {
 							</div>
 							<div className="flex gap-2">
 								{rarityCountsArray.map((count: bigint, index: number) => {
-									const rarityColors = [
-										"from-rarity-common-500 to-rarity-common-600",
-										"from-rarity-uncommon-500 to-rarity-uncommon-600",
-										"from-rarity-rare-500 to-rarity-rare-600",
-										"from-rarity-epic-500 to-rarity-epic-600",
-										"from-rarity-legendary-500 to-rarity-legendary-600",
-									];
-									const rarityKeys = [
-										"common",
-										"uncommon",
-										"rare",
-										"epic",
-										"legendary",
-									];
-									const rarityEmojis = ["⚪", "🟢", "🔵", "🟣", "🟠"];
+									const rarity = getAllRarities()[index];
+									if (!rarity) return null;
+
 									return (
 										<motion.div
-											key={rarityKeys[index]}
+											key={rarity}
 											className="flex-1 text-center"
 											whileHover={{ scale: 1.05 }}
 											transition={{ type: "spring", stiffness: 400 }}
 										>
-											<div className="text-lg mb-1">{rarityEmojis[index]}</div>
-											<div
-												className={`h-2 bg-gradient-to-r ${rarityColors[index]} rounded-full mb-1 shadow-sm`}
-											></div>
-											<div className="text-xs text-foreground/70 font-medium">
+											<RarityBadge
+												rarity={rarity}
+												showEmoji={true}
+												size="sm"
+											/>
+											<div className="text-xs text-foreground/70 font-medium mt-1">
 												{Number(count)}
 											</div>
 										</motion.div>
