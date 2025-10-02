@@ -17,7 +17,7 @@ import {
 	XCircleIcon,
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { Card, Chip } from "./ui";
+import { Card, Chip } from "./ui/GlassComponents";
 import { GachaCardSkeleton } from "./ui";
 import { GachaCardHeader } from "./GachaCardHeader";
 import type { GachaConfig } from "../lib/gacha-config";
@@ -95,7 +95,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 			aria-label={`Explore ${gacha.title} gacha with ${totalNFTs} cards available`}
 			data-testid={`explore-gacha-${gacha.id}`}
 		>
-			<Card className="h-full overflow-hidden group border border-white/10 hover:border-warning/30 transition-all duration-300 bg-content1/20 backdrop-blur-xl rounded-2xl shadow-2xl">
+			<Card className="h-full overflow-hidden group cursor-pointer">
 				{/* Enhanced Header */}
 				<GachaCardHeader theme={gacha.theme}>
 					<div className="flex justify-between items-start mb-6">
@@ -124,7 +124,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 									{isAvailable ? "Live" : "Offline"}
 								</span>
 							</div>
-							<h3 className="text-2xl font-bold text-white mb-2 drop-shadow-lg leading-tight group-hover:text-warning transition-colors duration-300">
+							<h3 className="text-2xl font-bold text-white mb-2 drop-shadow-lg leading-tight group-hover:text-warning transition-colors duration-300 font-orbitron">
 								{gacha.title}
 							</h3>
 						</div>
@@ -245,7 +245,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 								transition={{ delay: 0.2 }}
 								className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center"
 							>
-								<Chip className="text-lg px-4 py-2 bg-danger/20 border border-danger/30 text-danger rounded-xl backdrop-blur-xl">
+								<Chip className="px-4 py-2 bg-danger/20 border-danger/30 text-danger">
 									<XCircleIcon className="w-4 h-4 mr-2" />
 									Temporarily Unavailable
 								</Chip>

@@ -14,7 +14,7 @@ import {
 	InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
-import { Card, Button } from "./ui";
+import { Card, Button } from "./ui/GlassComponents";
 import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -285,14 +285,14 @@ export function NFTAppraisalForm({
 			transition={{ duration: 0.6 }}
 			className={className}
 		>
-			<Card glassVariant="glass" className="p-6">
+			<Card className="p-6">
 				<form onSubmit={handleSubmit} className="space-y-6">
 					{/* Header */}
 					<div className="text-center space-y-3">
 						<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
 							<MagnifyingGlassIcon className="w-8 h-8 text-warning" />
 						</div>
-						<h3 className="text-2xl font-light tracking-tight">
+						<h3 className="text-2xl font-light tracking-tight font-orbitron">
 							<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
 								Request NFT Appraisal
 							</span>

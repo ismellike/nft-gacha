@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import type { Address, Hex } from "viem";
-import { Card, Button } from "./ui";
+import { Card, Button } from "./ui/GlassComponents";
 import { BanknotesIcon, ArrowPathIcon, TrophyIcon } from "@heroicons/react/24/outline";
 import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
 import { glassTypography } from "../lib/theme-config";

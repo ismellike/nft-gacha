@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Chip } from "./ui";
+import { Card, Button, Chip } from "./ui/GlassComponents";
 import {
 	ShieldCheckIcon,
 	XCircleIcon,

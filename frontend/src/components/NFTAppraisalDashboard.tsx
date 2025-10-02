@@ -10,7 +10,7 @@ import {
 	InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
-import { Card, Button } from "./ui";
+import { Card, Button } from "./ui/GlassComponents";
 import { NFTAppraisalForm } from "./NFTAppraisalForm";
 import { AppraisedNFTsList } from "./AppraisedNFTsList";
 

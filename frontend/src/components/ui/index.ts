@@ -20,12 +20,20 @@ export {
 	Button,
 	Card,
 	Chip,
+	Input,
+	Badge,
+} from "./GlassComponents";
+
+// Modal components (from HeroUI directly)
+export {
 	Modal,
 	ModalContent,
 	ModalHeader,
 	ModalBody,
 	ModalFooter,
-	glassModalClasses,
-} from "./GlassComponents";
+} from "@heroui/react";
+
+// Glass modal helper classes
+export { glassModalClasses } from "./GlassComponents";
 
 // Courtyard functionality is now built into UnifiedNFTCard

@@ -3,7 +3,7 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { glassTypography } from "../lib/theme-config";
-import { Card } from "./ui";
+import { Card } from "./ui/GlassComponents";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
@@ -112,7 +112,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	] as const;
 
 	return (
-		<Card glassVariant="glass" className="h-full">
+		<Card className="h-full">
 			<div className="p-6 pb-2 border-b border-white/10">
 				<h3 className={glassTypography({ variant: "secondaryHeading" })}>
 					Drop Rates

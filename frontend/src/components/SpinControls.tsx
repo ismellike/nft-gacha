@@ -8,7 +8,7 @@ import {
 	useChainId,
 } from "wagmi";
 import { glassTypography, cn } from "../lib/theme-config";
-import { Card, Button, Chip } from "./ui";
+import { Card, Button, Chip } from "./ui/GlassComponents";
 import { TokenFeeDisplay } from "./ui";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
@@ -772,8 +772,7 @@ const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 
 					{/* Spin Button */}
 					<Button
-						color="glassPrimary"
-						size="xl"
+												size="xl"
 						className="px-20 py-5 text-xl tracking-wide"
 						onPress={onSpinClick}
 						disabled={isButtonDisabled()}

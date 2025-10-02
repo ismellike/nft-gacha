@@ -36,7 +36,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
 				<RainbowKitProvider theme={customDarkTheme} modalSize="compact">
-					<HeroUIProvider navigate={router.push}>{children}</HeroUIProvider>
+					<HeroUIProvider navigate={router.push}>
+						{children}
+					</HeroUIProvider>
 				</RainbowKitProvider>
 			</QueryClientProvider>
 		</WagmiProvider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Button, Chip } from "../components/ui";
+import { Card, Button, Chip } from "../components/ui/GlassComponents";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -123,7 +123,7 @@ export default function LandingPage() {
 						transition={{ delay: 0.2, duration: 0.8 }}
 						className="mb-8"
 					>
-						<h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
+						<h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight font-orbitron">
 							<span className="bg-gradient-to-r from-warning via-warning to-warning-500 bg-clip-text text-transparent">
 								Provably Fair NFT Gacha
 							</span>
@@ -285,7 +285,7 @@ export default function LandingPage() {
 						className="text-center"
 					>
 						<Card className="p-12 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-							<h3 className="text-2xl md:text-3xl font-bold mb-6 bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
+							<h3 className="text-2xl md:text-3xl font-bold mb-6 bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent font-orbitron">
 								Rarity-Based Rewards
 							</h3>
 							<p className="text-foreground/70 mb-8 max-w-2xl mx-auto">
@@ -343,7 +343,7 @@ export default function LandingPage() {
 								<BoltIcon className="w-8 h-8 text-black" />
 							</motion.div>
 
-							<h2 className="text-3xl md:text-5xl font-bold mb-6">
+							<h2 className="text-3xl md:text-5xl font-bold mb-6 font-orbitron">
 								<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
 									Join the Community
 								</span>
