@@ -3,7 +3,6 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { Card } from "../ui";
-import { RarityBadge } from "./RaritySystem";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,
@@ -117,62 +116,62 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		},
 	] as const;
 
+	const totalItems = rarityStats.reduce((sum, item) => sum + item.count, 0);
+
 	return (
-		<Card className="h-full">
-			<div className="p-6 space-y-4">
-				{rarityStats.map((rarity) => (
-					<Card
-						key={rarity.name}
-						isPressable
-						className="group relative cursor-pointer text-left mb-4 last:mb-0 overflow-visible w-full"
-						onClick={() => handleRarityClick(rarity.rarity)}
-					>
-						{/* Enhanced glow effect */}
-						<div
-							className={`absolute inset-0 bg-gradient-to-r ${rarity.bgGradient} rounded-2xl blur-md opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${rarity.glowColor} -z-10`}
-						></div>
+		<Card className="relative h-full overflow-hidden border border-white/10 bg-content1/20 p-6 backdrop-blur-2xl">
+			<div className="pointer-events-none absolute -top-20 right-0 h-40 w-40 rounded-full bg-primary/15 blur-[140px]" />
+			<div className="pointer-events-none absolute -bottom-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-warning/15 blur-3xl" />
+			<div className="relative z-10 space-y-6">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+					<div>
+						<span className="text-xs uppercase tracking-[0.3em] text-foreground/45">Treasury overview</span>
+						<h3 className="mt-1 text-xl font-semibold text-foreground">Rarity Breakdown</h3>
+					</div>
+					<div className="text-sm text-foreground/60">
+						<span className="font-semibold text-foreground">{totalItems}</span> NFTs in rotation
+					</div>
+				</div>
 
-						<div className="p-4">
-							{/* Header with rarity name and stats */}
-							<div className="flex justify-between items-center mb-3">
-								<RarityBadge rarity={rarity.rarity} size="sm" />
+				<div className="grid gap-3">
+					{rarityStats.map((rarity) => (
+						<button
+							key={rarity.name}
+							type="button"
+							onClick={() => handleRarityClick(rarity.rarity)}
+							className="group relative flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-gradient-to-r from-content1/40 via-content1/20 to-content1/30 px-4 py-4 text-left transition-transform duration-200 hover:-translate-y-0.5 hover:border-white/15"
+						>
+							<div className="flex items-center gap-4">
+								<div
+									className={`flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br ${rarity.bgGradient} text-white shadow-lg`}
+								>
+									<span className="text-lg">{rarity.emoji}</span>
+								</div>
+								<div>
+									<p className="text-sm font-semibold text-foreground">{rarity.name}</p>
+									<p className="text-xs text-foreground/55">{rarity.description}</p>
+								</div>
+							</div>
+							<div className="flex items-center gap-4">
 								<div className="text-right">
-									<div
-										className={`text-lg font-bold bg-gradient-to-r ${rarity.bgGradient} bg-clip-text text-transparent`}
-									>
-										{rarity.percentage}%
-									</div>
-									<div className={`text-xs font-medium ${rarity.textColor}`}>
-										{rarity.count} items
-									</div>
+									<p className="text-sm font-semibold text-foreground">{rarity.count}</p>
+									<p className="text-[11px] text-foreground/50">available</p>
 								</div>
-							</div>
-
-							{/* Enhanced progress bar */}
-							<div className="relative">
-								<div className="h-3 bg-content3/30 backdrop-blur-sm rounded-full overflow-hidden border border-white/5">
-									<div
-										className={`h-full bg-gradient-to-r ${rarity.bgGradient} rounded-full shadow-lg transition-all duration-1000 ease-out relative overflow-hidden`}
-										style={{ width: `${rarity.percentage}%` }}
-									>
-										{/* Enhanced shimmer effect */}
-										<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-									</div>
+								<div className="text-right">
+									<p className={`text-sm font-semibold bg-gradient-to-r ${rarity.bgGradient} bg-clip-text text-transparent`}>
+										{rarity.percentage.toFixed(1)}%
+									</p>
+									<p className="text-[11px] text-foreground/50">weight</p>
 								</div>
-							</div>
-
-							{/* Click indicator */}
-							<div className="mt-2 flex justify-end items-center">
-								<span className="text-xs text-foreground/50">
-									Click to view NFTs →
+								<span className="text-xs text-foreground/40 transition-colors group-hover:text-foreground/60">
+									View →
 								</span>
 							</div>
-						</div>
-					</Card>
-				))}
+						</button>
+					))}
+				</div>
 			</div>
 
-			{/* Rarity Showcase Modal */}
 			<RarityShowcaseModal
 				isOpen={isModalOpen}
 				onOpenChange={handleModalOpenChange}

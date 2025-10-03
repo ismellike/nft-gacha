@@ -68,7 +68,7 @@ export default function RarityShowcaseModal({
 		<Modal
 			isOpen={isOpen}
 			onOpenChange={onOpenChange}
-			size="full"
+			size="5xl"
 			hideCloseButton
 			classNames={{
 				backdrop: glassModalClasses.backdrop,
@@ -95,7 +95,7 @@ export default function RarityShowcaseModal({
 		>
 			<ModalContent>
 				{/* Compact Header with floating close button */}
-				<ModalHeader className="relative px-6 py-4">
+				<ModalHeader className="relative px-6 py-4 border-b border-white/5 bg-background/80 backdrop-blur-xl">
 					<div className="flex items-center gap-3">
 						<div
 							className={`px-3 py-1.5 rounded-lg bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg border border-white/20`}
@@ -140,34 +140,10 @@ export default function RarityShowcaseModal({
 					</motion.button>
 				</ModalHeader>
 
-				<ModalBody className="relative overflow-hidden p-0 min-h-[calc(100vh-8rem)] flex flex-col">
-					{/* Background Glow */}
-					<motion.div
-						className="absolute inset-0 overflow-hidden"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ duration: 0.8 }}
-					>
-						<motion.div
-							className="absolute top-1/3 left-1/2 -translate-x-1/2"
-							initial={{ scale: 0.9 }}
-							animate={{ scale: 1 }}
-							transition={{ duration: 1.2, ease: "easeOut" }}
-						>
-							<motion.div
-								className={`w-[26rem] h-[26rem] ${rarityConfig.bgGradient} rounded-full blur-3xl opacity-40`}
-								animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.5, 0.3] }}
-								transition={{
-									duration: 5,
-									repeat: Infinity,
-									ease: "easeInOut",
-								}}
-							/>
-						</motion.div>
-					</motion.div>
-
+				<ModalBody className="relative flex-1 overflow-hidden bg-background/80 p-8 backdrop-blur-xl">
+					<div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-background/70 via-background/40 to-transparent" />
 					{/* Body Content */}
-					<div className="relative z-10 w-full flex-1 p-8 overflow-auto">
+					<div className="relative z-10 w-full flex-1 overflow-auto">
 						{isLoading ? (
 							<motion.div
 								className="flex flex-col items-center justify-center py-32"

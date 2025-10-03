@@ -4,11 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
 import {
-	MagnifyingGlassIcon,
-	CheckBadgeIcon,
-	ExclamationTriangleIcon,
-	InformationCircleIcon,
-	WalletIcon,
+  MagnifyingGlassIcon,
+  CheckBadgeIcon,
+  ExclamationTriangleIcon,
+  WalletIcon,
 } from "@heroicons/react/24/outline";
 
 import { Card, Button } from "../ui";
@@ -20,413 +19,456 @@ import { useUserOwnedNFTsMultipleCollections } from "../hooks/useUserOwnedNFTs";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../generated";
 
 interface UserNFT {
-	collection: string;
-	tokenId: string;
-	collectionName?: string;
-	isAppraised: boolean;
-	appraisalValue?: bigint;
+  collection: string;
+  tokenId: string;
+  collectionName?: string;
+  isAppraised: boolean;
+  appraisalValue?: bigint;
 }
 
 interface NFTAvailabilitySectionProps {
-	className?: string;
+  className?: string;
 }
 
+const truncateAddress = (address?: string) => {
+  if (!address) return "Wallet not connected";
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+};
+
 export function NFTAvailabilitySection({
-	className,
+  className,
 }: NFTAvailabilitySectionProps) {
-	const { address: userAddress, isConnected } = useAccount();
-	const gachaId = useGachaId();
-	const contracts = useGachaContracts(gachaId);
+  const { address: userAddress, isConnected } = useAccount();
+  const gachaId = useGachaId();
+  const contracts = useGachaContracts(gachaId);
 
-	const [userNFTs, setUserNFTs] = useState<UserNFT[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [showSuccess, setShowSuccess] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+  const [userNFTs, setUserNFTs] = useState<UserNFT[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-	// Separate NFTs by appraisal status
-	const [readyToDepositNFTs, setReadyToDepositNFTs] = useState<UserNFT[]>([]);
-	const [needsAppraisalNFTs, setNeedsAppraisalNFTs] = useState<UserNFT[]>([]);
+  const [readyToDepositNFTs, setReadyToDepositNFTs] = useState<UserNFT[]>([]);
+  const [needsAppraisalNFTs, setNeedsAppraisalNFTs] = useState<UserNFT[]>([]);
 
-	// Get whitelisted collections
-	const treasuryAddress = contracts.treasury as `0x${string}` | undefined;
-	const whitelistedCollectionsQuery =
-		useReadGachaTreasuryGetWhitelistedCollections({
-			address: treasuryAddress,
-		} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
-	const whitelistedCollections =
-		(whitelistedCollectionsQuery.data as any) || [];
+  const treasuryAddress = contracts.treasury as `0x${string}` | undefined;
+  const whitelistedCollectionsQuery =
+    useReadGachaTreasuryGetWhitelistedCollections({
+      address: treasuryAddress,
+    } as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
+  const whitelistedCollections =
+    (whitelistedCollectionsQuery.data as `0x${string}`[]) || [];
 
-	// Get user's actual NFTs from all whitelisted collections
-	const {
-		nfts: userOwnedNFTs,
-		isLoading: nftsLoading,
-		error: nftsError,
-		refetch: refetchNFTs,
-	} = useUserOwnedNFTsMultipleCollections(
-		whitelistedCollections ? [...whitelistedCollections] : [],
-	);
+  const {
+    nfts: userOwnedNFTs,
+    isLoading: nftsLoading,
+    error: nftsError,
+    refetch: refetchNFTs,
+  } = useUserOwnedNFTsMultipleCollections(
+    whitelistedCollections ? [...whitelistedCollections] : [],
+  );
 
-	// Transform owned NFTs to include appraisal status
-	useEffect(() => {
-		if (!userAddress) {
-			setUserNFTs([]);
-			setLoading(false);
-			return;
-		}
+  useEffect(() => {
+    if (!userAddress) {
+      setUserNFTs([]);
+      setLoading(false);
+      return;
+    }
 
-		if (nftsLoading) {
-			setLoading(true);
-			return;
-		}
+    if (nftsLoading) {
+      setLoading(true);
+      return;
+    }
 
-		if (nftsError) {
-			setError(nftsError);
-			setLoading(false);
-			return;
-		}
+    if (nftsError) {
+      setError(nftsError);
+      setLoading(false);
+      return;
+    }
 
-		// Transform owned NFTs to include appraisal status (will be fetched by individual cards)
-		const transformedNFTs: UserNFT[] = userOwnedNFTs.map((ownedNFT) => {
-			return {
-				collection: ownedNFT.collection,
-				tokenId: ownedNFT.tokenId.toString(),
-				collectionName: ownedNFT.collectionName || "",
-				isAppraised: false, // Will be determined by contract data in UserNFTCard
-				appraisalValue: BigInt(0), // Will be fetched by contract data in UserNFTCard
-			};
-		});
+    const transformedNFTs: UserNFT[] = userOwnedNFTs.map((ownedNFT) => ({
+      collection: ownedNFT.collection,
+      tokenId: ownedNFT.tokenId.toString(),
+      collectionName: ownedNFT.collectionName || "",
+      isAppraised: false,
+      appraisalValue: BigInt(0),
+    }));
 
-		setUserNFTs(transformedNFTs);
-		setLoading(false);
-		setError(null);
-	}, [userAddress, userOwnedNFTs, nftsLoading, nftsError]);
+    setUserNFTs(transformedNFTs);
+    setLoading(false);
+    setError(null);
+  }, [userAddress, userOwnedNFTs, nftsLoading, nftsError]);
 
-	// Handle appraisal status updates from child components
-	const handleAppraisalStatusChange = useCallback(
-		(collection: string, tokenId: string, hasValidAppraisal: boolean) => {
-			const nftKey = `${collection}:${tokenId}`;
+  const handleAppraisalStatusChange = useCallback(
+    (collection: string, tokenId: string, hasValidAppraisal: boolean) => {
+      const nftKey = `${collection}:${tokenId}`;
 
-			// Update the lists based on appraisal status
-			setReadyToDepositNFTs((prev) => {
-				const filtered = prev.filter(
-					(nft) => `${nft.collection}:${nft.tokenId}` !== nftKey,
-				);
-				if (hasValidAppraisal) {
-					const nft = userNFTs.find(
-						(n) => n.collection === collection && n.tokenId === tokenId,
-					);
-					if (
-						nft &&
-						!filtered.some((n) => `${n.collection}:${n.tokenId}` === nftKey)
-					) {
-						return [...filtered, nft];
-					}
-				}
-				return filtered;
-			});
+      setReadyToDepositNFTs((prev) => {
+        const filtered = prev.filter(
+          (nft) => `${nft.collection}:${nft.tokenId}` !== nftKey,
+        );
+        if (hasValidAppraisal) {
+          const nft = userNFTs.find(
+            (n) => n.collection === collection && n.tokenId === tokenId,
+          );
+          if (
+            nft &&
+            !filtered.some((n) => `${n.collection}:${n.tokenId}` === nftKey)
+          ) {
+            return [...filtered, nft];
+          }
+        }
+        return filtered;
+      });
 
-			setNeedsAppraisalNFTs((prev) => {
-				const filtered = prev.filter(
-					(nft) => `${nft.collection}:${nft.tokenId}` !== nftKey,
-				);
-				if (!hasValidAppraisal) {
-					const nft = userNFTs.find(
-						(n) => n.collection === collection && n.tokenId === tokenId,
-					);
-					if (
-						nft &&
-						!filtered.some((n) => `${n.collection}:${n.tokenId}` === nftKey)
-					) {
-						return [...filtered, nft];
-					}
-				}
-				return filtered;
-			});
-		},
-		[userNFTs],
-	);
+      setNeedsAppraisalNFTs((prev) => {
+        const filtered = prev.filter(
+          (nft) => `${nft.collection}:${nft.tokenId}` !== nftKey,
+        );
+        if (!hasValidAppraisal) {
+          const nft = userNFTs.find(
+            (n) => n.collection === collection && n.tokenId === tokenId,
+          );
+          if (
+            nft &&
+            !filtered.some((n) => `${n.collection}:${n.tokenId}` === nftKey)
+          ) {
+            return [...filtered, nft];
+          }
+        }
+        return filtered;
+      });
+    },
+    [userNFTs],
+  );
 
-	// Initialize NFT lists when userNFTs change
-	useEffect(() => {
-		// Reset lists and let the child components categorize them
-		setReadyToDepositNFTs([]);
-		setNeedsAppraisalNFTs([...userNFTs]);
-	}, [userNFTs]);
+  useEffect(() => {
+    setReadyToDepositNFTs([]);
+    setNeedsAppraisalNFTs([...userNFTs]);
+  }, [userNFTs]);
 
-	// Handle NFT action (appraise or removal notification)
-	const handleNFTAction = useCallback(
-		(collection: string, tokenId: string, hasValidAppraisal?: boolean) => {
-			if (hasValidAppraisal) {
-				// This is called when deposit is completed - remove NFT from list
-				const updatedNFTs = userNFTs.filter(
-					(nft) => !(nft.collection === collection && nft.tokenId === tokenId),
-				);
-				setUserNFTs(updatedNFTs);
+  const handleNFTAction = useCallback(
+    (collection: string, tokenId: string, hasValidAppraisal?: boolean) => {
+      if (hasValidAppraisal) {
+        const updatedNFTs = userNFTs.filter(
+          (nft) => !(nft.collection === collection && nft.tokenId === tokenId),
+        );
+        setUserNFTs(updatedNFTs);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        const appraisalUrl = `/appraisal?collection=${encodeURIComponent(
+          collection,
+        )}&tokenId=${encodeURIComponent(tokenId)}`;
+        window.location.href = appraisalUrl;
+      }
+    },
+    [userNFTs],
+  );
 
-				// Show success message
-				setShowSuccess(true);
-				setTimeout(() => setShowSuccess(false), 3000);
-			} else {
-				// Handle appraisal - redirect to appraisal page with pre-populated data
-				const appraisalUrl = `/appraisal?collection=${encodeURIComponent(collection)}&tokenId=${encodeURIComponent(tokenId)}`;
-				window.location.href = appraisalUrl;
-			}
-		},
-		[userNFTs],
-	);
+  if (!isConnected) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={className}
+      >
+        <Card className="space-y-6 border border-white/10 bg-content1/20 p-8 text-center backdrop-blur-2xl">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-warning/40 bg-warning/15">
+            <WalletIcon className="h-10 w-10 text-warning" />
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-2xl font-semibold text-foreground">
+              Connect your wallet to manage deposits
+            </h3>
+            <p className="text-sm text-foreground/70">
+              We surface whitelisted collections automatically and guide you through appraisal and treasury deposits step-by-step.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-content1/25 p-4 text-left">
+            <p className="text-xs uppercase tracking-wide text-foreground/50">
+              How it works
+            </p>
+            <ul className="mt-3 space-y-2 text-sm text-foreground/70">
+              <li>Connect your wallet to detect eligible NFTs.</li>
+              <li>Appraise any asset that does not yet have a WAVS valuation.</li>
+              <li>Deposit and start earning a share of every spin.</li>
+            </ul>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  }
 
-	if (!isConnected) {
-		return (
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				className={className}
-			>
-				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-					<div className="text-center space-y-4">
-						<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
-							<WalletIcon className="w-8 h-8 text-warning" />
-						</div>
-						<div>
-							<h3 className="text-2xl font-medium text-foreground mb-2">
-								Connect Your Wallet
-							</h3>
-							<p className="text-foreground/70">
-								Connect your wallet to view available NFTs for deposit
-							</p>
-						</div>
-					</div>
-				</Card>
-			</motion.div>
-		);
-	}
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className={className}
+      >
+        <Card className="border border-white/10 bg-content1/20 p-6 text-center backdrop-blur-2xl">
+          <div className="space-y-4">
+            <LoadingState size="lg" />
+            <p className="text-sm text-foreground/70">Loading your NFTs…</p>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  }
 
-	if (loading) {
-		return (
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				className={className}
-			>
-				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-					<div className="text-center space-y-4">
-						<LoadingState size="lg" />
-						<p className="text-foreground/70">Loading available NFTs...</p>
-					</div>
-				</Card>
-			</motion.div>
-		);
-	}
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className={className}
+      >
+        <Card className="space-y-4 border border-danger/30 bg-danger/10 p-6 text-center backdrop-blur-2xl">
+          <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-danger" />
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-danger">Unable to load NFTs</h3>
+            <p className="text-sm text-danger/80">{error}</p>
+          </div>
+          <Button variant="bordered" onPress={refetchNFTs}>
+            Retry
+          </Button>
+        </Card>
+      </motion.div>
+    );
+  }
 
-	if (error) {
-		return (
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				className={className}
-			>
-				<Card className="p-6 bg-danger/10 border border-danger/20 rounded-2xl shadow-lg">
-					<div className="text-center space-y-4">
-						<ExclamationTriangleIcon className="w-12 h-12 text-danger mx-auto" />
-						<div>
-							<h3 className="text-lg font-medium text-danger mb-2">Error</h3>
-							<p className="text-foreground/70 mb-4">{error}</p>
-							<Button
-								className="rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
-								onPress={refetchNFTs}
-							>
-								Try Again
-							</Button>
-						</div>
-					</div>
-				</Card>
-			</motion.div>
-		);
-	}
+  if (userNFTs.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={className}
+      >
+        <Card className="space-y-6 border border-white/10 bg-content1/20 p-8 text-center backdrop-blur-2xl">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-white/20 bg-content1/30">
+            <MagnifyingGlassIcon className="h-10 w-10 text-foreground/60" />
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-2xl font-semibold text-foreground">
+              No eligible NFTs detected
+            </h3>
+            <p className="text-sm text-foreground/70">
+              Explore whitelisted collections or mint supported assets to start contributing to the treasury.
+            </p>
+          </div>
+          <Button variant="ghost" onPress={refetchNFTs} className="w-full">
+            Refresh
+          </Button>
+        </Card>
+      </motion.div>
+    );
+  }
 
-	if (userNFTs.length === 0) {
-		return (
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				className={className}
-			>
-				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-					<div className="text-center space-y-4">
-						<div className="w-16 h-16 bg-gradient-to-br from-content1/20 to-content1/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
-							<MagnifyingGlassIcon className="w-8 h-8 text-foreground/60" />
-						</div>
-						<div>
-							<h3 className="text-xl font-medium text-foreground mb-2">
-								No NFTs Found
-							</h3>
-							<p className="text-foreground/70 mb-4">
-								You don't have any NFTs from the whitelisted collections for
-								this gacha, or they haven't been loaded yet.
-							</p>
-							<Button
-								className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
-								onPress={refetchNFTs}
-							>
-								Refresh
-							</Button>
-						</div>
-					</div>
-				</Card>
-			</motion.div>
-		);
-	}
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={className}
+    >
+      <div className="space-y-10">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <Card className="relative overflow-hidden border border-white/10 bg-content1/20 p-6 backdrop-blur-2xl">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.16),_transparent_60%)]" />
+            <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-[0.35em] text-success/70">
+                  Connected wallet
+                </span>
+                <h3 className="text-xl font-semibold text-foreground">
+                  {truncateAddress(userAddress)}
+                </h3>
+                <p className="text-sm text-foreground/60">
+                  Deposits use this wallet to sign appraisal approvals and treasury transfers. Confirmation receipts are surfaced in the rewards dashboard.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
+                <div className="h-2.5 w-2.5 rounded-full bg-success animate-pulse" />
+                <span>Ready for deposits</span>
+              </div>
+            </div>
+          </Card>
 
-	return (
-		<motion.div
-			initial={{ opacity: 0 }}
-			animate={{ opacity: 1 }}
-			transition={{ duration: 0.6 }}
-			className={className}
-		>
-			<div className="space-y-8">
-				{/* Statistics */}
-				<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-						<div className="text-center">
-							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Total NFTs
-							</p>
-							<p className="text-2xl font-bold text-foreground">
-								{userNFTs.length}
-							</p>
-						</div>
-					</Card>
+          <Card className="border border-white/10 bg-content1/20 p-6 backdrop-blur-2xl">
+            <h4 className="text-xs uppercase tracking-[0.35em] text-foreground/50">
+              Portfolio summary
+            </h4>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-content1/30 p-4">
+                <p className="text-xs uppercase tracking-wide text-foreground/50">
+                  Depositable now
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-success">
+                  {readyToDepositNFTs.length}
+                </p>
+                <p className="mt-2 text-xs text-foreground/50">
+                  Appraised and ready to submit
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-content1/30 p-4">
+                <p className="text-xs uppercase tracking-wide text-foreground/50">
+                  Awaiting appraisal
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-warning">
+                  {needsAppraisalNFTs.length}
+                </p>
+                <p className="mt-2 text-xs text-foreground/50">
+                  Start WAVS appraisal flow for these assets
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-content1/30 p-4">
+                <p className="text-xs uppercase tracking-wide text-foreground/50">
+                  Collections detected
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {new Set(userNFTs.map((nft) => nft.collection)).size}
+                </p>
+                <p className="mt-2 text-xs text-foreground/50">
+                  Whitelisted contracts for this drop
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-content1/30 p-4">
+                <p className="text-xs uppercase tracking-wide text-foreground/50">
+                  Total NFTs tracked
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {userNFTs.length}
+                </p>
+                <p className="mt-2 text-xs text-foreground/50">
+                  Across all eligible collections
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
 
-					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-						<div className="text-center">
-							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Ready to Deposit
-							</p>
-							<p className="text-2xl font-bold text-success">
-								{readyToDepositNFTs.length}
-							</p>
-						</div>
-					</Card>
+        <AnimatePresence>
+          {showSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              className="rounded-2xl border border-success/25 bg-success/10 p-4 text-sm text-success"
+            >
+              <div className="flex items-center gap-3">
+                <CheckBadgeIcon className="h-5 w-5" />
+                <span>Deposit broadcasted. Treasury balances update after confirmation.</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-						<div className="text-center">
-							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Needs Appraisal
-							</p>
-							<p className="text-2xl font-bold text-warning">
-								{needsAppraisalNFTs.length}
-							</p>
-						</div>
-					</Card>
+        {readyToDepositNFTs.length > 0 && (
+          <section className="space-y-4">
+            <header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-2.5 w-2.5 rounded-full bg-success animate-pulse" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  Ready to deposit
+                </h3>
+              </div>
+              <p className="text-sm text-foreground/60">
+                Submit deposits one by one. We track confirmations in your rewards dashboard.
+              </p>
+            </header>
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <AnimatePresence>
+                {readyToDepositNFTs.map((nft) => (
+                  <DepositableNFTCard
+                    key={`ready-${nft.collection}:${nft.tokenId}`}
+                    collection={nft.collection as `0x${string}`}
+                    tokenId={nft.tokenId}
+                    appraisalContractAddress={
+                      (contracts.appraisal as `0x${string}`) || "0x0"
+                    }
+                    onAction={handleNFTAction}
+                    onAppraisalStatusChange={handleAppraisalStatusChange}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          </section>
+        )}
 
-					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-						<div className="text-center">
-							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Collections
-							</p>
-							<p className="text-2xl font-bold text-secondary-400">
-								{new Set(userNFTs.map((nft) => nft.collection)).size}
-							</p>
-						</div>
-					</Card>
-				</div>
+        {needsAppraisalNFTs.length > 0 && (
+          <section className="space-y-4">
+            <header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-2.5 w-2.5 rounded-full bg-warning animate-pulse" />
+                <h3 className="text-lg font-semibold text-foreground">
+                  Needs appraisal
+                </h3>
+              </div>
+              <p className="text-sm text-foreground/60">
+                Start the WAVS appraisal flow. We prefill collection and token metadata automatically.
+              </p>
+            </header>
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <AnimatePresence>
+                {needsAppraisalNFTs.map((nft) => (
+                  <DepositableNFTCard
+                    key={`appraisal-${nft.collection}:${nft.tokenId}`}
+                    collection={nft.collection as `0x${string}`}
+                    tokenId={nft.tokenId}
+                    appraisalContractAddress={
+                      (contracts.appraisal as `0x${string}`) || "0x0"
+                    }
+                    onAction={handleNFTAction}
+                    onAppraisalStatusChange={handleAppraisalStatusChange}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          </section>
+        )}
 
-				{/* Ready to Deposit Section */}
-				{readyToDepositNFTs.length > 0 && (
-					<div className="space-y-6">
-						<div className="flex items-center gap-3">
-							<div className="w-3 h-3 bg-success rounded-full animate-pulse"></div>
-							<h3 className="text-xl font-medium text-success">
-								Ready to Deposit ({readyToDepositNFTs.length})
-							</h3>
-						</div>
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-							<AnimatePresence>
-								{readyToDepositNFTs.map((nft) => (
-									<DepositableNFTCard
-										key={`ready-${nft.collection}:${nft.tokenId}`}
-										collection={nft.collection}
-										tokenId={nft.tokenId}
-										appraisalContractAddress={contracts.appraisal || "0x0"}
-										onAction={handleNFTAction}
-										onAppraisalStatusChange={handleAppraisalStatusChange}
-									/>
-								))}
-							</AnimatePresence>
-						</div>
-					</div>
-				)}
-
-				{/* Needs Appraisal Section */}
-				{needsAppraisalNFTs.length > 0 && (
-					<div className="space-y-6">
-						<div className="flex items-center gap-3">
-							<div className="w-3 h-3 bg-warning rounded-full animate-pulse"></div>
-							<h3 className="text-xl font-medium text-warning">
-								Needs Appraisal ({needsAppraisalNFTs.length})
-							</h3>
-						</div>
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-							<AnimatePresence>
-								{needsAppraisalNFTs.map((nft) => (
-									<DepositableNFTCard
-										key={`appraisal-${nft.collection}:${nft.tokenId}`}
-										collection={nft.collection}
-										tokenId={nft.tokenId}
-										appraisalContractAddress={contracts.appraisal || "0x0"}
-										onAction={handleNFTAction}
-										onAppraisalStatusChange={handleAppraisalStatusChange}
-									/>
-								))}
-							</AnimatePresence>
-						</div>
-					</div>
-				)}
-
-				{/* Info Banner */}
-				<Card className="bg-gradient-to-r from-info/10 to-secondary/10 border border-info/20 rounded-2xl shadow-xl">
-					<div className="flex items-start gap-3 p-4">
-						<InformationCircleIcon className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
-						<div className="text-sm text-foreground/70">
-							<p className="font-medium text-info mb-1">How it Works</p>
-							<p>
-								1. Click "Get Appraised" on any NFT to get its value assessed.
-								2. Once appraised, click "Deposit to Gacha" to start the 2-step
-								process. 3. First approve the NFT, then deposit it to the
-								treasury. 4. Deposited NFTs contribute to rewards and can be won
-								by other players.
-							</p>
-						</div>
-					</div>
-				</Card>
-
-				{/* Success Toast */}
-				<AnimatePresence>
-					{showSuccess && (
-						<motion.div
-							initial={{ opacity: 0, scale: 0.95 }}
-							animate={{ opacity: 1, scale: 1 }}
-							exit={{ opacity: 0, scale: 0.95 }}
-							className="fixed bottom-8 right-8 z-50 max-w-sm"
-						>
-							<Card className="p-4 bg-success/10 border border-success/20 rounded-xl shadow-lg">
-								<div className="flex items-center gap-3">
-									<CheckBadgeIcon className="w-6 h-6 text-success flex-shrink-0" />
-									<div>
-										<h4 className="font-semibold text-success text-sm">
-											Success!
-										</h4>
-										<p className="text-success/80 text-sm">
-											NFT has been deposited to the gacha treasury
-										</p>
-									</div>
-								</div>
-							</Card>
-						</motion.div>
-					)}
-				</AnimatePresence>
-			</div>
-		</motion.div>
-	);
+        <Card className="border border-white/10 bg-content1/20 p-6 backdrop-blur-2xl">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground/60">
+                Deposit checklist
+              </h4>
+              <ul className="space-y-2 text-sm text-foreground/70">
+                <li className="flex items-start gap-2">
+                  <div className="mt-2 h-1.5 w-1.5 rounded-full bg-success" />
+                  <span>Appraise each NFT before depositing to lock in treasury valuation.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-2 h-1.5 w-1.5 rounded-full bg-success" />
+                  <span>Review gas prompts—fee estimates surface before you sign.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-2 h-1.5 w-1.5 rounded-full bg-success" />
+                  <span>Track confirmations via the rewards dashboard without leaving this tab.</span>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground/60">
+                Treasury context
+              </h4>
+              <ul className="space-y-2 text-sm text-foreground/70">
+                <li className="flex items-start gap-2">
+                  <div className="mt-2 h-1.5 w-1.5 rounded-full bg-warning" />
+                  <span>Deposited NFTs rotate into active prize pools as rarity slots open.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-2 h-1.5 w-1.5 rounded-full bg-warning" />
+                  <span>Spin fees stream rewards back to depositors on a pro-rata basis.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-2 h-1.5 w-1.5 rounded-full bg-warning" />
+                  <span>Withdrawals are available once any configured lockups expire.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </motion.div>
+  );
 }
