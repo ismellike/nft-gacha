@@ -3,30 +3,17 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import { baseErc721Abi, useReadBaseErc721BalanceOf } from "../generated";
+import { ERC721_INTERFACES } from "../lib/constants";
+import { ERC721_ABI_FRAGMENTS } from "../lib/contract-utils";
+import type {
+	UserOwnedNFTMultiCollection,
+	UseUserOwnedNFTsResult,
+	UseUserOwnedNFTsMultiResult,
+} from "../types/hooks";
 
 export interface UserOwnedNFT {
 	tokenId: bigint;
 	contractAddress: string;
-}
-
-export interface UseUserOwnedNFTsResult {
-	tokens: bigint[];
-	isLoading: boolean;
-	error: string | null;
-	refetch: () => void;
-}
-
-export interface UserOwnedNFTMultiCollection {
-	collection: string;
-	tokenId: bigint;
-	collectionName?: string;
-}
-
-export interface UseUserOwnedNFTsMultiResult {
-	nfts: UserOwnedNFTMultiCollection[];
-	isLoading: boolean;
-	error: string | null;
-	refetch: () => void;
 }
 
 /**
@@ -60,8 +47,8 @@ export function useUserOwnedNFTs(
 			return;
 		}
 
-		// If user has no tokens, return early
-		if (userBalance === BigInt(0)) {
+		// Early return if user has no tokens
+		if (userBalance === 0n) {
 			setTokens([]);
 			return;
 		}
@@ -70,25 +57,44 @@ export function useUserOwnedNFTs(
 		setError(null);
 
 		try {
-			// Prefer ERC721Enumerable path to enumerate exact token IDs
 			const ownedTokenIds: bigint[] = [];
+
+			// Check if contract supports ERC721Enumerable for efficient enumeration
 			const enumerable = (await publicClient.readContract({
 				address: collectionAddress as `0x${string}`,
-				abi: baseErc721Abi,
+				abi: [ERC721_ABI_FRAGMENTS.SUPPORTS_INTERFACE],
 				functionName: "supportsInterface",
-				args: ["0x780e9d63"], // IERC721Enumerable
+				args: [ERC721_INTERFACES.ENUMERABLE],
 			})) as boolean;
 
 			if (enumerable) {
-				for (let i = 0n; i < (userBalance as bigint); i++) {
-					const tokenId = (await publicClient.readContract({
-						address: collectionAddress as `0x${string}`,
-						abi: baseErc721Abi,
-						functionName: "tokenOfOwnerByIndex",
-						args: [userAddress as `0x${string}`, i],
-					})) as bigint;
-					ownedTokenIds.push(tokenId);
+				// Use tokenOfOwnerByIndex for efficient enumeration
+				const tokenPromises = [];
+				for (let i = 0n; i < userBalance; i++) {
+					tokenPromises.push(
+						publicClient.readContract({
+							address: collectionAddress as `0x${string}`,
+							abi: [ERC721_ABI_FRAGMENTS.TOKEN_OF_OWNER_BY_INDEX],
+							functionName: "tokenOfOwnerByIndex",
+							args: [userAddress as `0x${string}`, i],
+						}) as Promise<bigint>,
+					);
 				}
+
+				const tokenIds = await Promise.allSettled(tokenPromises);
+				ownedTokenIds.push(
+					...tokenIds
+						.filter(
+							(result): result is PromiseFulfilledResult<bigint> =>
+								result.status === "fulfilled",
+						)
+						.map((result) => result.value),
+				);
+			} else {
+				console.warn(
+					`Collection ${collectionAddress} does not support ERC721Enumerable, cannot efficiently enumerate tokens`,
+				);
+				setError("Collection does not support token enumeration");
 			}
 
 			setTokens(ownedTokenIds);

@@ -3,15 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePublicClient } from "wagmi";
 import type { Address, Hex } from "viem";
+import type { CardAppraisal } from "../types/hooks";
 
-export interface CardAppraisal {
-	priceUSD: bigint;
-	status: number; // AppraisalStatus enum
-	firstTimestamp: bigint;
-	lastUpdated: bigint;
-	canonicalContractAddress: Address;
-	canonicalTokenId: bigint;
-}
+export type { CardAppraisal };
 
 interface BatchCardAppraisalResult {
 	cardAppraisals: Record<Hex, CardAppraisal | null>;
@@ -70,14 +64,6 @@ export function useBatchCardAppraisal(
 			setError(null);
 
 			try {
-				console.log(
-					"🔍 Fetching batch card appraisals for",
-					cardIds.length,
-					"cards:",
-					cardIds,
-				);
-				console.log("📍 From appraisal contract:", appraisalContract);
-
 				const result = await publicClient.readContract({
 					address: appraisalContract,
 					abi: appraisalContractAbi,
@@ -85,14 +71,11 @@ export function useBatchCardAppraisal(
 					args: [cardIds],
 				});
 
-				console.log("📦 Raw contract result:", result);
-
 				const appraisalsMap: Record<Hex, CardAppraisal | null> = {};
 
 				// Map results back to card IDs
 				cardIds.forEach((cardId, index) => {
 					const rawAppraisal = result?.[index];
-					console.log(`🔍 Card ${cardId}:`, rawAppraisal);
 
 					if (rawAppraisal && rawAppraisal.firstTimestamp > 0n) {
 						// Only consider it a valid appraisal if firstTimestamp > 0
@@ -104,24 +87,15 @@ export function useBatchCardAppraisal(
 							canonicalContractAddress: rawAppraisal.canonicalContractAddress,
 							canonicalTokenId: rawAppraisal.canonicalTokenId,
 						};
-						console.log(
-							`✅ Valid appraisal for ${cardId}:`,
-							appraisalsMap[cardId],
-						);
 					} else {
 						appraisalsMap[cardId] = null;
-						console.log(
-							`❌ No valid appraisal for ${cardId} - firstTimestamp:`,
-							rawAppraisal?.firstTimestamp,
-						);
 					}
 				});
 
 				setCardAppraisals((prev) => ({ ...prev, ...appraisalsMap }));
-				console.log("✅ Final appraisals map:", appraisalsMap);
 				return appraisalsMap;
 			} catch (err) {
-				console.error("❌ Failed to fetch card appraisals:", err);
+				console.error("Failed to fetch card appraisals:", err);
 				setError(
 					err instanceof Error
 						? err.message

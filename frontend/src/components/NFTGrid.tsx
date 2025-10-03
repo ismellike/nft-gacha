@@ -147,6 +147,7 @@ const VirtualizedGridItem = memo<{
 					variant="detailed"
 					showAppraisal={showAppraisal}
 					enableTraitExpansion={true}
+					preload={true}
 					appraisalContractAddress={appraisalContractAddress}
 					animate={animate}
 					priority={priority}

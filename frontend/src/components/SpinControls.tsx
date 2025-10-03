@@ -36,6 +36,10 @@ interface SpinControlsProps {
 	onRefund?: () => void;
 }
 
+// Constants for spin configuration
+const SPIN_TIMEOUT_SECONDS = 30;
+const PERMIT_DEADLINE_SECONDS = 3600; // 1 hour
+
 export default function SpinControls({
 	gachaSpin,
 	onRefund,
@@ -49,7 +53,7 @@ export default function SpinControls({
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
 
 	// Countdown timer for randomness timeout
-	const [countdown, setCountdown] = useState(30);
+	const [countdown, setCountdown] = useState(SPIN_TIMEOUT_SECONDS);
 	const [timeoutStarted, setTimeoutStarted] = useState<number | null>(null);
 
 	// Get gacha ID and contract addresses
@@ -207,6 +211,16 @@ export default function SpinControls({
 		return formatCurrency(spinFee, tokenDecimals, tokenSymbol || "TOKENS");
 	};
 
+	// Validation utilities
+	const hasPermitSupport = !noncesError;
+	const isSpinDataReady =
+		isConnected &&
+		canSpin &&
+		userAddress &&
+		feeToken &&
+		spinFee &&
+		(!hasPermitSupport || tokenNonce !== undefined);
+
 	// Enhanced button text logic using state machine states
 	const getButtonText = () => {
 		if (!isConnected) return "Connect Wallet";
@@ -224,7 +238,6 @@ export default function SpinControls({
 
 		// Validation checks
 		if (!hasSufficientBalance) return "Insufficient Balance";
-		const hasPermitSupport = !noncesError;
 		if (hasPermitSupport && tokenNonce === undefined) return "Loading...";
 
 		return "SPIN NOW";
@@ -239,7 +252,7 @@ export default function SpinControls({
 			isProcessingTransaction ||
 			gachaSpin.isSpinning ||
 			gachaSpin.isWaitingForFulfillment ||
-			(!noncesError && tokenNonce === undefined)
+			(hasPermitSupport && tokenNonce === undefined)
 		);
 	};
 
@@ -292,15 +305,7 @@ export default function SpinControls({
 		}
 
 		// Validate spin conditions
-		const hasPermitSupport = !noncesError;
-		if (
-			!isConnected ||
-			!canSpin ||
-			!userAddress ||
-			!feeToken ||
-			!spinFee ||
-			(hasPermitSupport && tokenNonce === undefined)
-		) {
+		if (!isSpinDataReady) {
 			console.log("❌ [SpinControls] Spin conditions not met:", {
 				isConnected,
 				canSpin,
@@ -308,6 +313,7 @@ export default function SpinControls({
 				feeToken: !!feeToken,
 				spinFee: !!spinFee,
 				tokenNonce: tokenNonce !== undefined,
+				hasPermitSupport,
 				individual_checks: {
 					not_connected: !isConnected,
 					cannot_spin: !canSpin,
@@ -324,7 +330,6 @@ export default function SpinControls({
 			// Start the spin in the state machine
 			gachaSpin.startSpin();
 
-			const hasPermitSupport = !noncesError;
 			if (!hasPermitSupport) {
 				// Fallback: call spin() directly (requires pre-approval)
 				spin({ address: contracts.gacha as `0x${string}` });
@@ -332,7 +337,9 @@ export default function SpinControls({
 			}
 
 			// Create permit signature
-			const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now
+			const deadline = BigInt(
+				Math.floor(Date.now() / 1000) + PERMIT_DEADLINE_SECONDS,
+			);
 			setPermitDeadline(deadline);
 
 			console.log("📝 [SpinControls] Requesting permit signature...");
@@ -486,13 +493,13 @@ export default function SpinControls({
 		if (gachaSpin.isWaitingForFulfillment) {
 			if (!timeoutStarted) {
 				setTimeoutStarted(Date.now());
-				setCountdown(30);
+				setCountdown(SPIN_TIMEOUT_SECONDS);
 			}
 
 			const timer = setInterval(() => {
 				if (timeoutStarted) {
 					const elapsed = Math.floor((Date.now() - timeoutStarted) / 1000);
-					const remaining = Math.max(0, 30 - elapsed);
+					const remaining = Math.max(0, SPIN_TIMEOUT_SECONDS - elapsed);
 					setCountdown(remaining);
 
 					if (remaining === 0) {
@@ -505,7 +512,7 @@ export default function SpinControls({
 			return () => clearInterval(timer);
 		} else {
 			setTimeoutStarted(null);
-			setCountdown(30);
+			setCountdown(SPIN_TIMEOUT_SECONDS);
 		}
 	}, [gachaSpin.isWaitingForFulfillment, timeoutStarted, gachaSpin.timeout]);
 

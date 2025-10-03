@@ -691,6 +691,7 @@ export function CardRewardsList() {
 										appraisalContractAddress={
 											contracts.appraisal as `0x${string}`
 										}
+										preload={true}
 										{...(card.activeRarity !== null && {
 											rarity: card.activeRarity,
 										})}
@@ -781,6 +782,7 @@ export function CardRewardsList() {
 										appraisalContractAddress={
 											contracts.appraisal as `0x${string}`
 										}
+										preload={true}
 										{...(card.activeRarity !== null && {
 											rarity: card.activeRarity,
 										})}

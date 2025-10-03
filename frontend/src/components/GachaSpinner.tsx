@@ -9,25 +9,36 @@ import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 
+// Constants for refresh tracking
+const REFRESH_TRIGGERS = {
+	SPIN_COMPLETE: "spin_complete",
+	REFUND: "refund",
+	REVEAL_CLOSE: "reveal_close",
+} as const;
+
 const GachaSpinner = memo(() => {
-	const [refreshKey, setRefreshKey] = useState(0);
+	const [refreshTrigger, setRefreshTrigger] = useState<string | null>(null);
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
 	// Use the new state machine hook
 	const gachaSpin = useGachaSpinMachine(
-		undefined, // onSpinComplete
+		() => {
+			// onSpinComplete - trigger refresh for rarity counts
+			console.log("🎯 [GachaSpinner] Spin completed, refreshing rarity data");
+			setRefreshTrigger(REFRESH_TRIGGERS.SPIN_COMPLETE);
+		},
 		() => {
 			// onRefund - trigger refresh for balance updates
 			console.log("💰 [GachaSpinner] Refund detected, refreshing UI");
-			setRefreshKey((prev) => prev + 1);
+			setRefreshTrigger(REFRESH_TRIGGERS.REFUND);
 		},
 	);
 
 	const handleCloseReveal = useCallback(() => {
 		gachaSpin.closeReveal();
 		// Refresh rarity counts after reveal closes
-		setRefreshKey((prev) => prev + 1);
+		setRefreshTrigger(REFRESH_TRIGGERS.REVEAL_CLOSE);
 	}, [gachaSpin]);
 
 	return (
@@ -52,7 +63,7 @@ const GachaSpinner = memo(() => {
 							console.log(
 								"💰 [GachaSpinner] SpinControls refund callback triggered",
 							);
-							setRefreshKey((prev) => prev + 1);
+							setRefreshTrigger(REFRESH_TRIGGERS.REFUND);
 						}}
 					/>
 
@@ -64,7 +75,7 @@ const GachaSpinner = memo(() => {
 
 				{/* Right Column - Rarity Information */}
 				<div className="space-y-8">
-					<RarityBreakdown key={`breakdown-${refreshKey}`} />
+					<RarityBreakdown key={`breakdown-${refreshTrigger}`} />
 				</div>
 			</div>
 		</div>

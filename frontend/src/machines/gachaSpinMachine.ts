@@ -3,6 +3,7 @@
 import { assign, createMachine, fromPromise } from "xstate";
 import type { PublicClient } from "viem";
 import { useGachaStore } from "../stores/gachaStore";
+import { rarityBigIntToName } from "../lib/rarity-utils";
 // Gacha contract address is now passed as context rather than imported
 
 export interface SpinResult {
@@ -110,18 +111,8 @@ const pollForSpinFulfillment = fromPromise(
 						const log = completedLogs[0];
 						const { rarity, collection, tokenId } = log.args;
 
-						// Convert rarity enum to string
-						const rarityNames = [
-							"Common",
-							"Uncommon",
-							"Rare",
-							"Epic",
-							"Legendary",
-						];
-						const rarityName = rarityNames[Number(rarity)] || "Unknown";
-
 						const result: SpinResult = {
-							rarity: rarityName,
+							rarity: rarityBigIntToName(rarity),
 							collection: collection || "",
 							tokenId: tokenId?.toString() || "",
 						};
@@ -162,16 +153,7 @@ const pollForSpinFulfillment = fromPromise(
 							const log = refundedLogs[0];
 							const { selectedRarity, refundAmount } = log.args;
 
-							// Convert rarity enum to string
-							const rarityNames = [
-								"Common",
-								"Uncommon",
-								"Rare",
-								"Epic",
-								"Legendary",
-							];
-							const rarityName =
-								rarityNames[Number(selectedRarity)] || "Unknown";
+							const rarityName = rarityBigIntToName(selectedRarity);
 
 							console.log("💰 [GachaSpinMachine] SpinRefunded event found:", {
 								selectedRarity: rarityName,

@@ -13,6 +13,7 @@ import type { SpinResult, RefundResult } from "../machines/gachaSpinMachine";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 import { gachaAbi } from "../generated";
+import { rarityBigIntToName } from "../lib/rarity-utils";
 
 export interface UseGachaSpinMachineReturn {
 	// State
@@ -71,18 +72,8 @@ export function useGachaSpinMachine(
 
 				// Check if this is the event we're waiting for
 				if (triggerId === state.context.triggerId) {
-					// Convert rarity enum to string
-					const rarityNames = [
-						"Common",
-						"Uncommon",
-						"Rare",
-						"Epic",
-						"Legendary",
-					];
-					const rarityName = rarityNames[Number(rarity)] || "Unknown";
-
 					const result: SpinResult = {
-						rarity: rarityName,
+						rarity: rarityBigIntToName(rarity),
 						collection: collection || "",
 						tokenId: tokenId?.toString() || "",
 					};

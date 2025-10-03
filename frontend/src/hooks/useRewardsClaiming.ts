@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 import { useAccount, useWriteContract, usePublicClient } from "wagmi";
 import type { Address, Hex } from "viem";
+import { RARITY_VALUES } from "../lib/constants";
+import type { Rarity } from "../lib/constants";
+
+export type { Rarity };
 
 // Modern ABI for card-based rewards claiming
 const rewardsClaimingAbi = [
@@ -56,8 +60,6 @@ const rewardsClaimingAbi = [
 	},
 ] as const;
 
-export type Rarity = 0 | 1 | 2 | 3 | 4;
-
 export function useRewardsClaiming(rewardsManager?: Address) {
 	const { address: user } = useAccount();
 	const { writeContract, isPending } = useWriteContract();
@@ -65,7 +67,15 @@ export function useRewardsClaiming(rewardsManager?: Address) {
 
 	const claimForCard = useCallback(
 		async (cardId: Hex, rarity: Rarity) => {
-			if (!rewardsManager || !user) return;
+			if (!rewardsManager || !user) {
+				throw new Error("Missing rewards manager or user address");
+			}
+
+			// Validate rarity
+			if (!Object.values(RARITY_VALUES).includes(rarity)) {
+				throw new Error(`Invalid rarity: ${rarity}`);
+			}
+
 			await writeContract({
 				address: rewardsManager,
 				abi: rewardsClaimingAbi,

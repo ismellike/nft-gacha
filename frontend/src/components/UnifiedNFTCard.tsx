@@ -16,7 +16,7 @@ import {
 	useReadErc721Name,
 } from "../generated";
 import { type Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { useOptimizedNFTMetadata } from "../hooks/useOptimizedNFTMetadata";
+import { useNFTMetadata } from "../hooks/useNFTMetadata";
 import { NFTLoadingPlaceholder } from "./NFTLoadingPlaceholder";
 import {
 	isCourtyardTokenURI,
@@ -27,7 +27,8 @@ import {
 	formatGradeDisplay,
 } from "../lib/courtyard-utils";
 import { useImageWithFallbacks } from "../lib/image-proxy";
-import { processImageUrl, type NFTMetadata } from "../lib/nft-metadata";
+import { processImageUrl } from "../lib/nft-metadata";
+import type { NFTMetadata } from "../types/hooks";
 
 // Enhanced props for the unified NFT card
 export interface UnifiedNFTCardProps {
@@ -613,10 +614,9 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		const [traitsExpanded, setTraitsExpanded] = useState(false);
 
 		// Get NFT metadata with optimizations
-		const nftData = useOptimizedNFTMetadata(collection, tokenId, {
-			priority,
+		const nftData = useNFTMetadata(collection, tokenId, {
 			enabled: true,
-			preload,
+			skipFetch: !preload,
 		});
 
 		// Get collection name from contract

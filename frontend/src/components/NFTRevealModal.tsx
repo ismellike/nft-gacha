@@ -6,7 +6,7 @@ import { Modal, ModalContent, ModalBody } from "@heroui/react";
 import { glassModalClasses } from "../ui/modals";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTHeroCard } from ".";
-import { useEnhancedSpinResult } from "../hooks/useNFTWithMetadata";
+import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
 
 interface SpinResult {
 	rarity: string;

@@ -1,36 +1,86 @@
 import { useMemo } from "react";
 import { getGachaContracts } from "../lib/gacha-config/contracts";
+import { isValidContractAddress } from "../lib/contract-utils";
+
+export interface GachaContracts {
+	gacha: string | undefined;
+	treasury: string | undefined;
+	appraisal: string | undefined;
+	rewardsManager: string | undefined;
+	trackers:
+		| {
+				common: string | undefined;
+				uncommon: string | undefined;
+				rare: string | undefined;
+				epic: string | undefined;
+				legendary: string | undefined;
+		  }
+		| undefined;
+}
 
 /**
  * Hook to get contract addresses for a specific gacha
  * @param gachaId - The gacha ID to get contracts for (required)
+ * @returns Contract addresses object
  */
-export function useGachaContracts(gachaId: string) {
+export function useGachaContracts(gachaId: string): GachaContracts {
 	const contracts = useMemo(() => {
 		if (!gachaId) {
-			return {
-				gacha: undefined,
-				treasury: undefined,
-				appraisal: undefined,
-				rewardsManager: undefined,
-				trackers: undefined,
-			};
+			console.warn("No gacha ID provided to useGachaContracts");
+			return getEmptyContracts();
 		}
 
 		try {
-			return getGachaContracts(gachaId);
+			const contractAddresses = getGachaContracts(gachaId);
+
+			// Validate that all contract addresses are valid
+			const validatedContracts = {
+				gacha: contractAddresses.gacha,
+				treasury: contractAddresses.treasury,
+				appraisal: contractAddresses.appraisal,
+				rewardsManager: contractAddresses.rewardsManager,
+				trackers: contractAddresses.trackers,
+			};
+
+			// Log warnings for invalid addresses
+			Object.entries(validatedContracts).forEach(([key, value]) => {
+				if (key === "trackers" && value) {
+					Object.entries(value).forEach(([rarity, address]) => {
+						if (address && !isValidContractAddress(address)) {
+							console.warn(`Invalid ${rarity} tracker address: ${address}`);
+						}
+					});
+				} else if (
+					typeof value === "string" &&
+					value &&
+					!isValidContractAddress(value)
+				) {
+					console.warn(`Invalid ${key} contract address: ${value}`);
+				}
+			});
+
+			return validatedContracts;
 		} catch (error) {
 			console.error(`Failed to get contracts for gacha ${gachaId}:`, error);
-			// Return undefined contracts for non-existent gachas
-			return {
-				gacha: undefined,
-				treasury: undefined,
-				appraisal: undefined,
-				rewardsManager: undefined,
-				trackers: undefined,
-			};
+			return getEmptyContracts();
 		}
 	}, [gachaId]);
 
 	return contracts;
+}
+
+function getEmptyContracts(): GachaContracts {
+	return {
+		gacha: undefined,
+		treasury: undefined,
+		appraisal: undefined,
+		rewardsManager: undefined,
+		trackers: {
+			common: undefined,
+			uncommon: undefined,
+			rare: undefined,
+			epic: undefined,
+			legendary: undefined,
+		},
+	};
 }

@@ -1,32 +1,37 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-// Singleton store for search parameters
+// Simplified store for search parameters - less complexity, better performance
 class SearchParamsStore {
+	private static instance: SearchParamsStore;
 	private listeners = new Set<() => void>();
-	private searchParams = new URLSearchParams();
-	private serverSnapshot = new URLSearchParams();
+	private params: URLSearchParams;
 
-	constructor() {
+	private constructor() {
+		this.params = new URLSearchParams(
+			typeof window !== "undefined" ? window.location.search : "",
+		);
+
+		// Only set up browser listeners on client
 		if (typeof window !== "undefined") {
-			this.searchParams = new URLSearchParams(window.location.search);
-
-			// Listen to browser navigation (back/forward)
-			window.addEventListener("popstate", () => {
-				this.updateFromLocation();
-			});
+			window.addEventListener("popstate", this.handlePopState);
 		}
 	}
 
-	private updateFromLocation() {
-		if (typeof window !== "undefined") {
-			const newParams = new URLSearchParams(window.location.search);
-			if (newParams.toString() !== this.searchParams.toString()) {
-				this.searchParams = newParams;
-				this.notifyListeners();
-			}
+	static getInstance(): SearchParamsStore {
+		if (!SearchParamsStore.instance) {
+			SearchParamsStore.instance = new SearchParamsStore();
 		}
+		return SearchParamsStore.instance;
 	}
+
+	private handlePopState = () => {
+		const newParams = new URLSearchParams(window.location.search);
+		if (newParams.toString() !== this.params.toString()) {
+			this.params = newParams;
+			this.notifyListeners();
+		}
+	};
 
 	private notifyListeners() {
 		this.listeners.forEach((listener) => listener());
@@ -40,20 +45,19 @@ class SearchParamsStore {
 	}
 
 	getSnapshot() {
-		return this.searchParams;
+		return this.params;
 	}
 
 	getServerSnapshot() {
-		return this.serverSnapshot;
+		return new URLSearchParams();
 	}
 
-	// Update params and sync with URL
 	updateParams(
 		updates: Record<string, string | null>,
-		router: ReturnType<typeof useRouter>,
+		router: any,
 		pathname: string,
 	) {
-		const newParams = new URLSearchParams(this.searchParams);
+		const newParams = new URLSearchParams(this.params);
 
 		Object.entries(updates).forEach(([key, value]) => {
 			if (value === null) {
@@ -63,25 +67,28 @@ class SearchParamsStore {
 			}
 		});
 
-		const newUrl = `${pathname}?${newParams.toString()}`;
+		this.params = newParams;
 
-		// Update internal state first
-		this.searchParams = newParams;
+		// Update URL without scroll
+		router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
 
-		// Then update URL
-		router.push(newUrl, { scroll: false });
-
-		// Notify listeners
 		this.notifyListeners();
+	}
+
+	// Cleanup method for testing
+	destroy() {
+		if (typeof window !== "undefined") {
+			window.removeEventListener("popstate", this.handlePopState);
+		}
+		this.listeners.clear();
 	}
 }
 
-// Create singleton instance
-const searchParamsStore = new SearchParamsStore();
+// Get singleton instance
+const searchParamsStore = SearchParamsStore.getInstance();
 
 /**
- * Hook to get all URL search parameters using React 18's useSyncExternalStore
- * More efficient than useState + useEffect pattern
+ * Hook to get all URL search parameters efficiently
  */
 export function useClientSearchParams(): URLSearchParams {
 	return useSyncExternalStore(
@@ -93,7 +100,8 @@ export function useClientSearchParams(): URLSearchParams {
 
 /**
  * Hook to get a specific search parameter
- * Uses the same store for consistency
+ * @param key - Parameter key to retrieve
+ * @returns Parameter value or null if not found
  */
 export function useClientSearchParam(key: string): string | null {
 	const searchParams = useClientSearchParams();
@@ -101,8 +109,8 @@ export function useClientSearchParam(key: string): string | null {
 }
 
 /**
- * Hook to update URL search parameters in SPA mode
- * Uses the centralized store to avoid race conditions
+ * Hook to update URL search parameters
+ * @returns Function to update search parameters
  */
 export function useUpdateSearchParams() {
 	const router = useRouter();
