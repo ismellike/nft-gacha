@@ -13,7 +13,7 @@ import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { type Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
-import { StandardNFTGrid, useTreasuryItemsToGridItems } from "./ui";
+import { StandardNFTGrid, useTreasuryItemsToGridItems } from ".";
 import {
 	ExclamationTriangleIcon,
 	ArchiveBoxIcon,

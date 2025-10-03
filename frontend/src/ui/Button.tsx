@@ -7,8 +7,10 @@ import { Button as HeroButton } from "@heroui/react";
 export const GlassButton = extendVariants(HeroButton, {
 	variants: {
 		color: {
-			glass: "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground font-medium shadow-[0_0_6px_rgba(255,255,255,0.06),0_0_12px_rgba(255,255,255,0.03)] hover:bg-content1/30 hover:border-white/30 hover:shadow-[0_0_8px_rgba(255,255,255,0.08),0_0_16px_rgba(255,255,255,0.04)] data-[pressed=true]:scale-[0.97] transition-all duration-300",
-			primary: "bg-gradient-to-r from-warning to-orange-400 text-black font-medium border border-warning/30 shadow-[0_0_8px_rgba(255,191,0,0.25),0_0_16px_rgba(255,191,0,0.08)] hover:from-warning/90 hover:to-orange-500/90 hover:shadow-[0_0_12px_rgba(255,191,0,0.3),0_0_24px_rgba(255,191,0,0.1)] data-[pressed=true]:scale-[0.97]",
+			glass:
+				"bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground font-medium shadow-[0_0_6px_rgba(255,255,255,0.06),0_0_12px_rgba(255,255,255,0.03)] hover:bg-content1/30 hover:border-white/30 hover:shadow-[0_0_8px_rgba(255,255,255,0.08),0_0_16px_rgba(255,255,255,0.04)] data-[pressed=true]:scale-[0.97] transition-all duration-300",
+			primary:
+				"bg-gradient-to-r from-warning to-orange-400 text-black font-medium border border-warning/30 shadow-[0_0_8px_rgba(255,191,0,0.25),0_0_16px_rgba(255,191,0,0.08)] hover:from-warning/90 hover:to-orange-500/90 hover:shadow-[0_0_12px_rgba(255,191,0,0.3),0_0_24px_rgba(255,191,0,0.1)] data-[pressed=true]:scale-[0.97]",
 		},
 		size: {
 			sm: "px-4 min-w-16 h-8 text-tiny gap-1 rounded-xl",
@@ -25,9 +27,9 @@ export const GlassButton = extendVariants(HeroButton, {
 
 export interface ButtonProps extends React.ComponentProps<typeof GlassButton> {}
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => (
-	<GlassButton ref={ref as any} {...props} />
-));
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+	(props, ref) => <GlassButton ref={ref as any} {...props} />,
+);
 
 Button.displayName = "Button";
 

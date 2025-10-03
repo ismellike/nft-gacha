@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn } from "../../lib/theme-config";
+import { cn } from "../lib/theme-config";
 
 interface NFTLoadingPlaceholderProps {
 	size?: "sm" | "md" | "lg" | "xl";

@@ -19,7 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { Button, Card } from "../../ui";
-import { GlassHeader } from "../../components/ui";
+import { GlassHeader } from "../../components";
 import { ArrowLeftIcon, BoltIcon } from "@heroicons/react/24/outline";
 import { glassTypography } from "../../lib/theme-config";
 import { getGachaConfig, formatGachaAddress } from "../../lib/gacha-config";

@@ -9,11 +9,13 @@ export const GlassBadge = extendVariants(HeroBadge, {
 		color: {
 			glass: {
 				base: "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80",
-				badge: "bg-content1/30 backdrop-blur-xl border border-white/30 text-foreground",
+				badge:
+					"bg-content1/30 backdrop-blur-xl border border-white/30 text-foreground",
 			},
 			primary: {
 				base: "bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning",
-				badge: "bg-gradient-to-r from-warning/40 to-orange-400/40 border border-warning/50 text-warning",
+				badge:
+					"bg-gradient-to-r from-warning/40 to-orange-400/40 border border-warning/50 text-warning",
 			},
 			success: {
 				base: "bg-success/20 border border-success/30 text-success",
@@ -31,19 +33,23 @@ export const GlassBadge = extendVariants(HeroBadge, {
 		variant: {
 			flat: {
 				base: "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80",
-				badge: "bg-content1/30 backdrop-blur-xl border border-white/30 text-foreground",
+				badge:
+					"bg-content1/30 backdrop-blur-xl border border-white/30 text-foreground",
 			},
 			solid: {
 				base: "bg-content1/30 backdrop-blur-xl border border-white/30 text-foreground",
-				badge: "bg-content1/40 backdrop-blur-xl border border-white/40 text-foreground",
+				badge:
+					"bg-content1/40 backdrop-blur-xl border border-white/40 text-foreground",
 			},
 			faded: {
 				base: "bg-content1/10 backdrop-blur-xl border border-white/10 text-foreground/60",
-				badge: "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80",
+				badge:
+					"bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80",
 			},
 			shadow: {
 				base: "bg-content1/25 backdrop-blur-xl border border-white/25 text-foreground/80 shadow-lg",
-				badge: "bg-content1/35 backdrop-blur-xl border border-white/35 text-foreground shadow-xl",
+				badge:
+					"bg-content1/35 backdrop-blur-xl border border-white/35 text-foreground shadow-xl",
 			},
 		},
 		size: {

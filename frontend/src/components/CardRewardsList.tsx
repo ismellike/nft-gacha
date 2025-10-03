@@ -8,7 +8,7 @@ import {
 	ArrowPathIcon,
 	TrophyIcon,
 } from "@heroicons/react/24/outline";
-import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
+import { UnifiedNFTCard } from "./UnifiedNFTCard";
 import { glassTypography } from "../lib/theme-config";
 import { getRarityConfig } from "../lib/rarityConfig";
 import { useGachaId } from "../hooks/useGachaId";

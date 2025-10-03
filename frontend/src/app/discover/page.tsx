@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { PlusIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 import { Card, Chip } from "../../ui";
-import { GlassHeader, GachaCard } from "../../components/ui";
+import { GlassHeader, GachaCard } from "../../components";
 import { getAllActiveGachas } from "../../lib/gacha-config";
 
 export default function DiscoverPage() {

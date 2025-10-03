@@ -11,6 +11,9 @@ const nextConfig = {
 	// Disable server-side features for true SPA
 	skipTrailingSlashRedirect: true,
 
+	// Exclude API routes from static export
+	excludeDefaultMomentLocales: true,
+
 	// Image optimization
 	images: {
 		unoptimized: true,

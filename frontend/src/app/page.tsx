@@ -13,7 +13,7 @@ import {
 	FingerPrintIcon,
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { SimpleRarityShowcase } from "../components/ui/RaritySystem";
+import { SimpleRarityShowcase } from "../components/RaritySystem";
 import { getRarityConfig } from "../lib/rarityConfig";
 
 // Core value propositions - consolidated and refined

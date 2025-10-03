@@ -3,20 +3,20 @@
 import { useState, memo, useMemo } from "react";
 import NextImage from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "../../lib/theme-config";
+import { cn } from "../lib/theme-config";
 import {
 	formatAddress,
 	formatTokenId,
 	formatCurrency,
 	isValidAddress,
-} from "../../lib/utils";
+} from "../lib/utils";
 import {
 	useReadNftAppraisalGetAppraisedPrice,
 	useReadNftAppraisalHasAppraisal,
 	useReadErc721Name,
-} from "../../generated";
-import { type Rarity, getRarityConfig } from "../../lib/rarityConfig";
-import { useOptimizedNFTMetadata } from "../../hooks/useOptimizedNFTMetadata";
+} from "../generated";
+import { type Rarity, getRarityConfig } from "../lib/rarityConfig";
+import { useOptimizedNFTMetadata } from "../hooks/useOptimizedNFTMetadata";
 import { NFTLoadingPlaceholder } from "./NFTLoadingPlaceholder";
 import {
 	isCourtyardTokenURI,
@@ -25,9 +25,9 @@ import {
 	parseCourtyardMetadata,
 	formatCardTitle,
 	formatGradeDisplay,
-} from "../../lib/courtyard-utils";
-import { useImageWithFallbacks } from "../../lib/image-proxy";
-import { processImageUrl, type NFTMetadata } from "../../lib/nft-metadata";
+} from "../lib/courtyard-utils";
+import { useImageWithFallbacks } from "../lib/image-proxy";
+import { processImageUrl, type NFTMetadata } from "../lib/nft-metadata";
 
 // Enhanced props for the unified NFT card
 export interface UnifiedNFTCardProps {

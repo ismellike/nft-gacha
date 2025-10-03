@@ -5,7 +5,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowPathIcon as Loader2 } from "@heroicons/react/24/outline";
-import { cn } from "../../lib/theme-config";
+import { cn } from "../lib/theme-config";
 
 interface LoadingStateProps {
 	size?: "sm" | "md" | "lg";

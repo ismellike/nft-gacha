@@ -6,7 +6,7 @@ import { useAccount, useWriteContract, usePublicClient } from "wagmi";
 import { useMachine } from "@xstate/react";
 
 import { UnifiedNFTCard, type UnifiedNFTCardProps } from "./UnifiedNFTCard";
-import { Button } from "../../ui";
+import { Button } from "../ui";
 import {
 	GiftIcon,
 	ShieldCheckIcon,
@@ -14,14 +14,14 @@ import {
 	ArrowPathIcon,
 	SparklesIcon,
 } from "@heroicons/react/24/outline";
-import { useGachaContracts } from "../../hooks/useGachaContracts";
-import { useGachaId } from "../../hooks/useGachaId";
+import { useGachaContracts } from "../hooks/useGachaContracts";
+import { useGachaId } from "../hooks/useGachaId";
 import {
 	useReadNftAppraisalGetAppraisal,
 	gachaTreasuryAbi,
 	erc721Abi,
-} from "../../generated";
-import { nftDepositMachine } from "../../machines/nftDepositMachine";
+} from "../generated";
+import { nftDepositMachine } from "../machines/nftDepositMachine";
 
 interface DepositableNFTCardProps
 	extends Omit<

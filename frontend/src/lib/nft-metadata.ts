@@ -46,20 +46,6 @@ export async function fetchNFTMetadata(
 	}
 
 	try {
-		const needsProxy = (() => {
-			try {
-				const u = new URL(tokenURI);
-				return [
-					"api.courtyard.io",
-					"cloudflare-ipfs.com",
-					"ipfs.io",
-					"gateway.pinata.cloud",
-				].includes(u.hostname);
-			} catch {
-				return false;
-			}
-		})();
-
 		const url = tokenURI; // try direct first
 
 		// Handle IPFS URLs - try multiple gateways for better reliability
@@ -111,18 +97,8 @@ export async function fetchNFTMetadata(
 		}
 
 		// Fetch from HTTP(S) endpoint (including Courtyard API)
-		let metadata: NFTMetadata | null = null;
-		try {
-			metadata = await fetchWithRetry(url);
-		} catch (e) {
-			// Try proxy as a fallback for known hosts
-			if (needsProxy) {
-				const proxied = `/api/metadata?url=${encodeURIComponent(tokenURI)}`;
-				metadata = await fetchWithRetry(proxied);
-			} else {
-				throw e;
-			}
-		}
+		// For static export, no proxy fallback available
+		const metadata = await fetchWithRetry(url);
 		if (metadata) {
 			metadataCache.set(tokenURI, { data: metadata, timestamp: Date.now() });
 

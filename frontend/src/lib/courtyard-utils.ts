@@ -92,12 +92,8 @@ export async function fetchCourtyardMetadata(
 					cache: "default",
 				});
 
-			let response = await doFetch(tokenURI);
-			if (!response.ok) {
-				// fallback to proxy if allowed
-				const proxiedUrl = `/api/metadata?url=${encodeURIComponent(tokenURI)}`;
-				response = await doFetch(proxiedUrl);
-			}
+			const response = await doFetch(tokenURI);
+			// No proxy fallback for static export - must succeed directly
 
 			clearTimeout(timeoutId);
 

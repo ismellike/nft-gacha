@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import NextImage from "next/image";
 import { motion } from "framer-motion";
-import { cn } from "../../lib/theme-config";
+import { cn } from "../lib/theme-config";
 import { CurrencyDollarIcon } from "@heroicons/react/24/outline";
 
 interface TokenDisplayProps {

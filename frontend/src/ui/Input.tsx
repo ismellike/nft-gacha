@@ -9,15 +9,18 @@ export const GlassInput = extendVariants(HeroInput, {
 		variant: {
 			flat: {
 				base: "bg-content1/20 backdrop-blur-xl border border-white/20 transition-all duration-200",
-				inputWrapper: "focus-within:bg-content1/30 focus-within:border-warning/50 focus-within:ring-2 focus-within:ring-warning/20 hover:bg-content1/25",
+				inputWrapper:
+					"focus-within:bg-content1/30 focus-within:border-warning/50 focus-within:ring-2 focus-within:ring-warning/20 hover:bg-content1/25",
 			},
 			bordered: {
 				base: "bg-content1/10 backdrop-blur-xl border-2 border-white/30 transition-all duration-200",
-				inputWrapper: "focus-within:bg-content1/20 focus-within:border-warning/50 focus-within:ring-2 focus-within:ring-warning/20 hover:bg-content1/15",
+				inputWrapper:
+					"focus-within:bg-content1/20 focus-within:border-warning/50 focus-within:ring-2 focus-within:ring-warning/20 hover:bg-content1/15",
 			},
 			faded: {
 				base: "bg-content1/5 backdrop-blur-xl border border-white/10 transition-all duration-200",
-				inputWrapper: "focus-within:bg-content1/25 focus-within:border-warning/40 focus-within:ring-1 focus-within:ring-warning/10 hover:bg-content1/10",
+				inputWrapper:
+					"focus-within:bg-content1/25 focus-within:border-warning/40 focus-within:ring-1 focus-within:ring-warning/10 hover:bg-content1/10",
 			},
 		},
 		color: {
@@ -61,7 +64,8 @@ export const GlassInput = extendVariants(HeroInput, {
 	slots: {
 		base: "w-full",
 		mainWrapper: "relative",
-		inputWrapper: "group-data-[focus=true]:ring-2 group-data-[focus=true]:ring-warning/20 group-data-[focus=true]:border-warning/50 transition-all duration-200",
+		inputWrapper:
+			"group-data-[focus=true]:ring-2 group-data-[focus=true]:ring-warning/20 group-data-[focus=true]:border-warning/50 transition-all duration-200",
 		input: "bg-transparent text-foreground placeholder:text-foreground/40",
 		label: "text-foreground",
 		description: "text-foreground/60",

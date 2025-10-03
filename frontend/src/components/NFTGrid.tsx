@@ -2,8 +2,8 @@
 
 import { memo, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { cn } from "../../lib/theme-config";
-import type { Rarity } from "../../lib/rarityConfig";
+import { cn } from "../lib/theme-config";
+import type { Rarity } from "../lib/rarityConfig";
 import { UnifiedNFTCard } from "./UnifiedNFTCard";
 
 // NFT item interface for grid display

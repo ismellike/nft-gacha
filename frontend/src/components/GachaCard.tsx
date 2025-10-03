@@ -18,9 +18,9 @@ import {
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { Card, Chip } from "../ui";
-import { GachaCardSkeleton } from "./ui";
+import { GachaCardSkeleton } from ".";
 import { GachaCardHeader } from "./GachaCardHeader";
-import { RarityBadge } from "./ui/RaritySystem";
+import { RarityBadge } from "./RaritySystem";
 import { getAllRarities } from "../lib/rarityConfig";
 import type { GachaConfig } from "../lib/gacha-config";
 

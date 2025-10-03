@@ -3,7 +3,7 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { Card } from "../ui";
-import { RarityBadge } from "./ui/RaritySystem";
+import { RarityBadge } from "./RaritySystem";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
 	useReadGachaGetRarityWeights,

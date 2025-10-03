@@ -15,7 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { Card, Button } from "../ui";
-import { UnifiedNFTCard } from "./ui/UnifiedNFTCard";
+import { UnifiedNFTCard } from "./UnifiedNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import {

@@ -9,7 +9,7 @@ import {
 } from "wagmi";
 import { glassTypography, cn } from "../lib/theme-config";
 import { Card, Button, Chip } from "../ui";
-import { TokenFeeDisplay } from "./ui";
+import { TokenFeeDisplay } from ".";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -197,9 +197,9 @@ export default function SpinControls({
 	const formattedBalance =
 		tokenBalance && tokenDecimals
 			? formatTokenAmount(tokenBalance, tokenDecimals, {
-				maxDecimals: 4,
-				useGrouping: true,
-			})
+					maxDecimals: 4,
+					useGrouping: true,
+				})
 			: "0";
 
 	const formatSpinFee = () => {
@@ -445,7 +445,7 @@ export default function SpinControls({
 						triggerId = decoded.args.triggerId as bigint;
 						break;
 					}
-				} catch (_error) { }
+				} catch (_error) {}
 			}
 
 			if (triggerId !== null) {
@@ -540,10 +540,11 @@ export default function SpinControls({
 					<div className="relative group">
 						{/* Outer glow rings */}
 						<div
-							className={`absolute inset-0 w-64 h-64 rounded-full ${gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+							className={`absolute inset-0 w-64 h-64 rounded-full ${
+								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
 									? "animate-pulse"
 									: ""
-								}`}
+							}`}
 						>
 							<div
 								className="w-full h-full rounded-full border-2 border-warning/20 animate-spin"
@@ -551,10 +552,11 @@ export default function SpinControls({
 							></div>
 						</div>
 						<div
-							className={`absolute inset-2 w-60 h-60 rounded-full ${gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+							className={`absolute inset-2 w-60 h-60 rounded-full ${
+								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
 									? "animate-pulse"
 									: ""
-								}`}
+							}`}
 						>
 							<div
 								className="w-full h-full rounded-full border border-warning/10 animate-spin"
@@ -766,19 +768,19 @@ export default function SpinControls({
 						spinWithPermitReceiptError ||
 						signatureError ||
 						reclaimError) && (
-							<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
-								<div>
-									<p className="text-sm mb-2">
-										Transaction failed. Please try again.
+						<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
+							<div>
+								<p className="text-sm mb-2">
+									Transaction failed. Please try again.
+								</p>
+								{reclaimError && (
+									<p className="text-xs opacity-60">
+										Reclaim error: {reclaimError.message}
 									</p>
-									{reclaimError && (
-										<p className="text-xs opacity-60">
-											Reclaim error: {reclaimError.message}
-										</p>
-									)}
-								</div>
-							</Card>
-						)}
+								)}
+							</div>
+						</Card>
+					)}
 
 					{/* Spin Button */}
 					<Button
