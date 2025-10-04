@@ -21,7 +21,7 @@ import { Card, Chip } from "../ui";
 import { GachaCardSkeleton } from ".";
 import { GachaCardHeader } from "./GachaCardHeader";
 import { RarityBadge } from "./RaritySystem";
-import { getAllRarities } from "../lib/rarityConfig";
+import { getAllRarities, getRarityEmoji } from "../lib/rarityConfig";
 import type { GachaConfig } from "../lib/gacha-config";
 
 interface GachaCardProps {
@@ -147,81 +147,79 @@ export function GachaCard({ gacha }: GachaCardProps) {
 					</div>
 				</GachaCardHeader>
 
-				{/* Enhanced Content Section */}
-				<div className="p-6 relative bg-gradient-to-b from-transparent via-white/2 to-white/5">
-					<div className="space-y-5">
-						{/* Description */}
-						<p className="text-foreground/85 leading-relaxed text-sm font-medium">
+				{/* Compact Content Section */}
+				<div className="p-4 relative bg-gradient-to-b from-transparent via-white/2 to-white/5">
+					<div className="space-y-4">
+						{/* Compact Description */}
+						<p className="text-foreground/80 leading-relaxed text-xs font-medium line-clamp-2">
 							{gacha.description}
 						</p>
 
-						{/* Key Stats Row */}
-						<div className="flex items-center justify-between p-4 bg-gradient-to-r from-content1/30 via-content1/20 to-content1/30 backdrop-blur-sm rounded-xl border border-white/15 shadow-lg">
-							<div className="text-center flex-1">
-								<div className="text-sm text-foreground/60 uppercase tracking-wide font-medium mb-1">
-									Entry Fee
+						{/* Compact Stats */}
+						<div className="flex items-center justify-between p-3 bg-content1/20 backdrop-blur-sm rounded-lg border border-white/10">
+							<div className="flex items-center gap-3">
+								<div>
+									<div className="text-xs text-foreground/60 mb-1">Fee</div>
+									<div className="text-sm font-bold text-warning">
+										{formattedSpinFee}
+									</div>
 								</div>
-								<div className="text-lg font-bold text-warning">
-									{formattedSpinFee}
-								</div>
-							</div>
-							<div className="w-px h-8 bg-white/20 mx-4"></div>
-							<div className="text-center flex-1">
-								<div className="text-sm text-foreground/60 uppercase tracking-wide font-medium mb-1">
-									Collection
-								</div>
-								<div className="text-lg font-bold text-foreground flex items-center justify-center gap-2">
-									<GiftIcon className="w-4 h-4 text-warning" />
-									{totalNFTs}
+								<div className="w-px h-6 bg-white/20"></div>
+								<div>
+									<div className="text-xs text-foreground/60 mb-1">Cards</div>
+									<div className="text-sm font-bold text-foreground flex items-center gap-1">
+										<GiftIcon className="w-3 h-3 text-warning" />
+										{totalNFTs}
+									</div>
 								</div>
 							</div>
 						</div>
 
 						{/* Compact Rarity Distribution */}
-						<div className="space-y-3">
-							<div className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
-								<ChartBarIcon className="w-4 h-4 text-warning" />
-								Rarity Distribution
+						<div className="space-y-2">
+							<div className="text-xs font-semibold text-foreground/70 flex items-center gap-1">
+								<ChartBarIcon className="w-3 h-3 text-warning" />
+								Rarities
 							</div>
-							<div className="flex gap-2">
-								{rarityCountsArray.map((count: bigint, index: number) => {
-									const rarity = getAllRarities()[index];
-									if (!rarity) return null;
+							<div className="grid grid-cols-5 gap-1">
+								{getAllRarities().map((rarity, index) => {
+									const count = rarityCountsArray[index] || 0n;
+									const hasCards = count > 0n;
 
 									return (
-										<motion.div
+										<div
 											key={rarity}
-											className="flex-1 text-center"
-											whileHover={{ scale: 1.05 }}
-											transition={{ type: "spring", stiffness: 400 }}
+											className="text-center p-1 rounded bg-content1/10 border border-white/5"
 										>
-											<RarityBadge rarity={rarity} showEmoji={true} size="sm" />
-											<div className="text-xs text-foreground/70 font-medium mt-1">
+											<div className={`text-lg mb-1 ${hasCards ? 'opacity-100' : 'opacity-30'}`}>
+												{getRarityEmoji(rarity)}
+											</div>
+											<div className="text-xs text-foreground/60 font-medium">
 												{Number(count)}
 											</div>
-										</motion.div>
+										</div>
 									);
 								})}
 							</div>
 						</div>
 
-						{/* Call to Action */}
+						{/* Compact CTA */}
 						<motion.div
-							className="mt-6 p-4 bg-gradient-to-r from-warning/10 via-orange-400/5 to-warning/10 backdrop-blur-sm rounded-xl border border-warning/20 text-center"
+							className="p-3 bg-gradient-to-r from-warning/10 to-orange-400/10 backdrop-blur-sm rounded-lg border border-warning/20 text-center"
 							whileHover={{
 								borderColor: "rgba(255, 191, 0, 0.4)",
 								backgroundColor: "rgba(255, 191, 0, 0.1)",
 							}}
 							transition={{ duration: 0.2 }}
 						>
-							<div className="flex items-center justify-center gap-2 text-warning font-semibold">
-								<BoltIcon className="w-4 h-4" />
-								<span>Click to Explore</span>
+							<div className="flex items-center justify-center gap-2 text-warning font-semibold text-sm">
+								<BoltIcon className="w-3 h-3" />
+								<span>Explore</span>
 								<motion.div
-									animate={{ x: [0, 4, 0] }}
+									animate={{ x: [0, 3, 0] }}
 									transition={{ duration: 1.5, repeat: Infinity }}
 								>
-									<ArrowRightIcon className="w-4 h-4" />
+									<ArrowRightIcon className="w-3 h-3" />
 								</motion.div>
 							</div>
 						</motion.div>
@@ -234,9 +232,11 @@ export function GachaCard({ gacha }: GachaCardProps) {
 								transition={{ delay: 0.2 }}
 								className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center"
 							>
-								<Chip className="px-4 py-2 bg-danger/20 border-danger/30 text-danger">
-									<XCircleIcon className="w-4 h-4 mr-2" />
-									Temporarily Unavailable
+								<Chip
+									startContent={<XCircleIcon className="w-3 h-3" />}
+									className="px-3 py-1 bg-danger/20 border-danger/30 text-danger text-sm"
+								>
+									Offline
 								</Chip>
 							</motion.div>
 						)}

@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { PlusIcon, ChartBarIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, ChartBarIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { Card, Chip } from "../../ui";
-import { GlassHeader, GachaCard } from "../../components";
+import { GachaCard } from "../../components";
 import { getAllActiveGachas } from "../../lib/gacha-config";
 
 export default function DiscoverPage() {
@@ -11,18 +11,44 @@ export default function DiscoverPage() {
 
 	return (
 		<div className="min-h-screen bg-transparent">
-			<div className="container mx-auto px-4 py-16 max-w-7xl">
-				{/* Hero Section */}
-				<GlassHeader
-					title="Discover"
-					subtitle="Card Collections"
-					description="Explore our collection of provably fair trading card gacha systems. Each collection features authentic graded cards with transparent rarity mechanics."
-					badges={[
-						{ icon: "shield-check", text: "Provably Fair", variant: "success" },
-						{ icon: "gem", text: "Authentic Graded Cards", variant: "primary" },
-						{ icon: "trending", text: "Live Analytics", variant: "primary" },
-					]}
-				></GlassHeader>
+			<div className="container mx-auto px-4 pt-16 pb-16 max-w-7xl">
+				{/* Streamlined Header */}
+				<motion.div
+					initial={{ opacity: 0, y: -20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.6 }}
+					className="text-center mb-12"
+				>
+					<div className="inline-flex items-center gap-2 px-4 py-2 bg-content1/10 backdrop-blur-sm rounded-full border border-white/20 mb-8">
+						<ShieldCheckIcon className="w-4 h-4 text-warning" />
+						<span className="text-sm font-medium text-foreground/80">Discover Collections</span>
+					</div>
+
+					<h1 className="text-5xl md:text-7xl font-black mb-6">
+						<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
+							Card Collections
+						</span>
+					</h1>
+
+					<p className="text-xl text-foreground/80 max-w-3xl mx-auto leading-relaxed mb-8">
+						Explore our collection of provably fair trading card gacha systems. Each collection features authentic graded cards with transparent rarity mechanics.
+					</p>
+
+					<div className="flex flex-wrap justify-center gap-3">
+						{[
+							{ icon: <ShieldCheckIcon className="w-4 h-4" />, text: "Provably Fair" },
+							{ icon: <ChartBarIcon className="w-4 h-4" />, text: "Live Analytics" },
+						].map((badge) => (
+							<div
+								key={badge.text}
+								className="flex items-center gap-2 px-4 py-2 bg-content1/10 backdrop-blur-sm rounded-full border border-white/20"
+							>
+								<span className="text-warning">{badge.icon}</span>
+								<span className="text-sm font-medium text-foreground/80">{badge.text}</span>
+							</div>
+						))}
+					</div>
+				</motion.div>
 
 				{/* Gacha Grid */}
 				<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-16">
