@@ -119,17 +119,54 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	const totalItems = rarityStats.reduce((sum, item) => sum + item.count, 0);
 
 	return (
-		<Card className="relative h-full overflow-hidden border border-white/10 bg-content1/20 p-6 backdrop-blur-2xl">
+		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-8 backdrop-blur-2xl">
+			{/* Enhanced background gradient matching spinner */}
+			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,200,87,0.15),_transparent_60%)]" />
 			<div className="pointer-events-none absolute -top-20 right-0 h-40 w-40 rounded-full bg-primary/15 blur-[140px]" />
 			<div className="pointer-events-none absolute -bottom-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-warning/15 blur-3xl" />
+
 			<div className="relative z-10 space-y-6">
+				{/* Enhanced header matching spinner design */}
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-					<div>
-						<span className="text-xs uppercase tracking-[0.3em] text-foreground/45">Treasury overview</span>
-						<h3 className="mt-1 text-xl font-semibold text-foreground">Rarity Breakdown</h3>
+					<div className="space-y-2">
+						<span className="text-xs uppercase tracking-[0.3em] text-foreground/45">
+							Treasury overview
+						</span>
+						<h3 className="text-xl font-semibold text-foreground">
+							Rarity Breakdown
+						</h3>
+						<p className="text-sm text-foreground/60">
+							Current NFT distribution and drop rates
+						</p>
 					</div>
-					<div className="text-sm text-foreground/60">
-						<span className="font-semibold text-foreground">{totalItems}</span> NFTs in rotation
+
+					{/* Enhanced total count display */}
+					<div className="flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 shadow-inner min-w-[140px]">
+						<div className="flex items-center gap-3">
+							<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/10">
+								<svg
+									className="w-5 h-5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+									strokeWidth={2}
+								>
+									<title>Treasury</title>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+									/>
+								</svg>
+							</div>
+							<div>
+								<p className="text-xs uppercase tracking-wide text-primary/70 font-medium">
+									Total NFTs
+								</p>
+								<p className="text-xl font-bold text-primary">{totalItems}</p>
+							</div>
+						</div>
+						<p className="text-xs text-primary/60">Available for spins</p>
 					</div>
 				</div>
 
@@ -148,17 +185,25 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 									<span className="text-lg">{rarity.emoji}</span>
 								</div>
 								<div>
-									<p className="text-sm font-semibold text-foreground">{rarity.name}</p>
-									<p className="text-xs text-foreground/55">{rarity.description}</p>
+									<p className="text-sm font-semibold text-foreground">
+										{rarity.name}
+									</p>
+									<p className="text-xs text-foreground/55">
+										{rarity.description}
+									</p>
 								</div>
 							</div>
 							<div className="flex items-center gap-4">
 								<div className="text-right">
-									<p className="text-sm font-semibold text-foreground">{rarity.count}</p>
+									<p className="text-sm font-semibold text-foreground">
+										{rarity.count}
+									</p>
 									<p className="text-[11px] text-foreground/50">available</p>
 								</div>
 								<div className="text-right">
-									<p className={`text-sm font-semibold bg-gradient-to-r ${rarity.bgGradient} bg-clip-text text-transparent`}>
+									<p
+										className={`text-sm font-semibold bg-gradient-to-r ${rarity.bgGradient} bg-clip-text text-transparent`}
+									>
 										{rarity.percentage.toFixed(1)}%
 									</p>
 									<p className="text-[11px] text-foreground/50">weight</p>

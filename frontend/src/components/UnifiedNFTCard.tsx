@@ -616,7 +616,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		// Get NFT metadata with optimizations
 		const nftData = useNFTMetadata(collection, tokenId, {
 			enabled: true,
-			skipFetch: !preload,
+			skipFetch: false,
 		});
 
 		// Get collection name from contract

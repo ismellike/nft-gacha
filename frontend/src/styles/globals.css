@@ -403,3 +403,19 @@ a {
 		filter: blur(1px);
 	}
 }
+
+/* Custom animation delays for particle effects */
+.animate-delay-200 {
+	animation-delay: 200ms;
+}
+.animate-delay-400 {
+	animation-delay: 400ms;
+}
+.animate-delay-600 {
+	animation-delay: 600ms;
+}
+
+/* Enhanced slow spin animation */
+.animate-spin-slow {
+	animation: spin 8s linear infinite;
+}

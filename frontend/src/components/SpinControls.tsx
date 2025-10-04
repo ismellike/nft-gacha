@@ -422,6 +422,105 @@ export default function SpinControls({
 		contracts.gacha,
 	]);
 
+	// Handle signature errors (user canceled signing)
+	useEffect(() => {
+		if (signatureError) {
+			console.error("❌ [SpinControls] Signature error:", signatureError);
+
+			// Check if user canceled the signature
+			const errorMessage = signatureError.message.toLowerCase();
+			if (
+				errorMessage.includes("rejected") ||
+				errorMessage.includes("denied") ||
+				errorMessage.includes("cancelled") ||
+				errorMessage.includes("canceled")
+			) {
+				// User canceled, just reset to idle state
+				gachaSpin.reset();
+			} else {
+				// Real signature error, go to error state
+				gachaSpin.timeout(); // Using timeout as a way to show error state
+				// TODO: Add proper error handling method to the hook
+			}
+		}
+	}, [signatureError, gachaSpin]);
+
+	// Handle transaction submission errors
+	useEffect(() => {
+		if (spinWithPermitError) {
+			console.error(
+				"❌ [SpinControls] Transaction submission error:",
+				spinWithPermitError,
+			);
+
+			const errorMessage = spinWithPermitError.message.toLowerCase();
+			if (
+				errorMessage.includes("rejected") ||
+				errorMessage.includes("denied") ||
+				errorMessage.includes("cancelled") ||
+				errorMessage.includes("canceled")
+			) {
+				// User canceled, just reset to idle state
+				gachaSpin.reset();
+			} else {
+				// Real transaction error
+				gachaSpin.timeout(); // Using timeout as a way to show error state
+				// TODO: Add proper error handling method to the hook
+			}
+		}
+	}, [spinWithPermitError, gachaSpin]);
+
+	// Handle transaction receipt errors
+	useEffect(() => {
+		if (spinWithPermitReceiptError) {
+			console.error(
+				"❌ [SpinControls] Transaction receipt error:",
+				spinWithPermitReceiptError,
+			);
+
+			const errorMessage = spinWithPermitReceiptError.message.toLowerCase();
+			if (
+				errorMessage.includes("reverted") ||
+				errorMessage.includes("failed") ||
+				errorMessage.includes("out of gas")
+			) {
+				// Real transaction error that failed on-chain
+				gachaSpin.timeout(); // Using timeout as a way to show error state
+				// TODO: Add proper error handling method to the hook
+			} else {
+				// Other receipt errors
+				gachaSpin.timeout(); // Using timeout as a way to show error state
+				// TODO: Add proper error handling method to the hook
+			}
+		}
+	}, [spinWithPermitReceiptError, gachaSpin]);
+
+	// Handle direct spin transaction errors (fallback path)
+	useEffect(() => {
+		const spinError = spinWait.error;
+		if (spinError) {
+			console.error(
+				"❌ [SpinControls] Direct spin transaction error:",
+				spinError,
+			);
+
+			const errorMessage = spinError.message.toLowerCase();
+			if (
+				errorMessage.includes("rejected") ||
+				errorMessage.includes("denied") ||
+				errorMessage.includes("cancelled") ||
+				errorMessage.includes("canceled")
+			) {
+				// User canceled, just reset to idle state
+				gachaSpin.reset();
+			} else {
+				// Real transaction error
+				gachaSpin.timeout(); // Using timeout as a way to show error state
+				// TODO: Add proper error handling method to the hook
+			}
+		}
+	}, [spinWait.error, gachaSpin]);
+
 	// Handle transaction receipt
 	useEffect(() => {
 		if (
@@ -529,17 +628,53 @@ export default function SpinControls({
 	}, [isReclaimReceiptSuccess, gachaSpin, refetchBalance, refetchNonce]);
 
 	return (
-		<Card className="p-6">
-			<div className="flex justify-between items-center w-full">
-				<h2 className={glassTypography({ variant: "mainHeading" })}>
-					Gacha Spinner
-				</h2>
-				<TokenFeeDisplay
-					{...(feeToken && { address: feeToken })}
-					{...(tokenName && { name: tokenName })}
-					{...(tokenSymbol && { symbol: tokenSymbol })}
-					amount={formatSpinFee()}
-				/>
+		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-8 backdrop-blur-2xl">
+			{/* Enhanced background gradient */}
+			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,200,87,0.15),_transparent_60%)]" />
+
+			{/* Enhanced header with better balance and fee display */}
+			<div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+				<div className="space-y-2">
+					<h2 className={glassTypography({ variant: "mainHeading" })}>
+						Gacha Spinner
+					</h2>
+					<p className="text-sm text-foreground/60">
+						Provably fair randomness with instant NFT reveals
+					</p>
+				</div>
+
+				{/* Enhanced Entry Fee Display */}
+				<div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 shadow-inner">
+					<div className="flex items-center gap-3">
+						<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/30 bg-warning/10">
+							<svg
+								className="w-5 h-5 text-warning"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+								strokeWidth={2}
+							>
+								<title>Entry Fee</title>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						</div>
+						<div>
+							<p className="text-xs uppercase tracking-wide text-warning/70 font-medium">
+								Entry Fee
+							</p>
+							<p className="text-xl font-bold text-warning">
+								{formatSpinFee()}
+							</p>
+						</div>
+					</div>
+					{tokenSymbol && (
+						<p className="text-xs text-warning/60">Per spin in {tokenSymbol}</p>
+					)}
+				</div>
 			</div>
 			<div className="py-16">
 				<div className="flex flex-col items-center space-y-10">
@@ -751,25 +886,6 @@ export default function SpinControls({
 						</Card>
 					)}
 
-					{/* User balance display */}
-					{isConnected && (
-						<Chip className="px-3 py-1.5 bg-primary/10 border border-primary/20 text-primary rounded-xl backdrop-blur-xl">
-							<div className="text-center">
-								<p className={glassTypography({ variant: "bodyMuted" })}>
-									Your Balance
-								</p>
-								<p
-									className={cn(
-										"text-lg font-semibold",
-										glassTypography({ variant: "body" }),
-									)}
-								>
-									{formattedBalance} {tokenSymbol || "TOKENS"}
-								</p>
-							</div>
-						</Chip>
-					)}
-
 					{/* Error display for transaction errors */}
 					{(spinWithPermitError ||
 						spinWithPermitReceiptError ||
@@ -789,25 +905,135 @@ export default function SpinControls({
 						</Card>
 					)}
 
-					{/* Spin Button */}
-					<Button
-						size="lg"
-						onPress={onSpinClick}
-						disabled={isButtonDisabled()}
-						isLoading={
-							isSignaturePending ||
-							isProcessingTransaction ||
-							gachaSpin.isSpinning
-						}
-					>
-						{getButtonText()}
-					</Button>
+					{/* Enhanced Spin Button */}
+					<div className="relative group">
+						{/* Glow effect on hover */}
+						<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-warning/20 to-orange-400/30 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 scale-110"></div>
 
-					{/* Countdown Display - Under Button */}
-					{gachaSpin.isWaitingForFulfillment && (
+						{/* Removed particle effects for cleaner look */}
+
+						<Button
+							size="lg"
+							onPress={onSpinClick}
+							disabled={isButtonDisabled()}
+							isLoading={
+								isSignaturePending ||
+								isProcessingTransaction ||
+								gachaSpin.isSpinning
+							}
+							className={cn(
+								"relative border-2 border-warning/40 bg-gradient-to-r from-warning via-warning/90 to-orange-400 text-black font-bold text-lg px-12 py-4 rounded-2xl shadow-2xl shadow-warning/30 backdrop-blur-xl transition-all duration-300",
+								"hover:shadow-3xl hover:shadow-warning/40 hover:border-warning/60 hover:scale-[1.02] active:scale-[0.98]",
+								"disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-2xl disabled:hover:border-warning/40",
+								// Dynamic styling based on state
+								gachaSpin.isWaitingForFulfillment &&
+									"border-orange-400/60 shadow-orange-400/40",
+								gachaSpin.isSpinning &&
+									"border-orange-400 shadow-orange-400/30",
+								gachaSpin.isRevealing &&
+									"bg-gradient-to-r from-success via-success/90 to-emerald-400 border-success/40 shadow-success/30",
+								gachaSpin.isError &&
+									"bg-gradient-to-r from-danger via-danger/90 to-red-600 border-danger/40 shadow-danger/30",
+								canSpin && "hover:from-warning/110 hover:to-orange-400/110",
+							)}
+						>
+							{/* Button content with icon */}
+							<div className="flex items-center justify-center gap-3">
+								{/* Dynamic icon based on state */}
+								{gachaSpin.isWaitingForFulfillment && (
+									<svg
+										className="w-6 h-6 animate-spin"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<title>Processing</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+										/>
+									</svg>
+								)}
+								{gachaSpin.isRevealing && (
+									<svg
+										className="w-6 h-6"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<title>Revealing</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+										/>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+										/>
+									</svg>
+								)}
+								{gachaSpin.isError && (
+									<svg
+										className="w-6 h-6"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<title>Error</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"
+										/>
+									</svg>
+								)}
+								{!gachaSpin.isWaitingForFulfillment &&
+									!gachaSpin.isRevealing &&
+									!gachaSpin.isError && (
+										<svg
+											className="w-6 h-6"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											strokeWidth={2}
+										>
+											<title>Spin</title>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M13 10V3L4 14h7v7l9-11h-7z"
+											/>
+										</svg>
+									)}
+
+								<span className="font-bold tracking-wide">
+									{getButtonText()}
+								</span>
+							</div>
+						</Button>
+					</div>
+
+					{/* Balance Display - Under Button */}
+					{isConnected && !gachaSpin.isWaitingForFulfillment && (
 						<div className="text-center">
-							<p className="text-2xl font-mono font-bold text-warning">
-								{countdown}s
+							<p className="text-sm text-success/80">
+								Balance: {formattedBalance} {tokenSymbol || "TOKENS"}
+							</p>
+						</div>
+					)}
+
+					{/* Minimalist Countdown Display */}
+					{gachaSpin.isWaitingForFulfillment && (
+						<div className="flex items-center justify-center gap-3">
+							<div className="w-4 h-4 border border-warning/50 border-t-warning rounded-full animate-spin"></div>
+							<p className="text-sm text-warning/80 font-medium">
+								Awaiting randomness • {countdown}s
 							</p>
 						</div>
 					)}

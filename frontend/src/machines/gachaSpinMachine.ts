@@ -43,7 +43,8 @@ export type GachaSpinEvent =
 	| { type: "RESET" }
 	| { type: "RETRY" }
 	| { type: "ERROR"; error: string }
-	| { type: "TIMEOUT" };
+	| { type: "TIMEOUT" }
+	| { type: "TRANSACTION_CANCELED" };
 
 const MAX_RETRIES = 5;
 const POLLING_INTERVAL = 3000; // 3 seconds
@@ -260,6 +261,7 @@ export const gachaSpinMachine = createMachine(
 						target: "waitingForFulfillment",
 						actions: ["setTriggerId", "persistToStorage"],
 					},
+					TRANSACTION_CANCELED: "idle",
 					ERROR: {
 						target: "error",
 						actions: "setError",
@@ -309,6 +311,7 @@ export const gachaSpinMachine = createMachine(
 						target: "timeout",
 						actions: "setTimeoutError",
 					},
+					TRANSACTION_CANCELED: "idle",
 					RESET: "idle",
 					RETRY: {
 						target: "waitingForFulfillment",
