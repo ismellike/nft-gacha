@@ -14,6 +14,7 @@ export interface NFTDepositContext {
 	depositTxHash: string | null;
 	error: string | null;
 	retryCount: number;
+	approvalStatus: "none" | "individual" | "all" | "not_needed";
 }
 
 export type NFTDepositEvent =
@@ -25,17 +26,16 @@ export type NFTDepositEvent =
 			userAddress: string;
 			publicClient: PublicClient;
 	  }
-	| { type: "APPROVAL_CONFIRMED"; txHash: string }
-	| { type: "DEPOSIT_CONFIRMED"; txHash: string }
-	| { type: "RETRY_APPROVAL" }
-	| { type: "RETRY_DEPOSIT" }
+	| { type: "APPROVAL_TRANSACTION_SENT"; txHash: string }
+	| { type: "DEPOSIT_TRANSACTION_SENT"; txHash: string }
+	| { type: "RETRY" }
 	| { type: "RESET" }
 	| { type: "ERROR"; error: string };
 
 const MAX_RETRIES = 3;
 
-// Actor to wait for approval transaction confirmation
-const waitForApprovalConfirmation = fromPromise(
+// Actor to check approval status
+const checkApprovalStatus = fromPromise(
 	async ({
 		input,
 	}: {
@@ -46,25 +46,12 @@ const waitForApprovalConfirmation = fromPromise(
 			userAddress: string;
 			publicClient: PublicClient;
 		};
-	}): Promise<string> => {
+	}): Promise<"individual" | "all" | "none"> => {
 		const { collection, tokenId, treasuryAddress, userAddress, publicClient } =
 			input;
 
-		// Check if NFT is already approved
 		try {
-			const approved = await publicClient.readContract({
-				address: collection as `0x${string}`,
-				abi: erc721Abi,
-				functionName: "getApproved",
-				args: [BigInt(tokenId)],
-			});
-
-			if (approved?.toLowerCase() === treasuryAddress.toLowerCase()) {
-				console.log("✅ [NFTDepositMachine] NFT already approved");
-				return "already-approved";
-			}
-
-			// Also check if treasury has approval for all
+			// First check if approved for all (most efficient)
 			const isApprovedForAll = await publicClient.readContract({
 				address: collection as `0x${string}`,
 				abi: erc721Abi,
@@ -74,34 +61,47 @@ const waitForApprovalConfirmation = fromPromise(
 
 			if (isApprovedForAll) {
 				console.log("✅ [NFTDepositMachine] Treasury approved for all NFTs");
-				return "approved-for-all";
+				return "all";
 			}
 
-			throw new Error("NFT not approved - please approve first");
-		} catch (_error) {
+			// Check individual NFT approval
+			const approved = await publicClient.readContract({
+				address: collection as `0x${string}`,
+				abi: erc721Abi,
+				functionName: "getApproved",
+				args: [BigInt(tokenId)],
+			});
+
+			if (approved?.toLowerCase() === treasuryAddress.toLowerCase()) {
+				console.log("✅ [NFTDepositMachine] NFT already approved individually");
+				return "individual";
+			}
+
+			console.log("ℹ️ [NFTDepositMachine] NFT approval needed");
+			return "none";
+		} catch (error) {
+			console.error("❌ [NFTDepositMachine] Approval check failed:", error);
 			throw new Error(
-				`Failed to check approval status: ${_error instanceof Error ? _error.message : "Unknown error"}`,
+				`Failed to check approval status: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
 		}
 	},
 );
 
-// Actor to wait for deposit transaction confirmation
-const waitForDepositConfirmation = fromPromise(
+// Actor to confirm NFT deposit
+const confirmNFTDeposit = fromPromise(
 	async ({
 		input,
 	}: {
 		input: {
 			collection: string;
 			tokenId: string;
-			treasuryAddress: string;
 			userAddress: string;
 			publicClient: PublicClient;
 		};
-	}): Promise<string> => {
+	}): Promise<boolean> => {
 		const { collection, tokenId, userAddress, publicClient } = input;
 
-		// Check if NFT is still owned by the user (meaning deposit didn't complete)
 		try {
 			const currentOwner = await publicClient.readContract({
 				address: collection as `0x${string}`,
@@ -110,28 +110,27 @@ const waitForDepositConfirmation = fromPromise(
 				args: [BigInt(tokenId)],
 			});
 
-			if (currentOwner?.toLowerCase() === userAddress.toLowerCase()) {
-				throw new Error(
-					"NFT still owned by user - deposit transaction may have failed",
-				);
-			}
+			const isDeposited = currentOwner?.toLowerCase() !== userAddress.toLowerCase();
 
-			console.log("✅ [NFTDepositMachine] NFT successfully deposited");
-			return "deposit-confirmed";
-		} catch (_error) {
-			// If ownerOf fails, the token might not exist or might be deposited
-			// Let's assume success if we can't verify ownership
+			if (isDeposited) {
+				console.log("✅ [NFTDepositMachine] NFT successfully deposited");
+				return true;
+			} else {
+				throw new Error("NFT still owned by user - deposit may have failed");
+			}
+		} catch (error) {
+			// If ownerOf fails, the token might not exist or access might be restricted
+			// In this case, we'll assume the deposit succeeded
 			console.log(
-				"✅ [NFTDepositMachine] NFT deposit completed (ownership check failed, assuming success)",
+				"ℹ️ [NFTDepositMachine] Could not verify NFT ownership, assuming deposit succeeded",
 			);
-			return "deposit-confirmed";
+			return true;
 		}
 	},
 );
 
 export const nftDepositMachine = createMachine(
 	{
-		/** @xstate-layout N4IgpgJg5mDOIC5QAoC2BDAxgCwJYDswBKAOlwGIBlAFQG0AGAXUVAAcB7WKgFz3YgAPRAEYAbAHYAnGQAcAFjIBWOQGYArABoQAT0QBaAOwSyATgWKJ8gMwyZO3QF9P2tFhz5CJchSo1GFgwIYAVAHNWdl4+Hj5BVHQhETFJGTkFVXVEACZZGR0dCuKlGSkrG3sEAE4JGQkJBTIJCWKDBKMA4NCfAKCLCKjY+MTktIhMnLyCopKy3I2dfUMERprq2uKGgw2ylo6ugN6TIOGIsbEp2dn+eaxEbH5sfgFWdn3-EKucwvvhDIGhLUyZGvXIWXLyDJDXQKfQGOy2BSGBTmIojaz2SJUaEeH6RMYxSbxabzYEtFhbHYQ0o7Q7FVSVD61T7-A7UqE1PQKMhKRzNKwKZH6XR6OxqCwGJRGeyOCUuWbivJhNJrGU7BV7BDlZWqjZaxw6vJ6hAKZwXeSGIwSNWeCxWjyKKy6CxG1l4-K29KO-Cuzb2h0ql12tW22oHHXfQ3vHTvIwGOzNKwSPT2JxkYzitp+-nCwJrGP2jYKvZOg7KmMaokquM1BN6kmku6PfTjWTyMgKZGXKzGBRWBGCvGp9o5p1Qgtmy2lyq2h1lJ3KtVegjVhzPPMKWvGOsJlHN2Q2NxGJRuWxh0cZqW5tYzruFhCuou7ovq0ulr0e6p1BU9b7E5fQuLJZGUZJOy6JovCWbpEIQ4iUMI0tUPdcijjQo3WKYsz3PU8LwQr0VU9YYFUfLQvVWOwBAWTNlCrIsZCaB8iJI3c3ESWQOC9bJDFWFtiLrR1nRdS83HLHV3hAhJAL3Ko+iaKxGkJLYDSoyx0VovsnBqFNnA2LT3F9YMXTUv1xN9KT11lAx8M8MjXBQwZVCwpJtEMaFNQ+IxdQrdxF3-P8u34vzHPC1dOPPGxlVRMYnBY5EpWacoEW7MYXj2VJ5DGbp5AJZEMNbKL0PbRSP0jaNEwUqgVMfDdtJ3KLdSJOxJWCn9jAy84otyqtEUJC4tgkVJfAqtK0q-dKcsQGiEEPShKuDWtGzjR8nxJSrOoSVYJFaSVJrVAk2Oc1riSJadnAWMhi3m2s7NqxzHPwqtjrsZxVSI5wNhePZCXo0LivahyovcvKoOBN6FG+3QJTGNxmnBHQdqWpE9jzMZAzWTd7BqOFOyOlHMdqr6au0n7EFUJQaKfHRlELf5xkBGwiURdZqnJQ0VjBJJ5E0aVjDzSUVT6aLBJZ56vr--p-rZMhOagbmfv5ynWDGJUZnJNJdAmGZdAaAW42BJWJrVqaNY5omdbpYGOe-RGjETWWSUt8lJTy-xkObdGvCSk7xfOzXrp1zTw2NiFefV+H5fVIl4T2aFjEJMgnZJl2eJwXnq29xm3a7dn0a-ImLvNlIU2Q3QrY2QtjAsOxyRJOOdaR+GA5gUBQG+8BwEgeT85L+HqL+o6gfGXsKy7KkFWWJIFZXOhb2xM+E5H4RRGZ9MXCX4xyX6HYllLIkiRaG5hZFdAWlXGQPd16KxXuvL26sJaLWgSKLe8pWgLGlGSL+n0-4KyJsKB2-8gGHyAR+KGkD3YwNJv-LYnRdhDGaLyVBz8lYFBdBrIUeDbBKy8DrSBdD9z-yXAeaehDAGkPJOQwhJhKGUJlM5OGwCCjyRdJmQRMw2E8LBPwkxOxVCGItOKa4FwCx+2iAA */
 		id: "nftDepositMachine",
 		context: {
 			collection: null,
@@ -143,11 +142,12 @@ export const nftDepositMachine = createMachine(
 			depositTxHash: null,
 			error: null as string | null,
 			retryCount: 0,
+			approvalStatus: "none" as "none" | "individual" | "all" | "not_needed",
 		},
 		initial: "idle",
 		states: {
 			idle: {
-				entry: "clearError",
+				entry: "clearState",
 				on: {
 					START_DEPOSIT: {
 						target: "checkingApproval",
@@ -157,60 +157,55 @@ export const nftDepositMachine = createMachine(
 			},
 			checkingApproval: {
 				invoke: {
-					id: "waitForApprovalConfirmation",
-					src: "waitForApprovalConfirmation",
+					id: "checkApprovalStatus",
+					src: "checkApprovalStatus",
 					input: ({ context }) => ({
-						collection: context.collection as unknown as `0x${string}`,
-						tokenId: context.tokenId as unknown as bigint,
-						treasuryAddress:
-							context.treasuryAddress as unknown as `0x${string}`,
-						userAddress: context.userAddress as unknown as `0x${string}`,
-						publicClient: context.publicClient as unknown,
+						collection: context.collection,
+						tokenId: context.tokenId,
+						treasuryAddress: context.treasuryAddress,
+						userAddress: context.userAddress,
+						publicClient: context.publicClient,
 					}),
 					onDone: {
-						target: "readyToDeposit",
-						actions: "setApprovalConfirmed",
+						target: "depositing",
+						actions: "setApprovalStatus",
 					},
 					onError: {
-						target: "needsApproval",
-						actions: "setApprovalError",
-					},
-				},
-				on: {
-					RESET: "idle",
-				},
-			},
-			needsApproval: {
-				on: {
-					APPROVAL_CONFIRMED: {
-						target: "readyToDeposit",
-						actions: "setApprovalTxHash",
-					},
-					RETRY_APPROVAL: {
-						target: "checkingApproval",
-						guard: "canRetry",
-						actions: "incrementRetry",
-					},
-					RESET: "idle",
-					ERROR: {
 						target: "error",
 						actions: "setError",
 					},
 				},
-			},
-			readyToDeposit: {
 				on: {
-					DEPOSIT_CONFIRMED: {
-						target: "completed",
-						actions: "setDepositTxHash",
-					},
-					RETRY_DEPOSIT: {
-						target: "depositing",
-						guard: "canRetry",
-						actions: "incrementRetry",
+					RESET: "idle",
+				},
+			},
+			approving: {
+				on: {
+					APPROVAL_TRANSACTION_SENT: {
+						target: "waitingForApproval",
+						actions: "setApprovalTxHash",
 					},
 					ERROR: {
-						target: "needsDeposit",
+						target: "error",
+						actions: "setError",
+					},
+					RESET: "idle",
+				},
+			},
+			waitingForApproval: {
+				after: {
+					30000: {
+						target: "error",
+						actions: () => assign({ error: "Approval transaction timeout" }),
+					},
+				},
+				on: {
+					DEPOSIT_TRANSACTION_SENT: {
+						target: "depositing",
+						actions: "setDepositTxHash",
+					},
+					ERROR: {
+						target: "error",
 						actions: "setError",
 					},
 					RESET: "idle",
@@ -218,65 +213,45 @@ export const nftDepositMachine = createMachine(
 			},
 			depositing: {
 				invoke: {
-					id: "waitForDepositConfirmation",
-					src: "waitForDepositConfirmation",
+					id: "confirmNFTDeposit",
+					src: "confirmNFTDeposit",
 					input: ({ context }) => ({
-						collection: context.collection as unknown as `0x${string}`,
-						tokenId: context.tokenId as unknown as bigint,
-						treasuryAddress:
-							context.treasuryAddress as unknown as `0x${string}`,
-						userAddress: context.userAddress as unknown as `0x${string}`,
-						publicClient: context.publicClient as unknown,
+						collection: context.collection,
+						tokenId: context.tokenId,
+						userAddress: context.userAddress,
+						publicClient: context.publicClient,
 					}),
 					onDone: {
 						target: "completed",
-						actions: "setDepositCompleted",
 					},
 					onError: {
-						target: "needsDeposit",
-						actions: "setDepositError",
-					},
-				},
-				on: {
-					DEPOSIT_CONFIRMED: {
-						target: "completed",
-						actions: "setDepositTxHash",
-					},
-					RESET: "idle",
-				},
-			},
-			needsDeposit: {
-				on: {
-					DEPOSIT_CONFIRMED: {
-						target: "completed",
-						actions: "setDepositTxHash",
-					},
-					RETRY_DEPOSIT: {
-						target: "depositing",
-						guard: "canRetry",
-						actions: "incrementRetry",
-					},
-					RESET: "idle",
-					ERROR: {
 						target: "error",
 						actions: "setError",
 					},
 				},
+				on: {
+					DEPOSIT_TRANSACTION_SENT: {
+						target: "completed",
+						actions: "setDepositTxHash",
+					},
+					ERROR: {
+						target: "error",
+						actions: "setError",
+					},
+					RESET: "idle",
+				},
 			},
 			completed: {
+				entry: "clearError",
 				on: {
 					RESET: "idle",
 				},
 			},
 			error: {
+				entry: "logError",
 				on: {
-					RETRY_APPROVAL: {
+					RETRY: {
 						target: "checkingApproval",
-						guard: "canRetry",
-						actions: "incrementRetry",
-					},
-					RETRY_DEPOSIT: {
-						target: "depositing",
 						guard: "canRetry",
 						actions: "incrementRetry",
 					},
@@ -284,13 +259,28 @@ export const nftDepositMachine = createMachine(
 				},
 			},
 		},
+		on: {
+			RESET: "idle",
+		},
 	},
 	{
 		actors: {
-			waitForApprovalConfirmation,
-			waitForDepositConfirmation,
+			checkApprovalStatus,
+			confirmNFTDeposit,
 		},
 		actions: {
+			clearState: assign({
+				collection: null,
+				tokenId: null,
+				treasuryAddress: null,
+				userAddress: null,
+				publicClient: null,
+				approvalTxHash: null,
+				depositTxHash: null,
+				error: null,
+				retryCount: 0,
+				approvalStatus: "none",
+			}),
 			setDepositParams: assign({
 				collection: ({ event }) =>
 					event.type === "START_DEPOSIT" ? event.collection : null,
@@ -305,49 +295,34 @@ export const nftDepositMachine = createMachine(
 				retryCount: 0,
 				error: null,
 			}),
+			setApprovalStatus: assign({
+				approvalStatus: ({ event }) => {
+					if (event.type === "xstate.done.actor.checkApprovalStatus") {
+						return event.output === "none" ? "none" : "not_needed";
+					}
+					return "none";
+				},
+			}),
 			setApprovalTxHash: assign({
 				approvalTxHash: ({ event }) =>
-					event.type === "APPROVAL_CONFIRMED" ? event.txHash : null,
+					event.type === "APPROVAL_TRANSACTION_SENT" ? event.txHash : null,
 			}),
 			setDepositTxHash: assign({
 				depositTxHash: ({ event }) =>
-					event.type === "DEPOSIT_CONFIRMED" ? event.txHash : null,
-			}),
-			setApprovalConfirmed: assign({
-				approvalTxHash: ({ event }) => {
-					if (event.type === "xstate.done.actor.waitForApprovalConfirmation") {
-						return event.output;
-					}
-					return null;
-				},
-			}),
-			setDepositCompleted: assign({
-				depositTxHash: ({ event }) => {
-					if (event.type === "xstate.done.actor.waitForDepositConfirmation") {
-						return event.output;
-					}
-					return null;
-				},
+					event.type === "DEPOSIT_TRANSACTION_SENT" ? event.txHash : null,
 			}),
 			setError: assign({
-				error: ({ event }) => (event.type === "ERROR" ? event.error : null),
-			}),
-			setApprovalError: assign({
 				error: ({ event }) => {
-					if (event.type === "xstate.error.actor.waitForApprovalConfirmation") {
-						return (event.error as Error)?.message || "Approval check failed";
+					if (event.type === "ERROR") {
+						return event.error;
 					}
-					return null;
-				},
-			}),
-			setDepositError: assign({
-				error: ({ event }) => {
-					if (event.type === "xstate.error.actor.waitForDepositConfirmation") {
-						return (
-							(event.error as Error)?.message || "Deposit confirmation failed"
-						);
+					if (event.type === "xstate.error.actor.checkApprovalStatus") {
+						return (event.error as Error)?.message || "Failed to check approval";
 					}
-					return null;
+					if (event.type === "xstate.error.actor.confirmNFTDeposit") {
+						return (event.error as Error)?.message || "Failed to confirm deposit";
+					}
+					return "Unknown error occurred";
 				},
 			}),
 			clearError: assign({
@@ -356,6 +331,9 @@ export const nftDepositMachine = createMachine(
 			incrementRetry: assign({
 				retryCount: ({ context }) => context.retryCount + 1,
 			}),
+			logError: ({ context }) => {
+				console.error("❌ [NFTDepositMachine] Error:", context.error);
+			},
 		},
 		guards: {
 			canRetry: ({ context }) => context.retryCount < MAX_RETRIES,

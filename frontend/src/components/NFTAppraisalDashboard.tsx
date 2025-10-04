@@ -8,6 +8,14 @@ import {
 	MagnifyingGlassIcon,
 	CheckBadgeIcon,
 	InformationCircleIcon,
+	SparklesIcon,
+	ArrowRightIcon,
+	ClockIcon,
+	DocumentTextIcon,
+	ChartBarIcon,
+	AcademicCapIcon,
+	TrophyIcon,
+	StarIcon,
 } from "@heroicons/react/24/outline";
 
 import { Card, Button } from "../ui";
@@ -91,8 +99,6 @@ export function NFTAppraisalDashboard({
 			setShowSuccess(false);
 			setViewMode("list");
 		}, 2000);
-
-		// Success feedback handled by visual state change
 	};
 
 	// Statistics
@@ -106,20 +112,23 @@ export function NFTAppraisalDashboard({
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.8 }}
 				className={className}
 			>
-				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-					<div className="text-center space-y-4">
-						<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
-							<MagnifyingGlassIcon className="w-8 h-8 text-warning" />
+				<Card className="max-w-md mx-auto p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl">
+					<div className="text-center space-y-6">
+						<div className="w-20 h-20 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
+							<MagnifyingGlassIcon className="w-10 h-10 text-warning" />
 						</div>
-						<div>
-							<h3 className="text-2xl font-medium text-foreground mb-2">
-								Connect Your Wallet
-							</h3>
-							<p className="text-foreground/70">
-								Connect your wallet to access NFT appraisal services
-							</p>
+						<h2 className="text-3xl font-bold text-foreground mb-4">
+							Unlock Your NFT's Potential
+						</h2>
+						<p className="text-foreground/70 mb-8">
+							Connect your wallet to discover the true value of your digital assets through our professional appraisal service
+						</p>
+						<div className="flex items-center justify-center space-x-2 text-foreground/60">
+							<SparklesIcon className="w-5 h-5" />
+							<span className="text-sm">Professional valuations powered by AI</span>
 						</div>
 					</div>
 				</Card>
@@ -131,162 +140,208 @@ export function NFTAppraisalDashboard({
 		<motion.div
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
-			transition={{ duration: 0.6 }}
+			transition={{ duration: 0.8 }}
 			className={className}
 		>
-			<div className="space-y-8">
-				{/* Header */}
-				<div className="text-center space-y-4">
-					<h1 className="text-4xl font-light tracking-tight">
-						<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
-							NFT Appraisal Service
-						</span>
-					</h1>
-					<p className="text-xl text-foreground/70 max-w-3xl mx-auto leading-relaxed font-light">
-						Get professional valuations for your NFTs to prepare them for gacha
-						deposits
-					</p>
-				</div>
+			{/* Hero Section */}
+			<motion.div
+				initial={{ opacity: 0, y: 30 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.8 }}
+				className="text-center mb-12"
+			>
+				<h1 className="text-5xl md:text-6xl font-bold mb-6">
+					<span className="bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
+						NFT Appraisal
+					</span>
+				</h1>
+				<p className="text-xl md:text-2xl text-foreground/70 max-w-4xl mx-auto leading-relaxed">
+					Our AVS decodes NFT metadata and queries multiple data sources to provide accurate, real-time valuations
+				</p>
+			</motion.div>
 
-				{/* Navigation */}
-				<div className="flex flex-col sm:flex-row gap-3 justify-center">
-					<Button
-						className={`rounded-xl ${viewMode === "overview" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
-						onPress={() => setViewMode("overview")}
+			{/* Navigation Pills */}
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.8, delay: 0.2 }}
+				className="flex justify-center mb-8"
+			>
+				<div className="inline-flex bg-content1/20 backdrop-blur-xl border border-white/10 rounded-full p-1">
+					<button
+						onClick={() => setViewMode("overview")}
+						className={`px-6 py-3 rounded-full transition-all duration-300 font-medium ${
+							viewMode === "overview"
+								? "bg-gradient-to-r from-warning to-orange-400 text-black shadow-lg"
+								: "text-foreground/70 hover:text-foreground hover:bg-content1/30"
+						}`}
 					>
 						Overview
-					</Button>
-					<Button
-						className={`rounded-xl ${viewMode === "form" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
-						onPress={() => setViewMode("form")}
+					</button>
+					<button
+						onClick={() => setViewMode("form")}
+						className={`px-6 py-3 rounded-full transition-all duration-300 font-medium ${
+							viewMode === "form"
+								? "bg-gradient-to-r from-warning to-orange-400 text-black shadow-lg"
+								: "text-foreground/70 hover:text-foreground hover:bg-content1/30"
+						}`}
 					>
-						Submit NFT
-					</Button>
-					<Button
-						className={`rounded-xl ${viewMode === "list" ? "bg-gradient-to-r from-warning to-orange-400 text-black" : "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"}`}
-						onPress={() => setViewMode("list")}
+						Appraise NFT
+					</button>
+					<button
+						onClick={() => setViewMode("list")}
+						className={`px-6 py-3 rounded-full transition-all duration-300 font-medium ${
+							viewMode === "list"
+								? "bg-gradient-to-r from-warning to-orange-400 text-black shadow-lg"
+								: "text-foreground/70 hover:text-foreground hover:bg-content1/30"
+						}`}
 					>
 						My Appraisals ({totalSubmitted})
-					</Button>
+					</button>
 				</div>
+			</motion.div>
 
-				{/* Content */}
-				<AnimatePresence mode="wait">
-					{viewMode === "overview" && (
-						<motion.div
-							key="overview"
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -20 }}
-							transition={{ duration: 0.4 }}
-						>
-							<div className="grid gap-8">
-								{/* Statistics Cards */}
+					{/* Content */}
+					<AnimatePresence mode="wait">
+						{viewMode === "overview" && (
+							<motion.div
+								key="overview"
+								initial={{ opacity: 0, y: 30 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: -30 }}
+								transition={{ duration: 0.5 }}
+								className="space-y-12"
+							>
+								{/* Stats Cards */}
 								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-									<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
-													Total Submitted
-												</p>
-												<h3 className="text-3xl font-bold text-foreground mt-2">
-													{totalSubmitted}
-												</h3>
+									<motion.div
+										initial={{ opacity: 0, scale: 0.9 }}
+										animate={{ opacity: 1, scale: 1 }}
+										transition={{ duration: 0.5, delay: 0.1 }}
+									>
+										<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl hover:bg-content1/30 transition-all duration-300">
+											<div className="flex items-center justify-between">
+												<div>
+													<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
+														Total Submitted
+													</p>
+													<h3 className="text-3xl font-bold text-foreground mt-2">
+														{totalSubmitted}
+													</h3>
+												</div>
+												<div className="w-16 h-16 bg-gradient-to-br from-info/20 to-info/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
+													<DocumentTextIcon className="w-8 h-8 text-info" />
+												</div>
 											</div>
-											<div className="w-16 h-16 bg-gradient-to-br from-info/20 to-info/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-												<MagnifyingGlassIcon className="w-8 h-8 text-info" />
-											</div>
-										</div>
-									</Card>
+										</Card>
+									</motion.div>
 
-									<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
-													Recent (24h)
-												</p>
-												<h3 className="text-3xl font-bold text-warning mt-2">
-													{recentSubmissions}
-												</h3>
+									<motion.div
+										initial={{ opacity: 0, scale: 0.9 }}
+										animate={{ opacity: 1, scale: 1 }}
+										transition={{ duration: 0.5, delay: 0.2 }}
+									>
+										<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl hover:bg-content1/30 transition-all duration-300">
+											<div className="flex items-center justify-between">
+												<div>
+													<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
+														Recent (24h)
+													</p>
+													<h3 className="text-3xl font-bold text-warning mt-2">
+														{recentSubmissions}
+													</h3>
+												</div>
+												<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
+													<ClockIcon className="w-8 h-8 text-warning" />
+												</div>
 											</div>
-											<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-												<CheckBadgeIcon className="w-8 h-8 text-warning" />
-											</div>
-										</div>
-									</Card>
+										</Card>
+									</motion.div>
 
-									<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
-													Appraised NFTs
-												</p>
-												<h3 className="text-3xl font-bold text-success mt-2">
-													{/* Count of completed appraisals */}
-													{submittedNFTs.length}
-												</h3>
+									<motion.div
+										initial={{ opacity: 0, scale: 0.9 }}
+										animate={{ opacity: 1, scale: 1 }}
+										transition={{ duration: 0.5, delay: 0.3 }}
+									>
+										<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl hover:bg-content1/30 transition-all duration-300">
+											<div className="flex items-center justify-between">
+												<div>
+													<p className="text-sm text-foreground/60 uppercase tracking-wide font-medium">
+														Ready for Gacha
+													</p>
+													<h3 className="text-3xl font-bold text-success mt-2">
+														{submittedNFTs.filter(nft => Date.now() - nft.timestamp > 30000).length}
+													</h3>
+												</div>
+												<div className="w-16 h-16 bg-gradient-to-br from-success/20 to-green-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
+													<TrophyIcon className="w-8 h-8 text-success" />
+												</div>
 											</div>
-											<div className="w-16 h-16 bg-gradient-to-br from-success/20 to-green-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center">
-												<CheckBadgeIcon className="w-8 h-8 text-success" />
-											</div>
-										</div>
-									</Card>
+										</Card>
+									</motion.div>
 								</div>
 
-								{/* How it Works */}
-								<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-									<div className="space-y-6">
-										<h3 className="text-2xl font-light text-foreground text-center">
-											How NFT Appraisal Works
-										</h3>
+								{/* How It Works */}
+								<motion.div
+									initial={{ opacity: 0, y: 30 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ duration: 0.6, delay: 0.4 }}
+								>
+									<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+										<div className="space-y-6">
+											<h3 className="text-2xl font-light text-foreground text-center">
+												How NFT Appraisal Works
+											</h3>
 
-										<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-											<div className="text-center space-y-3">
-												<div className="w-12 h-12 bg-gradient-to-br from-info/20 to-info/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center mx-auto">
-													<span className="text-lg font-bold text-info">1</span>
+											<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+												<div className="text-center space-y-3">
+													<div className="w-12 h-12 bg-gradient-to-br from-info/20 to-info/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center mx-auto">
+														<span className="text-lg font-bold text-info">1</span>
+													</div>
+													<h4 className="text-lg font-medium text-foreground">
+														Submit NFT
+													</h4>
+													<p className="text-sm text-foreground/70">
+														Provide your NFT's contract address and token ID along
+														with the appraisal fee
+													</p>
 												</div>
-												<h4 className="text-lg font-medium text-foreground">
-													Submit NFT
-												</h4>
-												<p className="text-sm text-foreground/70">
-													Provide your NFT's contract address and token ID along
-													with the appraisal fee
-												</p>
-											</div>
 
-											<div className="text-center space-y-3">
-												<div className="w-12 h-12 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center mx-auto">
-													<span className="text-lg font-bold text-warning">
-														2
-													</span>
+												<div className="text-center space-y-3">
+													<div className="w-12 h-12 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center mx-auto">
+														<span className="text-lg font-bold text-warning">
+															2
+														</span>
+													</div>
+													<h4 className="text-lg font-medium text-foreground">
+														Data Analysis
+													</h4>
+													<p className="text-sm text-foreground/70">
+														Our AVS decodes your NFT metadata and queries multiple APIs
+														for market data and comparable sales
+													</p>
 												</div>
-												<h4 className="text-lg font-medium text-foreground">
-													Professional Valuation
-												</h4>
-												<p className="text-sm text-foreground/70">
-													External appraisal service evaluates your NFT using
-													market data and rarity analysis
-												</p>
-											</div>
 
-											<div className="text-center space-y-3">
-												<div className="w-12 h-12 bg-gradient-to-br from-success/20 to-green-400/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center mx-auto">
-													<span className="text-lg font-bold text-success">
-														3
-													</span>
+												<div className="text-center space-y-3">
+													<div className="w-12 h-12 bg-gradient-to-br from-success/20 to-green-400/20 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center mx-auto">
+														<span className="text-lg font-bold text-success">
+															3
+														</span>
+													</div>
+													<h4 className="text-lg font-medium text-foreground">
+														Valuation Complete
+													</h4>
+													<p className="text-sm text-foreground/70">
+														Receive your appraisal and request re-appraisals anytime
+														for updated market data (fees apply)
+													</p>
 												</div>
-												<h4 className="text-lg font-medium text-foreground">
-													Ready for Gacha
-												</h4>
-												<p className="text-sm text-foreground/70">
-													Once appraised, your NFT will be available for gacha
-													deposits on the gacha pages
-												</p>
 											</div>
 										</div>
-									</div>
-								</Card>
+									</Card>
+								</motion.div>
 
+								
 								{/* Quick Actions */}
 								<div className="flex flex-col sm:flex-row gap-4 justify-center">
 									<Button
@@ -304,82 +359,87 @@ export function NFTAppraisalDashboard({
 										</Button>
 									)}
 								</div>
-							</div>
-						</motion.div>
-					)}
+							</motion.div>
+						)}
 
-					{viewMode === "form" && (
-						<motion.div
-							key="form"
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -20 }}
-							transition={{ duration: 0.4 }}
-						>
-							<div className="max-w-2xl mx-auto">
-								<NFTAppraisalForm
-									onSubmissionSuccess={handleAppraisalSuccess}
-								/>
-							</div>
-						</motion.div>
-					)}
-
-					{viewMode === "list" && (
-						<motion.div
-							key="list"
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -20 }}
-							transition={{ duration: 0.4 }}
-						>
-							<AppraisedNFTsList userSubmittedNFTs={submittedNFTs} />
-						</motion.div>
-					)}
-				</AnimatePresence>
-
-				{/* Success Toast */}
-				<AnimatePresence>
-					{showSuccess && (
-						<motion.div
-							initial={{ opacity: 0, scale: 0.95 }}
-							animate={{ opacity: 1, scale: 1 }}
-							exit={{ opacity: 0, scale: 0.95 }}
-							className="fixed bottom-8 right-8 z-50 max-w-sm"
-						>
-							<Card className="p-4 bg-success/10 border border-success/20 rounded-xl shadow-lg">
-								<div className="flex items-center gap-3">
-									<CheckBadgeIcon className="w-6 h-6 text-success flex-shrink-0" />
-									<div>
-										<h4 className="font-semibold text-success text-sm">
-											Success!
-										</h4>
-										<p className="text-success/80 text-sm">
-											Your NFT has been submitted for appraisal
-										</p>
-									</div>
+						{viewMode === "form" && (
+							<motion.div
+								key="form"
+								initial={{ opacity: 0, y: 30 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: -30 }}
+								transition={{ duration: 0.5 }}
+							>
+								<div className="max-w-4xl mx-auto">
+									<NFTAppraisalForm
+										onSubmissionSuccess={handleAppraisalSuccess}
+									/>
 								</div>
-							</Card>
-						</motion.div>
-					)}
-				</AnimatePresence>
+							</motion.div>
+						)}
 
-				{/* Info Banner */}
-				<Card className="bg-gradient-to-r from-info/10 to-secondary/10 border border-info/20 rounded-2xl shadow-xl">
-					<div className="flex items-start gap-3 p-4">
-						<InformationCircleIcon className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
-						<div className="text-sm text-foreground/70">
-							<p className="font-medium text-info mb-1">
-								Important Information
-							</p>
-							<p>
-								NFT appraisals are provided by external services and may take
-								several minutes to complete. Appraisal fees are non-refundable.
-								Once appraised, visit the gacha pages to deposit your NFTs.
-							</p>
-						</div>
-					</div>
-				</Card>
-			</div>
-		</motion.div>
+						{viewMode === "list" && (
+							<motion.div
+								key="list"
+								initial={{ opacity: 0, y: 30 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: -30 }}
+								transition={{ duration: 0.5 }}
+							>
+								<AppraisedNFTsList userSubmittedNFTs={submittedNFTs} />
+							</motion.div>
+						)}
+					</AnimatePresence>
+
+					{/* Success Toast */}
+					<AnimatePresence>
+						{showSuccess && (
+							<motion.div
+								initial={{ opacity: 0, scale: 0.95 }}
+								animate={{ opacity: 1, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.95 }}
+								className="fixed bottom-8 right-8 z-50 max-w-sm"
+							>
+								<Card className="p-4 bg-success/10 border border-success/20 rounded-xl shadow-lg">
+									<div className="flex items-center gap-3">
+										<CheckBadgeIcon className="w-6 h-6 text-success flex-shrink-0" />
+										<div>
+											<h4 className="font-semibold text-success text-sm">
+												Success!
+											</h4>
+											<p className="text-success/80 text-sm">
+												Your NFT has been submitted for appraisal
+											</p>
+										</div>
+									</div>
+								</Card>
+							</motion.div>
+						)}
+					</AnimatePresence>
+
+					{/* Info Banner */}
+					<motion.div
+						initial={{ opacity: 0, y: 30 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.8, delay: 1.0 }}
+						className="mt-12"
+					>
+						<Card className="bg-gradient-to-r from-info/10 to-secondary/10 border border-info/20 rounded-2xl shadow-xl">
+							<div className="flex items-start gap-3 p-4">
+								<InformationCircleIcon className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
+								<div className="text-sm text-foreground/70">
+									<p className="font-medium text-info mb-1">
+										Important Information
+									</p>
+									<p>
+										Our AVS decodes NFT metadata and queries multiple external APIs for market data,
+										comparable sales, and rarity analysis. Appraisals typically complete within seconds.
+										You can request re-appraisals at any time for updated market data (fees apply).
+									</p>
+								</div>
+							</div>
+						</Card>
+					</motion.div>
+				</motion.div>
 	);
 }

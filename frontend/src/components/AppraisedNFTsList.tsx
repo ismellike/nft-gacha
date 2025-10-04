@@ -115,19 +115,17 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 
 					{/* NFT Preview */}
 					<div className="flex justify-center">
-						<div className="w-48 h-48">
-							{contracts.appraisal && (
-								<UnifiedNFTCard
-									collection={nft.collection}
-									tokenId={nft.tokenId}
-									variant="compact"
-									showAppraisal={false}
-									animate={true}
-									appraisalContractAddress={contracts.appraisal}
-									className="w-full h-full"
-								/>
-							)}
-						</div>
+						{contracts.appraisal && (
+							<UnifiedNFTCard
+								collection={nft.collection}
+								tokenId={nft.tokenId}
+								variant="compact"
+								size="md"
+								showAppraisal={false}
+								animate={true}
+								appraisalContractAddress={contracts.appraisal}
+							/>
+						)}
 					</div>
 
 					{/* NFT Details */}
