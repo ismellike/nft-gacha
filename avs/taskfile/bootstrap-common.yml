@@ -216,10 +216,10 @@ tasks:
   get-aggregator-config-values:
     desc: "Get the aggregators config values"
     requires:
-      vars: [AGGREGATOR_PROJECT]
+      vars: [AGGREGATOR_PROJECT, WORKFLOW_ID]
     vars:
       AGGREGATOR_FLAGS:
-        sh: task get-aggregator-simple-flags
+        sh: task get-aggregator-simple-flags WORKFLOW_ID="{{.WORKFLOW_ID}}"
     cmds:
       - |
         case "{{.AGGREGATOR_PROJECT}}" in

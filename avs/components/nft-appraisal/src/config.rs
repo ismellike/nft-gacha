@@ -10,10 +10,11 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_env() -> Result<Self> {
+    pub fn new() -> Result<Self> {
         // Secret values still come from environment variables
-        let pokemon_api_key = env::var("POKEMON_PRICE_API_KEY")
-            .map_err(|_| anyhow::anyhow!("POKEMON_PRICE_API_KEY environment variable not set"))?;
+        let pokemon_api_key = env::var("WAVS_ENV_POKEMON_PRICE_API_KEY").map_err(|_| {
+            anyhow::anyhow!("WAVS_ENV_POKEMON_PRICE_API_KEY environment variable not set")
+        })?;
 
         // Non-secret values come from host::config_var with sensible defaults
         let cache_ttl_seconds = bindings::host::config_var("CACHE_TTL_SECONDS")

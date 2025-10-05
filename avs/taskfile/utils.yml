@@ -2,15 +2,18 @@ version: "3"
 
 tasks:
   get-submission-address:
+    vars:
+      WORKFLOW_ID: '{{.WORKFLOW_ID | default "wavs_drand"}}'
     cmds:
-      - echo "$GACHA_SERVICE_HANDLER_ADDRESS"
+      - bash -c 'if [ "{{.WORKFLOW_ID}}" = "nft_appraisals" ]; then echo "$NFT_APPRAISAL_SERVICE_HANDLER_ADDRESS"; else echo "$GACHA_SERVICE_HANDLER_ADDRESS"; fi'
 
   get-aggregator-simple-flags:
     desc: "Get --values flags with chain_name=address format"
     vars:
+      WORKFLOW_ID: '{{.WORKFLOW_ID | default "wavs_drand"}}'
       CHAIN:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-chain-name-1
       SUBMISSION_ADDRESS:
-        sh: task get-submission-address
+        sh: task get-submission-address WORKFLOW_ID="{{.WORKFLOW_ID}}"
     cmds:
       - echo "--values {{.CHAIN}}={{.SUBMISSION_ADDRESS}}"

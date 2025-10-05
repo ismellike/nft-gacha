@@ -126,7 +126,7 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
     };
 
     // Load and validate configuration
-    let config = match Config::from_env().and_then(|c| c.validate().map(|_| c)) {
+    let config = match Config::new().and_then(|c| c.validate().map(|_| c)) {
         Ok(config) => config,
         Err(e) => {
             return Ok(create_error(

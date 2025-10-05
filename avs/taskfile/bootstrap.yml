@@ -51,9 +51,9 @@ tasks:
         sh: cast keccak "RandomnessRequested(uint256)"
       AGGREGATOR_COMPONENT_DIGEST:
         sh: task get-component-digest COMPONENT="{{.AGGREGATOR_COMPONENT_NAME}}"
-      AGGREGATOR_COMPONENT_CONFIG:
-        sh: task bootstrap:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}"
       WORKFLOW_ID: "wavs_drand"
+      AGGREGATOR_COMPONENT_CONFIG:
+        sh: task bootstrap:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}" WORKFLOW_ID="{{.WORKFLOW_ID}}"
     cmds:
       - |
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow add --id {{.WORKFLOW_ID}}
@@ -79,9 +79,9 @@ tasks:
         sh: cast keccak "AppraisalRequested(address,uint256)"
       AGGREGATOR_COMPONENT_DIGEST:
         sh: task get-component-digest COMPONENT="{{.AGGREGATOR_COMPONENT_NAME}}"
-      AGGREGATOR_COMPONENT_CONFIG:
-        sh: task bootstrap:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}"
       WORKFLOW_ID: "nft_appraisals"
+      AGGREGATOR_COMPONENT_CONFIG:
+        sh: task bootstrap:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}" WORKFLOW_ID="{{.WORKFLOW_ID}}"
     cmds:
       - |
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow add --id {{.WORKFLOW_ID}}
