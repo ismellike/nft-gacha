@@ -8,6 +8,7 @@ import {GachaRewardsManager} from "../src/rewards/GachaRewardsManager.sol";
 import {BaseERC721} from "../src/tokens/BaseERC721.sol";
 import {BaseERC20} from "../src/tokens/BaseERC20.sol";
 import {MockNFTAppraisal} from "./mocks/MockNFTAppraisal.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract GachaTest is Test {
     Gacha public gacha;
@@ -31,25 +32,62 @@ contract GachaTest is Test {
         // Deploy mock appraisal contract
         mockAppraisal = new MockNFTAppraisal();
 
-        // Deploy treasury first (will update gacha address later)
-        treasury = new GachaTreasury(owner, address(0x998), address(mockAppraisal)); // temp address
+        // Deploy implementations and proxies
+        GachaTreasury treasuryImpl = new GachaTreasury();
+        GachaRewardsManager rewardsManagerImpl = new GachaRewardsManager();
+        Gacha gachaImpl = new Gacha();
 
-        // Deploy a temporary rewards manager just to satisfy gacha constructor
-        GachaRewardsManager tempRewardsManager = new GachaRewardsManager(
-            owner, address(this), address(treasury), address(mockAppraisal), owner, address(feeToken)
+        // Deploy treasury proxy first (will update gacha address later)
+        bytes memory treasuryInitData = abi.encodeWithSelector(
+            GachaTreasury.initialize.selector,
+            owner,
+            address(0x998), // temp gacha address
+            address(mockAppraisal)
         );
+        ERC1967Proxy treasuryProxy = new ERC1967Proxy(address(treasuryImpl), treasuryInitData);
+        treasury = GachaTreasury(address(treasuryProxy));
 
-        // Deploy gacha with temp rewards manager (using test contract as service handler for simplicity)
-        gacha =
-            new Gacha(owner, address(this), address(feeToken), SPIN_FEE, address(treasury), address(tempRewardsManager));
+        // Deploy a temporary rewards manager proxy just to satisfy gacha constructor
+        bytes memory tempRewardsManagerInitData = abi.encodeWithSelector(
+            GachaRewardsManager.initialize.selector,
+            owner,
+            address(this), // temp gacha address
+            address(treasury),
+            address(mockAppraisal),
+            owner,
+            address(feeToken)
+        );
+        ERC1967Proxy tempRewardsManagerProxy = new ERC1967Proxy(address(rewardsManagerImpl), tempRewardsManagerInitData);
+        GachaRewardsManager tempRewardsManager = GachaRewardsManager(address(tempRewardsManagerProxy));
+
+        // Deploy gacha proxy with temp rewards manager (using test contract as service handler for simplicity)
+        bytes memory gachaInitData = abi.encodeWithSelector(
+            Gacha.initialize.selector,
+            owner,
+            address(this), // service handler
+            address(feeToken),
+            SPIN_FEE,
+            address(treasury),
+            address(tempRewardsManager)
+        );
+        ERC1967Proxy gachaProxy = new ERC1967Proxy(address(gachaImpl), gachaInitData);
+        gacha = Gacha(address(gachaProxy));
 
         // Update treasury to recognize the real gacha contract
         treasury.setGachaContract(address(gacha));
 
-        // Now deploy the real rewards manager with the correct gacha address
-        GachaRewardsManager rewardsManager = new GachaRewardsManager(
-            owner, address(gacha), address(treasury), address(mockAppraisal), owner, address(feeToken)
+        // Now deploy the real rewards manager proxy with the correct gacha address
+        bytes memory rewardsManagerInitData = abi.encodeWithSelector(
+            GachaRewardsManager.initialize.selector,
+            owner,
+            address(gacha),
+            address(treasury),
+            address(mockAppraisal),
+            owner,
+            address(feeToken)
         );
+        ERC1967Proxy rewardsManagerProxy = new ERC1967Proxy(address(rewardsManagerImpl), rewardsManagerInitData);
+        GachaRewardsManager rewardsManager = GachaRewardsManager(address(rewardsManagerProxy));
 
         // Update gacha to use the correct rewards manager
         gacha.setRewardsManager(address(rewardsManager));
@@ -303,11 +341,44 @@ contract GachaTest is Test {
     function testSpinWithZeroFee() public {
         // Deploy gacha with zero fee
         // Deploy minimal treasury and rewards manager for zero fee test
-        GachaTreasury zeroTreasury = new GachaTreasury(owner, address(0x997), address(mockAppraisal));
-        GachaRewardsManager zeroRewards = new GachaRewardsManager(
-            owner, address(0x997), address(zeroTreasury), address(mockAppraisal), owner, address(feeToken)
+        GachaTreasury zeroTreasuryImpl = new GachaTreasury();
+        GachaRewardsManager zeroRewardsImpl = new GachaRewardsManager();
+        Gacha zeroFeeGachaImpl = new Gacha();
+
+        vm.startPrank(owner);
+        bytes memory zeroTreasuryInitData = abi.encodeWithSelector(
+            GachaTreasury.initialize.selector,
+            owner,
+            address(0x997),
+            address(mockAppraisal)
         );
-        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury), address(zeroRewards));
+        ERC1967Proxy zeroTreasuryProxy = new ERC1967Proxy(address(zeroTreasuryImpl), zeroTreasuryInitData);
+        GachaTreasury zeroTreasury = GachaTreasury(address(zeroTreasuryProxy));
+
+        bytes memory zeroRewardsInitData = abi.encodeWithSelector(
+            GachaRewardsManager.initialize.selector,
+            owner,
+            address(0x997),
+            address(zeroTreasury),
+            address(mockAppraisal),
+            owner,
+            address(feeToken)
+        );
+        ERC1967Proxy zeroRewardsProxy = new ERC1967Proxy(address(zeroRewardsImpl), zeroRewardsInitData);
+        GachaRewardsManager zeroRewards = GachaRewardsManager(address(zeroRewardsProxy));
+
+        bytes memory zeroFeeGachaInitData = abi.encodeWithSelector(
+            Gacha.initialize.selector,
+            owner,
+            owner,
+            address(0),
+            0,
+            address(zeroTreasury),
+            address(zeroRewards)
+        );
+        ERC1967Proxy zeroFeeGachaProxy = new ERC1967Proxy(address(zeroFeeGachaImpl), zeroFeeGachaInitData);
+        Gacha zeroFeeGacha = Gacha(address(zeroFeeGachaProxy));
+        vm.stopPrank();
         GachaTreasury zeroFeeGachaTreasury = zeroTreasury;
 
         // Setup treasury for zero fee gacha with some NFTs and set weights to only Common
@@ -424,11 +495,44 @@ contract GachaTest is Test {
     function testRefundWithZeroFee() public {
         // Deploy gacha with zero fee
         // Deploy minimal treasury and rewards manager for zero fee test
-        GachaTreasury zeroTreasury2 = new GachaTreasury(owner, address(0x996), address(mockAppraisal));
-        GachaRewardsManager zeroRewards2 = new GachaRewardsManager(
-            owner, address(0x996), address(zeroTreasury2), address(mockAppraisal), owner, address(feeToken)
+        GachaTreasury zeroTreasury2Impl = new GachaTreasury();
+        GachaRewardsManager zeroRewards2Impl = new GachaRewardsManager();
+        Gacha zeroFeeGachaImpl = new Gacha();
+
+        vm.startPrank(owner);
+        bytes memory zeroTreasury2InitData = abi.encodeWithSelector(
+            GachaTreasury.initialize.selector,
+            owner,
+            address(0x996),
+            address(mockAppraisal)
         );
-        Gacha zeroFeeGacha = new Gacha(owner, owner, address(0), 0, address(zeroTreasury2), address(zeroRewards2));
+        ERC1967Proxy zeroTreasury2Proxy = new ERC1967Proxy(address(zeroTreasury2Impl), zeroTreasury2InitData);
+        GachaTreasury zeroTreasury2 = GachaTreasury(address(zeroTreasury2Proxy));
+
+        bytes memory zeroRewards2InitData = abi.encodeWithSelector(
+            GachaRewardsManager.initialize.selector,
+            owner,
+            address(0x996),
+            address(zeroTreasury2),
+            address(mockAppraisal),
+            owner,
+            address(feeToken)
+        );
+        ERC1967Proxy zeroRewards2Proxy = new ERC1967Proxy(address(zeroRewards2Impl), zeroRewards2InitData);
+        GachaRewardsManager zeroRewards2 = GachaRewardsManager(address(zeroRewards2Proxy));
+
+        bytes memory zeroFeeGacha2InitData = abi.encodeWithSelector(
+            Gacha.initialize.selector,
+            owner,
+            owner,
+            address(0),
+            0,
+            address(zeroTreasury2),
+            address(zeroRewards2)
+        );
+        ERC1967Proxy zeroFeeGacha2Proxy = new ERC1967Proxy(address(zeroFeeGachaImpl), zeroFeeGacha2InitData);
+        Gacha zeroFeeGacha = Gacha(address(zeroFeeGacha2Proxy));
+        vm.stopPrank();
         GachaTreasury zeroFeeGachaTreasury = zeroTreasury2;
 
         // Setup treasury for zero fee gacha with some NFTs and set weights to only Common

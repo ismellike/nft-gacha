@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import "forge-std/Test.sol";
 import "../src/rewards/GachaRewardsManager.sol";
 import "../src/gacha/GachaTreasury.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract BatchClaimTest is Test {
     GachaRewardsManager rewardsManager;
@@ -16,8 +17,11 @@ contract BatchClaimTest is Test {
         address mockProtocol = address(0x4);
         address mockFeeToken = address(0x5);
 
-        // Deploy the rewards manager
-        rewardsManager = new GachaRewardsManager(
+        // Deploy rewards manager implementation and proxy
+        GachaRewardsManager rewardsManagerImpl = new GachaRewardsManager();
+
+        bytes memory initData = abi.encodeWithSelector(
+            GachaRewardsManager.initialize.selector,
             address(this), // owner
             mockGacha,
             mockTreasury,
@@ -25,6 +29,9 @@ contract BatchClaimTest is Test {
             mockProtocol,
             mockFeeToken
         );
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(rewardsManagerImpl), initData);
+        rewardsManager = GachaRewardsManager(address(proxy));
     }
 
     function testBatchClaimFunctionsExist() public view {

@@ -48,12 +48,12 @@ export function NFTAppraisalDashboard({
 	const collectionParam = useClientSearchParam("collection");
 	const tokenIdParam = useClientSearchParam("tokenId");
 
-	// Auto-switch to form mode if URL params are present
+	// Auto-switch to form mode if URL params are present (only on initial load)
 	useEffect(() => {
-		if ((collectionParam || tokenIdParam) && viewMode === "overview") {
+		if (collectionParam || tokenIdParam) {
 			setViewMode("form");
 		}
-	}, [collectionParam, tokenIdParam, viewMode]);
+	}, [collectionParam, tokenIdParam]); // Only depend on URL params, not viewMode
 
 	// Load submitted NFTs from localStorage
 	useEffect(() => {

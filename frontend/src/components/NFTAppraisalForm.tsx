@@ -622,6 +622,67 @@ export function NFTAppraisalForm({
 					</form>
 				)}
 
+				{/* Pending states with cancel option */}
+				{(submissionState === "approving" || submissionState === "submitting" || submissionState === "processing") && (
+					<div className="p-8 pt-4 text-center space-y-4">
+						<div className="space-y-2">
+							{submissionState === "approving" && (
+								<>
+									<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+										<CpuChipIcon className="w-8 h-8 text-warning animate-pulse" />
+									</div>
+									<h3 className="text-lg font-semibold text-foreground">
+										Approving Token Transfer
+									</h3>
+									<p className="text-foreground/70 text-sm">
+										Please confirm the approval transaction in your wallet
+									</p>
+								</>
+							)}
+							{submissionState === "submitting" && (
+								<>
+									<div className="w-16 h-16 bg-gradient-to-br from-info/20 to-blue-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+										<SparklesIcon className="w-8 h-8 text-info animate-pulse" />
+									</div>
+									<h3 className="text-lg font-semibold text-foreground">
+										Submitting Appraisal Request
+									</h3>
+									<p className="text-foreground/70 text-sm">
+										Your NFT is being sent to our AVS for professional appraisal
+									</p>
+								</>
+							)}
+							{submissionState === "processing" && (
+								<>
+									<div className="w-16 h-16 bg-gradient-to-br from-success/20 to-green-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+										<CpuChipIcon className="w-8 h-8 text-success animate-pulse" />
+									</div>
+									<h3 className="text-lg font-semibold text-foreground">
+										Processing Appraisal
+									</h3>
+									<p className="text-foreground/70 text-sm">
+										Our AVS is analyzing your NFT's metadata and market data
+									</p>
+								</>
+							)}
+						</div>
+						<div className="flex gap-3 pt-4">
+							<Button
+								type="button"
+								color="danger"
+								variant="bordered"
+								className="flex-1"
+								onPress={resetForm}
+							>
+								Cancel & Return
+							</Button>
+							<div className="flex-1">
+								{/* Placeholder for balance */}
+							</div>
+						</div>
+					</div>
+				)}
+
 				{/* Success state actions */}
 				{submissionState === "submitted" && (
 					<div className="p-8 pt-4 text-center">

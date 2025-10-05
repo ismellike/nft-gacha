@@ -5,18 +5,27 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {AppraisalRequested} from "../interfaces/NFTAppraisalTypes.sol";
 
 /**
- * @title NFTAppraisal - NFT Valuation System for Gacha Treasury
+ * @title NFTAppraisal - Upgradeable NFT Valuation System for Gacha Treasury
  * @notice Provides paid NFT appraisal services with external oracle integration
  * @dev Supports user-initiated appraisals and owner overrides for treasury automation
+ * @dev This contract is upgradeable using UUPS proxy pattern
  * @author NFT Gacha Team
  */
-contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
+contract NFTAppraisal is
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable
+{
     using SafeERC20 for IERC20;
 
     /// @notice Custom errors for gas efficiency and clarity
@@ -34,6 +43,8 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     error InvalidTreasuryAddress();
     error TreasuryAlreadyWhitelisted();
     error TreasuryNotWhitelisted();
+    error InvalidAppraisalInitialization();
+    error NotAppraisalInitializing();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
@@ -122,12 +133,19 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
 
     /**
      * @notice Initializes the NFT appraisal contract
-     * @param _owner Address that will own the contract
      * @param _feeToken Token used for appraisal fees
      * @param _appraisalFee Fee amount for each appraisal request
      * @param _protocolAddress Address to receive protocol fees
      */
-    constructor(address _owner, address _feeToken, uint256 _appraisalFee, address _protocolAddress) Ownable(_owner) {
+    function initialize(address /* _owner */, address _feeToken, uint256 _appraisalFee, address _protocolAddress)
+        public
+        initializer
+    {
+        __Ownable_init();
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
+
         if (_feeToken == address(0)) revert InvalidFeeToken();
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
 
@@ -135,6 +153,12 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         appraisalFee = _appraisalFee;
         protocolAddress = _protocolAddress;
     }
+
+    /**
+     * @notice Authorizes upgrade to new implementation
+     * @dev Only owner can upgrade the contract
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /**
      * @notice Requests an appraisal for an NFT
@@ -354,7 +378,6 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
         ca.priceUSD = priceUSD;
         ca.status = isOwnerOverride ? AppraisalStatus.OwnerOverride : AppraisalStatus.Completed;
         ca.lastUpdated = block.timestamp;
-        // group namespace removed; grouping is implicit in cardId
 
         // Create/update token request record for completeness
         TokenRequest storage tr = tokenRequests[collection][tokenId];
@@ -684,4 +707,7 @@ contract NFTAppraisal is Ownable, Pausable, ReentrancyGuard {
     function emergencyUnpause() external onlyOwner {
         _unpause();
     }
+
+    /// @notice Custom gap for future storage variables (50 slots)
+    uint256[50] private __gap;
 }

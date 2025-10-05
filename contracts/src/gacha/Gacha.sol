@@ -4,20 +4,30 @@ pragma solidity ^0.8.27;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {GachaRewardsManager} from "../rewards/GachaRewardsManager.sol";
+import {IGachaRewardsManager} from "../interfaces/IGachaRewardsManager.sol";
 import {RandomnessRequested} from "../interfaces/WavsDrandTypes.sol";
 
 /**
- * @title Gacha - NFT Gacha Game Contract with Price-Based Treasury
+ * @title Gacha - Upgradeable NFT Gacha Game Contract with Price-Based Treasury
  * @notice Manages gacha spins with weighted rarity system using provably fair randomness
  * @dev Uses external WAVS randomness service for fair distribution with price-based treasury
+ * @dev This contract is upgradeable using UUPS proxy pattern
  * @author NFT Gacha Team
  */
-contract Gacha is Ownable, Pausable, ReentrancyGuard {
+contract Gacha is
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable
+{
     using SafeERC20 for IERC20;
 
     /// @notice Custom errors for gas efficiency and clarity
@@ -37,6 +47,8 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     error InvalidRewardsManager();
     error CannotReclaimFulfilledSpin();
     error NotSpinRequester();
+    error InvalidGachaInitialization();
+    error NotGachaInitializing();
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
@@ -45,9 +57,9 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @notice Core contract interfaces and addresses
-    GachaTreasury public immutable treasury;
+    GachaTreasury public treasury;
     IERC20 public feeToken;
-    GachaRewardsManager public rewardsManager;
+    IGachaRewardsManager public rewardsManager;
     address public gachaServiceHandler;
 
     /// @notice Fee configuration
@@ -108,23 +120,30 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         _;
     }
 
+    /// @notice Custom gap for future storage variables (50 slots)
+    uint256[50] private __gap;
+
     /**
      * @notice Initializes the Gacha contract with required dependencies
-     * @param _owner Address that will own the contract
      * @param _gachaServiceHandler Address of the randomness service handler
      * @param _feeToken Token used for spin fees (can be zero address for free spins)
      * @param _spinFee Amount of tokens required per spin
      * @param _treasury Address of the NFT treasury contract
      * @param _rewardsManager Address of the rewards distribution contract
      */
-    constructor(
-        address _owner,
+    function initialize(
+        address /* _owner */,
         address _gachaServiceHandler,
         address _feeToken,
         uint256 _spinFee,
         address _treasury,
         address _rewardsManager
-    ) Ownable(_owner) {
+    ) public initializer {
+        __Ownable_init();
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
+
         // Validate critical addresses
         if (_gachaServiceHandler == address(0)) revert InvalidServiceHandler();
         if (_treasury == address(0)) revert InvalidTreasuryContract();
@@ -134,16 +153,29 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         if (_spinFee == 0 && _feeToken != address(0)) revert InvalidFeeToken();
         if (_spinFee > 0 && _feeToken == address(0)) revert InvalidFeeToken();
 
-        // Set immutable and initial values
+        // Set initial values
         treasury = GachaTreasury(_treasury);
         gachaServiceHandler = _gachaServiceHandler;
         feeToken = IERC20(_feeToken);
         spinFee = _spinFee;
-        rewardsManager = GachaRewardsManager(_rewardsManager);
+        rewardsManager = IGachaRewardsManager(_rewardsManager);
 
         // Initialize trigger ID to start from 1 instead of 0
         _nextTriggerId = 1;
+
+        // Initialize default rarity weights
+        commonWeight = 7_000; // 70%
+        uncommonWeight = 2_000; // 20%
+        rareWeight = 600; // 6%
+        epicWeight = 300; // 3%
+        legendaryWeight = 100; // 1%
     }
+
+    /**
+     * @notice Authorizes upgrade to new implementation
+     * @dev Only owner can upgrade the contract
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @notice Initiates a gacha spin
     /// @return triggerId The unique identifier for this spin request
@@ -304,7 +336,6 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         emit FeeUpdated(oldFee, _newFee);
     }
 
-
     /// @notice Withdraws collected fees to specified address
     /// @param to Recipient address for fee withdrawal
     function withdrawFees(address to) external onlyOwner {
@@ -381,12 +412,9 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
 
         // For new three-tier rewards system, approve the rewards manager to spend our tokens
         feeToken.safeIncreaseAllowance(address(rewardsManager), totalFeeBalance);
-        
+
         // Call new rewards manager with hit rarity information
-        (bool success,) = address(rewardsManager).call(
-            abi.encodeWithSignature("processSpinRewards(uint256,uint8)", totalFeeBalance, uint8(hitRarity))
-        );
-        require(success, "Rewards distribution failed");
+        rewardsManager.processSpinRewards(totalFeeBalance, hitRarity);
 
         emit RewardsDistributed(totalFeeBalance); // Manager handles the split
     }
@@ -503,7 +531,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     /// @dev Only owner can call this function
     function setRewardsManager(address _rewardsManager) external onlyOwner {
         if (_rewardsManager == address(0)) revert InvalidRewardsManager();
-        rewardsManager = GachaRewardsManager(_rewardsManager);
+        rewardsManager = IGachaRewardsManager(_rewardsManager);
     }
 
     // ============ PRICE-BASED TREASURY INTEGRATION ============
@@ -558,7 +586,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
     /// @return feeTokenAddr Fee token contract address
     /// @return spinFeeAmount Cost to spin in fee token units
     /// @return isPaused Whether the gacha is currently paused
-    /// @return rarityWeights Current rarity weights [Common, Uncommon, Rare, Epic, Legendary] 
+    /// @return rarityWeights Current rarity weights [Common, Uncommon, Rare, Epic, Legendary]
     /// @return totalWeight Sum of all rarity weights
     /// @return isAvailable Whether gacha has NFTs available
     function getGachaConfigBatch() external view returns (
@@ -572,7 +600,7 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         feeTokenAddr = address(feeToken);
         spinFeeAmount = spinFee;
         isPaused = paused();
-        
+
         // Get rarity weights from storage
         rarityWeights[0] = commonWeight;
         rarityWeights[1] = uncommonWeight;
@@ -580,14 +608,14 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         rarityWeights[3] = epicWeight;
         rarityWeights[4] = legendaryWeight;
         totalWeight = TOTAL_WEIGHT;
-        
+
         isAvailable = treasury.isGachaAvailable();
     }
 
-    /// @notice Gets user-specific gacha data in a single call (BATCH FUNCTION) 
+    /// @notice Gets user-specific gacha data in a single call (BATCH FUNCTION)
     /// @param user User address to get data for
     /// @return totalSpins Total spins by user
-    /// @return totalRefunds Total refunds for user  
+    /// @return totalRefunds Total refunds for user
     /// @return totalReclaims Total reclaims for user
     /// @return rarityWins Wins per rarity [Common, Uncommon, Rare, Epic, Legendary]
     /// @return spinCount Total spin count (same as totalSpins, for compatibility)
@@ -602,12 +630,12 @@ contract Gacha is Ownable, Pausable, ReentrancyGuard {
         totalSpins = userSpinCount[user];
         totalRefunds = userRefundCount[user];
         totalReclaims = userReclaimCount[user];
-        
+
         // Get rarity wins
         for (uint256 i = 0; i < 5; i++) {
             rarityWins[i] = userRarityWins[user][GachaTreasury.Rarity(i)];
         }
-        
+
         spinCount = totalSpins; // Same value for compatibility
     }
 }

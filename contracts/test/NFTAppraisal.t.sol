@@ -6,6 +6,7 @@ import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
 import {BaseERC721} from "../src/tokens/BaseERC721.sol";
 import {BaseERC20} from "../src/tokens/BaseERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract NFTAppraisalTest is Test {
     NFTAppraisal public appraisal;
@@ -22,7 +23,7 @@ contract NFTAppraisalTest is Test {
     uint256 public constant NFT_PRICE_1000 = 1000e18; // $1000
 
     event AppraisalRequested(
-        address indexed collection, uint256 indexed tokenId, address indexed requester, uint256 fee, uint256 timestamp
+        address indexed nftContract, uint256 indexed tokenId
     );
 
     event AppraisalCompleted(
@@ -50,8 +51,20 @@ contract NFTAppraisalTest is Test {
         feeToken = new BaseERC20("Fee Token", "FEE", address(this));
         nft = new BaseERC721("Test NFT", "TNFT", address(this));
 
+        // Deploy implementation and proxy for NFTAppraisal
+        NFTAppraisal appraisalImpl = new NFTAppraisal();
+
         vm.prank(owner);
-        appraisal = new NFTAppraisal(owner, address(feeToken), APPRAISAL_FEE, protocol);
+        bytes memory initData = abi.encodeWithSelector(
+            NFTAppraisal.initialize.selector,
+            owner,
+            address(feeToken),
+            APPRAISAL_FEE,
+            protocol
+        );
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), initData);
+        appraisal = NFTAppraisal(address(proxy));
 
         // Setup initial state
         feeToken.mint(user, 1000e18);
@@ -73,8 +86,8 @@ contract NFTAppraisalTest is Test {
         uint256 tokenId = 1;
         uint256 protocolBalanceBefore = feeToken.balanceOf(protocol);
 
-        vm.expectEmit(true, true, true, false);
-        emit AppraisalRequested(address(nft), tokenId, user, 10e18, block.timestamp);
+        vm.expectEmit(true, true, false, false);
+        emit AppraisalRequested(address(nft), tokenId);
 
         vm.prank(user);
         appraisal.requestAppraisal(address(nft), tokenId);

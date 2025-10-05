@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "../src/gacha/GachaTreasury.sol";
 import "../src/tokens/BaseERC721.sol";
 import "./mocks/MockNFTAppraisal.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /**
  * @title Simple Card Tracking Test
@@ -29,8 +30,18 @@ contract SimpleCardTrackingTest is Test {
         nft = new BaseERC721("TestNFT", "TNFT", owner);
         mockAppraisal = new MockNFTAppraisal();
 
-        // Create treasury with a temporary address, then set the real gacha later
-        treasury = new GachaTreasury(owner, address(this), address(mockAppraisal));
+        // Deploy treasury implementation and proxy with a temporary address, then set the real gacha later
+        GachaTreasury treasuryImpl = new GachaTreasury();
+
+        bytes memory initData = abi.encodeWithSelector(
+            GachaTreasury.initialize.selector,
+            owner,
+            address(this), // temporary gacha address
+            address(mockAppraisal)
+        );
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
+        treasury = GachaTreasury(address(proxy));
 
         // Whitelist the NFT collection
         treasury.addToWhitelist(address(nft));

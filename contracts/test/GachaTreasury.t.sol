@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
 import {BaseERC721} from "../src/tokens/BaseERC721.sol";
 import {MockNFTAppraisal} from "./mocks/MockNFTAppraisal.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract GachaTreasuryTest is Test {
     GachaTreasury public treasury;
@@ -16,11 +17,25 @@ contract GachaTreasuryTest is Test {
     function setUp() public {
         mockAppraisal = new MockNFTAppraisal();
 
+        // Deploy implementation and proxy for GachaTreasury
+        GachaTreasury treasuryImpl = new GachaTreasury();
+
         // Use a mock gacha address for testing
         address mockGacha = address(0x999);
-        treasury = new GachaTreasury(owner, mockGacha, address(mockAppraisal));
-        vm.prank(owner);
+
+        vm.startPrank(owner);
+        bytes memory initData = abi.encodeWithSelector(
+            GachaTreasury.initialize.selector,
+            owner,
+            mockGacha,
+            address(mockAppraisal)
+        );
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
+        treasury = GachaTreasury(address(proxy));
+
         nft = new BaseERC721("TestNFT", "TNFT", owner);
+        vm.stopPrank();
     }
 
     function testDeployment() public view {

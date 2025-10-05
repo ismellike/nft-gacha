@@ -4,18 +4,29 @@ pragma solidity ^0.8.27;
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
+import {IGachaRewardsManager} from "../interfaces/IGachaRewardsManager.sol";
 
 /**
- * @title GachaTreasury - Price-Based NFT Treasury Management
+ * @title GachaTreasury - Upgradeable Price-Based NFT Treasury Management
  * @notice Manages NFT storage with automatic rarity assignment based on appraised USD values
  * @dev Integrates with NFTAppraisal contract for price-based categorization
+ * @dev This contract is upgradeable using UUPS proxy pattern
  * @author NFT Gacha Team
  */
-contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
+contract GachaTreasury is
+    IERC721Receiver,
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable
+{
     /// @notice Custom errors for gas efficiency and clear error handling
     error InvalidCollectionAddress();
     error NFTAlreadyDeposited();
@@ -45,6 +56,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     error NoNFTsAvailable(Rarity rarity);
     error NFTNotDeposited();
     error NotNFTDepositor();
+    error InvalidTreasuryInitialization();
+    error NotTreasuryInitializing();
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -92,7 +105,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Contract addresses
     address public gachaContract;
-    address public treasuryRewardsManager;
+    IGachaRewardsManager public treasuryRewardsManager;
     NFTAppraisal public appraisalContract;
 
     /// @notice Price ranges for each rarity tier
@@ -164,11 +177,18 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
     /**
      * @notice Initializes the treasury with required contracts and default price ranges
-     * @param _owner Address that will own the treasury contract
      * @param _gachaContract Address of the authorized gacha contract
      * @param _appraisalContract Address of the NFT appraisal contract
      */
-    constructor(address _owner, address _gachaContract, address _appraisalContract) Ownable(_owner) {
+    function initialize(address /* _owner */, address _gachaContract, address _appraisalContract)
+        public
+        initializer
+    {
+        __Ownable_init();
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
+
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         if (_appraisalContract == address(0)) revert InvalidAppraisalContract();
 
@@ -194,6 +214,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             maxPriceUSD: type(uint256).max // No upper limit for legendary
         });
     }
+
+    /**
+     * @notice Authorizes upgrade to new implementation
+     * @dev Only owner can upgrade the contract
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @notice Deposits an NFT into the treasury with automatic rarity assignment
     /// @param collection NFT collection address
@@ -267,13 +293,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         }
 
         // Notify rewards manager about the deposit - using new three-tier system
-        if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
-            (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature(
-                    "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, msg.sender, int256(1)
-                ) // +1 unit
-            );
-            success; // Silence unused variable warning
+        if (treasuryRewardsManager != IGachaRewardsManager(address(0)) && cardId != bytes32(0)) {
+            treasuryRewardsManager.updateUserUnits(rarity, cardId, msg.sender, 1); // +1 unit
         }
 
         emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
@@ -365,18 +386,9 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // Card counts remain the same during rarity migration
 
         // Notify rewards manager about migration - handle at card level (Tier-2)
-        if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
+        if (treasuryRewardsManager != IGachaRewardsManager(address(0)) && cardId != bytes32(0)) {
             // Use handleReappraisal which includes migration logic
-            (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature(
-                    "handleReappraisal(uint8,bytes32,uint256,uint8)",
-                    uint8(currentRarity),
-                    cardId,
-                    newPriceUSD,
-                    uint8(newRarity)
-                )
-            );
-            success; // Silence unused variable warning
+            treasuryRewardsManager.handleReappraisal(currentRarity, cardId, newPriceUSD, newRarity);
         }
 
         emit RarityMigrated(collection, tokenId, currentRarity, newRarity, newPriceUSD);
@@ -434,13 +446,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         // Notify rewards manager about the withdrawal - using new three-tier system
         bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
-        if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
-            (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature(
-                    "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, item.depositor, int256(-1)
-                ) // -1 unit
-            );
-            success; // Silence unused variable warning
+        if (treasuryRewardsManager != IGachaRewardsManager(address(0)) && cardId != bytes32(0)) {
+            treasuryRewardsManager.updateUserUnits(rarity, cardId, item.depositor, -1); // -1 unit
         }
 
         // Update card tracking for withdrawal
@@ -502,11 +509,8 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         delete nftCurrentRarity[item.collection][item.tokenId];
 
         // Notify rewards manager about NFT being won
-        if (treasuryRewardsManager != address(0)) {
-            (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("recordNFTWon(address,uint8)", item.depositor, uint8(rarity))
-            );
-            success; // Silence unused variable warning
+        if (treasuryRewardsManager != IGachaRewardsManager(address(0))) {
+            treasuryRewardsManager.recordNFTWon(item.depositor, rarity);
         }
 
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
@@ -811,21 +815,13 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             }
 
             // Notify rewards manager about the deposit - using new three-tier system
-            if (treasuryRewardsManager != address(0) && cardId != bytes32(0)) {
-                (bool success,) = treasuryRewardsManager.call(
-                    abi.encodeWithSignature(
-                        "updateUserUnits(uint8,bytes32,address,int256)", uint8(rarity), cardId, msg.sender, int256(1)
-                    )
-                );
-                success; // Silence unused variable warning
+            if (treasuryRewardsManager != IGachaRewardsManager(address(0)) && cardId != bytes32(0)) {
+                treasuryRewardsManager.updateUserUnits(rarity, cardId, msg.sender, 1);
             }
 
             // Also notify for rarity-level tracking (legacy)
-            if (treasuryRewardsManager != address(0)) {
-                (bool success,) = treasuryRewardsManager.call(
-                    abi.encodeWithSignature("recordApprovedDeposit(address,uint8)", msg.sender, uint8(rarity))
-                );
-                success; // Silence unused variable warning
+            if (treasuryRewardsManager != IGachaRewardsManager(address(0))) {
+                treasuryRewardsManager.recordApprovedDeposit(msg.sender, rarity);
             }
 
             emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
@@ -840,38 +836,6 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
             return supported;
         } catch {
             return false;
-        }
-    }
-
-    /// @dev Optimized sorting for small arrays (up to 20 items)
-    /// @param arr Array to sort in descending order
-    /// @return sorted Sorted array in descending order
-    function _quickSort(uint256[] calldata arr) private pure returns (uint256[] memory sorted) {
-        uint256 length = arr.length;
-        sorted = new uint256[](length);
-
-        for (uint256 i; i < length;) {
-            sorted[i] = arr[i];
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Insertion sort for small arrays (most efficient for n <= 20)
-        for (uint256 i = 1; i < length;) {
-            uint256 key = sorted[i];
-            uint256 j = i;
-
-            while (j > 0 && sorted[j - 1] < key) {
-                sorted[j] = sorted[j - 1];
-                unchecked {
-                    --j;
-                }
-            }
-            sorted[j] = key;
-            unchecked {
-                ++i;
-            }
         }
     }
 
@@ -946,8 +910,6 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    // Migration tracking removed - no longer needed with proper initialization
-
     /// @notice Sends a pseudo-random NFT to winner (optimized for gas)
     /// @param rarity Rarity tier to select from
     /// @param randomSeed Random seed for selection (from VRF or similar)
@@ -1007,40 +969,17 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
         // Notify rewards manager
-        if (treasuryRewardsManager != address(0)) {
-            (bool success,) = treasuryRewardsManager.call(
-                abi.encodeWithSignature("recordNFTWon(address,uint8)", item.depositor, uint8(rarity))
-            );
-            success;
+        if (treasuryRewardsManager != IGachaRewardsManager(address(0))) {
+            treasuryRewardsManager.recordNFTWon(item.depositor, rarity);
         }
 
         emit NFTWithdrawn(item.collection, item.tokenId, rarity, winner);
     }
 
-    /// @notice Estimates gas cost and returns safe batch size for migration
-    /// @param rarity Target rarity pool
-    /// @return maxSafeBatch Maximum NFTs that can be migrated in one transaction
-    /// @return totalBatches Total number of batches needed
-    function getMigrationBatchInfo(Rarity rarity) external view returns (uint256 maxSafeBatch, uint256 totalBatches) {
-        uint256 totalNFTs = treasury[rarity].length;
-        maxSafeBatch = MAX_MIGRATION_BATCH;
-        totalBatches = (totalNFTs + maxSafeBatch - 1) / maxSafeBatch; // Ceiling division
-    }
-
-    /// @notice Get treasury status for gas optimization monitoring
-    /// @return sizes Array of rarity pool sizes [Common, Uncommon, Rare, Epic, Legendary]
-    /// @return totalSize Total NFTs across all rarities
-    function getTreasuryGasStatus() external view returns (uint256[5] memory sizes, uint256 totalSize) {
-        for (uint256 i = 0; i < 5; i++) {
-            sizes[i] = treasury[Rarity(i)].length;
-            totalSize += sizes[i];
-        }
-    }
-
     function setTreasuryRewardsManager(address _treasuryRewardsManager) external onlyOwner {
         if (_treasuryRewardsManager == address(0)) revert InvalidRewardsManager();
-        address oldRewardsManager = treasuryRewardsManager;
-        treasuryRewardsManager = _treasuryRewardsManager;
+        address oldRewardsManager = address(treasuryRewardsManager);
+        treasuryRewardsManager = IGachaRewardsManager(_treasuryRewardsManager);
         emit RewardsManagerUpdated(oldRewardsManager, _treasuryRewardsManager);
     }
 
@@ -1048,12 +987,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @param user User who claimed rewards
     /// @param claimedAmount Amount claimed (in fee token units)
     function recordUserClaim(address user, uint256 claimedAmount) external {
-        require(msg.sender == treasuryRewardsManager, "Only rewards manager");
+        require(msg.sender == address(treasuryRewardsManager), "Only rewards manager");
         if (user == address(0) || claimedAmount == 0) return;
-        
+
         userLifetimeClaimed[user] += claimedAmount;
         globalLifetimeClaimed += claimedAmount;
-        
+
         emit UserClaimedRewards(user, claimedAmount);
     }
 
@@ -1188,7 +1127,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
 
         uint256 resultLength = end - offset;
         deposits = new UserCardDeposit[](resultLength);
-        
+
         for (uint256 i = 0; i < resultLength; i++) {
             bytes32 cardId = userCards[offset + i];
             deposits[i] = UserCardDeposit({
@@ -1212,7 +1151,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         bytes32[] storage userCards = userGroupIds[user];
         uint256 length = userCards.length;
         deposits = new UserCardDeposit[](length);
-        
+
         for (uint256 i = 0; i < length; i++) {
             bytes32 cardId = userCards[i];
             deposits[i] = UserCardDeposit({
@@ -1282,14 +1221,14 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i < 5; i++) {
             rarityCounts[i] = rarityCount[Rarity(i)];
         }
-        
+
         // Calculate total items inline
-        totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + 
-                    rarityCount[Rarity.Rare] + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
-        
+        totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon]
+                    + rarityCount[Rarity.Rare] + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
+
         // Check if gacha is available
         gachaAvailable = whitelistedCollectionsList.length > 0 && totalItems > 0;
-        
+
         // Global stats
         totalDeposited = globalLifetimeDeposited;
         totalClaimed = globalLifetimeClaimed;
@@ -1319,12 +1258,12 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
     /// @return netContribution Net value contributed (deposited - withdrawn)
     function getUserLifetimeStats(address user) external view returns (
         uint256 deposited,
-        uint256 withdrawn, 
+        uint256 withdrawn,
         uint256 claimed,
         uint256 netContribution
     ) {
         if (user == address(0)) return (0, 0, 0, 0);
-        
+
         deposited = userLifetimeDeposited[user];
         withdrawn = userLifetimeWithdrawn[user];
         claimed = userLifetimeClaimed[user];
@@ -1345,4 +1284,7 @@ contract GachaTreasury is IERC721Receiver, Ownable, Pausable, ReentrancyGuard {
         // activeUsers would require additional tracking or could be derived from events
         activeUsers = 0; // Placeholder - would need separate implementation
     }
+
+    /// @notice Custom gap for future storage variables (50 slots)
+    uint256[50] private __gap;
 }

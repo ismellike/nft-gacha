@@ -7,6 +7,7 @@ import {UserDividendTracker} from "../src/rewards/UserDividendTracker.sol";
 import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
 import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract TestToken is ERC20 {
     constructor() ERC20("Test Token", "TEST") {
@@ -147,8 +148,11 @@ contract GachaRewardsTest is Test {
         treasury = new MockTreasury();
         appraisal = new MockNFTAppraisal();
 
-        // Deploy rewards manager
-        rewardsManager = new GachaRewardsManager(
+        // Deploy rewards manager implementation and proxy
+        GachaRewardsManager rewardsManagerImpl = new GachaRewardsManager();
+
+        bytes memory initData = abi.encodeWithSelector(
+            GachaRewardsManager.initialize.selector,
             owner,
             address(gacha),
             address(treasury),
@@ -156,6 +160,9 @@ contract GachaRewardsTest is Test {
             protocol,
             address(feeToken)
         );
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(rewardsManagerImpl), initData);
+        rewardsManager = GachaRewardsManager(address(proxy));
 
         // Setup references
         gacha.setRewardsManager(address(rewardsManager));

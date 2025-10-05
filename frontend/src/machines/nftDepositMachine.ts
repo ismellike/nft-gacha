@@ -14,7 +14,7 @@ export interface NFTDepositContext {
 	depositTxHash: string | null;
 	error: string | null;
 	retryCount: number;
-	approvalStatus: "none" | "individual" | "all" | "not_needed";
+	approvalNeeded: boolean;
 }
 
 export type NFTDepositEvent =
@@ -34,24 +34,22 @@ export type NFTDepositEvent =
 
 const MAX_RETRIES = 3;
 
-// Actor to check approval status
-const checkApprovalStatus = fromPromise(
+// Actor to check if approval is needed
+const checkApprovalNeeded = fromPromise(
 	async ({
 		input,
 	}: {
 		input: {
 			collection: string;
-			tokenId: string;
 			treasuryAddress: string;
 			userAddress: string;
 			publicClient: PublicClient;
 		};
-	}): Promise<"individual" | "all" | "none"> => {
-		const { collection, tokenId, treasuryAddress, userAddress, publicClient } =
-			input;
+	}): Promise<boolean> => {
+		const { collection, treasuryAddress, userAddress, publicClient } = input;
 
 		try {
-			// First check if approved for all (most efficient)
+			// Check if already approved for all (standard EVM pattern)
 			const isApprovedForAll = await publicClient.readContract({
 				address: collection as `0x${string}`,
 				abi: erc721Abi,
@@ -59,31 +57,10 @@ const checkApprovalStatus = fromPromise(
 				args: [userAddress as `0x${string}`, treasuryAddress as `0x${string}`],
 			});
 
-			if (isApprovedForAll) {
-				console.log("✅ [NFTDepositMachine] Treasury approved for all NFTs");
-				return "all";
-			}
-
-			// Check individual NFT approval
-			const approved = await publicClient.readContract({
-				address: collection as `0x${string}`,
-				abi: erc721Abi,
-				functionName: "getApproved",
-				args: [BigInt(tokenId)],
-			});
-
-			if (approved?.toLowerCase() === treasuryAddress.toLowerCase()) {
-				console.log("✅ [NFTDepositMachine] NFT already approved individually");
-				return "individual";
-			}
-
-			console.log("ℹ️ [NFTDepositMachine] NFT approval needed");
-			return "none";
+			return !isApprovedForAll; // Return true if approval needed
 		} catch (error) {
-			console.error("❌ [NFTDepositMachine] Approval check failed:", error);
-			throw new Error(
-				`Failed to check approval status: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
+			console.error("Approval check failed, assuming approval needed:", error);
+			return true; // Assume approval needed on error
 		}
 	},
 );
@@ -142,7 +119,7 @@ export const nftDepositMachine = createMachine(
 			depositTxHash: null,
 			error: null as string | null,
 			retryCount: 0,
-			approvalStatus: "none" as "none" | "individual" | "all" | "not_needed",
+			approvalNeeded: true,
 		},
 		initial: "idle",
 		states: {
@@ -157,19 +134,26 @@ export const nftDepositMachine = createMachine(
 			},
 			checkingApproval: {
 				invoke: {
-					id: "checkApprovalStatus",
-					src: "checkApprovalStatus",
+					id: "checkApprovalNeeded",
+					src: "checkApprovalNeeded",
 					input: ({ context }) => ({
 						collection: context.collection,
-						tokenId: context.tokenId,
 						treasuryAddress: context.treasuryAddress,
 						userAddress: context.userAddress,
 						publicClient: context.publicClient,
 					}),
-					onDone: {
-						target: "depositing",
-						actions: "setApprovalStatus",
-					},
+					onDone: [
+						{
+							target: "depositing",
+							guard: ({ event }) => !event.output, // If approval NOT needed
+							actions: "setApprovalNotNeeded",
+						},
+						{
+							target: "approving",
+							guard: ({ event }) => event.output, // If approval needed
+							actions: "setApprovalNeeded",
+						},
+					],
 					onError: {
 						target: "error",
 						actions: "setError",
@@ -182,27 +166,8 @@ export const nftDepositMachine = createMachine(
 			approving: {
 				on: {
 					APPROVAL_TRANSACTION_SENT: {
-						target: "waitingForApproval",
-						actions: "setApprovalTxHash",
-					},
-					ERROR: {
-						target: "error",
-						actions: "setError",
-					},
-					RESET: "idle",
-				},
-			},
-			waitingForApproval: {
-				after: {
-					30000: {
-						target: "error",
-						actions: () => assign({ error: "Approval transaction timeout" }),
-					},
-				},
-				on: {
-					DEPOSIT_TRANSACTION_SENT: {
 						target: "depositing",
-						actions: "setDepositTxHash",
+						actions: "setApprovalTxHash",
 					},
 					ERROR: {
 						target: "error",
@@ -259,13 +224,10 @@ export const nftDepositMachine = createMachine(
 				},
 			},
 		},
-		on: {
-			RESET: "idle",
-		},
 	},
 	{
 		actors: {
-			checkApprovalStatus,
+			checkApprovalNeeded,
 			confirmNFTDeposit,
 		},
 		actions: {
@@ -279,7 +241,7 @@ export const nftDepositMachine = createMachine(
 				depositTxHash: null,
 				error: null,
 				retryCount: 0,
-				approvalStatus: "none",
+				approvalNeeded: true,
 			}),
 			setDepositParams: assign({
 				collection: ({ event }) =>
@@ -295,13 +257,11 @@ export const nftDepositMachine = createMachine(
 				retryCount: 0,
 				error: null,
 			}),
-			setApprovalStatus: assign({
-				approvalStatus: ({ event }) => {
-					if (event.type === "xstate.done.actor.checkApprovalStatus") {
-						return event.output === "none" ? "none" : "not_needed";
-					}
-					return "none";
-				},
+			setApprovalNeeded: assign({
+				approvalNeeded: true,
+			}),
+			setApprovalNotNeeded: assign({
+				approvalNeeded: false,
 			}),
 			setApprovalTxHash: assign({
 				approvalTxHash: ({ event }) =>
@@ -316,7 +276,7 @@ export const nftDepositMachine = createMachine(
 					if (event.type === "ERROR") {
 						return event.error;
 					}
-					if (event.type === "xstate.error.actor.checkApprovalStatus") {
+					if (event.type === "xstate.error.actor.checkApprovalNeeded") {
 						return (event.error as Error)?.message || "Failed to check approval";
 					}
 					if (event.type === "xstate.error.actor.confirmNFTDeposit") {

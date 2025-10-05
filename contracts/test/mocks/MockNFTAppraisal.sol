@@ -44,4 +44,26 @@ contract MockNFTAppraisal {
     function setTokenCardId(address collection, uint256 tokenId, bytes32 cardId) external {
         tokenCardIds[collection][tokenId] = cardId;
     }
+
+    struct CardAppraisal {
+        uint256 priceUSD;
+        AppraisalStatus status;
+        uint256 firstTimestamp;
+        uint256 lastUpdated;
+        address canonicalContractAddress;
+        uint256 canonicalTokenId;
+    }
+
+    function getCardAppraisal(bytes32 cardId) external view returns (CardAppraisal memory) {
+        // Find the token that corresponds to this cardId
+        // For simplicity, we'll return a basic appraisal
+        return CardAppraisal({
+            priceUSD: 100000000000000000000, // Default 100 USD
+            status: AppraisalStatus.Completed,
+            firstTimestamp: 1,
+            lastUpdated: 1,
+            canonicalContractAddress: address(0),
+            canonicalTokenId: 0
+        });
+    }
 }

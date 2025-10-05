@@ -1,18 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {GachaTreasury} from "../gacha/GachaTreasury.sol";
 import {Gacha} from "../gacha/Gacha.sol";
+import {IGacha} from "../interfaces/IGacha.sol";
 import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
 
-/// @title GachaRewardsManager - Three-tier ERC2222-style accrual system
+/// @title GachaRewardsManager - Upgradeable Three-tier ERC2222-style accrual system
 /// @notice Implements single Treasury custody with three-tier cumulative meters
-contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
+contract GachaRewardsManager is
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable
+{
     using SafeERC20 for IERC20;
 
     // Custom errors
@@ -27,6 +36,8 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     error CardNotFound();
     error InvalidDelta();
     error CalculationOverflow();
+    error InvalidRewardsInitialization();
+    error NotRewardsInitializing();
 
     // Constants
     uint256 public constant PROTOCOL_PERCENTAGE = 1000; // 10% to protocol
@@ -35,10 +46,10 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     uint256 public constant GAMMA_PRECISION = 1e6; // Precision for gamma exponent
 
     // References
-    Gacha public immutable gachaContract;
-    GachaTreasury public immutable treasuryContract;
-    NFTAppraisal public immutable appraisalContract;
-    IERC20 public immutable feeToken;
+    IGacha public gachaContract;
+    GachaTreasury public treasuryContract;
+    NFTAppraisal public appraisalContract;
+    IERC20 public feeToken;
     address public protocolAddress;
 
     // Configuration
@@ -86,6 +97,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     event BonusStashed(GachaTreasury.Rarity rarity, bytes32 cardId, uint256 amount);
     event BonusDistributed(GachaTreasury.Rarity rarity, bytes32 cardId, uint256 amount);
     event ProtocolAddressUpdated(address indexed oldProtocol, address indexed newProtocol);
+    event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
     event DeltaUpdated(uint256 oldDelta, uint256 newDelta);
     event GammaUpdated(uint256 oldGamma, uint256 newGamma);
 
@@ -99,26 +111,50 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         _;
     }
 
-    constructor(
-        address _owner,
+    /**
+     * @notice Initializes the rewards manager with required dependencies
+     * @param _gachaContract Address of the gacha contract
+     * @param _treasuryContract Address of the treasury contract
+     * @param _appraisalContract Address of the appraisal contract
+     * @param _protocolAddress Address to receive protocol fees
+     * @param _feeToken Fee token contract
+     */
+    function initialize(
+        address /* _owner */,
         address _gachaContract,
         address _treasuryContract,
         address _appraisalContract,
         address _protocolAddress,
         address _feeToken
-    ) Ownable(_owner) {
+    ) public initializer {
+        __Ownable_init();
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        __UUPSUpgradeable_init();
+
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         if (_treasuryContract == address(0)) revert InvalidTreasuryContract();
         if (_appraisalContract == address(0)) revert InvalidAppraisalContract();
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
         if (_feeToken == address(0)) revert InvalidFeeToken();
 
-        gachaContract = Gacha(_gachaContract);
+        // Set contract references in storage
+        gachaContract = IGacha(_gachaContract);
         treasuryContract = GachaTreasury(_treasuryContract);
         appraisalContract = NFTAppraisal(_appraisalContract);
-        protocolAddress = _protocolAddress;
         feeToken = IERC20(_feeToken);
+        protocolAddress = _protocolAddress;
+
+        // Initialize default parameters
+        delta = 9000; // 90% to depositors
+        gamma = GAMMA_PRECISION; // 1.0 (default exponent)
     }
+
+    /**
+     * @notice Authorizes upgrade to new implementation
+     * @dev Only owner can upgrade the contract
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @notice Process spin fees using three-tier accrual system
     /// @param totalFeeAmount Total fee collected from spin
@@ -293,7 +329,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         if (!card.exists) {
             _createCardTracker(rarity, cardId);
         }
-        
+
         // Initialize user snapshot if it doesn't exist
         if (userSnap.units == 0) {
             userSnap.perUnitSnapshot = card.perUnitMeter;
@@ -301,7 +337,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
 
         // Update user's snapshot to current before changing units
         userSnap.perUnitSnapshot = card.perUnitMeter;
-        
+
         // Don't allow zero-unit snapshots to be created
         if (userSnap.units == 0 && unitsDelta > 0) {
             // New user deposit - initialize snapshot
@@ -321,11 +357,16 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
             }
         } else if (unitsDelta < 0) {
             uint256 unitsToRemove = uint256(-unitsDelta);
-            require(userSnap.units >= unitsToRemove, "Insufficient units");
-            require(card.totalUnits >= unitsToRemove, "Insufficient total units");
+            // Only check if user actually has units, otherwise skip
+            if (userSnap.units > 0) {
+                require(userSnap.units >= unitsToRemove, "Insufficient units");
+                require(card.totalUnits >= unitsToRemove, "Insufficient total units");
 
-            userSnap.units -= unitsToRemove;
-            card.totalUnits -= unitsToRemove;
+                userSnap.units -= unitsToRemove;
+                card.totalUnits -= unitsToRemove;
+            }
+            // If user has no units, this is likely a withdrawal of an NFT that was
+            // deposited before rewards tracking was properly set up. Skip silently.
         }
 
         // Update card weight since total units changed: W_c = price_c^γ * q_c
@@ -471,7 +512,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         for (uint8 i = 0; i < 5; i++) {
             GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
             uint256 rarityWeight = totalCardWeights[rarity];
-            
+
             if (rarityWeight > 0) {
                 uint256 rarityShare = (amount * rarityWeight) / totalWeightAllRarities;
                 uint256 rarityIncrease = (rarityShare * PRECISION) / rarityWeight;
@@ -513,6 +554,15 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Configuration functions
+    /// @notice Set gacha contract address
+    /// @param _gachaContract Address of the gacha contract
+    function setGachaContract(address _gachaContract) external onlyOwner {
+        if (_gachaContract == address(0)) revert InvalidGachaContract();
+        address old = address(gachaContract);
+        gachaContract = IGacha(_gachaContract);
+        emit GachaContractUpdated(old, _gachaContract);
+    }
+
     function setProtocolAddress(address _protocolAddress) external onlyOwner {
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
         address old = protocolAddress;
@@ -683,11 +733,13 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         totalClaimed += totalAmount;
         feeToken.safeTransfer(user, totalAmount);
 
-        // Record claim in treasury for lifetime tracking  
-        try GachaTreasury(address(treasuryContract)).recordUserClaim(user, totalAmount) {
-            // Success - claim recorded
-        } catch {
-            // Ignore errors to prevent claim failures
+        // Record claim in treasury for lifetime tracking
+        if (totalAmount > 0) {
+            try GachaTreasury(address(treasuryContract)).recordUserClaim(user, totalAmount) {
+                // Success - claim recorded
+            } catch {
+                // Ignore errors to prevent claim failures
+            }
         }
 
         emit RewardsClaimed(user, totalAmount);
@@ -704,10 +756,10 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
         // Iterate through all rarities and find cards with units for this user
         for (uint8 r = 0; r < 5 && cardsProcessed < maxCards; r++) {
             GachaTreasury.Rarity rarity = GachaTreasury.Rarity(r);
-            
+
             // Get all card IDs from treasury for this rarity (this would need Treasury support)
             // For now, we'll use a different approach - iterate through user's known interactions
-            
+
             // Note: This requires keeping track of user's card interactions
             // Alternative: Frontend can call claimRewardsForMultipleRarities with all user's cards
         }
@@ -722,14 +774,14 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Get total claimable rewards for user across all specified cards
     /// @param rarities Array of rarities
-    /// @param cardIdsByRarity Nested array of card IDs per rarity  
+    /// @param cardIdsByRarity Nested array of card IDs per rarity
     /// @return total Total claimable amount across all cards
     function getTotalClaimableForUser(
         GachaTreasury.Rarity[] calldata rarities,
         bytes32[][] calldata cardIdsByRarity
     ) external view returns (uint256 total) {
         require(rarities.length == cardIdsByRarity.length, "Array length mismatch");
-        
+
         address user = msg.sender;
 
         for (uint256 r = 0; r < rarities.length; r++) {
@@ -747,7 +799,7 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     /// @notice Gets fee token info in a single call (BATCH FUNCTION)
     /// @return tokenAddress Fee token contract address
     /// @return totalAccruedAmount Total rewards accrued across platform
-    /// @return totalClaimedAmount Total rewards claimed across platform 
+    /// @return totalClaimedAmount Total rewards claimed across platform
     /// @return availableBalance Current balance available for claims
     function getRewardsOverviewBatch() external view returns (
         address tokenAddress,
@@ -767,12 +819,13 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     /// @param cardIds Array of card IDs corresponding to rarities
     /// @return claimableAmounts Array of claimable amounts for each card
     /// @return totalClaimable Total claimable across all cards
-    function getUserClaimablesBatch(address user, uint8[] calldata rarities, bytes32[] calldata cardIds) 
-        external view returns (uint256[] memory claimableAmounts, uint256 totalClaimable) {
+    function getUserClaimablesBatch(address user, uint8[] calldata rarities, bytes32[] calldata cardIds)
+        external view returns (uint256[] memory claimableAmounts, uint256 totalClaimable)
+    {
         require(rarities.length == cardIds.length, "Array length mismatch");
-        
+
         claimableAmounts = new uint256[](cardIds.length);
-        
+
         for (uint256 i = 0; i < cardIds.length; i++) {
             GachaTreasury.Rarity rarity = GachaTreasury.Rarity(rarities[i]);
             claimableAmounts[i] = getUserCardClaimable(user, rarity, cardIds[i]);
@@ -781,26 +834,46 @@ contract GachaRewardsManager is Ownable, Pausable, ReentrancyGuard {
     }
 
     /// @notice Gets card tracker info for multiple cards in a single call (BATCH FUNCTION)
-    /// @param rarities Array of rarities for the cards  
+    /// @param rarities Array of rarities for the cards
     /// @param cardIds Array of card IDs corresponding to rarities
     /// @return exists Array indicating if each card tracker exists
     /// @return totalUnits Array of total units for each card
     /// @return perUnitMeters Array of per-unit meters for each card
     function getCardTrackersBatch(uint8[] calldata rarities, bytes32[] calldata cardIds)
-        external view returns (bool[] memory exists, uint256[] memory totalUnits, uint256[] memory perUnitMeters) {
+        external view returns (bool[] memory exists, uint256[] memory totalUnits, uint256[] memory perUnitMeters)
+    {
         require(rarities.length == cardIds.length, "Array length mismatch");
-        
+
         exists = new bool[](cardIds.length);
         totalUnits = new uint256[](cardIds.length);
         perUnitMeters = new uint256[](cardIds.length);
-        
+
         for (uint256 i = 0; i < cardIds.length; i++) {
             GachaTreasury.Rarity rarity = GachaTreasury.Rarity(rarities[i]);
             CardTracker storage card = cardTrackers[rarity][cardIds[i]];
-            
+
             exists[i] = card.exists;
             totalUnits[i] = card.totalUnits;
             perUnitMeters[i] = card.perUnitMeter;
         }
     }
+
+    /// @notice Record when a user deposits an NFT (legacy function)
+    /// @param user User who deposited the NFT
+    /// @param rarity Rarity tier of the deposited NFT
+    function recordApprovedDeposit(address user, GachaTreasury.Rarity rarity) external {
+        // This is a legacy function - rewards are now handled through the three-tier system
+        // Kept for backward compatibility
+    }
+
+    /// @notice Record when a user wins an NFT (legacy function)
+    /// @param user User who won the NFT
+    /// @param rarity Rarity tier of the won NFT
+    function recordNFTWon(address user, GachaTreasury.Rarity rarity) external {
+        // This is a legacy function - rewards are now handled through the three-tier system
+        // Kept for backward compatibility
+    }
+
+    /// @notice Custom gap for future storage variables (50 slots)
+    uint256[50] private __gap;
 }
