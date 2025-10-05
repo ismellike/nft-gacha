@@ -4,42 +4,26 @@ use super::{
     types::*,
 };
 use anyhow::{anyhow, Result};
+use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
 #[derive(Debug)]
-pub struct CourtyardClient {
-    client: reqwest::Client,
-}
+pub struct CourtyardClient;
 
 impl CourtyardClient {
     pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
+        Self
     }
 
     /// Fetch NFT metadata directly from a URI (for Courtyard URIs)
     pub async fn get_nft_metadata_from_uri(&self, uri: &str) -> Result<NFTMetadata> {
-        let response = self
-            .client
-            .get(uri)
-            .header("Content-Type", "application/json")
-            .header("User-Agent", "WAVS-NFT-Appraisal/1.0")
-            .send()
-            .await
-            .map_err(|e| anyhow!("Failed to fetch NFT metadata from URI: {}", e))?;
+        let request = http_request_get(uri)
+            .map_err(|e| anyhow!("Failed to create HTTP request for URI {}: {}", uri, e))?;
 
-        let status = response.status();
-        if !status.is_success() {
-            return match status.as_u16() {
-                404 => Err(anyhow!("NFT metadata not found at URI: {}", uri)),
-                429 => Err(anyhow!("Rate limit exceeded")),
-                _ => Err(anyhow!("HTTP error {}: {}", status, uri)),
-            };
-        }
-
-        let metadata: NFTMetadata = response
-            .json()
+        let response_text = fetch_string(request)
             .await
+            .map_err(|e| anyhow!("Failed to fetch NFT metadata from URI {}: {}", uri, e))?;
+
+        let metadata: NFTMetadata = serde_json::from_str(&response_text)
             .map_err(|e| anyhow!("Failed to parse metadata JSON from URI {}: {}", uri, e))?;
 
         Ok(metadata)

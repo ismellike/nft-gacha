@@ -1,6 +1,8 @@
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use wavs_wasi_utils::http::fetch_string;
+use wstd::{http::Request, io::empty};
 
 #[cfg(not(test))]
 use crate::bindings::wasi::keyvalue::store::open;
@@ -10,7 +12,6 @@ use crate::bindings::wasi::keyvalue::store::Bucket;
 pub struct PokemonPriceClient {
     base_url: String,
     api_key: String,
-    client: reqwest::Client,
     cache_bucket: Option<Bucket>,
 }
 
@@ -76,7 +77,6 @@ impl PokemonPriceClient {
         Self {
             base_url: "https://www.pokemonpricetracker.com/api".to_string(),
             api_key,
-            client: reqwest::Client::new(),
             #[cfg(not(test))]
             cache_bucket: open("pokemon-price-cache").ok(),
             #[cfg(test)]
@@ -196,36 +196,16 @@ impl PokemonPriceClient {
             url = format!("{}?{}", url, query_params.join("&"));
         }
 
-        // Make API request with proper Authorization header
-        let response = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .header("User-Agent", "WAVS-NFT-Appraisal/1.0")
-            .send()
-            .await
-            .map_err(|e| anyhow!("Failed to send HTTP request: {}", e))?;
+        let request = Request::get(&url)
+            .header("authorization", format!("Bearer {}", self.api_key))
+            .header("content-type", "application/json")
+            .header("user-agent", "WAVS-NFT-Appraisal/1.0")
+            .body(empty())
+            .map_err(|e| anyhow!("Failed to create HTTP request for URL {}: {}", url, e))?;
 
-        // Check response status
-        let status = response.status();
-        if !status.is_success() {
-            return match status.as_u16() {
-                401 => Err(anyhow!("Authentication failed (401) - check API key")),
-                404 => Err(anyhow!("Endpoint not found (404)")),
-                400 => Err(anyhow!("Invalid request parameters (400)")),
-                429 => Err(anyhow!(
-                    "Rate limit exceeded (429) - max 60 requests per minute"
-                )),
-                _ => Err(anyhow!("HTTP error: {}", status)),
-            };
-        }
-
-        // Parse response body
-        let response_text = response
-            .text()
+        let response_text = fetch_string(request)
             .await
-            .map_err(|e| anyhow!("Failed to read response body: {}", e))?;
+            .map_err(|e| anyhow!("Failed to fetch data from Pokemon Price Tracker API: {}", e))?;
 
         // Parse API response - handle v2 response format
         let api_response: serde_json::Value = serde_json::from_str(&response_text)

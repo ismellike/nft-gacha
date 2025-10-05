@@ -27,7 +27,6 @@ alloy-provider = { workspace = true }
 alloy-rpc-types = { workspace = true }
 alloy-contract = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
-reqwest = { version = "0.12", features = ["json"] }
 hex = "0.4"
 urlencoding = "2.1"
 sha3 = "0.10"
