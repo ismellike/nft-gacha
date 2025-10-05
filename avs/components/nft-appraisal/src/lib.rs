@@ -3,11 +3,13 @@
 mod bindings;
 
 use crate::bindings::{
-    export, wavs::types::events::TriggerDataEvmContractEvent, Guest, TriggerAction, WasmResponse,
+    export, host,
+    wavs::types::{core::LogLevel, events::TriggerDataEvmContractEvent},
+    Guest, TriggerAction, WasmResponse,
 };
 use alloy_primitives::{Address, B256, U256};
 use alloy_sol_types::{sol, SolValue};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use wstd::runtime::block_on;
 
 mod config;
@@ -64,10 +66,14 @@ impl Guest for Component {
                 _ => return Ok(None),
             };
             match process_appraisal_evm(evm_event.clone()).await {
-                Ok(response) => Ok(Some(response)),
+                Ok(response) => {
+                    host::log(LogLevel::Info, &format!("{response:?}"));
+                    Ok(Some(response))
+                }
                 Err(e) => {
                     // Never bubble errors for paid EVM triggers; emit on-chain AppraisalError
                     let resp = create_error_response(&evm_event, e.to_string());
+                    host::log(LogLevel::Error, &format!("{resp:?}"));
                     Ok(Some(resp))
                 }
             }
@@ -108,99 +114,37 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
     }
     let tx_hash = B256::from(tx_hash_bytes);
 
-    // Helper to create error response
-    let create_error = |error_msg: String, group_id: [u8; 32]| -> WasmResponse {
-        let payload = AppraisalError {
-            contractAddress: contract_address,
-            tokenId: token_id,
-            groupId: group_id.into(),
-            error: error_msg,
-            txHash: tx_hash,
-        }
-        .abi_encode();
-
-        WasmResponse {
-            payload,
-            ordering: None,
-        }
-    };
-
     // Load and validate configuration
-    let config = match Config::new().and_then(|c| c.validate().map(|_| c)) {
-        Ok(config) => config,
-        Err(e) => {
-            return Ok(create_error(
-                format!("Configuration error: {}", e),
-                [0u8; 32],
-            ))
-        }
-    };
+    let config = Config::new().and_then(|c| c.validate().map(|_| c))?;
 
     // Query tokenURI from ERC721 contract
     let erc721_client = ERC721Client::new();
-    let token_uri = match erc721_client
+    let token_uri = erc721_client
         .get_token_uri(&request.chain, &request.contract_address, &request.token_id)
-        .await
-    {
-        Ok(uri) => uri,
-        Err(e) => {
-            return Ok(create_error(
-                format!("Failed to fetch tokenURI: {}", e),
-                [0u8; 32],
-            ))
-        }
-    };
+        .await?;
 
     // Check if this is a Courtyard NFT based on URI pattern
     if !token_uri.contains(&config.courtyard_base_url) {
-        return Ok(create_error(
-            "NFT appraisal only supports Courtyard NFTs".to_string(),
-            [0u8; 32],
-        ));
+        return Err(anyhow!("NFT appraisal only supports Courtyard NFTs"));
     }
 
     // Create Courtyard client and fetch metadata
     let courtyard_client = CourtyardClient::new();
-    let nft_metadata = match courtyard_client.get_nft_metadata_from_uri(&token_uri).await {
-        Ok(metadata) => metadata,
-        Err(e) => {
-            return Ok(create_error(
-                format!("Failed to fetch Courtyard metadata: {}", e),
-                [0u8; 32],
-            ))
-        }
-    };
+    let nft_metadata = courtyard_client
+        .get_nft_metadata_from_uri(&token_uri)
+        .await?;
 
     // Parse graded card information from metadata
-    let card_attributes = match courtyard_client.parse_graded_card_info(&nft_metadata) {
-        Ok(attributes) => attributes,
-        Err(e) => {
-            return Ok(create_error(
-                format!("Failed to parse graded card info: {}", e),
-                [0u8; 32], // Zero hash on error
-            ));
-        }
-    };
+    let card_attributes = courtyard_client.parse_graded_card_info(&nft_metadata)?;
 
     // Generate keccak hash for group ID
     let group_id_hash = card_attributes.to_keccak_hash();
 
     // Verify proof of integrity
-    match courtyard_client.verify_proof_of_integrity(&nft_metadata) {
-        Ok(true) => {} // Continue processing
-        Ok(false) => {
-            return Ok(create_error(
-                "Proof of integrity verification failed - NFT authenticity cannot be verified"
-                    .to_string(),
-                group_id_hash,
-            ));
-        }
-        Err(e) => {
-            return Ok(create_error(
-                format!("Proof of integrity verification error: {}", e),
-                group_id_hash,
-            ));
-        }
+    if !courtyard_client.verify_proof_of_integrity(&nft_metadata)? {
+        return Err(anyhow!(
+            "Proof of integrity verification failed - NFT authenticity cannot be verified"
+        ));
     }
 
     // Try to get cached price using card attributes keccak hash as key
@@ -312,33 +256,36 @@ async fn process_appraisal_evm(evm_event: TriggerDataEvmContractEvent) -> Result
         }
         Ok(Some(_)) => {
             // Price is zero or negative
-            Ok(create_error(
-                "Price unavailable or zero".to_string(),
-                group_id_hash,
-            ))
+            Err(anyhow!("Price unavailable or zero"))
         }
         Ok(None) => {
             // Card not found
-            Ok(create_error(
-                "Card not found in price database".to_string(),
-                group_id_hash,
-            ))
+            Err(anyhow!("Card not found in price database"))
         }
         Err(e) => {
             // API error
-            Ok(create_error(
-                format!("Pokemon Price Tracker API error: {}", e),
-                group_id_hash,
-            ))
+            Err(anyhow!("Pokemon Price Tracker API error: {}", e))
         }
     }
 }
 
-// Unified error response creator for early errors (before request parsing)
+// Unified error response creator for all errors
 fn create_error_response(evm_event: &TriggerDataEvmContractEvent, error: String) -> WasmResponse {
-    // Use defaults when we can't parse the request
-    let contract_address = Address::ZERO;
-    let token_id = U256::ZERO;
+    // Try to parse the request to get contract address and token ID
+    let (contract_address, token_id, group_id) =
+        if let Ok(request) = EventParser::parse_appraisal_request(evm_event) {
+            let contract_addr = request
+                .contract_address
+                .parse::<Address>()
+                .unwrap_or(Address::ZERO);
+            let token_id_val = U256::from_str_radix(request.token_id.trim_start_matches("0x"), 16)
+                .unwrap_or(U256::ZERO);
+            let group_id_val = [0u8; 32]; // We can't compute group_id without full processing
+            (contract_addr, token_id_val, group_id_val)
+        } else {
+            // Use defaults when we can't parse the request
+            (Address::ZERO, U256::ZERO, [0u8; 32])
+        };
 
     // Extract tx hash
     let mut tx_hash_bytes = [0u8; 32];
@@ -353,7 +300,7 @@ fn create_error_response(evm_event: &TriggerDataEvmContractEvent, error: String)
     let payload = AppraisalError {
         contractAddress: contract_address,
         tokenId: token_id,
-        groupId: [0u8; 32].into(), // Zero hash for early errors
+        groupId: group_id.into(),
         error,
         txHash: B256::from(tx_hash_bytes),
     }
