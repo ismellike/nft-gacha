@@ -30,10 +30,6 @@ Only accepts `TriggerData::EvmContractEvent` - all other trigger types are rejec
 ### Environment Variables (Secrets)
 - `WAVS_ENV_POKEMON_PRICE_API_KEY`: Your Pokemon Price Tracker API key (required)
 
-### Host Configuration Variables (Non-Secrets)
-- `CACHE_TTL_SECONDS`: Cache expiration time in seconds (default: 86400 = 24 hours)
-- `COURTYARD_BASE_URL`: Courtyard API base URL (default: https://api.courtyard.io)
-
 ## Request Format (EVM Event Data)
 
 The component expects an EVM contract event with the following Solidity event signature:

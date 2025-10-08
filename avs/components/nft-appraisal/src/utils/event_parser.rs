@@ -1,4 +1,4 @@
-use crate::{bindings::wavs::types::events::TriggerDataEvmContractEvent, AppraisalRequested};
+use crate::bindings::wavs::types::events::TriggerDataEvmContractEvent;
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use wavs_wasi_utils::decode_event_log_data;
@@ -20,7 +20,7 @@ impl EventParser {
         let chain = event.chain.clone();
 
         // Decode event data using WAVS pattern to get NFT contract address and token ID
-        let AppraisalRequested {
+        let crate::AppraisalRequested {
             nftContract,
             tokenId,
         } = decode_event_log_data!(event.log.data.clone())?;
