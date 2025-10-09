@@ -2121,6 +2121,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "hex",
+ "http",
  "regex",
  "serde",
  "serde_json",

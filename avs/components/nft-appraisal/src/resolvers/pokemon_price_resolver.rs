@@ -4,6 +4,7 @@
 //! parse-title endpoint from PokemonPriceTracker API.
 
 use anyhow::{anyhow, Result};
+use http::{header::AUTHORIZATION, HeaderValue};
 use serde::{Deserialize, Serialize};
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
@@ -89,21 +90,25 @@ impl PokemonPriceResolver {
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
-            base_url: "https://api.pokemonpricetracker.com".to_string(),
+            base_url: "https://www.pokemonpricetracker.com/api".to_string(),
         }
     }
 
     /// Query the parse-title endpoint to get card information
     async fn query_parse_title(&self, title: &str) -> Result<PokemonPriceResponse> {
         let url = format!(
-            "{}/v2/parse-title?title={}&apiKey={}",
+            "{}/parse-title?title={}",
             self.base_url,
-            urlencoding::encode(title),
-            self.api_key
+            urlencoding::encode(title)
         );
 
-        let request = http_request_get(&url)
+        let mut request = http_request_get(&url)
             .map_err(|e| anyhow!("Failed to create HTTP request for Pokemon API: {}", e))?;
+
+        let auth_header = format!("Bearer {}", self.api_key);
+        let header_value = HeaderValue::from_str(&auth_header)
+            .map_err(|e| anyhow!("Invalid Pokemon API key format: {}", e))?;
+        request.headers_mut().insert(AUTHORIZATION, header_value);
 
         let response_text = fetch_string(request)
             .await
@@ -152,32 +157,38 @@ impl PokemonPriceResolver {
 
     /// Extract the best price from card data based on grade
     fn extract_best_price(&self, data: &PokemonCardData, metadata: &CardMetadata) -> Option<f64> {
+        let market_price = data
+            .prices
+            .as_ref()
+            .and_then(|p| p.market.as_ref())
+            .and_then(|m| m.average);
+
         if let Some(ref grade_info) = metadata.grade_info {
             // For graded cards, try to get the specific grade price
             if let Some(graded_prices) = data.prices.as_ref().and_then(|p| p.graded.as_ref()) {
-                match grade_info.grader.to_uppercase().as_str() {
-                    "PSA" => match grade_info.numeric_grade.as_str() {
+                let normalized_grade = normalize_grade_value(&grade_info.numeric_grade);
+                let price = match grade_info.grader.to_uppercase().as_str() {
+                    "PSA" => match normalized_grade.as_str() {
                         "10" => graded_prices.psa10.as_ref().and_then(|p| p.average),
                         "9" => graded_prices.psa9.as_ref().and_then(|p| p.average),
                         _ => None,
                     },
-                    "BGS" => match grade_info.numeric_grade.as_str() {
+                    "BGS" => match normalized_grade.as_str() {
                         "10" => graded_prices.bgs10.as_ref().and_then(|p| p.average),
                         "9.5" => graded_prices.bgs95.as_ref().and_then(|p| p.average),
                         _ => None,
                     },
                     _ => None,
+                };
+
+                if let Some(value) = price {
+                    return Some(value);
                 }
-            } else {
-                None
             }
-        } else {
-            // For ungraded cards, use market price
-            data.prices
-                .as_ref()
-                .and_then(|p| p.market.as_ref())
-                .and_then(|m| m.average)
         }
+
+        // Fallback to market price (average) when a matching grade price isn't available
+        market_price
     }
 }
 
@@ -192,7 +203,7 @@ impl PriceResolver for PokemonPriceResolver {
             .card_info
             .category
             .as_ref()
-            .is_some_and(|cat| cat.to_lowercase() == "pokemon")
+            .is_some_and(|cat| normalize_category(cat) == "pokemon")
     }
 
     fn get_price(&self, metadata: &CardMetadata) -> Result<Option<AppraisalPrice>> {
@@ -223,6 +234,19 @@ impl PriceResolver for PokemonPriceResolver {
         }
 
         Ok(None)
+    }
+}
+
+fn normalize_category(value: &str) -> String {
+    value.to_lowercase().replace('é', "e")
+}
+
+fn normalize_grade_value(value: &str) -> String {
+    let trimmed = value.trim();
+    if let Some(stripped) = trimmed.strip_suffix(".0") {
+        stripped.to_string()
+    } else {
+        trimmed.to_string()
     }
 }
 
@@ -291,6 +315,25 @@ mod tests {
         };
 
         assert!(!resolver.can_resolve(&non_pokemon_metadata));
+    }
+
+    #[test]
+    fn test_can_resolve_pokemon_cards_with_accent() {
+        let resolver = PokemonPriceResolver::new("test_key".to_string());
+
+        let pokemon_metadata = CardMetadata {
+            provider: ProviderType::Courtyard,
+            card_info: CardInfo {
+                name: "Mew".to_string(),
+                category: Some("Pokémon".to_string()),
+                ..Default::default()
+            },
+            grade_info: None,
+            attributes: HashMap::new(),
+            provider_data: serde_json::json!({}),
+        };
+
+        assert!(resolver.can_resolve(&pokemon_metadata));
     }
 
     #[test]
@@ -398,5 +441,12 @@ mod tests {
 
         let price = resolver.extract_best_price(&card_data, &psa9_metadata);
         assert_eq!(price, Some(1000.0));
+    }
+
+    #[test]
+    fn test_normalize_grade_value() {
+        assert_eq!(normalize_grade_value("9.0"), "9");
+        assert_eq!(normalize_grade_value("10"), "10");
+        assert_eq!(normalize_grade_value(" 9.5 "), "9.5");
     }
 }

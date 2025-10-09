@@ -83,6 +83,8 @@ pub struct NFTAttribute {
 pub struct GradedCardAttributes {
     pub grader: String,
     pub grade: String,
+    pub grade_qualifier: Option<String>,
+    pub raw_grade: String,
     pub title: String,
     pub card_number: String,
     pub year: String,
@@ -172,11 +174,11 @@ impl CardParser {
             .get("Grader")
             .ok_or_else(|| anyhow!("Missing required Grader attribute"))?
             .clone();
-
-        let grade = all_attributes
+        let raw_grade = all_attributes
             .get("Grade")
             .ok_or_else(|| anyhow!("Missing required Grade attribute"))?
             .clone();
+        let (grade, grade_qualifier) = Self::split_grade(&raw_grade);
 
         let title = all_attributes
             .get("Title/Subject")
@@ -235,6 +237,8 @@ impl CardParser {
         Ok(GradedCardAttributes {
             grader,
             grade,
+            grade_qualifier,
+            raw_grade,
             title,
             card_number,
             year,
@@ -265,6 +269,50 @@ impl CardParser {
         }
 
         map
+    }
+
+    /// Split a raw grade label into numeric grade + optional qualifier (e.g. "9 MINT" -> ("9", Some("MINT")))
+    fn split_grade(raw_grade: &str) -> (String, Option<String>) {
+        let trimmed = raw_grade.trim();
+        if trimmed.is_empty() {
+            return (String::new(), None);
+        }
+
+        let mut parts = trimmed.split_whitespace();
+        if let Some(first) = parts.next() {
+            if first.chars().all(|c| c.is_ascii_digit() || c == '.') {
+                let qualifier = parts.collect::<Vec<_>>().join(" ");
+                let qualifier = if qualifier.is_empty() {
+                    None
+                } else {
+                    Some(qualifier)
+                };
+                return (first.to_string(), qualifier);
+            }
+        }
+
+        let mut numeric = String::new();
+        let mut reading = false;
+        for ch in trimmed.chars() {
+            if ch.is_ascii_digit() || ch == '.' {
+                reading = true;
+                numeric.push(ch);
+            } else if reading {
+                break;
+            }
+        }
+
+        if numeric.is_empty() {
+            return (trimmed.to_string(), None);
+        }
+
+        let qualifier = trimmed
+            .split_once(&numeric)
+            .map(|(_, tail)| tail.trim())
+            .filter(|tail| !tail.is_empty())
+            .map(|tail| tail.to_string());
+
+        (numeric, qualifier)
     }
 }
 
@@ -434,6 +482,10 @@ impl CourtyardProvider {
         attributes.insert("grader".to_string(), graded_attributes.grader.clone());
         attributes.insert("grade".to_string(), graded_attributes.grade.clone());
         attributes.insert(
+            "grade_display".to_string(),
+            graded_attributes.raw_grade.clone(),
+        );
+        attributes.insert(
             "card_number".to_string(),
             graded_attributes.card_number.clone(),
         );
@@ -460,7 +512,7 @@ impl CourtyardProvider {
         let grade_info = Some(CardGrade {
             grader: graded_attributes.grader.clone(),
             numeric_grade: graded_attributes.grade.clone(),
-            grade_qualifier: None,
+            grade_qualifier: graded_attributes.grade_qualifier.clone(),
             serial: graded_attributes.other_attributes.get("Serial").cloned(),
             integrity_proof: graded_attributes.integrity_proof,
         });
@@ -555,6 +607,20 @@ mod tests {
         assert_eq!(map.get("Grader"), Some(&"PSA".to_string()));
         assert_eq!(map.get("Grade"), Some(&"10".to_string()));
         assert!(!map.contains_key("Holo")); // trait_type is None
+    }
+
+    #[test]
+    fn test_split_grade_numeric_with_qualifier() {
+        let (grade, qualifier) = CardParser::split_grade("9 MINT");
+        assert_eq!(grade, "9");
+        assert_eq!(qualifier, Some("MINT".to_string()));
+    }
+
+    #[test]
+    fn test_split_grade_with_prefix() {
+        let (grade, qualifier) = CardParser::split_grade("PSA 10 GEM MINT");
+        assert_eq!(grade, "10");
+        assert_eq!(qualifier, Some("GEM MINT".to_string()));
     }
 
     #[test]
