@@ -73,7 +73,7 @@ impl AppraisalCache {
 
 impl Default for AppraisalCache {
     fn default() -> Self {
-        Self::new(Duration::from_secs(3600)) // 1 hour TTL
+        Self::new(Duration::from_secs(86_400)) // 24 hour TTL
     }
 }
 
