@@ -1,6 +1,7 @@
 use crate::types::CardMetadata;
 use anyhow::Result;
 use serde::Serialize;
+use std::time::Duration;
 
 /// Aggregated price information returned by a resolver.
 #[derive(Debug, Clone, Serialize)]
@@ -9,6 +10,13 @@ pub struct AppraisalPrice {
     pub currency: String,
     pub source: String,
     pub context: Option<serde_json::Value>,
+}
+
+/// Resolver output including cache instructions.
+#[derive(Debug, Clone)]
+pub struct ResolverQuote {
+    pub price: AppraisalPrice,
+    pub ttl: Duration,
 }
 
 /// Trait for turning unified metadata into price quotes.
@@ -20,5 +28,5 @@ pub trait PriceResolver: Send + Sync {
     fn can_resolve(&self, metadata: &CardMetadata) -> bool;
 
     /// Resolve pricing information for the provided metadata.
-    fn get_price(&self, metadata: &CardMetadata) -> Result<Option<AppraisalPrice>>;
+    fn get_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>>;
 }

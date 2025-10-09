@@ -6,9 +6,10 @@
 use anyhow::{anyhow, Result};
 use http::{header::AUTHORIZATION, HeaderValue};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
-use crate::traits::pricing::{AppraisalPrice, PriceResolver};
+use crate::traits::pricing::{AppraisalPrice, PriceResolver, ResolverQuote};
 use crate::types::CardMetadata;
 
 // ============================================================================
@@ -147,7 +148,7 @@ impl PokemonPriceResolver {
 
         // Category/Pokemon
         if let Some(ref category) = metadata.card_info.category {
-            if category.to_lowercase() == "pokemon" {
+            if normalize_category(category) == "pokemon" {
                 title_parts.push("Pokemon".to_string());
             }
         }
@@ -206,7 +207,7 @@ impl PriceResolver for PokemonPriceResolver {
             .is_some_and(|cat| normalize_category(cat) == "pokemon")
     }
 
-    fn get_price(&self, metadata: &CardMetadata) -> Result<Option<AppraisalPrice>> {
+    fn get_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>> {
         // Build search title from card metadata
         let search_title = self.build_search_title(metadata);
 
@@ -225,11 +226,14 @@ impl PriceResolver for PokemonPriceResolver {
         let price = self.extract_best_price(&card_data, metadata);
 
         if let Some(price_value) = price {
-            return Ok(Some(AppraisalPrice {
-                value: price_value,
-                currency: "USD".to_string(),
-                source: self.name().to_string(),
-                context: Some(serde_json::to_value(card_data)?),
+            return Ok(Some(ResolverQuote {
+                price: AppraisalPrice {
+                    value: price_value,
+                    currency: "USD".to_string(),
+                    source: self.name().to_string(),
+                    context: Some(serde_json::to_value(card_data)?),
+                },
+                ttl: Duration::from_secs(86_400),
             }));
         }
 

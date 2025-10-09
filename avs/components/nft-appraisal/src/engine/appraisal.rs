@@ -4,7 +4,7 @@ use std::fmt;
 use crate::providers::CourtyardProvider;
 use crate::resolvers::PokemonPriceResolver;
 use crate::traits::metadata::MetadataProvider;
-use crate::traits::pricing::{AppraisalPrice, PriceResolver};
+use crate::traits::pricing::{PriceResolver, ResolverQuote};
 use crate::types::CardMetadata;
 
 /// Coordinates metadata providers and price resolvers for NFT appraisals.
@@ -54,14 +54,14 @@ impl AppraisalEngine {
         Err(anyhow!("No metadata provider registered for URI: {}", uri))
     }
 
-    pub fn resolve_price(&self, metadata: &CardMetadata) -> Result<Option<AppraisalPrice>> {
+    pub fn resolve_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>> {
         for resolver in &self.price_resolvers {
             if resolver.can_resolve(metadata) {
-                if let Some(mut price) = resolver.get_price(metadata)? {
-                    if price.source.is_empty() {
-                        price.source = resolver.name().to_string();
+                if let Some(mut quote) = resolver.get_price(metadata)? {
+                    if quote.price.source.is_empty() {
+                        quote.price.source = resolver.name().to_string();
                     }
-                    return Ok(Some(price));
+                    return Ok(Some(quote));
                 }
                 return Ok(None);
             }
