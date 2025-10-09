@@ -14,24 +14,22 @@ contract ERC20BatchQuery {
     /// @param tokenAddress ERC20 token contract address
     /// @param userAddress User address to check balance for (optional, use address(0) to skip)
     /// @return name Token name
-    /// @return symbol Token symbol  
+    /// @return symbol Token symbol
     /// @return decimals Token decimals
     /// @return totalSupply Total token supply
     /// @return userBalance User's token balance (0 if userAddress is address(0))
-    function getTokenInfoBatch(address tokenAddress, address userAddress) external view returns (
-        string memory name,
-        string memory symbol,
-        uint8 decimals,
-        uint256 totalSupply,
-        uint256 userBalance
-    ) {
+    function getTokenInfoBatch(address tokenAddress, address userAddress)
+        external
+        view
+        returns (string memory name, string memory symbol, uint8 decimals, uint256 totalSupply, uint256 userBalance)
+    {
         IERC20Metadata token = IERC20Metadata(tokenAddress);
-        
+
         name = token.name();
         symbol = token.symbol();
         decimals = token.decimals();
         totalSupply = token.totalSupply();
-        
+
         if (userAddress != address(0)) {
             userBalance = token.balanceOf(userAddress);
         } else {
@@ -45,10 +43,13 @@ contract ERC20BatchQuery {
     /// @param spenderAddress Spender address for allowance check
     /// @return balance User's token balance
     /// @return allowance User's allowance for the spender
-    function getBalanceAndAllowanceBatch(address tokenAddress, address userAddress, address spenderAddress) 
-        external view returns (uint256 balance, uint256 allowance) {
+    function getBalanceAndAllowanceBatch(address tokenAddress, address userAddress, address spenderAddress)
+        external
+        view
+        returns (uint256 balance, uint256 allowance)
+    {
         IERC20 token = IERC20(tokenAddress);
-        
+
         balance = token.balanceOf(userAddress);
         allowance = token.allowance(userAddress, spenderAddress);
     }
@@ -58,10 +59,13 @@ contract ERC20BatchQuery {
     /// @param userAddresses Array of user addresses to check
     /// @return balances Array of token balances corresponding to user addresses
     function getMultipleBalancesBatch(address tokenAddress, address[] calldata userAddresses)
-        external view returns (uint256[] memory balances) {
+        external
+        view
+        returns (uint256[] memory balances)
+    {
         IERC20 token = IERC20(tokenAddress);
         balances = new uint256[](userAddresses.length);
-        
+
         for (uint256 i = 0; i < userAddresses.length; i++) {
             balances[i] = token.balanceOf(userAddresses[i]);
         }

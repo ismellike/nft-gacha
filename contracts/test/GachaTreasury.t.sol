@@ -24,12 +24,8 @@ contract GachaTreasuryTest is Test {
         address mockGacha = address(0x999);
 
         vm.startPrank(owner);
-        bytes memory initData = abi.encodeWithSelector(
-            GachaTreasury.initialize.selector,
-            owner,
-            mockGacha,
-            address(mockAppraisal)
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(GachaTreasury.initialize.selector, owner, mockGacha, address(mockAppraisal));
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
         treasury = GachaTreasury(address(proxy));

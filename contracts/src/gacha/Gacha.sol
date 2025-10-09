@@ -10,8 +10,7 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/
 import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
-import {GachaRewardsManager} from "../rewards/GachaRewardsManager.sol";
-import {IGachaRewardsManager} from "../interfaces/IGachaRewardsManager.sol";
+import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
 import {RandomnessRequested} from "../interfaces/WavsDrandTypes.sol";
 
 /**
@@ -44,7 +43,7 @@ contract Gacha is
     error NoNFTsAvailable(GachaTreasury.Rarity rarity);
     error UnauthorizedServiceHandler();
     error InvalidTreasuryContract();
-    error InvalidRewardsManager();
+    error InvalidEconomyManager();
     error CannotReclaimFulfilledSpin();
     error NotSpinRequester();
     error InvalidGachaInitialization();
@@ -59,7 +58,7 @@ contract Gacha is
     /// @notice Core contract interfaces and addresses
     GachaTreasury public treasury;
     IERC20 public feeToken;
-    IGachaRewardsManager public rewardsManager;
+    IGachaEconomyManager public economyManager;
     address public gachaServiceHandler;
 
     /// @notice Fee configuration
@@ -109,7 +108,8 @@ contract Gacha is
     event GachaServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
     event EmergencyPause(address indexed admin);
     event EmergencyUnpause(address indexed admin);
-    event RewardsDistributed(uint256 rewardsAmount);
+    event SpinRevenueForwarded(uint256 amount);
+    event EconomyManagerUpdated(address indexed oldManager, address indexed newManager);
 
     /// @notice Enhanced events for better UX tracking
     event SpinStatusUpdate(uint256 indexed triggerId, address indexed requester, string status, uint256 timestamp);
@@ -121,7 +121,7 @@ contract Gacha is
     }
 
     /// @notice Custom gap for future storage variables (50 slots)
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     /**
      * @notice Initializes the Gacha contract with required dependencies
@@ -129,15 +129,15 @@ contract Gacha is
      * @param _feeToken Token used for spin fees (can be zero address for free spins)
      * @param _spinFee Amount of tokens required per spin
      * @param _treasury Address of the NFT treasury contract
-     * @param _rewardsManager Address of the rewards distribution contract
+     * @param _economyManager Address of the economy manager contract
      */
     function initialize(
-        address /* _owner */,
+        address, /* _owner */
         address _gachaServiceHandler,
         address _feeToken,
         uint256 _spinFee,
         address _treasury,
-        address _rewardsManager
+        address _economyManager
     ) public initializer {
         __Ownable_init();
         __Pausable_init();
@@ -147,7 +147,7 @@ contract Gacha is
         // Validate critical addresses
         if (_gachaServiceHandler == address(0)) revert InvalidServiceHandler();
         if (_treasury == address(0)) revert InvalidTreasuryContract();
-        if (_rewardsManager == address(0)) revert InvalidRewardsManager();
+        if (_economyManager == address(0)) revert InvalidEconomyManager();
 
         // Validate fee configuration (allow zero fee with zero token for free spins)
         if (_spinFee == 0 && _feeToken != address(0)) revert InvalidFeeToken();
@@ -158,7 +158,7 @@ contract Gacha is
         gachaServiceHandler = _gachaServiceHandler;
         feeToken = IERC20(_feeToken);
         spinFee = _spinFee;
-        rewardsManager = IGachaRewardsManager(_rewardsManager);
+        economyManager = IGachaEconomyManager(_economyManager);
 
         // Initialize trigger ID to start from 1 instead of 0
         _nextTriggerId = 1;
@@ -410,13 +410,13 @@ contract Gacha is
         uint256 totalFeeBalance = feeToken.balanceOf(address(this));
         if (totalFeeBalance == 0) return;
 
-        // For new three-tier rewards system, approve the rewards manager to spend our tokens
-        feeToken.safeIncreaseAllowance(address(rewardsManager), totalFeeBalance);
+        IGachaEconomyManager manager = economyManager;
+        if (address(manager) == address(0)) revert InvalidEconomyManager();
 
-        // Call new rewards manager with hit rarity information
-        rewardsManager.processSpinRewards(totalFeeBalance, hitRarity);
+        feeToken.forceApprove(address(manager), totalFeeBalance);
+        manager.onSpinRevenue(totalFeeBalance, hitRarity);
 
-        emit RewardsDistributed(totalFeeBalance); // Manager handles the split
+        emit SpinRevenueForwarded(totalFeeBalance);
     }
 
     function getTreasuryAddress() external view returns (address) {
@@ -529,9 +529,11 @@ contract Gacha is
 
     /// @notice Update rewards manager address (for testing/emergency purposes)
     /// @dev Only owner can call this function
-    function setRewardsManager(address _rewardsManager) external onlyOwner {
-        if (_rewardsManager == address(0)) revert InvalidRewardsManager();
-        rewardsManager = IGachaRewardsManager(_rewardsManager);
+    function setEconomyManager(address _economyManager) external onlyOwner {
+        if (_economyManager == address(0)) revert InvalidEconomyManager();
+        address oldManager = address(economyManager);
+        economyManager = IGachaEconomyManager(_economyManager);
+        emit EconomyManagerUpdated(oldManager, _economyManager);
     }
 
     // ============ PRICE-BASED TREASURY INTEGRATION ============
@@ -589,14 +591,18 @@ contract Gacha is
     /// @return rarityWeights Current rarity weights [Common, Uncommon, Rare, Epic, Legendary]
     /// @return totalWeight Sum of all rarity weights
     /// @return isAvailable Whether gacha has NFTs available
-    function getGachaConfigBatch() external view returns (
-        address feeTokenAddr,
-        uint256 spinFeeAmount,
-        bool isPaused,
-        uint256[5] memory rarityWeights,
-        uint256 totalWeight,
-        bool isAvailable
-    ) {
+    function getGachaConfigBatch()
+        external
+        view
+        returns (
+            address feeTokenAddr,
+            uint256 spinFeeAmount,
+            bool isPaused,
+            uint256[5] memory rarityWeights,
+            uint256 totalWeight,
+            bool isAvailable
+        )
+    {
         feeTokenAddr = address(feeToken);
         spinFeeAmount = spinFee;
         isPaused = paused();
@@ -619,13 +625,17 @@ contract Gacha is
     /// @return totalReclaims Total reclaims for user
     /// @return rarityWins Wins per rarity [Common, Uncommon, Rare, Epic, Legendary]
     /// @return spinCount Total spin count (same as totalSpins, for compatibility)
-    function getUserGachaBatch(address user) external view returns (
-        uint256 totalSpins,
-        uint256 totalRefunds,
-        uint256 totalReclaims,
-        uint256[5] memory rarityWins,
-        uint256 spinCount
-    ) {
+    function getUserGachaBatch(address user)
+        external
+        view
+        returns (
+            uint256 totalSpins,
+            uint256 totalRefunds,
+            uint256 totalReclaims,
+            uint256[5] memory rarityWins,
+            uint256 spinCount
+        )
+    {
         // Get user analytics inline
         totalSpins = userSpinCount[user];
         totalRefunds = userRefundCount[user];

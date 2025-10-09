@@ -140,7 +140,7 @@ contract SimpleCardTrackingTest is Test {
         mockAppraisal.setMockAppraisal(address(nft), token2, 75 * 1e18); // $75
         mockAppraisal.setMockAppraisal(address(nft), token3, 50 * 1e18); // $50
         mockAppraisal.setMockAppraisal(address(nft), token4, 75 * 1e18); // $75
-        
+
         // Then set different card mappings
         mockAppraisal.setTokenCardId(address(nft), token1, CARD_A);
         mockAppraisal.setTokenCardId(address(nft), token2, CARD_B);

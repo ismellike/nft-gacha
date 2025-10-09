@@ -35,13 +35,8 @@ interface IGacha {
     /// @param _rare Weight for rare rarity
     /// @param _epic Weight for epic rarity
     /// @param _legendary Weight for legendary rarity
-    function setRarityWeights(
-        uint256 _common,
-        uint256 _uncommon,
-        uint256 _rare,
-        uint256 _epic,
-        uint256 _legendary
-    ) external;
+    function setRarityWeights(uint256 _common, uint256 _uncommon, uint256 _rare, uint256 _epic, uint256 _legendary)
+        external;
 
     /// @notice Spin the gacha
     /// @return triggerId The trigger ID for randomness fulfillment

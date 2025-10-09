@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.27;
+
+import {GachaTreasury} from "../gacha/GachaTreasury.sol";
+
+/**
+ * @title IGachaEconomyManager
+ * @notice Interface for routing spin revenue through the NFT Gacha economy loop
+ */
+interface IGachaEconomyManager {
+    /**
+     * @notice Emitted whenever spin revenue is processed
+     * @param amount Total USDC processed
+     * @param depositorShare Amount forwarded to the depositor vault
+     * @param buybackShare Amount forwarded to the buyback vault
+     * @param protocolShare Amount forwarded to the protocol treasury
+     */
+    event SpinRevenueReceived(uint256 amount, uint256 depositorShare, uint256 buybackShare, uint256 protocolShare);
+
+    /**
+     * @notice Emitted when fee splits are updated
+     * @param depositorShareBps New depositor share in BPS
+     * @param buybackShareBps New buyback share in BPS
+     * @param protocolShareBps New protocol share in BPS
+     */
+    event RevenueSplitUpdated(uint256 depositorShareBps, uint256 buybackShareBps, uint256 protocolShareBps);
+
+    /**
+     * @notice Processes spin revenue and forwards shares to downstream vaults
+     * @param usdcAmount Amount of USDC (6 decimals) collected for the spin
+     * @param hitRarity Rarity executed, for analytical eventing
+     */
+    function onSpinRevenue(uint256 usdcAmount, GachaTreasury.Rarity hitRarity) external;
+
+    /**
+     * @notice Basis points for depositor share
+     */
+    function depositorShareBps() external view returns (uint256);
+
+    /**
+     * @notice Basis points for buyback share
+     */
+    function buybackShareBps() external view returns (uint256);
+
+    /**
+     * @notice Basis points for protocol share
+     */
+    function protocolShareBps() external view returns (uint256);
+}

@@ -137,7 +137,7 @@ contract NFTAppraisal is
      * @param _appraisalFee Fee amount for each appraisal request
      * @param _protocolAddress Address to receive protocol fees
      */
-    function initialize(address /* _owner */, address _feeToken, uint256 _appraisalFee, address _protocolAddress)
+    function initialize(address, /* _owner */ address _feeToken, uint256 _appraisalFee, address _protocolAddress)
         public
         initializer
     {
