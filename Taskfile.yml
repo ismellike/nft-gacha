@@ -29,16 +29,20 @@ tasks:
       - |
         if [ -f .env.local ]; then
           rm .env.local
-          echo "🧹 Removed old .env.local file"
         fi
+
+  pnpm-install:
+    dir: contracts
+    cmds:
+      - pnpm i
 
   init-submodules:
     dir: contracts
     cmds:
-      - git submodule update --init --recursive
+      - git submodule update --init --recursive --remote --force
 
   bootstrap:
-    deps: [clean-env, init-submodules]
+    deps: [clean-env, init-submodules, pnpm-install]
     cmds:
       - |
         task backend:start 

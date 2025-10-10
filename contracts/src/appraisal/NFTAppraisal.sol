@@ -7,8 +7,8 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {AppraisalRequested} from "../interfaces/NFTAppraisalTypes.sol";
 
@@ -23,7 +23,7 @@ contract NFTAppraisal is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
+    ReentrancyGuardTransient,
     UUPSUpgradeable
 {
     using SafeERC20 for IERC20;
@@ -141,10 +141,9 @@ contract NFTAppraisal is
         public
         initializer
     {
-        __Ownable_init();
+        __Ownable_init(msg.sender);
         __Pausable_init();
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
+        // ReentrancyGuardTransient doesn't need initialization
 
         if (_feeToken == address(0)) revert InvalidFeeToken();
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();

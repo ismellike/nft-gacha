@@ -1,0 +1,514 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.27;
+
+import {Test, console2} from "forge-std/Test.sol";
+import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
+import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
+import {BaseERC20} from "../src/tokens/BaseERC20.sol";
+import {BaseERC721} from "../src/tokens/BaseERC721.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
+/**
+ * @title NFT Appraisal Economics Tests
+ * @notice Tests the economic impact of NFT appraisals on the gacha system
+ * @dev Focuses on price discovery, rarity assignment, and economic flows
+ */
+contract NFTAppraisalEconomicsTest is Test {
+    NFTAppraisal public appraisal;
+    GachaTreasury public treasury;
+    BaseERC20 public usdc;
+    BaseERC721 public collection;
+
+    address public owner = address(0x1);
+    address public oracle = address(0x2);
+    address public user = address(0x3);
+    address public protocol = address(0x4);
+
+    // Economic constants
+    uint256 public constant APPRAISAL_FEE = 10e18; // 10 tokens
+    uint256 public constant INITIAL_BALANCE = 1000e18;
+
+    // Price tiers (USD values in 18 decimals)
+    uint256 public constant COMMON_PRICE = 50e18;      // $50
+    uint256 public constant UNCOMMON_PRICE = 250e18;   // $250
+    uint256 public constant RARE_PRICE = 1000e18;      // $1,000
+    uint256 public constant EPIC_PRICE = 5000e18;      // $5,000
+    uint256 public constant LEGENDARY_PRICE = 15000e18; // $15,000
+
+    // Card IDs for testing
+    bytes32 public constant CARD_COMMON = keccak256("CARD_COMMON");
+    bytes32 public constant CARD_UNCOMMON = keccak256("CARD_UNCOMMON");
+    bytes32 public constant CARD_RARE = keccak256("CARD_RARE");
+    bytes32 public constant CARD_EPIC = keccak256("CARD_EPIC");
+    bytes32 public constant CARD_LEGENDARY = keccak256("CARD_LEGENDARY");
+
+    event AppraisalRequested(address indexed nftContract, uint256 indexed tokenId);
+    event AppraisalCompleted(address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed oracle, uint256 timestamp);
+    event AppraisalOverridden(address indexed collection, uint256 indexed tokenId, uint256 oldPriceUSD, uint256 newPriceUSD, address indexed owner);
+
+    function setUp() public {
+        // Deploy tokens
+        usdc = new BaseERC20("USDC", "USDC", owner);
+        collection = new BaseERC721("Test Collection", "TEST", owner);
+
+        // Fund user
+        vm.startPrank(owner);
+        usdc.mint(user, INITIAL_BALANCE);
+        collection.mint(user); // tokenId 0
+        collection.mint(user); // tokenId 1
+        collection.mint(user); // tokenId 2
+        collection.mint(user); // tokenId 3
+        collection.mint(user); // tokenId 4
+        vm.stopPrank();
+
+        // Deploy appraisal contract
+        _deployAppraisalContract();
+
+        // Deploy treasury
+        _deployTreasuryContract();
+
+        // Setup approvals
+        vm.prank(user);
+        usdc.approve(address(appraisal), type(uint256).max);
+    }
+
+    function _deployAppraisalContract() internal {
+        vm.startPrank(owner);
+        NFTAppraisal appraisalImpl = new NFTAppraisal();
+
+        bytes memory initData = abi.encodeWithSelector(
+            NFTAppraisal.initialize.selector,
+            owner,
+            address(usdc),
+            APPRAISAL_FEE,
+            protocol
+        );
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), initData);
+        appraisal = NFTAppraisal(address(proxy));
+
+        // Set oracle
+        appraisal.setServiceHandler(oracle);
+        vm.stopPrank();
+    }
+
+    function _deployTreasuryContract() internal {
+        vm.startPrank(owner);
+        GachaTreasury treasuryImpl = new GachaTreasury();
+
+        bytes memory initData = abi.encodeWithSelector(
+            GachaTreasury.initialize.selector,
+            owner,
+            address(this), // Mock gacha
+            address(appraisal)
+        );
+
+        ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
+        treasury = GachaTreasury(address(proxy));
+
+        // Whitelist collection
+        treasury.addToWhitelist(address(collection));
+        vm.stopPrank();
+    }
+
+    /**
+     * @notice Test appraisal fee collection and protocol revenue
+     */
+    function testAppraisalFeeEconomics() public {
+        uint256 protocolBalanceBefore = usdc.balanceOf(protocol);
+        uint256 userBalanceBefore = usdc.balanceOf(user);
+
+        // Request appraisal
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), 0);
+
+        // Check fee collection
+        assertEq(
+            usdc.balanceOf(protocol),
+            protocolBalanceBefore + APPRAISAL_FEE,
+            "Protocol should receive appraisal fee"
+        );
+        assertEq(
+            usdc.balanceOf(user),
+            userBalanceBefore - APPRAISAL_FEE,
+            "User should pay appraisal fee"
+        );
+
+        // Verify appraisal status
+        NFTAppraisal.Appraisal memory appraisalInfo = appraisal.getAppraisal(address(collection), 0);
+        assertEq(appraisalInfo.requester, user, "Should track requester");
+        assertEq(uint256(appraisalInfo.status), uint256(NFTAppraisal.AppraisalStatus.Pending), "Should be pending");
+    }
+
+    /**
+     * @notice Test price discovery and rarity assignment
+     */
+    function testPriceDiscoveryAndRarityAssignment() public {
+        uint256 tokenId = 0;
+        bytes32 cardId = CARD_COMMON;
+
+        // Request appraisal
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), tokenId);
+
+        // Oracle sets price
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(collection), tokenId, cardId, COMMON_PRICE);
+
+        // Verify appraisal
+        (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(collection), tokenId);
+        assertEq(price, COMMON_PRICE, "Should store correct price");
+        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.Completed), "Should be completed");
+
+        // Test rarity assignment in treasury
+        vm.startPrank(user);
+        collection.approve(address(treasury), tokenId);
+        treasury.depositNFT(address(collection), tokenId);
+        vm.stopPrank();
+
+        assertEq(
+            treasury.getRarityCount(GachaTreasury.Rarity.Common),
+            1,
+            "Should be assigned Common rarity based on price"
+        );
+    }
+
+    /**
+     * @notice Test price-based rarity boundary conditions
+     */
+    function testRarityBoundaryConditions() public {
+        // Test exact boundary prices
+        uint256[] memory boundaryPrices = new uint256[](5);
+        GachaTreasury.Rarity[] memory expectedRarities = new GachaTreasury.Rarity[](5);
+
+        // Common: $0-$100
+        boundaryPrices[0] = 1e18;    // Edge case: $1 (minimum valid price)
+        expectedRarities[0] = GachaTreasury.Rarity.Common;
+
+        // Uncommon: $100-$500
+        boundaryPrices[1] = 100e18;   // Exact boundary
+        expectedRarities[1] = GachaTreasury.Rarity.Uncommon;
+
+        // Rare: $500-$2000
+        boundaryPrices[2] = 500e18;   // Exact boundary
+        expectedRarities[2] = GachaTreasury.Rarity.Rare;
+
+        // Epic: $2000-$10000
+        boundaryPrices[3] = 2000e18;  // Exact boundary
+        expectedRarities[3] = GachaTreasury.Rarity.Epic;
+
+        // Legendary: $10000+
+        boundaryPrices[4] = 10000e18; // Exact boundary
+        expectedRarities[4] = GachaTreasury.Rarity.Legendary;
+
+        for (uint256 i = 0; i < 5; i++) {
+            uint256 tokenId = i;
+
+            // Request and complete appraisal
+            vm.prank(user);
+            appraisal.requestAppraisal(address(collection), tokenId);
+
+            bytes32 cardId = keccak256(abi.encodePacked("CARD_", i));
+            vm.prank(oracle);
+            appraisal.setAppraisalForTokenWithCard(address(collection), tokenId, cardId, boundaryPrices[i]);
+
+            // Deposit and check rarity
+            vm.startPrank(user);
+            collection.approve(address(treasury), tokenId);
+            treasury.depositNFT(address(collection), tokenId);
+            vm.stopPrank();
+
+            assertEq(
+                treasury.getRarityCount(expectedRarities[i]),
+                1,
+                string(abi.encodePacked("Should assign correct rarity for boundary price ", boundaryPrices[i]))
+            );
+        }
+    }
+
+    /**
+     * @notice Test card-based pricing consistency
+     */
+    function testCardBasedPricingConsistency() public {
+        bytes32 cardId = CARD_RARE;
+        uint256 price = RARE_PRICE;
+
+        // Multiple tokens with same card should have same price
+        uint256[] memory tokenIds = new uint256[](3);
+        tokenIds[0] = 0;
+        tokenIds[1] = 1;
+        tokenIds[2] = 2;
+
+        for (uint256 i = 0; i < 3; i++) {
+            // Request appraisal
+            vm.prank(user);
+            appraisal.requestAppraisal(address(collection), tokenIds[i]);
+
+            // Set price with same card
+            vm.prank(oracle);
+            appraisal.setAppraisalForTokenWithCard(address(collection), tokenIds[i], cardId, price);
+
+            // Verify price consistency
+            (uint256 tokenPrice,) = appraisal.getAppraisedPrice(address(collection), tokenIds[i]);
+            assertEq(tokenPrice, price, "Same card should have same price");
+        }
+    }
+
+    /**
+     * @notice Test price updates and economic impact
+     */
+    function testPriceUpdatesAndEconomicImpact() public {
+        uint256 tokenId = 0;
+        bytes32 cardId = CARD_EPIC;
+        uint256 initialPrice = EPIC_PRICE;
+        uint256 updatedPrice = LEGENDARY_PRICE; // Price increase
+
+        // Initial appraisal
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), tokenId);
+
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(collection), tokenId, cardId, initialPrice);
+
+        // Deposit NFT
+        vm.startPrank(user);
+        collection.approve(address(treasury), tokenId);
+        treasury.depositNFT(address(collection), tokenId);
+        vm.stopPrank();
+
+        // Verify initial rarity
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Initial rarity should be Epic");
+
+        // Price update through re-appraisal
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), tokenId);
+
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(collection), tokenId, cardId, updatedPrice);
+
+        // Withdraw and re-deposit to test rarity update
+        vm.startPrank(user);
+        treasury.withdrawMyNFT(address(collection), tokenId);
+        collection.approve(address(treasury), tokenId);
+        treasury.depositNFT(address(collection), tokenId);
+        vm.stopPrank();
+
+        // Should now be Legendary
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0, "Should no longer be Epic");
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 1, "Should now be Legendary");
+    }
+
+    /**
+     * @notice Test owner override and economic implications
+     */
+    function testOwnerOverrideEconomics() public {
+        uint256 tokenId = 0;
+        bytes32 cardId = CARD_COMMON;
+        uint256 oraclePrice = COMMON_PRICE;
+        uint256 ownerPrice = LEGENDARY_PRICE; // Significant price difference
+
+        // Oracle appraisal
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), tokenId);
+
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(collection), tokenId, cardId, oraclePrice);
+
+        // Verify oracle price
+        (uint256 price,) = appraisal.getAppraisedPrice(address(collection), tokenId);
+        assertEq(price, oraclePrice, "Should initially have oracle price");
+
+        // Owner override
+        vm.prank(owner);
+        appraisal.ownerSetAppraisalForTokenWithCard(address(collection), tokenId, cardId, ownerPrice);
+
+        // Verify override
+        NFTAppraisal.Appraisal memory appraisalInfo = appraisal.getAppraisal(address(collection), tokenId);
+        price = appraisalInfo.priceUSD;
+        NFTAppraisal.AppraisalStatus status = appraisalInfo.status;
+        assertEq(price, ownerPrice, "Should have owner override price");
+        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Should be owner override status");
+
+        // Test economic impact in treasury
+        vm.startPrank(user);
+        collection.approve(address(treasury), tokenId);
+        treasury.depositNFT(address(collection), tokenId);
+        vm.stopPrank();
+
+        assertEq(
+            treasury.getRarityCount(GachaTreasury.Rarity.Legendary),
+            1,
+            "Should be Legendary based on owner override price"
+        );
+    }
+
+    /**
+     * @notice Test batch appraisal economics
+     */
+    function testBatchAppraisalEconomics() public {
+        uint256 numAppraisals = 5;
+        uint256 totalFees = numAppraisals * APPRAISAL_FEE;
+
+        uint256 protocolBalanceBefore = usdc.balanceOf(protocol);
+        uint256 userBalanceBefore = usdc.balanceOf(user);
+
+        // Request multiple appraisals
+        for (uint256 i = 0; i < numAppraisals; i++) {
+            vm.prank(user);
+            appraisal.requestAppraisal(address(collection), i);
+        }
+
+        // Check fee collection
+        assertEq(
+            usdc.balanceOf(protocol),
+            protocolBalanceBefore + totalFees,
+            "Protocol should receive all appraisal fees"
+        );
+        assertEq(
+            usdc.balanceOf(user),
+            userBalanceBefore - totalFees,
+            "User should pay all appraisal fees"
+        );
+
+        // Complete all appraisals with different prices
+        uint256[] memory prices = new uint256[](numAppraisals);
+        prices[0] = COMMON_PRICE;
+        prices[1] = UNCOMMON_PRICE;
+        prices[2] = RARE_PRICE;
+        prices[3] = EPIC_PRICE;
+        prices[4] = LEGENDARY_PRICE;
+
+        for (uint256 i = 0; i < numAppraisals; i++) {
+            bytes32 cardId = keccak256(abi.encodePacked("CARD_", i));
+            vm.prank(oracle);
+            appraisal.setAppraisalForTokenWithCard(address(collection), i, cardId, prices[i]);
+        }
+
+        // Deposit all NFTs and verify rarity distribution
+        vm.startPrank(user);
+        for (uint256 i = 0; i < numAppraisals; i++) {
+            collection.approve(address(treasury), i);
+            treasury.depositNFT(address(collection), i);
+        }
+        vm.stopPrank();
+
+        // Verify one NFT in each rarity tier
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should have 1 Common");
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Uncommon), 1, "Should have 1 Uncommon");
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 1, "Should have 1 Rare");
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Should have 1 Epic");
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 1, "Should have 1 Legendary");
+    }
+
+    /**
+     * @notice Test appraisal fee economics with different fee structures
+     */
+    function testVariableAppraisalFees() public {
+        uint256 newFee = APPRAISAL_FEE * 2; // Double the fee
+        uint256 protocolBalanceBefore = usdc.balanceOf(protocol);
+        uint256 userBalanceBefore = usdc.balanceOf(user);
+
+        // Update fee
+        vm.prank(owner);
+        appraisal.setAppraisalFee(newFee);
+
+        // Request appraisal with new fee
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), 0);
+
+        // Check new fee collection
+        assertEq(
+            usdc.balanceOf(protocol),
+            protocolBalanceBefore + newFee,
+            "Protocol should receive increased fee"
+        );
+        assertEq(
+            usdc.balanceOf(user),
+            userBalanceBefore - newFee,
+            "User should pay increased fee"
+        );
+    }
+
+    /**
+     * @notice Test incomplete appraisal economic impact
+     */
+    function testIncompleteAppraisalEconomics() public {
+        uint256 tokenId = 0;
+
+        // Request appraisal
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), tokenId);
+
+        // Check that appraisal is pending but no value created yet
+        NFTAppraisal.Appraisal memory appraisalInfo = appraisal.getAppraisal(address(collection), tokenId);
+        assertEq(uint256(appraisalInfo.status), uint256(NFTAppraisal.AppraisalStatus.Pending), "Should be pending");
+        assertEq(appraisalInfo.priceUSD, 0, "Should have no price yet");
+
+        // Should not be able to deposit without completed appraisal
+        vm.startPrank(user);
+        collection.approve(address(treasury), tokenId);
+        vm.expectRevert(); // Should fail due to missing appraisal
+        treasury.depositNFT(address(collection), tokenId);
+        vm.stopPrank();
+
+        // Complete appraisal
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(collection), tokenId, CARD_COMMON, COMMON_PRICE);
+
+        // Should now be able to deposit
+        vm.startPrank(user);
+        treasury.depositNFT(address(collection), tokenId);
+        vm.stopPrank();
+
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should be able to deposit after appraisal");
+    }
+
+    /**
+     * @notice Test cross-collection appraisal economics
+     */
+    function testCrossCollectionAppraisalEconomics() public {
+        // Deploy second collection
+        BaseERC721 collection2 = new BaseERC721("Collection 2", "TEST2", owner);
+        vm.startPrank(owner);
+        collection2.mint(user); // tokenId 0
+        collection2.mint(user); // tokenId 1
+        treasury.addToWhitelist(address(collection2));
+        vm.stopPrank();
+
+        // Same card should have same price across collections
+        bytes32 sharedCardId = CARD_RARE;
+        uint256 sharedPrice = RARE_PRICE;
+
+        // Appraise in both collections
+        uint256 tokenId1 = 0;
+        uint256 tokenId2 = 0;
+
+        // First collection
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), tokenId1);
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(collection), tokenId1, sharedCardId, sharedPrice);
+
+        // Second collection
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection2), tokenId2);
+        vm.prank(oracle);
+        appraisal.setAppraisalForTokenWithCard(address(collection2), tokenId2, sharedCardId, sharedPrice);
+
+        // Verify consistent pricing
+        (uint256 price1,) = appraisal.getAppraisedPrice(address(collection), tokenId1);
+        (uint256 price2,) = appraisal.getAppraisedPrice(address(collection2), tokenId2);
+        assertEq(price1, price2, "Same card should have same price across collections");
+
+        // Both should deposit as same rarity
+        vm.startPrank(user);
+        collection.approve(address(treasury), tokenId1);
+        treasury.depositNFT(address(collection), tokenId1);
+        collection2.approve(address(treasury), tokenId2);
+        treasury.depositNFT(address(collection2), tokenId2);
+        vm.stopPrank();
+
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 2, "Both should be Rare");
+    }
+}

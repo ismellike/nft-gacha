@@ -6,8 +6,8 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
@@ -24,7 +24,7 @@ contract Gacha is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
+    ReentrancyGuardTransient,
     UUPSUpgradeable
 {
     using SafeERC20 for IERC20;
@@ -139,10 +139,9 @@ contract Gacha is
         address _treasury,
         address _economyManager
     ) public initializer {
-        __Ownable_init();
+        __Ownable_init(msg.sender);
         __Pausable_init();
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
+        // ReentrancyGuardTransient doesn't need initialization
 
         // Validate critical addresses
         if (_gachaServiceHandler == address(0)) revert InvalidServiceHandler();

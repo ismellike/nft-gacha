@@ -24,7 +24,17 @@ forge snapshot                # Gas snapshot analysis
 
 # Local development
 anvil                         # Start local testnet
-forge script script/DeployLocal.s.sol --rpc-url http://localhost:8545 --private-key <key> --broadcast
+forge script script/DeployLocal.s.sol \\
+  --rpc-url http://localhost:8545 \\
+  --private-key <key> \\
+  --broadcast \\
+  --skip-simulation \\
+  --sig run \\
+  --env WAVS_SERVICE_MANAGER_ADDRESS=<manager> \\
+         USDC_TOKEN_ADDRESS=<usdc> \\
+         APPRAISAL_PROTOCOL_ADDRESS=<protocol_treasury> \\
+         GACHA_SPIN_FEE=<fee_in_wei> \\
+         NFT_APPRAISAL_FEE=<fee_in_wei>
 
 # Contract verification and deployment
 forge verify-contract <contract> <chain> --verifier etherscan

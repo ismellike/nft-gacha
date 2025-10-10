@@ -4,13 +4,13 @@ pragma solidity ^0.8.27;
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
-import {DepositorVault} from "../src/economy/DepositorVault.sol";
-import {BuybackVault} from "../src/economy/BuybackVault.sol";
-import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
-import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
-import {BaseERC721} from "../src/tokens/BaseERC721.sol";
-import {MockNFTAppraisal} from "./mocks/MockNFTAppraisal.sol";
+import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
+import {DepositorVault} from "../../src/economy/DepositorVault.sol";
+import {BuybackVault} from "../../src/economy/BuybackVault.sol";
+import {ProtocolTreasury} from "../../src/economy/ProtocolTreasury.sol";
+import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
+import {BaseERC721} from "../../src/tokens/BaseERC721.sol";
+import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
 
 contract MockUSDC is ERC20 {
     constructor() ERC20("Mock USDC", "mUSDC") {}
@@ -45,7 +45,21 @@ contract EconomyFlowTest is Test {
         appraisal = new MockNFTAppraisal();
 
         treasury = new GachaTreasury();
-        treasury.initialize(address(this), address(0xDEAD), address(appraisal));
+        treasury.initialize(
+            address(this),
+            address(0xDEAD),
+            address(appraisal),
+            0, // Common min
+            100 * 1e18, // Common max
+            100 * 1e18, // Uncommon min
+            500 * 1e18, // Uncommon max
+            500 * 1e18, // Rare min
+            2000 * 1e18, // Rare max
+            2000 * 1e18, // Epic min
+            10000 * 1e18, // Epic max
+            10000 * 1e18, // Legendary min
+            type(uint256).max // Legendary max
+        );
 
         depositorVault = new DepositorVault();
         depositorVault.initialize(address(this), address(usdc), address(treasury), address(this));

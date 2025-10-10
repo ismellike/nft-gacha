@@ -25,7 +25,22 @@ contract GachaTreasuryTest is Test {
 
         vm.startPrank(owner);
         bytes memory initData =
-            abi.encodeWithSelector(GachaTreasury.initialize.selector, owner, mockGacha, address(mockAppraisal));
+            abi.encodeWithSelector(
+                GachaTreasury.initialize.selector,
+                owner,
+                mockGacha,
+                address(mockAppraisal),
+                0, // Common min
+                100 * 1e18, // Common max
+                100 * 1e18, // Uncommon min
+                500 * 1e18, // Uncommon max
+                500 * 1e18, // Rare min
+                2000 * 1e18, // Rare max
+                2000 * 1e18, // Epic min
+                10000 * 1e18, // Epic max
+                10000 * 1e18, // Legendary min
+                type(uint256).max // Legendary max
+            );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
         treasury = GachaTreasury(address(proxy));

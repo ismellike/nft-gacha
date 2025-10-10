@@ -37,12 +37,12 @@ contract DeployLocal is Script {
     /**
      * ECONOMIC MODEL FOR $25 SPIN SYSTEM (REVISED)
      *
-     * Price Tiers (clean numbers ending in 0s and 5s):
-     * - Common: $0-20 (0-0.8x spin cost) - Less punishing loss zone
-     * - Uncommon: $25-60 (1-2.4x spin cost) - Break-even to small profit zone
-     * - Rare: $70-250 (2.8-10x spin cost) - Decent profit zone
-     * - Epic: $300-1,200 (12-48x spin cost) - Significant win zone
-     * - Legendary: $1,500+ (60x+ spin cost) - Jackpot zone
+     * Static Price Tiers (set during initialization):
+     * - Common: $0-$15 (0-0.6x spin cost) - Static range
+     * - Uncommon: $25-$60 (1-2.4x spin cost) - Static range
+     * - Rare: $70-$250 (2.8-10x spin cost) - Static range
+     * - Epic: $300-$1,200 (12-48x spin cost) - Static range
+     * - Legendary: $1,500+ (60x+ spin cost) - Static range
      *
      * Probability Distribution:
      * - Common: 70% (1 in 1.4 spins) - Reduced house edge
@@ -52,13 +52,13 @@ contract DeployLocal is Script {
      * - Legendary: 1% (1 in 100 spins) - Jackpot dreams
      *
      * Sample Prices in Each Tier:
-     * - Common: $2, $5, $8, $10, $12, $15, $17, $18, $19, $20
+     * - Common: $2, $5, $8, $10, $12, $15
      * - Uncommon: $25, $30, $35, $40, $45, $50, $55, $60
      * - Rare: $70, $80, $90, $100, $115, $130, $150, $175, $200, $225
      * - Epic: $300, $350, $400, $450, $500, $600, $750, $900
      * - Legendary: $1,500, $2,250, $3,000, $4,500, $6,000
      *
-     * Expected Value Calculation (with new ranges):
+     * Expected Value Calculation (with static ranges):
      * EV = (0.7 × $11) + (0.2 × $43) + (0.06 × $160) + (0.03 × $600) + (0.01 × $3,450)
      * EV = $7.70 + $8.60 + $9.60 + $18.00 + $34.50 = $78.40
      *
@@ -83,17 +83,19 @@ contract DeployLocal is Script {
     uint256 constant INITIAL_MINT = 1_000_000_000_000; // 1,000,000 tUSDC (6 decimals)
     uint256 constant SPIN_FEE = 25_000_000; // 25 tUSDC in 6 decimals (~$25 USD)
 
-    // Clean price range constants (all in 18 decimals for USD values)
-    uint256 constant SPIN_COST_USD = 25 * 1e18; // $25 spin cost
-    uint256 constant COMMON_MAX = 15 * 1e18; // Balanced for sustainability
-    uint256 constant UNCOMMON_MIN = 25 * 1e18; // Clean round number
-    uint256 constant UNCOMMON_MAX = 60 * 1e18; // Clean round number
-    uint256 constant RARE_MIN = 70 * 1e18; // Clean round number
-    uint256 constant RARE_MAX = 250 * 1e18; // Clean round number
-    uint256 constant EPIC_MIN = 300 * 1e18; // Clean round number
-    uint256 constant EPIC_MAX = 1200 * 1e18; // Clean round number
-    uint256 constant LEGENDARY_MIN = 1500 * 1e18; // Clean round number
+    // Original price range constants (all in 18 decimals for USD values)
+    uint256 constant COMMON_MIN = 0; // $0 minimum for Common
+    uint256 constant COMMON_MAX = 15 * 1e18; // $15 maximum for Common
+    uint256 constant UNCOMMON_MIN = 25 * 1e18; // $25 minimum for Uncommon
+    uint256 constant UNCOMMON_MAX = 60 * 1e18; // $60 maximum for Uncommon
+    uint256 constant RARE_MIN = 70 * 1e18; // $70 minimum for Rare
+    uint256 constant RARE_MAX = 250 * 1e18; // $250 maximum for Rare
+    uint256 constant EPIC_MIN = 300 * 1e18; // $300 minimum for Epic
+    uint256 constant EPIC_MAX = 1200 * 1e18; // $1,200 maximum for Epic
+    uint256 constant LEGENDARY_MIN = 1500 * 1e18; // $1,500 minimum for Legendary
+    uint256 constant LEGENDARY_MAX = type(uint256).max; // No upper limit for Legendary
 
+    
     function run() external {
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
@@ -153,7 +155,20 @@ contract DeployLocal is Script {
             new ERC1967Proxy(
                 address(treasuryImpl),
                 abi.encodeWithSelector(
-                    GachaTreasury.initialize.selector, deployer, TEMP_GACHA_ADDRESS, d.appraisalProxy
+                    GachaTreasury.initialize.selector,
+                    deployer,
+                    TEMP_GACHA_ADDRESS,
+                    d.appraisalProxy,
+                    COMMON_MIN,
+                    COMMON_MAX,
+                    UNCOMMON_MIN,
+                    UNCOMMON_MAX,
+                    RARE_MIN,
+                    RARE_MAX,
+                    EPIC_MIN,
+                    EPIC_MAX,
+                    LEGENDARY_MIN,
+                    LEGENDARY_MAX
                 )
             )
         );
@@ -274,13 +289,9 @@ contract DeployLocal is Script {
         // Configure system with default values
         Gacha(d.gachaProxy).setRarityWeights(7000, 2000, 600, 300, 100); // 70%, 20%, 6%, 3%, 1%
 
-        // Configure clean price ranges with variety ending in 0s and 5s
-        console.log("Setting clean price ranges with 0s and 5s variety...");
-        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Common, 0, COMMON_MAX); // $0-15 (0-0.6x spin cost - sustainable loss)
-        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Uncommon, UNCOMMON_MIN, UNCOMMON_MAX); // $25-60 (1-2.4x spin cost - small win)
-        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Rare, RARE_MIN, RARE_MAX); // $70-250 (2.8-10x spin cost - decent profit)
-        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Epic, EPIC_MIN, EPIC_MAX); // $300-1,200 (12-48x spin cost - significant win)
-        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Legendary, LEGENDARY_MIN, type(uint256).max); // $1,500+ (60x+ spin cost - jackpot)
+        // Price ranges are now set during initialization and immutable:
+        // Common: $0-$15, Uncommon: $25-$60, Rare: $70-$250, Epic: $300-$1,200, Legendary: $1,500+
+        console.log("Using immutable price ranges set during treasury initialization");
 
         console.log("Economy wiring complete");
     }
@@ -319,7 +330,7 @@ contract DeployLocal is Script {
             "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
             "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
             "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f"  // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f" // Fire Energy (duplicate)
         ];
         // Predefine card IDs and prices for Common range (matching actual Fire Energy metadata)
         bytes32[8] memory commonCardIds = [
@@ -333,7 +344,7 @@ contract DeployLocal is Script {
             _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009")
         ];
         uint256[8] memory commonPrices = [
-            uint256(8 * 1e18),  // All Fire Energy cards should have same price
+            uint256(8 * 1e18), // All Fire Energy cards should have same price
             uint256(8 * 1e18),
             uint256(8 * 1e18),
             uint256(8 * 1e18),
@@ -343,10 +354,8 @@ contract DeployLocal is Script {
             uint256(8 * 1e18)
         ];
 
-        // Set prices once per card ID
-        for (uint256 i = 0; i < commonCardIds.length; i++) {
-            appraisal.ownerSetAppraisalForTokenWithCard(address(0), 0, commonCardIds[i], commonPrices[i]);
-        }
+        // Set prices once per card ID (these will be used when tokens are minted)
+        // Note: We don't set appraisals for non-existent tokens here anymore
 
         // Mint and deposit NFTs using the predefined card IDs
         for (uint256 i = 0; i < ids.length; i++) {
@@ -370,7 +379,7 @@ contract DeployLocal is Script {
             "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (duplicate)
             "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19", // Lucario (duplicate)
             "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (duplicate)
-            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19"  // Lucario (duplicate)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19" // Lucario (duplicate)
         ];
         // Predefine card IDs and prices for Uncommon range (matching actual Bronzong/Lucario metadata)
         bytes32[2] memory uncommonCardIds = [
@@ -378,14 +387,12 @@ contract DeployLocal is Script {
             _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Lucario", "English", "1401014224066")
         ];
         uint256[2] memory uncommonPrices = [
-            uint256(30 * 1e18),  // Bronzong price
-            uint256(35 * 1e18)   // Lucario price
+            uint256(30 * 1e18), // Bronzong price
+            uint256(35 * 1e18) // Lucario price
         ];
 
-        // Set prices once per card ID
-        for (uint256 i = 0; i < uncommonCardIds.length; i++) {
-            appraisal.ownerSetAppraisalForTokenWithCard(address(0), 0, uncommonCardIds[i], uncommonPrices[i]);
-        }
+        // Set prices once per card ID (these will be used when tokens are minted)
+        // Note: We don't set appraisals for non-existent tokens here anymore
 
         // Mint and deposit NFTs using the predefined card IDs
         for (uint256 i = 0; i < ids.length; i++) {
@@ -409,20 +416,17 @@ contract DeployLocal is Script {
             "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
             "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
             "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9"  // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9" // Psyduck (duplicate)
         ];
         // Predefine card IDs and prices for Rare range (matching actual Psyduck metadata)
-        bytes32[1] memory rareCardIds = [
-            _generateCardId("PSA", "9 MINT", "Black Star", "Psyduck", "English", "71692205")
-        ];
+        bytes32[1] memory rareCardIds =
+            [_generateCardId("PSA", "9 MINT", "Black Star", "Psyduck", "English", "71692205")];
         uint256[1] memory rarePrices = [
-            uint256(100 * 1e18)  // All Psyduck cards should have same price
+            uint256(100 * 1e18) // All Psyduck cards should have same price
         ];
 
-        // Set prices once per card ID
-        for (uint256 i = 0; i < rareCardIds.length; i++) {
-            appraisal.ownerSetAppraisalForTokenWithCard(address(0), 0, rareCardIds[i], rarePrices[i]);
-        }
+        // Set prices once per card ID (these will be used when tokens are minted)
+        // Note: We don't set appraisals for non-existent tokens here anymore
 
         // Mint and deposit NFTs using the predefined card IDs
         for (uint256 i = 0; i < ids.length; i++) {
@@ -446,20 +450,17 @@ contract DeployLocal is Script {
             "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
             "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
             "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b"  // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b" // Feraligatr (duplicate)
         ];
         // Predefine card IDs and prices for Epic range (matching actual Feraligatr metadata)
-        bytes32[1] memory epicCardIds = [
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Feraligatr", "Japanese", "81437601")
-        ];
+        bytes32[1] memory epicCardIds =
+            [_generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Feraligatr", "Japanese", "81437601")];
         uint256[1] memory epicPrices = [
-            uint256(500 * 1e18)  // All Feraligatr cards should have same price
+            uint256(500 * 1e18) // All Feraligatr cards should have same price
         ];
 
-        // Set prices once per card ID
-        for (uint256 i = 0; i < epicCardIds.length; i++) {
-            appraisal.ownerSetAppraisalForTokenWithCard(address(0), 0, epicCardIds[i], epicPrices[i]);
-        }
+        // Set prices once per card ID (these will be used when tokens are minted)
+        // Note: We don't set appraisals for non-existent tokens here anymore
 
         // Mint and deposit NFTs using the predefined card IDs
         for (uint256 i = 0; i < ids.length; i++) {
@@ -480,7 +481,7 @@ contract DeployLocal is Script {
             "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Charizard V (Valid)
             "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c", // Base Set Charizard (duplicate)
             "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Charizard V (duplicate)
-            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c"  // Base Set Charizard (duplicate)
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c" // Base Set Charizard (duplicate)
         ];
         // Predefine card IDs and prices for Legendary range (matching actual Charizard metadata)
         bytes32[2] memory legendaryCardIds = [
@@ -489,10 +490,8 @@ contract DeployLocal is Script {
         ];
         uint256[2] memory legendaryPrices = [uint256(1_500 * 1e18), uint256(2_250 * 1e18)]; // Mix of 0s and 5s endings
 
-        // Set prices once per card ID
-        for (uint256 i = 0; i < legendaryCardIds.length; i++) {
-            appraisal.ownerSetAppraisalForTokenWithCard(address(0), 0, legendaryCardIds[i], legendaryPrices[i]);
-        }
+        // Set prices once per card ID (these will be used when tokens are minted)
+        // Note: We don't set appraisals for non-existent tokens here anymore
 
         // Mint and deposit NFTs using the predefined card IDs
         for (uint256 i = 0; i < ids.length; i++) {
@@ -516,7 +515,7 @@ contract DeployLocal is Script {
             "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Charizard V (Valid)
             "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
             "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (duplicate)
-            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19"  // Lucario (duplicate)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19" // Lucario (duplicate)
         ];
         for (uint256 i = 0; i < ids.length; i++) {
             nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
@@ -609,7 +608,7 @@ contract DeployLocal is Script {
             )
         );
 
-        vm.writeFile(".env.local", envContent);
+        vm.writeFile("../.env.local", envContent);
         console.log("Environment file written to: .env.local");
     }
 }

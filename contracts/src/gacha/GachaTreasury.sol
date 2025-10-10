@@ -6,8 +6,8 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
 import {IDepositorVault} from "../interfaces/IDepositorVault.sol";
@@ -15,7 +15,8 @@ import {IDepositorVault} from "../interfaces/IDepositorVault.sol";
 /**
  * @title GachaTreasury - Upgradeable Price-Based NFT Treasury Management
  * @notice Manages NFT storage with automatic rarity assignment based on appraised USD values
- * @dev Integrates with NFTAppraisal contract for price-based categorization
+ * @dev Integrates with NFTAppraisal contract for price-based categorization with immutable price ranges
+ * @dev Price ranges are set during initialization: Common $0-$15, Uncommon $25-$60, Rare $70-$250, Epic $300-$1.2k, Legendary $1.5k+
  * @dev This contract is upgradeable using UUPS proxy pattern
  * @author NFT Gacha Team
  */
@@ -24,7 +25,7 @@ contract GachaTreasury is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
+    ReentrancyGuardTransient,
     UUPSUpgradeable
 {
     /// @notice Custom errors for gas efficiency and clear error handling
@@ -51,7 +52,7 @@ contract GachaTreasury is
     error AppraisalRequired();
     error RarityMigrationFailed();
     error InvalidPriceRange();
-    error OverlappingPriceRanges();
+    error PriceRangesAlreadySet();
     error NoNFTsAvailable(Rarity rarity);
     error NFTNotDeposited();
     error NotNFTDepositor();
@@ -112,8 +113,20 @@ contract GachaTreasury is
     IDepositorVault public depositorVault;
     address public buybackVault;
 
-    /// @notice Price ranges for each rarity tier
-    mapping(Rarity => PriceRange) public priceRanges;
+    /// @notice Price ranges for each rarity tier (set during initialization, not modifiable afterwards)
+    uint256 public commonMinPrice;
+    uint256 public commonMaxPrice;
+    uint256 public uncommonMinPrice;
+    uint256 public uncommonMaxPrice;
+    uint256 public rareMinPrice;
+    uint256 public rareMaxPrice;
+    uint256 public epicMinPrice;
+    uint256 public epicMaxPrice;
+    uint256 public legendaryMinPrice;
+    uint256 public legendaryMaxPrice;
+
+    /// @notice Track if price ranges have been set (to prevent changes after initialization)
+    bool public priceRangesSet;
 
     /// @notice Duplicate protection and indexing
     mapping(address => mapping(uint256 => bool)) public depositedNFTs;
@@ -168,9 +181,6 @@ contract GachaTreasury is
     event AppraisalContractUpdated(address indexed oldAppraisal, address indexed newAppraisal);
     event CollectionWhitelisted(address indexed collection);
     event CollectionRemovedFromWhitelist(address indexed collection);
-    event PriceRangeUpdated(
-        Rarity indexed rarity, uint256 oldMinPrice, uint256 oldMaxPrice, uint256 newMinPrice, uint256 newMaxPrice
-    );
     event DepositorVaultUpdated(address indexed oldVault, address indexed newVault);
     event BuybackVaultUpdated(address indexed oldVault, address indexed newVault);
     event BuybackRestocked(
@@ -193,40 +203,67 @@ contract GachaTreasury is
     }
 
     /**
-     * @notice Initializes the treasury with required contracts and default price ranges
+     * @notice Initializes the treasury with required contracts and price ranges
      * @param _gachaContract Address of the authorized gacha contract
      * @param _appraisalContract Address of the NFT appraisal contract
+     * @param _commonMinPrice Minimum price for Common rarity (scaled by 1e18)
+     * @param _commonMaxPrice Maximum price for Common rarity (scaled by 1e18)
+     * @param _uncommonMinPrice Minimum price for Uncommon rarity (scaled by 1e18)
+     * @param _uncommonMaxPrice Maximum price for Uncommon rarity (scaled by 1e18)
+     * @param _rareMinPrice Minimum price for Rare rarity (scaled by 1e18)
+     * @param _rareMaxPrice Maximum price for Rare rarity (scaled by 1e18)
+     * @param _epicMinPrice Minimum price for Epic rarity (scaled by 1e18)
+     * @param _epicMaxPrice Maximum price for Epic rarity (scaled by 1e18)
+     * @param _legendaryMinPrice Minimum price for Legendary rarity (scaled by 1e18)
+     * @param _legendaryMaxPrice Maximum price for Legendary rarity (scaled by 1e18, use type(uint256).max for no upper limit)
      */
-    function initialize(address, /* _owner */ address _gachaContract, address _appraisalContract) public initializer {
-        __Ownable_init();
+    function initialize(
+        address, /* _owner */
+        address _gachaContract,
+        address _appraisalContract,
+        uint256 _commonMinPrice,
+        uint256 _commonMaxPrice,
+        uint256 _uncommonMinPrice,
+        uint256 _uncommonMaxPrice,
+        uint256 _rareMinPrice,
+        uint256 _rareMaxPrice,
+        uint256 _epicMinPrice,
+        uint256 _epicMaxPrice,
+        uint256 _legendaryMinPrice,
+        uint256 _legendaryMaxPrice
+    ) public initializer {
+        __Ownable_init(msg.sender);
         __Pausable_init();
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
+        // ReentrancyGuardTransient doesn't need initialization
 
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         if (_appraisalContract == address(0)) revert InvalidAppraisalContract();
 
+        // Check if price ranges have already been set
+        if (priceRangesSet) revert PriceRangesAlreadySet();
+
+        // Validate price ranges
+        if (_commonMinPrice >= _commonMaxPrice) revert InvalidPriceRange();
+        if (_uncommonMinPrice >= _uncommonMaxPrice) revert InvalidPriceRange();
+        if (_rareMinPrice >= _rareMaxPrice) revert InvalidPriceRange();
+        if (_epicMinPrice >= _epicMaxPrice) revert InvalidPriceRange();
+        if (_legendaryMinPrice >= _legendaryMaxPrice && _legendaryMaxPrice != type(uint256).max) revert InvalidPriceRange();
+
+        // Set price ranges (only once during initialization)
+        commonMinPrice = _commonMinPrice;
+        commonMaxPrice = _commonMaxPrice;
+        uncommonMinPrice = _uncommonMinPrice;
+        uncommonMaxPrice = _uncommonMaxPrice;
+        rareMinPrice = _rareMinPrice;
+        rareMaxPrice = _rareMaxPrice;
+        epicMinPrice = _epicMinPrice;
+        epicMaxPrice = _epicMaxPrice;
+        legendaryMinPrice = _legendaryMinPrice;
+        legendaryMaxPrice = _legendaryMaxPrice;
+        priceRangesSet = true;
+
         gachaContract = _gachaContract;
         appraisalContract = NFTAppraisal(_appraisalContract);
-
-        // Initialize default USD price ranges (scaled by 1e18)
-        // Common: $0 - $100
-        priceRanges[Rarity.Common] = PriceRange({minPriceUSD: 0, maxPriceUSD: 100 * 1e18});
-
-        // Uncommon: $100 - $500
-        priceRanges[Rarity.Uncommon] = PriceRange({minPriceUSD: 100 * 1e18, maxPriceUSD: 500 * 1e18});
-
-        // Rare: $500 - $2,000
-        priceRanges[Rarity.Rare] = PriceRange({minPriceUSD: 500 * 1e18, maxPriceUSD: 2000 * 1e18});
-
-        // Epic: $2,000 - $10,000
-        priceRanges[Rarity.Epic] = PriceRange({minPriceUSD: 2000 * 1e18, maxPriceUSD: 10000 * 1e18});
-
-        // Legendary: $10,000+
-        priceRanges[Rarity.Legendary] = PriceRange({
-            minPriceUSD: 10000 * 1e18,
-            maxPriceUSD: type(uint256).max // No upper limit for legendary
-        });
     }
 
     /**
@@ -313,7 +350,7 @@ contract GachaTreasury is
     /// @notice Migrates an NFT to a new rarity tier based on updated appraisal
     /// @param collection NFT collection address
     /// @param tokenId Token ID to migrate
-    /// @dev Can be called by anyone when appraisal price changes significantly
+    /// @dev Can be called by anyone when appraisal price changes through appraisal system updates
     function migrateNFTRarity(address collection, uint256 tokenId) external whenNotPaused nonReentrant {
         _migrateNFTRarity(collection, tokenId);
     }
@@ -684,52 +721,24 @@ contract GachaTreasury is
         _syncDepositorVault(depositor, previous, total);
     }
 
-    /**
-     * @notice Updates the price range for a specific rarity
-     * @param rarity The rarity tier to update
-     * @param minPriceUSD Minimum price in USD (scaled by 1e18)
-     * @param maxPriceUSD Maximum price in USD (scaled by 1e18)
-     */
-    function setPriceRange(Rarity rarity, uint256 minPriceUSD, uint256 maxPriceUSD) external onlyOwner {
-        if (minPriceUSD >= maxPriceUSD && maxPriceUSD != type(uint256).max) {
-            revert InvalidPriceRange();
-        }
-
-        PriceRange memory oldRange = priceRanges[rarity];
-
-        priceRanges[rarity] = PriceRange({minPriceUSD: minPriceUSD, maxPriceUSD: maxPriceUSD});
-
-        emit PriceRangeUpdated(rarity, oldRange.minPriceUSD, oldRange.maxPriceUSD, minPriceUSD, maxPriceUSD);
-    }
-
-    /**
-     * @notice Gets the price range for a specific rarity
-     * @param rarity The rarity tier to query
-     * @return minPrice Minimum price in USD
-     * @return maxPrice Maximum price in USD
-     */
-    function getPriceRange(Rarity rarity) external view returns (uint256 minPrice, uint256 maxPrice) {
-        PriceRange memory range = priceRanges[rarity];
-        return (range.minPriceUSD, range.maxPriceUSD);
-    }
-
+    
     /**
      * @notice Determines the rarity tier based on USD price
      * @param priceUSD Price in USD (scaled by 1e18)
      * @return rarity The appropriate rarity tier for the price
      */
     function getRarityByPrice(uint256 priceUSD) public view returns (Rarity rarity) {
-        // Check each rarity tier from most expensive to least expensive
-        for (uint256 i = uint256(Rarity.Legendary); i >= uint256(Rarity.Common); i--) {
-            Rarity currentRarity = Rarity(i);
-            PriceRange memory range = priceRanges[currentRarity];
-
-            if (priceUSD >= range.minPriceUSD && priceUSD <= range.maxPriceUSD) {
-                return currentRarity;
-            }
-
-            // Prevent underflow on the last iteration
-            if (i == 0) break;
+        // Check from most expensive to least expensive tier
+        if (priceUSD >= legendaryMinPrice && priceUSD <= legendaryMaxPrice) {
+            return Rarity.Legendary;
+        } else if (priceUSD >= epicMinPrice && priceUSD <= epicMaxPrice) {
+            return Rarity.Epic;
+        } else if (priceUSD >= rareMinPrice && priceUSD <= rareMaxPrice) {
+            return Rarity.Rare;
+        } else if (priceUSD >= uncommonMinPrice && priceUSD <= uncommonMaxPrice) {
+            return Rarity.Uncommon;
+        } else if (priceUSD >= commonMinPrice && priceUSD <= commonMaxPrice) {
+            return Rarity.Common;
         }
 
         // Default to Common if no range matches (shouldn't happen with proper configuration)
@@ -741,34 +750,34 @@ contract GachaTreasury is
      * @return ranges Array of price ranges [Common, Uncommon, Rare, Epic, Legendary]
      */
     function getAllPriceRanges() external view returns (PriceRange[5] memory ranges) {
-        ranges[0] = priceRanges[Rarity.Common];
-        ranges[1] = priceRanges[Rarity.Uncommon];
-        ranges[2] = priceRanges[Rarity.Rare];
-        ranges[3] = priceRanges[Rarity.Epic];
-        ranges[4] = priceRanges[Rarity.Legendary];
+        ranges[0] = PriceRange({minPriceUSD: commonMinPrice, maxPriceUSD: commonMaxPrice});
+        ranges[1] = PriceRange({minPriceUSD: uncommonMinPrice, maxPriceUSD: uncommonMaxPrice});
+        ranges[2] = PriceRange({minPriceUSD: rareMinPrice, maxPriceUSD: rareMaxPrice});
+        ranges[3] = PriceRange({minPriceUSD: epicMinPrice, maxPriceUSD: epicMaxPrice});
+        ranges[4] = PriceRange({minPriceUSD: legendaryMinPrice, maxPriceUSD: legendaryMaxPrice});
     }
 
     /**
-     * @notice Validates that price ranges don't overlap and are properly ordered
-     * @return isValid True if all ranges are valid and non-overlapping
+     * @notice Gets the price range for a specific rarity
+     * @param rarity The rarity tier to query
+     * @return minPrice Minimum price in USD
+     * @return maxPrice Maximum price in USD
      */
-    function validatePriceRanges() external view returns (bool isValid) {
-        // Check that ranges are properly ordered and don't overlap
-        for (uint256 i = 0; i < 4; i++) {
-            Rarity currentRarity = Rarity(i);
-            Rarity nextRarity = Rarity(i + 1);
-
-            PriceRange memory currentRange = priceRanges[currentRarity];
-            PriceRange memory nextRange = priceRanges[nextRarity];
-
-            // Current max should equal next min (or next min should be greater)
-            if (currentRange.maxPriceUSD > nextRange.minPriceUSD) {
-                return false;
-            }
+    function getPriceRange(Rarity rarity) external view returns (uint256 minPrice, uint256 maxPrice) {
+        if (rarity == Rarity.Common) {
+            return (commonMinPrice, commonMaxPrice);
+        } else if (rarity == Rarity.Uncommon) {
+            return (uncommonMinPrice, uncommonMaxPrice);
+        } else if (rarity == Rarity.Rare) {
+            return (rareMinPrice, rareMaxPrice);
+        } else if (rarity == Rarity.Epic) {
+            return (epicMinPrice, epicMaxPrice);
+        } else if (rarity == Rarity.Legendary) {
+            return (legendaryMinPrice, legendaryMaxPrice);
         }
-
-        return true;
+        revert InvalidPriceRange();
     }
+
 
     // Batch operations
     /// @notice Batch deposit multiple NFTs with automatic rarity assignment

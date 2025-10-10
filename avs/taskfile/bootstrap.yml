@@ -58,7 +58,7 @@ tasks:
       - |
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow add --id {{.WORKFLOW_ID}}
 
-        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address ${GACHA_CONTRACT_ADDRESS} --event-hash {{.RANDOMNESS_REQUESTED_EVENT_HASH}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address ${GACHA_ADDRESS} --event-hash {{.RANDOMNESS_REQUESTED_EVENT_HASH}}
           
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} set-source-digest --digest {{.WAVS_DRAND_COMPONENT_DIGEST}}
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
@@ -86,7 +86,7 @@ tasks:
       - |
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow add --id {{.WORKFLOW_ID}}
 
-        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address ${NFT_APPRAISAL_CONTRACT_ADDRESS} --event-hash {{.APPRAISAL_REQUESTED_EVENT_HASH}}
+        task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address ${NFT_APPRAISAL_ADDRESS} --event-hash {{.APPRAISAL_REQUESTED_EVENT_HASH}}
 
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} set-source-digest --digest {{.NFT_APPRAISAL_COMPONENT_DIGEST}}
         task cli:wavs -- {{.SERVICE_JSON_CMD}} workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
