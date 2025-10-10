@@ -500,20 +500,26 @@ contract GachaTreasury is
 
         unchecked {
             --rarityCount[rarity];
-            --userDepositCounts[item.depositor][rarity];
-            --userTotalDeposits[item.depositor];
         }
 
-        // Update value tracking - subtract the NFT's value from user and total
-        userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+        if (item.depositor != address(0)) {
+            unchecked {
+                --userDepositCounts[item.depositor][rarity];
+                --userTotalDeposits[item.depositor];
+            }
+
+            // Update value tracking - subtract the NFT's value from user
+            userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+            _decreaseActiveValue(item.depositor, item.appraisedPrice);
+        }
+
+        // Always remove the value from the pool total
         totalRarityValue[rarity] -= item.appraisedPrice;
 
         // Clean up mappings
         depositedNFTs[item.collection][item.tokenId] = false;
         delete nftToTreasuryIndex[item.collection][item.tokenId];
         delete nftCurrentRarity[item.collection][item.tokenId];
-
-        _decreaseActiveValue(item.depositor, item.appraisedPrice);
 
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
@@ -971,11 +977,17 @@ contract GachaTreasury is
         // Update counters and value tracking
         unchecked {
             --rarityCount[rarity];
-            --userDepositCounts[item.depositor][rarity];
-            --userTotalDeposits[item.depositor];
         }
 
-        userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+        if (item.depositor != address(0)) {
+            unchecked {
+                --userDepositCounts[item.depositor][rarity];
+                --userTotalDeposits[item.depositor];
+            }
+
+            userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+        }
+
         totalRarityValue[rarity] -= item.appraisedPrice;
 
         // Clean up mappings

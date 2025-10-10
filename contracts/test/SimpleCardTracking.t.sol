@@ -58,14 +58,10 @@ contract SimpleCardTrackingTest is Test {
         uint256 tokenId2 = nft.mint(user1); // tokenId = 1
         vm.stopPrank();
 
-        // Setup: Set appraisals and card mappings in mock appraisal
+        // Setup: Set appraisals with the same cardId to ensure consistent pricing
         vm.startPrank(owner);
-        mockAppraisal.setMockAppraisal(address(nft), tokenId1, 50 * 1e18); // $50, Common tier
-        mockAppraisal.setMockAppraisal(address(nft), tokenId2, 50 * 1e18); // $50, Common tier
-
-        // Override the cardIds to be the same (since setMockAppraisal generates different ones)
-        mockAppraisal.setTokenCardId(address(nft), tokenId1, CARD_A);
-        mockAppraisal.setTokenCardId(address(nft), tokenId2, CARD_A); // Same card
+        mockAppraisal.setMockAppraisalWithCardId(address(nft), tokenId1, CARD_A, 50 * 1e18); // $50, Common tier
+        mockAppraisal.setMockAppraisalWithCardId(address(nft), tokenId2, CARD_A, 50 * 1e18); // Same card, same price
         vm.stopPrank();
 
         console.log("Setup complete:");
@@ -133,19 +129,13 @@ contract SimpleCardTrackingTest is Test {
         uint256 token4 = nft.mint(user2); // 3
         vm.stopPrank();
 
-        // Setup: Set appraisals and card mappings
+        // Setup: Set appraisals with consistent card-based pricing
         vm.startPrank(owner);
-        // Set mock appraisals first
-        mockAppraisal.setMockAppraisal(address(nft), token1, 50 * 1e18); // $50
-        mockAppraisal.setMockAppraisal(address(nft), token2, 75 * 1e18); // $75
-        mockAppraisal.setMockAppraisal(address(nft), token3, 50 * 1e18); // $50
-        mockAppraisal.setMockAppraisal(address(nft), token4, 75 * 1e18); // $75
-
-        // Then set different card mappings
-        mockAppraisal.setTokenCardId(address(nft), token1, CARD_A);
-        mockAppraisal.setTokenCardId(address(nft), token2, CARD_B);
-        mockAppraisal.setTokenCardId(address(nft), token3, CARD_A); // Same as user1's first
-        mockAppraisal.setTokenCardId(address(nft), token4, CARD_B); // Same as user1's second
+        // Set appraisals with specific cardIds to ensure price consistency
+        mockAppraisal.setMockAppraisalWithCardId(address(nft), token1, CARD_A, 50 * 1e18); // $50
+        mockAppraisal.setMockAppraisalWithCardId(address(nft), token2, CARD_B, 75 * 1e18); // $75
+        mockAppraisal.setMockAppraisalWithCardId(address(nft), token3, CARD_A, 50 * 1e18); // Same card, same price as token1
+        mockAppraisal.setMockAppraisalWithCardId(address(nft), token4, CARD_B, 75 * 1e18); // Same card, same price as token2
         vm.stopPrank();
 
         // User1 deposits

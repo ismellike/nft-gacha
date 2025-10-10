@@ -12,16 +12,50 @@ contract MockNFTAppraisal {
         OwnerOverride
     }
 
-    mapping(address => mapping(uint256 => uint256)) public appraisedPrices;
-    mapping(address => mapping(uint256 => AppraisalStatus)) public appraisalStatuses;
     mapping(address => mapping(uint256 => bytes32)) public tokenCardIds;
+    mapping(bytes32 => CardAppraisal) public cardAppraisals;
+    mapping(address => mapping(uint256 => AppraisalStatus)) public appraisalStatuses;
 
     function setMockAppraisal(address collection, uint256 tokenId, uint256 priceUSD) external {
-        appraisedPrices[collection][tokenId] = priceUSD;
-        appraisalStatuses[collection][tokenId] = AppraisalStatus.Completed;
-        // Generate a simple cardId for the token
-        bytes32 cardId = keccak256(abi.encodePacked(collection, priceUSD));
+        // Generate a cardId based on collection and tokenId (this represents the "card type")
+        bytes32 cardId = keccak256(abi.encodePacked(collection, "card", tokenId));
         tokenCardIds[collection][tokenId] = cardId;
+
+        // Only set card appraisal if it doesn't exist yet, ensuring same cardId always has same price
+        if (cardAppraisals[cardId].priceUSD == 0) {
+            cardAppraisals[cardId] = CardAppraisal({
+                priceUSD: priceUSD,
+                status: AppraisalStatus.Completed,
+                firstTimestamp: block.timestamp,
+                lastUpdated: block.timestamp,
+                canonicalContractAddress: collection,
+                canonicalTokenId: tokenId
+            });
+        }
+
+        appraisalStatuses[collection][tokenId] = AppraisalStatus.Completed;
+    }
+
+    function setMockAppraisalWithCardId(address collection, uint256 tokenId, bytes32 cardId, uint256 priceUSD) external {
+        tokenCardIds[collection][tokenId] = cardId;
+
+        // Only set card appraisal if it doesn't exist, ensuring price consistency
+        if (cardAppraisals[cardId].priceUSD == 0) {
+            cardAppraisals[cardId] = CardAppraisal({
+                priceUSD: priceUSD,
+                status: AppraisalStatus.Completed,
+                firstTimestamp: block.timestamp,
+                lastUpdated: block.timestamp,
+                canonicalContractAddress: collection,
+                canonicalTokenId: tokenId
+            });
+        } else {
+            // Update existing card appraisal (for testing price updates)
+            cardAppraisals[cardId].priceUSD = priceUSD;
+            cardAppraisals[cardId].lastUpdated = block.timestamp;
+        }
+
+        appraisalStatuses[collection][tokenId] = AppraisalStatus.Completed;
     }
 
     function getAppraisedPrice(address collection, uint256 tokenId)
@@ -29,12 +63,23 @@ contract MockNFTAppraisal {
         view
         returns (uint256 priceUSD, AppraisalStatus status)
     {
-        return (appraisedPrices[collection][tokenId], appraisalStatuses[collection][tokenId]);
+        bytes32 cardId = tokenCardIds[collection][tokenId];
+        if (cardId == bytes32(0)) {
+            return (0, AppraisalStatus.Pending);
+        }
+
+        CardAppraisal storage ca = cardAppraisals[cardId];
+        return (ca.priceUSD, ca.status);
     }
 
     function hasAppraisal(address collection, uint256 tokenId) external view returns (bool) {
-        return appraisedPrices[collection][tokenId] > 0
-            && appraisalStatuses[collection][tokenId] == AppraisalStatus.Completed;
+        bytes32 cardId = tokenCardIds[collection][tokenId];
+        if (cardId == bytes32(0)) {
+            return false;
+        }
+
+        CardAppraisal storage ca = cardAppraisals[cardId];
+        return ca.priceUSD > 0 && (ca.status == AppraisalStatus.Completed || ca.status == AppraisalStatus.OwnerOverride);
     }
 
     function getTokenCardId(address collection, uint256 tokenId) external view returns (bytes32) {
@@ -55,15 +100,6 @@ contract MockNFTAppraisal {
     }
 
     function getCardAppraisal(bytes32 cardId) external view returns (CardAppraisal memory) {
-        // Find the token that corresponds to this cardId
-        // For simplicity, we'll return a basic appraisal
-        return CardAppraisal({
-            priceUSD: 100000000000000000000, // Default 100 USD
-            status: AppraisalStatus.Completed,
-            firstTimestamp: 1,
-            lastUpdated: 1,
-            canonicalContractAddress: address(0),
-            canonicalTokenId: 0
-        });
+        return cardAppraisals[cardId];
     }
 }

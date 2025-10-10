@@ -65,7 +65,6 @@ contract DeployLocal is Script {
      * House Edge: ($25 - $78.40 × 0.3) / $25 = ~6% (30% win rate adjustment)
      * Much more player-friendly while maintaining protocol sustainability.
      */
-
     struct Deployments {
         address usdc;
         address appraisalProxy;
@@ -277,21 +276,11 @@ contract DeployLocal is Script {
 
         // Configure clean price ranges with variety ending in 0s and 5s
         console.log("Setting clean price ranges with 0s and 5s variety...");
-        GachaTreasury(d.treasuryProxy).setPriceRange(
-            GachaTreasury.Rarity.Common, 0, COMMON_MAX
-        ); // $0-15 (0-0.6x spin cost - sustainable loss)
-        GachaTreasury(d.treasuryProxy).setPriceRange(
-            GachaTreasury.Rarity.Uncommon, UNCOMMON_MIN, UNCOMMON_MAX
-        ); // $25-60 (1-2.4x spin cost - small win)
-        GachaTreasury(d.treasuryProxy).setPriceRange(
-            GachaTreasury.Rarity.Rare, RARE_MIN, RARE_MAX
-        ); // $70-250 (2.8-10x spin cost - decent profit)
-        GachaTreasury(d.treasuryProxy).setPriceRange(
-            GachaTreasury.Rarity.Epic, EPIC_MIN, EPIC_MAX
-        ); // $300-1,200 (12-48x spin cost - significant win)
-        GachaTreasury(d.treasuryProxy).setPriceRange(
-            GachaTreasury.Rarity.Legendary, LEGENDARY_MIN, type(uint256).max
-        ); // $1,500+ (60x+ spin cost - jackpot)
+        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Common, 0, COMMON_MAX); // $0-15 (0-0.6x spin cost - sustainable loss)
+        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Uncommon, UNCOMMON_MIN, UNCOMMON_MAX); // $25-60 (1-2.4x spin cost - small win)
+        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Rare, RARE_MIN, RARE_MAX); // $70-250 (2.8-10x spin cost - decent profit)
+        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Epic, EPIC_MIN, EPIC_MAX); // $300-1,200 (12-48x spin cost - significant win)
+        GachaTreasury(d.treasuryProxy).setPriceRange(GachaTreasury.Rarity.Legendary, LEGENDARY_MIN, type(uint256).max); // $1,500+ (60x+ spin cost - jackpot)
 
         console.log("Economy wiring complete");
     }
@@ -315,44 +304,44 @@ contract DeployLocal is Script {
         console.log("Seeded treasury with comprehensive inventory");
     }
 
-    function _seedCommon(
-        GachaTreasury treasury,
-        NFTAppraisal appraisal,
-        BaseERC721 nft,
-        address deployer
-    ) internal {
-        string[15] memory ids = [
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f"
+    function _seedCommon(GachaTreasury treasury, NFTAppraisal appraisal, BaseERC721 nft, address deployer) internal {
+        string[14] memory ids = [
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (Valid)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f"  // Fire Energy (duplicate)
         ];
-        // Predefine card IDs and prices for Common range
+        // Predefine card IDs and prices for Common range (matching actual Fire Energy metadata)
         bytes32[8] memory commonCardIds = [
-            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "Basic"),
-            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Water Energy", "English", "Basic"),
-            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Lightning Energy", "English", "Basic"),
-            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fighting Energy", "English", "Basic"),
-            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Psychic Energy", "English", "Basic"),
-            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Darkness Energy", "English", "Basic"),
-            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Metal Energy", "English", "Basic"),
-            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fairy Energy", "English", "Basic")
+            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009"),
+            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009"),
+            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009"),
+            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009"),
+            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009"),
+            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009"),
+            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009"),
+            _generateCardId("CGC", "8.5 NM-MT+", "Unnumbered Energy Cards", "Fire Energy", "English", "3812512009")
         ];
         uint256[8] memory commonPrices = [
-            2 * 1e18, 5 * 1e18, 7 * 1e18, 10 * 1e18,
-            12 * 1e18, 15 * 1e18, 13 * 1e18, 8 * 1e18
-        ]; // Mix of 0s and 5s endings, max $15
+            uint256(8 * 1e18),  // All Fire Energy cards should have same price
+            uint256(8 * 1e18),
+            uint256(8 * 1e18),
+            uint256(8 * 1e18),
+            uint256(8 * 1e18),
+            uint256(8 * 1e18),
+            uint256(8 * 1e18),
+            uint256(8 * 1e18)
+        ];
 
         // Set prices once per card ID
         for (uint256 i = 0; i < commonCardIds.length; i++) {
@@ -363,44 +352,35 @@ contract DeployLocal is Script {
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
             bytes32 cardId = commonCardIds[i % commonCardIds.length];
-            appraisal.ownerSetAppraisalForToken(address(nft), tokenId, cardId);
+            appraisal.ownerSetAppraisalForTokenWithCard(
+                address(nft), tokenId, cardId, commonPrices[i % commonPrices.length]
+            );
             treasury.depositNFT(address(nft), tokenId);
         }
     }
 
-    function _seedUncommon(
-        GachaTreasury treasury,
-        NFTAppraisal appraisal,
-        BaseERC721 nft,
-        address deployer
-    ) internal {
+    function _seedUncommon(GachaTreasury treasury, NFTAppraisal appraisal, BaseERC721 nft, address deployer) internal {
         string[10] memory ids = [
-            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
-            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
-            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
-            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
-            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
-            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
-            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
-            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
-            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
-            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19"
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (Valid)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19", // Lucario (Valid)
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (duplicate)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19", // Lucario (duplicate)
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (duplicate)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19", // Lucario (duplicate)
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (duplicate)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19", // Lucario (duplicate)
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (duplicate)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19"  // Lucario (duplicate)
         ];
-        // Predefine card IDs and prices for Uncommon range
-        bytes32[8] memory uncommonCardIds = [
-            _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Bronzong", "English", "16"),
-            _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Lucario", "English", "17"),
-            _generateCardId("CGC", "9 MINT", "EX Hidden Legends", "Beldum", "English", "29"),
-            _generateCardId("CGC", "9 MINT", "EX Hidden Legends", "Metagross", "English", "30"),
-            _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Garchomp", "English", "18"),
-            _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Rayquaza", "English", "19"),
-            _generateCardId("CGC", "9 MINT", "EX Hidden Legends", "Kyogre", "English", "31"),
-            _generateCardId("CGC", "9 MINT", "EX Hidden Legends", "Groudon", "English", "32")
+        // Predefine card IDs and prices for Uncommon range (matching actual Bronzong/Lucario metadata)
+        bytes32[2] memory uncommonCardIds = [
+            _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Bronzong", "English", "1401014224065"),
+            _generateCardId("CGC", "9 MINT", "Majestic Dawn", "Lucario", "English", "1401014224066")
         ];
-        uint256[8] memory uncommonPrices = [
-            25 * 1e18, 30 * 1e18, 35 * 1e18, 40 * 1e18,
-            45 * 1e18, 50 * 1e18, 55 * 1e18, 60 * 1e18
-        ]; // Mix of 0s and 5s endings
+        uint256[2] memory uncommonPrices = [
+            uint256(30 * 1e18),  // Bronzong price
+            uint256(35 * 1e18)   // Lucario price
+        ];
 
         // Set prices once per card ID
         for (uint256 i = 0; i < uncommonCardIds.length; i++) {
@@ -411,46 +391,33 @@ contract DeployLocal is Script {
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
             bytes32 cardId = uncommonCardIds[i % uncommonCardIds.length];
-            appraisal.ownerSetAppraisalForToken(address(nft), tokenId, cardId);
+            appraisal.ownerSetAppraisalForTokenWithCard(
+                address(nft), tokenId, cardId, uncommonPrices[i % uncommonPrices.length]
+            );
             treasury.depositNFT(address(nft), tokenId);
         }
     }
 
-    function _seedRare(
-        GachaTreasury treasury,
-        NFTAppraisal appraisal,
-        BaseERC721 nft,
-        address deployer
-    ) internal {
+    function _seedRare(GachaTreasury treasury, NFTAppraisal appraisal, BaseERC721 nft, address deployer) internal {
         string[10] memory ids = [
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9"
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (Valid)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (duplicate)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9"  // Psyduck (duplicate)
         ];
-        // Predefine card IDs and prices for Rare range
-        bytes32[10] memory rareCardIds = [
-            _generateCardId("PSA", "9 MINT", "Black Star", "Psyduck", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Pikachu", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Bulbasaur", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Charmander", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Squirtle", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Jigglypuff", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Meowth", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Eevee", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Snorlax", "English", "Basic"),
-            _generateCardId("PSA", "9 MINT", "Black Star", "Mewtwo", "English", "Basic")
+        // Predefine card IDs and prices for Rare range (matching actual Psyduck metadata)
+        bytes32[1] memory rareCardIds = [
+            _generateCardId("PSA", "9 MINT", "Black Star", "Psyduck", "English", "71692205")
         ];
-        uint256[10] memory rarePrices = [
-            70 * 1e18, 80 * 1e18, 90 * 1e18, 100 * 1e18, 115 * 1e18,
-            130 * 1e18, 150 * 1e18, 175 * 1e18, 200 * 1e18, 225 * 1e18
-        ]; // Mix of 0s and 5s endings
+        uint256[1] memory rarePrices = [
+            uint256(100 * 1e18)  // All Psyduck cards should have same price
+        ];
 
         // Set prices once per card ID
         for (uint256 i = 0; i < rareCardIds.length; i++) {
@@ -461,44 +428,33 @@ contract DeployLocal is Script {
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
             bytes32 cardId = rareCardIds[i % rareCardIds.length];
-            appraisal.ownerSetAppraisalForToken(address(nft), tokenId, cardId);
+            appraisal.ownerSetAppraisalForTokenWithCard(
+                address(nft), tokenId, cardId, rarePrices[i % rarePrices.length]
+            );
             treasury.depositNFT(address(nft), tokenId);
         }
     }
 
-    function _seedEpic(
-        GachaTreasury treasury,
-        NFTAppraisal appraisal,
-        BaseERC721 nft,
-        address deployer
-    ) internal {
+    function _seedEpic(GachaTreasury treasury, NFTAppraisal appraisal, BaseERC721 nft, address deployer) internal {
         string[10] memory ids = [
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b"
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (Valid)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (duplicate)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b"  // Feraligatr (duplicate)
         ];
-        // Predefine card IDs and prices for Epic range
-        bytes32[8] memory epicCardIds = [
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Feraligatr", "Japanese", "016/P"),
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Typhlosion", "Japanese", "017/P"),
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Meganium", "Japanese", "018/P"),
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Dragonite", "Japanese", "019/P"),
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Celebi", "Japanese", "020/P"),
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Suicune", "Japanese", "021/P"),
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Raikou", "Japanese", "022/P"),
-            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Entei", "Japanese", "023/P")
+        // Predefine card IDs and prices for Epic range (matching actual Feraligatr metadata)
+        bytes32[1] memory epicCardIds = [
+            _generateCardId("PSA", "10 GEM MINT", "Japanese Promo", "Feraligatr", "Japanese", "81437601")
         ];
-        uint256[8] memory epicPrices = [
-            300 * 1e18, 350 * 1e18, 400 * 1e18, 450 * 1e18,
-            500 * 1e18, 600 * 1e18, 750 * 1e18, 900 * 1e18
-        ]; // Mix of 0s and 5s endings
+        uint256[1] memory epicPrices = [
+            uint256(500 * 1e18)  // All Feraligatr cards should have same price
+        ];
 
         // Set prices once per card ID
         for (uint256 i = 0; i < epicCardIds.length; i++) {
@@ -509,32 +465,29 @@ contract DeployLocal is Script {
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
             bytes32 cardId = epicCardIds[i % epicCardIds.length];
-            appraisal.ownerSetAppraisalForToken(address(nft), tokenId, cardId);
+            appraisal.ownerSetAppraisalForTokenWithCard(
+                address(nft), tokenId, cardId, epicPrices[i % epicPrices.length]
+            );
             treasury.depositNFT(address(nft), tokenId);
         }
     }
 
-    function _seedLegendary(
-        GachaTreasury treasury,
-        NFTAppraisal appraisal,
-        BaseERC721 nft,
-        address deployer
-    ) internal {
+    function _seedLegendary(GachaTreasury treasury, NFTAppraisal appraisal, BaseERC721 nft, address deployer)
+        internal
+    {
         string[5] memory ids = [
-            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c",
-            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
-            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c",
-            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
-            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c"
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c", // Base Set Charizard (Valid)
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Charizard V (Valid)
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c", // Base Set Charizard (duplicate)
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Charizard V (duplicate)
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c"  // Base Set Charizard (duplicate)
         ];
-        // Predefine card IDs and prices for Legendary range
+        // Predefine card IDs and prices for Legendary range (matching actual Charizard metadata)
         bytes32[2] memory legendaryCardIds = [
-            _generateCardId("PSA", "8 NM-MT", "Base Set 2", "Charizard", "English", "4"),
-            _generateCardId("BGS", "10 PRISTINE", "Champion's Path", "Charizard V", "English", "079")
+            _generateCardId("PSA", "8 NM-MT", "Base Set", "Charizard", "English", "22610703"),
+            _generateCardId("BGS", "10 PRISTINE", "Champion's Path", "Charizard V", "English", "0012526329")
         ];
-        uint256[2] memory legendaryPrices = [
-            1_500 * 1e18, 2_250 * 1e18
-        ]; // Mix of 0s and 5s endings
+        uint256[2] memory legendaryPrices = [uint256(1_500 * 1e18), uint256(2_250 * 1e18)]; // Mix of 0s and 5s endings
 
         // Set prices once per card ID
         for (uint256 i = 0; i < legendaryCardIds.length; i++) {
@@ -545,23 +498,25 @@ contract DeployLocal is Script {
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 tokenId = nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
             bytes32 cardId = legendaryCardIds[i % legendaryCardIds.length];
-            appraisal.ownerSetAppraisalForToken(address(nft), tokenId, cardId);
+            appraisal.ownerSetAppraisalForTokenWithCard(
+                address(nft), tokenId, cardId, legendaryPrices[i % legendaryPrices.length]
+            );
             treasury.depositNFT(address(nft), tokenId);
         }
     }
 
     function _seedNonAppraised(BaseERC721 nft, address deployer) internal {
         string[10] memory ids = [
-            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
-            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f",
-            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb",
-            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19",
-            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9",
-            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b",
-            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c",
-            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f",
-            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c",
-            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c"
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (Valid)
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (Valid)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19", // Lucario (Valid)
+            "0x560b63c82c999147eb80dbf88634e0394e4e70170dff1064e22283422d5cb4a9", // Psyduck (Valid)
+            "0x018f4009e23d378e58cc7fb130fecda4038367ab092a4d326b94bb79e9cfe46b", // Feraligatr (Valid)
+            "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c", // Base Set Charizard (Valid)
+            "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Charizard V (Valid)
+            "0x94a865a7d6e9caa4d23b8e65106a25aec9c581dd257e2ea2c4fa44e91f08674f", // Fire Energy (duplicate)
+            "0xe3fe2307c9e2bd4d466687de407e7607540478594c34a1c3a0ba14a0ace7f5cb", // Bronzong (duplicate)
+            "0x12ca95bab110eb35ef841bacd186ae9dece31452de28b6d4ffec25d734e4fd19"  // Lucario (duplicate)
         ];
         for (uint256 i = 0; i < ids.length; i++) {
             nft.mintWithURI(deployer, _generateCourtyardTokenURI(ids[i]));
@@ -582,8 +537,10 @@ contract DeployLocal is Script {
     function _generateCourtyardTokenURI(string memory id) internal pure returns (string memory) {
         return string(
             abi.encodePacked(
-                "https://api.courtyard.io/v1/contract/0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD/metadata/",
-                id
+                "https://api.courtyard.io/index/token/polygon/",
+                "0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD/",
+                id,
+                "/metadata.json"
             )
         );
     }
@@ -596,9 +553,7 @@ contract DeployLocal is Script {
         string memory language,
         string memory number
     ) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encodePacked(gradingCompany, grade, set, name, language, number)
-        );
+        return keccak256(abi.encodePacked(gradingCompany, grade, set, name, language, number));
     }
 
     function _displayTreasuryStats(address treasuryProxy) internal view {
@@ -618,17 +573,39 @@ contract DeployLocal is Script {
             abi.encodePacked(
                 "# Auto-generated deployment addresses\n",
                 "CHAIN_ID=31337\n",
-                "USDC_ADDRESS=", vm.toString(deployments.usdc), "\n",
-                "NFT_APPRAISAL_ADDRESS=", vm.toString(deployments.appraisalProxy), "\n",
-                "GACHA_TREASURY_ADDRESS=", vm.toString(deployments.treasuryProxy), "\n",
-                "DEPOSITOR_VAULT_ADDRESS=", vm.toString(deployments.depositorVaultProxy), "\n",
-                "BUYBACK_VAULT_ADDRESS=", vm.toString(deployments.buybackVaultProxy), "\n",
-                "PROTOCOL_TREASURY_ADDRESS=", vm.toString(deployments.protocolTreasuryProxy), "\n",
-                "ECONOMY_MANAGER_ADDRESS=", vm.toString(deployments.economyManagerProxy), "\n",
-                "GACHA_ADDRESS=", vm.toString(deployments.gachaProxy), "\n",
-                "GACHA_SERVICE_HANDLER_ADDRESS=", vm.toString(deployments.serviceHandler), "\n",
-                "APPRAISAL_SERVICE_HANDLER_ADDRESS=", vm.toString(deployments.appraisalServiceHandler), "\n",
-                "COLLECTION_ADDRESS=", vm.toString(deployments.collection), "\n"
+                "USDC_ADDRESS=",
+                vm.toString(deployments.usdc),
+                "\n",
+                "NFT_APPRAISAL_ADDRESS=",
+                vm.toString(deployments.appraisalProxy),
+                "\n",
+                "GACHA_TREASURY_ADDRESS=",
+                vm.toString(deployments.treasuryProxy),
+                "\n",
+                "DEPOSITOR_VAULT_ADDRESS=",
+                vm.toString(deployments.depositorVaultProxy),
+                "\n",
+                "BUYBACK_VAULT_ADDRESS=",
+                vm.toString(deployments.buybackVaultProxy),
+                "\n",
+                "PROTOCOL_TREASURY_ADDRESS=",
+                vm.toString(deployments.protocolTreasuryProxy),
+                "\n",
+                "ECONOMY_MANAGER_ADDRESS=",
+                vm.toString(deployments.economyManagerProxy),
+                "\n",
+                "GACHA_ADDRESS=",
+                vm.toString(deployments.gachaProxy),
+                "\n",
+                "GACHA_SERVICE_HANDLER_ADDRESS=",
+                vm.toString(deployments.serviceHandler),
+                "\n",
+                "APPRAISAL_SERVICE_HANDLER_ADDRESS=",
+                vm.toString(deployments.appraisalServiceHandler),
+                "\n",
+                "COLLECTION_ADDRESS=",
+                vm.toString(deployments.collection),
+                "\n"
             )
         );
 
