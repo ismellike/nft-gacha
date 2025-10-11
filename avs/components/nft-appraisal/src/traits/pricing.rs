@@ -1,4 +1,3 @@
-use crate::types::CardMetadata;
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::Serialize;
@@ -20,15 +19,12 @@ pub struct ResolverQuote {
     pub ttl: Duration,
 }
 
-/// Trait for turning unified metadata into price quotes.
+/// Trait for turning provider titles into price quotes.
 #[async_trait(?Send)]
 pub trait PriceResolver {
     /// Human readable identifier for the resolver.
     fn name(&self) -> &str;
 
-    /// Determine whether this resolver can handle the provided metadata.
-    fn can_resolve(&self, metadata: &CardMetadata) -> bool;
-
-    /// Resolve pricing information for the provided metadata.
-    async fn get_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>>;
+    /// Resolve pricing information for the provided title.
+    async fn get_price(&self, title: &str) -> Result<Option<ResolverQuote>>;
 }

@@ -1,8 +1,18 @@
-use crate::types::{CardMetadata, ProviderType};
+use crate::types::{ProviderType, ResolverKind};
 use anyhow::Result;
 use async_trait::async_trait;
 
-/// Trait for fetching and validating NFT metadata from a token URI.
+/// Normalized metadata returned by providers for appraisal.
+#[derive(Debug, Clone)]
+pub struct ProviderMetadata {
+    pub provider: ProviderType,
+    pub title: String,
+    pub product_type: Option<String>,
+    pub categories: Vec<String>,
+    pub resolver: Option<ResolverKind>,
+}
+
+/// Trait for fetching card titles from NFT token URIs.
 #[async_trait(?Send)]
 pub trait MetadataProvider {
     /// The provider type represented by this implementation.
@@ -11,12 +21,6 @@ pub trait MetadataProvider {
     /// Determine whether this provider can fetch metadata for the given URI.
     fn can_handle_uri(&self, uri: &str) -> bool;
 
-    /// Fetch metadata from the given URI and convert it into the unified representation.
-    async fn fetch_metadata(&self, uri: &str) -> Result<CardMetadata>;
-
-    /// Perform any integrity or authenticity verification for the fetched metadata.
-    fn verify(&self, metadata: &CardMetadata) -> Result<()> {
-        let _ = metadata;
-        Ok(())
-    }
+    /// Fetch metadata from the given URI.
+    async fn fetch_metadata(&self, uri: &str) -> Result<ProviderMetadata>;
 }

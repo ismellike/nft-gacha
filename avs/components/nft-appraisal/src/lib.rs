@@ -10,7 +10,6 @@ use crate::bindings::{
 use wstd::runtime::block_on;
 
 mod core;
-mod engine;
 mod providers;
 mod resolvers;
 mod traits;

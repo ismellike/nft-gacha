@@ -11,11 +11,10 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use hex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
-use crate::traits::metadata::MetadataProvider;
-use crate::types::{CardGrade, CardInfo, CardMetadata, IntegrityProof, ProviderType};
+use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
+use crate::types::{ProviderType, ResolverKind};
 
 // ============================================================================
 // Types
@@ -80,25 +79,6 @@ pub struct NFTAttribute {
     pub value: serde_json::Value,
 }
 
-#[derive(Debug, Clone)]
-pub struct GradedCardAttributes {
-    pub grader: String,
-    pub grade: String,
-    pub grade_qualifier: Option<String>,
-    pub raw_grade: String,
-    pub title: String,
-    pub card_number: String,
-    pub year: String,
-    pub set: Option<String>,
-    pub language: Option<String>,
-    pub category: Option<String>,
-    #[allow(dead_code)]
-    pub event: Option<String>,
-    pub other_attributes: HashMap<String, String>,
-    pub tags: Vec<String>,
-    pub integrity_proof: Option<IntegrityProof>,
-}
-
 // ============================================================================
 // Client
 // ============================================================================
@@ -126,11 +106,6 @@ impl CourtyardClient {
         Ok(metadata)
     }
 
-    /// Parse graded card information from NFT metadata
-    pub fn parse_graded_card_info(&self, metadata: &NFTMetadata) -> Result<GradedCardAttributes> {
-        CardParser::parse_graded_card_attributes(metadata)
-    }
-
     /// Verify proof of integrity for a Courtyard NFT
     pub fn verify_proof_of_integrity(&self, metadata: &NFTMetadata) -> Result<bool> {
         // Extract proof information
@@ -143,186 +118,6 @@ impl CourtyardClient {
             })?;
 
         IntegrityVerifier::verify_proof_of_integrity(proof_info)
-    }
-}
-
-// ============================================================================
-// Card Parser
-// ============================================================================
-
-pub struct CardParser;
-
-impl CardParser {
-    /// Parse graded card attributes from Courtyard metadata
-    pub fn parse_graded_card_attributes(metadata: &NFTMetadata) -> Result<GradedCardAttributes> {
-        // Verify this is a graded card
-        if metadata.product_type.as_deref() != Some("GRADED_CARD") {
-            return Err(anyhow!(
-                "NFT is not a graded card (product_type: {:?})",
-                metadata.product_type
-            ));
-        }
-
-        // Convert all attributes to comprehensive map
-        let all_attributes = Self::attributes_to_map(&metadata.attributes);
-
-        // Define core grouping attribute keys
-        let core_keys = [
-            "Grader",
-            "Grade",
-            "Title/Subject",
-            "Card Number",
-            "Year",
-            "Set",
-            "Language",
-            "Category",
-            "Event",
-        ];
-
-        // Extract required fields using normalized trait types
-        let grader = all_attributes
-            .get("Grader")
-            .ok_or_else(|| anyhow!("Missing required Grader attribute"))?
-            .clone();
-        let raw_grade = all_attributes
-            .get("Grade")
-            .ok_or_else(|| anyhow!("Missing required Grade attribute"))?
-            .clone();
-        let (grade, grade_qualifier) = Self::split_grade(&raw_grade);
-
-        let title = all_attributes
-            .get("Title/Subject")
-            .ok_or_else(|| anyhow!("Missing required Title/Subject attribute"))?
-            .clone();
-
-        let card_number = all_attributes
-            .get("Card Number")
-            .ok_or_else(|| anyhow!("Missing required Card Number attribute"))?
-            .clone();
-
-        let year = all_attributes
-            .get("Year")
-            .ok_or_else(|| anyhow!("Missing required Year attribute"))?
-            .clone();
-
-        // Optional fields
-        let set = all_attributes.get("Set").cloned();
-        let language = all_attributes.get("Language").cloned();
-        let category = all_attributes.get("Category").cloned();
-        let event = all_attributes.get("Event").cloned();
-
-        // Separate other attributes (Serial, etc.)
-        let mut other_attributes = HashMap::new();
-        for (key, value) in &all_attributes {
-            if !core_keys.contains(&key.as_str()) {
-                other_attributes.insert(key.clone(), value.clone());
-            }
-        }
-
-        // Collect any tag-like attributes that have a value but no trait_type
-        let mut tags: Vec<String> = Vec::new();
-        for attr in &metadata.attributes {
-            if attr.trait_type.is_none() {
-                if let Some(val) = attr.value.as_str() {
-                    let trimmed = val.trim();
-                    if !trimmed.is_empty() {
-                        tags.push(trimmed.to_string());
-                    }
-                }
-            }
-        }
-        tags.sort();
-
-        let integrity_proof = metadata
-            .token_info
-            .as_ref()
-            .and_then(|ti| ti.proof_of_integrity.as_ref())
-            .map(|pi| IntegrityProof {
-                fingerprint: pi.fingerprint.clone(),
-                salt: Some(pi.salt),
-                proof: pi.hex_proof.clone(),
-                verification_url: None,
-            });
-
-        Ok(GradedCardAttributes {
-            grader,
-            grade,
-            grade_qualifier,
-            raw_grade,
-            title,
-            card_number,
-            year,
-            set,
-            language,
-            category,
-            event,
-            other_attributes,
-            tags,
-            integrity_proof,
-        })
-    }
-
-    /// Convert NFT attributes to a HashMap for easier access
-    fn attributes_to_map(attributes: &[NFTAttribute]) -> HashMap<String, String> {
-        let mut map = HashMap::new();
-
-        for attr in attributes {
-            if let Some(trait_type) = &attr.trait_type {
-                let value = match &attr.value {
-                    serde_json::Value::String(s) => s.clone(),
-                    serde_json::Value::Number(n) => n.to_string(),
-                    serde_json::Value::Bool(b) => b.to_string(),
-                    _ => attr.value.to_string(),
-                };
-                map.insert(trait_type.clone(), value);
-            }
-        }
-
-        map
-    }
-
-    /// Split a raw grade label into numeric grade + optional qualifier (e.g. "9 MINT" -> ("9", Some("MINT")))
-    fn split_grade(raw_grade: &str) -> (String, Option<String>) {
-        let trimmed = raw_grade.trim();
-        if trimmed.is_empty() {
-            return (String::new(), None);
-        }
-
-        let mut parts = trimmed.split_whitespace();
-        if let Some(first) = parts.next() {
-            if first.chars().all(|c| c.is_ascii_digit() || c == '.') {
-                let qualifier = parts.collect::<Vec<_>>().join(" ");
-                let qualifier = if qualifier.is_empty() {
-                    None
-                } else {
-                    Some(qualifier)
-                };
-                return (first.to_string(), qualifier);
-            }
-        }
-
-        let mut numeric = String::new();
-        let mut reading = false;
-        for ch in trimmed.chars() {
-            if ch.is_ascii_digit() || ch == '.' {
-                reading = true;
-                numeric.push(ch);
-            } else if reading {
-                break;
-            }
-        }
-
-        if numeric.is_empty() {
-            return (trimmed.to_string(), None);
-        }
-
-        let qualifier = trimmed
-            .split_once(&numeric)
-            .map(|(_, tail)| tail.trim())
-            .filter(|tail| !tail.is_empty())
-            .map(|tail| tail.to_string());
-
-        (numeric, qualifier)
     }
 }
 
@@ -423,132 +218,72 @@ impl MetadataProvider for CourtyardProvider {
             || (uri.contains("static.courtyard.io") && uri.contains("token_uri"))
     }
 
-    async fn fetch_metadata(&self, uri: &str) -> Result<CardMetadata> {
-        // Direct async call - no blocking needed
+    async fn fetch_metadata(&self, uri: &str) -> Result<ProviderMetadata> {
+        // Fetch Courtyard metadata document
         let courtyard_metadata = self.client.get_nft_metadata_from_uri(uri).await?;
 
-        // 🔥 Verify integrity BEFORE conversion (fail fast)
+        // Verify integrity before proceeding (fail fast)
         if let Err(e) = self.client.verify_proof_of_integrity(&courtyard_metadata) {
             return Err(anyhow!("Integrity verification failed for {}: {}", uri, e));
         }
 
-        // Convert to unified format only after verification passes
-        self.convert_metadata(courtyard_metadata)
-    }
-
-    fn verify(&self, metadata: &CardMetadata) -> Result<()> {
-        // Verify this is Courtyard metadata
-        if metadata.provider != ProviderType::Courtyard {
-            return Err(anyhow!("Metadata provider mismatch"));
-        }
-
-        // ✅ Integrity verification is now done in fetch_metadata()
-        // This method can focus on business logic validation
-
-        // Verify that the card has required grade information
-        if let Some(grade_info) = &metadata.grade_info {
-            // Verify that we have a valid grader
-            if grade_info.grader.is_empty() {
-                return Err(anyhow!("Missing grader information"));
-            }
-
-            // Verify that we have a valid grade
-            if grade_info.numeric_grade.is_empty() {
-                return Err(anyhow!("Missing grade information"));
-            }
-        }
-
-        // Additional business logic validations can be added here
-        Ok(())
+        let categories = Self::categories_from_attributes(&courtyard_metadata.attributes);
+        let resolver = Self::infer_resolver(&courtyard_metadata, &categories);
+        Ok(ProviderMetadata {
+            provider: ProviderType::Courtyard,
+            title: courtyard_metadata.name.clone(),
+            product_type: courtyard_metadata.product_type.clone(),
+            categories,
+            resolver,
+        })
     }
 }
 
 impl CourtyardProvider {
-    /// Convert Courtyard metadata to unified format
-    fn convert_metadata(&self, courtyard_metadata: NFTMetadata) -> Result<CardMetadata> {
-        // Parse graded card information
-        let graded_attributes = self.client.parse_graded_card_info(&courtyard_metadata)?;
+    fn categories_from_attributes(attributes: &[NFTAttribute]) -> Vec<String> {
+        attributes
+            .iter()
+            .filter_map(|attr| {
+                let trait_type = attr.trait_type.as_deref()?;
+                if trait_type.eq_ignore_ascii_case("Category") {
+                    Self::attribute_value_as_string(&attr.value)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
 
-        // Extract images
-        let mut images = Vec::new();
-        if let Some(ref image) = courtyard_metadata.image {
-            images.push(image.clone());
+    fn attribute_value_as_string(value: &serde_json::Value) -> Option<String> {
+        match value {
+            serde_json::Value::String(s) => Some(s.clone()),
+            serde_json::Value::Number(n) => Some(n.to_string()),
+            serde_json::Value::Bool(b) => Some(b.to_string()),
+            _ => None,
         }
-        if let Some(ref animation_url) = courtyard_metadata.animation_url {
-            images.push(animation_url.clone());
-        }
+    }
 
-        // Extract external URLs
-        let mut external_urls = Vec::new();
-        if let Some(ref external_url) = courtyard_metadata.external_url {
-            external_urls.push(external_url.clone());
-        }
+    fn infer_resolver(metadata: &NFTMetadata, categories: &[String]) -> Option<ResolverKind> {
+        let is_graded_card = metadata
+            .product_type
+            .as_deref()
+            .map(|value| value.eq_ignore_ascii_case("GRADED_CARD"))
+            .unwrap_or(false);
 
-        // Convert attributes map
-        let mut attributes = HashMap::new();
-        for (key, value) in &graded_attributes.other_attributes {
-            attributes.insert(key.clone(), value.clone());
-        }
-
-        // Add core attributes to the map as well
-        attributes.insert("grader".to_string(), graded_attributes.grader.clone());
-        attributes.insert("grade".to_string(), graded_attributes.grade.clone());
-        attributes.insert(
-            "grade_display".to_string(),
-            graded_attributes.raw_grade.clone(),
-        );
-        attributes.insert(
-            "card_number".to_string(),
-            graded_attributes.card_number.clone(),
-        );
-        attributes.insert("year".to_string(), graded_attributes.year.clone());
-
-        if let Some(set) = &graded_attributes.set {
-            attributes.insert("set".to_string(), set.clone());
-        }
-
-        if let Some(language) = &graded_attributes.language {
-            attributes.insert("language".to_string(), language.clone());
-        }
-
-        if let Some(category) = &graded_attributes.category {
-            attributes.insert("category".to_string(), category.clone());
-        }
-
-        // Add tags as individual attributes
-        for (i, tag) in graded_attributes.tags.iter().enumerate() {
-            attributes.insert(format!("tag_{}", i), tag.clone());
-        }
-
-        // Create grade info
-        let grade_info = Some(CardGrade {
-            grader: graded_attributes.grader.clone(),
-            numeric_grade: graded_attributes.grade.clone(),
-            grade_qualifier: graded_attributes.grade_qualifier.clone(),
-            serial: graded_attributes.other_attributes.get("Serial").cloned(),
-            integrity_proof: graded_attributes.integrity_proof,
+        let has_pokemon_category = categories.iter().any(|category| {
+            let upper = category.to_uppercase();
+            if upper.contains("POKÉMON") {
+                true
+            } else {
+                upper.replace('É', "E").contains("POKEMON")
+            }
         });
 
-        // Create card info
-        let card_info = CardInfo {
-            name: graded_attributes.title.clone(),
-            card_number: Some(graded_attributes.card_number.clone()),
-            set_name: graded_attributes.set.clone(),
-            year: Some(graded_attributes.year.clone()),
-            category: graded_attributes.category.clone(),
-            language: graded_attributes.language.clone(),
-            images,
-            external_urls,
-        };
+        if is_graded_card && has_pokemon_category {
+            return Some(ResolverKind::PokemonTradingCard);
+        }
 
-        Ok(CardMetadata {
-            provider: ProviderType::Courtyard,
-            card_info,
-            grade_info,
-            attributes,
-            provider_data: serde_json::to_value(courtyard_metadata)
-                .map_err(|e| anyhow!("Failed to serialize provider data: {}", e))?,
-        })
+        None
     }
 }
 
@@ -559,6 +294,7 @@ impl CourtyardProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     // Default implementations for test cases
     impl Default for NFTMetadata {
@@ -599,40 +335,48 @@ mod tests {
     }
 
     #[test]
-    fn test_attributes_to_map() {
+    fn test_categories_from_attributes() {
         let attributes = vec![
             NFTAttribute {
-                trait_type: Some("Grader".to_string()),
-                value: serde_json::Value::String("PSA".to_string()),
+                trait_type: Some("Category".to_string()),
+                value: json!("Pokémon"),
             },
             NFTAttribute {
-                trait_type: Some("Grade".to_string()),
-                value: serde_json::Value::String("10".to_string()),
+                trait_type: Some("Other".to_string()),
+                value: json!("Ignore me"),
             },
             NFTAttribute {
                 trait_type: None,
-                value: serde_json::Value::String("Holo".to_string()),
+                value: json!("Missing trait"),
             },
         ];
 
-        let map = CardParser::attributes_to_map(&attributes);
-        assert_eq!(map.get("Grader"), Some(&"PSA".to_string()));
-        assert_eq!(map.get("Grade"), Some(&"10".to_string()));
-        assert!(!map.contains_key("Holo")); // trait_type is None
+        let categories = CourtyardProvider::categories_from_attributes(&attributes);
+        assert_eq!(categories, vec!["Pokémon".to_string()]);
     }
 
     #[test]
-    fn test_split_grade_numeric_with_qualifier() {
-        let (grade, qualifier) = CardParser::split_grade("9 MINT");
-        assert_eq!(grade, "9");
-        assert_eq!(qualifier, Some("MINT".to_string()));
+    fn test_resolver_selection_for_pokemon_category() {
+        let metadata = NFTMetadata {
+            product_type: Some("GRADED_CARD".to_string()),
+            ..Default::default()
+        };
+        let categories = vec!["Pokémon".to_string()];
+
+        let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
+        assert_eq!(resolver, Some(ResolverKind::PokemonTradingCard));
     }
 
     #[test]
-    fn test_split_grade_with_prefix() {
-        let (grade, qualifier) = CardParser::split_grade("PSA 10 GEM MINT");
-        assert_eq!(grade, "10");
-        assert_eq!(qualifier, Some("GEM MINT".to_string()));
+    fn test_resolver_selection_without_match() {
+        let metadata = NFTMetadata {
+            product_type: Some("COLLECTIBLE".to_string()),
+            ..Default::default()
+        };
+        let categories = vec!["Baseball".to_string()];
+
+        let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
+        assert!(resolver.is_none());
     }
 
     #[test]

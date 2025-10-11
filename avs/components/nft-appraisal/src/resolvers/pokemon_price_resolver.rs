@@ -5,13 +5,16 @@
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use http::{header::AUTHORIZATION, HeaderValue};
+use http::Request;
 use serde::{Deserialize, Serialize};
+use serde_json;
 use std::time::Duration;
-use wavs_wasi_utils::http::{fetch_string, http_request_get};
+use wstd::{
+    http::{body::BoundedBody, Client, IntoBody},
+    io::AsyncRead,
+};
 
 use crate::traits::pricing::{AppraisalPrice, PriceResolver, ResolverQuote};
-use crate::types::CardMetadata;
 
 // ============================================================================
 // Types
@@ -84,98 +87,124 @@ pub struct GradePrice {
 /// Price resolver for Pokemon cards using PokemonPriceTracker API
 pub struct PokemonPriceResolver {
     api_key: String,
-    base_url: String,
 }
+
+const POKEMON_PRICE_TRACKER_BASE_URL: &str = "https://www.pokemonpricetracker.com/api/v2";
 
 impl PokemonPriceResolver {
     /// Create a new Pokemon price resolver
     pub fn new(api_key: String) -> Self {
-        Self {
-            api_key,
-            base_url: "https://www.pokemonpricetracker.com/api".to_string(),
-        }
+        Self { api_key }
     }
 
-    /// Query the parse-title endpoint to get card information
+    /// Query the parse-title endpoint to get card information using POST
     async fn query_parse_title(&self, title: &str) -> Result<PokemonPriceResponse> {
-        let url = format!(
-            "{}/parse-title?title={}",
-            self.base_url,
-            urlencoding::encode(title)
-        );
+        let url = format!("{}/parse-title", POKEMON_PRICE_TRACKER_BASE_URL);
 
-        let mut request = http_request_get(&url)
-            .map_err(|e| anyhow!("Failed to create HTTP request for Pokemon API: {}", e))?;
+        // Create JSON body for POST request
+        let body_str = serde_json::json!({
+            "title": title
+        })
+        .to_string();
 
-        let auth_header = format!("Bearer {}", self.api_key);
-        let header_value = HeaderValue::from_str(&auth_header)
-            .map_err(|e| anyhow!("Invalid Pokemon API key format: {}", e))?;
-        request.headers_mut().insert(AUTHORIZATION, header_value);
+        // Helper to create POST request with JSON body and auth header
+        let post_request = |url: &str, json_body: &str| -> Result<Request<BoundedBody<Vec<u8>>>> {
+            let body_bytes = json_body.as_bytes().to_vec();
 
-        let response_text = fetch_string(request)
+            Request::post(url)
+                .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", self.api_key))
+                .body(body_bytes.into_body())
+                .map_err(|e| anyhow!("Failed to create HTTP request: {}", e))
+        };
+
+        // Create the request
+        let request = post_request(&url, &body_str)?;
+
+        // Send the request and get response
+        let mut response = Client::new()
+            .send(request)
             .await
-            .map_err(|e| anyhow!("Failed to fetch Pokemon price data: {}", e))?;
+            .map_err(|e| anyhow!("Failed to send HTTP request: {}", e))?;
 
+        // Check status code
+        let status = response.status();
+        if status != 200 {
+            return Err(anyhow!("HTTP request failed with status: {}", status));
+        }
+
+        // Read the response body
+        let response_body = response.body_mut();
+        let mut body_buf = Vec::new();
+        response_body
+            .read_to_end(&mut body_buf)
+            .await
+            .map_err(|e| anyhow!("Failed to read response body: {}", e))?;
+
+        let response_text = String::from_utf8(body_buf)
+            .map_err(|e| anyhow!("Failed to decode response body: {}", e))?;
+
+        // Parse JSON response
         let response: PokemonPriceResponse = serde_json::from_str(&response_text)
             .map_err(|e| anyhow!("Failed to parse Pokemon API response: {}", e))?;
 
         Ok(response)
     }
 
-    /// Build a search title from card metadata
-    fn build_search_title(&self, metadata: &CardMetadata) -> String {
-        let mut title_parts = Vec::new();
+    /// Extract grade information from title string
+    fn extract_grade_from_title(&self, title: &str) -> Option<(String, String)> {
+        // Look for patterns like "PSA 10", "BGS 9.5", etc.
+        let title_upper = title.to_ascii_uppercase();
 
-        // Card name (primary)
-        title_parts.push(metadata.card_info.name.clone());
+        fn extract(title: &str, grader: &str) -> Option<String> {
+            let idx = title.find(grader)?;
+            let mut remainder = &title[idx + grader.len()..];
+            remainder = remainder.trim_start_matches(|c: char| {
+                c.is_whitespace() || matches!(c, ':' | '-' | '(' | '[')
+            });
 
-        // Card number
-        if let Some(ref number) = metadata.card_info.card_number {
-            title_parts.push(format!("#{}", number));
-        }
+            let grade: String = remainder
+                .chars()
+                .take_while(|c| c.is_ascii_digit() || *c == '.' || *c == '/')
+                .collect();
 
-        // Set name
-        if let Some(ref set_name) = metadata.card_info.set_name {
-            title_parts.push(set_name.clone());
-        }
-
-        // Grade info
-        if let Some(ref grade_info) = metadata.grade_info {
-            title_parts.push(format!(
-                "{} {}",
-                grade_info.grader, grade_info.numeric_grade
-            ));
-        }
-
-        // Category/Pokemon
-        if let Some(ref category) = metadata.card_info.category {
-            if normalize_category(category) == "pokemon" {
-                title_parts.push("Pokemon".to_string());
+            if grade.is_empty() {
+                None
+            } else {
+                Some(normalize_grade_value(&grade))
             }
         }
 
-        title_parts.join(" ")
+        if let Some(grade) = extract(&title_upper, "PSA") {
+            return Some(("PSA".to_string(), grade));
+        }
+
+        if let Some(grade) = extract(&title_upper, "BGS") {
+            return Some(("BGS".to_string(), grade));
+        }
+
+        None
     }
 
-    /// Extract the best price from card data based on grade
-    fn extract_best_price(&self, data: &PokemonCardData, metadata: &CardMetadata) -> Option<f64> {
+    /// Extract the best price from card data based on grade info in title
+    fn extract_best_price(&self, data: &PokemonCardData, title: &str) -> Option<f64> {
         let market_price = data
             .prices
             .as_ref()
             .and_then(|p| p.market.as_ref())
             .and_then(|m| m.average);
 
-        if let Some(ref grade_info) = metadata.grade_info {
+        // Try to extract grade from title
+        if let Some((grader, grade)) = self.extract_grade_from_title(title) {
             // For graded cards, try to get the specific grade price
             if let Some(graded_prices) = data.prices.as_ref().and_then(|p| p.graded.as_ref()) {
-                let normalized_grade = normalize_grade_value(&grade_info.numeric_grade);
-                let price = match grade_info.grader.to_uppercase().as_str() {
-                    "PSA" => match normalized_grade.as_str() {
+                let price = match grader.as_str() {
+                    "PSA" => match grade.as_str() {
                         "10" => graded_prices.psa10.as_ref().and_then(|p| p.average),
                         "9" => graded_prices.psa9.as_ref().and_then(|p| p.average),
                         _ => None,
                     },
-                    "BGS" => match normalized_grade.as_str() {
+                    "BGS" => match grade.as_str() {
                         "10" => graded_prices.bgs10.as_ref().and_then(|p| p.average),
                         "9.5" => graded_prices.bgs95.as_ref().and_then(|p| p.average),
                         _ => None,
@@ -200,21 +229,9 @@ impl PriceResolver for PokemonPriceResolver {
         "PokemonPriceTracker"
     }
 
-    fn can_resolve(&self, metadata: &CardMetadata) -> bool {
-        // Can resolve if it's a Pokemon card
-        metadata
-            .card_info
-            .category
-            .as_ref()
-            .is_some_and(|cat| normalize_category(cat) == "pokemon")
-    }
-
-    async fn get_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>> {
-        // Build search title from card metadata
-        let search_title = self.build_search_title(metadata);
-
+    async fn get_price(&self, title: &str) -> Result<Option<ResolverQuote>> {
         // Query the API
-        let response = self.query_parse_title(&search_title).await?;
+        let response = self.query_parse_title(title).await?;
 
         if !response.success {
             return Ok(None);
@@ -224,8 +241,8 @@ impl PriceResolver for PokemonPriceResolver {
             .data
             .ok_or_else(|| anyhow!("No card data in response"))?;
 
-        // Extract the best price
-        let price = self.extract_best_price(&card_data, metadata);
+        // Extract the best price using the original title
+        let price = self.extract_best_price(&card_data, title);
 
         if let Some(price_value) = price {
             return Ok(Some(ResolverQuote {
@@ -243,10 +260,6 @@ impl PriceResolver for PokemonPriceResolver {
     }
 }
 
-fn normalize_category(value: &str) -> String {
-    value.to_lowercase().replace('é', "e")
-}
-
 fn normalize_grade_value(value: &str) -> String {
     let trimmed = value.trim();
     if let Some(stripped) = trimmed.strip_suffix(".0") {
@@ -262,26 +275,7 @@ fn normalize_grade_value(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
-    use crate::types::{CardGrade, CardInfo, ProviderType};
-
-    // Default implementation for test cases
-    impl Default for CardInfo {
-        fn default() -> Self {
-            Self {
-                name: "Test Card".to_string(),
-                card_number: None,
-                set_name: None,
-                year: None,
-                category: None,
-                language: None,
-                images: Vec::new(),
-                external_urls: Vec::new(),
-            }
-        }
-    }
 
     #[test]
     fn test_pokemon_price_resolver_creation() {
@@ -291,87 +285,47 @@ mod tests {
     }
 
     #[test]
-    fn test_can_resolve_pokemon_cards() {
+    fn test_extract_grade_from_title() {
         let resolver = PokemonPriceResolver::new("test_key".to_string());
 
-        let pokemon_metadata = CardMetadata {
-            provider: ProviderType::Courtyard,
-            card_info: CardInfo {
-                name: "Charizard".to_string(),
-                category: Some("Pokemon".to_string()),
-                ..Default::default()
-            },
-            grade_info: None,
-            attributes: HashMap::new(),
-            provider_data: serde_json::json!({}),
-        };
+        // PSA grades
+        assert_eq!(
+            resolver.extract_grade_from_title("2024 Pokémon Charizard (PSA 10)"),
+            Some(("PSA".to_string(), "10".to_string()))
+        );
+        assert_eq!(
+            resolver.extract_grade_from_title("Charizard PSA 9 Mint"),
+            Some(("PSA".to_string(), "9".to_string()))
+        );
+        assert_eq!(
+            resolver.extract_grade_from_title("Graded Pokémon | PSA 10 GEM MINT Charizard"),
+            Some(("PSA".to_string(), "10".to_string()))
+        );
+        assert_eq!(
+            resolver.extract_grade_from_title("Charizard PSA-8 NM-MT"),
+            Some(("PSA".to_string(), "8".to_string()))
+        );
 
-        assert!(resolver.can_resolve(&pokemon_metadata));
+        // BGS grades
+        assert_eq!(
+            resolver.extract_grade_from_title("2024 Pokémon Charizard (BGS 9.5)"),
+            Some(("BGS".to_string(), "9.5".to_string()))
+        );
+        assert_eq!(
+            resolver.extract_grade_from_title("Charizard BGS 10"),
+            Some(("BGS".to_string(), "10".to_string()))
+        );
+        assert_eq!(
+            resolver.extract_grade_from_title("BGS-9.5 Charizard (Black Label)"),
+            Some(("BGS".to_string(), "9.5".to_string()))
+        );
 
-        let non_pokemon_metadata = CardMetadata {
-            provider: ProviderType::Courtyard,
-            card_info: CardInfo {
-                name: "Magic Card".to_string(),
-                category: Some("Magic".to_string()),
-                ..Default::default()
-            },
-            grade_info: None,
-            attributes: HashMap::new(),
-            provider_data: serde_json::json!({}),
-        };
-
-        assert!(!resolver.can_resolve(&non_pokemon_metadata));
-    }
-
-    #[test]
-    fn test_can_resolve_pokemon_cards_with_accent() {
-        let resolver = PokemonPriceResolver::new("test_key".to_string());
-
-        let pokemon_metadata = CardMetadata {
-            provider: ProviderType::Courtyard,
-            card_info: CardInfo {
-                name: "Mew".to_string(),
-                category: Some("Pokémon".to_string()),
-                ..Default::default()
-            },
-            grade_info: None,
-            attributes: HashMap::new(),
-            provider_data: serde_json::json!({}),
-        };
-
-        assert!(resolver.can_resolve(&pokemon_metadata));
-    }
-
-    #[test]
-    fn test_build_search_title() {
-        let resolver = PokemonPriceResolver::new("test_key".to_string());
-
-        let metadata = CardMetadata {
-            provider: ProviderType::Courtyard,
-            card_info: CardInfo {
-                name: "Charizard".to_string(),
-                card_number: Some("4".to_string()),
-                set_name: Some("Base Set".to_string()),
-                category: Some("Pokemon".to_string()),
-                ..Default::default()
-            },
-            grade_info: Some(CardGrade {
-                grader: "PSA".to_string(),
-                numeric_grade: "10".to_string(),
-                grade_qualifier: Some("GEM MINT".to_string()),
-                serial: None,
-                integrity_proof: None,
-            }),
-            attributes: HashMap::new(),
-            provider_data: serde_json::json!({}),
-        };
-
-        let title = resolver.build_search_title(&metadata);
-        assert!(title.contains("Charizard"));
-        assert!(title.contains("#4"));
-        assert!(title.contains("Base Set"));
-        assert!(title.contains("PSA 10"));
-        assert!(title.contains("Pokemon"));
+        // No grade
+        assert_eq!(
+            resolver.extract_grade_from_title("2024 Pokémon Charizard"),
+            None
+        );
+        assert_eq!(resolver.extract_grade_from_title("Random Card Title"), None);
     }
 
     #[test]
@@ -413,40 +367,16 @@ mod tests {
             }),
         };
 
-        let psa10_metadata = CardMetadata {
-            provider: ProviderType::Courtyard,
-            card_info: CardInfo::default(),
-            grade_info: Some(CardGrade {
-                grader: "PSA".to_string(),
-                numeric_grade: "10".to_string(),
-                grade_qualifier: None,
-                serial: None,
-                integrity_proof: None,
-            }),
-            attributes: HashMap::new(),
-            provider_data: serde_json::json!({}),
-        };
-
-        let price = resolver.extract_best_price(&card_data, &psa10_metadata);
+        let price = resolver.extract_best_price(&card_data, "2024 Pokémon Charizard (PSA 10)");
         assert_eq!(price, Some(5000.0));
 
         // Test PSA 9 extraction
-        let psa9_metadata = CardMetadata {
-            provider: ProviderType::Courtyard,
-            card_info: CardInfo::default(),
-            grade_info: Some(CardGrade {
-                grader: "PSA".to_string(),
-                numeric_grade: "9".to_string(),
-                grade_qualifier: None,
-                serial: None,
-                integrity_proof: None,
-            }),
-            attributes: HashMap::new(),
-            provider_data: serde_json::json!({}),
-        };
-
-        let price = resolver.extract_best_price(&card_data, &psa9_metadata);
+        let price = resolver.extract_best_price(&card_data, "2024 Pokémon Charizard (PSA 9)");
         assert_eq!(price, Some(1000.0));
+
+        // Test fallback to market price when no grade matches
+        let price = resolver.extract_best_price(&card_data, "2024 Pokémon Charizard (BGS 10)");
+        assert_eq!(price, Some(100.0)); // Market price fallback
     }
 
     #[test]

@@ -81,8 +81,11 @@ impl AppraisalCache {
         Ok(())
     }
 
-    pub fn generate_cache_key(&self, metadata: &crate::types::CardMetadata) -> String {
-        hex::encode(metadata.to_keccak_hash())
+    pub fn generate_cache_key(&self, title: &str) -> String {
+        use sha3::{Digest, Keccak256};
+        let mut hasher = Keccak256::new();
+        hasher.update(title.as_bytes());
+        hex::encode(hasher.finalize())
     }
 }
 
