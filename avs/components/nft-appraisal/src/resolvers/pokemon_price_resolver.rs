@@ -15,6 +15,7 @@ use wstd::{
 };
 
 use crate::traits::pricing::{AppraisalPrice, PriceResolver, ResolverQuote};
+use crate::types::ResolverArgs;
 
 // ============================================================================
 // Types
@@ -229,7 +230,11 @@ impl PriceResolver for PokemonPriceResolver {
         "PokemonPriceTracker"
     }
 
-    async fn get_price(&self, title: &str) -> Result<Option<ResolverQuote>> {
+    async fn get_price(&self, args: &ResolverArgs) -> Result<Option<ResolverQuote>> {
+        let title = match args {
+            ResolverArgs::PokemonTitle { title } => title,
+        };
+
         // Query the API
         let response = self.query_parse_title(title).await?;
 

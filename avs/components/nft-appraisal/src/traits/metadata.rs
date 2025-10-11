@@ -1,4 +1,4 @@
-use crate::types::{ProviderType, ResolverKind};
+use crate::types::{ProviderType, ResolverRoute};
 use anyhow::Result;
 use async_trait::async_trait;
 
@@ -7,9 +7,11 @@ use async_trait::async_trait;
 pub struct ProviderMetadata {
     pub provider: ProviderType,
     pub title: String,
+    #[allow(dead_code)]
     pub product_type: Option<String>,
+    #[allow(dead_code)]
     pub categories: Vec<String>,
-    pub resolver: Option<ResolverKind>,
+    pub resolver: Option<ResolverRoute>,
 }
 
 /// Trait for fetching card titles from NFT token URIs.

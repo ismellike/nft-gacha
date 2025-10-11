@@ -13,8 +13,10 @@ use hex;
 use serde::{Deserialize, Serialize};
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
+use crate::resolvers::PokemonPriceResolver;
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
-use crate::types::{ProviderType, ResolverKind};
+use crate::traits::pricing::{PriceResolver, ResolverQuote};
+use crate::types::{ProviderType, ResolverArgs, ResolverKind, ResolverRoute};
 
 // ============================================================================
 // Types
@@ -263,7 +265,33 @@ impl CourtyardProvider {
         }
     }
 
-    fn infer_resolver(metadata: &NFTMetadata, categories: &[String]) -> Option<ResolverKind> {
+    pub async fn resolve_price(
+        &self,
+        route: &ResolverRoute,
+        pokemon_api_key: &str,
+    ) -> Result<Option<ResolverQuote>> {
+        if pokemon_api_key.trim().is_empty() {
+            return Err(anyhow!(
+                "Pokemon price API key is required to resolve Courtyard appraisals"
+            ));
+        }
+
+        match route.kind {
+            ResolverKind::PokemonTradingCard => {
+                if !matches!(route.args, ResolverArgs::PokemonTitle { .. }) {
+                    return Err(anyhow!(
+                        "Courtyard provider expected Pokemon title arguments"
+                    ));
+                }
+
+                let resolver = PokemonPriceResolver::new(pokemon_api_key.to_string());
+                let quote = resolver.get_price(&route.args).await?;
+                Ok(quote.map(|q| resolver.normalize_quote(q)))
+            }
+        }
+    }
+
+    fn infer_resolver(metadata: &NFTMetadata, categories: &[String]) -> Option<ResolverRoute> {
         let is_graded_card = metadata
             .product_type
             .as_deref()
@@ -280,7 +308,7 @@ impl CourtyardProvider {
         });
 
         if is_graded_card && has_pokemon_category {
-            return Some(ResolverKind::PokemonTradingCard);
+            return Some(ResolverRoute::pokemon_title(metadata.name.clone()));
         }
 
         None
@@ -295,6 +323,7 @@ impl CourtyardProvider {
 mod tests {
     use super::*;
     use serde_json::json;
+    use wstd::runtime::block_on;
 
     // Default implementations for test cases
     impl Default for NFTMetadata {
@@ -359,12 +388,18 @@ mod tests {
     fn test_resolver_selection_for_pokemon_category() {
         let metadata = NFTMetadata {
             product_type: Some("GRADED_CARD".to_string()),
+            name: "Pokémon Charizard".to_string(),
             ..Default::default()
         };
         let categories = vec!["Pokémon".to_string()];
 
         let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
-        assert_eq!(resolver, Some(ResolverKind::PokemonTradingCard));
+        assert!(resolver.is_some());
+        let route = resolver.unwrap();
+        assert_eq!(route.kind, ResolverKind::PokemonTradingCard);
+        match route.args {
+            ResolverArgs::PokemonTitle { title } => assert_eq!(title, "Pokemon Charizard"),
+        }
     }
 
     #[test]
@@ -377,6 +412,15 @@ mod tests {
 
         let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
         assert!(resolver.is_none());
+    }
+
+    #[test]
+    fn test_resolve_price_requires_api_key() {
+        let provider = CourtyardProvider::new();
+        let route = ResolverRoute::pokemon_title("Sample Title");
+
+        let result = block_on(provider.resolve_price(&route, ""));
+        assert!(result.is_err());
     }
 
     #[test]

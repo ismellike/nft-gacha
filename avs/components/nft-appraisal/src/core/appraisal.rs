@@ -1,17 +1,15 @@
 use crate::bindings::wavs::types::events::TriggerDataEvmContractEvent;
 use crate::core::cache::AppraisalCache;
 use crate::providers::CourtyardProvider;
-use crate::resolvers::PokemonPriceResolver;
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
-use crate::traits::pricing::{PriceResolver, ResolverQuote};
-use crate::types::ResolverKind;
+use crate::traits::pricing::ResolverQuote;
+use crate::types::ResolverRoute;
 use crate::utils::event_parser::AppraisalRequest;
 use crate::utils::{Config, ERC721Client, EventParser};
 use alloy_primitives::{Address, B256, U256};
 use alloy_sol_types::{sol, SolValue};
 use anyhow::{anyhow, Result};
 use sha3::{Digest, Keccak256};
-use std::collections::HashMap;
 use std::fmt;
 
 sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
@@ -21,15 +19,12 @@ pub struct AppraisalProcessor {
     config: Config,
     erc721_client: ERC721Client,
     cache: AppraisalCache,
-    metadata_providers: Vec<Box<dyn MetadataProvider>>,
-    resolvers: HashMap<ResolverKind, Box<dyn PriceResolver>>,
 }
 
 impl fmt::Debug for AppraisalProcessor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("AppraisalProcessor")
-            .field("metadata_providers", &self.metadata_providers.len())
-            .field("resolvers", &self.resolvers.len())
+            .field("has_config", &true)
             .finish()
     }
 }
@@ -37,21 +32,11 @@ impl fmt::Debug for AppraisalProcessor {
 impl AppraisalProcessor {
     pub fn new() -> Result<Self> {
         let config = Config::new()?;
-        let metadata_providers: Vec<Box<dyn MetadataProvider>> =
-            vec![Box::new(CourtyardProvider::new())];
-
-        let mut resolvers: HashMap<ResolverKind, Box<dyn PriceResolver>> = HashMap::new();
-        resolvers.insert(
-            ResolverKind::PokemonTradingCard,
-            Box::new(PokemonPriceResolver::new(config.pokemon_api_key.clone())),
-        );
 
         Ok(Self {
             erc721_client: ERC721Client::new(),
             cache: AppraisalCache::default(),
             config,
-            metadata_providers,
-            resolvers,
         })
     }
 
@@ -63,7 +48,30 @@ impl AppraisalProcessor {
         let request = EventParser::parse_appraisal_request(evm_event)
             .map_err(|e| anyhow!("Invalid appraisal event: {}", e))?;
 
-        // Parse contract address and token ID for response
+        let token = self.describe_token(&request)?;
+        let token_uri = self.fetch_token_uri(&token).await?;
+        let (metadata, price_quote) = self.fetch_metadata_and_price(&token_uri).await?;
+
+        // Extract price value if available
+        let price = price_quote.as_ref().map(|quote| quote.price.value);
+
+        // Extract tx hash
+        let tx_hash = self.extract_tx_hash(&evm_event.log.tx_hash);
+
+        // Generate group_id from title hash
+        let group_id = self.generate_group_id(&metadata.title);
+
+        Ok(AppraisalResponse {
+            chain: token.chain.clone(),
+            contract_address: token.contract_address,
+            token_id: token.token_id,
+            group_id,
+            price,
+            tx_hash,
+        })
+    }
+
+    fn describe_token(&self, request: &AppraisalRequest) -> Result<TokenDescriptor> {
         let contract_address = request
             .contract_address
             .parse::<Address>()
@@ -71,46 +79,28 @@ impl AppraisalProcessor {
         let token_id = U256::from_str_radix(request.token_id.trim_start_matches("0x"), 16)
             .map_err(|e| anyhow!("Failed to parse token ID: {}", e))?;
 
-        // Get normalized metadata from providers
-        let metadata = self.fetch_token_metadata(&request).await?;
-        let title = metadata.title.clone();
-
-        // Get appraisal price
-        let price = self.get_appraised_price(&metadata).await?;
-
-        // Extract tx hash
-        let tx_hash = self.extract_tx_hash(&evm_event.log.tx_hash);
-
-        // Generate group_id from title hash
-        let group_id = self.generate_group_id(&title);
-
-        Ok(AppraisalResponse {
-            chain: request.chain,
+        Ok(TokenDescriptor {
+            chain: request.chain.clone(),
             contract_address,
             token_id,
-            group_id,
-            price,
-            tx_hash,
         })
     }
 
-    async fn fetch_token_metadata(&self, request: &AppraisalRequest) -> Result<ProviderMetadata> {
-        // Query tokenURI from ERC721 contract
-        let token_uri = self
-            .erc721_client
-            .get_token_uri(&request.chain, &request.contract_address, &request.token_id)
-            .await?;
+    async fn fetch_token_uri(&self, token: &TokenDescriptor) -> Result<String> {
+        let contract_hex = format!("{:#x}", token.contract_address);
+        let token_id_hex = format!("{:#x}", token.token_id);
+        self.erc721_client
+            .get_token_uri(&token.chain, &contract_hex, &token_id_hex)
+            .await
+    }
 
-        for provider in &self.metadata_providers {
-            if provider.can_handle_uri(&token_uri) {
-                let provider_type = provider.provider_type();
-                let provider_label = format!("{:?}", provider_type);
-
-                return provider
-                    .fetch_metadata(&token_uri)
-                    .await
-                    .map_err(|e| anyhow!("{} metadata fetch failed: {}", provider_label, e));
-            }
+    async fn fetch_metadata_and_price(
+        &self,
+        token_uri: &str,
+    ) -> Result<(ProviderMetadata, Option<ResolverQuote>)> {
+        let provider = CourtyardProvider::new();
+        if provider.can_handle_uri(token_uri) {
+            return self.fetch_from_courtyard(provider, token_uri).await;
         }
 
         Err(anyhow!(
@@ -119,96 +109,65 @@ impl AppraisalProcessor {
         ))
     }
 
-    async fn get_appraised_price(&self, metadata: &ProviderMetadata) -> Result<Option<f64>> {
-        let cache_key = self.cache.generate_cache_key(&metadata.title);
+    async fn fetch_from_courtyard(
+        &self,
+        provider: CourtyardProvider,
+        token_uri: &str,
+    ) -> Result<(ProviderMetadata, Option<ResolverQuote>)> {
+        let metadata = self.fetch_courtyard_metadata(&provider, token_uri).await?;
 
-        // Try cache first
-        if let Ok(cached_price) = self.cache.get_price(&cache_key) {
-            return Ok(cached_price);
+        let route = match metadata.resolver.clone() {
+            Some(route) => route,
+            None => return Ok((metadata, None)),
+        };
+
+        let cache_key = self.cache.generate_cache_key(&Self::cache_seed(&route));
+
+        if let Some(cached) = self.cache.get(&cache_key)? {
+            return Ok((metadata, cached));
         }
 
-        // Fetch fresh price using provider-driven resolver routing
-        let price_quote = self.resolve_price(metadata).await?;
-        let price = price_quote.as_ref().map(|quote| quote.price.value);
+        let fresh_quote = provider
+            .resolve_price(&route, &self.config.pokemon_api_key)
+            .await?;
 
-        // Cache the result
-        match price_quote {
-            Some(quote) => {
-                let _ = self
-                    .cache
-                    .set_price(&cache_key, Some(quote.price.value), Some(quote.ttl));
-            }
-            None => {
-                let _ = self.cache.set_price(&cache_key, None, None);
-            }
+        let _ = self.cache.set(&cache_key, fresh_quote.as_ref());
+
+        Ok((metadata, fresh_quote))
+    }
+
+    async fn fetch_courtyard_metadata(
+        &self,
+        provider: &CourtyardProvider,
+        token_uri: &str,
+    ) -> Result<ProviderMetadata> {
+        if !provider.can_handle_uri(token_uri) {
+            return Err(anyhow!(
+                "Unsupported metadata URI {}, only Courtyard NFTs are currently supported",
+                token_uri
+            ));
         }
 
-        Ok(price)
-    }
+        let expected_provider = provider.provider_type();
 
-    async fn resolve_price(&self, metadata: &ProviderMetadata) -> Result<Option<ResolverQuote>> {
-        let resolver = self.select_resolver(metadata)?;
+        let metadata = provider
+            .fetch_metadata(token_uri)
+            .await
+            .map_err(|e| anyhow!("Courtyard metadata fetch failed: {}", e))?;
 
-        if let Some(mut quote) = resolver.get_price(&metadata.title).await? {
-            if quote.price.source.is_empty() {
-                quote.price.source = resolver.name().to_string();
-            }
-            return Ok(Some(quote));
+        if metadata.provider != expected_provider {
+            return Err(anyhow!(
+                "Expected {:?} metadata provider, got {:?}",
+                expected_provider,
+                metadata.provider
+            ));
         }
 
-        Ok(None)
+        Ok(metadata)
     }
 
-    fn select_resolver(&self, metadata: &ProviderMetadata) -> Result<&dyn PriceResolver> {
-        let resolver_kind = Self::infer_resolver_kind(metadata).ok_or_else(|| {
-            anyhow!(
-                "No resolver could be inferred for provider {:?} title: {}",
-                metadata.provider,
-                metadata.title
-            )
-        })?;
-
-        self.resolvers
-            .get(&resolver_kind)
-            .map(|resolver| resolver.as_ref())
-            .ok_or_else(|| anyhow!("Resolver {:?} is not registered", resolver_kind))
-    }
-
-    fn infer_resolver_kind(metadata: &ProviderMetadata) -> Option<ResolverKind> {
-        if let Some(kind) = &metadata.resolver {
-            return Some(kind.clone());
-        }
-
-        if Self::metadata_matches_pokemon(metadata) || Self::title_matches_pokemon(&metadata.title)
-        {
-            return Some(ResolverKind::PokemonTradingCard);
-        }
-
-        None
-    }
-
-    fn metadata_matches_pokemon(metadata: &ProviderMetadata) -> bool {
-        let is_graded_card = metadata
-            .product_type
-            .as_deref()
-            .map(|value| value.eq_ignore_ascii_case("GRADED_CARD"))
-            .unwrap_or(false);
-
-        let has_pokemon_category = metadata.categories.iter().any(|category| {
-            let upper = category.to_uppercase();
-            if upper.contains("POKÉMON") {
-                true
-            } else {
-                upper.replace('É', "E").contains("POKEMON")
-            }
-        });
-
-        is_graded_card && has_pokemon_category
-    }
-
-    fn title_matches_pokemon(title: &str) -> bool {
-        let upper = title.to_uppercase();
-        upper.contains("POKEMON") || upper.contains("POKÉMON")
+    fn cache_seed(route: &ResolverRoute) -> String {
+        format!("{:?}::{}", route.kind, route.cache_key_fragment())
     }
 
     /// Generate group ID from title using keccak256 hash
@@ -229,6 +188,13 @@ impl AppraisalProcessor {
         }
         B256::from(hash_bytes)
     }
+}
+
+#[derive(Debug)]
+struct TokenDescriptor {
+    chain: String,
+    contract_address: Address,
+    token_id: U256,
 }
 
 #[derive(Debug)]
@@ -283,22 +249,6 @@ fn scale_to_usdc6(p: f64) -> Option<U256> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::ProviderType;
-
-    fn sample_metadata(
-        resolver: Option<ResolverKind>,
-        product_type: Option<&str>,
-        categories: &[&str],
-        title: &str,
-    ) -> ProviderMetadata {
-        ProviderMetadata {
-            provider: ProviderType::Courtyard,
-            title: title.to_string(),
-            product_type: product_type.map(|value| value.to_string()),
-            categories: categories.iter().map(|value| value.to_string()).collect(),
-            resolver,
-        }
-    }
 
     #[test]
     fn test_scale_to_usdc6() {
@@ -347,54 +297,10 @@ mod tests {
     }
 
     #[test]
-    fn test_metadata_matches_pokemon() {
-        let metadata = sample_metadata(
-            None,
-            Some("GRADED_CARD"),
-            &["Pokémon"],
-            "2024 Pokémon Charizard",
-        );
-        assert!(AppraisalProcessor::metadata_matches_pokemon(&metadata));
-
-        let non_match = sample_metadata(None, Some("COLLECTIBLE"), &["Baseball"], "Baseball Card");
-        assert!(!AppraisalProcessor::metadata_matches_pokemon(&non_match));
-    }
-
-    #[test]
-    fn test_title_matches_pokemon() {
-        assert!(AppraisalProcessor::title_matches_pokemon("pokemon card"));
-        assert!(AppraisalProcessor::title_matches_pokemon("Pokémon Sv5a"));
-        assert!(!AppraisalProcessor::title_matches_pokemon("Magic Card"));
-    }
-
-    #[test]
-    fn test_infer_resolver_kind_priority() {
-        let metadata = sample_metadata(
-            Some(ResolverKind::PokemonTradingCard),
-            None,
-            &[],
-            "Random Title",
-        );
-        assert_eq!(
-            AppraisalProcessor::infer_resolver_kind(&metadata),
-            Some(ResolverKind::PokemonTradingCard)
-        );
-
-        let metadata_from_categories =
-            sample_metadata(None, Some("GRADED_CARD"), &["Pokémon"], "Unknown Title");
-        assert_eq!(
-            AppraisalProcessor::infer_resolver_kind(&metadata_from_categories),
-            Some(ResolverKind::PokemonTradingCard)
-        );
-
-        let metadata_from_title =
-            sample_metadata(None, Some("COLLECTIBLE"), &["Art"], "Pokemon Artwork");
-        assert_eq!(
-            AppraisalProcessor::infer_resolver_kind(&metadata_from_title),
-            Some(ResolverKind::PokemonTradingCard)
-        );
-
-        let metadata_none = sample_metadata(None, Some("COLLECTIBLE"), &["Art"], "Random Title");
-        assert!(AppraisalProcessor::infer_resolver_kind(&metadata_none).is_none());
+    fn test_cache_seed_is_case_insensitive() {
+        let route = ResolverRoute::pokemon_title("Pokémon Charizard PSA 10");
+        let seed = AppraisalProcessor::cache_seed(&route);
+        let expected_suffix = route.cache_key_fragment();
+        assert!(seed.ends_with(&expected_suffix));
     }
 }
