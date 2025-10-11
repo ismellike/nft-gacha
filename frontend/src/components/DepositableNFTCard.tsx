@@ -18,7 +18,6 @@ import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import {
 	useReadNftAppraisalGetAppraisal,
-	gachaTreasuryAbi,
 	erc721Abi,
 } from "../generated";
 import { nftDepositMachine } from "../machines/nftDepositMachine";
@@ -62,16 +61,10 @@ export const DepositableNFTCard = ({
 		isError: isApprovalError,
 		error: approvalError,
 	} = useWriteContract();
-	const {
-		writeContract: depositNFT,
-		isSuccess: isDepositSuccess,
-		isError: isDepositError,
-		error: depositError,
-	} = useWriteContract();
-
+	
 	// Get appraisal data from contract
 	const { data: appraisalData } = useReadNftAppraisalGetAppraisal({
-		address: contracts.appraisal,
+		address: contracts.appraisal as `0x${string}`,
 		args: [collection as `0x${string}`, BigInt(tokenId)],
 		query: { enabled: !!contracts.appraisal },
 	});
@@ -109,7 +102,7 @@ export const DepositableNFTCard = ({
 			type: "START_DEPOSIT",
 			collection,
 			tokenId,
-			treasuryAddress: contracts.treasury,
+			treasuryAddress: contracts.treasury as `0x${string}`,
 			userAddress,
 			publicClient,
 		});
@@ -131,7 +124,7 @@ export const DepositableNFTCard = ({
 				address: collection as `0x${string}`,
 				abi: erc721Abi,
 				functionName: "approve",
-				args: [contracts.treasury, BigInt(tokenId)],
+				args: [contracts.treasury as `0x${string}`, BigInt(tokenId)],
 			});
 			// Send approval transaction started event to state machine
 			sendDepositEvent({
@@ -146,26 +139,7 @@ export const DepositableNFTCard = ({
 		}
 	}, [approveNFT, collection, tokenId, contracts.treasury, sendDepositEvent]);
 
-	// Handle deposit step
-	const handleDepositTransaction = useCallback(async () => {
-		if (!contracts.treasury) return;
-
-		try {
-			depositNFT({
-				address: contracts.treasury,
-				abi: gachaTreasuryAbi,
-				functionName: "depositNFT",
-				args: [collection as `0x${string}`, BigInt(tokenId)],
-			});
-			// Transaction success/failure will be handled by useEffect
-		} catch (error) {
-			sendDepositEvent({
-				type: "ERROR",
-				error: error instanceof Error ? error.message : "Deposit failed",
-			});
-		}
-	}, [depositNFT, collection, tokenId, contracts.treasury, sendDepositEvent]);
-
+	
 	// Handle approval transaction results
 	useEffect(() => {
 		if (isApprovalSuccess && depositState.matches("waitingForApproval")) {
@@ -185,37 +159,7 @@ export const DepositableNFTCard = ({
 		}
 	}, [isApprovalError, approvalError, depositState, sendDepositEvent]);
 
-	// Handle deposit transaction results
-	useEffect(() => {
-		if (isDepositSuccess && depositState.matches("depositing")) {
-			sendDepositEvent({
-				type: "DEPOSIT_TRANSACTION_SENT",
-				txHash: "deposit-confirmed",
-			});
-
-			// Now remove NFT from list after successful deposit
-			if (onAction) {
-				onAction(collection, tokenId, true);
-			}
-		}
-	}, [
-		isDepositSuccess,
-		depositState,
-		sendDepositEvent,
-		onAction,
-		collection,
-		tokenId,
-	]);
-
-	useEffect(() => {
-		if (isDepositError && depositState.matches("depositing")) {
-			sendDepositEvent({
-				type: "ERROR",
-				error: depositError?.message || "Deposit failed",
-			});
-		}
-	}, [isDepositError, depositError, depositState, sendDepositEvent]);
-
+	
 	// Get current state info for UI
 	const currentDepositState = depositState.value as string;
 	const depositStateError = depositState.context.error;
@@ -349,7 +293,7 @@ export const DepositableNFTCard = ({
 				{...(extraDetails ? { extraDetails } : {})}
 				actionSlot={actionSlot}
 				{...nftCardProps}
-				appraisalContractAddress={contracts.appraisal || "0x0"}
+				appraisalContractAddress={contracts.appraisal as `0x${string}` || "0x0000000000000000000000000000000000000000"}
 			/>
 		</motion.div>
 	);

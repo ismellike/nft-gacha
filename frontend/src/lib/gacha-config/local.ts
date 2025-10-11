@@ -32,8 +32,17 @@ This is a test environment using local contracts and test tokens for development
 		// Required contract addresses
 		appraisalAddress: process.env
 			.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS as `0x${string}`,
-		rewardsManagerAddress: process.env
-			.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as `0x${string}`,
+		economyManagerAddress: process.env
+			.NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS as `0x${string}`,
+		gachaServiceHandlerAddress: process.env
+			.NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS as `0x${string}`,
+		// New economy system contracts
+		depositorVaultAddress: process.env
+			.NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS as `0x${string}`,
+		buybackVaultAddress: process.env
+			.NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS as `0x${string}`,
+		protocolTreasuryAddress: process.env
+			.NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS as `0x${string}`,
 		// Collections are now queried dynamically from the treasury contract's whitelist
 		// Removed nftCollectionAddress - use useReadGachaTreasuryGetWhitelistedCollections hook instead
 		trackerAddresses: {

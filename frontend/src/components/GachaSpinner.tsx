@@ -49,7 +49,7 @@ const GachaSpinner = memo(() => {
 					isVisible={true}
 					nftResult={gachaSpin.spinResult}
 					onClose={handleCloseReveal}
-					appraisalContractAddress={contracts.appraisal}
+					appraisalContractAddress={contracts.appraisal as `0x${string}`}
 				/>
 			)}
 

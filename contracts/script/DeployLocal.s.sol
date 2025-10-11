@@ -19,6 +19,7 @@ import {BuybackVault} from "../src/economy/BuybackVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../src/tokens/BaseERC721.sol";
+import {RarityTracker} from "../src/gacha/RarityTracker.sol";
 
 /// @dev Simple 6-decimal test token to simulate USDC
 contract TestUSDC is ERC20, ERC20Permit, Ownable {
@@ -77,6 +78,11 @@ contract DeployLocal is Script {
         address serviceHandler;
         address appraisalServiceHandler;
         address collection;
+        address commonTracker;
+        address uncommonTracker;
+        address rareTracker;
+        address epicTracker;
+        address legendaryTracker;
     }
 
     address constant TEMP_GACHA_ADDRESS = 0x1111111111111111111111111111111111111111;
@@ -95,7 +101,6 @@ contract DeployLocal is Script {
     uint256 constant LEGENDARY_MIN = 1500 * 1e18; // $1,500 minimum for Legendary
     uint256 constant LEGENDARY_MAX = type(uint256).max; // No upper limit for Legendary
 
-    
     function run() external {
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
@@ -121,11 +126,18 @@ contract DeployLocal is Script {
         console.log("Service Handler:       ", deployments.serviceHandler);
         console.log("Appraisal Handler:     ", deployments.appraisalServiceHandler);
         console.log("Demo Collection:       ", deployments.collection);
+        console.log("Common Tracker:        ", deployments.commonTracker);
+        console.log("Uncommon Tracker:      ", deployments.uncommonTracker);
+        console.log("Rare Tracker:          ", deployments.rareTracker);
+        console.log("Epic Tracker:          ", deployments.epicTracker);
+        console.log("Legendary Tracker:     ", deployments.legendaryTracker);
     }
 
     function _deployStack(address deployer) internal returns (Deployments memory d) {
         // Deploy 6-decimal USDC test token
         TestUSDC usdc = new TestUSDC(deployer);
+
+        // Mint USDC to deployer account
         usdc.mint(deployer, INITIAL_MINT);
         d.usdc = address(usdc);
 
@@ -247,6 +259,22 @@ contract DeployLocal is Script {
         // Deploy demo ERC721 collection and seed treasury
         BaseERC721 collection = new BaseERC721("Gacha Collection", "GACHA", deployer);
         d.collection = address(collection);
+
+        // Deploy rarity trackers
+        RarityTracker commonTracker = new RarityTracker("Common", deployer);
+        d.commonTracker = address(commonTracker);
+
+        RarityTracker uncommonTracker = new RarityTracker("Uncommon", deployer);
+        d.uncommonTracker = address(uncommonTracker);
+
+        RarityTracker rareTracker = new RarityTracker("Rare", deployer);
+        d.rareTracker = address(rareTracker);
+
+        RarityTracker epicTracker = new RarityTracker("Epic", deployer);
+        d.epicTracker = address(epicTracker);
+
+        RarityTracker legendaryTracker = new RarityTracker("Legendary", deployer);
+        d.legendaryTracker = address(legendaryTracker);
 
         GachaTreasury(d.treasuryProxy).addToWhitelist(d.collection);
 
@@ -604,6 +632,21 @@ contract DeployLocal is Script {
                 "\n",
                 "COLLECTION_ADDRESS=",
                 vm.toString(deployments.collection),
+                "\n",
+                "COMMON_TRACKER_ADDRESS=",
+                vm.toString(deployments.commonTracker),
+                "\n",
+                "UNCOMMON_TRACKER_ADDRESS=",
+                vm.toString(deployments.uncommonTracker),
+                "\n",
+                "RARE_TRACKER_ADDRESS=",
+                vm.toString(deployments.rareTracker),
+                "\n",
+                "EPIC_TRACKER_ADDRESS=",
+                vm.toString(deployments.epicTracker),
+                "\n",
+                "LEGENDARY_TRACKER_ADDRESS=",
+                vm.toString(deployments.legendaryTracker),
                 "\n"
             )
         );

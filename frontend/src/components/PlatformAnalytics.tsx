@@ -12,9 +12,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
+import { useGachaEconomyManagerData } from "../hooks/useGachaEconomyManager";
 import {
 	useReadGachaTreasuryGetPlatformOverviewBatch,
-	useReadGachaRewardsManagerTotalAccrued,
 	useReadGachaGetGlobalAnalytics,
 	useReadGachaFeeToken,
 	useReadErc20Symbol,
@@ -53,10 +53,9 @@ export const PlatformAnalytics: React.FC = () => {
 	const allRarityCounts = (platformData as any)?.[0] || [0n, 0n, 0n, 0n, 0n];
 	const totalItemsCount = (platformData as any)?.[1] || 0n;
 
-	// New contracts expose depositor share via totalAccrued
-	const { data: totalAccrued } = useReadGachaRewardsManagerTotalAccrued({
-		address: contracts.rewardsManager as `0x${string}` | undefined,
-		query: { enabled: !!contracts.rewardsManager },
+	// New economy system data
+	const { data: economyData } = useGachaEconomyManagerData({
+		contractAddress: contracts.economyManager,
 	});
 
 	const { data: gachaGlobalAnalytics } = useReadGachaGetGlobalAnalytics({
@@ -65,6 +64,7 @@ export const PlatformAnalytics: React.FC = () => {
 	});
 
 	const totalSpinCount = gachaGlobalAnalytics?.[0];
+	const totalAccrued = economyData.totalRevenueProcessed;
 
 	const totalNFTs = totalItemsCount ? Number(totalItemsCount) : 0;
 	const totalValue = formatTokenAmount(

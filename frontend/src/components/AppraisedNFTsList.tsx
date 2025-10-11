@@ -123,7 +123,7 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 								size="md"
 								showAppraisal={false}
 								animate={true}
-								appraisalContractAddress={contracts.appraisal}
+								appraisalContractAddress={contracts.appraisal as `0x${string}`}
 							/>
 						)}
 					</div>

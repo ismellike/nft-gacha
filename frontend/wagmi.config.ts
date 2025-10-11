@@ -6,7 +6,27 @@ export default defineConfig({
 	plugins: [
 		foundry({
 			project: "../contracts",
-		}),
+			// Only include the contracts we need in frontend
+			contracts: [
+				"BuybackVault",
+				"DepositorVault",
+				"Gacha",
+				"GachaEconomyManager",
+				"GachaServiceHandler",
+				"GachaTreasury",
+				"IBuybackVault",
+				"IDepositorVault",
+				"IFundsDistributionToken",
+				"IGacha",
+				"IGachaEconomyManager",
+				"IProtocolTreasury",
+				"IWavsServiceHandler",
+				"IWavsServiceManager",
+				"NFTAppraisal",
+				"NFTAppraisalServiceHandler",
+				"ProtocolTreasury"
+			],
+		} as any),
 		react({
 			getHookName({ type, contractName, itemName }) {
 				// Always include contract name to ensure uniqueness

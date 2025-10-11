@@ -36,7 +36,7 @@ function getAdminSectionIcon(iconName: string, className: string = "w-5 h-5") {
 import {
 	useReadGachaOwner,
 	useReadGachaTreasuryOwner,
-	useReadGachaRewardsManagerOwner,
+	useReadGachaEconomyManagerOwner,
 	useReadGachaSpinFee,
 	useReadGachaGetRarityWeights,
 	useWriteGachaSetSpinFee,
@@ -112,10 +112,10 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 	const rewardsManager = process.env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as
 		| `0x${string}`
 		| undefined;
-	const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
+	const { data: rewardsOwner } = useReadGachaEconomyManagerOwner({
 		address: rewardsManager,
 		query: { enabled: !!rewardsManager },
-	} as Parameters<typeof useReadGachaRewardsManagerOwner>[0]);
+	} as Parameters<typeof useReadGachaEconomyManagerOwner>[0]);
 
 	const isOwner =
 		userAddress &&

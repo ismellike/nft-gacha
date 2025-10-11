@@ -24,8 +24,8 @@ import {
 	useReadGachaFeeToken,
 	useReadGachaOwner,
 	useReadGachaTreasuryOwner,
-	useReadGachaRewardsManagerOwner,
-	useReadGachaRewardsManagerPaused,
+	useReadGachaEconomyManagerOwner,
+	useReadGachaEconomyManagerPaused,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
@@ -67,10 +67,10 @@ function GachaDetailPageContent() {
 		query: { enabled: !!gacha },
 	} as Parameters<typeof useReadGachaTreasuryOwner>[0]);
 
-	const { data: rewardsOwner } = useReadGachaRewardsManagerOwner({
+	const { data: rewardsOwner } = useReadGachaEconomyManagerOwner({
 		address: contracts.rewardsManager,
 		query: { enabled: !!contracts.rewardsManager },
-	} as Parameters<typeof useReadGachaRewardsManagerOwner>[0]);
+	} as Parameters<typeof useReadGachaEconomyManagerOwner>[0]);
 
 	const isOwner =
 		userAddress &&
@@ -79,10 +79,10 @@ function GachaDetailPageContent() {
 			userAddress === rewardsOwner);
 
 	// Check if rewards manager is paused (kept warm for subcomponents)
-	useReadGachaRewardsManagerPaused({
+	useReadGachaEconomyManagerPaused({
 		address: contracts.rewardsManager,
 		query: { enabled: !!contracts.rewardsManager },
-	} as Parameters<typeof useReadGachaRewardsManagerPaused>[0]);
+	} as Parameters<typeof useReadGachaEconomyManagerPaused>[0]);
 
 	// Contract reads for rewards functionality
 	useReadGachaFeeToken({

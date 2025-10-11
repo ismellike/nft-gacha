@@ -14,7 +14,7 @@ import { getRarityConfig } from "../lib/rarityConfig";
 import { useGachaId } from "../hooks/useGachaId";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import {
-	useReadGachaRewardsManagerFeeToken,
+	useReadGachaEconomyManagerFeeToken,
 	useReadErc20Decimals,
 	useReadErc20Symbol,
 } from "../generated";
@@ -77,7 +77,7 @@ export function CardRewardsList() {
 	const lastUserRef = useRef<string | null>(null);
 
 	// Fee token details from RewardsManager
-	const { data: feeTokenAddress } = useReadGachaRewardsManagerFeeToken({
+	const { data: feeTokenAddress } = useReadGachaEconomyManagerFeeToken({
 		address: rewardsManager as `0x${string}` | undefined,
 		query: { enabled: !!rewardsManager },
 	});

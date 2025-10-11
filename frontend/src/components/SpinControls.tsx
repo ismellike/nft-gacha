@@ -8,8 +8,7 @@ import {
 	useChainId,
 } from "wagmi";
 import { glassTypography, cn } from "../lib/theme-config";
-import { Card, Button, Chip } from "../ui";
-import { TokenFeeDisplay } from ".";
+import { Card, Button } from "../ui";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -269,7 +268,7 @@ export default function SpinControls({
 				gachaSpin.triggerId,
 			);
 			reclaimFailedSpin({
-				address: contracts.gacha,
+				address: contracts.gacha as `0x${string}`,
 				args: [gachaSpin.triggerId],
 			});
 		} catch (error) {
@@ -478,7 +477,7 @@ export default function SpinControls({
 				spinWithPermitReceiptError,
 			);
 
-			const errorMessage = spinWithPermitReceiptError.message.toLowerCase();
+			const errorMessage = spinWithPermitReceiptError?.message?.toLowerCase() || '';
 			if (
 				errorMessage.includes("reverted") ||
 				errorMessage.includes("failed") ||
@@ -934,7 +933,7 @@ export default function SpinControls({
 									"bg-gradient-to-r from-success via-success/90 to-emerald-400 border-success/40 shadow-success/30",
 								gachaSpin.isError &&
 									"bg-gradient-to-r from-danger via-danger/90 to-red-600 border-danger/40 shadow-danger/30",
-								canSpin && "hover:from-warning/110 hover:to-orange-400/110",
+								canSpin && "hover:from-warning/110 hover:to-orange-400/110" as string,
 							)}
 						>
 							{/* Button content with icon */}
