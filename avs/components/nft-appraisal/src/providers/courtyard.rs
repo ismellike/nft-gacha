@@ -349,8 +349,9 @@ impl IntegrityVerifier {
         hasher.update(proof_info.salt.to_le_bytes());
         let expected_hash = hasher.finalize();
 
-        // Decode the hex proof
-        let proof_bytes = hex::decode(&proof_info.hex_proof).map_err(|e| {
+        // Decode the hex proof (strip 0x prefix if present)
+        let hex_proof_clean = proof_info.hex_proof.strip_prefix("0x").unwrap_or(&proof_info.hex_proof);
+        let proof_bytes = hex::decode(hex_proof_clean).map_err(|e| {
             anyhow!(
                 "Failed to decode hex proof '{}': {}",
                 proof_info.hex_proof,
