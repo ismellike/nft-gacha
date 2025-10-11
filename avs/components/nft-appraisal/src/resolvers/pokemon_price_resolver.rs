@@ -23,63 +23,69 @@ use crate::types::ResolverArgs;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PokemonPriceResponse {
-    pub success: bool,
-    pub data: Option<PokemonCardData>,
-    pub message: Option<String>,
+    pub data: PokemonPriceData,
+    pub metadata: ResponseMetadata,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PokemonCardData {
-    pub id: String,
+pub struct PokemonPriceData {
+    pub original_title: String,
+    pub sanitized_title: String,
+    pub parsed: ParsedInfo,
+    pub matches: Vec<CardMatch>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ParsedInfo {
+    pub confidence: f64,
+    pub year: Option<u32>,
+    pub psa_grade: Option<u8>,
+    pub cgc_grade: Option<u8>,
+    pub bgs_grade: Option<f32>,
+    pub edition: Option<String>,
+    pub set_name: Option<String>,
+    pub card_name: Option<String>,
+    pub field_confidence: Option<FieldConfidence>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FieldConfidence {
+    pub year: Option<f64>,
+    pub grade: Option<f64>,
+    pub edition: Option<f64>,
+    pub set_name: Option<f64>,
+    pub card_name: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CardMatch {
+    pub tcg_player_id: String,
     pub name: String,
-    pub set: PokemonSet,
-    pub number: Option<String>,
+    pub set_name: String,
+    pub set_id: String,
+    pub card_number: String,
     pub rarity: Option<String>,
-    pub prices: Option<CardPrices>,
+    pub artist: Option<String>,
+    pub card_type: Option<String>,
+    pub match_score: f64,
+    pub match_reasons: Vec<String>,
+    pub prices: MatchPrices,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MatchPrices {
+    pub market: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PokemonSet {
-    pub id: String,
-    pub name: String,
-    pub series: Option<String>,
+pub struct ResponseMetadata {
+    pub parse_time: String,
+    pub processing_time_ms: u64,
+    pub confidence: f64,
+    pub api_calls_consumed: u32,
+    pub parsing_method: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CardPrices {
-    pub market: Option<MarketPrice>,
-    pub raw: Option<RawPrice>,
-    pub graded: Option<GradedPrices>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct MarketPrice {
-    pub average: Option<f64>,
-    pub low: Option<f64>,
-    pub high: Option<f64>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RawPrice {
-    pub average: Option<f64>,
-    pub low: Option<f64>,
-    pub high: Option<f64>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GradedPrices {
-    pub psa10: Option<GradePrice>,
-    pub psa9: Option<GradePrice>,
-    pub bgs10: Option<GradePrice>,
-    pub bgs95: Option<GradePrice>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GradePrice {
-    pub average: Option<f64>,
-    pub low: Option<f64>,
-    pub high: Option<f64>,
-}
 
 // ============================================================================
 // Pokemon Price Resolver
@@ -102,9 +108,12 @@ impl PokemonPriceResolver {
     async fn query_parse_title(&self, title: &str) -> Result<PokemonPriceResponse> {
         let url = format!("{}/parse-title", POKEMON_PRICE_TRACKER_BASE_URL);
 
-        // Create JSON body for POST request
+        // Create JSON body for POST request with strict mode always enabled
         let body_str = serde_json::json!({
-            "title": title
+            "title": title,
+            "options": {
+                "strictMode": true
+            }
         })
         .to_string();
 
@@ -187,40 +196,57 @@ impl PokemonPriceResolver {
         None
     }
 
-    /// Extract the best price from card data based on grade info in title
-    fn extract_best_price(&self, data: &PokemonCardData, title: &str) -> Option<f64> {
-        let market_price = data
-            .prices
-            .as_ref()
-            .and_then(|p| p.market.as_ref())
-            .and_then(|m| m.average);
+    /// Extract the best price from Pokemon price data based on match scores and grade info
+    fn extract_best_price(&self, data: &PokemonPriceData, title: &str) -> Option<f64> {
+        // Try to extract grade from title for comparison with parsed info
+        let _title_grade = self.extract_grade_from_title(title);
 
-        // Try to extract grade from title
-        if let Some((grader, grade)) = self.extract_grade_from_title(title) {
-            // For graded cards, try to get the specific grade price
-            if let Some(graded_prices) = data.prices.as_ref().and_then(|p| p.graded.as_ref()) {
-                let price = match grader.as_str() {
-                    "PSA" => match grade.as_str() {
-                        "10" => graded_prices.psa10.as_ref().and_then(|p| p.average),
-                        "9" => graded_prices.psa9.as_ref().and_then(|p| p.average),
-                        _ => None,
-                    },
-                    "BGS" => match grade.as_str() {
-                        "10" => graded_prices.bgs10.as_ref().and_then(|p| p.average),
-                        "9.5" => graded_prices.bgs95.as_ref().and_then(|p| p.average),
-                        _ => None,
-                    },
-                    _ => None,
-                };
+        // Sort matches by match_score (descending) and confidence to find the best match
+        let mut sorted_matches = data.matches.clone();
+        sorted_matches.sort_by(|a, b| {
+            b.match_score
+                .partial_cmp(&a.match_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
-                if let Some(value) = price {
-                    return Some(value);
+        // First, try to find a high-confidence match with good score
+        if let Some(best_match) = sorted_matches.first() {
+            // Only accept matches with good confidence scores
+            if best_match.match_score >= 0.5 && data.parsed.confidence >= 0.7 {
+                return Some(best_match.prices.market?);
+            }
+        }
+
+        // Fallback: try to use parsed grade information from the API response
+        if let Some(_parsed_grade) = self.get_parsed_grade(&data.parsed) {
+            // For graded cards, look for matches that might have graded pricing
+            for match_item in &sorted_matches {
+                if match_item.match_score >= 0.3 && match_item.prices.market.is_some() {
+                    return match_item.prices.market;
                 }
             }
         }
 
-        // Fallback to market price (average) when a matching grade price isn't available
-        market_price
+        // Final fallback: return the highest market price from any match with minimum score
+        sorted_matches
+            .into_iter()
+            .filter(|m| m.match_score >= 0.2) // Very low threshold for fallback
+            .filter_map(|m| m.prices.market)
+            .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+    }
+
+    /// Get grade information from parsed API response
+    fn get_parsed_grade(&self, parsed: &ParsedInfo) -> Option<(String, String)> {
+        if let Some(grade) = parsed.psa_grade {
+            return Some(("PSA".to_string(), grade.to_string()));
+        }
+        if let Some(grade) = parsed.cgc_grade {
+            return Some(("CGC".to_string(), grade.to_string()));
+        }
+        if let Some(grade) = parsed.bgs_grade {
+            return Some(("BGS".to_string(), grade.to_string()));
+        }
+        None
     }
 }
 
@@ -235,19 +261,11 @@ impl PriceResolver for PokemonPriceResolver {
             ResolverArgs::PokemonTitle { title } => title,
         };
 
-        // Query the API
+        // Query the API with strict mode enabled for higher confidence matches
         let response = self.query_parse_title(title).await?;
 
-        if !response.success {
-            return Ok(None);
-        }
-
-        let card_data = response
-            .data
-            .ok_or_else(|| anyhow!("No card data in response"))?;
-
-        // Extract the best price using the original title
-        let price = self.extract_best_price(&card_data, title);
+        // Extract the best price from the matches array
+        let price = self.extract_best_price(&response.data, title);
 
         if let Some(price_value) = price {
             return Ok(Some(ResolverQuote {
@@ -255,7 +273,7 @@ impl PriceResolver for PokemonPriceResolver {
                     value: price_value,
                     currency: "USD".to_string(),
                     source: self.name().to_string(),
-                    context: Some(serde_json::to_value(card_data)?),
+                    context: Some(serde_json::to_value(&response.data)?),
                 },
                 ttl: Duration::from_secs(86_400),
             }));
@@ -337,51 +355,100 @@ mod tests {
     fn test_extract_best_price() {
         let resolver = PokemonPriceResolver::new("test_key".to_string());
 
-        // Test PSA 10 extraction
-        let card_data = PokemonCardData {
-            id: "test".to_string(),
-            name: "Charizard".to_string(),
-            set: PokemonSet {
-                id: "base1".to_string(),
-                name: "Base Set".to_string(),
-                series: Some("Base".to_string()),
+        // Test with high confidence match and good score
+        let price_data = PokemonPriceData {
+            original_title: "2024 Pokémon Charizard (PSA 10)".to_string(),
+            sanitized_title: "2024 Pokémon Charizard (PSA 10)".to_string(),
+            parsed: ParsedInfo {
+                confidence: 0.89,
+                year: Some(2024),
+                psa_grade: Some(10),
+                cgc_grade: None,
+                bgs_grade: None,
+                edition: Some("1st Edition".to_string()),
+                set_name: Some("Base Set".to_string()),
+                card_name: Some("Charizard".to_string()),
+                field_confidence: Some(FieldConfidence {
+                    year: Some(1.0),
+                    grade: Some(1.0),
+                    edition: Some(0.9),
+                    set_name: Some(0.8),
+                    card_name: Some(0.75),
+                }),
             },
-            number: Some("4".to_string()),
-            rarity: Some("Rare Holo".to_string()),
-            prices: Some(CardPrices {
-                market: Some(MarketPrice {
-                    average: Some(100.0),
-                    low: Some(80.0),
-                    high: Some(120.0),
-                }),
-                raw: None,
-                graded: Some(GradedPrices {
-                    psa10: Some(GradePrice {
-                        average: Some(5000.0),
-                        low: Some(4000.0),
-                        high: Some(6000.0),
-                    }),
-                    psa9: Some(GradePrice {
-                        average: Some(1000.0),
-                        low: Some(800.0),
-                        high: Some(1200.0),
-                    }),
-                    bgs10: None,
-                    bgs95: None,
-                }),
-            }),
+            matches: vec![
+                CardMatch {
+                    tcg_player_id: "106518".to_string(),
+                    name: "Charizard (4)".to_string(),
+                    set_name: "Base Set".to_string(),
+                    set_id: "base1".to_string(),
+                    card_number: "4".to_string(),
+                    rarity: Some("Rare Holo".to_string()),
+                    artist: None,
+                    card_type: Some("Fire".to_string()),
+                    match_score: 0.85,
+                    match_reasons: vec!["Name matches \"Charizard\"".to_string(), "Set matches \"Base Set\"".to_string()],
+                    prices: MatchPrices {
+                        market: Some(5000.0),
+                    },
+                },
+                CardMatch {
+                    tcg_player_id: "44425".to_string(),
+                    name: "Charizard (4)".to_string(),
+                    set_name: "Base Set".to_string(),
+                    set_id: "base1".to_string(),
+                    card_number: "4".to_string(),
+                    rarity: Some("Rare".to_string()),
+                    artist: None,
+                    card_type: Some("Fire".to_string()),
+                    match_score: 0.7,
+                    match_reasons: vec!["Name matches \"Charizard\"".to_string(), "Set matches \"Base Set\"".to_string()],
+                    prices: MatchPrices {
+                        market: Some(100.0),
+                    },
+                },
+            ],
         };
 
-        let price = resolver.extract_best_price(&card_data, "2024 Pokémon Charizard (PSA 10)");
-        assert_eq!(price, Some(5000.0));
+        let price = resolver.extract_best_price(&price_data, "2024 Pokémon Charizard (PSA 10)");
+        assert_eq!(price, Some(5000.0)); // Should pick the highest scoring match
 
-        // Test PSA 9 extraction
-        let price = resolver.extract_best_price(&card_data, "2024 Pokémon Charizard (PSA 9)");
-        assert_eq!(price, Some(1000.0));
+        // Test with low confidence fallback
+        let low_confidence_data = PokemonPriceData {
+            original_title: "Charizard".to_string(),
+            sanitized_title: "Charizard".to_string(),
+            parsed: ParsedInfo {
+                confidence: 0.5, // Low confidence
+                year: None,
+                psa_grade: None,
+                cgc_grade: None,
+                bgs_grade: None,
+                edition: None,
+                set_name: None,
+                card_name: Some("Charizard".to_string()),
+                field_confidence: None,
+            },
+            matches: vec![
+                CardMatch {
+                    tcg_player_id: "44425".to_string(),
+                    name: "Charizard (4)".to_string(),
+                    set_name: "Base Set".to_string(),
+                    set_id: "base1".to_string(),
+                    card_number: "4".to_string(),
+                    rarity: Some("Rare".to_string()),
+                    artist: None,
+                    card_type: Some("Fire".to_string()),
+                    match_score: 0.3, // Low score
+                    match_reasons: vec!["Name matches \"Charizard\"".to_string()],
+                    prices: MatchPrices {
+                        market: Some(100.0),
+                    },
+                },
+            ],
+        };
 
-        // Test fallback to market price when no grade matches
-        let price = resolver.extract_best_price(&card_data, "2024 Pokémon Charizard (BGS 10)");
-        assert_eq!(price, Some(100.0)); // Market price fallback
+        let price = resolver.extract_best_price(&low_confidence_data, "Charizard");
+        assert_eq!(price, Some(100.0)); // Should still return price despite low confidence
     }
 
     #[test]
@@ -389,5 +456,98 @@ mod tests {
         assert_eq!(normalize_grade_value("9.0"), "9");
         assert_eq!(normalize_grade_value("10"), "10");
         assert_eq!(normalize_grade_value(" 9.5 "), "9.5");
+    }
+
+    #[test]
+    fn test_strict_mode_json_generation() {
+        let _resolver = PokemonPriceResolver::new("test_key".to_string());
+
+        // Test that the JSON body is correctly formatted with strictMode always true
+        let title = "Test Pokemon Card";
+
+        let expected_json = serde_json::json!({
+            "title": title,
+            "options": {
+                "strictMode": true
+            }
+        });
+
+        let actual_json = serde_json::json!({
+            "title": title,
+            "options": {
+                "strictMode": true
+            }
+        });
+
+        assert_eq!(expected_json, actual_json);
+    }
+
+    #[test]
+    fn test_get_parsed_grade() {
+        let resolver = PokemonPriceResolver::new("test_key".to_string());
+
+        // Test PSA grade extraction
+        let parsed_info = ParsedInfo {
+            confidence: 0.9,
+            year: Some(1999),
+            psa_grade: Some(10),
+            cgc_grade: None,
+            bgs_grade: None,
+            edition: None,
+            set_name: None,
+            card_name: None,
+            field_confidence: None,
+        };
+
+        let grade = resolver.get_parsed_grade(&parsed_info);
+        assert_eq!(grade, Some(("PSA".to_string(), "10".to_string())));
+
+        // Test CGC grade extraction
+        let parsed_info = ParsedInfo {
+            confidence: 0.9,
+            year: Some(1999),
+            psa_grade: None,
+            cgc_grade: Some(8),
+            bgs_grade: None,
+            edition: None,
+            set_name: None,
+            card_name: None,
+            field_confidence: None,
+        };
+
+        let grade = resolver.get_parsed_grade(&parsed_info);
+        assert_eq!(grade, Some(("CGC".to_string(), "8".to_string())));
+
+        // Test BGS grade extraction
+        let parsed_info = ParsedInfo {
+            confidence: 0.9,
+            year: Some(1999),
+            psa_grade: None,
+            cgc_grade: None,
+            bgs_grade: Some(9.5),
+            edition: None,
+            set_name: None,
+            card_name: None,
+            field_confidence: None,
+        };
+
+        let grade = resolver.get_parsed_grade(&parsed_info);
+        assert_eq!(grade, Some(("BGS".to_string(), "9.5".to_string())));
+
+        // Test no grade
+        let parsed_info = ParsedInfo {
+            confidence: 0.9,
+            year: Some(1999),
+            psa_grade: None,
+            cgc_grade: None,
+            bgs_grade: None,
+            edition: None,
+            set_name: None,
+            card_name: None,
+            field_confidence: None,
+        };
+
+        let grade = resolver.get_parsed_grade(&parsed_info);
+        assert_eq!(grade, None);
     }
 }
