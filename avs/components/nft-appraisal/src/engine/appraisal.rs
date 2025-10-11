@@ -55,10 +55,10 @@ impl AppraisalEngine {
         Err(anyhow!("No metadata provider registered for URI: {}", uri))
     }
 
-    pub fn resolve_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>> {
+    pub async fn resolve_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>> {
         for resolver in &self.price_resolvers {
             if resolver.can_resolve(metadata) {
-                if let Some(mut quote) = resolver.get_price(metadata)? {
+                if let Some(mut quote) = resolver.get_price(metadata).await? {
                     if quote.price.source.is_empty() {
                         quote.price.source = resolver.name().to_string();
                     }

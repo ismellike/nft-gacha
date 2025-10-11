@@ -89,7 +89,7 @@ impl AppraisalProcessor {
         }
 
         // Fetch fresh price using provider registry
-        let price_quote = self.engine.resolve_price(metadata)?;
+        let price_quote = self.engine.resolve_price(metadata).await?;
         let price = price_quote.as_ref().map(|quote| quote.price.value);
 
         // Cache the result

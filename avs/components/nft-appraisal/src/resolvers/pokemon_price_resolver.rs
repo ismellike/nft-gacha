@@ -4,6 +4,7 @@
 //! parse-title endpoint from PokemonPriceTracker API.
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use http::{header::AUTHORIZATION, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -193,6 +194,7 @@ impl PokemonPriceResolver {
     }
 }
 
+#[async_trait(?Send)]
 impl PriceResolver for PokemonPriceResolver {
     fn name(&self) -> &str {
         "PokemonPriceTracker"
@@ -207,12 +209,12 @@ impl PriceResolver for PokemonPriceResolver {
             .is_some_and(|cat| normalize_category(cat) == "pokemon")
     }
 
-    fn get_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>> {
+    async fn get_price(&self, metadata: &CardMetadata) -> Result<Option<ResolverQuote>> {
         // Build search title from card metadata
         let search_title = self.build_search_title(metadata);
 
         // Query the API
-        let response = wstd::runtime::block_on(self.query_parse_title(&search_title))?;
+        let response = self.query_parse_title(&search_title).await?;
 
         if !response.success {
             return Ok(None);

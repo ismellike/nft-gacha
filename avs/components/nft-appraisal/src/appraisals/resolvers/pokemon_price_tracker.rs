@@ -1,5 +1,6 @@
 use crate::appraisals::client::PokemonPriceClient;
 use anyhow::Result;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Pricing query parameters
@@ -22,7 +23,8 @@ pub struct PricingResult {
 }
 
 /// Trait for pricing resolvers
-pub trait PricingResolver: Send + Sync {
+#[async_trait(?Send)]
+pub trait PricingResolver {
     /// Get the name of this resolver
     fn name(&self) -> &str;
 
@@ -34,7 +36,7 @@ pub trait PricingResolver: Send + Sync {
     fn can_handle(&self, query: &PricingQuery) -> bool;
 
     /// Get pricing for the given query
-    fn get_price(&self, query: &PricingQuery) -> Result<Option<PricingResult>>;
+    async fn get_price(&self, query: &PricingQuery) -> Result<Option<PricingResult>>;
 }
 
 /// Resolver for Pokemon Price Tracker API
@@ -51,6 +53,7 @@ impl PokemonPriceTrackerResolver {
     }
 }
 
+#[async_trait(?Send)]
 impl PricingResolver for PokemonPriceTrackerResolver {
     fn name(&self) -> &str {
         "Pokemon Price Tracker"
@@ -66,13 +69,13 @@ impl PricingResolver for PokemonPriceTrackerResolver {
         matches!(query.grade_category.as_str(), "PSA 9" | "PSA 10")
     }
 
-    fn get_price(&self, query: &PricingQuery) -> Result<Option<PricingResult>> {
+    async fn get_price(&self, query: &PricingQuery) -> Result<Option<PricingResult>> {
         // Use the existing Pokemon client
-        let price = wstd::runtime::block_on(self.client.appraise_card(
+        let price = self.client.appraise_card(
             &query.card_name,
             query.set_id.as_deref(),
             Some(&query.grade_category),
-        ))?;
+        ).await?;
 
         match price {
             Some(actual_price) if actual_price > 0.0 => Ok(Some(PricingResult {
