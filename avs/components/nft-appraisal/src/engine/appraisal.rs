@@ -34,7 +34,7 @@ impl AppraisalEngine {
         engine
     }
 
-    pub fn fetch_metadata(&self, uri: &str) -> Result<CardMetadata> {
+    pub async fn fetch_metadata(&self, uri: &str) -> Result<CardMetadata> {
         for provider in &self.metadata_providers {
             if provider.can_handle_uri(uri) {
                 let provider_type = provider.provider_type();
@@ -42,6 +42,7 @@ impl AppraisalEngine {
 
                 let metadata = provider
                     .fetch_metadata(uri)
+                    .await
                     .map_err(|e| anyhow!("{} metadata fetch failed: {}", provider_label, e))?;
 
                 provider.verify(&metadata).map_err(|e| {

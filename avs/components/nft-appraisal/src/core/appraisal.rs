@@ -76,6 +76,7 @@ impl AppraisalProcessor {
 
         self.engine
             .fetch_metadata(&token_uri)
+            .await
             .map_err(|e| anyhow!("Failed to fetch NFT metadata: {}", e))
     }
 

@@ -191,7 +191,9 @@ export function GachaCard({ gacha }: GachaCardProps) {
 											key={rarity}
 											className="text-center p-1 rounded bg-content1/10 border border-white/5"
 										>
-											<div className={`text-lg mb-1 ${hasCards ? 'opacity-100' : 'opacity-30'}`}>
+											<div
+												className={`text-lg mb-1 ${hasCards ? "opacity-100" : "opacity-30"}`}
+											>
 												{getRarityEmoji(rarity)}
 											</div>
 											<div className="text-xs text-foreground/60 font-medium">

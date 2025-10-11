@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { useAccount, useWriteContract, usePublicClient } from "wagmi";
+import { useAccount, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from "wagmi";
 import { useMachine } from "@xstate/react";
 
 import { UnifiedNFTCard, type UnifiedNFTCardProps } from "./UnifiedNFTCard";
@@ -19,6 +19,7 @@ import { useGachaId } from "../hooks/useGachaId";
 import {
 	useReadNftAppraisalGetAppraisal,
 	erc721Abi,
+	useWriteGachaTreasuryDepositNft
 } from "../generated";
 import { nftDepositMachine } from "../machines/nftDepositMachine";
 
@@ -52,7 +53,12 @@ export const DepositableNFTCard = ({
 	const contracts = useGachaContracts(gachaId);
 
 	// XState machine for deposit process
-	const [depositState, sendDepositEvent] = useMachine(nftDepositMachine);
+	const [depositState, sendDepositEvent] = useMachine(nftDepositMachine, {
+		input: {
+			onAction,
+			onAppraisalStatusChange,
+		},
+	});
 
 	// Contract write hooks
 	const {
@@ -60,8 +66,32 @@ export const DepositableNFTCard = ({
 		isSuccess: isApprovalSuccess,
 		isError: isApprovalError,
 		error: approvalError,
+		data: approvalTxHash,
 	} = useWriteContract();
-	
+
+	const {
+		writeContract: depositNFT,
+		isSuccess: isDepositSuccess,
+		isError: isDepositError,
+		error: depositError,
+		data: depositTxHash,
+	} = useWriteGachaTreasuryDepositNft();
+
+	// Transaction receipt hooks
+	const { data: approvalReceipt } = useWaitForTransactionReceipt({
+		hash: approvalTxHash as `0x${string}`,
+		query: {
+			enabled: !!approvalTxHash,
+		},
+	});
+
+	const { data: depositReceipt } = useWaitForTransactionReceipt({
+		hash: depositTxHash as `0x${string}`,
+		query: {
+			enabled: !!depositTxHash,
+		},
+	});
+
 	// Get appraisal data from contract
 	const { data: appraisalData } = useReadNftAppraisalGetAppraisal({
 		address: contracts.appraisal as `0x${string}`,
@@ -93,7 +123,10 @@ export const DepositableNFTCard = ({
 	// Handle deposit flow using state machine
 	const handleDeposit = useCallback(async () => {
 		if (!userAddress || !publicClient || !contracts.treasury) {
-			console.error("Missing required parameters for deposit");
+			sendDepositEvent({
+				type: "FAIL",
+				error: "Wallet not connected or network unavailable. Please check your connection and try again.",
+			});
 			return;
 		}
 
@@ -105,6 +138,8 @@ export const DepositableNFTCard = ({
 			treasuryAddress: contracts.treasury as `0x${string}`,
 			userAddress,
 			publicClient,
+			onAction,
+			onAppraisalStatusChange,
 		});
 	}, [
 		userAddress,
@@ -113,9 +148,11 @@ export const DepositableNFTCard = ({
 		collection,
 		tokenId,
 		sendDepositEvent,
+		onAction,
+		onAppraisalStatusChange,
 	]);
 
-	// Handle approval step
+	// Handle approval step using setApprovalForAll
 	const handleApproval = useCallback(() => {
 		if (!contracts.treasury) return;
 
@@ -123,43 +160,100 @@ export const DepositableNFTCard = ({
 			approveNFT({
 				address: collection as `0x${string}`,
 				abi: erc721Abi,
-				functionName: "approve",
-				args: [contracts.treasury as `0x${string}`, BigInt(tokenId)],
-			});
-			// Send approval transaction started event to state machine
-			sendDepositEvent({
-				type: "APPROVAL_TRANSACTION_SENT",
-				txHash: "approval-started",
+				functionName: "setApprovalForAll",
+				args: [contracts.treasury as `0x${string}`, true],
 			});
 		} catch (error) {
 			sendDepositEvent({
-				type: "ERROR",
-				error: error instanceof Error ? error.message : "Approval failed",
+				type: "FAIL",
+				error: error instanceof Error
+					? `Approval failed: ${error.message}`
+					: "Failed to initiate NFT approval. Please check your wallet and try again.",
 			});
 		}
-	}, [approveNFT, collection, tokenId, contracts.treasury, sendDepositEvent]);
+	}, [approveNFT, collection, contracts.treasury, sendDepositEvent]);
 
-	
-	// Handle approval transaction results
-	useEffect(() => {
-		if (isApprovalSuccess && depositState.matches("waitingForApproval")) {
+	// Handle deposit step
+	const handleDepositNFT = useCallback(() => {
+		if (!contracts.treasury) return;
+
+		try {
+			depositNFT({
+				address: contracts.treasury as `0x${string}`,
+				args: [collection as `0x${string}`, BigInt(tokenId)],
+			});
+		} catch (error) {
 			sendDepositEvent({
-				type: "DEPOSIT_TRANSACTION_SENT",
-				txHash: "approval-confirmed",
+				type: "FAIL",
+				error: error instanceof Error
+					? `Deposit failed: ${error.message}`
+					: "Failed to initiate NFT deposit. Please check your wallet and try again.",
 			});
 		}
-	}, [isApprovalSuccess, depositState, sendDepositEvent]);
+	}, [depositNFT, collection, tokenId, contracts.treasury, sendDepositEvent]);
 
+	// Handle approval transaction success - dispatch APPROVAL_REQUESTED with tx hash
 	useEffect(() => {
-		if (isApprovalError && depositState.matches("waitingForApproval")) {
+		if (isApprovalSuccess && approvalTxHash && depositState.matches("awaitingApprovalSignature")) {
 			sendDepositEvent({
-				type: "ERROR",
-				error: approvalError?.message || "Approval failed",
+				type: "APPROVAL_REQUESTED",
+			});
+		}
+	}, [isApprovalSuccess, approvalTxHash, depositState, sendDepositEvent]);
+
+	// Handle approval transaction error
+	useEffect(() => {
+		if (isApprovalError && approvalError && depositState.matches("awaitingApprovalSignature")) {
+			sendDepositEvent({
+				type: "FAIL",
+				error: approvalError?.message
+					? `Approval transaction failed: ${approvalError.message}`
+					: "Approval transaction failed. Please check your wallet and try again.",
 			});
 		}
 	}, [isApprovalError, approvalError, depositState, sendDepositEvent]);
 
-	
+	// Handle approval transaction receipt confirmation - dispatch APPROVAL_CONFIRMED
+	useEffect(() => {
+		if (approvalReceipt && depositState.matches("awaitingApprovalReceipt")) {
+			sendDepositEvent({
+				type: "APPROVAL_CONFIRMED",
+				txHash: approvalReceipt.transactionHash,
+			});
+		}
+	}, [approvalReceipt, depositState, sendDepositEvent]);
+
+	// Handle deposit transaction success - dispatch DEPOSIT_REQUESTED
+	useEffect(() => {
+		if (isDepositSuccess && depositTxHash && depositState.matches("awaitingDepositSignature")) {
+			sendDepositEvent({
+				type: "DEPOSIT_REQUESTED",
+			});
+		}
+	}, [isDepositSuccess, depositTxHash, depositState, sendDepositEvent]);
+
+	// Handle deposit transaction error
+	useEffect(() => {
+		if (isDepositError && depositError && depositState.matches("awaitingDepositSignature")) {
+			sendDepositEvent({
+				type: "FAIL",
+				error: depositError?.message
+					? `Deposit transaction failed: ${depositError.message}`
+					: "Deposit transaction failed. Please check your wallet and try again.",
+			});
+		}
+	}, [isDepositError, depositError, depositState, sendDepositEvent]);
+
+	// Handle deposit transaction receipt confirmation - dispatch DEPOSIT_CONFIRMED
+	useEffect(() => {
+		if (depositReceipt && depositState.matches("awaitingDepositReceipt")) {
+			sendDepositEvent({
+				type: "DEPOSIT_CONFIRMED",
+				txHash: depositReceipt.transactionHash,
+			});
+		}
+	}, [depositReceipt, depositState, sendDepositEvent]);
+
 	// Get current state info for UI
 	const currentDepositState = depositState.value as string;
 	const depositStateError = depositState.context.error;
@@ -209,10 +303,11 @@ export const DepositableNFTCard = ({
 						</Button>
 					)}
 
-					{currentDepositState === "approving" && (
+					{currentDepositState === "awaitingApprovalSignature" && (
 						<Button
 							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
 							onPress={handleApproval}
+							isLoading={false}
 						>
 							<span className="flex items-center justify-center gap-2">
 								<ShieldCheckIcon className="w-4 h-4" /> Approve NFT
@@ -220,7 +315,7 @@ export const DepositableNFTCard = ({
 						</Button>
 					)}
 
-					{currentDepositState === "waitingForApproval" && (
+					{currentDepositState === "awaitingApprovalReceipt" && (
 						<Button
 							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
 							isLoading
@@ -231,16 +326,40 @@ export const DepositableNFTCard = ({
 						</Button>
 					)}
 
-					{currentDepositState === "depositing" && (
+					{currentDepositState === "awaitingDepositSignature" && (
+						<Button
+							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+							onPress={handleDepositNFT}
+							isLoading={false}
+						>
+							<span className="flex items-center justify-center gap-2">
+								<GiftIcon className="w-4 h-4" /> Deposit NFT
+							</span>
+						</Button>
+					)}
+
+					{currentDepositState === "awaitingDepositReceipt" && (
+						<Button
+							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+							isLoading
+						>
+							<span className="flex items-center justify-center gap-2">
+								<ArrowPathIcon className="w-4 h-4" /> Processing deposit...
+							</span>
+						</Button>
+					)}
+
+					{currentDepositState === "confirmingDeposit" && (
 						<Button
 							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
 							isLoading
 						>
-							Depositing...
+							<span className="flex items-center justify-center gap-2">
+								<ArrowPathIcon className="w-4 h-4" /> Confirming deposit...
+							</span>
 						</Button>
 					)}
 
-					
 					{currentDepositState === "completed" && (
 						<Button
 							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
@@ -252,21 +371,19 @@ export const DepositableNFTCard = ({
 						</Button>
 					)}
 
-					{currentDepositState === "error" && (
+					{depositStateError && (
 						<div className="space-y-2">
 							<Button
 								className="w-full rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
 								onPress={() => sendDepositEvent({ type: "RESET" })}
 							>
 								<span className="flex items-center justify-center gap-2">
-									<ArrowPathIcon className="w-4 h-4" /> Reset & Try Again
+									<ArrowPathIcon className="w-4 h-4" /> Try Again
 								</span>
 							</Button>
-							{depositStateError && (
-								<p className="text-xs text-danger text-center">
-									{depositStateError}
-								</p>
-							)}
+							<p className="text-xs text-danger text-center">
+								{depositStateError}
+							</p>
 						</div>
 					)}
 				</div>
@@ -293,7 +410,10 @@ export const DepositableNFTCard = ({
 				{...(extraDetails ? { extraDetails } : {})}
 				actionSlot={actionSlot}
 				{...nftCardProps}
-				appraisalContractAddress={contracts.appraisal as `0x${string}` || "0x0000000000000000000000000000000000000000"}
+				appraisalContractAddress={
+					(contracts.appraisal as `0x${string}`) ||
+					"0x0000000000000000000000000000000000000000"
+				}
 			/>
 		</motion.div>
 	);

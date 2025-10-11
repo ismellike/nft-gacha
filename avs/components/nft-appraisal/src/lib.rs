@@ -35,7 +35,7 @@ impl Guest for Component {
                 _ => return Ok(None),
             };
 
-            match process_appraisal_request(evm_event.clone()).await {
+            match process_appraisal_request(&evm_event).await {
                 Ok(Some(response)) => {
                     host::log(
                         LogLevel::Info,
@@ -63,12 +63,12 @@ impl Guest for Component {
 }
 
 async fn process_appraisal_request(
-    evm_event: TriggerDataEvmContractEvent,
+    evm_event: &TriggerDataEvmContractEvent,
 ) -> Result<Option<WasmResponse>> {
     let processor = AppraisalProcessor::new()
         .map_err(|e| anyhow::anyhow!("Failed to initialize appraisal processor: {}", e))?;
 
-    let appraisal_result = processor.process_appraisal_request(&evm_event).await?;
+    let appraisal_result = processor.process_appraisal_request(evm_event).await?;
 
     // Try to create success payload
     if let Some(payload) = appraisal_result.to_success_payload() {

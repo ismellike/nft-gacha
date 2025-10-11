@@ -24,7 +24,7 @@ export default defineConfig({
 				"IWavsServiceManager",
 				"NFTAppraisal",
 				"NFTAppraisalServiceHandler",
-				"ProtocolTreasury"
+				"ProtocolTreasury",
 			],
 		} as any),
 		react({

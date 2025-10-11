@@ -477,7 +477,8 @@ export default function SpinControls({
 				spinWithPermitReceiptError,
 			);
 
-			const errorMessage = spinWithPermitReceiptError?.message?.toLowerCase() || '';
+			const errorMessage =
+				spinWithPermitReceiptError?.message?.toLowerCase() || "";
 			if (
 				errorMessage.includes("reverted") ||
 				errorMessage.includes("failed") ||
@@ -933,7 +934,8 @@ export default function SpinControls({
 									"bg-gradient-to-r from-success via-success/90 to-emerald-400 border-success/40 shadow-success/30",
 								gachaSpin.isError &&
 									"bg-gradient-to-r from-danger via-danger/90 to-red-600 border-danger/40 shadow-danger/30",
-								canSpin && "hover:from-warning/110 hover:to-orange-400/110" as string,
+								canSpin &&
+									("hover:from-warning/110 hover:to-orange-400/110" as string),
 							)}
 						>
 							{/* Button content with icon */}

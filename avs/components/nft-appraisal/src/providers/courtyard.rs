@@ -7,6 +7,7 @@
 //! - Conversion to unified metadata format
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use hex;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
@@ -398,6 +399,7 @@ impl CourtyardProvider {
     }
 }
 
+#[async_trait(?Send)]
 impl MetadataProvider for CourtyardProvider {
     fn provider_type(&self) -> ProviderType {
         ProviderType::Courtyard
@@ -410,10 +412,9 @@ impl MetadataProvider for CourtyardProvider {
             || (uri.contains("static.courtyard.io") && uri.contains("token_uri"))
     }
 
-    fn fetch_metadata(&self, uri: &str) -> Result<CardMetadata> {
-        // Use wstd::runtime::block_on for async operations
-        let courtyard_metadata =
-            wstd::runtime::block_on(self.client.get_nft_metadata_from_uri(uri))?;
+    async fn fetch_metadata(&self, uri: &str) -> Result<CardMetadata> {
+        // Direct async call - no blocking needed
+        let courtyard_metadata = self.client.get_nft_metadata_from_uri(uri).await?;
 
         // 🔥 Verify integrity BEFORE conversion (fail fast)
         if let Err(e) = self.client.verify_proof_of_integrity(&courtyard_metadata) {

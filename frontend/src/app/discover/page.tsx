@@ -1,7 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { PlusIcon, ChartBarIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import {
+	PlusIcon,
+	ChartBarIcon,
+	ShieldCheckIcon,
+} from "@heroicons/react/24/outline";
 import { Card, Chip } from "../../ui";
 import { GachaCard } from "../../components";
 import { getAllActiveGachas } from "../../lib/gacha-config";
@@ -21,7 +25,9 @@ export default function DiscoverPage() {
 				>
 					<div className="inline-flex items-center gap-2 px-4 py-2 bg-content1/10 backdrop-blur-sm rounded-full border border-white/20 mb-8">
 						<ShieldCheckIcon className="w-4 h-4 text-warning" />
-						<span className="text-sm font-medium text-foreground/80">Discover Collections</span>
+						<span className="text-sm font-medium text-foreground/80">
+							Discover Collections
+						</span>
 					</div>
 
 					<h1 className="text-5xl md:text-7xl font-black mb-6">
@@ -31,20 +37,30 @@ export default function DiscoverPage() {
 					</h1>
 
 					<p className="text-xl text-foreground/80 max-w-3xl mx-auto leading-relaxed mb-8">
-						Explore our collection of provably fair trading card gacha systems. Each collection features authentic graded cards with transparent rarity mechanics.
+						Explore our collection of provably fair trading card gacha systems.
+						Each collection features authentic graded cards with transparent
+						rarity mechanics.
 					</p>
 
 					<div className="flex flex-wrap justify-center gap-3">
 						{[
-							{ icon: <ShieldCheckIcon className="w-4 h-4" />, text: "Provably Fair" },
-							{ icon: <ChartBarIcon className="w-4 h-4" />, text: "Live Analytics" },
+							{
+								icon: <ShieldCheckIcon className="w-4 h-4" />,
+								text: "Provably Fair",
+							},
+							{
+								icon: <ChartBarIcon className="w-4 h-4" />,
+								text: "Live Analytics",
+							},
 						].map((badge) => (
 							<div
 								key={badge.text}
 								className="flex items-center gap-2 px-4 py-2 bg-content1/10 backdrop-blur-sm rounded-full border border-white/20"
 							>
 								<span className="text-warning">{badge.icon}</span>
-								<span className="text-sm font-medium text-foreground/80">{badge.text}</span>
+								<span className="text-sm font-medium text-foreground/80">
+									{badge.text}
+								</span>
 							</div>
 						))}
 					</div>

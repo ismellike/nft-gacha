@@ -16,7 +16,8 @@ export function getGachaContracts(gachaId: string): GachaContracts {
 		treasury: gachaConfig.treasuryAddress as `0x${string}`,
 		appraisal: gachaConfig.appraisalAddress as `0x${string}`,
 		economyManager: gachaConfig.economyManagerAddress as `0x${string}`,
-		gachaServiceHandler: gachaConfig.gachaServiceHandlerAddress as `0x${string}`,
+		gachaServiceHandler:
+			gachaConfig.gachaServiceHandlerAddress as `0x${string}`,
 		depositorVault: gachaConfig.depositorVaultAddress as `0x${string}`,
 		buybackVault: gachaConfig.buybackVaultAddress as `0x${string}`,
 		protocolTreasury: gachaConfig.protocolTreasuryAddress as `0x${string}`,
