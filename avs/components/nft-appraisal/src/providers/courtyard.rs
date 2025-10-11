@@ -81,6 +81,15 @@ pub struct NFTAttribute {
     pub value: serde_json::Value,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CardInfo {
+    pub title: String,
+    pub card_number: Option<String>,
+    pub grade: Option<String>,
+    pub set_name: Option<String>,
+    pub year: Option<String>,
+}
+
 // ============================================================================
 // Client
 // ============================================================================
@@ -242,6 +251,34 @@ impl MetadataProvider for CourtyardProvider {
 }
 
 impl CourtyardProvider {
+    /// Extract card information from Courtyard metadata attributes
+    fn extract_card_info(&self, metadata: &NFTMetadata) -> CardInfo {
+        let mut card_info = CardInfo {
+            title: metadata.name.clone(),
+            card_number: None,
+            grade: None,
+            set_name: None,
+            year: None,
+        };
+
+        // Extract information from attributes
+        for attr in &metadata.attributes {
+            if let Some(trait_type) = &attr.trait_type {
+                let value_str = Self::attribute_value_as_string(&attr.value);
+
+                match trait_type.to_lowercase().as_str() {
+                    "card number" | "number" => card_info.card_number = value_str,
+                    "grade" | "rating" => card_info.grade = value_str,
+                    "set" | "set name" => card_info.set_name = value_str,
+                    "year" => card_info.year = value_str,
+                    _ => {}
+                }
+            }
+        }
+
+        card_info
+    }
+
     fn categories_from_attributes(attributes: &[NFTAttribute]) -> Vec<String> {
         attributes
             .iter()
@@ -278,9 +315,9 @@ impl CourtyardProvider {
 
         match route.kind {
             ResolverKind::PokemonTradingCard => {
-                if !matches!(route.args, ResolverArgs::PokemonTitle { .. }) {
+                if !matches!(route.args, ResolverArgs::PokemonCardInfo { .. }) {
                     return Err(anyhow!(
-                        "Courtyard provider expected Pokemon title arguments"
+                        "Courtyard provider expected Pokemon card info arguments"
                     ));
                 }
 
@@ -308,7 +345,14 @@ impl CourtyardProvider {
         });
 
         if is_graded_card && has_pokemon_category {
-            return Some(ResolverRoute::pokemon_title(metadata.name.clone()));
+            let card_info = Self::new().extract_card_info(metadata);
+            return Some(ResolverRoute::pokemon_card_info(
+                card_info.title,
+                card_info.card_number,
+                card_info.grade,
+                card_info.set_name,
+                card_info.year,
+            ));
         }
 
         None
@@ -398,7 +442,19 @@ mod tests {
         let route = resolver.unwrap();
         assert_eq!(route.kind, ResolverKind::PokemonTradingCard);
         match route.args {
-            ResolverArgs::PokemonTitle { title } => assert_eq!(title, "Pokemon Charizard"),
+            ResolverArgs::PokemonCardInfo {
+                title,
+                card_number,
+                grade,
+                set_name,
+                year,
+            } => {
+                assert_eq!(title, "Pokemon Charizard");
+                assert_eq!(card_number, None);
+                assert_eq!(grade, None);
+                assert_eq!(set_name, None);
+                assert_eq!(year, None);
+            }
         }
     }
 
@@ -417,10 +473,86 @@ mod tests {
     #[test]
     fn test_resolve_price_requires_api_key() {
         let provider = CourtyardProvider::new();
-        let route = ResolverRoute::pokemon_title("Sample Title");
+        let route = ResolverRoute::pokemon_card_info("Sample Title", None, None, None, None);
 
         let result = block_on(provider.resolve_price(&route, ""));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_extract_card_info_from_attributes() {
+        let provider = CourtyardProvider::new();
+
+        let metadata = NFTMetadata {
+            name: "1999 Fossil #17 Articuno".to_string(),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: json!("17"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: json!("PSA 8"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: json!("Fossil"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Year".to_string()),
+                    value: json!("1999"),
+                },
+            ],
+            ..Default::default()
+        };
+
+        let card_info = provider.extract_card_info(&metadata);
+        assert_eq!(card_info.title, "1999 Fossil #17 Articuno");
+        assert_eq!(card_info.card_number, Some("17".to_string()));
+        assert_eq!(card_info.grade, Some("PSA 8".to_string()));
+        assert_eq!(card_info.set_name, Some("Fossil".to_string()));
+        assert_eq!(card_info.year, Some("1999".to_string()));
+    }
+
+    #[test]
+    fn test_resolver_selection_with_card_info() {
+        let metadata = NFTMetadata {
+            name: "1999 Fossil #17 Articuno".to_string(),
+            product_type: Some("GRADED_CARD".to_string()),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: json!("17"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: json!("CGC 8"),
+                },
+            ],
+            ..Default::default()
+        };
+        let categories = vec!["Pokémon".to_string()];
+
+        let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
+        assert!(resolver.is_some());
+        let route = resolver.unwrap();
+        assert_eq!(route.kind, ResolverKind::PokemonTradingCard);
+
+        match route.args {
+            ResolverArgs::PokemonCardInfo {
+                title,
+                card_number,
+                grade,
+                set_name,
+                year,
+            } => {
+                assert_eq!(title, "1999 Fossil #17 Articuno");
+                assert_eq!(card_number, Some("17".to_string()));
+                assert_eq!(grade, Some("CGC 8".to_string()));
+                assert_eq!(set_name, None);
+                assert_eq!(year, None);
+            }
+        }
     }
 
     #[test]

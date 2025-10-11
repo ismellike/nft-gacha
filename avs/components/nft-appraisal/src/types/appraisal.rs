@@ -15,13 +15,31 @@ pub enum ResolverKind {
 /// Resolver-specific arguments produced by providers.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ResolverArgs {
-    PokemonTitle { title: String },
+    PokemonCardInfo {
+        title: String,
+        card_number: Option<String>,
+        grade: Option<String>,
+        set_name: Option<String>,
+        year: Option<String>,
+    },
 }
 
 impl ResolverArgs {
     pub fn cache_fragment(&self) -> String {
         match self {
-            ResolverArgs::PokemonTitle { title } => title.trim().to_ascii_lowercase(),
+            ResolverArgs::PokemonCardInfo {
+                title,
+                card_number,
+                grade,
+                ..
+            } => {
+                format!(
+                    "{}-{}-{}",
+                    title.trim().to_ascii_lowercase(),
+                    card_number.as_deref().unwrap_or(""),
+                    grade.as_deref().unwrap_or("")
+                )
+            }
         }
     }
 }
@@ -34,11 +52,23 @@ pub struct ResolverRoute {
 }
 
 impl ResolverRoute {
-    pub fn pokemon_title<T: Into<String>>(title: T) -> Self {
+    pub fn pokemon_card_info<T: Into<String>>(
+        title: T,
+        card_number: Option<String>,
+        grade: Option<String>,
+        set_name: Option<String>,
+        year: Option<String>,
+    ) -> Self {
         let title = normalize_pokemon_title(title.into());
         Self {
             kind: ResolverKind::PokemonTradingCard,
-            args: ResolverArgs::PokemonTitle { title },
+            args: ResolverArgs::PokemonCardInfo {
+                title,
+                card_number,
+                grade,
+                set_name,
+                year,
+            },
         }
     }
 
