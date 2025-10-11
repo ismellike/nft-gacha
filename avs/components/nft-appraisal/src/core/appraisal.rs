@@ -298,7 +298,13 @@ mod tests {
 
     #[test]
     fn test_cache_seed_is_case_insensitive() {
-        let route = ResolverRoute::pokemon_title("Pokémon Charizard PSA 10");
+        let route = ResolverRoute::pokemon_card_info(
+            "Pokémon Charizard PSA 10",
+            Some("4".to_string()),
+            Some("PSA 10".to_string()),
+            Some("Base Set".to_string()),
+            Some("1999".to_string()),
+        );
         let seed = AppraisalProcessor::cache_seed(&route);
         let expected_suffix = route.cache_key_fragment();
         assert!(seed.ends_with(&expected_suffix));
