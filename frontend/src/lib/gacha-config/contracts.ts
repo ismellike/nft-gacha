@@ -1,9 +1,10 @@
 import { getGachaConfig } from "../gacha-config";
+import type { GachaContracts } from "@/types/contracts";
 
 /**
  * Get contract addresses for a specific gacha by ID
  */
-export function getGachaContracts(gachaId: string) {
+export function getGachaContracts(gachaId: string): GachaContracts {
 	const gachaConfig = getGachaConfig(gachaId);
 
 	if (!gachaConfig) {
@@ -14,7 +15,11 @@ export function getGachaContracts(gachaId: string) {
 		gacha: gachaConfig.address as `0x${string}`,
 		treasury: gachaConfig.treasuryAddress as `0x${string}`,
 		appraisal: gachaConfig.appraisalAddress as `0x${string}`,
-		rewardsManager: gachaConfig.rewardsManagerAddress as `0x${string}`,
+		economyManager: gachaConfig.economyManagerAddress as `0x${string}`,
+		gachaServiceHandler: gachaConfig.gachaServiceHandlerAddress as `0x${string}`,
+		depositorVault: gachaConfig.depositorVaultAddress as `0x${string}`,
+		buybackVault: gachaConfig.buybackVaultAddress as `0x${string}`,
+		protocolTreasury: gachaConfig.protocolTreasuryAddress as `0x${string}`,
 		trackers: {
 			common: gachaConfig.trackerAddresses.common as `0x${string}`,
 			uncommon: gachaConfig.trackerAddresses.uncommon as `0x${string}`,
