@@ -26,6 +26,7 @@ import {
 import { useRewardsClaiming, type Rarity } from "../hooks/useRewardsClaiming";
 import { useAccount, usePublicClient } from "wagmi";
 import type { CardAppraisal } from "../hooks/useBatchCardAppraisal";
+import { useRegisterRewardsRefetch } from "../hooks/useRewardsData";
 
 const managerViewAbi = [
 	{
@@ -77,17 +78,31 @@ export function CardRewardsList() {
 	const lastUserRef = useRef<string | null>(null);
 
 	// Fee token details from RewardsManager
-	const { data: feeTokenAddress } = useReadGachaEconomyManagerFeeToken({
-		address: rewardsManager as `0x${string}` | undefined,
-		query: { enabled: !!rewardsManager },
-	});
-	const { data: feeTokenDecimals } = useReadErc20Decimals({
-		address: feeTokenAddress,
-		query: { enabled: !!feeTokenAddress },
-	});
-	const { data: feeTokenSymbol } = useReadErc20Symbol({
-		address: feeTokenAddress,
-		query: { enabled: !!feeTokenAddress },
+	const { data: feeTokenAddress, refetch: refetchFeeToken } =
+		useReadGachaEconomyManagerFeeToken({
+			address: rewardsManager as `0x${string}` | undefined,
+			query: { enabled: !!rewardsManager },
+		});
+	const { data: feeTokenDecimals, refetch: refetchFeeTokenDecimals } =
+		useReadErc20Decimals({
+			address: feeTokenAddress,
+			query: { enabled: !!feeTokenAddress },
+		});
+	const { data: feeTokenSymbol, refetch: refetchFeeTokenSymbol } =
+		useReadErc20Symbol({
+			address: feeTokenAddress,
+			query: { enabled: !!feeTokenAddress },
+		});
+
+	// Register fee token refetch functions with the rewards system
+	useRegisterRewardsRefetch("feeToken", refetchFeeToken);
+	useRegisterRewardsRefetch("feeTokenDecimals", refetchFeeTokenDecimals);
+	useRegisterRewardsRefetch("feeTokenSymbol", refetchFeeTokenSymbol);
+
+	// Register treasury cards refetch function
+	useRegisterRewardsRefetch("treasuryCards", async () => {
+		// Force reload of user cards by clearing cache and triggering re-fetch
+		await loadAllCardDeposits();
 	});
 
 	// Format claimable using actual fee token decimals/symbol

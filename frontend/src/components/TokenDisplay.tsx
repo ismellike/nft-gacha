@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Token Display Component
  * Shows ERC20 token information with logo, name, and symbol
@@ -9,6 +11,13 @@ import { motion } from "framer-motion";
 import { cn } from "../lib/theme-config";
 import { CurrencyDollarIcon } from "@heroicons/react/24/outline";
 
+// Interface for EconomyDashboard compatibility
+interface TokenAmountDisplayProps {
+	amount?: bigint | undefined;
+	showUsd?: boolean;
+}
+
+// Original interface
 interface TokenDisplayProps {
 	address?: `0x${string}`;
 	name?: string;
@@ -102,7 +111,7 @@ const getTokenLogoSources = (address?: string, symbol?: string): string[] => {
 	return sources;
 };
 
-function TokenDisplay({
+export function TokenDisplay({
 	address,
 	name,
 	symbol,
@@ -354,5 +363,33 @@ export function TokenFeeDisplay({
 				</div>
 			</div>
 		</div>
+	);
+}
+
+// EconomyDashboard compatible interface
+export function TokenAmountDisplay({
+	amount,
+	showUsd = false,
+}: TokenAmountDisplayProps) {
+	if (!amount || amount === 0n) {
+		return <span className="text-gray-400">0</span>;
+	}
+
+	// Format bigint to string with appropriate decimal places
+	const formatAmount = (value: bigint) => {
+		// Assuming 18 decimals for most tokens, this could be enhanced
+		// to fetch actual decimals from token contract
+		const decimals = 18n;
+		const formatted = (value * 10000n) / 10n ** decimals / 10000n;
+		return formatted.toString();
+	};
+
+	const formattedAmount = formatAmount(amount);
+
+	return (
+		<span className="text-white font-medium">
+			{formattedAmount}
+			{showUsd && <span className="text-gray-400 ml-1">USD</span>}
+		</span>
 	);
 }

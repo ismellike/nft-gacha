@@ -13,6 +13,7 @@ import {
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
+import { useRegisterRewardsRefetch } from "../hooks/useRewardsData";
 import {
 	UserCircleIcon,
 	SparklesIcon,
@@ -28,17 +29,23 @@ export const ProfileDashboard: React.FC = () => {
 	const contracts = useGachaContracts(gachaId);
 
 	// 🚀 BATCH OPTIMIZED: Get all user data in 2 calls instead of 3!
-	const { data: userProfileData } = useReadGachaTreasuryGetUserProfileBatch({
-		address: contracts.treasury as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.treasury && !!userAddress },
-	} as Parameters<typeof useReadGachaTreasuryGetUserProfileBatch>[0]);
+	const { data: userProfileData, refetch: refetchUserProfile } =
+		useReadGachaTreasuryGetUserProfileBatch({
+			address: contracts.treasury as `0x${string}` | undefined,
+			args: userAddress ? [userAddress] : undefined,
+			query: { enabled: !!contracts.treasury && !!userAddress },
+		} as Parameters<typeof useReadGachaTreasuryGetUserProfileBatch>[0]);
 
-	const { data: userGachaData } = useReadGachaGetUserGachaBatch({
-		address: contracts.gacha as `0x${string}` | undefined,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!contracts.gacha && !!userAddress },
-	} as Parameters<typeof useReadGachaGetUserGachaBatch>[0]);
+	const { data: userGachaData, refetch: refetchUserGacha } =
+		useReadGachaGetUserGachaBatch({
+			address: contracts.gacha as `0x${string}` | undefined,
+			args: userAddress ? [userAddress] : undefined,
+			query: { enabled: !!contracts.gacha && !!userAddress },
+		} as Parameters<typeof useReadGachaGetUserGachaBatch>[0]);
+
+	// Register refetch functions with the rewards system
+	useRegisterRewardsRefetch("userProfile", refetchUserProfile);
+	useRegisterRewardsRefetch("userGacha", refetchUserGacha);
 
 	// Extract data from batch calls
 	// userProfileData: [depositCounts[5], totalDeposits, lifetimeClaimed, lifetimeDeposited, lifetimeWithdrawn, netContribution]

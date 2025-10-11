@@ -1,5 +1,16 @@
+"use client";
+
 import { useCallback, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
+
+interface AppRouterInstance {
+	push: (href: string, options?: { scroll?: boolean }) => void;
+	replace: (href: string, options?: { scroll?: boolean }) => void;
+	back: () => void;
+	forward: () => void;
+	refresh: () => void;
+	prefetch: (href: string) => void;
+}
 
 // Simplified store for search parameters - less complexity, better performance
 class SearchParamsStore {
@@ -54,10 +65,16 @@ class SearchParamsStore {
 
 	updateParams(
 		updates: Record<string, string | null>,
-		router: any,
+		router: AppRouterInstance,
 		pathname: string,
 	) {
-		const newParams = new URLSearchParams(this.params);
+		// Clone from current window location to avoid stale params
+		const currentParams =
+			typeof window !== "undefined"
+				? new URLSearchParams(window.location.search)
+				: new URLSearchParams();
+
+		const newParams = new URLSearchParams(currentParams);
 
 		Object.entries(updates).forEach(([key, value]) => {
 			if (value === null) {
@@ -69,8 +86,12 @@ class SearchParamsStore {
 
 		this.params = newParams;
 
-		// Update URL without scroll
-		router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
+		// Update URL without scroll or history buildup
+		const searchParamsString = newParams.toString();
+		const url = searchParamsString
+			? `${pathname}?${searchParamsString}`
+			: pathname;
+		router.replace(url, { scroll: false });
 
 		this.notifyListeners();
 	}

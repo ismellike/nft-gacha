@@ -1,4 +1,16 @@
-import { useReadGachaEconomyManagerFeeToken, useReadGachaEconomyManagerDepositorShareBps, useReadGachaEconomyManagerBuybackShareBps, useReadGachaEconomyManagerProtocolShareBps, useReadGachaEconomyManagerTotalRevenueProcessed, useReadGachaEconomyManagerTotalToDepositors, useReadGachaEconomyManagerTotalToBuyback, useReadGachaEconomyManagerTotalToProtocol, useReadGachaEconomyManagerRevenueByRarity } from '@/generated';
+"use client";
+
+import {
+	useReadGachaEconomyManagerFeeToken,
+	useReadGachaEconomyManagerDepositorShareBps,
+	useReadGachaEconomyManagerBuybackShareBps,
+	useReadGachaEconomyManagerProtocolShareBps,
+	useReadGachaEconomyManagerTotalRevenueProcessed,
+	useReadGachaEconomyManagerTotalToDepositors,
+	useReadGachaEconomyManagerTotalToBuyback,
+	useReadGachaEconomyManagerTotalToProtocol,
+	useReadGachaEconomyManagerRevenueByRarity,
+} from "@/generated";
 
 export interface EconomyManagerData {
 	feeToken: string | undefined;
@@ -19,7 +31,7 @@ export interface UseGachaEconomyManagerProps {
 
 export function useGachaEconomyManagerData({
 	contractAddress,
-	enabled = true
+	enabled = true,
 }: UseGachaEconomyManagerProps = {}) {
 	const feeToken = useReadGachaEconomyManagerFeeToken({
 		address: contractAddress as `0x${string}`,
@@ -49,12 +61,14 @@ export function useGachaEconomyManagerData({
 		},
 	});
 
-	const totalRevenueProcessed = useReadGachaEconomyManagerTotalRevenueProcessed({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
+	const totalRevenueProcessed = useReadGachaEconomyManagerTotalRevenueProcessed(
+		{
+			address: contractAddress as `0x${string}`,
+			query: {
+				enabled: enabled && !!contractAddress,
+			},
 		},
-	});
+	);
 
 	const totalToDepositors = useReadGachaEconomyManagerTotalToDepositors({
 		address: contractAddress as `0x${string}`,
@@ -162,7 +176,7 @@ export function useGachaEconomyManagerData({
 			revenueUncommon.data,
 			revenueRare.data,
 			revenueEpic.data,
-			revenueLegendary.data
+			revenueLegendary.data,
 		],
 	};
 
@@ -190,12 +204,16 @@ export function useGachaEconomyManagerData({
 
 // Helper function to format basis points to percentage
 export function formatBpsToPercentage(bps: bigint | undefined): string {
-	if (bps === undefined) return '0%';
+	if (bps === undefined) return "0%";
 	return `${Number(bps) / 100}%`;
 }
 
 // Helper function to calculate revenue share percentages
-export function calculateRevenueShares(depositorBps: bigint | undefined, buybackBps: bigint | undefined, protocolBps: bigint | undefined) {
+export function calculateRevenueShares(
+	depositorBps: bigint | undefined,
+	buybackBps: bigint | undefined,
+	protocolBps: bigint | undefined,
+) {
 	const safeDepositorBps = depositorBps || 0n;
 	const safeBuybackBps = buybackBps || 0n;
 	const safeProtocolBps = protocolBps || 0n;
@@ -204,6 +222,8 @@ export function calculateRevenueShares(depositorBps: bigint | undefined, buyback
 		depositor: formatBpsToPercentage(safeDepositorBps),
 		buyback: formatBpsToPercentage(safeBuybackBps),
 		protocol: formatBpsToPercentage(safeProtocolBps),
-		total: formatBpsToPercentage(safeDepositorBps + safeBuybackBps + safeProtocolBps),
+		total: formatBpsToPercentage(
+			safeDepositorBps + safeBuybackBps + safeProtocolBps,
+		),
 	};
 }

@@ -117,7 +117,7 @@ export function useBatchCardAppraisal(
 			setCardAppraisals({});
 			setError(null);
 		}
-	});
+	}, [appraisalContract]);
 
 	return {
 		cardAppraisals,

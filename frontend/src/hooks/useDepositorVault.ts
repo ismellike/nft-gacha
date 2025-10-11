@@ -1,4 +1,21 @@
-import { useReadDepositorVaultAccYieldPerShare, useReadDepositorVaultAsset, useReadDepositorVaultBuybackPrincipal, useReadDepositorVaultBuybackShares, useReadDepositorVaultBuybackVault, useReadDepositorVaultEconomyManager, useReadDepositorVaultOwner, useReadDepositorVaultPaused, useReadDepositorVaultPendingYield, useReadDepositorVaultSharesOf, useReadDepositorVaultTotalShares, useReadDepositorVaultTotalYieldClaimed, useReadDepositorVaultTotalYieldDistributed, useReadDepositorVaultTreasury } from '@/generated';
+"use client";
+
+import {
+	useReadDepositorVaultAccYieldPerShare,
+	useReadDepositorVaultAsset,
+	useReadDepositorVaultBuybackPrincipal,
+	useReadDepositorVaultBuybackShares,
+	useReadDepositorVaultBuybackVault,
+	useReadDepositorVaultEconomyManager,
+	useReadDepositorVaultOwner,
+	useReadDepositorVaultPaused,
+	useReadDepositorVaultPendingYield,
+	useReadDepositorVaultSharesOf,
+	useReadDepositorVaultTotalShares,
+	useReadDepositorVaultTotalYieldClaimed,
+	useReadDepositorVaultTotalYieldDistributed,
+	useReadDepositorVaultTreasury,
+} from "@/generated";
 
 export interface DepositorVaultData {
 	asset: string | undefined;
@@ -30,7 +47,7 @@ export interface UseDepositorVaultProps {
 export function useDepositorVaultData({
 	contractAddress,
 	userAddress,
-	enabled = true
+	enabled = true,
 }: UseDepositorVaultProps = {}) {
 	// Contract-level data
 	const asset = useReadDepositorVaultAsset({
@@ -159,7 +176,7 @@ export function useDepositorVaultData({
 		owner.isError ||
 		paused.isError ||
 		pendingYield.isError ||
-		totalShares.isLoading ||
+		totalShares.isError ||
 		totalYieldClaimed.isError ||
 		totalYieldDistributed.isError ||
 		treasury.isError ||
@@ -183,9 +200,10 @@ export function useDepositorVaultData({
 
 	const userData: UserDepositorData = {
 		shares: userShares.data,
-		yieldValue: userShares.data && accYieldPerShare.data
-			? (userShares.data * accYieldPerShare.data) / 10n**18n
-			: undefined,
+		yieldValue:
+			userShares.data !== undefined && accYieldPerShare.data !== undefined
+				? (userShares.data * accYieldPerShare.data) / 10n ** 18n
+				: undefined,
 	};
 
 	return {
@@ -213,16 +231,25 @@ export function useDepositorVaultData({
 }
 
 // Helper function to calculate user's share percentage
-export function calculateUserSharePercentage(userShares: bigint, totalShares: bigint): string {
-	if (!userShares || !totalShares || totalShares === 0n) return '0%';
+export function calculateUserSharePercentage(
+	userShares: bigint | undefined,
+	totalShares: bigint | undefined,
+): string {
+	if (!userShares || !totalShares || totalShares === 0n) return "0%";
 	const percentage = (Number(userShares) / Number(totalShares)) * 100;
 	return `${percentage.toFixed(4)}%`;
 }
 
 // Helper function to format token amounts
-export function formatTokenAmount(amount: bigint | undefined, decimals: number = 6): string {
-	if (amount === undefined) return '0';
+export function formatTokenAmount(
+	amount: bigint | undefined,
+	decimals: number = 6,
+): string {
+	if (amount === undefined) return "0";
 	const divisor = 10n ** BigInt(decimals);
 	const formatted = Number(amount) / Number(divisor);
-	return formatted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+	return formatted.toLocaleString(undefined, {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	});
 }

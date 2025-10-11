@@ -11,7 +11,7 @@ interface SkeletonProps {
 	animate?: boolean;
 }
 
-function Skeleton({ className, animate = true }: SkeletonProps) {
+export function Skeleton({ className, animate = true }: SkeletonProps) {
 	const baseClasses = "bg-content1/20 rounded animate-pulse";
 
 	if (animate) {

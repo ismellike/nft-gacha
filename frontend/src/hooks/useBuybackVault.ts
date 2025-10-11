@@ -1,4 +1,19 @@
-import { useReadBuybackVaultBuybackPayoutBps, useReadBuybackVaultAppraisalOracle, useReadBuybackVaultAsset, useReadBuybackVaultAvailableLiquidity, useReadBuybackVaultDepositorVault, useReadBuybackVaultEconomyManager, useReadBuybackVaultMaxStakeBps, useReadBuybackVaultOwner, useReadBuybackVaultPaused, useReadBuybackVaultStakedPrincipal, useReadBuybackVaultTotalManagedLiquidity, useReadBuybackVaultTreasury } from '@/generated';
+"use client";
+
+import {
+	useReadBuybackVaultBuybackPayoutBps,
+	useReadBuybackVaultAppraisalOracle,
+	useReadBuybackVaultAsset,
+	useReadBuybackVaultAvailableLiquidity,
+	useReadBuybackVaultDepositorVault,
+	useReadBuybackVaultEconomyManager,
+	useReadBuybackVaultMaxStakeBps,
+	useReadBuybackVaultOwner,
+	useReadBuybackVaultPaused,
+	useReadBuybackVaultStakedPrincipal,
+	useReadBuybackVaultTotalManagedLiquidity,
+	useReadBuybackVaultTreasury,
+} from "@/generated";
 
 export interface BuybackVaultData {
 	asset: string | undefined;
@@ -22,7 +37,7 @@ export interface UseBuybackVaultProps {
 
 export function useBuybackVaultData({
 	contractAddress,
-	enabled = true
+	enabled = true,
 }: UseBuybackVaultProps = {}) {
 	const asset = useReadBuybackVaultAsset({
 		address: contractAddress as `0x${string}`,
@@ -152,14 +167,19 @@ export function useBuybackVaultData({
 	};
 
 	// Calculate utilization rate
-	const utilizationRate = stakedPrincipal.data && totalManagedLiquidity.data && totalManagedLiquidity.data > 0n
-		? (Number(stakedPrincipal.data) / Number(totalManagedLiquidity.data)) * 100
-		: 0;
+	const utilizationRate =
+		stakedPrincipal.data &&
+		totalManagedLiquidity.data &&
+		totalManagedLiquidity.data > 0n
+			? (Number(stakedPrincipal.data) / Number(totalManagedLiquidity.data)) *
+				100
+			: 0;
 
 	// Calculate available capacity
-	const availableCapacity = totalManagedLiquidity.data && stakedPrincipal.data
-		? totalManagedLiquidity.data - stakedPrincipal.data
-		: 0n;
+	const availableCapacity =
+		totalManagedLiquidity.data && stakedPrincipal.data
+			? totalManagedLiquidity.data - stakedPrincipal.data
+			: 0n;
 
 	return {
 		data,
@@ -185,27 +205,39 @@ export function useBuybackVaultData({
 }
 
 // Helper function to calculate buyback payout percentage
-export function calculateBuybackPayoutPercentage(payoutBps: bigint | undefined): string {
-	if (payoutBps === undefined) return '0%';
+export function calculateBuybackPayoutPercentage(
+	payoutBps: bigint | undefined,
+): string {
+	if (payoutBps === undefined) return "0%";
 	return `${Number(payoutBps) / 100}%`;
 }
 
 // Helper function to calculate maximum stake percentage
-export function calculateMaxStakePercentage(maxStakeBps: bigint | undefined): string {
-	if (maxStakeBps === undefined) return '0%';
+export function calculateMaxStakePercentage(
+	maxStakeBps: bigint | undefined,
+): string {
+	if (maxStakeBps === undefined) return "0%";
 	return `${Number(maxStakeBps) / 100}%`;
 }
 
 // Helper function to check if vault has capacity for more staking
-export function hasStakingCapacity(availableCapacity: bigint, maxStakeBps: bigint, totalManagedLiquidity: bigint, stakedPrincipal: bigint): boolean {
+export function hasStakingCapacity(
+	availableCapacity: bigint,
+	maxStakeBps: bigint,
+	totalManagedLiquidity: bigint,
+	stakedPrincipal: bigint,
+): boolean {
 	if (totalManagedLiquidity === 0n) return true;
 	const maxStakeAmount = (totalManagedLiquidity * maxStakeBps) / 10000n;
 	return availableCapacity > 0n && stakedPrincipal <= maxStakeAmount;
 }
 
 // Helper function to get vault status
-export function getVaultStatus(paused: boolean | undefined, utilizationRate: number): 'active' | 'paused' | 'high-utilization' {
-	if (paused === true) return 'paused';
-	if (utilizationRate > 90) return 'high-utilization';
-	return 'active';
+export function getVaultStatus(
+	paused: boolean | undefined,
+	utilizationRate: number,
+): "active" | "paused" | "high-utilization" {
+	if (paused === true) return "paused";
+	if (utilizationRate > 90) return "high-utilization";
+	return "active";
 }

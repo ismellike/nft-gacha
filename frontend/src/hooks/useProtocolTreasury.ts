@@ -1,4 +1,10 @@
-import { useReadProtocolTreasuryOwner, useReadProtocolTreasuryPaused, useReadProtocolTreasuryAsset } from '@/generated';
+"use client";
+
+import {
+	useReadProtocolTreasuryOwner,
+	useReadProtocolTreasuryPaused,
+	useReadProtocolTreasuryAsset,
+} from "@/generated";
 
 export interface ProtocolTreasuryData {
 	asset: string | undefined;
@@ -13,7 +19,7 @@ export interface UseProtocolTreasuryProps {
 
 export function useProtocolTreasuryData({
 	contractAddress,
-	enabled = true
+	enabled = true,
 }: UseProtocolTreasuryProps = {}) {
 	const asset = useReadProtocolTreasuryAsset({
 		address: contractAddress as `0x${string}`,
@@ -36,15 +42,9 @@ export function useProtocolTreasuryData({
 		},
 	});
 
-	const isLoading =
-		asset.isLoading ||
-		owner.isLoading ||
-		paused.isLoading;
+	const isLoading = asset.isLoading || owner.isLoading || paused.isLoading;
 
-	const isError =
-		asset.isError ||
-		owner.isError ||
-		paused.isError;
+	const isError = asset.isError || owner.isError || paused.isError;
 
 	const data: ProtocolTreasuryData = {
 		asset: asset.data,
@@ -65,12 +65,17 @@ export function useProtocolTreasuryData({
 }
 
 // Helper function to get treasury status
-export function getTreasuryStatus(paused: boolean | undefined): 'active' | 'paused' {
-	return paused === true ? 'paused' : 'active';
+export function getTreasuryStatus(
+	paused: boolean | undefined,
+): "active" | "paused" {
+	return paused === true ? "paused" : "active";
 }
 
 // Helper function to check if address is the owner
-export function isOwner(owner: string | undefined, userAddress: string | undefined): boolean {
+export function isOwner(
+	owner: string | undefined,
+	userAddress: string | undefined,
+): boolean {
 	if (!owner || !userAddress) return false;
 	return owner.toLowerCase() === userAddress.toLowerCase();
 }

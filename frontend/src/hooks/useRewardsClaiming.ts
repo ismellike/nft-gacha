@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback } from "react";
 import { useAccount, useWriteContract, usePublicClient } from "wagmi";
 import type { Address, Hex } from "viem";

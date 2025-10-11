@@ -14,7 +14,18 @@ import {
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { SimpleRarityShowcase } from "../components/RaritySystem";
-import { getRarityConfig } from "../lib/rarityConfig";
+import {
+	getRarityConfig,
+	getRarityColorHex,
+	Rarity,
+} from "../lib/rarityConfig";
+
+// Helper function to create radial gradient with concrete hex values
+const createRarityGradient = (rarity: Rarity): string => {
+	const colorHex = getRarityColorHex(rarity, 500); // Use 500 shade for main color
+	const colorWithAlpha = `${colorHex}14`; // Add 8% alpha (0.14 in hex)
+	return `radial-gradient(circle, ${colorWithAlpha} 0%, transparent 70%)`;
+};
 
 // Core value propositions - consolidated and refined
 const valueProps = [
@@ -62,7 +73,7 @@ const userFlow = [
 ];
 
 export default function LandingPage() {
-	const rarities = [0, 1, 2]; // Common, Uncommon, Rare for animated background
+	const rarities = [Rarity.Common, Rarity.Uncommon, Rarity.Rare]; // Use enum values for clarity
 
 	return (
 		<div className="min-h-screen bg-transparent">
@@ -71,13 +82,12 @@ export default function LandingPage() {
 				{/* Subtle Animated Background */}
 				<div className="absolute inset-0 opacity-30">
 					{rarities.slice(0, 3).map((rarity, i) => {
-						const config = getRarityConfig(rarity);
 						return (
 							<motion.div
 								key={rarity}
 								className="absolute w-[600px] h-[600px] rounded-full"
 								style={{
-									background: `radial-gradient(circle, ${config.bgGradient.replace("from-", "rgba(").replace(" to-", ", 0.08) 0%, transparent")} 70%)`,
+									background: createRarityGradient(rarity),
 									left: `${25 + i * 20}%`,
 									top: `${20 + i * 15}%`,
 								}}
