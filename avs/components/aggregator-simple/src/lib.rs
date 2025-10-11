@@ -80,9 +80,12 @@ fn process_submission(packet: Packet, validate_tx: bool) -> Result<Vec<Aggregato
 
     for (chain_key, service_handler_address) in submit_config {
         if host::get_evm_chain_config(&chain_key).is_some() {
-            let address: alloy_primitives::Address = service_handler_address
-                .parse()
-                .map_err(|e| format!("Failed to parse address for '{chain_key}': {e}"))?;
+            let address: alloy_primitives::Address =
+                service_handler_address.parse().map_err(|e| {
+                    format!(
+                        "Failed to parse address for '{chain_key}': {service_handler_address} {e}"
+                    )
+                })?;
 
             // Get gas price from Etherscan if configured
             // will fail the entire operation if API key is configured but fetching fails

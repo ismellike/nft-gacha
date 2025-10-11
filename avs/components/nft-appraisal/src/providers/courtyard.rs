@@ -6,11 +6,11 @@
 //! - Integrity verification for graded cards
 //! - Conversion to unified metadata format
 
+use alloy_primitives::{keccak256, B256};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use hex;
 use serde::{Deserialize, Serialize};
-use sha3::{Digest, Keccak256};
 use std::collections::HashMap;
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
@@ -45,7 +45,7 @@ pub struct TokenInfo {
     pub proof_of_integrity: Option<ProofOfIntegrityInfo>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProofOfIntegrityInfo {
     pub fingerprint: String,
     pub salt: u64,
@@ -133,7 +133,16 @@ impl CourtyardClient {
 
     /// Verify proof of integrity for a Courtyard NFT
     pub fn verify_proof_of_integrity(&self, metadata: &NFTMetadata) -> Result<bool> {
-        IntegrityVerifier::verify_proof_of_integrity(metadata)
+        // Extract proof information
+        let proof_info = metadata
+            .token_info
+            .as_ref()
+            .and_then(|ti| ti.proof_of_integrity.as_ref())
+            .ok_or_else(|| {
+                anyhow!("No proof of integrity found in metadata - this card may not be authentic")
+            })?;
+
+        IntegrityVerifier::verify_proof_of_integrity(proof_info)
     }
 }
 
@@ -328,29 +337,30 @@ impl IntegrityVerifier {
     ///
     /// This verifies that the NFT metadata has not been tampered with by checking
     /// the cryptographic proof stored on-chain against the metadata fingerprint.
-    pub fn verify_proof_of_integrity(metadata: &NFTMetadata) -> Result<bool> {
-        // Extract proof information
-        let proof_info = metadata
-            .token_info
-            .as_ref()
-            .and_then(|ti| ti.proof_of_integrity.as_ref())
-            .ok_or_else(|| {
-                anyhow!("No proof of integrity found in metadata - this card may not be authentic")
-            })?;
-
+    pub fn verify_proof_of_integrity(proof_info: &ProofOfIntegrityInfo) -> Result<bool> {
         // Validate fingerprint format
         if proof_info.fingerprint.is_empty() {
             return Err(anyhow!("Empty fingerprint in integrity proof"));
         }
 
-        // Create verification message from fingerprint and salt (same as Courtyard's algorithm)
-        let mut hasher = Keccak256::new();
-        hasher.update(proof_info.fingerprint.as_bytes());
-        hasher.update(proof_info.salt.to_le_bytes());
-        let expected_hash = hasher.finalize();
+        // Create verification message using Solidity's abi.encodePacked algorithm
+        // abi.encodePacked concatenates raw bytes: fingerprint + salt (as uint256, 32 bytes, big-endian)
+        let mut encoded = Vec::new();
+        encoded.extend_from_slice(proof_info.fingerprint.as_bytes());
+
+        // Salt as uint256 (32 bytes, big-endian) - same as Solidity's encoding
+        let salt_bytes = proof_info.salt.to_be_bytes();
+        let mut salt_256 = [0u8; 32];
+        salt_256[32 - 8..].copy_from_slice(&salt_bytes);
+        encoded.extend_from_slice(&salt_256);
+
+        let expected_hash = keccak256(encoded);
 
         // Decode the hex proof (strip 0x prefix if present)
-        let hex_proof_clean = proof_info.hex_proof.strip_prefix("0x").unwrap_or(&proof_info.hex_proof);
+        let hex_proof_clean = proof_info
+            .hex_proof
+            .strip_prefix("0x")
+            .unwrap_or(&proof_info.hex_proof);
         let proof_bytes = hex::decode(hex_proof_clean).map_err(|e| {
             anyhow!(
                 "Failed to decode hex proof '{}': {}",
@@ -359,18 +369,18 @@ impl IntegrityVerifier {
             )
         })?;
 
-        if proof_bytes.len() < 32 {
+        if proof_bytes.len() != 32 {
             return Err(anyhow!(
-                "Invalid proof format: proof too short ({} bytes, expected at least 32)",
+                "Invalid proof format: expected 32 bytes, got {}",
                 proof_bytes.len()
             ));
         }
 
-        // Extract the actual hash from the end of the proof
-        let actual_hash = &proof_bytes[proof_bytes.len() - 32..];
+        // The hex proof should be exactly 32 bytes (the keccak256 hash)
+        let actual_hash = B256::from_slice(&proof_bytes);
 
         // Compare hashes
-        let is_valid = expected_hash.as_slice() == actual_hash;
+        let is_valid = expected_hash == actual_hash;
 
         if !is_valid {
             return Err(anyhow!(
@@ -627,20 +637,24 @@ mod tests {
 
     #[test]
     fn test_integrity_verification() {
-        // Create a valid integrity proof by computing the expected hash
+        // Create a valid integrity proof by computing the expected hash using alloy
         let fingerprint = "test_fingerprint";
         let salt = 12345u64;
 
-        // Compute the expected hash (same algorithm as the verifier)
-        let mut hasher = Keccak256::new();
-        hasher.update(fingerprint.as_bytes());
-        hasher.update(salt.to_le_bytes());
-        let expected_hash = hasher.finalize();
+        // Compute the expected hash using Solidity's abi.encodePacked algorithm
+        let mut encoded = Vec::new();
+        encoded.extend_from_slice(fingerprint.as_bytes());
 
-        // Create a valid proof with the expected hash at the end
-        let mut proof_bytes = vec![0u8; 32]; // Prefix with zeros
-        proof_bytes.extend_from_slice(&expected_hash);
-        let hex_proof = hex::encode(&proof_bytes);
+        // Salt as uint256 (32 bytes, big-endian)
+        let salt_bytes = salt.to_be_bytes();
+        let mut salt_256 = [0u8; 32];
+        salt_256[32 - 8..].copy_from_slice(&salt_bytes);
+        encoded.extend_from_slice(&salt_256);
+
+        let expected_hash = keccak256(encoded);
+
+        // Create a valid proof - the hex proof should be exactly 32 bytes (the hash)
+        let hex_proof = hex::encode(expected_hash);
 
         let proof_info = ProofOfIntegrityInfo {
             fingerprint: fingerprint.to_string(),
@@ -648,16 +662,8 @@ mod tests {
             hex_proof,
         };
 
-        let metadata = NFTMetadata {
-            token_info: Some(TokenInfo {
-                proof_of_integrity: Some(proof_info),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-
         // This should now pass verification
-        let result = IntegrityVerifier::verify_proof_of_integrity(&metadata);
+        let result = IntegrityVerifier::verify_proof_of_integrity(&proof_info);
         assert!(result.is_ok());
         assert!(result.unwrap());
     }
@@ -672,16 +678,8 @@ mod tests {
                 .to_string(),
         };
 
-        let metadata = NFTMetadata {
-            token_info: Some(TokenInfo {
-                proof_of_integrity: Some(proof_info),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-
         // This should fail verification
-        let result = IntegrityVerifier::verify_proof_of_integrity(&metadata);
+        let result = IntegrityVerifier::verify_proof_of_integrity(&proof_info);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -699,12 +697,31 @@ mod tests {
             ..Default::default()
         };
 
-        // This should fail because there's no proof
-        let result = IntegrityVerifier::verify_proof_of_integrity(&metadata);
+        // This test verifies the client-level error handling for missing proof
+        let client = CourtyardClient::new();
+        let result = client.verify_proof_of_integrity(&metadata);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
             .to_string()
             .contains("No proof of integrity found"));
+    }
+
+    #[test]
+    fn test_integrity_verification_real_courtyard_data() {
+        // Test with real Courtyard proof data
+        let proof_info = ProofOfIntegrityInfo {
+            fingerprint: "Graded Pokemon TCG | PSA 52435045 | 2000 Pokemon Base Set 2 Holo Charizard #4 | PSA 8 NM-MT".to_string(),
+            salt: 265765525986,
+            hex_proof: "217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c".to_string(),
+        };
+
+        // This should pass verification with the correct Solidity encoding
+        let result = IntegrityVerifier::verify_proof_of_integrity(&proof_info);
+        assert!(result.is_ok(), "Verification failed: {:?}", result.err());
+        assert!(
+            result.unwrap(),
+            "Verification returned false - integrity check failed"
+        );
     }
 }
