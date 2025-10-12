@@ -2970,6 +2970,7 @@ export const gachaAbi = [
         components: [
           { name: 'requester', internalType: 'address', type: 'address' },
           { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+          { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -3032,6 +3033,7 @@ export const gachaAbi = [
     outputs: [
       { name: 'requester', internalType: 'address', type: 'address' },
       { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+      { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -3245,6 +3247,7 @@ export const gachaAbi = [
     outputs: [
       { name: 'requester', internalType: 'address', type: 'address' },
       { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+      { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },

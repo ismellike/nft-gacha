@@ -98,7 +98,7 @@ export const useGachaStore = create<GachaStore>()(
 							abi: gachaAbi,
 							functionName: "spinRequests",
 							args: [spin.triggerId],
-						})) as [string, boolean]; // [requester, fulfilled]
+						})) as [string, boolean, bigint]; // [requester, fulfilled, feePaid]
 
 						const [requester, fulfilled] = spinRequest;
 

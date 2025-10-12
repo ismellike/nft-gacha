@@ -345,9 +345,9 @@ contract Gacha is
         feeToken.safeTransfer(to, balance);
     }
 
-    function getSpinRequest(uint256 triggerId) external view returns (address requester, bool fulfilled) {
+    function getSpinRequest(uint256 triggerId) external view returns (address requester, bool fulfilled, uint256 feePaid) {
         SpinRequest memory request = spinRequests[triggerId];
-        return (request.requester, request.fulfilled);
+        return (request.requester, request.fulfilled, request.feePaid);
     }
 
     /// @notice Gets the current next trigger ID that will be used for the next spin
