@@ -53,6 +53,7 @@ contract Gacha is
     struct SpinRequest {
         address requester; // Address that initiated the spin
         bool fulfilled; // Whether the spin has been completed
+        uint256 feePaid; // Fee amount paid at time of spin (in fee tokens)
     }
 
     /// @notice Core contract interfaces and addresses
@@ -189,7 +190,7 @@ contract Gacha is
         }
 
         triggerId = _nextTriggerId++;
-        spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false});
+        spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false, feePaid: spinFee});
 
         emit RandomnessRequested(triggerId);
         emit SpinStatusUpdate(triggerId, msg.sender, "requested", block.timestamp);
@@ -220,7 +221,7 @@ contract Gacha is
         }
 
         triggerId = _nextTriggerId++;
-        spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false});
+        spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false, feePaid: spinFee});
 
         emit RandomnessRequested(triggerId);
         emit SpinStatusUpdate(triggerId, msg.sender, "requested", block.timestamp);
@@ -272,10 +273,10 @@ contract Gacha is
             totalRefundCount++;
 
             // Refund the user if selected rarity is empty
-            if (spinFee > 0) {
-                feeToken.safeTransfer(request.requester, spinFee);
+            if (request.feePaid > 0) {
+                feeToken.safeTransfer(request.requester, request.feePaid);
             }
-            emit SpinRefunded(triggerId, request.requester, selectedRarity, spinFee);
+            emit SpinRefunded(triggerId, request.requester, selectedRarity, request.feePaid);
             emit SpinStatusUpdate(triggerId, request.requester, "refunded", block.timestamp);
             return;
         }
@@ -283,8 +284,8 @@ contract Gacha is
         // Random selection now handled by treasury.sendRandomNFTToWinner()
 
         // Distribute rewards from spin fee
-        if (spinFee > 0) {
-            _distributeSpinRewards(selectedRarity);
+        if (request.feePaid > 0) {
+            _distributeSpinRewards(selectedRarity, request.feePaid);
         }
 
         // Send NFT from treasury to requester using optimized random selection
@@ -405,17 +406,16 @@ contract Gacha is
     }
 
     /// @notice Internal function to distribute spin rewards
-    function _distributeSpinRewards(GachaTreasury.Rarity hitRarity) private {
-        uint256 totalFeeBalance = feeToken.balanceOf(address(this));
-        if (totalFeeBalance == 0) return;
+    function _distributeSpinRewards(GachaTreasury.Rarity hitRarity, uint256 feeAmount) private {
+        if (feeAmount == 0) return;
 
         IGachaEconomyManager manager = economyManager;
         if (address(manager) == address(0)) revert InvalidEconomyManager();
 
-        feeToken.forceApprove(address(manager), totalFeeBalance);
-        manager.onSpinRevenue(totalFeeBalance, hitRarity);
+        feeToken.forceApprove(address(manager), feeAmount);
+        manager.onSpinRevenue(feeAmount, hitRarity);
 
-        emit SpinRevenueForwarded(totalFeeBalance);
+        emit SpinRevenueForwarded(feeAmount);
     }
 
     function getTreasuryAddress() external view returns (address) {
@@ -507,11 +507,11 @@ contract Gacha is
         totalReclaimCount++;
 
         // Refund the spin fee if one was paid
-        if (spinFee > 0) {
-            feeToken.safeTransfer(request.requester, spinFee);
+        if (request.feePaid > 0) {
+            feeToken.safeTransfer(request.requester, request.feePaid);
         }
 
-        emit SpinReclaimed(triggerId, request.requester, spinFee);
+        emit SpinReclaimed(triggerId, request.requester, request.feePaid);
         emit SpinStatusUpdate(triggerId, request.requester, "reclaimed", block.timestamp);
     }
 
