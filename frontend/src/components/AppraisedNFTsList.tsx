@@ -263,13 +263,28 @@ export function AppraisedNFTsList({
 	const appraisedNFTs = appraisals; // Alias for compatibility
 	const [depositModalNFT, setDepositModalNFT] = useState<{collection: string; tokenId: string} | null>(null);
 
-	// Fetch appraisals for specific NFTs if provided via props
+	// Fetch appraisals for specific NFTs if provided via props and check for updates
 	useEffect(() => {
 		if (userSubmittedNFTs.length > 0) {
 			// Use the shared hook's method to fetch for specific NFTs
 			refetch();
 		}
 	}, [userSubmittedNFTs, refetch]);
+
+	// Periodically refresh pending appraisals to check for status updates
+	useEffect(() => {
+		if (!userAddress || loading) return;
+
+		const pendingAppraisals = appraisedNFTs.filter(nft => !('isOptimistic' in nft) && nft.status === 0);
+		if (pendingAppraisals.length === 0) return;
+
+		// Refresh every 30 seconds for pending appraisals
+		const interval = setInterval(() => {
+			refetch();
+		}, 30000);
+
+		return () => clearInterval(interval);
+	}, [appraisedNFTs, userAddress, loading, refetch]);
 
 	// Handle deposit actions from NFT cards
 	const handleDepositAction = useCallback((collection: string, tokenId: string, action: string) => {
@@ -283,6 +298,15 @@ export function AppraisedNFTsList({
 		setDepositModalNFT(null);
 	}, []);
 
+	// Enhanced loading state with more context
+	const loadingMessage = useMemo(() => {
+		const pendingAppraisals = appraisedNFTs.filter(nft => !('isOptimistic' in nft) && nft.status === 0);
+		if (pendingAppraisals.length > 0) {
+			return `Checking status of ${pendingAppraisals.length} pending appraisal${pendingAppraisals.length === 1 ? '' : 's'}...`;
+		}
+		return "Loading your appraisals...";
+	}, [appraisedNFTs, loading]);
+
 	if (loading) {
 		return (
 			<motion.div
@@ -293,7 +317,10 @@ export function AppraisedNFTsList({
 				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<div className="text-center space-y-4">
 						<LoadingState size="lg" />
-						<p className="text-foreground/70">Loading your appraisals...</p>
+						<p className="text-foreground/70">{loadingMessage}</p>
+						<p className="text-xs text-foreground/50">
+							Fetching live data from NFT Appraisal contract...
+						</p>
 					</div>
 				</Card>
 			</motion.div>
@@ -312,15 +339,23 @@ export function AppraisedNFTsList({
 						<ExclamationTriangleIcon className="w-12 h-12 text-danger mx-auto" />
 						<div>
 							<h3 className="text-lg font-medium text-danger mb-2">
-								Error Loading Appraisals
+								Unable to Connect to Appraisal Contract
 							</h3>
-							<p className="text-foreground/70 mb-4">{error}</p>
-							<Button
-								className="rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
-								onPress={refetch}
-							>
-								Try Again
-							</Button>
+							<p className="text-foreground/70 mb-2">{error}</p>
+							<p className="text-xs text-foreground/60 mb-4">
+								This could be due to network issues or contract problems. Please try again.
+							</p>
+							<div className="flex gap-3 justify-center">
+								<Button
+									className="rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
+									onPress={refetch}
+								>
+									<span className="flex items-center gap-2">
+										<ArrowPathIcon className="w-4 h-4" />
+										Retry Connection
+									</span>
+								</Button>
+							</div>
 						</div>
 					</div>
 				</Card>

@@ -13,6 +13,8 @@ import {
 	useDepositorVaultData,
 	calculateUserSharePercentage,
 	formatTokenAmount,
+	useClaimYield,
+	useSimulateClaimYield,
 } from "@/hooks/useDepositorVault";
 import {
 	useBuybackVaultData,
@@ -26,6 +28,8 @@ import {
 } from "@/hooks/useProtocolTreasury";
 import { useRegisterRewardsRefetch } from "@/hooks/useRewardsData";
 import type { GachaConfig } from "@/lib/gacha-config/types";
+import { Button } from "../ui/Button";
+import { toast } from "react-hot-toast";
 
 interface EconomyDashboardProps {
 	gachaConfig: GachaConfig;
@@ -75,6 +79,40 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 	} = useProtocolTreasuryData({
 		contractAddress: gachaConfig.protocolTreasuryAddress,
 	});
+
+	// Claim yield functionality
+	const { claimYield, isClaiming, claimError } = useClaimYield();
+
+	const { canClaim } = useSimulateClaimYield({
+		contractAddress: gachaConfig.depositorVaultAddress,
+		account: address || "",
+		recipient: address || "",
+	});
+
+	const handleClaimYield = async () => {
+		if (!address) {
+			toast.error("Please connect your wallet");
+			return;
+		}
+
+		if (!canClaim) {
+			toast.error("Cannot claim yield at this time");
+			return;
+		}
+
+		try {
+			await claimYield({
+				address: gachaConfig.depositorVaultAddress as `0x${string}`,
+				args: [address as `0x${string}`, address as `0x${string}`],
+			});
+
+			toast.success("Yield claimed successfully!");
+			refetchDepositorVault();
+		} catch (error) {
+			console.error("Error claiming yield:", error);
+			toast.error("Failed to claim yield");
+		}
+	};
 
 	// Register refetch functions with the rewards system
 	useRegisterRewardsRefetch("economyData", refetchEconomyData);
@@ -199,10 +237,10 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 						</div>
 
 						<div className="flex justify-between">
-							<span className="text-gray-400">Pending Yield</span>
+							<span className="text-gray-400">Your Pending Yield</span>
 							<span className="text-green-400 font-medium">
 								<TokenAmountDisplay
-									amount={depositorData.pendingYield}
+									amount={depositorUserData.pendingYield}
 									showUsd={true}
 								/>
 							</span>
@@ -217,6 +255,34 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 								/>
 							</span>
 						</div>
+
+						{/* Claim Yield Button */}
+						{address && (
+							<div className="mt-4 pt-4 border-t border-white/10">
+								<Button
+									onClick={handleClaimYield}
+									disabled={!depositorUserData.pendingYield || depositorUserData.pendingYield <= 0n || isClaiming}
+									className="w-full h-12 font-semibold rounded-xl bg-gradient-to-r from-success to-emerald-500 hover:from-success/90 hover:to-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+								>
+									{isClaiming ? (
+										<span className="flex items-center justify-center gap-2">
+											<div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+											Claiming...
+										</span>
+									) : depositorUserData.pendingYield && depositorUserData.pendingYield > 0n ? (
+										`Claim ${formatTokenAmount(depositorUserData.pendingYield)} USDC`
+									) : (
+										"No Yield Available"
+									)}
+								</Button>
+
+								{claimError && (
+									<p className="text-red-400 text-sm mt-2">
+										{claimError.message}
+									</p>
+								)}
+							</div>
+						)}
 					</div>
 				</GlassCard>
 

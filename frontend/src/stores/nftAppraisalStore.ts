@@ -176,7 +176,7 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
 			const combined = [...confirmedAppraisals, ...filteredOptimistic];
 
 			// Sort by timestamp (newest first)
-			return combined.sort((a, b) => {
+			return combined.sort((a: AppraisedNFT | OptimisticAppraisal, b: AppraisedNFT | OptimisticAppraisal) => {
 				const timeA = "timestamp" in a ? Number(a.timestamp) : a.timestamp;
 				const timeB = "timestamp" in b ? Number(b.timestamp) : b.timestamp;
 				return timeB - timeA;

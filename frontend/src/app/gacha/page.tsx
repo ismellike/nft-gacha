@@ -35,6 +35,7 @@ import {
 	useUpdateSearchParams,
 } from "../../hooks/useClientSearchParams";
 import type { FlowOption } from "../../components/gacha/FlowSwitcher";
+import { BuybackNotificationProvider } from "../../components/BuybackNotificationProvider";
 
 function GachaDetailPageContent() {
 	const router = useRouter();
@@ -267,8 +268,9 @@ function GachaDetailPageContent() {
 	}
 
 	return (
-		<div className="min-h-screen bg-transparent">
-			<header className="mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+		<BuybackNotificationProvider gachaId={gachaId}>
+			<div className="min-h-screen bg-transparent">
+				<header className="mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
 				<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
 					<div className="flex items-start gap-4">
 						<Button
@@ -339,7 +341,8 @@ function GachaDetailPageContent() {
 					{activeTab === "admin" && gacha && <AdminSection gacha={gacha} />}
 				</motion.div>
 			</div>
-		</div>
+			</div>
+		</BuybackNotificationProvider>
 	);
 }
 

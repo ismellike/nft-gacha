@@ -37,7 +37,7 @@ export function NFTAppraisalDashboard({
 	const [showSuccess, setShowSuccess] = useState(false);
 
 	// Enhanced hook with memoized dataset and statistics
-	const { stats } = useAppraisalData(userAddress, {
+	const { stats, appraisalFee } = useAppraisalData(userAddress, {
 		autoRefresh: true,
 		refreshInterval: 60000,
 		filter: "all",
@@ -77,6 +77,11 @@ export function NFTAppraisalDashboard({
 	const readyForGacha = stats.readyForGacha;
 	const totalValue = stats.totalValue;
 	const averageValue = stats.averageValue;
+
+	// Format appraisal fee for display
+	const formattedAppraisalFee = appraisalFee
+		? formatCurrency(appraisalFee.toString(), 18, "ETH")
+		: "--";
 
 	if (!isConnected) {
 		return (
@@ -312,7 +317,7 @@ export function NFTAppraisalDashboard({
 											</h4>
 											<p className="text-sm text-foreground/70">
 												Provide your NFT's contract address and token ID along
-												with the appraisal fee
+												with the appraisal fee ({formattedAppraisalFee})
 											</p>
 										</div>
 

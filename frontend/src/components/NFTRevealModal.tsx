@@ -7,6 +7,8 @@ import { glassModalClasses } from "../ui/modals";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTHeroCard } from ".";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
+import BuybackComponent from "./BuybackComponent";
+import { getGachaConfig } from "../lib/gacha-config";
 
 interface SpinResult {
 	rarity: string;
@@ -20,6 +22,7 @@ interface NFTRevealModalProps {
 	nftResult: SpinResult;
 	onClose: () => void;
 	appraisalContractAddress: `0x${string}`;
+	gachaId?: string;
 }
 
 export default function NFTRevealModal({
@@ -27,11 +30,16 @@ export default function NFTRevealModal({
 	nftResult,
 	onClose,
 	appraisalContractAddress,
+	gachaId,
 }: NFTRevealModalProps) {
 	const [showCard, setShowCard] = useState(false);
 
 	// Get enhanced spin result with metadata
 	const enhancedResult = useEnhancedSpinResult(nftResult);
+
+	// Get gacha config for buyback vault address
+	const gachaConfig = gachaId ? getGachaConfig(gachaId) : null;
+	const buybackVaultAddress = gachaConfig?.buybackVaultAddress;
 
 	useEffect(() => {
 		if (isVisible) {
@@ -148,7 +156,7 @@ export default function NFTRevealModal({
 									style={{ perspective: 1000 }}
 								>
 									{/* NFT Card - Using same size as rarity showcase */}
-									<div className="flex flex-col items-center">
+									<div className="flex flex-col items-center space-y-6">
 										<NFTHeroCard
 											collection={nftResult.collection}
 											tokenId={nftResult.tokenId}
@@ -160,6 +168,31 @@ export default function NFTRevealModal({
 											animate={true}
 											rarity={resultRarity}
 										/>
+
+										{/* Enhanced Buyback Component */}
+										{buybackVaultAddress && (
+											<motion.div
+												initial={{ opacity: 0, y: 20 }}
+												animate={{ opacity: 1, y: 0 }}
+												transition={{ delay: 2, duration: 0.5 }}
+												className="w-full max-w-md"
+											>
+												<BuybackComponent
+													collection={nftResult.collection}
+													tokenId={nftResult.tokenId}
+													appraisalContractAddress={appraisalContractAddress}
+													buybackVaultAddress={buybackVaultAddress}
+													rarity={nftResult.rarity}
+													size="lg"
+													variant="full"
+													showTreasuryRestock={true}
+													onSuccess={(txHash) => {
+														// Optional: Handle successful sale
+														console.log("NFT sold successfully:", txHash);
+													}}
+												/>
+											</motion.div>
+										)}
 									</div>
 								</motion.div>
 							)}

@@ -1,6 +1,11 @@
 import { useEffect, useCallback, useMemo } from "react";
 import { useAccount } from "wagmi";
-import { useReadNftAppraisalGetAppraisal } from "../generated";
+import {
+	useReadNftAppraisalGetAppraisal,
+	useReadNftAppraisalGetBatchAppraisals,
+	useReadNftAppraisalHasBatchAppraisals,
+	useReadNftAppraisalAppraisalFee
+} from "../generated";
 import { useNFTAppraisalStore, type AppraisedNFT } from "../stores/nftAppraisalStore";
 
 export type AppraisalFilter = "all" | "pending" | "completed" | "recent" | "highValue";
@@ -12,10 +17,13 @@ interface UseAppraisalDataOptions {
 	filter?: AppraisalFilter;
 	sort?: AppraisalSort;
 	limit?: number;
+	knownNFTs?: Array<{ collection: string; tokenId: string }>;
+	enableEventDiscovery?: boolean;
 }
 
 // Cache for 30 seconds to prevent excessive API calls
 const CACHE_DURATION = 30 * 1000;
+
 
 export const useAppraisalData = (
 	userAddress?: string,
@@ -38,7 +46,35 @@ export const useAppraisalData = (
 		getUserOptimisticSubmissions,
 		getCombinedAppraisals,
 		lastFetched,
+		addOptimisticSubmission,
 	} = useNFTAppraisalStore();
+
+	// Combine known NFTs with optimistic submissions
+	const allKnownNFTs = useMemo(() => {
+		if (!address) return [];
+
+		const optimisticNFTs = getUserOptimisticSubmissions(address);
+		const knownNFTs = options.knownNFTs || [];
+
+		// Create a map to deduplicate NFTs
+		const nftMap = new Map<string, { collection: string; tokenId: string }>();
+
+		// Add optimistic NFTs
+		optimisticNFTs.forEach(nft => {
+			const key = `${nft.collection.toLowerCase()}:${nft.tokenId}`;
+			nftMap.set(key, { collection: nft.collection, tokenId: nft.tokenId });
+		});
+
+		// Add known NFTs (don't overwrite optimistic)
+		knownNFTs.forEach(nft => {
+			const key = `${nft.collection.toLowerCase()}:${nft.tokenId}`;
+			if (!nftMap.has(key)) {
+				nftMap.set(key, { collection: nft.collection, tokenId: nft.tokenId });
+			}
+		});
+
+		return Array.from(nftMap.values());
+	}, [address, options.knownNFTs, getUserOptimisticSubmissions]);
 
 	// Get raw data from store
 	const rawAppraisals = useMemo(() => {
@@ -59,37 +95,146 @@ export const useAppraisalData = (
 		return cacheExpired;
 	}, [address, lastFetched]);
 
-	// Mock fetch function for now - in production this would use actual contract calls
-	const fetchUserAppraisals = useCallback(async () => {
-		if (!address || !shouldFetch()) return;
+	// Get optimistic submissions to check their status
+	const optimisticSubmissions = useMemo(() => {
+		return address ? getUserOptimisticSubmissions(address) : [];
+	}, [address, getUserOptimisticSubmissions]);
+
+	// Get appraisal fee information
+	const { data: appraisalFee } = useReadNftAppraisalAppraisalFee({
+		query: {
+			staleTime: 300000, // 5 minutes cache
+		},
+	});
+
+	// Prepare batch query data - use all known NFTs for comprehensive coverage
+	const batchQueryArgs = useMemo(() => {
+		if (allKnownNFTs.length === 0) return null;
+
+		return {
+			collections: allKnownNFTs.map(nft => nft.collection as `0x${string}`),
+			tokenIds: allKnownNFTs.map(nft => BigInt(nft.tokenId)),
+		};
+	}, [allKnownNFTs]);
+
+	// Use the batch appraisal function with wagmi
+	const { data: batchResults, isLoading: isBatchLoading, error: batchError } = useReadNftAppraisalGetBatchAppraisals({
+		args: batchQueryArgs ? [batchQueryArgs.collections, batchQueryArgs.tokenIds] : undefined,
+		query: {
+			enabled: !!batchQueryArgs && shouldFetch(),
+			staleTime: CACHE_DURATION,
+		},
+	});
+
+	// Process batch results and update store
+	const processBatchResults = useCallback(() => {
+		if (!address || !batchResults || !allKnownNFTs.length) return;
 
 		setLoading(address, true);
 		clearUserError(address);
 
 		try {
-			// Since we don't have actual contract integration yet,
-			// we'll work with optimistic submissions only
-			// In production, this would fetch real appraisal data
-			const optimisticSubmissions = getUserOptimisticSubmissions(address);
-			const mockAppraisals: AppraisedNFT[] = optimisticSubmissions.map((submission) => ({
-				collection: submission.collection,
-				tokenId: submission.tokenId,
-				priceUSD: Math.random() > 0.3 ? BigInt(Math.floor(Math.random() * 2000 + 100) * 10**18) : BigInt(0),
-				status: Math.random() > 0.4 ? 1 : 0, // 60% completed, 40% pending
-				requester: address,
-				timestamp: BigInt(Math.floor(submission.timestamp / 1000)),
-				lastUpdated: Math.random() > 0.4 ? BigInt(Math.floor(Date.now() / 1000)) : BigInt(0),
-			}));
+			// batchResults is a tuple [prices, statuses]
+			if (batchResults && Array.isArray(batchResults) && batchResults.length === 2) {
+				const [prices, statuses] = batchResults;
 
-			setAppraisals(address, mockAppraisals);
+				// Validate array lengths match the number of NFTs
+				if (prices.length !== allKnownNFTs.length || statuses.length !== allKnownNFTs.length) {
+					console.warn("Batch results length mismatch with NFTs array");
+					return;
+				}
+
+				// Convert batch results to our format, using optimistic submission timestamps when available
+				const appraisedNFTs: AppraisedNFT[] = allKnownNFTs.map((nft, index) => {
+					const price = prices[index];
+					const status = statuses[index];
+
+					// Try to get timestamp from optimistic submissions
+					const optimisticSubmission = optimisticSubmissions.find(
+						sub => sub.collection.toLowerCase() === nft.collection.toLowerCase() &&
+							   sub.tokenId === nft.tokenId
+					);
+
+					// Get current timestamp for lastUpdated
+					const currentTime = BigInt(Math.floor(Date.now() / 1000));
+
+					return {
+						collection: nft.collection,
+						tokenId: nft.tokenId,
+						priceUSD: price || BigInt(0),
+						status: Number(status) || 0,
+						requester: address,
+						timestamp: optimisticSubmission
+							? BigInt(Math.floor(optimisticSubmission.timestamp / 1000))
+							: BigInt(0),
+						lastUpdated: (Number(status) || 0) === 0 ? BigInt(0) : currentTime,
+					};
+				});
+
+				// Filter out NFTs that are still pending (no appraisal yet) but keep those with status updates
+				const completedAppraisals = appraisedNFTs.filter(
+					nft => nft.priceUSD > BigInt(0) || nft.status !== 0
+				);
+
+				setAppraisals(address, completedAppraisals);
+
+				// Remove optimistic submissions that are now appraised
+				optimisticSubmissions.forEach((submission) => {
+					const isAppraised = completedAppraisals.some(
+						appraised =>
+							appraised.collection.toLowerCase() === submission.collection.toLowerCase() &&
+							appraised.tokenId === submission.tokenId
+					);
+					if (isAppraised) {
+						useNFTAppraisalStore.getState().removeOptimisticSubmission(
+							address,
+							submission.collection,
+							submission.tokenId
+						);
+					}
+				});
+			}
 		} catch (error) {
-			console.error("Failed to fetch user appraisals:", error);
+			console.error("Failed to process batch results:", error);
 			setError(
 				address,
-				error instanceof Error ? error.message : "Failed to fetch appraisals"
+				error instanceof Error ? error.message : "Failed to process appraisals"
+			);
+		} finally {
+			setLoading(address, false);
+		}
+	}, [address, batchResults, allKnownNFTs, optimisticSubmissions, setLoading, clearUserError, setAppraisals, setError]);
+
+	// Process results whenever they change
+	useEffect(() => {
+		processBatchResults();
+	}, [processBatchResults]);
+
+	// Fetch appraisals for known NFTs using batch calls
+	const fetchUserAppraisals = useCallback(() => {
+		// The actual fetching is now handled by wagmi's useReadNftAppraisalGetBatchAppraisals
+		// We just trigger a refetch by updating the query key
+		if (address) {
+			processBatchResults();
+		}
+	}, [address, processBatchResults]);
+
+	// Update loading state based on batch query
+	useEffect(() => {
+		if (address) {
+			setLoading(address, isBatchLoading);
+		}
+	}, [address, isBatchLoading, setLoading]);
+
+	// Update error state based on batch query
+	useEffect(() => {
+		if (address && batchError) {
+			setError(
+				address,
+				batchError instanceof Error ? batchError.message : "Failed to fetch appraisals"
 			);
 		}
-	}, [address, shouldFetch, setLoading, clearUserError, getUserOptimisticSubmissions, setAppraisals, setError]);
+	}, [address, batchError, setError]);
 
 	// Auto-refresh effect
 	useEffect(() => {
@@ -102,10 +247,7 @@ export const useAppraisalData = (
 		return () => clearInterval(interval);
 	}, [address, options.autoRefresh, options.refreshInterval, fetchUserAppraisals]);
 
-	// Initial fetch
-	useEffect(() => {
-		fetchUserAppraisals();
-	}, [fetchUserAppraisals]);
+	// Initial fetch is handled by the wagmi query automatically
 
 	// Filter logic
 	const filteredAppraisals = useMemo(() => {
@@ -229,13 +371,30 @@ export const useAppraisalData = (
 		appraisals: sortedAppraisals,
 		rawAppraisals,
 		confirmedAppraisals,
+		knownNFTs: allKnownNFTs,
 
 		// Status
-		loading: address ? false : false, // Simplified for now
-		error: address ? null : null,
+		loading: address ? isBatchLoading : false,
+		error: address ? (batchError ? (batchError instanceof Error ? batchError.message : "Failed to fetch appraisals") : null) : null,
 
 		// Actions
 		refetch: fetchUserAppraisals,
+		addKnownNFT: (collection: string, tokenId: string) => {
+			if (address) {
+				addOptimisticSubmission(address, collection, tokenId);
+			}
+		},
+		checkHasAppraisal: (collection: string, tokenId: string) => {
+			// Quick check to see if we already have data for this NFT
+			return rawAppraisals.some(
+				appraisal =>
+					appraisal.collection.toLowerCase() === collection.toLowerCase() &&
+					appraisal.tokenId === tokenId
+			);
+		},
+
+		// Contract data
+		appraisalFee,
 
 		// Statistics
 		stats,
@@ -284,4 +443,45 @@ export const useAppraisalStats = (userAddress?: string) => {
 	};
 
 	return stats;
+};
+
+// Hook for efficiently checking if multiple NFTs have appraisals
+export const useBatchAppraisalCheck = (nfts: Array<{ collection: string; tokenId: string }>) => {
+	const batchArgs = useMemo(() => {
+		if (nfts.length === 0) return null;
+
+		return {
+			collections: nfts.map(nft => nft.collection as `0x${string}`),
+			tokenIds: nfts.map(nft => BigInt(nft.tokenId)),
+		};
+	}, [nfts]);
+
+	const { data: hasAppraisals, isLoading, error } = useReadNftAppraisalHasBatchAppraisals({
+		args: batchArgs ? [batchArgs.collections, batchArgs.tokenIds] : undefined,
+		query: {
+			enabled: !!batchArgs,
+			staleTime: 30000, // 30 seconds cache
+		},
+	});
+
+	return {
+		hasAppraisals,
+		isLoading,
+		error,
+	};
+};
+
+// Hook for getting appraisal fee info
+export const useAppraisalFee = () => {
+	const { data: appraisalFee, isLoading, error } = useReadNftAppraisalAppraisalFee({
+		query: {
+			staleTime: 300000, // 5 minutes cache
+		},
+	});
+
+	return {
+		appraisalFee,
+		isLoading,
+		error,
+	};
 };

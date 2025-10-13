@@ -10,6 +10,7 @@ import {
 	HomeIcon,
 	CubeIcon,
 	MagnifyingGlassIcon,
+	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 
 // Helper function to get icon component
@@ -21,6 +22,8 @@ function getNavIcon(iconName: string, className: string) {
 			return <CubeIcon className={className} />;
 		case "search":
 			return <MagnifyingGlassIcon className={className} />;
+		case "chart":
+			return <ChartBarIcon className={className} />;
 		default:
 			console.warn(`Nav icon "${iconName}" not found`);
 			return null;
@@ -35,6 +38,7 @@ export const Header = memo(() => {
 			{ href: "/", label: "Home", icon: "home" },
 			{ href: "/discover", label: "Discover", icon: "dice" },
 			{ href: "/appraisal", label: "NFT Appraisal", icon: "search" },
+			{ href: "/economy", label: "Economy", icon: "chart" },
 		],
 		[],
 	);

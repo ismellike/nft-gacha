@@ -29,6 +29,8 @@ import {
 import { useImageWithFallbacks } from "../lib/image-proxy";
 import { processImageUrl } from "../lib/nft-metadata";
 import type { NFTMetadata } from "../types/hooks";
+import SellToTreasury from "./SellToTreasury";
+import { getGachaConfig } from "../lib/gacha-config";
 
 // Enhanced props for the unified NFT card
 export interface UnifiedNFTCardProps {
@@ -54,6 +56,9 @@ export interface UnifiedNFTCardProps {
 	actionSlot?: React.ReactNode; // Custom action button/content
 	// Optional appraisal override to avoid extra RPCs when price is known
 	appraisalOverride?: { hasAppraisal: boolean; priceUSD: bigint };
+	// Buyback functionality
+	buybackVaultAddress?: string;
+	gachaId?: string;
 }
 
 // Enhanced appraisal display with better caching
@@ -609,6 +614,8 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		rewardsSlot,
 		actionSlot,
 		appraisalOverride,
+		buybackVaultAddress,
+		gachaId,
 	}) => {
 		const isInteractive = !!onClick;
 		const [traitsExpanded, setTraitsExpanded] = useState(false);
@@ -692,6 +699,40 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 			}
 			return nftData.metadata?.name || `Token ${formatTokenId(tokenId)}`;
 		}, [isCourtyardNFT, parsedData, nftData.metadata, tokenId]);
+
+		// Get gacha config for buyback vault if not provided
+		const gachaConfig = gachaId ? getGachaConfig(gachaId) : null;
+		const finalBuybackVaultAddress = buybackVaultAddress || gachaConfig?.buybackVaultAddress;
+
+		// Create buyback action if vault is available
+		const buybackAction = finalBuybackVaultAddress ? (
+			<motion.div
+				initial={{ opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ delay: 0.3, duration: 0.3 }}
+			>
+				<SellToTreasury
+					collection={collection}
+					tokenId={tokenId}
+					appraisalContractAddress={appraisalContractAddress}
+					buybackVaultAddress={finalBuybackVaultAddress}
+					size={size === "xs" || size === "sm" ? "sm" : size === "lg" || size === "xl" ? "lg" : "md"}
+					variant={size === "xs" || size === "sm" ? "button" : "card"}
+					onSuccess={(txHash) => {
+						// Optional: Handle successful sale
+						console.log("NFT sold successfully:", txHash);
+					}}
+				/>
+			</motion.div>
+		) : null;
+
+		// Merge custom actionSlot with buyback action
+		const finalActionSlot = (
+			<div className="flex flex-col gap-2">
+				{actionSlot}
+				{buybackAction}
+			</div>
+		);
 
 		// Variant configurations - always show traits when size allows
 		const variantConfig = useMemo(() => {
@@ -969,7 +1010,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					{rewardsSlot && <div className="mt-2">{rewardsSlot}</div>}
 
 					{/* Action Slot */}
-					{actionSlot && <div className="mt-2">{actionSlot}</div>}
+					{finalActionSlot && <div className="mt-2">{finalActionSlot}</div>}
 				</div>
 			</CardComponent>
 		);

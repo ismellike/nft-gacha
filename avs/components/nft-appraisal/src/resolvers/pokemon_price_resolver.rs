@@ -28,6 +28,7 @@ pub struct PokemonPriceResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PokemonPriceData {
     pub original_title: String,
     pub sanitized_title: String,
@@ -36,6 +37,7 @@ pub struct PokemonPriceData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ParsedInfo {
     pub confidence: f64,
     pub year: Option<u32>,
@@ -45,19 +47,25 @@ pub struct ParsedInfo {
     pub edition: Option<String>,
     pub set_name: Option<String>,
     pub card_name: Option<String>,
+    pub card_number: Option<String>,
+    pub variant: Option<String>,
     pub field_confidence: Option<FieldConfidence>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FieldConfidence {
     pub year: Option<f64>,
     pub grade: Option<f64>,
     pub edition: Option<f64>,
     pub set_name: Option<f64>,
     pub card_name: Option<f64>,
+    pub card_number: Option<f64>,
+    pub variant: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CardMatch {
     pub tcg_player_id: String,
     pub name: String,
@@ -73,11 +81,13 @@ pub struct CardMatch {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MatchPrices {
     pub market: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResponseMetadata {
     pub parse_time: String,
     pub processing_time_ms: u64,
@@ -388,6 +398,8 @@ mod tests {
                 edition: None,
                 set_name: Some("Fossil".to_string()),
                 card_name: Some("Articuno".to_string()),
+                card_number: None,
+                variant: None,
                 field_confidence: None,
             },
             matches: vec![

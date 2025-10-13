@@ -15,6 +15,8 @@ import {
 	useReadDepositorVaultTotalYieldClaimed,
 	useReadDepositorVaultTotalYieldDistributed,
 	useReadDepositorVaultTreasury,
+	useWriteDepositorVaultClaimYield,
+	useSimulateDepositorVaultClaimYield,
 } from "@/generated";
 
 export interface DepositorVaultData {
@@ -36,6 +38,7 @@ export interface DepositorVaultData {
 export interface UserDepositorData {
 	shares: bigint | undefined;
 	yieldValue: bigint | undefined;
+	pendingYield: bigint | undefined;
 }
 
 export interface UseDepositorVaultProps {
@@ -113,6 +116,15 @@ export function useDepositorVaultData({
 		},
 	});
 
+	// User-specific pending yield
+	const userPendingYield = useReadDepositorVaultPendingYield({
+		address: contractAddress as `0x${string}`,
+		args: [userAddress as `0x${string}`],
+		query: {
+			enabled: enabled && !!contractAddress && !!userAddress,
+		},
+	});
+
 	const totalShares = useReadDepositorVaultTotalShares({
 		address: contractAddress as `0x${string}`,
 		query: {
@@ -164,7 +176,8 @@ export function useDepositorVaultData({
 		totalYieldClaimed.isLoading ||
 		totalYieldDistributed.isLoading ||
 		treasury.isLoading ||
-		userShares.isLoading;
+		userShares.isLoading ||
+		userPendingYield.isLoading;
 
 	const isError =
 		asset.isError ||
@@ -180,7 +193,8 @@ export function useDepositorVaultData({
 		totalYieldClaimed.isError ||
 		totalYieldDistributed.isError ||
 		treasury.isError ||
-		userShares.isError;
+		userShares.isError ||
+		userPendingYield.isError;
 
 	const data: DepositorVaultData = {
 		asset: asset.data,
@@ -204,6 +218,7 @@ export function useDepositorVaultData({
 			userShares.data !== undefined && accYieldPerShare.data !== undefined
 				? (userShares.data * accYieldPerShare.data) / 10n ** 18n
 				: undefined,
+		pendingYield: userPendingYield.data,
 	};
 
 	return {
@@ -226,6 +241,7 @@ export function useDepositorVaultData({
 			totalYieldDistributed.refetch();
 			treasury.refetch();
 			userShares.refetch();
+			userPendingYield.refetch();
 		},
 	};
 }
@@ -252,4 +268,44 @@ export function formatTokenAmount(
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
 	});
+}
+
+// Hook for claiming yield
+export function useClaimYield() {
+	const {
+		writeContract: claimYield,
+		isPending: isClaiming,
+		error: claimError
+	} = useWriteDepositorVaultClaimYield();
+
+	return {
+		claimYield,
+		isClaiming,
+		claimError,
+	};
+}
+
+// Hook for simulating claim yield transaction
+export function useSimulateClaimYield({
+	contractAddress,
+	account,
+	recipient,
+}: {
+	contractAddress: string;
+	account: string;
+	recipient: string;
+}) {
+	const { data: simulation, error: simulationError } = useSimulateDepositorVaultClaimYield({
+		address: contractAddress as `0x${string}`,
+		args: [account as `0x${string}`, recipient as `0x${string}`],
+		query: {
+			enabled: !!contractAddress && !!account && !!recipient,
+		},
+	});
+
+	return {
+		simulation,
+		simulationError,
+		canClaim: !!simulation && !simulationError,
+	};
 }
