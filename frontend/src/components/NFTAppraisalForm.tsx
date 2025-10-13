@@ -134,9 +134,12 @@ export function NFTAppraisalForm({
 	});
 
 	// Contract writes
-	const { writeContract: approveTokens, isPending: isApproving } =
+	const { writeContractAsync: approveTokensAsync, isPending: isApproving } =
 		useWriteContract();
-	const { writeContract: requestAppraisal, isPending: isRequestingAppraisal } =
+	const {
+		writeContractAsync: requestAppraisalAsync,
+		isPending: isRequestingAppraisal,
+	} =
 		useWriteContract();
 
 	
@@ -252,23 +255,23 @@ export function NFTAppraisalForm({
 			setErrors({});
 
 			// Create callbacks for the state machine
-			const callbacks: AppraisalCallbacks = {
-				approveTokens: async (params) => {
-					try {
-						const hash = await approveTokens(params);
-						return hash;
-					} catch (error) {
-						console.error("[NFTAppraisalForm] Approval callback error:", error);
-						throw error;
-					}
-				},
-				requestAppraisal: async (params) => {
-					try {
-						const hash = await requestAppraisal(params);
-						return hash;
-					} catch (error) {
-						console.error("[NFTAppraisalForm] Appraisal callback error:", error);
-						throw error;
+				const callbacks: AppraisalCallbacks = {
+					approveTokens: async (params) => {
+						try {
+							const hash = await approveTokensAsync(params);
+							return hash;
+						} catch (error) {
+							console.error("[NFTAppraisalForm] Approval callback error:", error);
+							throw error;
+						}
+					},
+					requestAppraisal: async (params) => {
+						try {
+							const hash = await requestAppraisalAsync(params);
+							return hash;
+						} catch (error) {
+							console.error("[NFTAppraisalForm] Appraisal callback error:", error);
+							throw error;
 					}
 				},
 			};
