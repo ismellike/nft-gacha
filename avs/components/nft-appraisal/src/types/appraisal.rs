@@ -16,11 +16,11 @@ pub enum ResolverKind {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ResolverArgs {
     PokemonCardInfo {
-        title: String,
-        card_number: Option<String>,
-        grade: Option<String>,
-        set_name: Option<String>,
-        year: Option<String>,
+        card_number: String,
+        grade: String,
+        company: String,
+        is_perfect: bool,
+        set_id: String,
     },
 }
 
@@ -28,16 +28,20 @@ impl ResolverArgs {
     pub fn cache_fragment(&self) -> String {
         match self {
             ResolverArgs::PokemonCardInfo {
-                title,
                 card_number,
                 grade,
+                company,
+                is_perfect,
+                set_id,
                 ..
             } => {
                 format!(
-                    "{}-{}-{}",
-                    title.trim().to_ascii_lowercase(),
-                    card_number.as_deref().unwrap_or(""),
-                    grade.as_deref().unwrap_or("")
+                    "{}-{}-{}-{}-{}",
+                    card_number.trim().to_ascii_lowercase(),
+                    grade.trim().to_ascii_lowercase(),
+                    company.trim().to_ascii_lowercase(),
+                    is_perfect,
+                    set_id.trim().to_ascii_lowercase()
                 )
             }
         }
@@ -52,22 +56,21 @@ pub struct ResolverRoute {
 }
 
 impl ResolverRoute {
-    pub fn pokemon_card_info<T: Into<String>>(
-        title: T,
-        card_number: Option<String>,
-        grade: Option<String>,
-        set_name: Option<String>,
-        year: Option<String>,
+    pub fn pokemon_card_info(
+        card_number: String,
+        grade: String,
+        company: String,
+        is_perfect: bool,
+        set_id: String,
     ) -> Self {
-        let title = normalize_pokemon_title(title.into());
         Self {
             kind: ResolverKind::PokemonTradingCard,
             args: ResolverArgs::PokemonCardInfo {
-                title,
                 card_number,
                 grade,
-                set_name,
-                year,
+                company,
+                is_perfect,
+                set_id,
             },
         }
     }
@@ -75,9 +78,4 @@ impl ResolverRoute {
     pub fn cache_key_fragment(&self) -> String {
         self.args.cache_fragment()
     }
-}
-
-fn normalize_pokemon_title(mut title: String) -> String {
-    title = title.replace('É', "E");
-    title.replace('é', "e")
 }
