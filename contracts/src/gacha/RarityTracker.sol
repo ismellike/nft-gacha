@@ -27,9 +27,7 @@ contract RarityTracker is Ownable {
     // Mapping from user to track if they have any wins
     mapping(address => bool) public hasWon;
 
-    constructor(string memory _rarityName, address initialOwner)
-        Ownable(initialOwner)
-    {
+    constructor(string memory _rarityName, address initialOwner) Ownable(initialOwner) {
         rarityName = _rarityName;
     }
 
@@ -120,12 +118,7 @@ contract RarityTracker is Ownable {
     function getStatistics()
         external
         view
-        returns (
-            uint256 totalWins_,
-            uint256 totalRewards_,
-            uint256 totalNftsWon_,
-            uint256 uniqueWinners_
-        )
+        returns (uint256 totalWins_, uint256 totalRewards_, uint256 totalNftsWon_, uint256 uniqueWinners_)
     {
         return (totalWins, totalRewards, totalNftsWon, this.getUniqueWinnersCount());
     }

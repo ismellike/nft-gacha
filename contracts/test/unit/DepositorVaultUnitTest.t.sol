@@ -103,11 +103,7 @@ contract DepositorVaultUnitTest is Test {
 
         vm.startPrank(owner);
         bytes memory initData = abi.encodeWithSelector(
-            DepositorVault.initialize.selector,
-            owner,
-            address(usdc),
-            address(treasury),
-            address(economyManager)
+            DepositorVault.initialize.selector, owner, address(usdc), address(treasury), address(economyManager)
         );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(vaultImpl), initData);
@@ -218,7 +214,11 @@ contract DepositorVaultUnitTest is Test {
         vm.stopPrank();
 
         assertEq(vault.totalYieldDistributed(), REWARD_AMOUNT, "Total yield should be tracked");
-        assertEq(vault.accYieldPerShare(), (REWARD_AMOUNT * REWARD_PRECISION) / TOTAL_SHARES, "Yield per share should be calculated");
+        assertEq(
+            vault.accYieldPerShare(),
+            (REWARD_AMOUNT * REWARD_PRECISION) / TOTAL_SHARES,
+            "Yield per share should be calculated"
+        );
     }
 
     function testYieldAccrual() public {
@@ -514,15 +514,6 @@ contract DepositorVaultUnitTest is Test {
         vault.setEconomyManager(newManager);
 
         assertEq(vault.economyManager(), newManager, "Economy manager should be updated");
-    }
-
-    function testUpdateBuybackVault() public {
-        address newBuyback = makeAddr("newBuyback");
-
-        vm.startPrank(owner);
-        vault.setBuybackVault(newBuyback);
-
-        assertEq(vault.buybackVault(), newBuyback, "Buyback vault should be updated");
     }
 
     // ========================================================================

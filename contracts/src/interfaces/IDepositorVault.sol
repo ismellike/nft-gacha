@@ -104,19 +104,4 @@ interface IDepositorVault {
      * @param account Address to query
      */
     function sharesOf(address account) external view returns (uint256);
-
-    /**
-     * @notice Stakes buyback liquidity into the vault for additional yield
-     * @dev Only callable by the BuybackVault contract
-     * @param amount Amount of USDC to stake (will be transferred in)
-     */
-    function stakeBuybackLiquidity(uint256 amount) external;
-
-    /**
-     * @notice Withdraws staked USDC for buyback operations
-     * @dev Only callable by the BuybackVault contract
-     * @param amount Amount of USDC to withdraw
-     * @param recipient Destination that will receive the funds
-     */
-    function unstakeBuybackLiquidity(uint256 amount, address recipient) external;
 }

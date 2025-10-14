@@ -20,13 +20,7 @@ import {RandomnessRequested} from "../interfaces/WavsDrandTypes.sol";
  * @dev This contract is upgradeable using UUPS proxy pattern
  * @author NFT Gacha Team
  */
-contract Gacha is
-    Initializable,
-    OwnableUpgradeable,
-    PausableUpgradeable,
-    ReentrancyGuardTransient,
-    UUPSUpgradeable
-{
+contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardTransient, UUPSUpgradeable {
     using SafeERC20 for IERC20;
 
     /// @notice Custom errors for gas efficiency and clarity
@@ -345,7 +339,11 @@ contract Gacha is
         feeToken.safeTransfer(to, balance);
     }
 
-    function getSpinRequest(uint256 triggerId) external view returns (address requester, bool fulfilled, uint256 feePaid) {
+    function getSpinRequest(uint256 triggerId)
+        external
+        view
+        returns (address requester, bool fulfilled, uint256 feePaid)
+    {
         SpinRequest memory request = spinRequests[triggerId];
         return (request.requester, request.fulfilled, request.feePaid);
     }

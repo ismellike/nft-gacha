@@ -11,13 +11,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
 import {IDepositorVault} from "../interfaces/IDepositorVault.sol";
-import {IBuybackVault} from "../interfaces/IBuybackVault.sol";
 import {IProtocolTreasury} from "../interfaces/IProtocolTreasury.sol";
 import {GachaTreasury} from "../gacha/GachaTreasury.sol";
 
 /**
  * @title GachaEconomyManager
- * @notice Routes spin revenue between depositor yield vault, buyback vault, and protocol treasury.
+ * @notice Routes spin revenue between depositor yield vault and protocol treasury.
  */
 contract GachaEconomyManager is
     IGachaEconomyManager,
@@ -38,22 +37,17 @@ contract GachaEconomyManager is
     address public gacha;
     /// @notice Depositor yield vault
     IDepositorVault public depositorVault;
-    /// @notice Buyback liquidity vault
-    IBuybackVault public buybackVault;
     /// @notice Protocol treasury wallet
     IProtocolTreasury public protocolTreasury;
 
     /// @inheritdoc IGachaEconomyManager
     uint256 public override depositorShareBps;
     /// @inheritdoc IGachaEconomyManager
-    uint256 public override buybackShareBps;
-    /// @inheritdoc IGachaEconomyManager
     uint256 public override protocolShareBps;
 
     /// @notice Aggregate metrics
     uint256 public totalRevenueProcessed;
     uint256 public totalToDepositors;
-    uint256 public totalToBuyback;
     uint256 public totalToProtocol;
     mapping(GachaTreasury.Rarity => uint256) public revenueByRarity;
 
@@ -61,7 +55,6 @@ contract GachaEconomyManager is
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
     event GachaUpdated(address indexed previousGacha, address indexed newGacha);
     event DepositorVaultUpdated(address indexed previousVault, address indexed newVault);
-    event BuybackVaultUpdated(address indexed previousVault, address indexed newVault);
     event ProtocolTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
 
     modifier onlyGacha() {
@@ -75,7 +68,6 @@ contract GachaEconomyManager is
      * @param feeToken_ USDC token
      * @param gacha_ Gacha contract authorized to report revenue
      * @param depositorVault_ Depositor vault address
-     * @param buybackVault_ Buyback vault address
      * @param protocolTreasury_ Protocol treasury address
      */
     function initialize(
@@ -83,14 +75,12 @@ contract GachaEconomyManager is
         address feeToken_,
         address gacha_,
         address depositorVault_,
-        address buybackVault_,
         address protocolTreasury_
     ) external initializer {
         require(owner != address(0), "GachaEconomyManager: owner is zero");
         require(feeToken_ != address(0), "GachaEconomyManager: token is zero");
         require(gacha_ != address(0), "GachaEconomyManager: gacha is zero");
         require(depositorVault_ != address(0), "GachaEconomyManager: depositor vault is zero");
-        require(buybackVault_ != address(0), "GachaEconomyManager: buyback vault is zero");
         require(protocolTreasury_ != address(0), "GachaEconomyManager: protocol treasury is zero");
 
         __Ownable_init(owner);
@@ -100,12 +90,10 @@ contract GachaEconomyManager is
         feeToken = IERC20(feeToken_);
         gacha = gacha_;
         depositorVault = IDepositorVault(depositorVault_);
-        buybackVault = IBuybackVault(buybackVault_);
         protocolTreasury = IProtocolTreasury(protocolTreasury_);
 
         depositorShareBps = 7_000;
-        buybackShareBps = 2_500;
-        protocolShareBps = 500;
+        protocolShareBps = 3_000;
 
         _transferOwnership(owner);
     }
@@ -124,11 +112,10 @@ contract GachaEconomyManager is
         feeToken.safeTransferFrom(msg.sender, address(this), usdcAmount);
 
         uint256 depositShare = Math.mulDiv(usdcAmount, depositorShareBps, BPS_DENOMINATOR);
-        uint256 buybackShare = Math.mulDiv(usdcAmount, buybackShareBps, BPS_DENOMINATOR);
         uint256 protocolShare = Math.mulDiv(usdcAmount, protocolShareBps, BPS_DENOMINATOR);
 
         // Ensure rounding remainder is given to protocol treasury
-        uint256 distributed = depositShare + buybackShare + protocolShare;
+        uint256 distributed = depositShare + protocolShare;
         if (distributed < usdcAmount) {
             protocolShare += usdcAmount - distributed;
         }
@@ -136,11 +123,6 @@ contract GachaEconomyManager is
         if (depositShare > 0) {
             feeToken.forceApprove(address(depositorVault), depositShare);
             depositorVault.distributeYield(depositShare);
-        }
-
-        if (buybackShare > 0) {
-            feeToken.forceApprove(address(buybackVault), buybackShare);
-            buybackVault.onRevenueReceived(buybackShare);
         }
 
         if (protocolShare > 0) {
@@ -151,23 +133,21 @@ contract GachaEconomyManager is
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
         totalToDepositors += depositShare;
-        totalToBuyback += buybackShare;
         totalToProtocol += protocolShare;
 
-        emit SpinRevenueReceived(usdcAmount, depositShare, buybackShare, protocolShare);
+        emit SpinRevenueReceived(usdcAmount, depositShare, protocolShare);
     }
 
     /**
      * @notice Updates the fee split (BPS must sum to <= 10_000)
      */
-    function setRevenueSplit(uint256 depositorBps, uint256 buybackBps, uint256 protocolBps) external onlyOwner {
-        require(depositorBps + buybackBps + protocolBps <= BPS_DENOMINATOR, "GachaEconomyManager: invalid split");
+    function setRevenueSplit(uint256 depositorBps, uint256 protocolBps) external onlyOwner {
+        require(depositorBps + protocolBps <= BPS_DENOMINATOR, "GachaEconomyManager: invalid split");
 
         depositorShareBps = depositorBps;
-        buybackShareBps = buybackBps;
         protocolShareBps = protocolBps;
 
-        emit RevenueSplitUpdated(depositorBps, buybackBps, protocolBps);
+        emit RevenueSplitUpdated(depositorBps, protocolBps);
     }
 
     /**
@@ -193,17 +173,11 @@ contract GachaEconomyManager is
     /**
      * @notice Updates downstream vault addresses
      */
-    function setVaults(address depositorVault_, address buybackVault_, address protocolTreasury_) external onlyOwner {
+    function setVaults(address depositorVault_, address protocolTreasury_) external onlyOwner {
         if (depositorVault_ != address(0)) {
             address previous = address(depositorVault);
             depositorVault = IDepositorVault(depositorVault_);
             emit DepositorVaultUpdated(previous, depositorVault_);
-        }
-
-        if (buybackVault_ != address(0)) {
-            address previousBuyback = address(buybackVault);
-            buybackVault = IBuybackVault(buybackVault_);
-            emit BuybackVaultUpdated(previousBuyback, buybackVault_);
         }
 
         if (protocolTreasury_ != address(0)) {

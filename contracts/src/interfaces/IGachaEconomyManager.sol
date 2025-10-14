@@ -12,18 +12,16 @@ interface IGachaEconomyManager {
      * @notice Emitted whenever spin revenue is processed
      * @param amount Total USDC processed
      * @param depositorShare Amount forwarded to the depositor vault
-     * @param buybackShare Amount forwarded to the buyback vault
      * @param protocolShare Amount forwarded to the protocol treasury
      */
-    event SpinRevenueReceived(uint256 amount, uint256 depositorShare, uint256 buybackShare, uint256 protocolShare);
+    event SpinRevenueReceived(uint256 amount, uint256 depositorShare, uint256 protocolShare);
 
     /**
      * @notice Emitted when fee splits are updated
      * @param depositorShareBps New depositor share in BPS
-     * @param buybackShareBps New buyback share in BPS
      * @param protocolShareBps New protocol share in BPS
      */
-    event RevenueSplitUpdated(uint256 depositorShareBps, uint256 buybackShareBps, uint256 protocolShareBps);
+    event RevenueSplitUpdated(uint256 depositorShareBps, uint256 protocolShareBps);
 
     /**
      * @notice Processes spin revenue and forwards shares to downstream vaults
@@ -36,11 +34,6 @@ interface IGachaEconomyManager {
      * @notice Basis points for depositor share
      */
     function depositorShareBps() external view returns (uint256);
-
-    /**
-     * @notice Basis points for buyback share
-     */
-    function buybackShareBps() external view returns (uint256);
 
     /**
      * @notice Basis points for protocol share

@@ -6,7 +6,6 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {DepositorVault} from "../../src/economy/DepositorVault.sol";
-import {BuybackVault} from "../../src/economy/BuybackVault.sol";
 import {ProtocolTreasury} from "../../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../../src/tokens/BaseERC721.sol";
@@ -29,7 +28,6 @@ contract EconomyFlowTest is Test {
     MockNFTAppraisal internal appraisal;
     GachaTreasury internal treasury;
     DepositorVault internal depositorVault;
-    BuybackVault internal buybackVault;
     ProtocolTreasury internal protocolTreasury;
     GachaEconomyManager internal economy;
     BaseERC721 internal collection;
@@ -45,54 +43,31 @@ contract EconomyFlowTest is Test {
         appraisal = new MockNFTAppraisal();
 
         treasury = new GachaTreasury();
-        treasury.initialize(
-            address(this),
-            address(0xDEAD),
-            address(appraisal),
-            0, // Common min
-            100 * 1e18, // Common max
-            100 * 1e18, // Uncommon min
-            500 * 1e18, // Uncommon max
-            500 * 1e18, // Rare min
-            2000 * 1e18, // Rare max
-            2000 * 1e18, // Epic min
-            10000 * 1e18, // Epic max
-            10000 * 1e18, // Legendary min
-            type(uint256).max // Legendary max
-        );
+        uint256[5] memory minPrices = [uint256(0), 100 * 1e18, 500 * 1e18, 2000 * 1e18, 10000 * 1e18];
+        uint256[5] memory maxPrices = [uint256(100 * 1e18), 500 * 1e18, 2000 * 1e18, 10000 * 1e18, type(uint256).max];
+        treasury.initialize(address(this), address(0xDEAD), address(appraisal), minPrices, maxPrices);
 
         depositorVault = new DepositorVault();
         depositorVault.initialize(address(this), address(usdc), address(treasury), address(this));
 
         protocolTreasury = new ProtocolTreasury();
-        protocolTreasury.initialize(address(this), address(usdc), address(this));
-
-        buybackVault = new BuybackVault();
-        buybackVault.initialize(
-            address(this), address(usdc), address(treasury), address(depositorVault), address(appraisal), address(this)
-        );
+        protocolTreasury.initialize(address(this), address(usdc), address(this), address(treasury), address(appraisal));
 
         economy = new GachaEconomyManager();
         economy.initialize(
-            address(this),
-            address(usdc),
-            address(this),
-            address(depositorVault),
-            address(buybackVault),
-            address(protocolTreasury)
+            address(this), address(usdc), address(this), address(depositorVault), address(protocolTreasury)
         );
 
         // Wire contract relationships
         treasury.setGachaContract(address(this));
         treasury.setDepositorVault(address(depositorVault));
-        treasury.setBuybackVault(address(buybackVault));
+        treasury.setProtocolTreasury(address(protocolTreasury));
 
         depositorVault.setEconomyManager(address(economy));
-        depositorVault.setBuybackVault(address(buybackVault));
         protocolTreasury.setEconomyManager(address(economy));
-        buybackVault.setEconomyManager(address(economy));
+        protocolTreasury.setGachaTreasury(address(treasury));
         economy.setGacha(address(this));
-        economy.setVaults(address(depositorVault), address(buybackVault), address(protocolTreasury));
+        economy.setVaults(address(depositorVault), address(protocolTreasury));
 
         // Deploy helper NFT collection and whitelist
         collection = new BaseERC721("Test NFT", "TNFT", address(this));
@@ -110,8 +85,7 @@ contract EconomyFlowTest is Test {
 
     function testSpinRevenueSplit() public {
         uint256 depositorShare = (REVENUE_AMOUNT * 7_000) / 10_000;
-        uint256 buybackShare = (REVENUE_AMOUNT * 2_500) / 10_000;
-        uint256 protocolShare = REVENUE_AMOUNT - depositorShare - buybackShare;
+        uint256 protocolShare = REVENUE_AMOUNT - depositorShare;
 
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
@@ -119,7 +93,6 @@ contract EconomyFlowTest is Test {
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
         assertEq(usdc.balanceOf(address(depositorVault)), depositorShare, "Depositor vault balance mismatch");
-        assertEq(usdc.balanceOf(address(buybackVault)), buybackShare, "Buyback vault balance mismatch");
         assertEq(usdc.balanceOf(address(protocolTreasury)), protocolShare, "Protocol treasury balance mismatch");
         assertEq(depositorVault.totalYieldDistributed(), depositorShare, "Yield distributed tracking mismatch");
         assertEq(economy.totalRevenueProcessed(), REVENUE_AMOUNT, "Revenue processed mismatch");
@@ -151,31 +124,31 @@ contract EconomyFlowTest is Test {
         usdc.approve(address(economy), REVENUE_AMOUNT);
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
-        // Spinner wins a new NFT and opts for buyback
+        // Spinner wins a new NFT and opts for redemption
         uint256 tokenId = collection.mint(SPINNER);
         appraisal.setMockAppraisal(address(collection), tokenId, APPRAISAL_PRICE);
 
         vm.prank(SPINNER);
-        collection.approve(address(buybackVault), tokenId);
+        collection.approve(address(protocolTreasury), tokenId);
 
         uint256 spinnerBalanceBefore = usdc.balanceOf(SPINNER);
         vm.prank(SPINNER);
-        uint256 payout = buybackVault.executeBuyback(address(collection), tokenId, SPINNER);
+        uint256 payout = protocolTreasury.executeRedemption(address(collection), tokenId, SPINNER);
         uint256 spinnerBalanceAfter = usdc.balanceOf(SPINNER);
 
-        uint256 expectedPayout = (APPRAISAL_PRICE * 9_000) / 10_000 / 1e12;
+        uint256 expectedPayout = (APPRAISAL_PRICE * 8_500) / 10_000 / 1e12;
 
-        assertEq(payout, expectedPayout, "Buyback payout mismatch");
+        assertEq(payout, expectedPayout, "Redemption payout mismatch");
         assertEq(
             spinnerBalanceAfter - spinnerBalanceBefore,
             expectedPayout,
-            "Spinner did not receive expected buyback proceeds"
+            "Spinner did not receive expected redemption proceeds"
         );
-        assertTrue(treasury.depositedNFTs(address(collection), tokenId), "Buyback NFT not restocked");
+        assertTrue(treasury.depositedNFTs(address(collection), tokenId), "Redeemed NFT not restocked");
         assertEq(
-            buybackVault.availableLiquidity(),
-            ((REVENUE_AMOUNT * 2_500) / 10_000) - expectedPayout,
-            "Buyback liquidity incorrect after redemption"
+            usdc.balanceOf(address(protocolTreasury)),
+            ((REVENUE_AMOUNT * 3_000) / 10_000) - expectedPayout,
+            "Protocol treasury liquidity incorrect after redemption"
         );
     }
 }

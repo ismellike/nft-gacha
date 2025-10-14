@@ -7,7 +7,12 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Pau
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {IProtocolTreasury} from "../interfaces/IProtocolTreasury.sol";
+import {GachaTreasury} from "../gacha/GachaTreasury.sol";
+import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
 
 /**
  * @title ProtocolTreasury
@@ -18,13 +23,23 @@ contract ProtocolTreasury is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
+    ReentrancyGuardTransient,
     UUPSUpgradeable
 {
     using SafeERC20 for IERC20;
 
+    /// @notice Payout percentage (in basis points) for NFT redemptions (85%)
+    uint256 public constant REDEMPTION_PAYOUT_BPS = 8_500;
+    /// @notice Conversion multiplier between 18-decimal appraisals and 6-decimal USDC
+    uint256 private constant USD_TO_USDC_CONVERSION = 1e12;
+
     IERC20 private _asset;
     address public economyManager;
+    GachaTreasury private _treasury;
+    NFTAppraisal public appraisalOracle;
 
+    event GachaTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
+    event AppraisalOracleUpdated(address indexed previousOracle, address indexed newOracle);
     event EconomyManagerUpdated(address indexed previousManager, address indexed newManager);
 
     modifier onlyEconomyManager() {
@@ -37,17 +52,29 @@ contract ProtocolTreasury is
      * @param owner Owner address (DAO or multisig)
      * @param asset_ USDC token address
      * @param economyManager_ Economy manager allowed to forward revenue
+     * @param treasury_ Gacha treasury reference used to restock NFTs
+     * @param appraisalOracle_ Oracle providing USD appraisals
      */
-    function initialize(address owner, address asset_, address economyManager_) external initializer {
+    function initialize(
+        address owner,
+        address asset_,
+        address economyManager_,
+        address treasury_,
+        address appraisalOracle_
+    ) external initializer {
         require(owner != address(0), "ProtocolTreasury: owner is zero");
         require(asset_ != address(0), "ProtocolTreasury: asset is zero");
         require(economyManager_ != address(0), "ProtocolTreasury: manager is zero");
+        require(treasury_ != address(0), "ProtocolTreasury: treasury is zero");
+        require(appraisalOracle_ != address(0), "ProtocolTreasury: oracle is zero");
 
         __Ownable_init(owner);
         __Pausable_init();
 
         _asset = IERC20(asset_);
         economyManager = economyManager_;
+        _treasury = GachaTreasury(treasury_);
+        appraisalOracle = NFTAppraisal(appraisalOracle_);
 
         _transferOwnership(owner);
     }
@@ -57,11 +84,58 @@ contract ProtocolTreasury is
         return _asset;
     }
 
+    /**
+     * @notice Returns the associated gacha treasury
+     */
+    function gachaTreasury() external view returns (GachaTreasury) {
+        return _treasury;
+    }
+
     /// @inheritdoc IProtocolTreasury
     function onRevenueReceived(uint256 amount) external override onlyEconomyManager whenNotPaused {
         require(amount > 0, "ProtocolTreasury: amount is zero");
         _asset.safeTransferFrom(msg.sender, address(this), amount);
         emit ProtocolRevenueReceived(amount);
+    }
+
+    /**
+     * @notice Allows players to redeem NFTs back to the protocol at 85% of the appraised value.
+     * @param collection NFT contract address
+     * @param tokenId NFT identifier
+     * @param recipient Address receiving the USDC payout
+     * @return payout Amount paid in USDC (6 decimals)
+     */
+    function executeRedemption(address collection, uint256 tokenId, address recipient)
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256 payout)
+    {
+        require(collection != address(0), "ProtocolTreasury: bad collection");
+        require(recipient != address(0), "ProtocolTreasury: bad recipient");
+
+        (uint256 appraisalUSD, NFTAppraisal.AppraisalStatus status) =
+            appraisalOracle.getAppraisedPrice(collection, tokenId);
+        require(
+            appraisalUSD > 0
+                && (
+                    status == NFTAppraisal.AppraisalStatus.Completed || status == NFTAppraisal.AppraisalStatus.OwnerOverride
+                ),
+            "ProtocolTreasury: appraisal missing"
+        );
+
+        payout = Math.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000) / USD_TO_USDC_CONVERSION;
+        require(payout > 0, "ProtocolTreasury: payout underflows");
+
+        require(_asset.balanceOf(address(this)) >= payout, "ProtocolTreasury: insufficient liquidity");
+
+        IERC721(collection).safeTransferFrom(msg.sender, address(_treasury), tokenId);
+        _treasury.handleRedemptionReturn(collection, tokenId, msg.sender, appraisalUSD);
+
+        _asset.safeTransfer(recipient, payout);
+
+        emit RedemptionExecuted(msg.sender, collection, tokenId, payout);
+        return payout;
     }
 
     /// @inheritdoc IProtocolTreasury
@@ -83,6 +157,26 @@ contract ProtocolTreasury is
     }
 
     /**
+     * @notice Updates the gacha treasury reference
+     */
+    function setGachaTreasury(address newTreasury) external onlyOwner {
+        require(newTreasury != address(0), "ProtocolTreasury: treasury is zero");
+        address previous = address(_treasury);
+        _treasury = GachaTreasury(newTreasury);
+        emit GachaTreasuryUpdated(previous, newTreasury);
+    }
+
+    /**
+     * @notice Updates the appraisal oracle
+     */
+    function setAppraisalOracle(address newOracle) external onlyOwner {
+        require(newOracle != address(0), "ProtocolTreasury: oracle is zero");
+        address previous = address(appraisalOracle);
+        appraisalOracle = NFTAppraisal(newOracle);
+        emit AppraisalOracleUpdated(previous, newOracle);
+    }
+
+    /**
      * @notice Pause treasury operations
      */
     function pause() external onlyOwner {
@@ -101,5 +195,5 @@ contract ProtocolTreasury is
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    uint256[48] private __gap;
+    uint256[46] private __gap;
 }

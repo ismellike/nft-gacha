@@ -36,7 +36,9 @@ contract MockNFTAppraisal {
         appraisalStatuses[collection][tokenId] = AppraisalStatus.Completed;
     }
 
-    function setMockAppraisalWithCardId(address collection, uint256 tokenId, bytes32 cardId, uint256 priceUSD) external {
+    function setMockAppraisalWithCardId(address collection, uint256 tokenId, bytes32 cardId, uint256 priceUSD)
+        external
+    {
         tokenCardIds[collection][tokenId] = cardId;
 
         // Only set card appraisal if it doesn't exist, ensuring price consistency

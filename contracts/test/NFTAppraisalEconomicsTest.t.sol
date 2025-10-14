@@ -29,12 +29,12 @@ contract NFTAppraisalEconomicsTest is Test {
     uint256 public constant APPRAISAL_FEE = 10e18; // 10 tokens
     uint256 public constant INITIAL_BALANCE = 1000e18;
 
-    // Price tiers (USD values in 18 decimals)
-    uint256 public constant COMMON_PRICE = 50e18;      // $50
-    uint256 public constant UNCOMMON_PRICE = 250e18;   // $250
-    uint256 public constant RARE_PRICE = 1000e18;      // $1,000
-    uint256 public constant EPIC_PRICE = 5000e18;      // $5,000
-    uint256 public constant LEGENDARY_PRICE = 15000e18; // $15,000
+    // Price tiers (USD values in 18 decimals) - updated to match new price ranges
+    uint256 public constant COMMON_PRICE = 10e18; // $10 (within $0-$15 range)
+    uint256 public constant UNCOMMON_PRICE = 50e18; // $50 (within $25-$60 range)
+    uint256 public constant RARE_PRICE = 100e18; // $100 (within $70-$250 range)
+    uint256 public constant EPIC_PRICE = 500e18; // $500 (within $300-$1200 range)
+    uint256 public constant LEGENDARY_PRICE = 2000e18; // $2,000 (within $1500+ range)
 
     // Card IDs for testing
     bytes32 public constant CARD_COMMON = keccak256("CARD_COMMON");
@@ -44,8 +44,16 @@ contract NFTAppraisalEconomicsTest is Test {
     bytes32 public constant CARD_LEGENDARY = keccak256("CARD_LEGENDARY");
 
     event AppraisalRequested(address indexed nftContract, uint256 indexed tokenId);
-    event AppraisalCompleted(address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed oracle, uint256 timestamp);
-    event AppraisalOverridden(address indexed collection, uint256 indexed tokenId, uint256 oldPriceUSD, uint256 newPriceUSD, address indexed owner);
+    event AppraisalCompleted(
+        address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed oracle, uint256 timestamp
+    );
+    event AppraisalOverridden(
+        address indexed collection,
+        uint256 indexed tokenId,
+        uint256 oldPriceUSD,
+        uint256 newPriceUSD,
+        address indexed owner
+    );
 
     function setUp() public {
         // Deploy tokens
@@ -77,13 +85,8 @@ contract NFTAppraisalEconomicsTest is Test {
         vm.startPrank(owner);
         NFTAppraisal appraisalImpl = new NFTAppraisal();
 
-        bytes memory initData = abi.encodeWithSelector(
-            NFTAppraisal.initialize.selector,
-            owner,
-            address(usdc),
-            APPRAISAL_FEE,
-            protocol
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(NFTAppraisal.initialize.selector, owner, address(usdc), APPRAISAL_FEE, protocol);
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), initData);
         appraisal = NFTAppraisal(address(proxy));
@@ -96,12 +99,16 @@ contract NFTAppraisalEconomicsTest is Test {
     function _deployTreasuryContract() internal {
         vm.startPrank(owner);
         GachaTreasury treasuryImpl = new GachaTreasury();
+        uint256[5] memory minPrices = [uint256(0), 25 * 1e18, 70 * 1e18, 300 * 1e18, 1_500 * 1e18];
+        uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
 
         bytes memory initData = abi.encodeWithSelector(
             GachaTreasury.initialize.selector,
             owner,
             address(this), // Mock gacha
-            address(appraisal)
+            address(appraisal),
+            minPrices,
+            maxPrices
         );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
@@ -125,15 +132,9 @@ contract NFTAppraisalEconomicsTest is Test {
 
         // Check fee collection
         assertEq(
-            usdc.balanceOf(protocol),
-            protocolBalanceBefore + APPRAISAL_FEE,
-            "Protocol should receive appraisal fee"
+            usdc.balanceOf(protocol), protocolBalanceBefore + APPRAISAL_FEE, "Protocol should receive appraisal fee"
         );
-        assertEq(
-            usdc.balanceOf(user),
-            userBalanceBefore - APPRAISAL_FEE,
-            "User should pay appraisal fee"
-        );
+        assertEq(usdc.balanceOf(user), userBalanceBefore - APPRAISAL_FEE, "User should pay appraisal fee");
 
         // Verify appraisal status
         NFTAppraisal.Appraisal memory appraisalInfo = appraisal.getAppraisal(address(collection), 0);
@@ -168,9 +169,7 @@ contract NFTAppraisalEconomicsTest is Test {
         vm.stopPrank();
 
         assertEq(
-            treasury.getRarityCount(GachaTreasury.Rarity.Common),
-            1,
-            "Should be assigned Common rarity based on price"
+            treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should be assigned Common rarity based on price"
         );
     }
 
@@ -178,28 +177,28 @@ contract NFTAppraisalEconomicsTest is Test {
      * @notice Test price-based rarity boundary conditions
      */
     function testRarityBoundaryConditions() public {
-        // Test exact boundary prices
+        // Test exact boundary prices based on new price ranges
         uint256[] memory boundaryPrices = new uint256[](5);
         GachaTreasury.Rarity[] memory expectedRarities = new GachaTreasury.Rarity[](5);
 
-        // Common: $0-$100
-        boundaryPrices[0] = 1e18;    // Edge case: $1 (minimum valid price)
+        // Common: $0-$15
+        boundaryPrices[0] = 10e18; // Edge case: $10 (within Common range)
         expectedRarities[0] = GachaTreasury.Rarity.Common;
 
-        // Uncommon: $100-$500
-        boundaryPrices[1] = 100e18;   // Exact boundary
+        // Uncommon: $25-$60
+        boundaryPrices[1] = 25e18; // Exact boundary
         expectedRarities[1] = GachaTreasury.Rarity.Uncommon;
 
-        // Rare: $500-$2000
-        boundaryPrices[2] = 500e18;   // Exact boundary
+        // Rare: $70-$250
+        boundaryPrices[2] = 70e18; // Exact boundary
         expectedRarities[2] = GachaTreasury.Rarity.Rare;
 
-        // Epic: $2000-$10000
-        boundaryPrices[3] = 2000e18;  // Exact boundary
+        // Epic: $300-$1200
+        boundaryPrices[3] = 300e18; // Exact boundary
         expectedRarities[3] = GachaTreasury.Rarity.Epic;
 
-        // Legendary: $10000+
-        boundaryPrices[4] = 10000e18; // Exact boundary
+        // Legendary: $1500+
+        boundaryPrices[4] = 1500e18; // Exact boundary
         expectedRarities[4] = GachaTreasury.Rarity.Legendary;
 
         for (uint256 i = 0; i < 5; i++) {
@@ -328,7 +327,9 @@ contract NFTAppraisalEconomicsTest is Test {
         price = appraisalInfo.priceUSD;
         NFTAppraisal.AppraisalStatus status = appraisalInfo.status;
         assertEq(price, ownerPrice, "Should have owner override price");
-        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Should be owner override status");
+        assertEq(
+            uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Should be owner override status"
+        );
 
         // Test economic impact in treasury
         vm.startPrank(user);
@@ -361,15 +362,9 @@ contract NFTAppraisalEconomicsTest is Test {
 
         // Check fee collection
         assertEq(
-            usdc.balanceOf(protocol),
-            protocolBalanceBefore + totalFees,
-            "Protocol should receive all appraisal fees"
+            usdc.balanceOf(protocol), protocolBalanceBefore + totalFees, "Protocol should receive all appraisal fees"
         );
-        assertEq(
-            usdc.balanceOf(user),
-            userBalanceBefore - totalFees,
-            "User should pay all appraisal fees"
-        );
+        assertEq(usdc.balanceOf(user), userBalanceBefore - totalFees, "User should pay all appraisal fees");
 
         // Complete all appraisals with different prices
         uint256[] memory prices = new uint256[](numAppraisals);
@@ -418,16 +413,8 @@ contract NFTAppraisalEconomicsTest is Test {
         appraisal.requestAppraisal(address(collection), 0);
 
         // Check new fee collection
-        assertEq(
-            usdc.balanceOf(protocol),
-            protocolBalanceBefore + newFee,
-            "Protocol should receive increased fee"
-        );
-        assertEq(
-            usdc.balanceOf(user),
-            userBalanceBefore - newFee,
-            "User should pay increased fee"
-        );
+        assertEq(usdc.balanceOf(protocol), protocolBalanceBefore + newFee, "Protocol should receive increased fee");
+        assertEq(usdc.balanceOf(user), userBalanceBefore - newFee, "User should pay increased fee");
     }
 
     /**
