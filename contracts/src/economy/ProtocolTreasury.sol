@@ -32,8 +32,8 @@ contract ProtocolTreasury is
     uint256 public constant REDEMPTION_PAYOUT_BPS = 8_500;
     /// @notice Conversion multiplier between 18-decimal appraisals and 6-decimal USDC
     uint256 private constant USD_TO_USDC_CONVERSION = 1e12;
-    /// @notice Redemption window after winning NFT (1 hour)
-    uint256 public constant REDEMPTION_WINDOW = 1 hours;
+    /// @notice Redemption window after winning NFT (configurable by admin)
+    uint256 public redemptionWindow = 1 hours;
 
     IERC20 private _asset;
     address public economyManager;
@@ -44,6 +44,7 @@ contract ProtocolTreasury is
     event AppraisalOracleUpdated(address indexed previousOracle, address indexed newOracle);
     event EconomyManagerUpdated(address indexed previousManager, address indexed newManager);
     event RedemptionWindowEnforced(address indexed collection, uint256 indexed tokenId, address indexed user, uint256 timeSinceWin);
+    event RedemptionWindowUpdated(uint256 indexed oldWindow, uint256 indexed newWindow);
 
     modifier onlyEconomyManager() {
         require(msg.sender == economyManager, "ProtocolTreasury: caller not manager");
@@ -130,10 +131,10 @@ contract ProtocolTreasury is
         payout = Math.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000) / USD_TO_USDC_CONVERSION;
         require(payout > 0, "ProtocolTreasury: payout underflows");
 
-        // Check redemption window (user must redeem within 1 hour of winning)
+        // Check redemption window (user must redeem within configured time of winning)
         uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
         require(
-            receiveTime > 0 && block.timestamp <= receiveTime + REDEMPTION_WINDOW,
+            receiveTime > 0 && block.timestamp <= receiveTime + redemptionWindow,
             "ProtocolTreasury: Redemption window expired"
         );
 
@@ -215,7 +216,7 @@ contract ProtocolTreasury is
             return 0; // NFT not received from gacha
         }
 
-        uint256 expiryTime = receiveTime + REDEMPTION_WINDOW;
+        uint256 expiryTime = receiveTime + redemptionWindow;
         if (block.timestamp >= expiryTime) {
             return 0; // Window expired
         }
@@ -231,7 +232,19 @@ contract ProtocolTreasury is
      */
     function isRedemptionEligible(address collection, uint256 tokenId) external view returns (bool isEligible) {
         uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
-        return receiveTime > 0 && block.timestamp <= receiveTime + REDEMPTION_WINDOW;
+        return receiveTime > 0 && block.timestamp <= receiveTime + redemptionWindow;
+    }
+
+    /**
+     * @notice Updates the redemption window duration
+     * @param newWindow New redemption window duration in seconds
+     * @dev Only owner can call this function
+     */
+    function setRedemptionWindow(uint256 newWindow) external onlyOwner {
+        require(newWindow > 0, "ProtocolTreasury: window must be > 0");
+        uint256 oldWindow = redemptionWindow;
+        redemptionWindow = newWindow;
+        emit RedemptionWindowUpdated(oldWindow, newWindow);
     }
 
     /**
