@@ -92,6 +92,7 @@ contract GachaTreasury is
         uint256 appraisedPrice; // USD price when deposited (scaled by 1e18)
         Rarity rarity; // Current rarity tier based on price
         uint256 depositTime; // When NFT was deposited
+        uint256 receiveTime; // When user received the NFT from gacha (0 if not won yet)
     }
 
     /// @notice User's card deposit information for frontend display
@@ -132,6 +133,7 @@ contract GachaTreasury is
     mapping(address => mapping(uint256 => bool)) public depositedNFTs;
     mapping(address => mapping(uint256 => uint256)) public nftToTreasuryIndex; // collection => tokenId => index in rarity array
     mapping(address => mapping(uint256 => Rarity)) public nftCurrentRarity; // collection => tokenId => current rarity
+    mapping(address => mapping(uint256 => uint256)) public nftReceiveTimes; // collection => tokenId => when user received NFT from gacha
 
     /// @notice User deposit tracking for rewards
     mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
@@ -317,7 +319,8 @@ contract GachaTreasury is
             tokenId: tokenId,
             appraisedPrice: priceUSD,
             rarity: rarity,
-            depositTime: block.timestamp
+            depositTime: block.timestamp,
+            receiveTime: 0 // Not won yet
         });
 
         // Add to treasury
@@ -562,6 +565,10 @@ contract GachaTreasury is
         depositedNFTs[item.collection][item.tokenId] = false;
         delete nftToTreasuryIndex[item.collection][item.tokenId];
         delete nftCurrentRarity[item.collection][item.tokenId];
+
+        // Record receive time before transfer
+        uint256 receiveTime = block.timestamp;
+        nftReceiveTimes[item.collection][item.tokenId] = receiveTime;
 
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
@@ -832,7 +839,8 @@ contract GachaTreasury is
                 tokenId: tokenId,
                 appraisedPrice: priceUSD,
                 rarity: rarity,
-                depositTime: block.timestamp
+                depositTime: block.timestamp,
+                receiveTime: 0 // Not won yet
             });
 
             treasury[rarity].push(item);
@@ -898,6 +906,14 @@ contract GachaTreasury is
     function getUserTotalDepositCount(address user) external view returns (uint256 totalCount) {
         if (user == address(0)) return 0;
         return userTotalDeposits[user];
+    }
+
+    /// @notice Gets the time when a user received an NFT from gacha
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID
+    /// @return receiveTime Timestamp when user received the NFT (0 if not received from gacha)
+    function getNFTReceiveTime(address collection, uint256 tokenId) external view returns (uint256 receiveTime) {
+        return nftReceiveTimes[collection][tokenId];
     }
 
     /// @notice Gets all deposit counts for a user across all rarities
@@ -1007,6 +1023,10 @@ contract GachaTreasury is
         delete nftToTreasuryIndex[item.collection][item.tokenId];
         delete nftCurrentRarity[item.collection][item.tokenId];
 
+        // Record receive time before transfer
+        uint256 receiveTime = block.timestamp;
+        nftReceiveTimes[item.collection][item.tokenId] = receiveTime;
+
         // Transfer NFT to winner
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
@@ -1031,13 +1051,17 @@ contract GachaTreasury is
             tokenId: tokenId,
             appraisedPrice: appraisalUSD,
             rarity: rarity,
-            depositTime: block.timestamp
+            depositTime: block.timestamp,
+            receiveTime: 0 // Not won yet
         });
 
         depositedNFTs[collection][tokenId] = true;
         nftCurrentRarity[collection][tokenId] = rarity;
         treasury[rarity].push(item);
         nftToTreasuryIndex[collection][tokenId] = treasury[rarity].length - 1;
+
+        // Clear receive time when NFT returns to treasury
+        delete nftReceiveTimes[collection][tokenId];
 
         unchecked {
             ++rarityCount[rarity];

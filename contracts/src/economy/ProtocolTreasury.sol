@@ -32,6 +32,8 @@ contract ProtocolTreasury is
     uint256 public constant REDEMPTION_PAYOUT_BPS = 8_500;
     /// @notice Conversion multiplier between 18-decimal appraisals and 6-decimal USDC
     uint256 private constant USD_TO_USDC_CONVERSION = 1e12;
+    /// @notice Redemption window after winning NFT (1 hour)
+    uint256 public constant REDEMPTION_WINDOW = 1 hours;
 
     IERC20 private _asset;
     address public economyManager;
@@ -41,6 +43,7 @@ contract ProtocolTreasury is
     event GachaTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
     event AppraisalOracleUpdated(address indexed previousOracle, address indexed newOracle);
     event EconomyManagerUpdated(address indexed previousManager, address indexed newManager);
+    event RedemptionWindowEnforced(address indexed collection, uint256 indexed tokenId, address indexed user, uint256 timeSinceWin);
 
     modifier onlyEconomyManager() {
         require(msg.sender == economyManager, "ProtocolTreasury: caller not manager");
@@ -127,6 +130,16 @@ contract ProtocolTreasury is
         payout = Math.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000) / USD_TO_USDC_CONVERSION;
         require(payout > 0, "ProtocolTreasury: payout underflows");
 
+        // Check redemption window (user must redeem within 1 hour of winning)
+        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
+        require(
+            receiveTime > 0 && block.timestamp <= receiveTime + REDEMPTION_WINDOW,
+            "ProtocolTreasury: Redemption window expired"
+        );
+
+        uint256 timeSinceWin = block.timestamp - receiveTime;
+        emit RedemptionWindowEnforced(collection, tokenId, msg.sender, timeSinceWin);
+
         require(_asset.balanceOf(address(this)) >= payout, "ProtocolTreasury: insufficient liquidity");
 
         IERC721(collection).safeTransferFrom(msg.sender, address(_treasury), tokenId);
@@ -191,9 +204,40 @@ contract ProtocolTreasury is
     }
 
     /**
+     * @notice Gets the remaining redemption window for an NFT
+     * @param collection NFT collection address
+     * @param tokenId NFT identifier
+     * @return remainingTime Remaining time in seconds (0 if expired)
+     */
+    function getRemainingRedemptionWindow(address collection, uint256 tokenId) external view returns (uint256 remainingTime) {
+        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
+        if (receiveTime == 0) {
+            return 0; // NFT not received from gacha
+        }
+
+        uint256 expiryTime = receiveTime + REDEMPTION_WINDOW;
+        if (block.timestamp >= expiryTime) {
+            return 0; // Window expired
+        }
+
+        return expiryTime - block.timestamp;
+    }
+
+    /**
+     * @notice Checks if an NFT is still within redemption window
+     * @param collection NFT collection address
+     * @param tokenId NFT identifier
+     * @return isEligible True if NFT can still be redeemed
+     */
+    function isRedemptionEligible(address collection, uint256 tokenId) external view returns (bool isEligible) {
+        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
+        return receiveTime > 0 && block.timestamp <= receiveTime + REDEMPTION_WINDOW;
+    }
+
+    /**
      * @notice Authorizes UUPS upgrades
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    uint256[46] private __gap;
+    uint256[44] private __gap;
 }
