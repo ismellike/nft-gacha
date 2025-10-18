@@ -59,6 +59,7 @@ impl ResolverRoute {
                 company,
                 is_perfect,
                 set_id,
+                variant: None, // Default to None for direct construction
             }),
         }
     }

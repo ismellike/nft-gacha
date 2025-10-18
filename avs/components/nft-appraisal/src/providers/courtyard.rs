@@ -252,6 +252,7 @@ impl TryInto<ScrydexCardInfo> for &NFTMetadata {
         let mut company = None;
         let mut is_perfect = false;
         let mut set_name = None;
+        let mut variant_parts = Vec::new();
 
         // Extract information from attributes
         for attr in &self.attributes {
@@ -280,6 +281,17 @@ impl TryInto<ScrydexCardInfo> for &NFTMetadata {
                     "set" | "set name" => set_name = value_str,
                     _ => {}
                 }
+            } else {
+                // Handle variant attributes that don't have a trait_type (like "1st Edition", "Shadowless", "Holo")
+                if let Some(value_str) = CourtyardProvider::attribute_value_as_string(&attr.value) {
+                    let value_lower = value_str.to_lowercase();
+                    if matches!(value_lower.as_str(),
+                        "1st edition" | "shadowless" | "unlimited" |
+                        "holo" | "holofoil" | "reverse holofoil" | "reverse holo"
+                    ) {
+                        variant_parts.push(value_str.trim().to_string());
+                    }
+                }
             }
         }
 
@@ -300,17 +312,46 @@ impl TryInto<ScrydexCardInfo> for &NFTMetadata {
             anyhow!("Missing required set name attribute")
         })?;
 
+        let variant = if variant_parts.is_empty() {
+            None
+        } else {
+            Some(CourtyardProvider::construct_variant_string(&variant_parts))
+        };
+
         Ok(ScrydexCardInfo {
             card_number,
             grade,
             company,
             is_perfect,
             set_id,
+            variant,
         })
     }
 }
 
 impl CourtyardProvider {
+    /// Construct variant string in the format expected by Scrydex
+    /// e.g., ["1st Edition", "Shadowless"] → "firstEditionShadowless"
+    /// e.g., ["1st Edition", "Shadowless", "Holo"] → "firstEditionShadowlessHolofoil"
+    fn construct_variant_string(variant_parts: &[String]) -> String {
+        let mut result = String::new();
+
+        for part in variant_parts {
+            let part_lower = part.to_lowercase();
+            let mapped = match part_lower.as_str() {
+                "1st edition" => "firstEdition",
+                "shadowless" => "Shadowless",
+                "unlimited" => "unlimited",
+                "holo" | "holofoil" => "Holofoil",
+                "reverse holo" | "reverse holofoil" => "ReverseHolofoil",
+                _ => part, // Keep original if no mapping
+            };
+            result.push_str(mapped);
+        }
+
+        result
+    }
+
     fn categories_from_attributes(attributes: &[NFTAttribute]) -> Vec<String> {
         attributes
             .iter()
@@ -902,5 +943,164 @@ mod tests {
             result.unwrap(),
             "Verification returned false - integrity check failed"
         );
+    }
+
+    #[test]
+    fn test_variant_extraction_from_courtyard_metadata() {
+        use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
+
+        let metadata = NFTMetadata {
+            collection_name: None,
+            name: "1999 Base Set #53 Magnemite - 1st Edition Shadowless (PSA 9 MINT)".to_string(),
+            description: Some("A test card".to_string()),
+            external_url: Some("https://example.com".to_string()),
+            image: Some("https://example.com/image.jpg".to_string()),
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            product_type: Some("GRADED_CARD".to_string()),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: serde_json::Value::String("9 MINT".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: serde_json::Value::String("Base Set".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: serde_json::Value::String("53".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("1st Edition".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("Shadowless".to_string()),
+                },
+            ],
+        };
+
+        let card_info: ScrydexCardInfo = (&metadata).try_into().expect("Failed to convert metadata");
+
+        assert_eq!(card_info.card_number, "53");
+        assert_eq!(card_info.grade, "9");
+        assert_eq!(card_info.company, "PSA");
+        assert_eq!(card_info.set_id, "Base Set");
+        assert_eq!(card_info.variant, Some("firstEditionShadowless".to_string()));
+        assert_eq!(card_info.is_perfect, false);
+    }
+
+    #[test]
+    fn test_variant_extraction_with_holo() {
+        use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
+
+        let metadata = NFTMetadata {
+            collection_name: None,
+            name: "1999 Base Set #4 Charizard - 1st Edition Shadowless Holo (PSA 10)".to_string(),
+            description: Some("A test holo card".to_string()),
+            external_url: Some("https://example.com".to_string()),
+            image: Some("https://example.com/image.jpg".to_string()),
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            product_type: Some("GRADED_CARD".to_string()),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: serde_json::Value::String("10 PRISTINE".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: serde_json::Value::String("Base Set".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: serde_json::Value::String("4".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("1st Edition".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("Shadowless".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("Holo".to_string()),
+                },
+            ],
+        };
+
+        let card_info: ScrydexCardInfo = (&metadata).try_into().expect("Failed to convert metadata");
+
+        assert_eq!(card_info.card_number, "4");
+        assert_eq!(card_info.grade, "10");
+        assert_eq!(card_info.company, "PSA");
+        assert_eq!(card_info.set_id, "Base Set");
+        assert_eq!(card_info.variant, Some("firstEditionShadowlessHolofoil".to_string()));
+        assert_eq!(card_info.is_perfect, true);
+    }
+
+    #[test]
+    fn test_variant_extraction_no_variant_attributes() {
+        use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
+
+        let metadata = NFTMetadata {
+            collection_name: None,
+            name: "1999 Base Set #53 Magnemite (PSA 9 MINT)".to_string(),
+            description: Some("A test card".to_string()),
+            external_url: Some("https://example.com".to_string()),
+            image: Some("https://example.com/image.jpg".to_string()),
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            product_type: Some("GRADED_CARD".to_string()),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: serde_json::Value::String("9 MINT".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: serde_json::Value::String("Base Set".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: serde_json::Value::String("53".to_string()),
+                },
+                // No variant attributes
+            ],
+        };
+
+        let card_info: ScrydexCardInfo = (&metadata).try_into().expect("Failed to convert metadata");
+
+        assert_eq!(card_info.card_number, "53");
+        assert_eq!(card_info.grade, "9");
+        assert_eq!(card_info.company, "PSA");
+        assert_eq!(card_info.set_id, "Base Set");
+        assert_eq!(card_info.variant, None);
+        assert_eq!(card_info.is_perfect, false);
     }
 }
