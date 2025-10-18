@@ -8,112 +8,66 @@ import {
 	ArrowPathIcon,
 	TrophyIcon,
 } from "@heroicons/react/24/outline";
-import { UnifiedNFTCard } from "./UnifiedNFTCard";
-import { glassTypography } from "../lib/theme-config";
-import { getRarityConfig } from "../lib/rarityConfig";
+import { cn, glassTypography } from "../lib/theme-config";
+import { Rarity, getRarityConfig, rarityFromNumber } from "../lib/rarityConfig";
 import { useGachaId } from "../hooks/useGachaId";
 import { useGachaContracts } from "../hooks/useGachaContracts";
-import {
-	useReadGachaEconomyManagerFeeToken,
-	useReadErc20Decimals,
-	useReadErc20Symbol,
-} from "../generated";
 import { formatTokenAmount } from "../lib/utils";
 import {
 	useTreasuryUserCards,
-	type CardDepositInfo,
+	type UserCardDeposit,
 } from "../hooks/useTreasuryUserCards";
-import { useRewardsClaiming, type Rarity } from "../hooks/useRewardsClaiming";
-import { useAccount, usePublicClient } from "wagmi";
-import type { CardAppraisal } from "../hooks/useBatchCardAppraisal";
+import { useRarityTracker, type CardAppraisalInfo } from "../hooks/useRarityTracker";
+import { useAccount } from "wagmi";
 import { useRegisterRewardsRefetch } from "../hooks/useRewardsData";
+import {
+	useBatchCardAppraisal,
+	type CardAppraisal,
+} from "../hooks/useBatchCardAppraisal";
+import { UnifiedNFTCard } from "./UnifiedNFTCard";
 
-const managerViewAbi = [
-	{
-		type: "function",
-		name: "findActiveCardRarity",
-		stateMutability: "view",
-		inputs: [{ name: "cardId", type: "bytes32" }],
-		outputs: [
-			{ name: "activeRarity", type: "uint8" },
-			{ name: "found", type: "bool" },
-		],
-	},
-	{
-		type: "function",
-		name: "getUserCardClaimable",
-		stateMutability: "view",
-		inputs: [
-			{ name: "user", type: "address" },
-			{ name: "rarity", type: "uint8" },
-			{ name: "cardId", type: "bytes32" },
-		],
-		outputs: [{ name: "claimable", type: "uint256" }],
-	},
-] as const;
-
-interface CardRewardInfo extends CardDepositInfo {
-	activeRarity: Rarity | null;
-	claimableAmount: bigint | null; // null = not yet loaded
-	isLoadingClaimable: boolean;
+interface CardInventoryInfo extends UserCardDeposit {
+	appraisalInfo: CardAppraisalInfo | null;
 	appraisal: CardAppraisal | null;
+	userValueUsd: bigint;
+	isLoadingValue: boolean;
 }
+
+type DetailItem = { label: string; value: string; highlight?: boolean };
 
 export function CardRewardsList() {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const treasury = contracts.treasury as Address | undefined;
-	const rewardsManager = contracts.economyManager as Address | undefined;
-	const { loadAllCardDeposits } = useTreasuryUserCards(treasury);
-	const { claimForCard, claimAllUserCards, isPending } =
-		useRewardsClaiming(rewardsManager);
+	const rarityTracker = contracts.trackers?.common as Address | undefined;
+	const { getAllUserCardDeposits } = useTreasuryUserCards(treasury);
+	const { getBatchCardInfo, getBatchUserCardValues } = useRarityTracker(rarityTracker);
 	const { address: user } = useAccount();
-	const publicClient = usePublicClient();
+	const { fetchCardAppraisals } = useBatchCardAppraisal(
+		contracts.appraisal as Address | undefined,
+	);
+	const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-	const [cards, setCards] = useState<CardRewardInfo[]>([]);
+	const [cards, setCards] = useState<CardInventoryInfo[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [currentPage, setCurrentPage] = useState(0);
 	const pageSize = 12;
 	const hasLoadedRef = useRef(false);
 	const lastUserRef = useRef<string | null>(null);
 
-	// Fee token details from RewardsManager
-	const { data: feeTokenAddress, refetch: refetchFeeToken } =
-		useReadGachaEconomyManagerFeeToken({
-			address: rewardsManager as `0x${string}` | undefined,
-			query: { enabled: !!rewardsManager },
-		});
-	const { data: feeTokenDecimals, refetch: refetchFeeTokenDecimals } =
-		useReadErc20Decimals({
-			address: feeTokenAddress,
-			query: { enabled: !!feeTokenAddress },
-		});
-	const { data: feeTokenSymbol, refetch: refetchFeeTokenSymbol } =
-		useReadErc20Symbol({
-			address: feeTokenAddress,
-			query: { enabled: !!feeTokenAddress },
-		});
-
-	// Register fee token refetch functions with the rewards system
-	useRegisterRewardsRefetch("feeToken", refetchFeeToken);
-	useRegisterRewardsRefetch("feeTokenDecimals", refetchFeeTokenDecimals);
-	useRegisterRewardsRefetch("feeTokenSymbol", refetchFeeTokenSymbol);
-
 	// Register treasury cards refetch function
 	useRegisterRewardsRefetch("treasuryCards", async () => {
-		// Force reload of user cards by clearing cache and triggering re-fetch
-		await loadAllCardDeposits();
+		// Force reload of user cards
+		setCards([]);
+		hasLoadedRef.current = false;
 	});
 
-	// Format claimable using actual fee token decimals/symbol
-	const formatClaimable = (amount: bigint) => {
-		const decimals =
-			typeof feeTokenDecimals === "number" ? feeTokenDecimals : 6; // default to 6 if unknown
-		const symbol = feeTokenSymbol || "";
-		return formatTokenAmount(amount, decimals, {
+	// Format USD values
+	const formatUSD = (amount: bigint) => {
+		return formatTokenAmount(amount, 6, {
 			maxDecimals: 2,
 			minDecimals: 2,
-			suffix: symbol ? ` ${symbol}` : "",
+			suffix: " USD",
 		});
 	};
 
@@ -131,11 +85,10 @@ export function CardRewardsList() {
 	useEffect(() => {
 		console.log("[CardRewardsList] mount/useEffect deps", {
 			hasTreasury: !!treasury,
-			hasRewardsManager: !!rewardsManager,
+			hasRarityTracker: !!rarityTracker,
 			hasUser: !!user,
-			hasPublicClient: !!publicClient,
 		});
-		if (!treasury || !rewardsManager || !user || !publicClient) {
+		if (!treasury || !rarityTracker || !user) {
 			hasLoadedRef.current = false;
 			return;
 		}
@@ -152,128 +105,71 @@ export function CardRewardsList() {
 		const loadUserCards = async () => {
 			console.log("[CardRewardsList] loadUserCards start", {
 				treasury,
-				rewardsManager,
+				rarityTracker,
 				user,
 			});
 			hasLoadedRef.current = true;
 			setIsLoading(true);
 			try {
-				// Load all user's cards with deposit counts and group data
-				const deposits = await loadAllCardDeposits();
+				// Load all user's card deposits from Treasury
+				const deposits = await getAllUserCardDeposits();
 				console.log("[CardRewardsList] deposits loaded", {
 					count: deposits.length,
 					sample: deposits.slice(0, 5),
 				});
 
-				const cardInfos: CardRewardInfo[] = [];
+				if (deposits.length === 0) {
+					setCards([]);
+					setIsLoading(false);
+					return;
+				}
 
-				// Fetch batch card appraisals directly from contract
 				const cardIds = deposits.map((d) => d.cardId);
 
-				const appraisalResults =
-					cardIds.length > 0
-						? ((await publicClient.readContract({
-								address: contracts.appraisal as `0x${string}`,
-								abi: [
-									{
-										type: "function",
-										name: "getCardAppraisals",
-										stateMutability: "view",
-										inputs: [{ name: "cardIds", type: "bytes32[]" }],
-										outputs: [
-											{
-												name: "appraisals",
-												type: "tuple[]",
-												components: [
-													{ name: "priceUSD", type: "uint256" },
-													{ name: "status", type: "uint8" },
-													{ name: "firstTimestamp", type: "uint256" },
-													{ name: "lastUpdated", type: "uint256" },
-													{ name: "canonicalContractAddress", type: "address" },
-													{ name: "canonicalTokenId", type: "uint256" },
-												],
-											},
-										],
-									},
-								] as const,
-								functionName: "getCardAppraisals",
-								args: [cardIds],
-							})) as {
-								priceUSD: bigint;
-								status: number;
-								firstTimestamp: bigint;
-								lastUpdated: bigint;
-								canonicalContractAddress: `0x${string}`;
-								canonicalTokenId: bigint;
-							}[])
-						: [];
-				console.log("[CardRewardsList] appraisalResults", {
-					count: appraisalResults?.length ?? 0,
-					sample: appraisalResults?.slice(0, 3),
-				});
-				if (!appraisalResults || appraisalResults.length === 0) {
-					console.warn("[CardRewardsList] No appraisal results returned", {
-						appraisalAddress: contracts.appraisal,
-						cardIds: cardIds.slice(0, 5),
-					});
-				}
-
-				// Batch fetch active rarities for all cards via multicall
-				let activeRarityResults: Array<
-					{ result?: [number, boolean] | undefined } | undefined
-				> = [];
-				try {
-					activeRarityResults = await publicClient.multicall({
-						allowFailure: true,
-						contracts: deposits.map((d) => ({
-							address: rewardsManager as `0x${string}`,
-							abi: managerViewAbi,
-							functionName: "findActiveCardRarity",
-							args: [d.cardId],
-						})),
-					});
-				} catch {
-					activeRarityResults = [];
-				}
-				console.log("[CardRewardsList] activeRarityResults", {
-					count: activeRarityResults?.length ?? 0,
-					sample: activeRarityResults?.slice(0, 3),
+				// Fetch card appraisal info from RarityTracker
+				const appraisalInfos = await getBatchCardInfo(cardIds);
+				console.log("[CardRewardsList] appraisalInfos loaded", {
+					count: appraisalInfos.length,
+					sample: appraisalInfos.slice(0, 3),
 				});
 
-				// Build card info list using batch results
-				deposits.forEach(({ cardId, depositCount, groupData }, i) => {
-					const res = activeRarityResults?.[i] as unknown as
-						| { result?: [number, boolean] }
-						| undefined;
-					const tuple = res?.result;
-					const activeRarity = tuple?.[1] ? (tuple?.[0] as Rarity) : null;
-					const appraisalResult = appraisalResults?.[i];
-
-					cardInfos.push({
-						cardId,
-						depositCount,
-						activeRarity,
-						claimableAmount: null,
-						isLoadingClaimable: false,
-						groupData: groupData as `0x${string}`,
-						appraisal: appraisalResult
-							? {
-									canonicalContractAddress:
-										appraisalResult.canonicalContractAddress,
-									canonicalTokenId: appraisalResult.canonicalTokenId,
-									priceUSD: appraisalResult.priceUSD,
-									status: appraisalResult.status,
-									firstTimestamp: appraisalResult.firstTimestamp,
-									lastUpdated: appraisalResult.lastUpdated,
-								}
-							: null,
-					});
+				// Fetch user's specific values for each card
+				const userValues = await getBatchUserCardValues(cardIds);
+				console.log("[CardRewardsList] userValues loaded", {
+					count: userValues.length,
+					sample: userValues.slice(0, 3),
 				});
 
-				setCards(cardInfos);
-				console.log("[CardRewardsList] cardInfos built", {
-					count: cardInfos.length,
-					sample: cardInfos.slice(0, 3),
+				// Build card inventory info list
+				const appraisalMap = await fetchCardAppraisals(cardIds);
+				console.log("[CardRewardsList] appraisalMap loaded", {
+					cardCount: Object.keys(appraisalMap).length,
+				});
+
+				const cardInventoryInfos: CardInventoryInfo[] = deposits.map(
+					(deposit) => {
+						const appraisalInfo =
+							appraisalInfos.find((info) => info.cardId === deposit.cardId) ||
+							null;
+						const userValue =
+							userValues.find((value) => value.cardId === deposit.cardId)
+								?.valueUsd || 0n;
+						const cardAppraisal = appraisalMap?.[deposit.cardId] ?? null;
+
+						return {
+							...deposit,
+							appraisalInfo,
+							appraisal: cardAppraisal,
+							userValueUsd: userValue,
+							isLoadingValue: false,
+						};
+					},
+				);
+
+				setCards(cardInventoryInfos);
+				console.log("[CardRewardsList] cardInventoryInfos built", {
+					count: cardInventoryInfos.length,
+					sample: cardInventoryInfos.slice(0, 3),
 				});
 			} catch (error) {
 				console.error("Failed to load user cards:", error);
@@ -289,212 +185,24 @@ export function CardRewardsList() {
 		});
 	}, [
 		treasury,
-		rewardsManager,
-		user,
-		publicClient,
-		loadAllCardDeposits,
-		contracts.appraisal,
+		rarityTracker,
+	user,
+	getAllUserCardDeposits,
+	getBatchCardInfo,
+	getBatchUserCardValues,
+	fetchCardAppraisals,
 	]);
 
-	const cardIndexById = useMemo(() => {
-		const map = new Map<Hex, number>();
-		cards.forEach((c, i) => map.set(c.cardId, i));
-		return map;
-	}, [cards]);
-
-	const fetchClaimableById = useCallback(
-		async (cardId: Hex) => {
-			if (!publicClient || !rewardsManager || !user) return;
-
-			const cardIndex = cardIndexById.get(cardId);
-			if (cardIndex === undefined) return;
-			const card = cards[cardIndex];
-			if (!card || card.activeRarity === null || card.isLoadingClaimable)
-				return;
-
-			setCards((prev) =>
-				prev.map((c, i) =>
-					i === cardIndex ? { ...c, isLoadingClaimable: true } : c,
-				),
-			);
-
-			try {
-				const amount = (await publicClient.readContract({
-					address: rewardsManager,
-					abi: managerViewAbi,
-					functionName: "getUserCardClaimable",
-					args: [user, card.activeRarity, card.cardId],
-				})) as bigint;
-				console.log("[CardRewardsList] claimable fetched", {
-					cardId,
-					amount: amount.toString(),
-				});
-
-				setCards((prev) =>
-					prev.map((c, i) =>
-						i === cardIndex
-							? {
-									...c,
-									claimableAmount: amount,
-									isLoadingClaimable: false,
-								}
-							: c,
-					),
-				);
-			} catch (error) {
-				console.error("Failed to fetch claimable amount:", error);
-				setCards((prev) =>
-					prev.map((c, i) =>
-						i === cardIndex
-							? {
-									...c,
-									claimableAmount: 0n,
-									isLoadingClaimable: false,
-								}
-							: c,
-					),
-				);
-			}
-		},
-		[publicClient, rewardsManager, user, cardIndexById, cards],
-	);
-
-	const handleClaimCard = async (card: CardRewardInfo) => {
-		if (card.activeRarity === null) return;
-
-		try {
-			await claimForCard(card.cardId, card.activeRarity);
-			// Refresh claimable amount after successful claim
-			setTimeout(() => fetchClaimableById(card.cardId), 1000);
-		} catch (error) {
-			console.error("Failed to claim card rewards:", error);
-		}
-	};
-
-	const handleClaimAll = async () => {
-		// Group all cards with claimable rewards by rarity
-		const cardsByRarity: Record<number, Hex[]> = {};
-
-		for (const card of cards) {
-			if (card.activeRarity !== null && (card.claimableAmount ?? 0n) > 0n) {
-				if (!cardsByRarity[card.activeRarity]) {
-					cardsByRarity[card.activeRarity] = [];
-				}
-				cardsByRarity[card.activeRarity].push(card.cardId);
-			}
-		}
-
-		try {
-			const cardsByRarityTyped = Object.fromEntries(
-				Object.entries(cardsByRarity).map(([rarity, cardIds]) => [
-					Number(rarity) as Rarity,
-					cardIds,
-				]),
-			) as Record<Rarity, Hex[]>;
-
-			if (Object.keys(cardsByRarityTyped).length > 0) {
-				await claimAllUserCards(cardsByRarityTyped);
-			}
-
-			// Refresh all claimable amounts after successful claims
-			setTimeout(() => {
-				cards.forEach((c) => {
-					fetchClaimableById(c.cardId);
-				});
-			}, 1000);
-		} catch (error) {
-			console.error("Failed to claim all rewards:", error);
-		}
-	};
-
-	// Auto-fetch claimable amounts for visible page where applicable
-	// Batch-fetch claimable amounts for visible page via multicall
-	useEffect(() => {
-		(async () => {
-			if (!publicClient || !rewardsManager || !user) return;
-
-			const targets = paginatedCards.filter(
-				(c) =>
-					c.activeRarity !== null &&
-					c.claimableAmount === null &&
-					!c.isLoadingClaimable,
-			);
-			if (targets.length === 0) return;
-
-			// Optimistically set loading
-			setCards((prev) =>
-				prev.map((c) =>
-					targets.some((t) => t.cardId === c.cardId)
-						? { ...c, isLoadingClaimable: true }
-						: c,
-				),
-			);
-
-			try {
-				const res = await publicClient.multicall({
-					allowFailure: true,
-					contracts: targets.map((t) => ({
-						address: rewardsManager as `0x${string}`,
-						abi: managerViewAbi,
-						functionName: "getUserCardClaimable",
-						args: [user as Address, t.activeRarity as number, t.cardId],
-					})),
-				});
-				console.log("[CardRewardsList] batch claimables", {
-					targets: targets.map((t) => t.cardId),
-					results: res,
-				});
-
-				setCards((prev) => {
-					const next = [...prev];
-					targets.forEach((t, i) => {
-						const idx = cardIndexById.get(t.cardId);
-						if (idx === undefined) return;
-						const out = res[i] as unknown as { result?: bigint } | undefined;
-						const claimable = out?.result ?? 0n;
-						next[idx] = {
-							...next[idx],
-							claimableAmount: claimable,
-							isLoadingClaimable: false,
-						};
-					});
-					return next;
-				});
-			} catch (err) {
-				console.warn(
-					"Batch claimable multicall failed; falling back per-card",
-					err,
-				);
-				// Fallback to per-card fetch for robustness
-				targets.forEach((t) => fetchClaimableById(t.cardId));
-			}
-		})();
-	}, [
-		paginatedCards,
-		publicClient,
-		rewardsManager,
-		user,
-		cardIndexById,
-		fetchClaimableById,
-	]);
-
-	const pageClaimableCount = useMemo(
-		() => paginatedCards.filter((c) => (c.claimableAmount ?? 0n) > 0n).length,
-		[paginatedCards],
-	);
-
-	const allClaimableCount = useMemo(
-		() => cards.filter((c) => (c.claimableAmount ?? 0n) > 0n).length,
-		[cards],
-	);
-	const allClaimableTotal = useMemo(
-		() => cards.reduce((sum, c) => sum + (c.claimableAmount ?? 0n), 0n),
+	// Calculate total inventory value
+	const totalInventoryValue = useMemo(
+		() => cards.reduce((sum, c) => sum + c.userValueUsd, 0n),
 		[cards],
 	);
 
-	const refreshPageClaimables = useCallback(() => {
-		paginatedCards.forEach((c) => fetchClaimableById(c.cardId));
-	}, [paginatedCards, fetchClaimableById]);
+	const refreshInventory = useCallback(() => {
+		setCards([]);
+		hasLoadedRef.current = false;
+	}, []);
 
 	if (isLoading) {
 		return (
@@ -523,44 +231,33 @@ export function CardRewardsList() {
 			<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
 				<div>
 					<h2 className={glassTypography({ variant: "mainHeading" })}>
-						💎 Card Rewards & Claims
+						💎 Card Inventory & Value
 					</h2>
 					<div className="mt-2 text-sm text-foreground/70">
-						{cards.length} unique cards deposited • Manage your rewards
-						efficiently with batch claiming
+						{cards.length} unique cards deposited • Total inventory value: {formatUSD(totalInventoryValue)}
 					</div>
 				</div>
 				<div className="flex flex-col sm:items-end gap-3">
 					<div className="flex flex-wrap items-center gap-3">
 						<div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2">
-							<BanknotesIcon className="w-5 h-5 text-warning" />
+							<BanknotesIcon className="w-5 h-5 text-success" />
 							<div className="text-right">
 								<div className="text-sm font-bold text-foreground">
-									{formatClaimable(allClaimableTotal)}
+									{formatUSD(totalInventoryValue)}
 								</div>
 								<div className="text-xs text-foreground/60">
-									{allClaimableCount} cards claimable
+									{cards.length} cards total
 								</div>
 							</div>
 						</div>
 						<Button
 							size="sm"
-							onPress={refreshPageClaimables}
+							onPress={refreshInventory}
 							className="rounded-lg bg-content2 hover:bg-content3"
 						>
 							<ArrowPathIcon className="w-4 h-4" />
 						</Button>
 					</div>
-					{allClaimableCount > 0 && (
-						<Button
-							size="md"
-							isLoading={isPending}
-							onPress={handleClaimAll}
-							className="rounded-xl bg-gradient-to-r from-success to-primary text-white font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
-						>
-							🎁 Claim All Rewards ({allClaimableCount})
-						</Button>
-					)}
 					{totalPages > 1 && (
 						<div className="flex items-center gap-2">
 							<Button
@@ -595,231 +292,129 @@ export function CardRewardsList() {
 				<div className="space-y-4">
 					<div className="flex justify-center">
 						<div className="text-sm text-foreground/60 inline-flex items-center gap-2">
-							<TrophyIcon className="w-4 h-4" /> {pageClaimableCount} cards on
-							this page have claimable rewards
+							<TrophyIcon className="w-4 h-4" /> {paginatedCards.length} cards on
+							this page • Total value: {formatUSD(
+								paginatedCards.reduce((sum, c) => sum + c.userValueUsd, 0n)
+							)}
 						</div>
 					</div>
 
 					<div className="grid md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
 						{paginatedCards.map((card) => {
-							const rarityConfig =
-								card.activeRarity !== null
-									? getRarityConfig(card.activeRarity)
-									: null;
-							const appraisal = card.appraisal;
+							const appraisalInfo = card.appraisalInfo;
+							const cardAppraisal = card.appraisal;
+							const rarityEnum = appraisalInfo
+								? rarityFromNumber(appraisalInfo.currentRarity)
+								: Rarity.Common;
+							const rarityConfig = getRarityConfig(rarityEnum);
 
-							// Minimal address validation (40 hex and not zero address)
-							const isValidAddress = (addr: string) =>
-								/^0x[0-9a-fA-F]{40}$/.test(addr) &&
-								addr.toLowerCase() !==
-									"0x0000000000000000000000000000000000000000";
+							const detailRows: DetailItem[] = [
+								{
+									label: "Card ID",
+									value: card.cardId.slice(2, 10).toUpperCase(),
+								},
+								{
+									label: "Deposited",
+									value: card.depositCount.toString(),
+								},
+								{
+									label: "Your Value",
+									value: card.isLoadingValue
+										? "Loading..."
+										: formatUSD(card.userValueUsd),
+									highlight: !card.isLoadingValue,
+								},
+							];
 
-							const hasValidCanonical =
-								typeof appraisal?.canonicalContractAddress === "string" &&
-								isValidAddress(appraisal.canonicalContractAddress) &&
-								typeof appraisal?.canonicalTokenId === "bigint"; // tokenId 0 is valid
-							if (!hasValidCanonical) {
-								console.warn("[CardRewardsList] invalid canonical for card", {
-									cardId: card.cardId,
-									address: appraisal?.canonicalContractAddress,
-									addressValid: appraisal?.canonicalContractAddress
-										? isValidAddress(appraisal.canonicalContractAddress)
-										: false,
-									tokenIdType: typeof appraisal?.canonicalTokenId,
-									appraisal,
-								});
-							} else {
-								console.log("[CardRewardsList] rendering UnifiedNFTCard", {
-									cardId: card.cardId,
-									collection: appraisal?.canonicalContractAddress,
-									tokenId: appraisal?.canonicalTokenId?.toString(),
+							if (appraisalInfo) {
+								detailRows.push({
+									label: "Total Deposited",
+									value: appraisalInfo.totalDepositedCount.toString(),
 								});
 							}
 
-							if (hasValidCanonical) {
-								// Create rewards slot
-								const rewardsSlot = (
-									<div
-										key={`rewards-${card.cardId}`}
-										className="bg-white/5 backdrop-blur-md rounded-xl border border-white/20 p-3 space-y-2"
-									>
-										<div className="flex items-center justify-between">
-											<span className="text-xs text-white/70 uppercase tracking-wide font-medium">
-												Rewards
-											</span>
-											{rarityConfig && (
-												<span
-													className={`text-xs px-2 py-1 rounded-full ${rarityConfig.textColor} ${rarityConfig.borderColor} border`}
-												>
-													{rarityConfig.name}
-												</span>
-											)}
-										</div>
-										<div className="space-y-1">
-											<div className="flex justify-between items-center text-xs">
-												<span className="text-white/60">Card ID:</span>
-												<span className="text-white font-medium">
-													{card.cardId.slice(2, 10).toUpperCase()}
-												</span>
-											</div>
-											<div className="flex justify-between items-center text-xs">
-												<span className="text-white/60">Deposited:</span>
-												<span className="text-white font-medium">
-													{card.depositCount.toString()}
-												</span>
-											</div>
-											<div className="flex justify-between items-center text-xs">
-												<span className="text-white/60">Claimable:</span>
-												<span className="text-white font-medium">
-													{card.isLoadingClaimable ||
-													card.claimableAmount === null ? (
-														<span className="animate-pulse">Loading...</span>
-													) : (
-														formatClaimable(card.claimableAmount)
-													)}
-												</span>
-											</div>
-										</div>
-										<Button
-											size="sm"
-											isDisabled={
-												card.activeRarity === null ||
-												!card.claimableAmount ||
-												card.claimableAmount === 0n
-											}
-											isLoading={isPending}
-											onPress={() => handleClaimCard(card)}
-											className="w-full rounded-lg bg-gradient-to-r from-warning to-orange-400 text-black"
-										>
-											Claim Rewards
-										</Button>
-									</div>
-								);
+							const canonicalAddress =
+								cardAppraisal?.canonicalContractAddress;
+							if (
+								cardAppraisal &&
+								canonicalAddress &&
+								canonicalAddress !== ZERO_ADDRESS
+							) {
+								const collection = canonicalAddress as `0x${string}`;
+								const tokenId = cardAppraisal.canonicalTokenId.toString();
 
 								return (
 									<UnifiedNFTCard
 										key={card.cardId}
-										collection={appraisal.canonicalContractAddress}
-										tokenId={appraisal.canonicalTokenId.toString()}
-										size="md"
-										variant="detailed"
+										collection={collection}
+										tokenId={tokenId}
 										appraisalContractAddress={
-											contracts.appraisal as `0x${string}`
+											(contracts.appraisal as `0x${string}`) ||
+											(ZERO_ADDRESS as `0x${string}`)
 										}
-										preload={true}
-										{...(card.activeRarity !== null && {
-											rarity: card.activeRarity,
-										})}
-										showAppraisal={true}
-										appraisalOverride={{
-											hasAppraisal:
-												(appraisal.status === 1 || appraisal.status === 2) &&
-												appraisal.priceUSD > 0n,
-											priceUSD: appraisal.priceUSD,
-										}}
-										rewardsSlot={rewardsSlot}
-										extraDetails={[]}
+										rarity={rarityEnum}
+										extraDetails={detailRows}
+										showAppraisal
+										appraisalOverride={
+											cardAppraisal.priceUSD > 0n
+												? {
+														hasAppraisal: true,
+														priceUSD: cardAppraisal.priceUSD,
+												  }
+												: undefined
+										}
+										protocolTreasuryAddress={
+											(contracts.protocolTreasury as `0x${string}`) ||
+											(ZERO_ADDRESS as `0x${string}`)
+										}
+										gachaId={gachaId}
+										variant="detailed"
+										size="md"
 									/>
 								);
 							}
 
-							// Fallback for cards with invalid canonical addresses - show a placeholder card
-							if (appraisal) {
-								const rewardsSlot = (
-									<div
-										key={`rewards-${card.cardId}`}
-										className="bg-white/5 backdrop-blur-md rounded-xl border border-white/20 p-3 space-y-2"
-									>
-										<div className="flex items-center justify-between">
-											<span className="text-xs text-white/70 uppercase tracking-wide font-medium">
-												Rewards
-											</span>
-											{rarityConfig && (
-												<span
-													className={`text-xs px-2 py-1 rounded-full ${rarityConfig.textColor} ${rarityConfig.borderColor} border`}
-												>
-													{rarityConfig.name}
-												</span>
-											)}
-										</div>
-										<div className="space-y-1">
-											<div className="flex justify-between items-center text-xs">
-												<span className="text-white/60">Card ID:</span>
-												<span className="text-white font-medium">
-													{card.cardId.slice(2, 10).toUpperCase()}
-												</span>
-											</div>
-										</div>
-										<div className="space-y-1">
-											<div className="flex justify-between items-center text-xs">
-												<span className="text-white/60">Deposited:</span>
-												<span className="text-white font-medium">
-													{card.depositCount.toString()}
-												</span>
-											</div>
-											<div className="flex justify-between items-center text-xs">
-												<span className="text-white/60">Claimable:</span>
-												<span className="text-white font-medium">
-													{card.isLoadingClaimable ||
-													card.claimableAmount === null ? (
-														<span className="animate-pulse">Loading...</span>
-													) : (
-														formatClaimable(card.claimableAmount)
-													)}
-												</span>
-											</div>
-										</div>
-										<Button
-											size="sm"
-											isDisabled={
-												card.activeRarity === null ||
-												!card.claimableAmount ||
-												card.claimableAmount === 0n
-											}
-											isLoading={isPending}
-											onPress={() => handleClaimCard(card)}
-											className="w-full rounded-lg bg-gradient-to-r from-warning to-orange-400 text-black"
+							return (
+								<Card
+									key={card.cardId}
+									className="flex flex-col gap-3 rounded-xl border border-white/15 bg-content1/30 p-4 backdrop-blur"
+								>
+									<div className="flex items-center gap-2">
+										<span
+											className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r ${rarityConfig.bgGradient} text-base`}
 										>
-											Claim Rewards
-										</Button>
+											{rarityConfig.emoji}
+										</span>
+										<div>
+											<p className="text-sm font-semibold text-foreground">
+												Card #{card.cardId.slice(2, 10).toUpperCase()}
+											</p>
+											<p className="text-xs text-foreground/60">
+												Metadata pending - appraisal required for full display.
+											</p>
+										</div>
 									</div>
-								);
-
-								return (
-									<UnifiedNFTCard
-										key={card.cardId}
-										collection={
-											appraisal.canonicalContractAddress as `0x${string}`
-										}
-										tokenId={appraisal.canonicalTokenId.toString()}
-										size="md"
-										variant="detailed"
-										appraisalContractAddress={
-											contracts.appraisal as `0x${string}`
-										}
-										preload={true}
-										{...(card.activeRarity !== null && {
-											rarity: card.activeRarity,
-										})}
-										showAppraisal={true}
-										appraisalOverride={{
-											hasAppraisal:
-												(appraisal.status === 1 || appraisal.status === 2) &&
-												appraisal.priceUSD > 0n,
-											priceUSD: appraisal.priceUSD,
-										}}
-										rewardsSlot={rewardsSlot}
-										extraDetails={
-											[
-												// Keep extra details minimal; appraisal rendered by card header
-											]
-										}
-									/>
-								);
-							}
-
-							// Invariant: appraisal exists per design. If missing, skip rendering to avoid broken UI.
-							return null;
+									<div className="grid gap-2 sm:grid-cols-2">
+										{detailRows.map(({ label, value, highlight }) => (
+											<div
+												key={`${card.cardId}-${label}`}
+												className={cn(
+													"flex flex-col rounded-lg border border-white/10 bg-content1/20 p-3 text-xs",
+													highlight &&
+														"border-warning/40 bg-warning/5 text-warning",
+												)}
+											>
+												<span className="text-foreground/60 uppercase tracking-wide">
+													{label}
+												</span>
+												<span className="text-foreground font-medium">
+													{value}
+												</span>
+											</div>
+										))}
+									</div>
+								</Card>
+							);
 						})}
 					</div>
 				</div>

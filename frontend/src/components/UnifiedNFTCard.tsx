@@ -59,6 +59,7 @@ export interface UnifiedNFTCardProps {
 	// Redemption functionality
 	protocolTreasuryAddress?: string;
 	gachaId?: string;
+	onBuybackSuccess?: (txHash: string) => void;
 }
 
 // Enhanced appraisal display with better caching
@@ -704,7 +705,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		const gachaConfig = gachaId ? getGachaConfig(gachaId) : null;
 		const finalProtocolTreasuryAddress = protocolTreasuryAddress || gachaConfig?.protocolTreasuryAddress;
 
-		// Create redemption action if treasury is available
+		// Create redemption action if treasury is available - simplified version
 		const redemptionAction = finalProtocolTreasuryAddress ? (
 			<motion.div
 				initial={{ opacity: 0, y: 10 }}
@@ -716,10 +717,11 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					tokenId={tokenId}
 					appraisalContractAddress={appraisalContractAddress}
 					protocolTreasuryAddress={finalProtocolTreasuryAddress}
-					size={size === "xs" || size === "sm" ? "sm" : size === "lg" || size === "xl" ? "lg" : "md"}
-					variant={size === "xs" || size === "sm" ? "button" : "card"}
+					size="md"
+					variant="button"
 					onSuccess={(txHash) => {
-						// Optional: Handle successful sale
+						// Call the callback if provided
+						onBuybackSuccess?.(txHash);
 						console.log("NFT sold successfully:", txHash);
 					}}
 				/>
@@ -728,7 +730,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 
 		// Merge custom actionSlot with redemption action
 		const finalActionSlot = (
-			<div className="flex flex-col gap-2">
+			<div className="flex flex-col gap-2 items-center justify-center">
 				{actionSlot}
 				{redemptionAction}
 			</div>
@@ -1010,7 +1012,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					{rewardsSlot && <div className="mt-2">{rewardsSlot}</div>}
 
 					{/* Action Slot */}
-					{finalActionSlot && <div className="mt-2">{finalActionSlot}</div>}
+					{finalActionSlot && <div className="mt-2 flex justify-center">{finalActionSlot}</div>}
 				</div>
 			</CardComponent>
 		);

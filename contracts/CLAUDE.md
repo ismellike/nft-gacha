@@ -103,17 +103,47 @@ This pattern separates core game logic from external service integration, allowi
 ### Utility Contracts
 
 Additional utility contracts provide system-wide functionality:
-- **RarityTracker** (`src/gacha/RarityTracker.sol`): Rarity management utilities and tracking
+- **RarityTracker** (`src/gacha/RarityTracker.sol`): ERC2222-style appraisal-weighted deposit tracking across a rarity → card → depositor tree structure
 - **ERC20BatchQuery** (`src/utils/ERC20BatchQuery.sol`): Batch query operations for ERC20 tokens
 - **BaseERC20** (`src/tokens/BaseERC20.sol`): Base ERC20 token implementation
 - **BaseERC721** (`src/tokens/BaseERC721.sol`): Base ERC721 NFT implementation
 
+### ERC2222 Tree Structure in RarityTracker
+
+The RarityTracker implements an ERC2222-style hierarchical tree structure for tracking NFT deposits and their associated rewards:
+
+**Tree Hierarchy:**
+```
+Rarity Tier (Root)
+├── Card Node (by cardId)
+│   ├── Appraisal USD value
+│   ├── Total count & value
+│   └── Depositor Positions[]
+│       ├── Depositor Address
+│       └── Count × Appraisal Value
+```
+
+**Key Features:**
+- **Card-Based Grouping**: Multiple NFTs with the same appraisal value are grouped under a single `CardNode`
+- **Appraisal-Weighted Tracking**: Depositor positions tracked as `count × appraisalUSD` for fair reward distribution
+- **O(1) Array Operations**: Efficient add/remove operations using swap-and-pop patterns
+- **Cascading Price Updates**: When card appraisals change, deltas cascade to all affected depositors
+- **Gas-Optimized Storage**: Minimal storage slots per depositor position
+
+**Core Functions:**
+- `registerDeposit(cardId, depositor, appraisalUSD, count)`: Adds NFTs to the tree
+- `removeDeposit(cardId, depositor, count)`: Removes NFTs from the tree
+- `updateCardAppraisal(cardId, newAppraisalUSD)`: Updates card value and cascades changes
+- `getCardInfo(cardId)`: Returns aggregated card data
+- `getCardDepositors(cardId)`: Returns all depositors for a specific card
+- `getDepositorValue(depositor)`: Returns total value across all cards for a depositor
+
 ### Rewards Integration
 
-Three-tier rewards system integrated across contracts:
-1. **Rarity-level rewards**: Based on NFT rarity distribution
-2. **Card-level rewards**: Based on specific card deposits
-3. **User-level rewards**: Value-weighted dividend tracking
+Multi-tier rewards system integrated across the ERC2222 tree structure:
+1. **Rarity-level rewards**: Aggregate rewards for entire rarity tiers tracked in RarityTracker
+2. **Card-level rewards**: Value-weighted rewards based on card appraisal and total deposits
+3. **Depositor-level rewards**: Individual rewards calculated as `depositValue / totalRarityValue × rarityRewards`
 
 **GachaEconomyManager** handles intelligent fee distribution from spin operations:
 - Splits spin revenue between depositors (95%) and protocol (5%)
@@ -124,9 +154,10 @@ Three-tier rewards system integrated across contracts:
 
 ### Key Data Flows
 
-1. **NFT Deposit Flow**: appraisal → price-based rarity → treasury deposit → rewards tracking
-2. **Gacha Spin Flow**: fee payment → randomness request → rarity selection → NFT distribution → rewards distribution
-3. **Price Migration Flow**: price update → rarity re-evaluation → treasury migration → rewards recalculation
+1. **NFT Deposit Flow**: appraisal → price-based rarity → treasury deposit → RarityTracker tree registration (cardId → depositor position)
+2. **Gacha Spin Flow**: fee payment → randomness request → rarity selection → NFT distribution → economy manager fee splitting → depositor vault yield distribution
+3. **Price Migration Flow**: price update → `updateCardAppraisal()` → cascading value deltas through tree → reward recalculation
+4. **Tree Management Flow**: deposit/withdraw → tree position updates → appraisal-weighted share calculation → yield distribution
 
 ### Advanced Features
 
@@ -147,6 +178,14 @@ Three-tier rewards system integrated across contracts:
 - **Batch Deposits**: Multiple NFTs can be deposited efficiently
 - **Batch Queries**: ERC20 token balances can be queried in batches
 - **Gas Optimization**: All batch operations designed for maximum gas efficiency
+
+#### ERC2222 Tree Implementation Details
+- **CardNode Structure**: Each card stores appraisal value, total metrics, and depositor positions array
+- **DepositorPosition**: Simple count tracking per depositor per card (actual value = count × appraisal)
+- **Array Management**: O(1) add/remove using swap-and-pop with index mapping for efficient cleanup
+- **Price Update Cascading**: Single `updateCardAppraisal()` call updates all depositor values atomically
+- **Overflow Protection**: Comprehensive bounds checking on all arithmetic operations
+- **Gas Efficiency**: Minimal storage writes per operation and optimized loop structures
 
 ## Testing
 

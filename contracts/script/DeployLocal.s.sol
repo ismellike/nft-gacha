@@ -297,11 +297,37 @@ contract DeployLocal is Script {
     }
 
     function _deployTrackers(Deployments memory d, address deployer) internal {
-        d.commonTracker = address(new RarityTracker("Common", deployer));
-        d.uncommonTracker = address(new RarityTracker("Uncommon", deployer));
-        d.rareTracker = address(new RarityTracker("Rare", deployer));
-        d.epicTracker = address(new RarityTracker("Epic", deployer));
-        d.legendaryTracker = address(new RarityTracker("Legendary", deployer));
+        address trackerImpl = address(new RarityTracker());
+        d.commonTracker = address(
+            new ERC1967Proxy(
+                trackerImpl,
+                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Common")
+            )
+        );
+        d.uncommonTracker = address(
+            new ERC1967Proxy(
+                trackerImpl,
+                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Uncommon")
+            )
+        );
+        d.rareTracker = address(
+            new ERC1967Proxy(
+                trackerImpl,
+                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Rare")
+            )
+        );
+        d.epicTracker = address(
+            new ERC1967Proxy(
+                trackerImpl,
+                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Epic")
+            )
+        );
+        d.legendaryTracker = address(
+            new ERC1967Proxy(
+                trackerImpl,
+                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Legendary")
+            )
+        );
     }
 
     function _configureEconomy(Deployments memory d) internal {

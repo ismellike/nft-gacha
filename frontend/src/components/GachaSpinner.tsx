@@ -3,7 +3,6 @@
 import { useState, memo, useCallback } from "react";
 import SpinControls from "./SpinControls";
 import RarityBreakdown from "./RarityBreakdown";
-import LastSpinResult from "./LastSpinResult";
 import NFTRevealModal from "./NFTRevealModal";
 import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -50,10 +49,11 @@ const GachaSpinner = memo(() => {
 					nftResult={gachaSpin.spinResult}
 					onClose={handleCloseReveal}
 					appraisalContractAddress={contracts.appraisal as `0x${string}`}
+					gachaId={gachaId}
 				/>
 			)}
 
-			{/* Main Grid Layout */}
+		{/* Main Grid Layout */}
 			<div className="grid lg:grid-cols-2 gap-16 items-start">
 				{/* Left Column - Spin Controls */}
 				<div className="space-y-8">
@@ -66,11 +66,6 @@ const GachaSpinner = memo(() => {
 							setRefreshTrigger(REFRESH_TRIGGERS.REFUND);
 						}}
 					/>
-
-					{/* Last Spin Result - Only show when not revealing */}
-					{!gachaSpin.isRevealing && gachaSpin.spinResult && (
-						<LastSpinResult result={gachaSpin.spinResult} />
-					)}
 				</div>
 
 				{/* Right Column - Rarity Information */}

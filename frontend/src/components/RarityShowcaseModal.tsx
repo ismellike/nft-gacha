@@ -1,13 +1,13 @@
 "use client";
 
 import {
-	Modal,
+	GlassModal,
 	ModalContent,
 	ModalHeader,
 	ModalBody,
 	ModalFooter,
-} from "@heroui/react";
-import { glassModalClasses, Chip } from "../ui";
+	Chip
+} from "../ui";
 import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -65,66 +65,27 @@ export default function RarityShowcaseModal({
 	const rarityConfig = getRarityConfig(rarity);
 
 	return (
-		<Modal
+		<GlassModal
 			isOpen={isOpen}
 			onOpenChange={onOpenChange}
-			size="5xl"
+			size="full"
 			hideCloseButton
-			classNames={{
-				backdrop: glassModalClasses.backdrop,
-				base: glassModalClasses.contentDark,
-				header: glassModalClasses.headerDark,
-				body: glassModalClasses.body,
-				footer: glassModalClasses.footerDark,
-			}}
 			placement="center"
-			motionProps={{
-				variants: {
-					enter: {
-						opacity: 1,
-						scale: 1,
-						transition: { type: "spring", stiffness: 280, damping: 28 },
-					},
-					exit: {
-						opacity: 0,
-						scale: 0.98,
-						transition: { duration: 0.2 },
-					},
-				},
-			}}
 		>
 			<ModalContent>
-				{/* Compact Header with floating close button */}
-				<ModalHeader className="relative px-6 py-4 border-b border-white/5 bg-background/80 backdrop-blur-xl">
-					<div className="flex items-center gap-3">
-						<div
-							className={`px-3 py-1.5 rounded-lg bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg border border-white/20`}
-						>
-							<span className="text-sm font-bold text-white drop-shadow-sm flex items-center gap-2">
-								<span className="text-base">{rarityConfig.emoji}</span>
-								{rarityConfig.name} NFTs
-							</span>
-						</div>
-						{!isLoading && (
-							<Chip className="px-2.5 py-1 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-xl backdrop-blur-xl text-xs">
-								{gridItems.length} Available
-							</Chip>
-						)}
-					</div>
-
-					{/* Floating Close Button in header corner */}
+				<ModalBody className="relative overflow-hidden p-0 h-[90vh] flex flex-col">
+					{/* Floating Close Button - Top Right */}
 					<motion.button
 						onClick={() => onOpenChange(false)}
-						className="absolute top-3 right-4 z-50 w-10 h-10 bg-content1/60 hover:bg-content1/80 rounded-lg border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors"
+						className="absolute top-8 right-8 z-50 w-12 h-12 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors"
 						initial={{ opacity: 0, scale: 0 }}
 						animate={{ opacity: 1, scale: 1 }}
-						transition={{ duration: 0.3 }}
-						whileHover={{ scale: 1.06 }}
+						transition={{ duration: 0.5 }}
+						whileHover={{ scale: 1.1 }}
 						whileTap={{ scale: 0.95 }}
-						aria-label="Close"
 					>
 						<svg
-							className="w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors"
+							className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -138,12 +99,55 @@ export default function RarityShowcaseModal({
 							/>
 						</svg>
 					</motion.button>
-				</ModalHeader>
 
-				<ModalBody className="relative flex-1 overflow-hidden bg-background/80 p-8 backdrop-blur-xl">
-					<div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-background/70 via-background/40 to-transparent" />
+					{/* Header Content */}
+					<div className="relative z-10 flex items-center justify-center pt-8 pb-4">
+						<div className="flex items-center gap-4">
+							<div
+								className={`px-4 py-2 rounded-xl bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg border border-white/20`}
+							>
+								<span className="text-lg font-bold text-white drop-shadow flex items-center gap-2">
+									<span className="text-xl">{rarityConfig.emoji}</span>
+									{rarityConfig.name} NFTs
+								</span>
+							</div>
+							{!isLoading && (
+								<Chip className="px-3 py-1 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-lg backdrop-blur-xl text-sm">
+									{gridItems.length} Available
+								</Chip>
+							)}
+						</div>
+					</div>
+					{/* Dramatic Background Glow */}
+					<motion.div
+						className="absolute inset-0 overflow-hidden"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ duration: 2 }}
+					>
+						<motion.div
+							className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+							initial={{ scale: 0 }}
+							animate={{ scale: 1 }}
+							transition={{ duration: 1.5, ease: "easeOut" }}
+						>
+							<motion.div
+								className={`w-96 h-96 ${rarityConfig.bgGradient} rounded-full blur-3xl`}
+								animate={{
+									scale: [1, 1.1, 1],
+									opacity: [0.3, 0.5, 0.3],
+								}}
+								transition={{
+									duration: 4,
+									repeat: Infinity,
+									ease: "easeInOut",
+								}}
+							/>
+						</motion.div>
+					</motion.div>
+					<div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-content1/20 via-content1/10 to-content1/30" />
 					{/* Body Content */}
-					<div className="relative z-10 w-full flex-1 overflow-auto">
+					<div className="relative z-10 w-full flex-1 overflow-y-auto px-8 pb-8">
 						{isLoading ? (
 							<motion.div
 								className="flex flex-col items-center justify-center py-32"
@@ -201,20 +205,12 @@ export default function RarityShowcaseModal({
 								showAppraisal={true}
 								animate={true}
 								enableLazyLoading={true}
-								priorityLoadCount={16}
 								{...(gridItems.length > 50 && { itemsPerPage: 50 })}
 							/>
 						) : null}
 					</div>
 				</ModalBody>
-
-				{/* Footer with bottom text */}
-				<ModalFooter className="px-6 py-4">
-					<p className="text-sm text-foreground/70">
-						{rarityConfig.description}
-					</p>
-				</ModalFooter>
 			</ModalContent>
-		</Modal>
+		</GlassModal>
 	);
 }

@@ -7,7 +7,7 @@ import { formatTokenAmount } from "../lib/utils";
 import { getRarityConfig } from "../lib/rarityConfig";
 import { Card, Button } from "../ui";
 import { CardRewardsList } from "./CardRewardsList";
-import { NFTWithdrawal } from "./NFTWithdrawal";
+import { VaultTab } from "./VaultTab";
 import { glassTypography } from "../lib/theme-config";
 import {
 	useReadGachaTreasuryGetUserProfileBatch,
@@ -15,6 +15,7 @@ import {
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
+import { getGachaConfig } from "../lib/gacha-config";
 import { useRegisterRewardsRefetch } from "../hooks/useRewardsData";
 import {
 	UserCircleIcon,
@@ -30,7 +31,7 @@ export const ProfileDashboard: React.FC = () => {
 	const { address: userAddress } = useAccount();
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	const [activeTab, setActiveTab] = useState<"rewards" | "withdrawal">("rewards");
+	const [activeTab, setActiveTab] = useState<"inventory" | "vault">("inventory");
 
 	// 🚀 BATCH OPTIMIZED: Get all user data in 2 calls instead of 3!
 	const { data: userProfileData, refetch: refetchUserProfile } =
@@ -105,30 +106,30 @@ export const ProfileDashboard: React.FC = () => {
 					<div className="flex space-x-2">
 						<Button
 							className={`flex-1 rounded-xl transition-all duration-300 ${
-								activeTab === "rewards"
+								activeTab === "inventory"
 									? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg"
 									: "bg-content2/20 text-foreground/70 hover:bg-content2/30"
 							}`}
-							onPress={() => setActiveTab("rewards")}
+							onPress={() => setActiveTab("inventory")}
 							variant="light"
 						>
 							<span className="flex items-center justify-center gap-2">
-								<TrophyIcon className="w-4 h-4" />
-								Rewards
+								<GiftIcon className="w-4 h-4" />
+								Card Inventory
 							</span>
 						</Button>
 						<Button
 							className={`flex-1 rounded-xl transition-all duration-300 ${
-								activeTab === "withdrawal"
+								activeTab === "vault"
 									? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg"
 									: "bg-content2/20 text-foreground/70 hover:bg-content2/30"
 							}`}
-							onPress={() => setActiveTab("withdrawal")}
+							onPress={() => setActiveTab("vault")}
 							variant="light"
 						>
 							<span className="flex items-center justify-center gap-2">
-								<ArrowLeftOnRectangleIcon className="w-4 h-4" />
-								Withdraw NFTs
+								<CurrencyDollarIcon className="w-4 h-4" />
+								Vault & Yield
 							</span>
 						</Button>
 					</div>
@@ -208,7 +209,7 @@ export const ProfileDashboard: React.FC = () => {
 										: "0"}
 								</div>
 								<div className="text-sm text-foreground/60">
-									Lifetime Claimed
+									USDC Yield Earned
 								</div>
 							</div>
 						</div>
@@ -221,7 +222,7 @@ export const ProfileDashboard: React.FC = () => {
 							/>
 						</div>
 						<div className="mt-2 text-xs text-foreground/50">
-							Total rewards claimed across all time
+							Total USDC yield earned across all time
 						</div>
 					</Card>
 				</motion.div>
@@ -233,7 +234,7 @@ export const ProfileDashboard: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.5 }}
 			>
-				{activeTab === "rewards" ? <CardRewardsList /> : <NFTWithdrawal />}
+				{activeTab === "inventory" ? <CardRewardsList /> : <VaultTab gachaConfig={getGachaConfig(gachaId)} />}
 			</motion.div>
 
 			{/* Advanced Statistics */}

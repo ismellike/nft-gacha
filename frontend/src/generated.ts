@@ -9653,19 +9653,47 @@ export const proxyAbi = [
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export const rarityTrackerAbi = [
+  { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
   {
-    type: 'constructor',
-    inputs: [
-      { name: '_rarityName', internalType: 'string', type: 'string' },
-      { name: 'initialOwner', internalType: 'address', type: 'address' },
-    ],
-    stateMutability: 'nonpayable',
+    type: 'function',
+    inputs: [],
+    name: 'UPGRADE_INTERFACE_VERSION',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getHasWon',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'depositorTotalsUSD',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getCardDepositors',
+    outputs: [
+      { name: 'depositors', internalType: 'address[]', type: 'address[]' },
+      { name: 'counts', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getCardInfo',
+    outputs: [
+      { name: 'appraisalUSD', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalValueUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'depositor', internalType: 'address', type: 'address' }],
+    name: 'getDepositorValue',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -9676,29 +9704,14 @@ export const rarityTrackerAbi = [
       { name: 'totalWins_', internalType: 'uint256', type: 'uint256' },
       { name: 'totalRewards_', internalType: 'uint256', type: 'uint256' },
       { name: 'totalNftsWon_', internalType: 'uint256', type: 'uint256' },
-      { name: 'uniqueWinners_', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'getUniqueWinnersCount',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserRewards',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserWins',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'getTrackedCards',
+    outputs: [{ name: '', internalType: 'bytes32[]', type: 'bytes32[]' }],
     stateMutability: 'view',
   },
   {
@@ -9710,9 +9723,40 @@ export const rarityTrackerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'owner_', internalType: 'address', type: 'address' },
+      { name: 'rarityName_', internalType: 'string', type: 'string' },
+    ],
+    name: 'initialize',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'owner',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'pause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'paused',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'proxiableUUID',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
   {
@@ -9744,10 +9788,47 @@ export const rarityTrackerAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'depositor', internalType: 'address', type: 'address' },
+      { name: 'appraisalUSD', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'registerDeposit',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'depositor', internalType: 'address', type: 'address' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'removeDeposit',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'renounceOwnership',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalAppraisedValueUSD',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalDepositedCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -9779,6 +9860,25 @@ export const rarityTrackerAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'unpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'newAppraisalUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'updateCardAppraisal',
+    outputs: [
+      { name: 'rarityDeltaUSD', internalType: 'int256', type: 'int256' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'key', internalType: 'string', type: 'string' },
       { name: 'value', internalType: 'uint256', type: 'uint256' },
@@ -9786,6 +9886,16 @@ export const rarityTrackerAbi = [
     name: 'updateTracker',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'newImplementation', internalType: 'address', type: 'address' },
+      { name: 'data', internalType: 'bytes', type: 'bytes' },
+    ],
+    name: 'upgradeToAndCall',
+    outputs: [],
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -9806,6 +9916,106 @@ export const rarityTrackerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      {
+        name: 'totalCount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'totalValueUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'CardAggregationUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      {
+        name: 'previousAppraisalUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newAppraisalUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'rarityDeltaUSD',
+        internalType: 'int256',
+        type: 'int256',
+        indexed: false,
+      },
+    ],
+    name: 'CardAppraisalUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'depositor',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'cardId',
+        internalType: 'bytes32',
+        type: 'bytes32',
+        indexed: true,
+      },
+      {
+        name: 'count',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'valueUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'DepositorPositionUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'version',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+    ],
+    name: 'Initialized',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'winner',
         internalType: 'address',
         type: 'address',
@@ -9818,7 +10028,7 @@ export const rarityTrackerAbi = [
         indexed: true,
       },
       {
-        name: 'rarity',
+        name: 'totalWins',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
@@ -9849,6 +10059,19 @@ export const rarityTrackerAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Paused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
       { name: 'user', internalType: 'address', type: 'address', indexed: true },
       {
         name: 'amount',
@@ -9874,6 +10097,50 @@ export const rarityTrackerAbi = [
     name: 'TrackerUpdated',
   },
   {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: false,
+      },
+    ],
+    name: 'Unpaused',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'implementation',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'Upgraded',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
+    name: 'AddressEmptyCode',
+  },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'implementation', internalType: 'address', type: 'address' },
+    ],
+    name: 'ERC1967InvalidImplementation',
+  },
+  { type: 'error', inputs: [], name: 'ERC1967NonPayable' },
+  { type: 'error', inputs: [], name: 'EnforcedPause' },
+  { type: 'error', inputs: [], name: 'ExpectedPause' },
+  { type: 'error', inputs: [], name: 'FailedCall' },
+  { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  { type: 'error', inputs: [], name: 'NotInitializing' },
+  {
     type: 'error',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
     name: 'OwnableInvalidOwner',
@@ -9882,6 +10149,13 @@ export const rarityTrackerAbi = [
     type: 'error',
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
+  },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
+  {
+    type: 'error',
+    inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'UUPSUnsupportedProxiableUUID',
   },
 ] as const
 
@@ -18663,12 +18937,48 @@ export const useReadRarityTrackerContract = /*#__PURE__*/ createUseReadContract(
 )
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"getHasWon"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
  */
-export const useReadRarityTrackerGetHasWon =
+export const useReadRarityTrackerUpgradeInterfaceVersion =
   /*#__PURE__*/ createUseReadContract({
     abi: rarityTrackerAbi,
-    functionName: 'getHasWon',
+    functionName: 'UPGRADE_INTERFACE_VERSION',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"depositorTotalsUSD"`
+ */
+export const useReadRarityTrackerDepositorTotalsUsd =
+  /*#__PURE__*/ createUseReadContract({
+    abi: rarityTrackerAbi,
+    functionName: 'depositorTotalsUSD',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"getCardDepositors"`
+ */
+export const useReadRarityTrackerGetCardDepositors =
+  /*#__PURE__*/ createUseReadContract({
+    abi: rarityTrackerAbi,
+    functionName: 'getCardDepositors',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"getCardInfo"`
+ */
+export const useReadRarityTrackerGetCardInfo =
+  /*#__PURE__*/ createUseReadContract({
+    abi: rarityTrackerAbi,
+    functionName: 'getCardInfo',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"getDepositorValue"`
+ */
+export const useReadRarityTrackerGetDepositorValue =
+  /*#__PURE__*/ createUseReadContract({
+    abi: rarityTrackerAbi,
+    functionName: 'getDepositorValue',
   })
 
 /**
@@ -18681,30 +18991,12 @@ export const useReadRarityTrackerGetStatistics =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"getUniqueWinnersCount"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"getTrackedCards"`
  */
-export const useReadRarityTrackerGetUniqueWinnersCount =
+export const useReadRarityTrackerGetTrackedCards =
   /*#__PURE__*/ createUseReadContract({
     abi: rarityTrackerAbi,
-    functionName: 'getUniqueWinnersCount',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"getUserRewards"`
- */
-export const useReadRarityTrackerGetUserRewards =
-  /*#__PURE__*/ createUseReadContract({
-    abi: rarityTrackerAbi,
-    functionName: 'getUserRewards',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"getUserWins"`
- */
-export const useReadRarityTrackerGetUserWins =
-  /*#__PURE__*/ createUseReadContract({
-    abi: rarityTrackerAbi,
-    functionName: 'getUserWins',
+    functionName: 'getTrackedCards',
   })
 
 /**
@@ -18724,12 +19016,47 @@ export const useReadRarityTrackerOwner = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"paused"`
+ */
+export const useReadRarityTrackerPaused = /*#__PURE__*/ createUseReadContract({
+  abi: rarityTrackerAbi,
+  functionName: 'paused',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"proxiableUUID"`
+ */
+export const useReadRarityTrackerProxiableUuid =
+  /*#__PURE__*/ createUseReadContract({
+    abi: rarityTrackerAbi,
+    functionName: 'proxiableUUID',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"rarityName"`
  */
 export const useReadRarityTrackerRarityName =
   /*#__PURE__*/ createUseReadContract({
     abi: rarityTrackerAbi,
     functionName: 'rarityName',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"totalAppraisedValueUSD"`
+ */
+export const useReadRarityTrackerTotalAppraisedValueUsd =
+  /*#__PURE__*/ createUseReadContract({
+    abi: rarityTrackerAbi,
+    functionName: 'totalAppraisedValueUSD',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"totalDepositedCount"`
+ */
+export const useReadRarityTrackerTotalDepositedCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: rarityTrackerAbi,
+    functionName: 'totalDepositedCount',
   })
 
 /**
@@ -18782,6 +19109,23 @@ export const useWriteRarityTrackerContract =
   /*#__PURE__*/ createUseWriteContract({ abi: rarityTrackerAbi })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"initialize"`
+ */
+export const useWriteRarityTrackerInitialize =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: rarityTrackerAbi,
+    functionName: 'initialize',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"pause"`
+ */
+export const useWriteRarityTrackerPause = /*#__PURE__*/ createUseWriteContract({
+  abi: rarityTrackerAbi,
+  functionName: 'pause',
+})
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"recordReward"`
  */
 export const useWriteRarityTrackerRecordReward =
@@ -18797,6 +19141,24 @@ export const useWriteRarityTrackerRecordWin =
   /*#__PURE__*/ createUseWriteContract({
     abi: rarityTrackerAbi,
     functionName: 'recordWin',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"registerDeposit"`
+ */
+export const useWriteRarityTrackerRegisterDeposit =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: rarityTrackerAbi,
+    functionName: 'registerDeposit',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"removeDeposit"`
+ */
+export const useWriteRarityTrackerRemoveDeposit =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: rarityTrackerAbi,
+    functionName: 'removeDeposit',
   })
 
 /**
@@ -18818,6 +19180,24 @@ export const useWriteRarityTrackerTransferOwnership =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"unpause"`
+ */
+export const useWriteRarityTrackerUnpause =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: rarityTrackerAbi,
+    functionName: 'unpause',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"updateCardAppraisal"`
+ */
+export const useWriteRarityTrackerUpdateCardAppraisal =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: rarityTrackerAbi,
+    functionName: 'updateCardAppraisal',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"updateTracker"`
  */
 export const useWriteRarityTrackerUpdateTracker =
@@ -18827,10 +19207,37 @@ export const useWriteRarityTrackerUpdateTracker =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"upgradeToAndCall"`
+ */
+export const useWriteRarityTrackerUpgradeToAndCall =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: rarityTrackerAbi,
+    functionName: 'upgradeToAndCall',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__
  */
 export const useSimulateRarityTrackerContract =
   /*#__PURE__*/ createUseSimulateContract({ abi: rarityTrackerAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"initialize"`
+ */
+export const useSimulateRarityTrackerInitialize =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: rarityTrackerAbi,
+    functionName: 'initialize',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"pause"`
+ */
+export const useSimulateRarityTrackerPause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: rarityTrackerAbi,
+    functionName: 'pause',
+  })
 
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"recordReward"`
@@ -18848,6 +19255,24 @@ export const useSimulateRarityTrackerRecordWin =
   /*#__PURE__*/ createUseSimulateContract({
     abi: rarityTrackerAbi,
     functionName: 'recordWin',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"registerDeposit"`
+ */
+export const useSimulateRarityTrackerRegisterDeposit =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: rarityTrackerAbi,
+    functionName: 'registerDeposit',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"removeDeposit"`
+ */
+export const useSimulateRarityTrackerRemoveDeposit =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: rarityTrackerAbi,
+    functionName: 'removeDeposit',
   })
 
 /**
@@ -18869,6 +19294,24 @@ export const useSimulateRarityTrackerTransferOwnership =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"unpause"`
+ */
+export const useSimulateRarityTrackerUnpause =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: rarityTrackerAbi,
+    functionName: 'unpause',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"updateCardAppraisal"`
+ */
+export const useSimulateRarityTrackerUpdateCardAppraisal =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: rarityTrackerAbi,
+    functionName: 'updateCardAppraisal',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"updateTracker"`
  */
 export const useSimulateRarityTrackerUpdateTracker =
@@ -18878,10 +19321,55 @@ export const useSimulateRarityTrackerUpdateTracker =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link rarityTrackerAbi}__ and `functionName` set to `"upgradeToAndCall"`
+ */
+export const useSimulateRarityTrackerUpgradeToAndCall =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: rarityTrackerAbi,
+    functionName: 'upgradeToAndCall',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__
  */
 export const useWatchRarityTrackerContract =
   /*#__PURE__*/ createUseWatchContractEvent({ abi: rarityTrackerAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"CardAggregationUpdated"`
+ */
+export const useWatchRarityTrackerCardAggregationUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: rarityTrackerAbi,
+    eventName: 'CardAggregationUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"CardAppraisalUpdated"`
+ */
+export const useWatchRarityTrackerCardAppraisalUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: rarityTrackerAbi,
+    eventName: 'CardAppraisalUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"DepositorPositionUpdated"`
+ */
+export const useWatchRarityTrackerDepositorPositionUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: rarityTrackerAbi,
+    eventName: 'DepositorPositionUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"Initialized"`
+ */
+export const useWatchRarityTrackerInitialized =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: rarityTrackerAbi,
+    eventName: 'Initialized',
+  })
 
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"NftWon"`
@@ -18902,6 +19390,15 @@ export const useWatchRarityTrackerOwnershipTransferred =
   })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"Paused"`
+ */
+export const useWatchRarityTrackerPaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: rarityTrackerAbi,
+    eventName: 'Paused',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"RewardClaimed"`
  */
 export const useWatchRarityTrackerRewardClaimed =
@@ -18917,6 +19414,24 @@ export const useWatchRarityTrackerTrackerUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: rarityTrackerAbi,
     eventName: 'TrackerUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"Unpaused"`
+ */
+export const useWatchRarityTrackerUnpaused =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: rarityTrackerAbi,
+    eventName: 'Unpaused',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link rarityTrackerAbi}__ and `eventName` set to `"Upgraded"`
+ */
+export const useWatchRarityTrackerUpgraded =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: rarityTrackerAbi,
+    eventName: 'Upgraded',
   })
 
 /**

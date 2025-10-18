@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Modal, ModalContent, ModalBody } from "@heroui/react";
-import { glassModalClasses } from "../ui/modals";
+import { GlassModal, ModalContent, ModalBody } from "../ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTHeroCard } from ".";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
-import BuybackComponent from "./BuybackComponent";
 import { getGachaConfig } from "../lib/gacha-config";
 
 interface SpinResult {
@@ -58,16 +56,11 @@ export default function NFTRevealModal({
 	const rarityConfig = getRarityConfig(resultRarity);
 
 	return (
-		<Modal
+		<GlassModal
 			isOpen={isVisible}
 			onClose={onClose}
 			size="full"
 			hideCloseButton
-			classNames={{
-				backdrop: glassModalClasses.backdrop,
-				base: glassModalClasses.contentDark,
-				body: glassModalClasses.body,
-			}}
 			placement="center"
 		>
 			<ModalContent>
@@ -167,32 +160,9 @@ export default function NFTRevealModal({
 											appraisalContractAddress={appraisalContractAddress}
 											animate={true}
 											rarity={resultRarity}
+											{...(protocolTreasuryAddress && { protocolTreasuryAddress })}
+											{...(gachaId && { gachaId })}
 										/>
-
-										{/* Enhanced Buyback Component */}
-										{protocolTreasuryAddress && (
-											<motion.div
-												initial={{ opacity: 0, y: 20 }}
-												animate={{ opacity: 1, y: 0 }}
-												transition={{ delay: 2, duration: 0.5 }}
-												className="w-full max-w-md"
-											>
-												<BuybackComponent
-													collection={nftResult.collection}
-													tokenId={nftResult.tokenId}
-													appraisalContractAddress={appraisalContractAddress}
-													protocolTreasuryAddress={protocolTreasuryAddress}
-													rarity={nftResult.rarity}
-													size="lg"
-													variant="full"
-													showTreasuryRestock={true}
-													onSuccess={(txHash) => {
-														// Optional: Handle successful sale
-														console.log("NFT sold successfully:", txHash);
-													}}
-												/>
-											</motion.div>
-										)}
 									</div>
 								</motion.div>
 							)}
@@ -200,6 +170,6 @@ export default function NFTRevealModal({
 					</div>
 				</ModalBody>
 			</ModalContent>
-		</Modal>
+		</GlassModal>
 	);
 }

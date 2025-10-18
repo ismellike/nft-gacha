@@ -11,6 +11,7 @@ import {
 	UserCircleIcon,
 	CogIcon,
 	XCircleIcon,
+	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 
 import { Button, Card } from "../../ui";
@@ -19,6 +20,7 @@ import { SpinSection } from "../../components/gacha/SpinSection";
 import { DepositorSection } from "../../components/gacha/DepositorSection";
 import { ProfileSection } from "../../components/gacha/ProfileSection";
 import { AdminSection } from "../../components/gacha/AdminSection";
+import { EconomySection } from "../../components/gacha/EconomySection";
 import { getGachaConfig } from "../../lib/gacha-config";
 import {
 	useReadGachaFeeToken,
@@ -46,7 +48,7 @@ function GachaDetailPageContent() {
 	const contracts = useGachaContracts(gachaId);
 	const sectionParam = useClientSearchParam("section");
 	const updateSearchParams = useUpdateSearchParams();
-	const validSections = ["spin", "deposits", "rewards", "admin"] as const;
+	const validSections = ["spin", "deposits", "rewards", "economy", "admin"] as const;
 	type ValidSection = (typeof validSections)[number];
 
 	const gacha = gachaId ? getGachaConfig(gachaId) : null;
@@ -104,6 +106,17 @@ function GachaDetailPageContent() {
 		[updateSearchParams],
 	);
 
+	// Ensure default tab is spin and clean up invalid sections
+	useEffect(() => {
+		if (!sectionParam) {
+			// No section parameter, default to spin
+			handleTabChange("spin");
+		} else if (!validSections.includes(sectionParam as ValidSection)) {
+			// Invalid section parameter, reset to spin
+			handleTabChange("spin");
+		}
+	}, [sectionParam, handleTabChange]);
+
 	// Redirect to spin tab if trying to access admin without permissions
 	useEffect(() => {
 		if (
@@ -132,7 +145,8 @@ function GachaDetailPageContent() {
 			const sectionTitles = {
 				spin: "Spin & Play",
 				deposits: "NFT Deposits",
-				rewards: "My Rewards & Profile",
+				rewards: "My Vault & Profile",
+				economy: "Economy Overview",
 				admin: "Admin Controls",
 			};
 			const sectionTitle = sectionTitles[activeTab];
@@ -201,9 +215,15 @@ function GachaDetailPageContent() {
 			},
 			{
 				id: "rewards",
-				label: "Claim",
+				label: "Vault",
 				icon: UserCircleIcon,
-				description: "Track winnings",
+				description: "Manage deposits & yield",
+			},
+			{
+				id: "economy",
+				label: "Economy",
+				icon: ChartBarIcon,
+				description: "Protocol economics",
 			},
 		];
 
@@ -333,8 +353,15 @@ function GachaDetailPageContent() {
 
 					{activeTab === "rewards" && (
 						<ProfileSection
-							title="Claim rewards and review your history"
-							description="Monitor vault shares, track spin outcomes, and claim accrued rewards with on-chain receipts for every action."
+							title="Manage vault and withdraw yield"
+							description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
+						/>
+					)}
+
+					{activeTab === "economy" && (
+						<EconomySection
+							title="Gacha Economy Overview"
+							description="Track protocol revenue, depositor yields, and treasury performance for this specific gacha."
 						/>
 					)}
 

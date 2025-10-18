@@ -267,21 +267,6 @@ const NFTGrid = memo<NFTGridProps>(
 						</button>
 					</div>
 				)}
-
-				{/* Performance info for development */}
-				{process.env.NODE_ENV === "development" && (
-					<div className="text-xs text-white/50 text-center space-y-1">
-						<div>
-							Showing {paginatedItems.length} of {items.length} items
-						</div>
-						{shouldVirtualize && (
-							<div>
-								Virtualization enabled (threshold: {virtualizeThreshold})
-							</div>
-						)}
-						<div>Priority loading: first {priorityLoadCount} items</div>
-					</div>
-				)}
 			</div>
 		);
 	},
@@ -308,11 +293,11 @@ ShowcaseNFTGrid.displayName = "ShowcaseNFTGrid";
 export function useTreasuryItemsToGridItems(
 	treasuryItems:
 		| readonly {
-				collection: string;
-				tokenId: bigint;
-				depositor: string;
-				[key: string]: unknown;
-		  }[]
+			collection: string;
+			tokenId: bigint;
+			depositor: string;
+			[key: string]: unknown;
+		}[]
 		| undefined,
 	rarity?: Rarity,
 ): NFTGridItem[] {

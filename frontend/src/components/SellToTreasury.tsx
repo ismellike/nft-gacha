@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { toast } from "react-hot-toast";
-import { Button, Chip } from "@heroui/react";
+import { Chip } from "@heroui/react";
+import { Button } from "../ui/Button";
 import {
 	useWriteProtocolTreasuryExecuteRedemption,
 	useReadProtocolTreasuryRedemptionPayoutBps,
@@ -195,15 +196,7 @@ export default function SellToTreasury({
 	// Determine if approval is needed
 	const needsApproval = usdcAllowance && payoutAmount ? usdcAllowance < payoutAmount : true;
 
-	// Size configurations
-	const sizeClasses = {
-		sm: { button: "text-xs px-3 py-1", chip: "text-xs", text: "text-xs" },
-		md: { button: "text-sm px-4 py-2", chip: "text-sm", text: "text-sm" },
-		lg: { button: "text-base px-6 py-3", chip: "text-base", text: "text-base" }
-	};
-
-	const classes = sizeClasses[size];
-
+	
 	// If user doesn't own the NFT, don't show anything
 	if (!isOwner && connectedAddress) {
 		return null;
@@ -223,7 +216,7 @@ export default function SellToTreasury({
 						color="success"
 						variant="flat"
 						size="sm"
-						className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+						className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs px-2 py-1 min-w-0"
 					>
 						90% of appraisal
 					</Chip>
@@ -258,8 +251,7 @@ export default function SellToTreasury({
 				<div className="flex gap-2">
 					{needsApproval ? (
 						<Button
-							color="warning"
-							variant="flat"
+							color="glass"
 							size="sm"
 							onClick={handleApprove}
 							isLoading={isApproving}
@@ -270,8 +262,7 @@ export default function SellToTreasury({
 						</Button>
 					) : (
 						<Button
-							color="success"
-							variant="flat"
+							color="primary"
 							size="sm"
 							onClick={handleSell}
 							isLoading={isSelling}
@@ -299,7 +290,7 @@ export default function SellToTreasury({
 					color="warning"
 					variant="flat"
 					size="sm"
-					className={classes.chip}
+					className="text-xs"
 				>
 					Requires appraisal
 				</Chip>
@@ -308,31 +299,27 @@ export default function SellToTreasury({
 					color="danger"
 					variant="flat"
 					size="sm"
-					className={classes.chip}
+					className="text-xs"
 				>
 					Redemption unavailable
 				</Chip>
 			) : needsApproval ? (
 				<Button
-					color="warning"
-					variant="flat"
+					color="primary"
 					size={size}
 					onClick={handleApprove}
 					isLoading={isApproving}
-					className={classes.button}
 				>
 					{isApproving ? "Approving..." : "Approve USDC"}
 				</Button>
 			) : (
 				<Button
-					color="success"
-					variant="flat"
+					color="primary"
 					size={size}
 					onClick={handleSell}
 					isLoading={isSelling}
-					className={classes.button}
 				>
-					{isSelling ? "Selling..." : `Sell for ${formatCurrency(payoutAmount?.toString() || "0", 6, "USDC")}`}
+					{isSelling ? "Processing..." : `Accept buyback for ${formatCurrency(payoutAmount?.toString() || "0", 6, "USDC")}`}
 				</Button>
 			)}
 		</motion.div>

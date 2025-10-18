@@ -3,11 +3,9 @@
 import {
 	useReadGachaEconomyManagerFeeToken,
 	useReadGachaEconomyManagerDepositorShareBps,
-	useReadGachaEconomyManagerBuybackShareBps,
 	useReadGachaEconomyManagerProtocolShareBps,
 	useReadGachaEconomyManagerTotalRevenueProcessed,
 	useReadGachaEconomyManagerTotalToDepositors,
-	useReadGachaEconomyManagerTotalToBuyback,
 	useReadGachaEconomyManagerTotalToProtocol,
 	useReadGachaEconomyManagerRevenueByRarity,
 } from "@/generated";
@@ -15,11 +13,9 @@ import {
 export interface EconomyManagerData {
 	feeToken: string | undefined;
 	depositorShareBps: bigint | undefined;
-	buybackShareBps: bigint | undefined;
 	protocolShareBps: bigint | undefined;
 	totalRevenueProcessed: bigint | undefined;
 	totalToDepositors: bigint | undefined;
-	totalToBuyback: bigint | undefined;
 	totalToProtocol: bigint | undefined;
 	revenueByRarity: bigint[] | undefined;
 }
@@ -47,13 +43,6 @@ export function useGachaEconomyManagerData({
 		},
 	});
 
-	const buybackShareBps = useReadGachaEconomyManagerBuybackShareBps({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
 	const protocolShareBps = useReadGachaEconomyManagerProtocolShareBps({
 		address: contractAddress as `0x${string}`,
 		query: {
@@ -71,13 +60,6 @@ export function useGachaEconomyManagerData({
 	);
 
 	const totalToDepositors = useReadGachaEconomyManagerTotalToDepositors({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const totalToBuyback = useReadGachaEconomyManagerTotalToBuyback({
 		address: contractAddress as `0x${string}`,
 		query: {
 			enabled: enabled && !!contractAddress,
@@ -135,11 +117,9 @@ export function useGachaEconomyManagerData({
 	const isLoading =
 		feeToken.isLoading ||
 		depositorShareBps.isLoading ||
-		buybackShareBps.isLoading ||
 		protocolShareBps.isLoading ||
 		totalRevenueProcessed.isLoading ||
 		totalToDepositors.isLoading ||
-		totalToBuyback.isLoading ||
 		totalToProtocol.isLoading ||
 		revenueCommon.isLoading ||
 		revenueUncommon.isLoading ||
@@ -150,11 +130,9 @@ export function useGachaEconomyManagerData({
 	const isError =
 		feeToken.isError ||
 		depositorShareBps.isError ||
-		buybackShareBps.isError ||
 		protocolShareBps.isError ||
 		totalRevenueProcessed.isError ||
 		totalToDepositors.isError ||
-		totalToBuyback.isError ||
 		totalToProtocol.isError ||
 		revenueCommon.isError ||
 		revenueUncommon.isError ||
@@ -165,11 +143,9 @@ export function useGachaEconomyManagerData({
 	const data: EconomyManagerData = {
 		feeToken: feeToken.data,
 		depositorShareBps: depositorShareBps.data,
-		buybackShareBps: buybackShareBps.data,
 		protocolShareBps: protocolShareBps.data,
 		totalRevenueProcessed: totalRevenueProcessed.data,
 		totalToDepositors: totalToDepositors.data,
-		totalToBuyback: totalToBuyback.data,
 		totalToProtocol: totalToProtocol.data,
 		revenueByRarity: [
 			revenueCommon.data,
@@ -187,11 +163,9 @@ export function useGachaEconomyManagerData({
 		refetch: () => {
 			feeToken.refetch();
 			depositorShareBps.refetch();
-			buybackShareBps.refetch();
 			protocolShareBps.refetch();
 			totalRevenueProcessed.refetch();
 			totalToDepositors.refetch();
-			totalToBuyback.refetch();
 			totalToProtocol.refetch();
 			revenueCommon.refetch();
 			revenueUncommon.refetch();
@@ -211,19 +185,14 @@ export function formatBpsToPercentage(bps: bigint | undefined): string {
 // Helper function to calculate revenue share percentages
 export function calculateRevenueShares(
 	depositorBps: bigint | undefined,
-	buybackBps: bigint | undefined,
 	protocolBps: bigint | undefined,
 ) {
 	const safeDepositorBps = depositorBps || 0n;
-	const safeBuybackBps = buybackBps || 0n;
 	const safeProtocolBps = protocolBps || 0n;
 
 	return {
 		depositor: formatBpsToPercentage(safeDepositorBps),
-		buyback: formatBpsToPercentage(safeBuybackBps),
 		protocol: formatBpsToPercentage(safeProtocolBps),
-		total: formatBpsToPercentage(
-			safeDepositorBps + safeBuybackBps + safeProtocolBps,
-		),
+		total: formatBpsToPercentage(safeDepositorBps + safeProtocolBps),
 	};
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useRedemptionNotifications } from "../hooks/useRedemptionNotifications";
 import { getGachaConfig } from "../lib/gacha-config";
 

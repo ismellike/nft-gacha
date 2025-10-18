@@ -26,7 +26,7 @@ contract TimeoutMechanismTest is Test {
     address internal serviceHandler = address(0x3);
 
     uint256 internal constant SPIN_FEE = 100 * 1e6; // 100 USDC (6 decimals)
-    uint256 internal constant SPIN_TIMEOUT = 3600; // 1 hour in seconds
+    uint256 internal spinTimeout;
 
     function setUp() public {
         // Setup contracts
@@ -81,6 +81,7 @@ contract TimeoutMechanismTest is Test {
         );
 
         vm.stopPrank();
+        spinTimeout = gacha.SPIN_TIMEOUT();
 
         // Mint and approve tokens
         feeToken.mint(user, 1000 * SPIN_FEE);
@@ -107,7 +108,7 @@ contract TimeoutMechanismTest is Test {
         assertEq(requestTime, block.timestamp, "Request time should be current timestamp");
 
         // Fast forward past timeout
-        vm.warp(block.timestamp + SPIN_TIMEOUT + 1);
+        vm.warp(block.timestamp + spinTimeout + 1);
 
         // Fulfillment should still work after timeout (only fulfilled status blocks)
         vm.startPrank(serviceHandler);
@@ -134,7 +135,7 @@ contract TimeoutMechanismTest is Test {
         vm.stopPrank();
 
         // Fast forward past timeout
-        vm.warp(block.timestamp + SPIN_TIMEOUT + 1);
+        vm.warp(block.timestamp + spinTimeout + 1);
 
         // Reclaim should succeed after timeout
         vm.startPrank(user);
@@ -190,7 +191,7 @@ contract TimeoutMechanismTest is Test {
         vm.stopPrank();
 
         // Fast forward partially (not past timeout)
-        vm.warp(block.timestamp + SPIN_TIMEOUT / 2);
+        vm.warp(block.timestamp + spinTimeout / 2);
 
         // Start second spin
         vm.startPrank(user);
@@ -198,7 +199,7 @@ contract TimeoutMechanismTest is Test {
         vm.stopPrank();
 
         // Fast forward past timeout for first spin but not second
-        vm.warp(block.timestamp + SPIN_TIMEOUT / 2 + 1);
+        vm.warp(block.timestamp + spinTimeout / 2 + 1);
 
         // First spin should be reclaimable, second should not
         vm.startPrank(user);
@@ -209,7 +210,7 @@ contract TimeoutMechanismTest is Test {
         vm.stopPrank();
 
         // Fast forward past timeout for second spin
-        vm.warp(block.timestamp + SPIN_TIMEOUT / 2 + 1);
+        vm.warp(block.timestamp + spinTimeout / 2 + 1);
 
         // Second spin should now be reclaimable
         vm.startPrank(user);
@@ -228,7 +229,7 @@ contract TimeoutMechanismTest is Test {
         vm.stopPrank();
 
         // Fast forward past timeout and reclaim
-        vm.warp(block.timestamp + SPIN_TIMEOUT + 1);
+        vm.warp(block.timestamp + spinTimeout + 1);
 
         vm.startPrank(user);
         gacha.reclaimFailedSpin(triggerId);
@@ -266,7 +267,7 @@ contract TimeoutMechanismTest is Test {
         assertEq(feeToken.balanceOf(address(gacha)), SPIN_FEE, "Contract should hold only spin fee");
 
         // Fast forward past timeout and reclaim
-        vm.warp(block.timestamp + SPIN_TIMEOUT + 1);
+        vm.warp(block.timestamp + spinTimeout + 1);
 
         vm.startPrank(user);
         gacha.reclaimFailedSpin(triggerId);
