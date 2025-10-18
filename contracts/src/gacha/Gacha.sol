@@ -77,8 +77,8 @@ contract Gacha is
     uint256 public totalReclaimCount;
     mapping(GachaTreasury.Rarity => uint256) public globalRarityWins;
 
-    /// @notice Timeout for spin requests (1 hour)
-    uint256 public constant SPIN_TIMEOUT = 3600; // 1 hour in seconds
+    /// @notice Timeout for spin requests (30 seconds)
+    uint256 public constant SPIN_TIMEOUT = 30; // 30 seconds in seconds
 
     /// @notice Total weight constant for rarity calculations (basis points)
     uint256 public constant TOTAL_WEIGHT = 10_000;
