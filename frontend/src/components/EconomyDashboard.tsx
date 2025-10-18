@@ -17,11 +17,6 @@ import {
 	useSimulateClaimYield,
 } from "@/hooks/useDepositorVault";
 import {
-	useBuybackVaultData,
-	calculateBuybackPayoutPercentage,
-	getVaultStatus,
-} from "@/hooks/useBuybackVault";
-import {
 	useProtocolTreasuryData,
 	getTreasuryStatus,
 	isOwner,
@@ -61,16 +56,7 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 		refetch: refetchDepositorVault,
 	} = useDepositorVaultData(depositorVaultProps);
 
-	// Buyback Vault data
-	const {
-		data: buybackData,
-		utilizationRate,
-		isLoading: buybackLoading,
-		refetch: refetchBuybackVault,
-	} = useBuybackVaultData({
-		contractAddress: gachaConfig.buybackVaultAddress,
-	});
-
+	
 	// Protocol Treasury data
 	const {
 		data: protocolData,
@@ -117,18 +103,16 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 	// Register refetch functions with the rewards system
 	useRegisterRewardsRefetch("economyData", refetchEconomyData);
 	useRegisterRewardsRefetch("depositorVault", refetchDepositorVault);
-	useRegisterRewardsRefetch("buybackVault", refetchBuybackVault);
 	useRegisterRewardsRefetch("protocolTreasury", refetchProtocolTreasury);
 
 	const isLoading =
-		economyLoading || depositorLoading || buybackLoading || protocolLoading;
+		economyLoading || depositorLoading || protocolLoading;
 
 	if (isLoading) {
 		return (
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 				{[
 					{ id: "depositor-vault-skeleton" },
-					{ id: "buyback-vault-skeleton" },
 					{ id: "protocol-treasury-skeleton" },
 					{ id: "revenue-overview-skeleton" },
 				].map((skeleton) => (
@@ -148,7 +132,6 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 		economyData.protocolShareBps || 0n,
 	);
 
-	const buybackStatus = getVaultStatus(buybackData.paused, utilizationRate);
 	const treasuryStatus = getTreasuryStatus(protocolData.paused);
 	const userIsOwner = isOwner(protocolData.owner, address);
 
@@ -200,178 +183,89 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 				</Card>
 			</GlassCard>
 
-			{/* Detailed Contract Stats */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				{/* Depositor Vault */}
-				<GlassCard className="p-6">
-					<div className="flex justify-between items-center mb-4">
-						<h3 className="text-lg font-bold text-white">Depositor Vault</h3>
-						<div className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm">
-							Active
-						</div>
+			{/* Depositor Vault */}
+			<GlassCard className="p-6">
+				<div className="flex justify-between items-center mb-4">
+					<h3 className="text-lg font-bold text-white">Depositor Vault</h3>
+					<div className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm">
+						Active
+					</div>
+				</div>
+
+				<div className="space-y-4">
+					<div className="flex justify-between">
+						<span className="text-gray-400">Total Shares</span>
+						<span className="text-white font-medium">
+							{formatTokenAmount(depositorData.totalShares)}
+						</span>
 					</div>
 
-					<div className="space-y-4">
-						<div className="flex justify-between">
-							<span className="text-gray-400">Total Shares</span>
-							<span className="text-white font-medium">
-								{formatTokenAmount(depositorData.totalShares)}
-							</span>
-						</div>
+					<div className="flex justify-between">
+						<span className="text-gray-400">Your Shares</span>
+						<span className="text-white font-medium">
+							{formatTokenAmount(depositorUserData.shares)}
+						</span>
+					</div>
 
-						<div className="flex justify-between">
-							<span className="text-gray-400">Your Shares</span>
-							<span className="text-white font-medium">
-								{formatTokenAmount(depositorUserData.shares)}
-							</span>
-						</div>
+					<div className="flex justify-between">
+						<span className="text-gray-400">Your Share %</span>
+						<span className="text-white font-medium">
+							{calculateUserSharePercentage(
+								depositorUserData.shares || 0n,
+								depositorData.totalShares || 0n,
+							)}
+						</span>
+					</div>
 
-						<div className="flex justify-between">
-							<span className="text-gray-400">Your Share %</span>
-							<span className="text-white font-medium">
-								{calculateUserSharePercentage(
-									depositorUserData.shares || 0n,
-									depositorData.totalShares || 0n,
+					<div className="flex justify-between">
+						<span className="text-gray-400">Your Pending Yield</span>
+						<span className="text-green-400 font-medium">
+							<TokenAmountDisplay
+								amount={depositorUserData.pendingYield}
+								showUsd={true}
+							/>
+						</span>
+					</div>
+
+					<div className="flex justify-between">
+						<span className="text-gray-400">Your Est. Yield</span>
+						<span className="text-green-400 font-medium">
+							<TokenAmountDisplay
+								amount={depositorUserData.yieldValue}
+								showUsd={true}
+							/>
+						</span>
+					</div>
+
+					{/* Claim Yield Button */}
+					{address && (
+						<div className="mt-4 pt-4 border-t border-white/10">
+							<Button
+								onClick={handleClaimYield}
+								disabled={!depositorUserData.pendingYield || depositorUserData.pendingYield <= 0n || isClaiming}
+								className="w-full h-12 font-semibold rounded-xl bg-gradient-to-r from-success to-emerald-500 hover:from-success/90 hover:to-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+							>
+								{isClaiming ? (
+									<span className="flex items-center justify-center gap-2">
+										<div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+										Claiming...
+									</span>
+								) : depositorUserData.pendingYield && depositorUserData.pendingYield > 0n ? (
+									`Claim ${formatTokenAmount(depositorUserData.pendingYield)} USDC`
+								) : (
+									"No Yield Available"
 								)}
-							</span>
+							</Button>
+
+							{claimError && (
+								<p className="text-red-400 text-sm mt-2">
+									{claimError.message}
+								</p>
+							)}
 						</div>
-
-						<div className="flex justify-between">
-							<span className="text-gray-400">Your Pending Yield</span>
-							<span className="text-green-400 font-medium">
-								<TokenAmountDisplay
-									amount={depositorUserData.pendingYield}
-									showUsd={true}
-								/>
-							</span>
-						</div>
-
-						<div className="flex justify-between">
-							<span className="text-gray-400">Your Est. Yield</span>
-							<span className="text-green-400 font-medium">
-								<TokenAmountDisplay
-									amount={depositorUserData.yieldValue}
-									showUsd={true}
-								/>
-							</span>
-						</div>
-
-						{/* Claim Yield Button */}
-						{address && (
-							<div className="mt-4 pt-4 border-t border-white/10">
-								<Button
-									onClick={handleClaimYield}
-									disabled={!depositorUserData.pendingYield || depositorUserData.pendingYield <= 0n || isClaiming}
-									className="w-full h-12 font-semibold rounded-xl bg-gradient-to-r from-success to-emerald-500 hover:from-success/90 hover:to-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-								>
-									{isClaiming ? (
-										<span className="flex items-center justify-center gap-2">
-											<div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-											Claiming...
-										</span>
-									) : depositorUserData.pendingYield && depositorUserData.pendingYield > 0n ? (
-										`Claim ${formatTokenAmount(depositorUserData.pendingYield)} USDC`
-									) : (
-										"No Yield Available"
-									)}
-								</Button>
-
-								{claimError && (
-									<p className="text-red-400 text-sm mt-2">
-										{claimError.message}
-									</p>
-								)}
-							</div>
-						)}
-					</div>
-				</GlassCard>
-
-				{/* Buyback Vault */}
-				<GlassCard className="p-6">
-					<div className="flex justify-between items-center mb-4">
-						<h3 className="text-lg font-bold text-white">Buyback Vault</h3>
-						<div
-							className={`px-3 py-1 rounded-full text-sm ${
-								buybackStatus === "active"
-									? "bg-green-500/20 text-green-300"
-									: buybackStatus === "paused"
-										? "bg-red-500/20 text-red-300"
-										: "bg-yellow-500/20 text-yellow-300"
-							}`}
-						>
-							{buybackStatus.charAt(0).toUpperCase() + buybackStatus.slice(1)}
-						</div>
-					</div>
-
-					<div className="space-y-4">
-						<div className="flex justify-between">
-							<span className="text-gray-400">Available Liquidity</span>
-							<span className="text-white font-medium">
-								<TokenAmountDisplay
-									amount={buybackData.availableLiquidity}
-									showUsd={true}
-								/>
-							</span>
-						</div>
-
-						<div className="flex justify-between">
-							<span className="text-gray-400">Staked Principal</span>
-							<span className="text-white font-medium">
-								<TokenAmountDisplay
-									amount={buybackData.stakedPrincipal}
-									showUsd={true}
-								/>
-							</span>
-						</div>
-
-						<div className="flex justify-between">
-							<span className="text-gray-400">Total Managed</span>
-							<span className="text-white font-medium">
-								<TokenAmountDisplay
-									amount={buybackData.totalManagedLiquidity}
-									showUsd={true}
-								/>
-							</span>
-						</div>
-
-						<div className="flex justify-between">
-							<span className="text-gray-400">Utilization Rate</span>
-							<span className="text-white font-medium">
-								{utilizationRate.toFixed(2)}%
-							</span>
-						</div>
-
-						<div className="flex justify-between">
-							<span className="text-gray-400">Buyback Payout</span>
-							<span className="text-green-400 font-medium">
-								{calculateBuybackPayoutPercentage(buybackData.buybackPayoutBps)}
-							</span>
-						</div>
-
-						{/* Progress bar for utilization */}
-						<div className="mt-4">
-							<div className="flex justify-between text-sm mb-1">
-								<span className="text-gray-400">Utilization</span>
-								<span className="text-gray-300">
-									{utilizationRate.toFixed(1)}%
-								</span>
-							</div>
-							<div className="w-full bg-gray-700 rounded-full h-2">
-								<div
-									className={`h-2 rounded-full transition-all duration-300 ${
-										utilizationRate > 90
-											? "bg-red-500"
-											: utilizationRate > 70
-												? "bg-yellow-500"
-												: "bg-green-500"
-									}`}
-									style={{ width: `${Math.min(utilizationRate, 100)}%` }}
-								/>
-							</div>
-						</div>
-					</div>
-				</GlassCard>
-			</div>
+					)}
+				</div>
+			</GlassCard>
 
 			{/* Protocol Treasury */}
 			<GlassCard className="p-6">

@@ -1,9 +1,8 @@
 //! Scrydex-based resolver for Pokémon trading card data.
 //!
-//! This resolver is the foundation for migrating price discovery away from the
-//! legacy PokemonPriceTracker API. For the initial iteration we limit the scope
-//! to expansion (set) discovery so downstream systems can start wiring in
-//! Scrydex metadata. Price lookups will be added in a follow-up change.
+//! This resolver provides direct card lookup and price discovery from the
+//! Scrydex API. It queries individual cards using the {set}-{card_number}
+//! identifier format and returns pricing information.
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -15,54 +14,107 @@ use wstd::{
     io::AsyncRead,
 };
 
-use crate::traits::pricing::{PriceResolver, ResolverQuote};
+use crate::traits::pricing::{AppraisalPrice, PriceResolver, ResolverQuote};
 use crate::types::ResolverArgs;
+use std::time::Duration;
 
-const SCRYDEX_EXPANSIONS_ENDPOINT: &str = "https://api.scrydex.com/pokemon/v1/expansions";
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ScrydexCardInfo {
+    pub card_number: String,
+    pub grade: String,
+    pub company: String,
+    pub is_perfect: bool,
+    pub set_id: String,
+}
 
-/// Resolver that queries Scrydex for card expansion data.
+impl ScrydexCardInfo {
+    /// Returns the card identifier in the format "{set_id}-{card_number}"
+    pub fn card_identifier(&self) -> String {
+        format!("{}-{}", self.set_id.trim(), self.card_number.trim())
+    }
+}
+
+const SCRYDEX_CARDS_ENDPOINT: &str = "https://api.scrydex.com/pokemon/v1/cards";
+
+/// Resolver that queries Scrydex for Pokemon card data.
 #[derive(Debug, Clone)]
 pub struct ScrydexPokemonResolver {
     api_key: String,
     team_id: Option<String>,
-    default_page_size: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScrydexExpansion {
+pub struct ScrydexCard {
     pub id: String,
     pub name: String,
     #[serde(default)]
-    pub series: Option<String>,
+    pub number: Option<String>,
     #[serde(default)]
-    pub code: Option<String>,
+    pub rarity: Option<String>,
     #[serde(default)]
-    pub total: Option<u32>,
+    pub expansion: Option<ScrydexCardExpansion>,
     #[serde(default)]
-    pub printed_total: Option<u32>,
-    #[serde(default)]
-    pub language: Option<String>,
-    #[serde(default)]
-    pub language_code: Option<String>,
-    #[serde(default)]
-    pub release_date: Option<String>,
-    #[serde(default)]
-    pub is_online_only: Option<bool>,
-    #[serde(default)]
-    pub logo: Option<String>,
-    #[serde(default)]
-    pub symbol: Option<String>,
+    pub variants: Vec<ScrydexCardVariant>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScrydexExpansionSearchResponse {
-    pub data: Vec<ScrydexExpansion>,
-    #[serde(rename = "page", default)]
-    pub page: Option<u32>,
-    #[serde(rename = "pageSize", default)]
-    pub page_size: Option<u32>,
-    #[serde(rename = "totalCount", default)]
-    pub total_count: Option<u32>,
+pub struct ScrydexCardExpansion {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub code: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrydexCardVariant {
+    pub name: String,
+    pub prices: Vec<ScrydexGradedPrice>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrydexGradedPrice {
+    pub grade: String,
+    pub company: String,
+    pub is_perfect: bool,
+    #[serde(default)]
+    pub is_signed: bool,
+    #[serde(default)]
+    pub is_error: bool,
+    pub r#type: String,
+    pub low: f64,
+    pub mid: f64,
+    pub high: f64,
+    pub market: f64,
+    pub currency: String,
+    #[serde(default)]
+    pub trends: Option<ScrydexPriceTrends>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrydexPriceTrends {
+    #[serde(rename = "days_1")]
+    pub days_1: Option<ScrydexPriceChange>,
+    #[serde(rename = "days_7")]
+    pub days_7: Option<ScrydexPriceChange>,
+    #[serde(rename = "days_14")]
+    pub days_14: Option<ScrydexPriceChange>,
+    #[serde(rename = "days_30")]
+    pub days_30: Option<ScrydexPriceChange>,
+    #[serde(rename = "days_90")]
+    pub days_90: Option<ScrydexPriceChange>,
+    #[serde(rename = "days_180")]
+    pub days_180: Option<ScrydexPriceChange>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrydexPriceChange {
+    pub price_change: f64,
+    pub percent_change: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrydexCardResponse {
+    pub data: ScrydexCard,
 }
 
 impl ScrydexPokemonResolver {
@@ -71,7 +123,6 @@ impl ScrydexPokemonResolver {
         Self {
             api_key: api_key.into(),
             team_id,
-            default_page_size: 5,
         }
     }
 
@@ -91,20 +142,30 @@ impl ScrydexPokemonResolver {
         Ok(Self::new(scrydex_api_key, scrydex_team_id))
     }
 
-    fn build_search_query(set_id: &str) -> String {
-        let normalized = set_id.trim();
-        format!("code:\"{}\"", Self::escape_query_value(normalized))
+    fn find_matching_price<'a>(
+        card: &'a ScrydexCard,
+        grade: &str,
+        company: &str,
+        is_perfect: bool,
+    ) -> Option<&'a ScrydexGradedPrice> {
+        for variant in &card.variants {
+            for price in &variant.prices {
+                let grade_matches = price.grade == grade;
+                let company_matches = price.company.to_uppercase() == company.to_uppercase();
+                let perfect_matches = price.is_perfect == is_perfect;
+
+                if grade_matches && company_matches && perfect_matches {
+                    return Some(price);
+                }
+            }
+        }
+        None
     }
 
-    fn escape_query_value(value: &str) -> String {
-        value.replace('"', "\\\"")
-    }
-
-    async fn search_expansions(&self, query: &str) -> Result<ScrydexExpansionSearchResponse> {
-        let encoded_query = urlencoding::encode(query);
+    async fn get_card(&self, card_identifier: &str) -> Result<ScrydexCardResponse> {
         let url = format!(
-            "{}?pageSize={}&q={}",
-            SCRYDEX_EXPANSIONS_ENDPOINT, self.default_page_size, encoded_query
+            "{}/{}?include=prices",
+            SCRYDEX_CARDS_ENDPOINT, card_identifier
         );
 
         let mut builder = Request::get(&url);
@@ -115,18 +176,19 @@ impl ScrydexPokemonResolver {
 
         let request = builder
             .body(Vec::new().into_body())
-            .map_err(|e| anyhow!("Failed to construct Scrydex expansions request: {}", e))?;
+            .map_err(|e| anyhow!("Failed to construct Scrydex card request: {}", e))?;
 
         let mut response = Client::new()
             .send(request)
             .await
-            .map_err(|e| anyhow!("Scrydex expansions request failed: {}", e))?;
+            .map_err(|e| anyhow!("Scrydex card request failed: {}", e))?;
 
         let status = response.status();
         if !status.is_success() {
             return Err(anyhow!(
-                "Scrydex expansions request returned status {}",
-                status
+                "Scrydex card request returned status {} for card {}",
+                status,
+                card_identifier
             ));
         }
 
@@ -135,36 +197,15 @@ impl ScrydexPokemonResolver {
             .body_mut()
             .read_to_end(&mut body)
             .await
-            .map_err(|e| anyhow!("Failed to read Scrydex expansions response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to read Scrydex card response: {}", e))?;
 
         let response_text = String::from_utf8(body)
-            .map_err(|e| anyhow!("Scrydex expansions response was not valid UTF-8: {}", e))?;
+            .map_err(|e| anyhow!("Scrydex card response was not valid UTF-8: {}", e))?;
 
-        let parsed: ScrydexExpansionSearchResponse = serde_json::from_str(&response_text)
-            .map_err(|e| anyhow!("Failed to parse Scrydex expansions response: {}", e))?;
+        let parsed: ScrydexCardResponse = serde_json::from_str(&response_text)
+            .map_err(|e| anyhow!("Failed to parse Scrydex card response: {}", e))?;
 
         Ok(parsed)
-    }
-
-    fn pick_best_expansion(
-        expansions: &[ScrydexExpansion],
-        expected_set_code: &str,
-    ) -> Option<ScrydexExpansion> {
-        if expansions.is_empty() {
-            return None;
-        }
-
-        if let Some(exact_match) = expansions.iter().find(|expansion| {
-            expansion
-                .code
-                .as_deref()
-                .map(|code| code.trim().eq_ignore_ascii_case(expected_set_code))
-                .unwrap_or(false)
-        }) {
-            return Some(exact_match.clone());
-        }
-
-        expansions.first().cloned()
     }
 }
 
@@ -175,29 +216,57 @@ impl PriceResolver for ScrydexPokemonResolver {
     }
 
     async fn get_price(&self, args: &ResolverArgs) -> Result<Option<ResolverQuote>> {
-        let set_id = match args {
-            ResolverArgs::PokemonCardInfo { set_id, .. } => set_id,
+        let info = match args {
+            ResolverArgs::ScrydexCardInfo(info) => info,
         };
 
-        let trimmed_set_id = set_id.trim();
-        if trimmed_set_id.is_empty() {
-            return Err(anyhow!("Scrydex resolver requires a set identifier"));
+        let card_identifier = info.card_identifier();
+
+        let card_response = self.get_card(&card_identifier).await?;
+
+        let matching_price = Self::find_matching_price(
+            &card_response.data,
+            &info.grade,
+            &info.company,
+            info.is_perfect,
+        );
+
+        if let Some(price) = matching_price {
+            let quote = ResolverQuote {
+                price: AppraisalPrice {
+                    value: price.market,
+                    currency: price.currency.clone(),
+                    source: "Scrydex".to_string(),
+                    context: Some(serde_json::json!({
+                        "card_id": card_response.data.id,
+                        "card_name": card_response.data.name,
+                        "card_number": card_response.data.number,
+                        "rarity": card_response.data.rarity,
+                        "expansion": card_response.data.expansion,
+                        "grade": info.grade,
+                        "company": info.company,
+                        "is_perfect": info.is_perfect,
+                        "pricing_metrics": {
+                            "low": price.low,
+                            "mid": price.mid,
+                            "high": price.high,
+                            "market": price.market,
+                        },
+                        "trends": price.trends,
+                    })),
+                },
+                ttl: Duration::from_secs(86400), // 24 hours cache TTL
+            };
+            Ok(Some(quote))
+        } else {
+            Err(anyhow!(
+                "No price found for card {} with grade {} from company {} (perfect: {})",
+                card_identifier,
+                info.grade,
+                info.company,
+                info.is_perfect
+            ))
         }
-
-        let query = Self::build_search_query(trimmed_set_id);
-
-        let search_response = self.search_expansions(&query).await?;
-        let expansion = Self::pick_best_expansion(&search_response.data, trimmed_set_id)
-            .or_else(|| search_response.data.first().cloned());
-
-        if expansion.is_none() {
-            return Err(anyhow!(
-                "Scrydex expansion not found for set identifier {}",
-                trimmed_set_id
-            ));
-        }
-
-        Err(anyhow!("Scrydex price lookup is not implemented yet"))
     }
 }
 
@@ -210,46 +279,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn build_search_query_formats_code() {
-        let query = ScrydexPokemonResolver::build_search_query(" Sv5a  ");
-        assert_eq!(query, "code:\"Sv5a\"");
-    }
+    fn card_identifier_formats_correctly() {
+        let info = ScrydexCardInfo {
+            card_number: "1".to_string(),
+            grade: "10".to_string(),
+            company: "PSA".to_string(),
+            is_perfect: false,
+            set_id: "sv5a".to_string(),
+        };
+        assert_eq!(info.card_identifier(), "sv5a-1");
 
-    #[test]
-    fn pick_best_expansion_prefers_code_match() {
-        let expansions = vec![
-            ScrydexExpansion {
-                id: "1".to_string(),
-                name: "Crimson Haze".to_string(),
-                series: None,
-                code: Some("sv5a".to_string()),
-                total: None,
-                printed_total: None,
-                language: None,
-                language_code: None,
-                release_date: None,
-                is_online_only: None,
-                logo: None,
-                symbol: None,
-            },
-            ScrydexExpansion {
-                id: "2".to_string(),
-                name: "Other".to_string(),
-                series: None,
-                code: Some("sv4".to_string()),
-                total: None,
-                printed_total: None,
-                language: None,
-                language_code: None,
-                release_date: None,
-                is_online_only: None,
-                logo: None,
-                symbol: None,
-            },
-        ];
-
-        let picked = ScrydexPokemonResolver::pick_best_expansion(&expansions, "sv5a")
-            .expect("expected match");
-        assert_eq!(picked.code.as_deref(), Some("sv5a"));
+        let info_with_spaces = ScrydexCardInfo {
+            card_number: " 1 ".to_string(),
+            grade: "10".to_string(),
+            company: "PSA".to_string(),
+            is_perfect: false,
+            set_id: " sv5a ".to_string(),
+        };
+        assert_eq!(info_with_spaces.card_identifier(), "sv5a-1");
     }
 }

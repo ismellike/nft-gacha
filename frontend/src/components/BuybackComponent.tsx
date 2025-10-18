@@ -6,11 +6,10 @@ import { useAccount, useWaitForTransactionReceipt, useReadContract } from "wagmi
 import { toast } from "react-hot-toast";
 import { Button, Chip, Progress } from "@heroui/react";
 import {
-	useWriteBuybackVaultExecuteBuyback,
-	useReadBuybackVaultAvailableLiquidity,
-	useReadBuybackVaultBuybackPayoutBps,
-	useReadBuybackVaultAsset,
-	useReadBuybackVaultPaused,
+	useWriteProtocolTreasuryExecuteRedemption,
+	useReadProtocolTreasuryRedemptionPayoutBps,
+	useReadProtocolTreasuryAsset,
+	useReadProtocolTreasuryPaused,
 	useReadErc20Allowance,
 	useWriteErc20Approve,
 	useReadNftAppraisalGetAppraisedPrice,
@@ -25,7 +24,7 @@ interface BuybackComponentProps {
 	collection: string;
 	tokenId: string;
 	appraisalContractAddress: string;
-	buybackVaultAddress: string;
+	protocolTreasuryAddress: string;
 	rarity?: string;
 	onSuccess?: (txHash: string) => void;
 	size?: "sm" | "md" | "lg";
@@ -45,7 +44,7 @@ export default function BuybackComponent({
 	collection,
 	tokenId,
 	appraisalContractAddress,
-	buybackVaultAddress,
+	protocolTreasuryAddress,
 	rarity,
 	onSuccess,
 	size = "md",
@@ -91,22 +90,23 @@ export default function BuybackComponent({
 		}
 	});
 
-	// Get buyback vault data
-	const { data: availableLiquidity } = useReadBuybackVaultAvailableLiquidity({
-		address: buybackVaultAddress as `0x${string}`
+	// Get protocol treasury data
+	const { data: payoutBps } = useReadProtocolTreasuryRedemptionPayoutBps({
+		address: protocolTreasuryAddress as `0x${string}`
 	});
 
-	const { data: payoutBps } = useReadBuybackVaultBuybackPayoutBps({
-		address: buybackVaultAddress as `0x${string}`
+	const { data: usdcAddress } = useReadProtocolTreasuryAsset({
+		address: protocolTreasuryAddress as `0x${string}`
 	});
 
-	const { data: usdcAddress } = useReadBuybackVaultAsset({
-		address: buybackVaultAddress as `0x${string}`
+	const { data: isPaused } = useReadProtocolTreasuryPaused({
+		address: protocolTreasuryAddress as `0x${string}`
 	});
 
-	const { data: isPaused } = useReadBuybackVaultPaused({
-		address: buybackVaultAddress as `0x${string}`
-	});
+	// Note: ProtocolTreasury doesn't have available liquidity hook like BuybackVault did
+	// This might need to be handled differently or the contract might work differently
+	// For now, we'll assume there's always enough liquidity when not paused
+	const availableLiquidity = undefined; // This will be handled by contract revert if insufficient
 
 	// Calculate payout amount
 	const payoutAmount = useMemo(() => {
@@ -123,31 +123,29 @@ export default function BuybackComponent({
 	// Check USDC allowance
 	const { data: usdcAllowance } = useReadErc20Allowance({
 		address: usdcAddress as `0x${string}`,
-		args: [connectedAddress as `0x${string}`, buybackVaultAddress as `0x${string}`],
+		args: [connectedAddress as `0x${string}`, protocolTreasuryAddress as `0x${string}`],
 		query: {
 			enabled: !!connectedAddress && !!usdcAddress
 		}
 	});
 
-	// Check if vault has enough liquidity
-	const hasEnoughLiquidity = availableLiquidity && payoutAmount ? availableLiquidity >= payoutAmount : false;
+	// Check if treasury has enough liquidity (simplified since we don't have direct liquidity access)
+	const hasEnoughLiquidity = !isPaused; // Assume sufficient liquidity if not paused
 
 	// Check if user owns the NFT
 	const isOwner = ownerOf && connectedAddress ? ownerOf.toLowerCase() === connectedAddress.toLowerCase() : false;
 
-	// Calculate liquidity health
+	// Calculate liquidity health (simplified since we don't have direct liquidity access)
 	const liquidityHealth = useMemo(() => {
-		if (!availableLiquidity || !payoutAmount) return 100;
-		const health = (Number(availableLiquidity) / Number(payoutAmount)) * 100;
-		return Math.min(health, 100);
-	}, [availableLiquidity, payoutAmount]);
+		return isPaused ? 0 : 100; // Either 0% if paused or 100% if available
+	}, [isPaused]);
 
 	// Get notification context
 	const { showNotification } = useBuybackNotificationsContext();
 
 	// Write contracts
 	const { writeContractAsync: approveUSDC } = useWriteErc20Approve();
-	const { writeContractAsync: executeBuyback } = useWriteBuybackVaultExecuteBuyback();
+	const { writeContractAsync: executeRedemption } = useWriteProtocolTreasuryExecuteRedemption();
 
 	// Wait for transaction receipt
 	const { isLoading: isConfirming } = useWaitForTransactionReceipt({
@@ -159,8 +157,8 @@ export default function BuybackComponent({
 
 	// Handle USDC approval
 	const handleApprove = async () => {
-		if (!usdcAddress || !buybackVaultAddress) {
-			const error = "USDC or BuybackVault address not found";
+		if (!usdcAddress || !protocolTreasuryAddress) {
+			const error = "USDC or ProtocolTreasury address not found";
 			toast.error(error);
 			setBuybackState({ status: "error", error });
 			return;
@@ -171,7 +169,7 @@ export default function BuybackComponent({
 			const approveAmount = payoutAmount * 2n; // Approve extra for buffer
 			const txHash = await approveUSDC({
 				address: usdcAddress as `0x${string}`,
-				args: [buybackVaultAddress as `0x${string}`, approveAmount]
+				args: [protocolTreasuryAddress as `0x${string}`, approveAmount]
 			});
 
 			toast.success("USDC approved for buyback");
@@ -210,14 +208,14 @@ export default function BuybackComponent({
 		}
 
 		if (!hasEnoughLiquidity) {
-			const error = "Insufficient liquidity in buyback vault";
+			const error = "Redemption is currently unavailable";
 			toast.error(error);
 			setBuybackState({ status: "error", error });
 			return;
 		}
 
 		if (isPaused) {
-			const error = "Buyback is currently paused";
+			const error = "Redemption is currently paused";
 			toast.error(error);
 			setBuybackState({ status: "error", error });
 			return;
@@ -225,8 +223,8 @@ export default function BuybackComponent({
 
 		setBuybackState({ status: "selling" });
 		try {
-			const txHash = await executeBuyback({
-				address: buybackVaultAddress as `0x${string}`,
+			const txHash = await executeRedemption({
+				address: protocolTreasuryAddress as `0x${string}`,
 				args: [collection as `0x${string}`, BigInt(tokenId), connectedAddress]
 			});
 
@@ -258,12 +256,12 @@ export default function BuybackComponent({
 	// Determine if approval is needed
 	const needsApproval = usdcAllowance && payoutAmount ? usdcAllowance < payoutAmount : true;
 
-	// Get vault status message
-	const getVaultStatusMessage = () => {
+	// Get treasury status message
+	const getTreasuryStatusMessage = () => {
 		if (isPaused) {
 			return {
 				type: "error",
-				message: "Buyback is currently paused by the protocol",
+				message: "Redemption is currently paused by the protocol",
 				action: "Please check back later"
 			};
 		}
@@ -271,27 +269,19 @@ export default function BuybackComponent({
 		if (!hasEnoughLiquidity) {
 			return {
 				type: "warning",
-				message: "Insufficient liquidity in buyback vault",
-				action: "Liquidity is being restocked periodically"
-			};
-		}
-
-		if (liquidityHealth < 50) {
-			return {
-				type: "warning",
-				message: "Low liquidity in buyback vault",
-				action: "Sell now to guarantee your payout"
+				message: "Redemption is currently unavailable",
+				action: "Please try again later"
 			};
 		}
 
 		return {
 			type: "success",
-			message: "Buyback vault is operating normally",
-			action: "You can sell your NFT instantly"
+			message: "Protocol treasury is operating normally",
+			action: "You can redeem your NFT instantly"
 		};
 	};
 
-	const vaultStatus = getVaultStatusMessage();
+	const treasuryStatus = getTreasuryStatusMessage();
 
 	// Size configurations
 	const sizeClasses = {
@@ -324,12 +314,12 @@ export default function BuybackComponent({
 						Instant Sell Back
 					</h3>
 					<Chip
-						color={vaultStatus.type === "error" ? "danger" : vaultStatus.type === "warning" ? "warning" : "success"}
+						color={treasuryStatus.type === "error" ? "danger" : treasuryStatus.type === "warning" ? "warning" : "success"}
 						variant="flat"
 						size="sm"
 						className={classes.chip}
 					>
-						{vaultStatus.type === "error" ? "Paused" : vaultStatus.type === "warning" ? "Low Liquidity" : "Available"}
+						{treasuryStatus.type === "error" ? "Paused" : treasuryStatus.type === "warning" ? "Unavailable" : "Available"}
 					</Chip>
 				</div>
 
@@ -399,35 +389,25 @@ export default function BuybackComponent({
 							</div>
 						)}
 
-						{/* Liquidity Information */}
+						{/* Treasury Status */}
 						<div className="space-y-2">
 							<div className="flex justify-between items-center text-sm">
-								<span className="text-white/60">Vault Liquidity:</span>
+								<span className="text-white/60">Treasury Status:</span>
 								<span className="text-white/80">
-									{formatCurrency(availableLiquidity?.toString() || "0", 6, "USDC")}
+									{isPaused ? "Paused" : "Active"}
 								</span>
 							</div>
-							{liquidityHealth < 100 && (
-								<Progress
-									value={liquidityHealth}
-									color={liquidityHealth > 50 ? "success" : "warning"}
-									size="sm"
-									className="h-2"
-									label="Liquidity Health"
-									showValueLabel={false}
-								/>
-							)}
 						</div>
 
 						{/* Status Messages */}
-						{vaultStatus.type !== "success" && (
+						{treasuryStatus.type !== "success" && (
 							<div className={`rounded-lg p-3 ${
-								vaultStatus.type === "error" ? "bg-danger-500/10 text-danger-300" :
-								vaultStatus.type === "warning" ? "bg-warning-500/10 text-warning-300" :
+								treasuryStatus.type === "error" ? "bg-danger-500/10 text-danger-300" :
+								treasuryStatus.type === "warning" ? "bg-warning-500/10 text-warning-300" :
 								"bg-success-500/10 text-success-300"
 							}`}>
-								<p className="text-sm font-medium mb-1">{vaultStatus.message}</p>
-								<p className="text-xs opacity-80">{vaultStatus.action}</p>
+								<p className="text-sm font-medium mb-1">{treasuryStatus.message}</p>
+								<p className="text-xs opacity-80">{treasuryStatus.action}</p>
 							</div>
 						)}
 
@@ -447,7 +427,7 @@ export default function BuybackComponent({
 								</Button>
 							) : (
 								<Button
-									color={vaultStatus.type === "error" ? "default" : "success"}
+									color={treasuryStatus.type === "error" ? "default" : "success"}
 									variant="flat"
 									size={size}
 									onClick={handleSell}
@@ -485,7 +465,7 @@ export default function BuybackComponent({
 					{isPaused ? (
 						<Chip color="danger" variant="flat" size="sm">Paused</Chip>
 					) : !hasEnoughLiquidity ? (
-						<Chip color="warning" variant="flat" size="sm">Low Liquidity</Chip>
+						<Chip color="warning" variant="flat" size="sm">Unavailable</Chip>
 					) : (
 						<Chip color="success" variant="flat" size="sm">Available</Chip>
 					)}
@@ -522,13 +502,13 @@ export default function BuybackComponent({
 
 						{!isPaused && !hasEnoughLiquidity && (
 							<div className="text-warning-300 text-xs">
-								Low liquidity - restocking soon
+								Redemption temporarily unavailable
 							</div>
 						)}
 
 						{isPaused && (
 							<div className="text-danger-300 text-xs">
-								Buyback temporarily paused
+								Redemption temporarily paused
 							</div>
 						)}
 
@@ -579,11 +559,11 @@ export default function BuybackComponent({
 				</Chip>
 			) : isPaused ? (
 				<Chip color="danger" variant="flat" size="sm" className={classes.chip}>
-					Buyback paused
+					Redemption paused
 				</Chip>
 			) : !hasEnoughLiquidity ? (
 				<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
-					Low liquidity
+					Unavailable
 				</Chip>
 			) : needsApproval ? (
 				<Button

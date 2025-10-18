@@ -11,9 +11,10 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use hex;
 use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
-use crate::resolvers::ScrydexPokemonResolver;
+use crate::resolvers::{ScrydexPokemonResolver, scrydex_resolver::ScrydexCardInfo};
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
 use crate::traits::pricing::{PriceResolver, ResolverQuote};
 use crate::types::{ProviderType, ResolverArgs, ResolverKind, ResolverRoute};
@@ -81,16 +82,6 @@ pub struct NFTAttribute {
     pub value: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CardInfo {
-    pub title: String,
-    pub card_number: Option<String>,
-    pub grade: Option<String>,
-    pub company: Option<String>,
-    pub is_perfect: bool,
-    pub set_name: Option<String>,
-    pub year: Option<String>,
-}
 
 // ============================================================================
 // Client
@@ -252,53 +243,74 @@ impl MetadataProvider for CourtyardProvider {
     }
 }
 
-impl CourtyardProvider {
-    /// Extract card information from Courtyard metadata attributes
-    fn extract_card_info(&self, metadata: &NFTMetadata) -> CardInfo {
-        let mut card_info = CardInfo {
-            title: metadata.name.clone(),
-            card_number: None,
-            grade: None,
-            company: None,
-            is_perfect: false,
-            set_name: None,
-            year: None,
-        };
+impl TryInto<ScrydexCardInfo> for &NFTMetadata {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<ScrydexCardInfo> {
+        let mut card_number = None;
+        let mut grade = None;
+        let mut company = None;
+        let mut is_perfect = false;
+        let mut set_name = None;
 
         // Extract information from attributes
-        for attr in &metadata.attributes {
+        for attr in &self.attributes {
             if let Some(trait_type) = &attr.trait_type {
-                let value_str = Self::attribute_value_as_string(&attr.value);
+                let value_str = CourtyardProvider::attribute_value_as_string(&attr.value);
 
                 match trait_type.to_lowercase().as_str() {
                     "card number" | "number" => {
                         if let Some(value) = value_str {
-                            card_info.card_number = Self::normalize_card_number(&value);
+                            card_number = CourtyardProvider::normalize_card_number(&value);
                         }
                     }
                     "grade" | "rating" => {
                         if let Some(value) = value_str {
-                            card_info.grade = Self::normalize_grade_value(&value);
-                            if Self::detect_perfect_grade(&value) {
-                                card_info.is_perfect = true;
+                            grade = CourtyardProvider::normalize_grade_value(&value);
+                            if CourtyardProvider::detect_perfect_grade(&value) {
+                                is_perfect = true;
                             }
                         }
                     }
                     "grader" | "grading company" => {
-                        card_info.company = value_str
+                        company = value_str
                             .map(|value| value.trim().to_string())
                             .filter(|value| !value.is_empty())
                     }
-                    "set" | "set name" => card_info.set_name = value_str,
-                    "year" => card_info.year = value_str,
+                    "set" | "set name" => set_name = value_str,
                     _ => {}
                 }
             }
         }
 
-        card_info
-    }
+        // Validate that all required fields are present
+        let card_number = card_number.ok_or_else(|| {
+            anyhow!("Missing required card number attribute")
+        })?;
 
+        let grade = grade.ok_or_else(|| {
+            anyhow!("Missing required grade attribute")
+        })?;
+
+        let company = company.ok_or_else(|| {
+            anyhow!("Missing required grading company attribute")
+        })?;
+
+        let set_id = set_name.ok_or_else(|| {
+            anyhow!("Missing required set name attribute")
+        })?;
+
+        Ok(ScrydexCardInfo {
+            card_number,
+            grade,
+            company,
+            is_perfect,
+            set_id,
+        })
+    }
+}
+
+impl CourtyardProvider {
     fn categories_from_attributes(attributes: &[NFTAttribute]) -> Vec<String> {
         attributes
             .iter()
@@ -324,8 +336,8 @@ impl CourtyardProvider {
 
     pub async fn resolve_price(&self, route: &ResolverRoute) -> Result<Option<ResolverQuote>> {
         match route.kind {
-            ResolverKind::PokemonTradingCard => {
-                if !matches!(route.args, ResolverArgs::PokemonCardInfo { .. }) {
+            ResolverKind::PokemonGradedCard => {
+                if !matches!(route.args, ResolverArgs::ScrydexCardInfo(_)) {
                     return Err(anyhow!(
                         "Courtyard provider expected Pokemon card info arguments"
                     ));
@@ -355,23 +367,23 @@ impl CourtyardProvider {
         });
 
         if is_graded_card && has_pokemon_category {
-            let card_info = Self::new().extract_card_info(metadata);
-            let set_id = card_info
-                .set_name
-                .as_deref()
-                .and_then(Self::extract_set_id)
-                .map(String::from);
+            // Try to convert metadata to ScrydexCardInfo, returning None if conversion fails
+            let card_info: ScrydexCardInfo = match metadata.try_into() {
+                Ok(info) => info,
+                Err(_) => return None, // Silently fail if required attributes are missing
+            };
 
-            if let (Some(card_number), Some(grade), Some(company), Some(set_id)) = (
-                card_info.card_number.clone(),
-                card_info.grade.clone(),
-                card_info.company.clone(),
-                set_id,
-            ) {
+            let set_id = Self::extract_set_id(&card_info.set_id)
+                .unwrap_or_else(|| card_info.set_id.clone());
+
+            if !card_info.card_number.is_empty()
+                && !card_info.grade.is_empty()
+                && !card_info.company.is_empty()
+                && !set_id.is_empty() {
                 return Some(ResolverRoute::pokemon_card_info(
-                    card_number,
-                    grade,
-                    company,
+                    card_info.card_number,
+                    card_info.grade,
+                    card_info.company,
                     card_info.is_perfect,
                     set_id,
                 ));
@@ -567,20 +579,14 @@ mod tests {
         let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
         assert!(resolver.is_some());
         let route = resolver.unwrap();
-        assert_eq!(route.kind, ResolverKind::PokemonTradingCard);
+        assert_eq!(route.kind, ResolverKind::PokemonGradedCard);
         match route.args {
-            ResolverArgs::PokemonCardInfo {
-                card_number,
-                grade,
-                company,
-                is_perfect,
-                set_id,
-            } => {
-                assert_eq!(card_number, "70");
-                assert_eq!(grade, "10");
-                assert_eq!(company, "PSA");
-                assert!(!is_perfect);
-                assert_eq!(set_id, "sv5a");
+            ResolverArgs::ScrydexCardInfo(info) => {
+                assert_eq!(info.card_number, "70");
+                assert_eq!(info.grade, "10");
+                assert_eq!(info.company, "PSA");
+                assert!(!info.is_perfect);
+                assert_eq!(info.set_id, "sv5a");
             }
         }
     }
@@ -622,8 +628,8 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_card_info_from_attributes() {
-        let provider = CourtyardProvider::new();
+    fn test_into_card_info_from_attributes() {
+        let _provider = CourtyardProvider::new();
 
         let metadata = NFTMetadata {
             name: "1999 Fossil #17 Articuno".to_string(),
@@ -652,23 +658,25 @@ mod tests {
             ..Default::default()
         };
 
-        let card_info = provider.extract_card_info(&metadata);
-        assert_eq!(card_info.title, "1999 Fossil #17 Articuno");
-        assert_eq!(card_info.card_number, Some("70".to_string()));
-        assert_eq!(card_info.grade, Some("8".to_string()));
-        assert_eq!(card_info.company, Some("PSA".to_string()));
+        let card_info: ScrydexCardInfo = (&metadata).try_into().unwrap();
+        assert_eq!(card_info.card_number, "70");
+        assert_eq!(card_info.grade, "8");
+        assert_eq!(card_info.company, "PSA");
         assert!(!card_info.is_perfect);
-        assert_eq!(card_info.set_name, Some("Fossil".to_string()));
-        assert_eq!(card_info.year, Some("1999".to_string()));
+        assert_eq!(card_info.set_id, "Fossil");
     }
 
     #[test]
-    fn test_extract_card_info_perfect_grade() {
-        let provider = CourtyardProvider::new();
+    fn test_into_card_info_perfect_grade() {
+        let _provider = CourtyardProvider::new();
 
         let metadata = NFTMetadata {
             name: "2023 Shiny Treasure ex #349 Charizard ex - Special Art Rare".to_string(),
             attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: json!("349"),
+                },
                 NFTAttribute {
                     trait_type: Some("Grader".to_string()),
                     value: json!("BGS"),
@@ -685,14 +693,12 @@ mod tests {
             ..Default::default()
         };
 
-        let card_info = provider.extract_card_info(&metadata);
-        assert_eq!(card_info.grade, Some("10".to_string()));
-        assert_eq!(card_info.company, Some("BGS".to_string()));
+        let card_info: ScrydexCardInfo = (&metadata).try_into().unwrap();
+        assert_eq!(card_info.card_number, "349");
+        assert_eq!(card_info.grade, "10");
+        assert_eq!(card_info.company, "BGS");
         assert!(card_info.is_perfect);
-        assert_eq!(
-            card_info.set_name,
-            Some("Pokémon sv5a-Crimson Haze".to_string())
-        );
+        assert_eq!(card_info.set_id, "Pokémon sv5a-Crimson Haze");
     }
 
     #[test]
@@ -787,6 +793,25 @@ mod tests {
 
         let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
         assert!(resolver.is_none());
+    }
+
+    #[test]
+    fn test_try_into_fails_with_missing_required_fields() {
+        let metadata = NFTMetadata {
+            name: "1999 Fossil #17 Articuno".to_string(),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: json!("17"),
+                },
+                // Missing required grade, company, and set attributes
+            ],
+            ..Default::default()
+        };
+
+        let result: Result<ScrydexCardInfo> = (&metadata).try_into();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Missing required"));
     }
 
     #[test]

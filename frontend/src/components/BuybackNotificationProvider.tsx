@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, ReactNode } from "react";
-import { useBuybackNotifications } from "../hooks/useBuybackNotifications";
+import { useRedemptionNotifications } from "../hooks/useRedemptionNotifications";
 import { getGachaConfig } from "../lib/gacha-config";
 
 interface BuybackNotificationContextType {
@@ -21,20 +21,20 @@ export function useBuybackNotificationsContext() {
 interface BuybackNotificationProviderProps {
 	children: ReactNode;
 	gachaId?: string;
-	buybackVaultAddress?: string;
+	protocolTreasuryAddress?: string;
 }
 
 export function BuybackNotificationProvider({
 	children,
 	gachaId,
-	buybackVaultAddress
+	protocolTreasuryAddress
 }: BuybackNotificationProviderProps) {
-	// Get buyback vault address from gacha config if not provided
+	// Get protocol treasury address from gacha config if not provided
 	const gachaConfig = gachaId ? getGachaConfig(gachaId) : null;
-	const finalBuybackVaultAddress = buybackVaultAddress || gachaConfig?.buybackVaultAddress;
+	const finalProtocolTreasuryAddress = protocolTreasuryAddress || gachaConfig?.protocolTreasuryAddress;
 
-	const { showCustomNotification } = useBuybackNotifications(
-		finalBuybackVaultAddress as `0x${string}`
+	const { showCustomNotification } = useRedemptionNotifications(
+		finalProtocolTreasuryAddress as `0x${string}`
 	);
 
 	const contextValue: BuybackNotificationContextType = {

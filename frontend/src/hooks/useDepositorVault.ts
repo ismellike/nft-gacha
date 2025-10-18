@@ -3,10 +3,7 @@
 import {
 	useReadDepositorVaultAccYieldPerShare,
 	useReadDepositorVaultAsset,
-	useReadDepositorVaultBuybackPrincipal,
-	useReadDepositorVaultBuybackShares,
-	useReadDepositorVaultBuybackVault,
-	useReadDepositorVaultEconomyManager,
+		useReadDepositorVaultEconomyManager,
 	useReadDepositorVaultOwner,
 	useReadDepositorVaultPaused,
 	useReadDepositorVaultPendingYield,
@@ -22,9 +19,6 @@ import {
 export interface DepositorVaultData {
 	asset: string | undefined;
 	accYieldPerShare: bigint | undefined;
-	buybackPrincipal: bigint | undefined;
-	buybackShares: bigint | undefined;
-	buybackVault: string | undefined;
 	economyManager: string | undefined;
 	owner: string | undefined;
 	paused: boolean | undefined;
@@ -61,27 +55,6 @@ export function useDepositorVaultData({
 	});
 
 	const accYieldPerShare = useReadDepositorVaultAccYieldPerShare({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const buybackPrincipal = useReadDepositorVaultBuybackPrincipal({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const buybackShares = useReadDepositorVaultBuybackShares({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const buybackVault = useReadDepositorVaultBuybackVault({
 		address: contractAddress as `0x${string}`,
 		query: {
 			enabled: enabled && !!contractAddress,
@@ -165,9 +138,6 @@ export function useDepositorVaultData({
 	const isLoading =
 		asset.isLoading ||
 		accYieldPerShare.isLoading ||
-		buybackPrincipal.isLoading ||
-		buybackShares.isLoading ||
-		buybackVault.isLoading ||
 		economyManager.isLoading ||
 		owner.isLoading ||
 		paused.isLoading ||
@@ -182,9 +152,6 @@ export function useDepositorVaultData({
 	const isError =
 		asset.isError ||
 		accYieldPerShare.isError ||
-		buybackPrincipal.isError ||
-		buybackShares.isError ||
-		buybackVault.isError ||
 		economyManager.isError ||
 		owner.isError ||
 		paused.isError ||
@@ -199,9 +166,6 @@ export function useDepositorVaultData({
 	const data: DepositorVaultData = {
 		asset: asset.data,
 		accYieldPerShare: accYieldPerShare.data,
-		buybackPrincipal: buybackPrincipal.data,
-		buybackShares: buybackShares.data,
-		buybackVault: buybackVault.data,
 		economyManager: economyManager.data,
 		owner: owner.data,
 		paused: paused.data,
@@ -229,9 +193,6 @@ export function useDepositorVaultData({
 		refetch: () => {
 			asset.refetch();
 			accYieldPerShare.refetch();
-			buybackPrincipal.refetch();
-			buybackShares.refetch();
-			buybackVault.refetch();
 			economyManager.refetch();
 			owner.refetch();
 			paused.refetch();
