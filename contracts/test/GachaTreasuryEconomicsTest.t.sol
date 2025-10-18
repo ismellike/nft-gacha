@@ -387,7 +387,6 @@ contract GachaTreasuryEconomicsTest is Test {
      * @notice Test whitelist management economics
      */
     function testWhitelistManagementEconomics() public {
-        address newCollection = address(0x123);
         BaseERC721 newNFT = new BaseERC721("New Collection", "NEW", owner);
 
         // Should not be able to deposit from non-whitelisted collection
@@ -457,10 +456,10 @@ contract GachaTreasuryEconomicsTest is Test {
     }
 
     function _getCardIdForPrice(uint256 price) internal pure returns (bytes32) {
-        if (price <= 15e18) return CARD_COMMON;     // $0-$15
-        if (price <= 60e18) return CARD_UNCOMMON;    // $25-$60
-        if (price <= 250e18) return CARD_RARE;       // $70-$250
-        if (price <= 1200e18) return CARD_EPIC;     // $300-$1,200
-        return CARD_LEGENDARY;                     // $1,500+
+        if (price <= 15e18) return CARD_COMMON; // $0-$15
+        if (price <= 60e18) return CARD_UNCOMMON; // $25-$60
+        if (price <= 250e18) return CARD_RARE; // $70-$250
+        if (price <= 1200e18) return CARD_EPIC; // $300-$1,200
+        return CARD_LEGENDARY; // $1,500+
     }
 }

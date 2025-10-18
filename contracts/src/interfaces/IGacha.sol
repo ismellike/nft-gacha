@@ -17,10 +17,6 @@ interface IGacha {
     /// @return The fee token address
     function feeToken() external view returns (IERC20);
 
-    /// @notice Set the rewards manager contract
-    /// @param _rewardsManager Address of the rewards manager
-    function setRewardsManager(address _rewardsManager) external;
-
     /// @notice Set the service handler contract
     /// @param _serviceHandler Address of the service handler
     function setGachaServiceHandler(address _serviceHandler) external;

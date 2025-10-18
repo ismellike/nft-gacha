@@ -51,11 +51,16 @@ contract GachaEconomyManager is
     uint256 public totalToProtocol;
     mapping(GachaTreasury.Rarity => uint256) public revenueByRarity;
 
+    /// @notice Queued depositor yield when no shares exist
+    uint256 public queuedDepositorYield;
+
     /// @notice Events for admin changes
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
     event GachaUpdated(address indexed previousGacha, address indexed newGacha);
     event DepositorVaultUpdated(address indexed previousVault, address indexed newVault);
     event ProtocolTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
+    event DepositorYieldQueued(uint256 amount);
+    event QueuedDepositorYieldProcessed(uint256 amount);
 
     modifier onlyGacha() {
         require(msg.sender == gacha, "GachaEconomyManager: caller not gacha");
@@ -92,8 +97,8 @@ contract GachaEconomyManager is
         depositorVault = IDepositorVault(depositorVault_);
         protocolTreasury = IProtocolTreasury(protocolTreasury_);
 
-        depositorShareBps = 7_000;
-        protocolShareBps = 3_000;
+        depositorShareBps = 9_500;
+        protocolShareBps = 500;
 
         _transferOwnership(owner);
     }
@@ -120,6 +125,24 @@ contract GachaEconomyManager is
             protocolShare += usdcAmount - distributed;
         }
 
+        uint256 totalShares = depositorVault.totalShares();
+        uint256 queuedAmount = 0;
+
+        // Queue depositor yield if no shares exist
+        if (depositShare > 0 && totalShares == 0) {
+            queuedDepositorYield += depositShare;
+            emit DepositorYieldQueued(depositShare);
+            depositShare = 0;
+        }
+
+        // Process any queued yield if shares now exist
+        if (queuedDepositorYield > 0 && totalShares > 0) {
+            queuedAmount = queuedDepositorYield;
+            depositShare += queuedDepositorYield;
+            emit QueuedDepositorYieldProcessed(queuedDepositorYield);
+            queuedDepositorYield = 0;
+        }
+
         if (depositShare > 0) {
             feeToken.forceApprove(address(depositorVault), depositShare);
             depositorVault.distributeYield(depositShare);
@@ -130,6 +153,18 @@ contract GachaEconomyManager is
             protocolTreasury.onRevenueReceived(protocolShare);
         }
 
+        // Only auto-claim for protocol if it has meaningful shares and pending yield
+        address protocolTreasuryAddr = address(protocolTreasury);
+        if (protocolTreasuryAddr != address(0)) {
+            uint256 protocolShares = depositorVault.sharesOf(protocolTreasuryAddr);
+            if (protocolShares > 0) {
+                uint256 pending = depositorVault.pendingYield(protocolTreasuryAddr);
+                if (pending > 0) {
+                    depositorVault.claimYield(protocolTreasuryAddr, protocolTreasuryAddr);
+                }
+            }
+        }
+
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
         totalToDepositors += depositShare;
@@ -138,6 +173,7 @@ contract GachaEconomyManager is
         emit SpinRevenueReceived(usdcAmount, depositShare, protocolShare);
     }
 
+    
     /**
      * @notice Updates the fee split (BPS must sum to <= 10_000)
      */

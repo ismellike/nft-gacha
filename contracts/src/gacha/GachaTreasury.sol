@@ -39,25 +39,18 @@ contract GachaTreasury is
     error EmptyArrays();
     error TooManyItems();
     error InvalidGachaContract();
-    error PendingDepositNotFound();
-    error PendingDepositAlreadyProcessed();
-    error CannotDepositSameNFTTwice();
     error UnauthorizedGachaContract();
     error CollectionNotWhitelisted();
     error CollectionAlreadyWhitelisted();
     error CollectionNotInWhitelist();
-    error EmptyWhitelist();
     error InvalidAppraisalContract();
     error NFTNotAppraised();
     error AppraisalRequired();
-    error RarityMigrationFailed();
     error InvalidPriceRange();
     error PriceRangesAlreadySet();
     error NoNFTsAvailable(Rarity rarity);
     error NFTNotDeposited();
     error NotNFTDepositor();
-    error InvalidTreasuryInitialization();
-    error NotTreasuryInitializing();
     error InvalidDepositorVault();
     error InvalidProtocolTreasury();
     error UnauthorizedProtocolTreasury();
@@ -440,11 +433,6 @@ contract GachaTreasury is
             _decreaseActiveValue(item.depositor, oldPrice - newPriceUSD);
         }
 
-        // Update card-level tracking for migration - no changes needed
-        // Cards are tracked globally, not per rarity
-        bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
-        // Card counts remain the same during rarity migration
-
         emit RarityMigrated(collection, tokenId, currentRarity, newRarity, newPriceUSD);
     }
 
@@ -717,6 +705,11 @@ contract GachaTreasury is
 
     function setProtocolTreasury(address _protocolTreasury) external onlyOwner {
         if (_protocolTreasury == address(0)) revert InvalidProtocolTreasury();
+
+        // Prevent treasury rotation unless all NFTs are withdrawn to avoid yield loss
+        // Existing inventory would keep old treasury as depositor, locking vault shares and yield
+        require(userTotalDeposits[protocolTreasury] == 0, "TreasuryRotation: Must drain inventory before rotation");
+
         address previous = protocolTreasury;
         protocolTreasury = _protocolTreasury;
         emit ProtocolTreasuryUpdated(previous, _protocolTreasury);
@@ -1014,6 +1007,7 @@ contract GachaTreasury is
             }
 
             userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+            _decreaseActiveValue(item.depositor, item.appraisedPrice);
         }
 
         totalRarityValue[rarity] -= item.appraisedPrice;
@@ -1042,12 +1036,14 @@ contract GachaTreasury is
         if (collection == address(0)) revert InvalidCollectionAddress();
         if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
         if (appraisalUSD == 0) revert NFTNotAppraised();
+        address protocol = protocolTreasury;
+        if (protocol == address(0)) revert InvalidProtocolTreasury();
 
         Rarity rarity = getRarityByPrice(appraisalUSD);
 
         NFTItem memory item = NFTItem({
             collection: collection,
-            depositor: address(0),
+            depositor: protocol,
             tokenId: tokenId,
             appraisedPrice: appraisalUSD,
             rarity: rarity,
@@ -1068,6 +1064,14 @@ contract GachaTreasury is
         }
 
         totalRarityValue[rarity] += appraisalUSD;
+        userDepositCounts[protocol][rarity]++;
+        userTotalDeposits[protocol]++;
+        userDepositValues[protocol][rarity] += appraisalUSD;
+        _increaseActiveValue(protocol, appraisalUSD);
+
+        // Fix protocol depositor accounting for restocked NFTs
+        // Ensure protocol treasury gets shares in the depositor vault for its contributions
+        _syncDepositorVault(protocol, 0, userActiveDepositValueUSD[protocol]);
 
         emit RedemptionRestocked(collection, tokenId, seller, rarity, appraisalUSD);
     }

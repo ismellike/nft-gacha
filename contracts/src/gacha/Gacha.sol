@@ -12,6 +12,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
 import {RandomnessRequested} from "../interfaces/WavsDrandTypes.sol";
+import {IGacha} from "../interfaces/IGacha.sol";
 
 /**
  * @title Gacha - Upgradeable NFT Gacha Game Contract with Price-Based Treasury
@@ -20,19 +21,22 @@ import {RandomnessRequested} from "../interfaces/WavsDrandTypes.sol";
  * @dev This contract is upgradeable using UUPS proxy pattern
  * @author NFT Gacha Team
  */
-contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardTransient, UUPSUpgradeable {
+contract Gacha is
+    Initializable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardTransient,
+    UUPSUpgradeable,
+    IGacha
+{
     using SafeERC20 for IERC20;
 
     /// @notice Custom errors for gas efficiency and clarity
     error InvalidFeeToken();
     error InvalidServiceHandler();
-    error FeePaymentFailed();
     error InvalidTriggerId();
     error AlreadyFulfilled();
-    error RefundFailed();
     error InvalidRecipient();
-    error NoFeesToWithdraw();
-    error FeeWithdrawalFailed();
     error WeightsMustSumToTotal();
     error NoNFTsAvailable(GachaTreasury.Rarity rarity);
     error UnauthorizedServiceHandler();
@@ -40,14 +44,16 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
     error InvalidEconomyManager();
     error CannotReclaimFulfilledSpin();
     error NotSpinRequester();
-    error InvalidGachaInitialization();
-    error NotGachaInitializing();
+    error SpinRequestNotExpired();
+    error SpinAlreadyReclaimed();
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
         address requester; // Address that initiated the spin
         bool fulfilled; // Whether the spin has been completed
+        bool reclaimed; // Whether the user has reclaimed their fee after timeout
         uint256 feePaid; // Fee amount paid at time of spin (in fee tokens)
+        uint256 requestTime; // Timestamp when the spin was requested (for timeout)
     }
 
     /// @notice Core contract interfaces and addresses
@@ -70,6 +76,9 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
     uint256 public totalRefundCount;
     uint256 public totalReclaimCount;
     mapping(GachaTreasury.Rarity => uint256) public globalRarityWins;
+
+    /// @notice Timeout for spin requests (1 hour)
+    uint256 public constant SPIN_TIMEOUT = 3600; // 1 hour in seconds
 
     /// @notice Total weight constant for rarity calculations (basis points)
     uint256 public constant TOTAL_WEIGHT = 10_000;
@@ -184,7 +193,13 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
         }
 
         triggerId = _nextTriggerId++;
-        spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false, feePaid: spinFee});
+        spinRequests[triggerId] = SpinRequest({
+            requester: msg.sender,
+            fulfilled: false,
+            reclaimed: false,
+            feePaid: spinFee,
+            requestTime: block.timestamp
+        });
 
         emit RandomnessRequested(triggerId);
         emit SpinStatusUpdate(triggerId, msg.sender, "requested", block.timestamp);
@@ -215,7 +230,13 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
         }
 
         triggerId = _nextTriggerId++;
-        spinRequests[triggerId] = SpinRequest({requester: msg.sender, fulfilled: false, feePaid: spinFee});
+        spinRequests[triggerId] = SpinRequest({
+            requester: msg.sender,
+            fulfilled: false,
+            reclaimed: false,
+            feePaid: spinFee,
+            requestTime: block.timestamp
+        });
 
         emit RandomnessRequested(triggerId);
         emit SpinStatusUpdate(triggerId, msg.sender, "requested", block.timestamp);
@@ -247,7 +268,13 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
     function fulfillRandomness(uint256 triggerId, bytes32 randomness) external onlyGachaServiceHandler {
         SpinRequest storage request = spinRequests[triggerId];
         if (request.requester == address(0)) revert InvalidTriggerId();
-        if (request.fulfilled) revert AlreadyFulfilled();
+        if (request.fulfilled) {
+            if (request.reclaimed) {
+                revert SpinAlreadyReclaimed();
+            } else {
+                revert AlreadyFulfilled();
+            }
+        }
 
         request.fulfilled = true;
 
@@ -274,8 +301,6 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
             emit SpinStatusUpdate(triggerId, request.requester, "refunded", block.timestamp);
             return;
         }
-
-        // Random selection now handled by treasury.sendRandomNFTToWinner()
 
         // Distribute rewards from spin fee
         if (request.feePaid > 0) {
@@ -330,22 +355,13 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
         emit FeeUpdated(oldFee, _newFee);
     }
 
-    /// @notice Withdraws collected fees to specified address
-    /// @param to Recipient address for fee withdrawal
-    function withdrawFees(address to) external onlyOwner {
-        if (to == address(0)) revert InvalidRecipient();
-        uint256 balance = feeToken.balanceOf(address(this));
-        if (balance == 0) revert NoFeesToWithdraw();
-        feeToken.safeTransfer(to, balance);
-    }
-
     function getSpinRequest(uint256 triggerId)
         external
         view
-        returns (address requester, bool fulfilled, uint256 feePaid)
+        returns (address requester, bool fulfilled, bool reclaimed, uint256 feePaid, uint256 requestTime)
     {
         SpinRequest memory request = spinRequests[triggerId];
-        return (request.requester, request.fulfilled, request.feePaid);
+        return (request.requester, request.fulfilled, request.reclaimed, request.feePaid, request.requestTime);
     }
 
     /// @notice Gets the current next trigger ID that will be used for the next spin
@@ -487,6 +503,7 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
      * @notice Allows users to reclaim their fees if randomness fails or times out
      * @param triggerId The trigger ID of the failed spin request
      * @dev Only the original requester can reclaim, and only if not already fulfilled
+     * @dev Request must have timed out (SPIN_TIMEOUT duration passed)
      * @dev Marks the request as fulfilled to prevent late fulfillment
      */
     function reclaimFailedSpin(uint256 triggerId) external nonReentrant {
@@ -497,8 +514,14 @@ contract Gacha is Initializable, OwnableUpgradeable, PausableUpgradeable, Reentr
         if (request.requester != msg.sender) revert NotSpinRequester();
         if (request.fulfilled) revert CannotReclaimFulfilledSpin();
 
-        // Mark as fulfilled to prevent any future fulfillment of this trigger
+        // Check if the request has timed out
+        if (block.timestamp <= request.requestTime + SPIN_TIMEOUT) {
+            revert SpinRequestNotExpired();
+        }
+
+        // Mark as fulfilled and reclaimed to prevent any future fulfillment of this trigger
         request.fulfilled = true;
+        request.reclaimed = true;
 
         // Track reclaim statistics
         userReclaimCount[request.requester]++;

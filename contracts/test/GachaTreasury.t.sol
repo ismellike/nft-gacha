@@ -439,7 +439,68 @@ contract GachaTreasuryTest is Test {
         assertEq(legendaryItems[1].appraisedPrice, 5000e18, "Second Legendary should be $5000");
     }
 
+    function testSetProtocolTreasuryFailsWithInventory() public {
+        vm.startPrank(owner);
+
+        // Setup initial protocol treasury
+        address initialProtocol = address(0x123);
+        treasury.setProtocolTreasury(initialProtocol);
+
+        // Whitelist collection
+        treasury.addToWhitelist(address(nft));
+        uint256 tokenId = nft.mint(owner);
+        mockAppraisal.setMockAppraisal(address(nft), tokenId, 100e18); // $100 - Rare
+
+        // Simulate protocol treasury getting NFTs through handleRedemptionReturn
+        // This is how the protocol treasury actually gets deposits after user redemptions
+        vm.startPrank(initialProtocol);
+        treasury.handleRedemptionReturn(address(nft), tokenId, owner, 100e18);
+        vm.stopPrank();
+
+        // Verify NFT is deposited and protocol has deposits
+        assertEq(treasury.userTotalDeposits(initialProtocol), 1, "Protocol should have 1 deposit");
+        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 1, "Should have 1 Rare NFT");
+
+        // Attempt to rotate protocol treasury - should fail
+        vm.startPrank(owner);
+        address newProtocol = address(0x456);
+        vm.expectRevert("TreasuryRotation: Must drain inventory before rotation");
+        treasury.setProtocolTreasury(newProtocol);
+
+        vm.stopPrank();
+    }
+
+    function testSetProtocolTreasurySucceedsWithEmptyInventory() public {
+        vm.startPrank(owner);
+
+        // Setup initial protocol treasury
+        address initialProtocol = address(0x123);
+        treasury.setProtocolTreasury(initialProtocol);
+
+        // Verify inventory is empty initially
+        assertEq(treasury.userTotalDeposits(initialProtocol), 0, "Protocol should have 0 deposits initially");
+
+        // Should be able to rotate treasury with empty inventory
+        address newProtocol = address(0x456);
+        treasury.setProtocolTreasury(newProtocol);
+
+        // Verify the protocol treasury was updated
+        assertEq(treasury.protocolTreasury(), newProtocol, "Protocol treasury should be updated");
+
+        vm.stopPrank();
+    }
+
+    function testSetProtocolTreasuryFailsWithZeroAddress() public {
+        vm.startPrank(owner);
+
+        vm.expectRevert(abi.encodeWithSelector(GachaTreasury.InvalidProtocolTreasury.selector));
+        treasury.setProtocolTreasury(address(0));
+
+        vm.stopPrank();
+    }
+
     event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
     event CollectionWhitelisted(address indexed collection);
     event CollectionRemovedFromWhitelist(address indexed collection);
+    event ProtocolTreasuryUpdated(address indexed previous, address indexed newProtocol);
 }

@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {DepositorVault} from "../../src/economy/DepositorVault.sol";
@@ -10,21 +11,10 @@ import {ProtocolTreasury} from "../../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../../src/tokens/BaseERC721.sol";
 import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 
-contract MockUSDC is ERC20 {
-    constructor() ERC20("Mock USDC", "mUSDC") {}
-
-    function decimals() public pure override returns (uint8) {
-        return 6;
-    }
-
-    function mint(address to, uint256 amount) external {
-        _mint(to, amount);
-    }
-}
-
-contract EconomyFlowTest is Test {
-    MockUSDC internal usdc;
+contract EconomyFlowTest is Test, IERC721Receiver {
+    MockERC20 internal usdc;
     MockNFTAppraisal internal appraisal;
     GachaTreasury internal treasury;
     DepositorVault internal depositorVault;
@@ -35,11 +25,11 @@ contract EconomyFlowTest is Test {
     address internal constant DEPOSITOR = address(0xA11CE);
     address internal constant SPINNER = address(0xB0B);
 
-    uint256 internal constant APPRAISAL_PRICE = 100 * 1e18;
+    uint256 internal constant APPRAISAL_PRICE = 50 * 1e18;
     uint256 internal constant REVENUE_AMOUNT = 1_000 * 1e6; // 1,000 mUSDC
 
     function setUp() public {
-        usdc = new MockUSDC();
+        usdc = new MockERC20("Mock USDC", "mUSDC", 6);
         appraisal = new MockNFTAppraisal();
 
         treasury = new GachaTreasury();
@@ -84,7 +74,7 @@ contract EconomyFlowTest is Test {
     }
 
     function testSpinRevenueSplit() public {
-        uint256 depositorShare = (REVENUE_AMOUNT * 7_000) / 10_000;
+        uint256 depositorShare = (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000;
         uint256 protocolShare = REVENUE_AMOUNT - depositorShare;
 
         usdc.mint(address(this), REVENUE_AMOUNT);
@@ -104,7 +94,7 @@ contract EconomyFlowTest is Test {
         usdc.approve(address(economy), REVENUE_AMOUNT);
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
-        uint256 expectedClaim = (REVENUE_AMOUNT * 7_000) / 10_000;
+        uint256 expectedClaim = (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000;
 
         uint256 depositorBalanceBefore = usdc.balanceOf(DEPOSITOR);
         vm.prank(DEPOSITOR);
@@ -124,19 +114,30 @@ contract EconomyFlowTest is Test {
         usdc.approve(address(economy), REVENUE_AMOUNT);
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
-        // Spinner wins a new NFT and opts for redemption
-        uint256 tokenId = collection.mint(SPINNER);
+        // Deposit an NFT into treasury first
+        uint256 tokenId = collection.mint(address(this));
         appraisal.setMockAppraisal(address(collection), tokenId, APPRAISAL_PRICE);
 
-        vm.prank(SPINNER);
-        collection.approve(address(protocolTreasury), tokenId);
+        vm.startPrank(address(this));
+        collection.setApprovalForAll(address(treasury), true);
+        treasury.depositNFT(address(collection), tokenId);
+        vm.stopPrank();
+
+        // Simulate gacha win by sending random NFT to SPINNER (this test contract acts as gacha)
+        // This sets the receive time needed for redemption
+        GachaTreasury.NFTItem memory wonItem = treasury.sendRandomNFTToWinner(GachaTreasury.Rarity.Common, 0, SPINNER);
+
+        // The NFT is now owned by SPINNER, so they need to approve it for redemption
+        vm.startPrank(SPINNER);
+        collection.approve(address(protocolTreasury), wonItem.tokenId);
 
         uint256 spinnerBalanceBefore = usdc.balanceOf(SPINNER);
-        vm.prank(SPINNER);
-        uint256 payout = protocolTreasury.executeRedemption(address(collection), tokenId, SPINNER);
+        uint256 payout = protocolTreasury.executeRedemption(address(collection), wonItem.tokenId, SPINNER);
         uint256 spinnerBalanceAfter = usdc.balanceOf(SPINNER);
+        vm.stopPrank();
 
         uint256 expectedPayout = (APPRAISAL_PRICE * 8_500) / 10_000 / 1e12;
+        uint256 expectedProtocolBalance = (REVENUE_AMOUNT * economy.protocolShareBps()) / 10_000 - expectedPayout;
 
         assertEq(payout, expectedPayout, "Redemption payout mismatch");
         assertEq(
@@ -144,11 +145,20 @@ contract EconomyFlowTest is Test {
             expectedPayout,
             "Spinner did not receive expected redemption proceeds"
         );
-        assertTrue(treasury.depositedNFTs(address(collection), tokenId), "Redeemed NFT not restocked");
+        assertTrue(treasury.depositedNFTs(address(collection), wonItem.tokenId), "Redeemed NFT not restocked");
         assertEq(
             usdc.balanceOf(address(protocolTreasury)),
-            ((REVENUE_AMOUNT * 3_000) / 10_000) - expectedPayout,
+            expectedProtocolBalance,
             "Protocol treasury liquidity incorrect after redemption"
         );
+    }
+
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
     }
 }
