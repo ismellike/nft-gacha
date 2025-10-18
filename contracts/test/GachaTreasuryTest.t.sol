@@ -29,12 +29,12 @@ contract GachaTreasuryTest is Test {
     address public unauthorizedUser = address(0x3);
     address public gachaContract = address(0x999);
 
-    /// @dev Test constants
-    uint256 public constant COMMON_PRICE = 50e18;      // $50
-    uint256 public constant UNCOMMON_PRICE = 250e18;   // $250
-    uint256 public constant RARE_PRICE = 1000e18;     // $1,000
-    uint256 public constant EPIC_PRICE = 5000e18;     // $5,000
-    uint256 public constant LEGENDARY_PRICE = 15000e18; // $15,000
+    /// @dev Test constants (updated to match new price ranges)
+    uint256 public constant COMMON_PRICE = 10e18; // $10 (within $0-$15 range)
+    uint256 public constant UNCOMMON_PRICE = 50e18; // $50 (within $25-$60 range)
+    uint256 public constant RARE_PRICE = 100e18; // $100 (within $70-$250 range)
+    uint256 public constant EPIC_PRICE = 500e18; // $500 (within $300-$1,200 range)
+    uint256 public constant LEGENDARY_PRICE = 2000e18; // $2,000 (within $1,500+ range)
 
     // ========================================================================
     // EVENTS
@@ -43,7 +43,9 @@ contract GachaTreasuryTest is Test {
     event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
     event CollectionWhitelisted(address indexed collection);
     event CollectionRemovedFromWhitelist(address indexed collection);
-    event NFTDeposited(address indexed collection, uint256 indexed tokenId, address indexed depositor, GachaTreasury.Rarity rarity);
+    event NFTDeposited(
+        address indexed collection, uint256 indexed tokenId, address indexed depositor, GachaTreasury.Rarity rarity
+    );
 
     // ========================================================================
     // MODIFIERS
@@ -95,11 +97,10 @@ contract GachaTreasuryTest is Test {
         GachaTreasury treasuryImpl = new GachaTreasury();
 
         vm.startPrank(owner);
+        uint256[5] memory minPrices = [uint256(0), 25 * 1e18, 70 * 1e18, 300 * 1e18, 1_500 * 1e18];
+        uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
         bytes memory initData = abi.encodeWithSelector(
-            GachaTreasury.initialize.selector,
-            owner,
-            gachaContract,
-            address(mockAppraisal)
+            GachaTreasury.initialize.selector, owner, gachaContract, address(mockAppraisal), minPrices, maxPrices
         );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
@@ -407,19 +408,11 @@ contract GachaTreasuryTest is Test {
         vm.stopPrank();
 
         // Check initial deposit counts
-        assertEq(
-            treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic),
-            1,
-            "Should have 1 epic deposit"
-        );
+        assertEq(treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic), 1, "Should have 1 epic deposit");
 
         // Simulate gacha contract sending NFT to winner
         vm.prank(address(this));
-        GachaTreasury.NFTItem memory item = treasury.sendNFTToWinner(
-            GachaTreasury.Rarity.Epic,
-            0,
-            winner
-        );
+        GachaTreasury.NFTItem memory item = treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, winner);
 
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0, "Should have 0 epic NFTs");
         assertEq(nft.ownerOf(tokenId), winner, "Winner should own NFT");
@@ -459,26 +452,26 @@ contract GachaTreasuryTest is Test {
     function testPreciseRarityBoundaries() public {
         _whitelistCollection();
 
-        // Test exact boundary values
+        // Test exact boundary values based on new price ranges
         uint256[] memory prices = new uint256[](6);
         GachaTreasury.Rarity[] memory expectedRarities = new GachaTreasury.Rarity[](6);
 
-        prices[0] = 99e18;   // Common: $99 (below $100)
+        prices[0] = 10e18; // Common: $10 (within $0-$15 range)
         expectedRarities[0] = GachaTreasury.Rarity.Common;
 
-        prices[1] = 100e18;  // Uncommon: $100 (exact boundary)
+        prices[1] = 25e18; // Uncommon: $25 (exact boundary)
         expectedRarities[1] = GachaTreasury.Rarity.Uncommon;
 
-        prices[2] = 500e18;  // Rare: $500 (exact boundary)
+        prices[2] = 70e18; // Rare: $70 (exact boundary)
         expectedRarities[2] = GachaTreasury.Rarity.Rare;
 
-        prices[3] = 2000e18; // Epic: $2000 (exact boundary)
+        prices[3] = 300e18; // Epic: $300 (exact boundary)
         expectedRarities[3] = GachaTreasury.Rarity.Epic;
 
-        prices[4] = 10000e18; // Legendary: $10000 (exact boundary)
+        prices[4] = 1500e18; // Legendary: $1500 (exact boundary)
         expectedRarities[4] = GachaTreasury.Rarity.Legendary;
 
-        prices[5] = 50000e18; // Legendary: $50000 (above boundary)
+        prices[5] = 5000e18; // Legendary: $5000 (above boundary)
         expectedRarities[5] = GachaTreasury.Rarity.Legendary;
 
         // Deposit NFTs and verify rarity assignment
@@ -493,7 +486,11 @@ contract GachaTreasuryTest is Test {
             assertEq(
                 treasury.getRarityCount(expectedRarities[i]),
                 expectedCount,
-                string(abi.encodePacked("Should have ", _toString(expectedCount), " ", _rarityToString(expectedRarities[i]), " NFT(s)"))
+                string(
+                    abi.encodePacked(
+                        "Should have ", _toString(expectedCount), " ", _rarityToString(expectedRarities[i]), " NFT(s)"
+                    )
+                )
             );
         }
     }

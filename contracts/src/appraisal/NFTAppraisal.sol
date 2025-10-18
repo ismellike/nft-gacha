@@ -35,16 +35,12 @@ contract NFTAppraisal is
     error InvalidTokenId();
     error AppraisalNotFound();
     error AppraisalAlreadyExists();
-    error AppraisalNotPending();
     error UnauthorizedServiceHandler();
     error InvalidPrice();
     error CardIdMismatch();
-    error CardIdRequired();
     error InvalidTreasuryAddress();
     error TreasuryAlreadyWhitelisted();
     error TreasuryNotWhitelisted();
-    error InvalidAppraisalInitialization();
-    error NotAppraisalInitializing();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {

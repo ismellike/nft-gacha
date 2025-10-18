@@ -5,7 +5,7 @@ use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
 use crate::traits::pricing::ResolverQuote;
 use crate::types::ResolverRoute;
 use crate::utils::event_parser::AppraisalRequest;
-use crate::utils::{Config, ERC721Client, EventParser};
+use crate::utils::{ERC721Client, EventParser};
 use alloy_primitives::{Address, B256, U256};
 use alloy_sol_types::{sol, SolValue};
 use anyhow::{anyhow, Result};
@@ -15,28 +15,21 @@ use std::fmt;
 sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 
 pub struct AppraisalProcessor {
-    #[allow(dead_code)]
-    config: Config,
     erc721_client: ERC721Client,
     cache: AppraisalCache,
 }
 
 impl fmt::Debug for AppraisalProcessor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("AppraisalProcessor")
-            .field("has_config", &true)
-            .finish()
+        f.debug_struct("AppraisalProcessor").finish()
     }
 }
 
 impl AppraisalProcessor {
     pub fn new() -> Result<Self> {
-        let config = Config::new()?;
-
         Ok(Self {
             erc721_client: ERC721Client::new(),
             cache: AppraisalCache::default(),
-            config,
         })
     }
 
@@ -127,9 +120,7 @@ impl AppraisalProcessor {
             return Ok((metadata, cached));
         }
 
-        let fresh_quote = provider
-            .resolve_price(&route, &self.config.pokemon_api_key)
-            .await?;
+        let fresh_quote = provider.resolve_price(&route).await?;
 
         let _ = self.cache.set(&cache_key, fresh_quote.as_ref());
 
@@ -299,11 +290,11 @@ mod tests {
     #[test]
     fn test_cache_seed_is_case_insensitive() {
         let route = ResolverRoute::pokemon_card_info(
-            "Pokémon Charizard PSA 10",
-            Some("4".to_string()),
-            Some("PSA 10".to_string()),
-            Some("Base Set".to_string()),
-            Some("1999".to_string()),
+            "4".to_string(),
+            "10".to_string(),
+            "PSA".to_string(),
+            true,
+            "BASE-SET".to_string(),
         );
         let seed = AppraisalProcessor::cache_seed(&route);
         let expected_suffix = route.cache_key_fragment();

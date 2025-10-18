@@ -708,490 +708,6 @@ export const baseErc721Abi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// BuybackVault
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const buybackVaultAbi = [
-  {
-    type: 'function',
-    inputs: [],
-    name: 'BUYBACK_PAYOUT_BPS',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'UPGRADE_INTERFACE_VERSION',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'appraisalOracle',
-    outputs: [
-      { name: '', internalType: 'contract NFTAppraisal', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'asset',
-    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'availableLiquidity',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'depositorVault',
-    outputs: [
-      { name: '', internalType: 'contract IDepositorVault', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'economyManager',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'collection', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      { name: 'recipient', internalType: 'address', type: 'address' },
-    ],
-    name: 'executeBuyback',
-    outputs: [{ name: 'payout', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'asset_', internalType: 'address', type: 'address' },
-      { name: 'treasury_', internalType: 'address', type: 'address' },
-      { name: 'depositorVault_', internalType: 'address', type: 'address' },
-      { name: 'appraisalOracle_', internalType: 'address', type: 'address' },
-      { name: 'economyManager_', internalType: 'address', type: 'address' },
-    ],
-    name: 'initialize',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'maxStakeBps',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'onRevenueReceived',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'pause',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'paused',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'proxiableUUID',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOracle', internalType: 'address', type: 'address' }],
-    name: 'setAppraisalOracle',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'newDepositorVault', internalType: 'address', type: 'address' },
-    ],
-    name: 'setDepositorVault',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newManager', internalType: 'address', type: 'address' }],
-    name: 'setEconomyManager',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'newMaxStakeBps', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'setMaxStakeBps',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'stakeSurplus',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'stakedPrincipal',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalManagedLiquidity',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'treasury',
-    outputs: [
-      { name: '', internalType: 'contract GachaTreasury', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'unpause',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'unstakeSurplus',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'newImplementation', internalType: 'address', type: 'address' },
-      { name: 'data', internalType: 'bytes', type: 'bytes' },
-    ],
-    name: 'upgradeToAndCall',
-    outputs: [],
-    stateMutability: 'payable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousOracle',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOracle',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'AppraisalOracleUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'seller',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'collection',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'tokenId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'payout',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackExecuted',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackLiquidityStaked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackLiquidityUnstaked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackRevenueReceived',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousVault',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newVault',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'DepositorVaultUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousManager',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newManager',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'EconomyManagerUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'version',
-        internalType: 'uint64',
-        type: 'uint64',
-        indexed: false,
-      },
-    ],
-    name: 'Initialized',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousBps',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'newBps',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'MaxStakeBpsUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: false,
-      },
-    ],
-    name: 'Paused',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: false,
-      },
-    ],
-    name: 'Unpaused',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'implementation',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'Upgraded',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
-    name: 'AddressEmptyCode',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'implementation', internalType: 'address', type: 'address' },
-    ],
-    name: 'ERC1967InvalidImplementation',
-  },
-  { type: 'error', inputs: [], name: 'ERC1967NonPayable' },
-  { type: 'error', inputs: [], name: 'EnforcedPause' },
-  { type: 'error', inputs: [], name: 'ExpectedPause' },
-  { type: 'error', inputs: [], name: 'FailedCall' },
-  { type: 'error', inputs: [], name: 'InvalidInitialization' },
-  { type: 'error', inputs: [], name: 'NotInitializing' },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
-  { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
-  {
-    type: 'error',
-    inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
-    name: 'UUPSUnsupportedProxiableUUID',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ContextUpgradeable
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1237,27 +753,6 @@ export const depositorVaultAbi = [
     inputs: [],
     name: 'asset',
     outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'buybackPrincipal',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'buybackShares',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'buybackVault',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -1357,15 +852,6 @@ export const depositorVaultAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'newBuybackVault', internalType: 'address', type: 'address' },
-    ],
-    name: 'setBuybackVault',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'newManager', internalType: 'address', type: 'address' }],
     name: 'setEconomyManager',
     outputs: [],
@@ -1384,13 +870,6 @@ export const depositorVaultAbi = [
     name: 'sharesOf',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'stakeBuybackLiquidity',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -1437,16 +916,6 @@ export const depositorVaultAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-      { name: 'recipient', internalType: 'address', type: 'address' },
-    ],
-    name: 'unstakeBuybackLiquidity',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       { name: 'account', internalType: 'address', type: 'address' },
       {
         name: 'newAppraisalValueUSD',
@@ -1467,51 +936,6 @@ export const depositorVaultAbi = [
     name: 'upgradeToAndCall',
     outputs: [],
     stateMutability: 'payable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackLiquidityStaked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackLiquidityUnstaked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousBuybackVault',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newBuybackVault',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'BuybackVaultUpdated',
   },
   {
     type: 'event',
@@ -3794,22 +3218,6 @@ export const gachaEconomyManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'buybackShareBps',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'buybackVault',
-    outputs: [
-      { name: '', internalType: 'contract IBuybackVault', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'depositorShareBps',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -3844,7 +3252,6 @@ export const gachaEconomyManagerAbi = [
       { name: 'feeToken_', internalType: 'address', type: 'address' },
       { name: 'gacha_', internalType: 'address', type: 'address' },
       { name: 'depositorVault_', internalType: 'address', type: 'address' },
-      { name: 'buybackVault_', internalType: 'address', type: 'address' },
       { name: 'protocolTreasury_', internalType: 'address', type: 'address' },
     ],
     name: 'initialize',
@@ -3943,7 +3350,6 @@ export const gachaEconomyManagerAbi = [
     type: 'function',
     inputs: [
       { name: 'depositorBps', internalType: 'uint256', type: 'uint256' },
-      { name: 'buybackBps', internalType: 'uint256', type: 'uint256' },
       { name: 'protocolBps', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'setRevenueSplit',
@@ -3954,7 +3360,6 @@ export const gachaEconomyManagerAbi = [
     type: 'function',
     inputs: [
       { name: 'depositorVault_', internalType: 'address', type: 'address' },
-      { name: 'buybackVault_', internalType: 'address', type: 'address' },
       { name: 'protocolTreasury_', internalType: 'address', type: 'address' },
     ],
     name: 'setVaults',
@@ -3965,13 +3370,6 @@ export const gachaEconomyManagerAbi = [
     type: 'function',
     inputs: [],
     name: 'totalRevenueProcessed',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalToBuyback',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -4012,25 +3410,6 @@ export const gachaEconomyManagerAbi = [
     name: 'upgradeToAndCall',
     outputs: [],
     stateMutability: 'payable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousVault',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newVault',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'BuybackVaultUpdated',
   },
   {
     type: 'event',
@@ -4164,12 +3543,6 @@ export const gachaEconomyManagerAbi = [
         indexed: false,
       },
       {
-        name: 'buybackShareBps',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
         name: 'protocolShareBps',
         internalType: 'uint256',
         type: 'uint256',
@@ -4190,12 +3563,6 @@ export const gachaEconomyManagerAbi = [
       },
       {
         name: 'depositorShare',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'buybackShare',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
@@ -4421,13 +3788,6 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'buybackVault',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     name: 'cardTotalDeposits',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -4609,6 +3969,18 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getNFTReceiveTime',
+    outputs: [
+      { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'getPlatformOverviewBatch',
     outputs: [
@@ -4709,6 +4081,7 @@ export const gachaTreasuryAbi = [
             type: 'uint8',
           },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -4740,6 +4113,7 @@ export const gachaTreasuryAbi = [
             type: 'uint8',
           },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -4943,7 +4317,7 @@ export const gachaTreasuryAbi = [
       { name: 'seller', internalType: 'address', type: 'address' },
       { name: 'appraisalUSD', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'handleBuybackReturn',
+    name: 'handleRedemptionReturn',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -4953,16 +4327,8 @@ export const gachaTreasuryAbi = [
       { name: '', internalType: 'address', type: 'address' },
       { name: '_gachaContract', internalType: 'address', type: 'address' },
       { name: '_appraisalContract', internalType: 'address', type: 'address' },
-      { name: '_commonMinPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_commonMaxPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_uncommonMinPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_uncommonMaxPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_rareMinPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_rareMaxPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_epicMinPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_epicMaxPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_legendaryMinPrice', internalType: 'uint256', type: 'uint256' },
-      { name: '_legendaryMaxPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'minPrices', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'maxPrices', internalType: 'uint256[5]', type: 'uint256[5]' },
     ],
     name: 'initialize',
     outputs: [],
@@ -5034,6 +4400,16 @@ export const gachaTreasuryAbi = [
       { name: '', internalType: 'address', type: 'address' },
       { name: '', internalType: 'uint256', type: 'uint256' },
     ],
+    name: 'nftReceiveTimes',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
     name: 'nftToTreasuryIndex',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -5069,6 +4445,13 @@ export const gachaTreasuryAbi = [
     inputs: [],
     name: 'priceRangesSet',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'protocolTreasury',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -5143,6 +4526,7 @@ export const gachaTreasuryAbi = [
             type: 'uint8',
           },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -5176,6 +4560,7 @@ export const gachaTreasuryAbi = [
             type: 'uint8',
           },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -5187,15 +4572,6 @@ export const gachaTreasuryAbi = [
       { name: '_appraisalContract', internalType: 'address', type: 'address' },
     ],
     name: 'setAppraisalContract',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: '_buybackVault', internalType: 'address', type: 'address' },
-    ],
-    name: 'setBuybackVault',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -5214,6 +4590,15 @@ export const gachaTreasuryAbi = [
       { name: '_gachaContract', internalType: 'address', type: 'address' },
     ],
     name: 'setGachaContract',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_protocolTreasury', internalType: 'address', type: 'address' },
+    ],
+    name: 'setProtocolTreasury',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -5258,6 +4643,7 @@ export const gachaTreasuryAbi = [
         type: 'uint8',
       },
       { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+      { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -5442,62 +4828,6 @@ export const gachaTreasuryAbi = [
         type: 'address',
         indexed: true,
       },
-      {
-        name: 'tokenId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'seller',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-        indexed: false,
-      },
-      {
-        name: 'appraisedPrice',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackRestocked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'oldVault',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newVault',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'BuybackVaultUpdated',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'collection',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
     ],
     name: 'CollectionRemovedFromWhitelist',
   },
@@ -5665,6 +4995,25 @@ export const gachaTreasuryAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'oldTreasury',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newTreasury',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'ProtocolTreasuryUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'collection',
         internalType: 'address',
         type: 'address',
@@ -5696,6 +5045,43 @@ export const gachaTreasuryAbi = [
       },
     ],
     name: 'RarityMigrated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'seller',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'rarity',
+        internalType: 'enum GachaTreasury.Rarity',
+        type: 'uint8',
+        indexed: false,
+      },
+      {
+        name: 'appraisedPrice',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RedemptionRestocked',
   },
   {
     type: 'event',
@@ -5749,7 +5135,6 @@ export const gachaTreasuryAbi = [
   { type: 'error', inputs: [], name: 'FailedCall' },
   { type: 'error', inputs: [], name: 'InsufficientDepositorValue' },
   { type: 'error', inputs: [], name: 'InvalidAppraisalContract' },
-  { type: 'error', inputs: [], name: 'InvalidBuybackVault' },
   { type: 'error', inputs: [], name: 'InvalidCollectionAddress' },
   { type: 'error', inputs: [], name: 'InvalidDepositorVault' },
   { type: 'error', inputs: [], name: 'InvalidGachaContract' },
@@ -5757,6 +5142,7 @@ export const gachaTreasuryAbi = [
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
   { type: 'error', inputs: [], name: 'InvalidNFTContract' },
   { type: 'error', inputs: [], name: 'InvalidPriceRange' },
+  { type: 'error', inputs: [], name: 'InvalidProtocolTreasury' },
   { type: 'error', inputs: [], name: 'InvalidRecipient' },
   { type: 'error', inputs: [], name: 'InvalidTreasuryInitialization' },
   { type: 'error', inputs: [], name: 'NFTAlreadyDeposited' },
@@ -5799,8 +5185,8 @@ export const gachaTreasuryAbi = [
     inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
     name: 'UUPSUnsupportedProxiableUUID',
   },
-  { type: 'error', inputs: [], name: 'UnauthorizedBuybackVault' },
   { type: 'error', inputs: [], name: 'UnauthorizedGachaContract' },
+  { type: 'error', inputs: [], name: 'UnauthorizedProtocolTreasury' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -5814,145 +5200,6 @@ export const iBeaconAbi = [
     name: 'implementation',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// IBuybackVault
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const iBuybackVaultAbi = [
-  {
-    type: 'function',
-    inputs: [],
-    name: 'asset',
-    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'availableLiquidity',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'collection', internalType: 'address', type: 'address' },
-      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-      { name: 'recipient', internalType: 'address', type: 'address' },
-    ],
-    name: 'executeBuyback',
-    outputs: [{ name: 'payout', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'maxStakeBps',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'onRevenueReceived',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'stakeSurplus',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'treasury',
-    outputs: [
-      { name: '', internalType: 'contract GachaTreasury', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'unstakeSurplus',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'seller',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'collection',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'tokenId',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: true,
-      },
-      {
-        name: 'payout',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackExecuted',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackLiquidityStaked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackLiquidityUnstaked',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'amount',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'BuybackRevenueReceived',
   },
 ] as const
 
@@ -6018,27 +5265,10 @@ export const iDepositorVaultAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
-    name: 'stakeBuybackLiquidity',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [],
     name: 'totalShares',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-      { name: 'recipient', internalType: 'address', type: 'address' },
-    ],
-    name: 'unstakeBuybackLiquidity',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -7252,13 +6482,6 @@ export const iGachaEconomyManagerAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'buybackShareBps',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'depositorShareBps',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -7295,12 +6518,6 @@ export const iGachaEconomyManagerAbi = [
         indexed: false,
       },
       {
-        name: 'buybackShareBps',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
         name: 'protocolShareBps',
         internalType: 'uint256',
         type: 'uint256',
@@ -7321,12 +6538,6 @@ export const iGachaEconomyManagerAbi = [
       },
       {
         name: 'depositorShare',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'buybackShare',
         internalType: 'uint256',
         type: 'uint256',
         indexed: false,
@@ -7599,6 +6810,17 @@ export const iProtocolTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'recipient', internalType: 'address', type: 'address' },
+    ],
+    name: 'executeRedemption',
+    outputs: [{ name: 'payout', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
     name: 'onRevenueReceived',
     outputs: [],
@@ -7640,6 +6862,37 @@ export const iProtocolTreasuryAbi = [
       },
     ],
     name: 'ProtocolTransfer',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'seller',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'payout',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RedemptionExecuted',
   },
 ] as const
 
@@ -9575,8 +8828,24 @@ export const protocolTreasuryAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'REDEMPTION_PAYOUT_BPS',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'UPGRADE_INTERFACE_VERSION',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'appraisalOracle',
+    outputs: [
+      { name: '', internalType: 'contract NFTAppraisal', type: 'address' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -9596,13 +8865,57 @@ export const protocolTreasuryAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'recipient', internalType: 'address', type: 'address' },
+    ],
+    name: 'executeRedemption',
+    outputs: [{ name: 'payout', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'gachaTreasury',
+    outputs: [
+      { name: '', internalType: 'contract GachaTreasury', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getRemainingRedemptionWindow',
+    outputs: [
+      { name: 'remainingTime', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'owner', internalType: 'address', type: 'address' },
       { name: 'asset_', internalType: 'address', type: 'address' },
       { name: 'economyManager_', internalType: 'address', type: 'address' },
+      { name: 'treasury_', internalType: 'address', type: 'address' },
+      { name: 'appraisalOracle_', internalType: 'address', type: 'address' },
     ],
     name: 'initialize',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'isRedemptionEligible',
+    outputs: [{ name: 'isEligible', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -9642,7 +8955,21 @@ export const protocolTreasuryAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'redemptionWindow',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newOracle', internalType: 'address', type: 'address' }],
+    name: 'setAppraisalOracle',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -9650,6 +8977,20 @@ export const protocolTreasuryAbi = [
     type: 'function',
     inputs: [{ name: 'newManager', internalType: 'address', type: 'address' }],
     name: 'setEconomyManager',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newTreasury', internalType: 'address', type: 'address' }],
+    name: 'setGachaTreasury',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newWindow', internalType: 'uint256', type: 'uint256' }],
+    name: 'setRedemptionWindow',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -9692,6 +9033,25 @@ export const protocolTreasuryAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'previousOracle',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newOracle',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'AppraisalOracleUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'previousManager',
         internalType: 'address',
         type: 'address',
@@ -9705,6 +9065,25 @@ export const protocolTreasuryAbi = [
       },
     ],
     name: 'EconomyManagerUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'previousTreasury',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'newTreasury',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'GachaTreasuryUpdated',
   },
   {
     type: 'event',
@@ -9783,6 +9162,82 @@ export const protocolTreasuryAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'seller',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'payout',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RedemptionExecuted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      { name: 'user', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'timeSinceWin',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RedemptionWindowEnforced',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldWindow',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'newWindow',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'RedemptionWindowUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'account',
         internalType: 'address',
         type: 'address',
@@ -9832,6 +9287,7 @@ export const protocolTreasuryAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
   {
     type: 'error',
     inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
@@ -10885,519 +10341,6 @@ export const useWatchBaseErc721Transfer =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__
- */
-export const useReadBuybackVaultContract = /*#__PURE__*/ createUseReadContract({
-  abi: buybackVaultAbi,
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"BUYBACK_PAYOUT_BPS"`
- */
-export const useReadBuybackVaultBuybackPayoutBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'BUYBACK_PAYOUT_BPS',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
- */
-export const useReadBuybackVaultUpgradeInterfaceVersion =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'UPGRADE_INTERFACE_VERSION',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"appraisalOracle"`
- */
-export const useReadBuybackVaultAppraisalOracle =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'appraisalOracle',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"asset"`
- */
-export const useReadBuybackVaultAsset = /*#__PURE__*/ createUseReadContract({
-  abi: buybackVaultAbi,
-  functionName: 'asset',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"availableLiquidity"`
- */
-export const useReadBuybackVaultAvailableLiquidity =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'availableLiquidity',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"depositorVault"`
- */
-export const useReadBuybackVaultDepositorVault =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'depositorVault',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"economyManager"`
- */
-export const useReadBuybackVaultEconomyManager =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'economyManager',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"maxStakeBps"`
- */
-export const useReadBuybackVaultMaxStakeBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'maxStakeBps',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"owner"`
- */
-export const useReadBuybackVaultOwner = /*#__PURE__*/ createUseReadContract({
-  abi: buybackVaultAbi,
-  functionName: 'owner',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"paused"`
- */
-export const useReadBuybackVaultPaused = /*#__PURE__*/ createUseReadContract({
-  abi: buybackVaultAbi,
-  functionName: 'paused',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"proxiableUUID"`
- */
-export const useReadBuybackVaultProxiableUuid =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'proxiableUUID',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"stakedPrincipal"`
- */
-export const useReadBuybackVaultStakedPrincipal =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'stakedPrincipal',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"totalManagedLiquidity"`
- */
-export const useReadBuybackVaultTotalManagedLiquidity =
-  /*#__PURE__*/ createUseReadContract({
-    abi: buybackVaultAbi,
-    functionName: 'totalManagedLiquidity',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"treasury"`
- */
-export const useReadBuybackVaultTreasury = /*#__PURE__*/ createUseReadContract({
-  abi: buybackVaultAbi,
-  functionName: 'treasury',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__
- */
-export const useWriteBuybackVaultContract =
-  /*#__PURE__*/ createUseWriteContract({ abi: buybackVaultAbi })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"executeBuyback"`
- */
-export const useWriteBuybackVaultExecuteBuyback =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'executeBuyback',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"initialize"`
- */
-export const useWriteBuybackVaultInitialize =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'initialize',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"onRevenueReceived"`
- */
-export const useWriteBuybackVaultOnRevenueReceived =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'onRevenueReceived',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"pause"`
- */
-export const useWriteBuybackVaultPause = /*#__PURE__*/ createUseWriteContract({
-  abi: buybackVaultAbi,
-  functionName: 'pause',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useWriteBuybackVaultRenounceOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"setAppraisalOracle"`
- */
-export const useWriteBuybackVaultSetAppraisalOracle =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'setAppraisalOracle',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"setDepositorVault"`
- */
-export const useWriteBuybackVaultSetDepositorVault =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'setDepositorVault',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"setEconomyManager"`
- */
-export const useWriteBuybackVaultSetEconomyManager =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'setEconomyManager',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"setMaxStakeBps"`
- */
-export const useWriteBuybackVaultSetMaxStakeBps =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'setMaxStakeBps',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"stakeSurplus"`
- */
-export const useWriteBuybackVaultStakeSurplus =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'stakeSurplus',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useWriteBuybackVaultTransferOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"unpause"`
- */
-export const useWriteBuybackVaultUnpause = /*#__PURE__*/ createUseWriteContract(
-  { abi: buybackVaultAbi, functionName: 'unpause' },
-)
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"unstakeSurplus"`
- */
-export const useWriteBuybackVaultUnstakeSurplus =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'unstakeSurplus',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"upgradeToAndCall"`
- */
-export const useWriteBuybackVaultUpgradeToAndCall =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: buybackVaultAbi,
-    functionName: 'upgradeToAndCall',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__
- */
-export const useSimulateBuybackVaultContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: buybackVaultAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"executeBuyback"`
- */
-export const useSimulateBuybackVaultExecuteBuyback =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'executeBuyback',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"initialize"`
- */
-export const useSimulateBuybackVaultInitialize =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'initialize',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"onRevenueReceived"`
- */
-export const useSimulateBuybackVaultOnRevenueReceived =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'onRevenueReceived',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"pause"`
- */
-export const useSimulateBuybackVaultPause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'pause',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useSimulateBuybackVaultRenounceOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"setAppraisalOracle"`
- */
-export const useSimulateBuybackVaultSetAppraisalOracle =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'setAppraisalOracle',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"setDepositorVault"`
- */
-export const useSimulateBuybackVaultSetDepositorVault =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'setDepositorVault',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"setEconomyManager"`
- */
-export const useSimulateBuybackVaultSetEconomyManager =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'setEconomyManager',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"setMaxStakeBps"`
- */
-export const useSimulateBuybackVaultSetMaxStakeBps =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'setMaxStakeBps',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"stakeSurplus"`
- */
-export const useSimulateBuybackVaultStakeSurplus =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'stakeSurplus',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useSimulateBuybackVaultTransferOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"unpause"`
- */
-export const useSimulateBuybackVaultUnpause =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'unpause',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"unstakeSurplus"`
- */
-export const useSimulateBuybackVaultUnstakeSurplus =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'unstakeSurplus',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link buybackVaultAbi}__ and `functionName` set to `"upgradeToAndCall"`
- */
-export const useSimulateBuybackVaultUpgradeToAndCall =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: buybackVaultAbi,
-    functionName: 'upgradeToAndCall',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__
- */
-export const useWatchBuybackVaultContract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: buybackVaultAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"AppraisalOracleUpdated"`
- */
-export const useWatchBuybackVaultAppraisalOracleUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'AppraisalOracleUpdated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"BuybackExecuted"`
- */
-export const useWatchBuybackVaultBuybackExecuted =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'BuybackExecuted',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"BuybackLiquidityStaked"`
- */
-export const useWatchBuybackVaultBuybackLiquidityStaked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'BuybackLiquidityStaked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"BuybackLiquidityUnstaked"`
- */
-export const useWatchBuybackVaultBuybackLiquidityUnstaked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'BuybackLiquidityUnstaked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"BuybackRevenueReceived"`
- */
-export const useWatchBuybackVaultBuybackRevenueReceived =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'BuybackRevenueReceived',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"DepositorVaultUpdated"`
- */
-export const useWatchBuybackVaultDepositorVaultUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'DepositorVaultUpdated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"EconomyManagerUpdated"`
- */
-export const useWatchBuybackVaultEconomyManagerUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'EconomyManagerUpdated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"Initialized"`
- */
-export const useWatchBuybackVaultInitialized =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'Initialized',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"MaxStakeBpsUpdated"`
- */
-export const useWatchBuybackVaultMaxStakeBpsUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'MaxStakeBpsUpdated',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const useWatchBuybackVaultOwnershipTransferred =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'OwnershipTransferred',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"Paused"`
- */
-export const useWatchBuybackVaultPaused =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'Paused',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"Unpaused"`
- */
-export const useWatchBuybackVaultUnpaused =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'Unpaused',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link buybackVaultAbi}__ and `eventName` set to `"Upgraded"`
- */
-export const useWatchBuybackVaultUpgraded =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: buybackVaultAbi,
-    eventName: 'Upgraded',
-  })
-
-/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link contextUpgradeableAbi}__
  */
 export const useWatchContextUpgradeableContract =
@@ -11443,33 +10386,6 @@ export const useReadDepositorVaultAsset = /*#__PURE__*/ createUseReadContract({
   abi: depositorVaultAbi,
   functionName: 'asset',
 })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"buybackPrincipal"`
- */
-export const useReadDepositorVaultBuybackPrincipal =
-  /*#__PURE__*/ createUseReadContract({
-    abi: depositorVaultAbi,
-    functionName: 'buybackPrincipal',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"buybackShares"`
- */
-export const useReadDepositorVaultBuybackShares =
-  /*#__PURE__*/ createUseReadContract({
-    abi: depositorVaultAbi,
-    functionName: 'buybackShares',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"buybackVault"`
- */
-export const useReadDepositorVaultBuybackVault =
-  /*#__PURE__*/ createUseReadContract({
-    abi: depositorVaultAbi,
-    functionName: 'buybackVault',
-  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"economyManager"`
@@ -11627,15 +10543,6 @@ export const useWriteDepositorVaultRenounceOwnership =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"setBuybackVault"`
- */
-export const useWriteDepositorVaultSetBuybackVault =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: depositorVaultAbi,
-    functionName: 'setBuybackVault',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"setEconomyManager"`
  */
 export const useWriteDepositorVaultSetEconomyManager =
@@ -11654,15 +10561,6 @@ export const useWriteDepositorVaultSetTreasury =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"stakeBuybackLiquidity"`
- */
-export const useWriteDepositorVaultStakeBuybackLiquidity =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: depositorVaultAbi,
-    functionName: 'stakeBuybackLiquidity',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const useWriteDepositorVaultTransferOwnership =
@@ -11678,15 +10576,6 @@ export const useWriteDepositorVaultUnpause =
   /*#__PURE__*/ createUseWriteContract({
     abi: depositorVaultAbi,
     functionName: 'unpause',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"unstakeBuybackLiquidity"`
- */
-export const useWriteDepositorVaultUnstakeBuybackLiquidity =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: depositorVaultAbi,
-    functionName: 'unstakeBuybackLiquidity',
   })
 
 /**
@@ -11777,15 +10666,6 @@ export const useSimulateDepositorVaultRenounceOwnership =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"setBuybackVault"`
- */
-export const useSimulateDepositorVaultSetBuybackVault =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: depositorVaultAbi,
-    functionName: 'setBuybackVault',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"setEconomyManager"`
  */
 export const useSimulateDepositorVaultSetEconomyManager =
@@ -11804,15 +10684,6 @@ export const useSimulateDepositorVaultSetTreasury =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"stakeBuybackLiquidity"`
- */
-export const useSimulateDepositorVaultStakeBuybackLiquidity =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: depositorVaultAbi,
-    functionName: 'stakeBuybackLiquidity',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"transferOwnership"`
  */
 export const useSimulateDepositorVaultTransferOwnership =
@@ -11828,15 +10699,6 @@ export const useSimulateDepositorVaultUnpause =
   /*#__PURE__*/ createUseSimulateContract({
     abi: depositorVaultAbi,
     functionName: 'unpause',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link depositorVaultAbi}__ and `functionName` set to `"unstakeBuybackLiquidity"`
- */
-export const useSimulateDepositorVaultUnstakeBuybackLiquidity =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: depositorVaultAbi,
-    functionName: 'unstakeBuybackLiquidity',
   })
 
 /**
@@ -11862,33 +10724,6 @@ export const useSimulateDepositorVaultUpgradeToAndCall =
  */
 export const useWatchDepositorVaultContract =
   /*#__PURE__*/ createUseWatchContractEvent({ abi: depositorVaultAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link depositorVaultAbi}__ and `eventName` set to `"BuybackLiquidityStaked"`
- */
-export const useWatchDepositorVaultBuybackLiquidityStaked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: depositorVaultAbi,
-    eventName: 'BuybackLiquidityStaked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link depositorVaultAbi}__ and `eventName` set to `"BuybackLiquidityUnstaked"`
- */
-export const useWatchDepositorVaultBuybackLiquidityUnstaked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: depositorVaultAbi,
-    eventName: 'BuybackLiquidityUnstaked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link depositorVaultAbi}__ and `eventName` set to `"BuybackVaultUpdated"`
- */
-export const useWatchDepositorVaultBuybackVaultUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: depositorVaultAbi,
-    eventName: 'BuybackVaultUpdated',
-  })
 
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link depositorVaultAbi}__ and `eventName` set to `"DepositorDeregistered"`
@@ -13607,24 +12442,6 @@ export const useReadGachaEconomyManagerUpgradeInterfaceVersion =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"buybackShareBps"`
- */
-export const useReadGachaEconomyManagerBuybackShareBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaEconomyManagerAbi,
-    functionName: 'buybackShareBps',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"buybackVault"`
- */
-export const useReadGachaEconomyManagerBuybackVault =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaEconomyManagerAbi,
-    functionName: 'buybackVault',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"depositorShareBps"`
  */
 export const useReadGachaEconomyManagerDepositorShareBps =
@@ -13721,15 +12538,6 @@ export const useReadGachaEconomyManagerTotalRevenueProcessed =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaEconomyManagerAbi,
     functionName: 'totalRevenueProcessed',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"totalToBuyback"`
- */
-export const useReadGachaEconomyManagerTotalToBuyback =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaEconomyManagerAbi,
-    functionName: 'totalToBuyback',
   })
 
 /**
@@ -13967,15 +12775,6 @@ export const useWatchGachaEconomyManagerContract =
   /*#__PURE__*/ createUseWatchContractEvent({ abi: gachaEconomyManagerAbi })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `eventName` set to `"BuybackVaultUpdated"`
- */
-export const useWatchGachaEconomyManagerBuybackVaultUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: gachaEconomyManagerAbi,
-    eventName: 'BuybackVaultUpdated',
-  })
-
-/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `eventName` set to `"DepositorVaultUpdated"`
  */
 export const useWatchGachaEconomyManagerDepositorVaultUpdated =
@@ -14205,15 +13004,6 @@ export const useReadGachaTreasuryAppraisalContract =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"buybackVault"`
- */
-export const useReadGachaTreasuryBuybackVault =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'buybackVault',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"cardTotalDeposits"`
  */
 export const useReadGachaTreasuryCardTotalDeposits =
@@ -14355,6 +13145,15 @@ export const useReadGachaTreasuryGetNftCurrentRarity =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getNFTCurrentRarity',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getNFTReceiveTime"`
+ */
+export const useReadGachaTreasuryGetNftReceiveTime =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getNFTReceiveTime',
   })
 
 /**
@@ -14646,6 +13445,15 @@ export const useReadGachaTreasuryNftCurrentRarity =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftReceiveTimes"`
+ */
+export const useReadGachaTreasuryNftReceiveTimes =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'nftReceiveTimes',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftToTreasuryIndex"`
  */
 export const useReadGachaTreasuryNftToTreasuryIndex =
@@ -14686,6 +13494,15 @@ export const useReadGachaTreasuryPriceRangesSet =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'priceRangesSet',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"protocolTreasury"`
+ */
+export const useReadGachaTreasuryProtocolTreasury =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'protocolTreasury',
   })
 
 /**
@@ -14900,12 +13717,12 @@ export const useWriteGachaTreasuryEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"handleBuybackReturn"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"handleRedemptionReturn"`
  */
-export const useWriteGachaTreasuryHandleBuybackReturn =
+export const useWriteGachaTreasuryHandleRedemptionReturn =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
-    functionName: 'handleBuybackReturn',
+    functionName: 'handleRedemptionReturn',
   })
 
 /**
@@ -14972,15 +13789,6 @@ export const useWriteGachaTreasurySetAppraisalContract =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setBuybackVault"`
- */
-export const useWriteGachaTreasurySetBuybackVault =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'setBuybackVault',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setDepositorVault"`
  */
 export const useWriteGachaTreasurySetDepositorVault =
@@ -14996,6 +13804,15 @@ export const useWriteGachaTreasurySetGachaContract =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
     functionName: 'setGachaContract',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setProtocolTreasury"`
+ */
+export const useWriteGachaTreasurySetProtocolTreasury =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setProtocolTreasury',
   })
 
 /**
@@ -15086,12 +13903,12 @@ export const useSimulateGachaTreasuryEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"handleBuybackReturn"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"handleRedemptionReturn"`
  */
-export const useSimulateGachaTreasuryHandleBuybackReturn =
+export const useSimulateGachaTreasuryHandleRedemptionReturn =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
-    functionName: 'handleBuybackReturn',
+    functionName: 'handleRedemptionReturn',
   })
 
 /**
@@ -15158,15 +13975,6 @@ export const useSimulateGachaTreasurySetAppraisalContract =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setBuybackVault"`
- */
-export const useSimulateGachaTreasurySetBuybackVault =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'setBuybackVault',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setDepositorVault"`
  */
 export const useSimulateGachaTreasurySetDepositorVault =
@@ -15182,6 +13990,15 @@ export const useSimulateGachaTreasurySetGachaContract =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'setGachaContract',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setProtocolTreasury"`
+ */
+export const useSimulateGachaTreasurySetProtocolTreasury =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setProtocolTreasury',
   })
 
 /**
@@ -15251,24 +14068,6 @@ export const useWatchGachaTreasuryBatchWithdrawn =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
     eventName: 'BatchWithdrawn',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"BuybackRestocked"`
- */
-export const useWatchGachaTreasuryBuybackRestocked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: gachaTreasuryAbi,
-    eventName: 'BuybackRestocked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"BuybackVaultUpdated"`
- */
-export const useWatchGachaTreasuryBuybackVaultUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: gachaTreasuryAbi,
-    eventName: 'BuybackVaultUpdated',
   })
 
 /**
@@ -15353,12 +14152,30 @@ export const useWatchGachaTreasuryPaused =
   })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"ProtocolTreasuryUpdated"`
+ */
+export const useWatchGachaTreasuryProtocolTreasuryUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'ProtocolTreasuryUpdated',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"RarityMigrated"`
  */
 export const useWatchGachaTreasuryRarityMigrated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
     eventName: 'RarityMigrated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"RedemptionRestocked"`
+ */
+export const useWatchGachaTreasuryRedemptionRestocked =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'RedemptionRestocked',
   })
 
 /**
@@ -15392,172 +14209,6 @@ export const useReadIBeaconContract = /*#__PURE__*/ createUseReadContract({
 export const useReadIBeaconImplementation = /*#__PURE__*/ createUseReadContract(
   { abi: iBeaconAbi, functionName: 'implementation' },
 )
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link iBuybackVaultAbi}__
- */
-export const useReadIBuybackVaultContract = /*#__PURE__*/ createUseReadContract(
-  { abi: iBuybackVaultAbi },
-)
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"asset"`
- */
-export const useReadIBuybackVaultAsset = /*#__PURE__*/ createUseReadContract({
-  abi: iBuybackVaultAbi,
-  functionName: 'asset',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"availableLiquidity"`
- */
-export const useReadIBuybackVaultAvailableLiquidity =
-  /*#__PURE__*/ createUseReadContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'availableLiquidity',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"maxStakeBps"`
- */
-export const useReadIBuybackVaultMaxStakeBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'maxStakeBps',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"treasury"`
- */
-export const useReadIBuybackVaultTreasury = /*#__PURE__*/ createUseReadContract(
-  { abi: iBuybackVaultAbi, functionName: 'treasury' },
-)
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iBuybackVaultAbi}__
- */
-export const useWriteIBuybackVaultContract =
-  /*#__PURE__*/ createUseWriteContract({ abi: iBuybackVaultAbi })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"executeBuyback"`
- */
-export const useWriteIBuybackVaultExecuteBuyback =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'executeBuyback',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"onRevenueReceived"`
- */
-export const useWriteIBuybackVaultOnRevenueReceived =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'onRevenueReceived',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"stakeSurplus"`
- */
-export const useWriteIBuybackVaultStakeSurplus =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'stakeSurplus',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"unstakeSurplus"`
- */
-export const useWriteIBuybackVaultUnstakeSurplus =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'unstakeSurplus',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iBuybackVaultAbi}__
- */
-export const useSimulateIBuybackVaultContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: iBuybackVaultAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"executeBuyback"`
- */
-export const useSimulateIBuybackVaultExecuteBuyback =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'executeBuyback',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"onRevenueReceived"`
- */
-export const useSimulateIBuybackVaultOnRevenueReceived =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'onRevenueReceived',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"stakeSurplus"`
- */
-export const useSimulateIBuybackVaultStakeSurplus =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'stakeSurplus',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `functionName` set to `"unstakeSurplus"`
- */
-export const useSimulateIBuybackVaultUnstakeSurplus =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: iBuybackVaultAbi,
-    functionName: 'unstakeSurplus',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link iBuybackVaultAbi}__
- */
-export const useWatchIBuybackVaultContract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: iBuybackVaultAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `eventName` set to `"BuybackExecuted"`
- */
-export const useWatchIBuybackVaultBuybackExecuted =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: iBuybackVaultAbi,
-    eventName: 'BuybackExecuted',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `eventName` set to `"BuybackLiquidityStaked"`
- */
-export const useWatchIBuybackVaultBuybackLiquidityStaked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: iBuybackVaultAbi,
-    eventName: 'BuybackLiquidityStaked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `eventName` set to `"BuybackLiquidityUnstaked"`
- */
-export const useWatchIBuybackVaultBuybackLiquidityUnstaked =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: iBuybackVaultAbi,
-    eventName: 'BuybackLiquidityUnstaked',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link iBuybackVaultAbi}__ and `eventName` set to `"BuybackRevenueReceived"`
- */
-export const useWatchIBuybackVaultBuybackRevenueReceived =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: iBuybackVaultAbi,
-    eventName: 'BuybackRevenueReceived',
-  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link iDepositorVaultAbi}__
@@ -15643,24 +14294,6 @@ export const useWriteIDepositorVaultRegisterDepositor =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iDepositorVaultAbi}__ and `functionName` set to `"stakeBuybackLiquidity"`
- */
-export const useWriteIDepositorVaultStakeBuybackLiquidity =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: iDepositorVaultAbi,
-    functionName: 'stakeBuybackLiquidity',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iDepositorVaultAbi}__ and `functionName` set to `"unstakeBuybackLiquidity"`
- */
-export const useWriteIDepositorVaultUnstakeBuybackLiquidity =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: iDepositorVaultAbi,
-    functionName: 'unstakeBuybackLiquidity',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iDepositorVaultAbi}__ and `functionName` set to `"updateDepositor"`
  */
 export const useWriteIDepositorVaultUpdateDepositor =
@@ -15709,24 +14342,6 @@ export const useSimulateIDepositorVaultRegisterDepositor =
   /*#__PURE__*/ createUseSimulateContract({
     abi: iDepositorVaultAbi,
     functionName: 'registerDepositor',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iDepositorVaultAbi}__ and `functionName` set to `"stakeBuybackLiquidity"`
- */
-export const useSimulateIDepositorVaultStakeBuybackLiquidity =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: iDepositorVaultAbi,
-    functionName: 'stakeBuybackLiquidity',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iDepositorVaultAbi}__ and `functionName` set to `"unstakeBuybackLiquidity"`
- */
-export const useSimulateIDepositorVaultUnstakeBuybackLiquidity =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: iDepositorVaultAbi,
-    functionName: 'unstakeBuybackLiquidity',
   })
 
 /**
@@ -16885,15 +15500,6 @@ export const useReadIGachaEconomyManagerContract =
   /*#__PURE__*/ createUseReadContract({ abi: iGachaEconomyManagerAbi })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaEconomyManagerAbi}__ and `functionName` set to `"buybackShareBps"`
- */
-export const useReadIGachaEconomyManagerBuybackShareBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: iGachaEconomyManagerAbi,
-    functionName: 'buybackShareBps',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaEconomyManagerAbi}__ and `functionName` set to `"depositorShareBps"`
  */
 export const useReadIGachaEconomyManagerDepositorShareBps =
@@ -17201,6 +15807,15 @@ export const useWriteIProtocolTreasuryContract =
   /*#__PURE__*/ createUseWriteContract({ abi: iProtocolTreasuryAbi })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iProtocolTreasuryAbi}__ and `functionName` set to `"executeRedemption"`
+ */
+export const useWriteIProtocolTreasuryExecuteRedemption =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: iProtocolTreasuryAbi,
+    functionName: 'executeRedemption',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iProtocolTreasuryAbi}__ and `functionName` set to `"onRevenueReceived"`
  */
 export const useWriteIProtocolTreasuryOnRevenueReceived =
@@ -17223,6 +15838,15 @@ export const useWriteIProtocolTreasuryTransferOut =
  */
 export const useSimulateIProtocolTreasuryContract =
   /*#__PURE__*/ createUseSimulateContract({ abi: iProtocolTreasuryAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iProtocolTreasuryAbi}__ and `functionName` set to `"executeRedemption"`
+ */
+export const useSimulateIProtocolTreasuryExecuteRedemption =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: iProtocolTreasuryAbi,
+    functionName: 'executeRedemption',
+  })
 
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iProtocolTreasuryAbi}__ and `functionName` set to `"onRevenueReceived"`
@@ -17264,6 +15888,15 @@ export const useWatchIProtocolTreasuryProtocolTransfer =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: iProtocolTreasuryAbi,
     eventName: 'ProtocolTransfer',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link iProtocolTreasuryAbi}__ and `eventName` set to `"RedemptionExecuted"`
+ */
+export const useWatchIProtocolTreasuryRedemptionExecuted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: iProtocolTreasuryAbi,
+    eventName: 'RedemptionExecuted',
   })
 
 /**
@@ -18866,12 +17499,30 @@ export const useReadProtocolTreasuryContract =
   /*#__PURE__*/ createUseReadContract({ abi: protocolTreasuryAbi })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"REDEMPTION_PAYOUT_BPS"`
+ */
+export const useReadProtocolTreasuryRedemptionPayoutBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'REDEMPTION_PAYOUT_BPS',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"UPGRADE_INTERFACE_VERSION"`
  */
 export const useReadProtocolTreasuryUpgradeInterfaceVersion =
   /*#__PURE__*/ createUseReadContract({
     abi: protocolTreasuryAbi,
     functionName: 'UPGRADE_INTERFACE_VERSION',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"appraisalOracle"`
+ */
+export const useReadProtocolTreasuryAppraisalOracle =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'appraisalOracle',
   })
 
 /**
@@ -18888,6 +17539,33 @@ export const useReadProtocolTreasuryEconomyManager =
   /*#__PURE__*/ createUseReadContract({
     abi: protocolTreasuryAbi,
     functionName: 'economyManager',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"gachaTreasury"`
+ */
+export const useReadProtocolTreasuryGachaTreasury =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'gachaTreasury',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"getRemainingRedemptionWindow"`
+ */
+export const useReadProtocolTreasuryGetRemainingRedemptionWindow =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'getRemainingRedemptionWindow',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"isRedemptionEligible"`
+ */
+export const useReadProtocolTreasuryIsRedemptionEligible =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'isRedemptionEligible',
   })
 
 /**
@@ -18916,10 +17594,28 @@ export const useReadProtocolTreasuryProxiableUuid =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"redemptionWindow"`
+ */
+export const useReadProtocolTreasuryRedemptionWindow =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'redemptionWindow',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link protocolTreasuryAbi}__
  */
 export const useWriteProtocolTreasuryContract =
   /*#__PURE__*/ createUseWriteContract({ abi: protocolTreasuryAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"executeRedemption"`
+ */
+export const useWriteProtocolTreasuryExecuteRedemption =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'executeRedemption',
+  })
 
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"initialize"`
@@ -18958,12 +17654,39 @@ export const useWriteProtocolTreasuryRenounceOwnership =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setAppraisalOracle"`
+ */
+export const useWriteProtocolTreasurySetAppraisalOracle =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'setAppraisalOracle',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setEconomyManager"`
  */
 export const useWriteProtocolTreasurySetEconomyManager =
   /*#__PURE__*/ createUseWriteContract({
     abi: protocolTreasuryAbi,
     functionName: 'setEconomyManager',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setGachaTreasury"`
+ */
+export const useWriteProtocolTreasurySetGachaTreasury =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'setGachaTreasury',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setRedemptionWindow"`
+ */
+export const useWriteProtocolTreasurySetRedemptionWindow =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'setRedemptionWindow',
   })
 
 /**
@@ -19009,6 +17732,15 @@ export const useSimulateProtocolTreasuryContract =
   /*#__PURE__*/ createUseSimulateContract({ abi: protocolTreasuryAbi })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"executeRedemption"`
+ */
+export const useSimulateProtocolTreasuryExecuteRedemption =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'executeRedemption',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"initialize"`
  */
 export const useSimulateProtocolTreasuryInitialize =
@@ -19045,12 +17777,39 @@ export const useSimulateProtocolTreasuryRenounceOwnership =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setAppraisalOracle"`
+ */
+export const useSimulateProtocolTreasurySetAppraisalOracle =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'setAppraisalOracle',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setEconomyManager"`
  */
 export const useSimulateProtocolTreasurySetEconomyManager =
   /*#__PURE__*/ createUseSimulateContract({
     abi: protocolTreasuryAbi,
     functionName: 'setEconomyManager',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setGachaTreasury"`
+ */
+export const useSimulateProtocolTreasurySetGachaTreasury =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'setGachaTreasury',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setRedemptionWindow"`
+ */
+export const useSimulateProtocolTreasurySetRedemptionWindow =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'setRedemptionWindow',
   })
 
 /**
@@ -19096,12 +17855,30 @@ export const useWatchProtocolTreasuryContract =
   /*#__PURE__*/ createUseWatchContractEvent({ abi: protocolTreasuryAbi })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `eventName` set to `"AppraisalOracleUpdated"`
+ */
+export const useWatchProtocolTreasuryAppraisalOracleUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: protocolTreasuryAbi,
+    eventName: 'AppraisalOracleUpdated',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `eventName` set to `"EconomyManagerUpdated"`
  */
 export const useWatchProtocolTreasuryEconomyManagerUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: protocolTreasuryAbi,
     eventName: 'EconomyManagerUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `eventName` set to `"GachaTreasuryUpdated"`
+ */
+export const useWatchProtocolTreasuryGachaTreasuryUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: protocolTreasuryAbi,
+    eventName: 'GachaTreasuryUpdated',
   })
 
 /**
@@ -19147,6 +17924,33 @@ export const useWatchProtocolTreasuryProtocolTransfer =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: protocolTreasuryAbi,
     eventName: 'ProtocolTransfer',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `eventName` set to `"RedemptionExecuted"`
+ */
+export const useWatchProtocolTreasuryRedemptionExecuted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: protocolTreasuryAbi,
+    eventName: 'RedemptionExecuted',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `eventName` set to `"RedemptionWindowEnforced"`
+ */
+export const useWatchProtocolTreasuryRedemptionWindowEnforced =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: protocolTreasuryAbi,
+    eventName: 'RedemptionWindowEnforced',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `eventName` set to `"RedemptionWindowUpdated"`
+ */
+export const useWatchProtocolTreasuryRedemptionWindowUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: protocolTreasuryAbi,
+    eventName: 'RedemptionWindowUpdated',
   })
 
 /**

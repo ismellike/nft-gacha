@@ -1,13 +1,13 @@
 "use client";
 
 import { useWatchContractEvent } from "wagmi";
-import { useWatchBuybackVaultBuybackExecuted } from "../generated";
+import { useWatchProtocolTreasuryRedemptionExecuted } from "../generated";
 import { toast } from "react-hot-toast";
 
-export function useBuybackNotifications(buybackVaultAddress: `0x${string}`) {
-	// Watch for buyback executed events
-	useWatchBuybackVaultBuybackExecuted({
-		address: buybackVaultAddress,
+export function useRedemptionNotifications(protocolTreasuryAddress: `0x${string}`) {
+	// Watch for redemption executed events
+	useWatchProtocolTreasuryRedemptionExecuted({
+		address: protocolTreasuryAddress,
 		onLogs: (logs) => {
 			logs.forEach((log) => {
 				const { seller, collection, tokenId, payout } = log.args;
@@ -16,7 +16,7 @@ export function useBuybackNotifications(buybackVaultAddress: `0x${string}`) {
 				const collectionShort = `${collection.slice(0, 6)}...${collection.slice(-4)}`;
 				const tokenIdStr = tokenId.toString();
 
-				// Success notification for NFT buyback
+				// Success notification for NFT redemption
 				toast.success(
 					`🎯 NFT Sold Successfully!\nCollection: ${collectionShort}\nToken ID: ${tokenIdStr}\nReceived: ${(Number(payout) / 1_000_000).toFixed(2)} USDC`,
 					{
@@ -48,8 +48,8 @@ export function useBuybackNotifications(buybackVaultAddress: `0x${string}`) {
 			});
 		},
 		onError: (error) => {
-			console.error("Buyback event subscription error:", error);
-			toast.error("Failed to track buyback events", {
+			console.error("Redemption event subscription error:", error);
+			toast.error("Failed to track redemption events", {
 				duration: 3000,
 				position: "top-right",
 			});

@@ -39,28 +39,21 @@ contract GachaTreasury is
     error EmptyArrays();
     error TooManyItems();
     error InvalidGachaContract();
-    error PendingDepositNotFound();
-    error PendingDepositAlreadyProcessed();
-    error CannotDepositSameNFTTwice();
     error UnauthorizedGachaContract();
     error CollectionNotWhitelisted();
     error CollectionAlreadyWhitelisted();
     error CollectionNotInWhitelist();
-    error EmptyWhitelist();
     error InvalidAppraisalContract();
     error NFTNotAppraised();
     error AppraisalRequired();
-    error RarityMigrationFailed();
     error InvalidPriceRange();
     error PriceRangesAlreadySet();
     error NoNFTsAvailable(Rarity rarity);
     error NFTNotDeposited();
     error NotNFTDepositor();
-    error InvalidTreasuryInitialization();
-    error NotTreasuryInitializing();
     error InvalidDepositorVault();
-    error InvalidBuybackVault();
-    error UnauthorizedBuybackVault();
+    error InvalidProtocolTreasury();
+    error UnauthorizedProtocolTreasury();
     error InsufficientDepositorValue();
 
     /// @notice Maximum batch operation limits for gas optimization
@@ -92,6 +85,7 @@ contract GachaTreasury is
         uint256 appraisedPrice; // USD price when deposited (scaled by 1e18)
         Rarity rarity; // Current rarity tier based on price
         uint256 depositTime; // When NFT was deposited
+        uint256 receiveTime; // When user received the NFT from gacha (0 if not won yet)
     }
 
     /// @notice User's card deposit information for frontend display
@@ -111,7 +105,7 @@ contract GachaTreasury is
     address public gachaContract;
     NFTAppraisal public appraisalContract;
     IDepositorVault public depositorVault;
-    address public buybackVault;
+    address public protocolTreasury;
 
     /// @notice Price ranges for each rarity tier (set during initialization, not modifiable afterwards)
     uint256 public commonMinPrice;
@@ -132,6 +126,7 @@ contract GachaTreasury is
     mapping(address => mapping(uint256 => bool)) public depositedNFTs;
     mapping(address => mapping(uint256 => uint256)) public nftToTreasuryIndex; // collection => tokenId => index in rarity array
     mapping(address => mapping(uint256 => Rarity)) public nftCurrentRarity; // collection => tokenId => current rarity
+    mapping(address => mapping(uint256 => uint256)) public nftReceiveTimes; // collection => tokenId => when user received NFT from gacha
 
     /// @notice User deposit tracking for rewards
     mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
@@ -182,8 +177,8 @@ contract GachaTreasury is
     event CollectionWhitelisted(address indexed collection);
     event CollectionRemovedFromWhitelist(address indexed collection);
     event DepositorVaultUpdated(address indexed oldVault, address indexed newVault);
-    event BuybackVaultUpdated(address indexed oldVault, address indexed newVault);
-    event BuybackRestocked(
+    event ProtocolTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event RedemptionRestocked(
         address indexed collection,
         uint256 indexed tokenId,
         address indexed seller,
@@ -197,8 +192,8 @@ contract GachaTreasury is
         _;
     }
 
-    modifier onlyBuyback() {
-        if (msg.sender != buybackVault) revert UnauthorizedBuybackVault();
+    modifier onlyProtocolTreasury() {
+        if (msg.sender != protocolTreasury) revert UnauthorizedProtocolTreasury();
         _;
     }
 
@@ -206,31 +201,16 @@ contract GachaTreasury is
      * @notice Initializes the treasury with required contracts and price ranges
      * @param _gachaContract Address of the authorized gacha contract
      * @param _appraisalContract Address of the NFT appraisal contract
-     * @param _commonMinPrice Minimum price for Common rarity (scaled by 1e18)
-     * @param _commonMaxPrice Maximum price for Common rarity (scaled by 1e18)
-     * @param _uncommonMinPrice Minimum price for Uncommon rarity (scaled by 1e18)
-     * @param _uncommonMaxPrice Maximum price for Uncommon rarity (scaled by 1e18)
-     * @param _rareMinPrice Minimum price for Rare rarity (scaled by 1e18)
-     * @param _rareMaxPrice Maximum price for Rare rarity (scaled by 1e18)
-     * @param _epicMinPrice Minimum price for Epic rarity (scaled by 1e18)
-     * @param _epicMaxPrice Maximum price for Epic rarity (scaled by 1e18)
-     * @param _legendaryMinPrice Minimum price for Legendary rarity (scaled by 1e18)
-     * @param _legendaryMaxPrice Maximum price for Legendary rarity (scaled by 1e18, use type(uint256).max for no upper limit)
+     * @param minPrices Array of minimum prices per rarity [Common, Uncommon, Rare, Epic, Legendary] (scaled by 1e18)
+     * @param maxPrices Array of maximum prices per rarity [Common, Uncommon, Rare, Epic, Legendary] (scaled by 1e18)
+     *                  Legendary max can be set to `type(uint256).max` to indicate no upper bound.
      */
     function initialize(
         address, /* _owner */
         address _gachaContract,
         address _appraisalContract,
-        uint256 _commonMinPrice,
-        uint256 _commonMaxPrice,
-        uint256 _uncommonMinPrice,
-        uint256 _uncommonMaxPrice,
-        uint256 _rareMinPrice,
-        uint256 _rareMaxPrice,
-        uint256 _epicMinPrice,
-        uint256 _epicMaxPrice,
-        uint256 _legendaryMinPrice,
-        uint256 _legendaryMaxPrice
+        uint256[5] memory minPrices,
+        uint256[5] memory maxPrices
     ) public initializer {
         __Ownable_init(msg.sender);
         __Pausable_init();
@@ -242,25 +222,7 @@ contract GachaTreasury is
         // Check if price ranges have already been set
         if (priceRangesSet) revert PriceRangesAlreadySet();
 
-        // Validate price ranges
-        if (_commonMinPrice >= _commonMaxPrice) revert InvalidPriceRange();
-        if (_uncommonMinPrice >= _uncommonMaxPrice) revert InvalidPriceRange();
-        if (_rareMinPrice >= _rareMaxPrice) revert InvalidPriceRange();
-        if (_epicMinPrice >= _epicMaxPrice) revert InvalidPriceRange();
-        if (_legendaryMinPrice >= _legendaryMaxPrice && _legendaryMaxPrice != type(uint256).max) revert InvalidPriceRange();
-
-        // Set price ranges (only once during initialization)
-        commonMinPrice = _commonMinPrice;
-        commonMaxPrice = _commonMaxPrice;
-        uncommonMinPrice = _uncommonMinPrice;
-        uncommonMaxPrice = _uncommonMaxPrice;
-        rareMinPrice = _rareMinPrice;
-        rareMaxPrice = _rareMaxPrice;
-        epicMinPrice = _epicMinPrice;
-        epicMaxPrice = _epicMaxPrice;
-        legendaryMinPrice = _legendaryMinPrice;
-        legendaryMaxPrice = _legendaryMaxPrice;
-        priceRangesSet = true;
+        _setInitialPriceRanges(minPrices, maxPrices);
 
         gachaContract = _gachaContract;
         appraisalContract = NFTAppraisal(_appraisalContract);
@@ -271,6 +233,44 @@ contract GachaTreasury is
      * @dev Only owner can upgrade the contract
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    function _setInitialPriceRanges(uint256[5] memory minPrices, uint256[5] memory maxPrices) private {
+        uint256 legendaryMaxOverride = type(uint256).max;
+
+        uint256 commonMin = minPrices[uint256(Rarity.Common)];
+        uint256 commonMax = maxPrices[uint256(Rarity.Common)];
+        if (commonMin >= commonMax) revert InvalidPriceRange();
+        commonMinPrice = commonMin;
+        commonMaxPrice = commonMax;
+
+        uint256 uncommonMin = minPrices[uint256(Rarity.Uncommon)];
+        uint256 uncommonMax = maxPrices[uint256(Rarity.Uncommon)];
+        if (uncommonMin >= uncommonMax) revert InvalidPriceRange();
+        uncommonMinPrice = uncommonMin;
+        uncommonMaxPrice = uncommonMax;
+
+        uint256 rareMin = minPrices[uint256(Rarity.Rare)];
+        uint256 rareMax = maxPrices[uint256(Rarity.Rare)];
+        if (rareMin >= rareMax) revert InvalidPriceRange();
+        rareMinPrice = rareMin;
+        rareMaxPrice = rareMax;
+
+        uint256 epicMin = minPrices[uint256(Rarity.Epic)];
+        uint256 epicMax = maxPrices[uint256(Rarity.Epic)];
+        if (epicMin >= epicMax) revert InvalidPriceRange();
+        epicMinPrice = epicMin;
+        epicMaxPrice = epicMax;
+
+        uint256 legendaryMin = minPrices[uint256(Rarity.Legendary)];
+        uint256 legendaryMax = maxPrices[uint256(Rarity.Legendary)];
+        if (legendaryMin >= legendaryMax && legendaryMax != legendaryMaxOverride) {
+            revert InvalidPriceRange();
+        }
+        legendaryMinPrice = legendaryMin;
+        legendaryMaxPrice = legendaryMax;
+
+        priceRangesSet = true;
+    }
 
     /// @notice Deposits an NFT into the treasury with automatic rarity assignment
     /// @param collection NFT collection address
@@ -312,7 +312,8 @@ contract GachaTreasury is
             tokenId: tokenId,
             appraisedPrice: priceUSD,
             rarity: rarity,
-            depositTime: block.timestamp
+            depositTime: block.timestamp,
+            receiveTime: 0 // Not won yet
         });
 
         // Add to treasury
@@ -431,11 +432,6 @@ contract GachaTreasury is
         } else if (oldPrice > newPriceUSD) {
             _decreaseActiveValue(item.depositor, oldPrice - newPriceUSD);
         }
-
-        // Update card-level tracking for migration - no changes needed
-        // Cards are tracked globally, not per rarity
-        bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
-        // Card counts remain the same during rarity migration
 
         emit RarityMigrated(collection, tokenId, currentRarity, newRarity, newPriceUSD);
     }
@@ -557,6 +553,10 @@ contract GachaTreasury is
         depositedNFTs[item.collection][item.tokenId] = false;
         delete nftToTreasuryIndex[item.collection][item.tokenId];
         delete nftCurrentRarity[item.collection][item.tokenId];
+
+        // Record receive time before transfer
+        uint256 receiveTime = block.timestamp;
+        nftReceiveTimes[item.collection][item.tokenId] = receiveTime;
 
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
@@ -703,11 +703,16 @@ contract GachaTreasury is
         emit DepositorVaultUpdated(previous, _depositorVault);
     }
 
-    function setBuybackVault(address _buybackVault) external onlyOwner {
-        if (_buybackVault == address(0)) revert InvalidBuybackVault();
-        address previous = buybackVault;
-        buybackVault = _buybackVault;
-        emit BuybackVaultUpdated(previous, _buybackVault);
+    function setProtocolTreasury(address _protocolTreasury) external onlyOwner {
+        if (_protocolTreasury == address(0)) revert InvalidProtocolTreasury();
+
+        // Prevent treasury rotation unless all NFTs are withdrawn to avoid yield loss
+        // Existing inventory would keep old treasury as depositor, locking vault shares and yield
+        require(userTotalDeposits[protocolTreasury] == 0, "TreasuryRotation: Must drain inventory before rotation");
+
+        address previous = protocolTreasury;
+        protocolTreasury = _protocolTreasury;
+        emit ProtocolTreasuryUpdated(previous, _protocolTreasury);
     }
 
     function syncDepositorValue(address depositor) external onlyOwner {
@@ -721,7 +726,6 @@ contract GachaTreasury is
         _syncDepositorVault(depositor, previous, total);
     }
 
-    
     /**
      * @notice Determines the rarity tier based on USD price
      * @param priceUSD Price in USD (scaled by 1e18)
@@ -778,7 +782,6 @@ contract GachaTreasury is
         revert InvalidPriceRange();
     }
 
-
     // Batch operations
     /// @notice Batch deposit multiple NFTs with automatic rarity assignment
     /// @param collections Array of NFT collection addresses
@@ -829,7 +832,8 @@ contract GachaTreasury is
                 tokenId: tokenId,
                 appraisedPrice: priceUSD,
                 rarity: rarity,
-                depositTime: block.timestamp
+                depositTime: block.timestamp,
+                receiveTime: 0 // Not won yet
             });
 
             treasury[rarity].push(item);
@@ -895,6 +899,14 @@ contract GachaTreasury is
     function getUserTotalDepositCount(address user) external view returns (uint256 totalCount) {
         if (user == address(0)) return 0;
         return userTotalDeposits[user];
+    }
+
+    /// @notice Gets the time when a user received an NFT from gacha
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID
+    /// @return receiveTime Timestamp when user received the NFT (0 if not received from gacha)
+    function getNFTReceiveTime(address collection, uint256 tokenId) external view returns (uint256 receiveTime) {
+        return nftReceiveTimes[collection][tokenId];
     }
 
     /// @notice Gets all deposit counts for a user across all rarities
@@ -995,6 +1007,7 @@ contract GachaTreasury is
             }
 
             userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
+            _decreaseActiveValue(item.depositor, item.appraisedPrice);
         }
 
         totalRarityValue[rarity] -= item.appraisedPrice;
@@ -1004,31 +1017,38 @@ contract GachaTreasury is
         delete nftToTreasuryIndex[item.collection][item.tokenId];
         delete nftCurrentRarity[item.collection][item.tokenId];
 
+        // Record receive time before transfer
+        uint256 receiveTime = block.timestamp;
+        nftReceiveTimes[item.collection][item.tokenId] = receiveTime;
+
         // Transfer NFT to winner
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
         emit NFTWithdrawn(item.collection, item.tokenId, rarity, winner);
     }
 
-    function handleBuybackReturn(address collection, uint256 tokenId, address seller, uint256 appraisalUSD)
+    function handleRedemptionReturn(address collection, uint256 tokenId, address seller, uint256 appraisalUSD)
         external
-        onlyBuyback
+        onlyProtocolTreasury
         whenNotPaused
         nonReentrant
     {
         if (collection == address(0)) revert InvalidCollectionAddress();
         if (depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
         if (appraisalUSD == 0) revert NFTNotAppraised();
+        address protocol = protocolTreasury;
+        if (protocol == address(0)) revert InvalidProtocolTreasury();
 
         Rarity rarity = getRarityByPrice(appraisalUSD);
 
         NFTItem memory item = NFTItem({
             collection: collection,
-            depositor: address(0),
+            depositor: protocol,
             tokenId: tokenId,
             appraisedPrice: appraisalUSD,
             rarity: rarity,
-            depositTime: block.timestamp
+            depositTime: block.timestamp,
+            receiveTime: 0 // Not won yet
         });
 
         depositedNFTs[collection][tokenId] = true;
@@ -1036,13 +1056,24 @@ contract GachaTreasury is
         treasury[rarity].push(item);
         nftToTreasuryIndex[collection][tokenId] = treasury[rarity].length - 1;
 
+        // Clear receive time when NFT returns to treasury
+        delete nftReceiveTimes[collection][tokenId];
+
         unchecked {
             ++rarityCount[rarity];
         }
 
         totalRarityValue[rarity] += appraisalUSD;
+        userDepositCounts[protocol][rarity]++;
+        userTotalDeposits[protocol]++;
+        userDepositValues[protocol][rarity] += appraisalUSD;
+        _increaseActiveValue(protocol, appraisalUSD);
 
-        emit BuybackRestocked(collection, tokenId, seller, rarity, appraisalUSD);
+        // Fix protocol depositor accounting for restocked NFTs
+        // Ensure protocol treasury gets shares in the depositor vault for its contributions
+        _syncDepositorVault(protocol, 0, userActiveDepositValueUSD[protocol]);
+
+        emit RedemptionRestocked(collection, tokenId, seller, rarity, appraisalUSD);
     }
 
     function _increaseActiveValue(address depositor, uint256 amount) internal {

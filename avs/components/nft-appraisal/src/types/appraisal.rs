@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
 
 /// Provider types supported by the system
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -9,35 +10,26 @@ pub enum ProviderType {
 /// Resolver families supported by the appraisal engine.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum ResolverKind {
-    PokemonTradingCard,
+    PokemonGradedCard,
 }
 
 /// Resolver-specific arguments produced by providers.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ResolverArgs {
-    PokemonCardInfo {
-        title: String,
-        card_number: Option<String>,
-        grade: Option<String>,
-        set_name: Option<String>,
-        year: Option<String>,
-    },
+    ScrydexCardInfo(ScrydexCardInfo),
 }
 
 impl ResolverArgs {
     pub fn cache_fragment(&self) -> String {
         match self {
-            ResolverArgs::PokemonCardInfo {
-                title,
-                card_number,
-                grade,
-                ..
-            } => {
+            ResolverArgs::ScrydexCardInfo(info) => {
                 format!(
-                    "{}-{}-{}",
-                    title.trim().to_ascii_lowercase(),
-                    card_number.as_deref().unwrap_or(""),
-                    grade.as_deref().unwrap_or("")
+                    "{}-{}-{}-{}-{}",
+                    info.card_number.trim().to_ascii_lowercase(),
+                    info.grade.trim().to_ascii_lowercase(),
+                    info.company.trim().to_ascii_lowercase(),
+                    info.is_perfect,
+                    info.set_id.trim().to_ascii_lowercase()
                 )
             }
         }
@@ -52,32 +44,27 @@ pub struct ResolverRoute {
 }
 
 impl ResolverRoute {
-    pub fn pokemon_card_info<T: Into<String>>(
-        title: T,
-        card_number: Option<String>,
-        grade: Option<String>,
-        set_name: Option<String>,
-        year: Option<String>,
+    pub fn pokemon_card_info(
+        card_number: String,
+        grade: String,
+        company: String,
+        is_perfect: bool,
+        set_id: String,
     ) -> Self {
-        let title = normalize_pokemon_title(title.into());
         Self {
-            kind: ResolverKind::PokemonTradingCard,
-            args: ResolverArgs::PokemonCardInfo {
-                title,
+            kind: ResolverKind::PokemonGradedCard,
+            args: ResolverArgs::ScrydexCardInfo(ScrydexCardInfo {
                 card_number,
                 grade,
-                set_name,
-                year,
-            },
+                company,
+                is_perfect,
+                set_id,
+                variant: None, // Default to None for direct construction
+            }),
         }
     }
 
     pub fn cache_key_fragment(&self) -> String {
         self.args.cache_fragment()
     }
-}
-
-fn normalize_pokemon_title(mut title: String) -> String {
-    title = title.replace('É', "E");
-    title.replace('é', "e")
 }

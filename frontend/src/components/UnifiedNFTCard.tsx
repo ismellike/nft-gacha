@@ -56,8 +56,8 @@ export interface UnifiedNFTCardProps {
 	actionSlot?: React.ReactNode; // Custom action button/content
 	// Optional appraisal override to avoid extra RPCs when price is known
 	appraisalOverride?: { hasAppraisal: boolean; priceUSD: bigint };
-	// Buyback functionality
-	buybackVaultAddress?: string;
+	// Redemption functionality
+	protocolTreasuryAddress?: string;
 	gachaId?: string;
 }
 
@@ -614,7 +614,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		rewardsSlot,
 		actionSlot,
 		appraisalOverride,
-		buybackVaultAddress,
+		protocolTreasuryAddress,
 		gachaId,
 	}) => {
 		const isInteractive = !!onClick;
@@ -702,10 +702,10 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 
 		// Get gacha config for buyback vault if not provided
 		const gachaConfig = gachaId ? getGachaConfig(gachaId) : null;
-		const finalBuybackVaultAddress = buybackVaultAddress || gachaConfig?.buybackVaultAddress;
+		const finalProtocolTreasuryAddress = protocolTreasuryAddress || gachaConfig?.protocolTreasuryAddress;
 
-		// Create buyback action if vault is available
-		const buybackAction = finalBuybackVaultAddress ? (
+		// Create redemption action if treasury is available
+		const redemptionAction = finalProtocolTreasuryAddress ? (
 			<motion.div
 				initial={{ opacity: 0, y: 10 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -715,7 +715,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					collection={collection}
 					tokenId={tokenId}
 					appraisalContractAddress={appraisalContractAddress}
-					buybackVaultAddress={finalBuybackVaultAddress}
+					protocolTreasuryAddress={finalProtocolTreasuryAddress}
 					size={size === "xs" || size === "sm" ? "sm" : size === "lg" || size === "xl" ? "lg" : "md"}
 					variant={size === "xs" || size === "sm" ? "button" : "card"}
 					onSuccess={(txHash) => {
@@ -726,11 +726,11 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 			</motion.div>
 		) : null;
 
-		// Merge custom actionSlot with buyback action
+		// Merge custom actionSlot with redemption action
 		const finalActionSlot = (
 			<div className="flex flex-col gap-2">
 				{actionSlot}
-				{buybackAction}
+				{redemptionAction}
 			</div>
 		);
 

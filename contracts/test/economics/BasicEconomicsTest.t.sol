@@ -24,9 +24,9 @@ contract BasicEconomicsTest is Test {
     uint256 public constant TOTAL_SHARE = 10000; // 100%
 
     // Price tiers (USD values in 18 decimals)
-    uint256 public constant COMMON_PRICE = 50e18;      // $50
-    uint256 public constant UNCOMMON_PRICE = 250e18;   // $250
-    uint256 public constant RARE_PRICE = 1000e18;      // $1,000
+    uint256 public constant COMMON_PRICE = 50e18; // $50
+    uint256 public constant UNCOMMON_PRICE = 250e18; // $250
+    uint256 public constant RARE_PRICE = 1000e18; // $1,000
 
     function setUp() public {
         // Deploy tokens
@@ -142,23 +142,23 @@ contract BasicEconomicsTest is Test {
     }
 
     /**
-     * @notice Test buyback calculation logic
+     * @notice Test redemption calculation logic
      */
-    function testBuybackCalculation() public {
+    function testRedemptionCalculation() public {
         uint256 appraisalPrice = RARE_PRICE; // $1,000 in 18 decimals
-        uint256 payoutPercentage = 9000; // 90%
+        uint256 payoutPercentage = 8_500; // 85%
 
         // Convert appraisal price to USDC (18 decimals to 6 decimals)
         uint256 appraisalUSDc = appraisalPrice / 1e12;
 
-        // Calculate 90% payout
+        // Calculate 85% payout
         uint256 expectedPayout = Math.mulDiv(appraisalUSDc, payoutPercentage, 10000);
 
         console2.log("Appraisal Price (USD):", appraisalPrice);
         console2.log("Appraisal Price (USDC):", appraisalUSDc);
-        console2.log("Expected Payout (90%):", expectedPayout);
+        console2.log("Expected Payout (85%):", expectedPayout);
 
-        assertEq(expectedPayout, 900 * 1e6, "$1,000 at 90% should be $900 USDC");
+        assertEq(expectedPayout, 850 * 1e6, "$1,000 at 85% should be $850 USDC");
     }
 
     /**
@@ -170,11 +170,11 @@ contract BasicEconomicsTest is Test {
 
         // Calculate expected rewards for different contribution levels
         uint256[] memory contributions = new uint256[](numUsers);
-        contributions[0] = 50e18;   // $50
-        contributions[1] = 100e18;  // $100
-        contributions[2] = 150e18;  // $150
-        contributions[3] = 200e18;  // $200
-        contributions[4] = 250e18;  // $250
+        contributions[0] = 50e18; // $50
+        contributions[1] = 100e18; // $100
+        contributions[2] = 150e18; // $150
+        contributions[3] = 200e18; // $200
+        contributions[4] = 250e18; // $250
 
         uint256 totalContributions = 0;
         for (uint256 i = 0; i < numUsers; i++) {
@@ -189,8 +189,7 @@ contract BasicEconomicsTest is Test {
         // Verify proportional distribution
         for (uint256 i = 0; i < numUsers - 1; i++) {
             assertTrue(
-                expectedRewards[i] < expectedRewards[i + 1],
-                "Higher contribution should result in higher reward"
+                expectedRewards[i] < expectedRewards[i + 1], "Higher contribution should result in higher reward"
             );
         }
 
@@ -200,20 +199,17 @@ contract BasicEconomicsTest is Test {
             totalRewards += expectedRewards[i];
         }
         assertApproxEqAbs(
-            totalRewards,
-            totalRevenue,
-            2,
-            "Total rewards should equal total revenue within rounding tolerance"
+            totalRewards, totalRevenue, 2, "Total rewards should equal total revenue within rounding tolerance"
         );
     }
 
     // Helper functions
 
     function _getRarityFromPrice(uint256 price) internal pure returns (uint256) {
-        if (price < 100e18) return 0;      // Common: $0-$100
-        if (price < 500e18) return 1;      // Uncommon: $100-$500
-        if (price < 2000e18) return 2;     // Rare: $500-$2000
-        if (price < 10000e18) return 3;    // Epic: $2000-$10000
-        return 4;                          // Legendary: $10000+
+        if (price < 100e18) return 0; // Common: $0-$100
+        if (price < 500e18) return 1; // Uncommon: $100-$500
+        if (price < 2000e18) return 2; // Rare: $500-$2000
+        if (price < 10000e18) return 3; // Epic: $2000-$10000
+        return 4; // Legendary: $10000+
     }
 }

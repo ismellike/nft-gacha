@@ -61,23 +61,52 @@ forge create <contract> --rpc-url <url> --private-key <key>
 
 **GachaTreasury Contract** (`src/gacha/GachaTreasury.sol`)
 - Price-based NFT storage with automatic rarity assignment
-- 5-tier rarity system with configurable USD price ranges:
-  - Common: $0-$100
-  - Uncommon: $100-$500
-  - Rare: $500-$2,000
-  - Epic: $2,000-$10,000
-  - Legendary: $10,000+
+- 5-tier rarity system with specific USD price ranges:
+  - Common: $0-$15
+  - Uncommon: $25-$60
+  - Rare: $70-$250
+  - Epic: $300-$1,200
+  - Legendary: $1,500+
 - Value-weighted dividend tracking for reward distribution
 - Collection whitelist system for controlling allowed NFTs
 - O(1) random selection using swap-and-pop algorithm
+- Timeout mechanisms for orphaned spins and refunds
+
+**GachaEconomyManager Contract** (`src/economy/GachaEconomyManager.sol`)
+- Intelligent fee distribution from spin operations
+- Splits spin revenue between depositors (95%) and protocol (5%)
+- Queues depositor yield when no NFTs are deposited (no shares exist)
+- Processes queued yield automatically when deposits arrive
+- Auto-claims protocol yield when protocol has meaningful shares
+- Prevents protocol from receiving depositor yield inappropriately
+
+**DepositorVault Contract** (`src/economy/DepositorVault.sol`)
+- Yield vault for NFT depositors to earn rewards
+- Tracks user deposits and reward shares
+- Implements withdrawal and claim mechanisms
+- Supports batch operations for gas optimization
+
+**ProtocolTreasury Contract** (`src/economy/ProtocolTreasury.sol`)
+- Treasury for protocol funds and fees
+- Manages protocol revenue distribution
+- Handles administrative functions
+- Supports emergency withdrawal mechanisms
 
 ### Service Handler Pattern
 
 Both Gacha and NFTAppraisal use authorized service handler contracts for:
-- **GachaServiceHandler**: Processes randomness requests from WAVS network
-- **NFTAppraisalServiceHandler**: Handles price updates from external appraisal oracles
+- **GachaServiceHandler** (`src/gacha/GachaServiceHandler.sol`): Processes randomness requests from WAVS network
+- **NFTAppraisalServiceHandler** (`src/appraisal/NFTAppraisalServiceHandler.sol`): Handles price updates from external appraisal oracles
 
 This pattern separates core game logic from external service integration, allowing for modular upgrades and testing.
+
+### Utility Contracts
+
+Additional utility contracts provide system-wide functionality:
+- **RarityTracker** (`src/gacha/RarityTracker.sol`): Rarity management utilities and tracking
+- **ERC20BatchQuery** (`src/utils/ERC20BatchQuery.sol`): Batch query operations for ERC20 tokens
+- **BaseERC20** (`src/tokens/BaseERC20.sol`): Base ERC20 token implementation
+- **BaseERC721** (`src/tokens/BaseERC721.sol`): Base ERC721 NFT implementation
 
 ### Rewards Integration
 
@@ -86,7 +115,12 @@ Three-tier rewards system integrated across contracts:
 2. **Card-level rewards**: Based on specific card deposits
 3. **User-level rewards**: Value-weighted dividend tracking
 
-Rewards managers handle fee distribution from spin operations and NFT wins.
+**GachaEconomyManager** handles intelligent fee distribution from spin operations:
+- Splits spin revenue between depositors (95%) and protocol (5%)
+- Queues depositor yield when no NFTs are deposited (no shares exist)
+- Processes queued yield automatically when deposits arrive
+- Only auto-claims protocol yield when protocol has meaningful shares
+- Prevents protocol from receiving depositor yield inappropriately
 
 ### Key Data Flows
 
@@ -94,27 +128,86 @@ Rewards managers handle fee distribution from spin operations and NFT wins.
 2. **Gacha Spin Flow**: fee payment → randomness request → rarity selection → NFT distribution → rewards distribution
 3. **Price Migration Flow**: price update → rarity re-evaluation → treasury migration → rewards recalculation
 
+### Advanced Features
+
+#### Queued Yield Mechanism
+- **Yield Queueing**: When no NFTs are deposited in the treasury, depositor yield is queued instead of being lost
+- **Automatic Processing**: Queued yield is automatically distributed to depositors when NFTs are deposited
+- **Fair Distribution**: Ensures early depositors receive their fair share of accumulated yield
+- **Integration**: Seamlessly integrated with GachaEconomyManager for intelligent yield management
+
+#### Timeout and Refund System
+- **Orphaned Spin Handling**: Spins that don't receive randomness within timeout period are automatically refunded
+- **Timeout Configuration**: Adjustable timeout periods for different operational scenarios
+- **Refund Mechanism**: Automatic refund of spin fees when operations fail due to timeouts
+- **Event Tracking**: Comprehensive event logging for timeout and refund operations
+
+#### Batch Operations
+- **Batch Claims**: Users can claim multiple rewards in a single transaction
+- **Batch Deposits**: Multiple NFTs can be deposited efficiently
+- **Batch Queries**: ERC20 token balances can be queried in batches
+- **Gas Optimization**: All batch operations designed for maximum gas efficiency
+
 ## Testing
 
-Test files are organized by contract:
-- `test/Gacha.t.sol` - Core gacha mechanics testing
-- `test/NFTAppraisal.t.sol` - Appraisal system testing
-- `test/GachaTreasury.t.sol` - Treasury management testing
-- `test/GachaRewards.t.sol` - Rewards distribution testing
-- `test/BatchClaim.t.sol` - Batch operations testing
+Test files are organized with comprehensive unit and integration testing:
 
-Mock contracts available in `test/mocks/` for isolated testing.
+### Core Contract Tests
+- `test/GachaTreasury.t.sol` - Treasury management and basic operations
+- `test/GachaTreasuryTest.t.sol` - Treasury unit tests
+- `test/GachaTreasuryEconomicsTest.t.sol` - Treasury economics simulation
+- `test/NFTAppraisal.t.sol` - Appraisal system testing
+- `test/NFTAppraisalTest.t.sol` - Appraisal unit tests
+- `test/NFTAppraisalEconomicsTest.t.sol` - Appraisal economics testing
+
+### Integration Tests
+- `test/EconomyFlow.t.sol` - Complete economy flow integration testing
+- `test/QueuedYieldTest.t.sol` - Queued yield mechanism testing
+- `test/TimeoutMechanismTest.t.sol` - Timeout system testing
+- `test/BasicEconomicsTest.t.sol` - Basic economics flow testing
+- `test/SimpleCardTracking.t.sol` - Card tracking functionality testing
+
+### Mock Contracts
+Mock contracts available in `test/mocks/` for isolated testing:
+- `MockDepositorVault.sol` - Mock vault for testing
+- `MockERC20.sol` - Mock ERC20 token
+- `MockERC721.sol` - Mock ERC721 NFT
+- `MockNFTAppraisal.sol` - Mock appraisal service
+- `MockProtocolTreasury.sol` - Mock protocol treasury
+- `MockWavsServiceManager.sol` - Mock WAVS service manager
 
 ## Configuration
 
-**foundry.toml** configures:
+**foundry.toml** configures comprehensive development environment:
+
+### Compiler Settings
 - Solidity version ^0.8.27 with optimizer enabled (200 runs)
-- Library remappings for OpenZeppelin and WAVS contracts
-- File system permissions for test file access
+- IR-based compilation (`via_ir = true`) for optimized bytecode
+- Multiple output profiles for different testing scenarios
+
+### Library Remappings
+- `@openzeppelin/contracts/` - Standard ERC interfaces and access control
+- `@openzeppelin/contracts-upgradeable/` - Upgradeable contract patterns
+- `@wavs/solidity/` - WAVS network integration for randomness
+- `forge-std/` - Foundry testing framework
+
+### File System Permissions
+- Read-write access to project directory and parent directory
+- Enables test file access and external script execution
+
+### Testing Profiles
+- **Default Profile**: Standard configuration with fuzz testing (256 runs) and invariant testing (256 runs, depth 15)
+- **Test Profile**: Enhanced verbosity (3) and detailed revert information for debugging
+- **Coverage Profile**: Comprehensive coverage analysis with FFI enabled
+
+### Gas Optimization
+- Optimizer runs set to 200 for balance between deployment cost and execution efficiency
+- IR-based compilation for advanced optimization opportunities
 
 **Dependencies**:
-- `@openzeppelin/contracts` - Standard ERC interfaces and access control
-- `@wavs/solidity` - WAVS network integration for randomness
+- `@openzeppelin/contracts` & `@openzeppelin/contracts-upgradeable` - Security audited contract libraries
+- `@wavs/solidity` - WAVS integration for off-chain compute
+- `forge-std` - Foundry's testing and deployment framework
 
 ## Development Notes
 

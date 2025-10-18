@@ -27,17 +27,12 @@ contract DepositorVault is
 
     /// @notice Precision used for reward accounting (1e18)
     uint256 private constant REWARD_PRECISION = 1e18;
-    /// @notice Conversion multiplier between 18-decimal appraisals and 6-decimal USDC
-    uint256 private constant USDC_TO_APPRAISAL_CONVERSION = 1e12;
-
     /// @notice USDC token used for payouts
     IERC20 public override asset;
     /// @notice Gacha treasury allowed to update depositor weights
     address public treasury;
     /// @notice Economy manager that performs revenue splits
     address public economyManager;
-    /// @notice Buyback vault allowed to stake liquidity
-    address public buybackVault;
 
     /// @notice Total appraisal-weighted shares
     uint256 public override totalShares;
@@ -56,19 +51,9 @@ contract DepositorVault is
     /// @dev Unclaimed rewards tracked when shares change
     mapping(address => uint256) private _unclaimed;
 
-    /// @dev Track buyback vault stake (USDC principal)
-    uint256 public buybackPrincipal;
-    /// @dev Track buyback vault shares (appraisal units)
-    uint256 public buybackShares;
-
-    /// @notice Events implemented locally (interfaces already declare standard accounting events)
-    event BuybackLiquidityStaked(uint256 amount);
-    event BuybackLiquidityUnstaked(uint256 amount);
-
     /// @notice Emitted when controlling addresses are updated
     event TreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
     event EconomyManagerUpdated(address indexed previousManager, address indexed newManager);
-    event BuybackVaultUpdated(address indexed previousBuybackVault, address indexed newBuybackVault);
 
     /// @dev Ensures calls originate from the active treasury
     modifier onlyTreasury() {
@@ -79,12 +64,6 @@ contract DepositorVault is
     /// @dev Ensures calls originate from the economy manager
     modifier onlyEconomyManager() {
         require(msg.sender == economyManager, "DepositorVault: caller is not manager");
-        _;
-    }
-
-    /// @dev Ensures calls originate from the buyback vault
-    modifier onlyBuybackVault() {
-        require(msg.sender == buybackVault, "DepositorVault: caller is not buyback");
         _;
     }
 
@@ -233,54 +212,6 @@ contract DepositorVault is
         return _shares[account];
     }
 
-    /// @inheritdoc IDepositorVault
-    function stakeBuybackLiquidity(uint256 amount) external override onlyBuybackVault whenNotPaused nonReentrant {
-        require(amount > 0, "DepositorVault: stake amount is zero");
-
-        _accrue(buybackVault);
-
-        asset.safeTransferFrom(msg.sender, address(this), amount);
-
-        uint256 shareEquivalent = amount * USDC_TO_APPRAISAL_CONVERSION;
-        buybackPrincipal += amount;
-        buybackShares += shareEquivalent;
-
-        _shares[buybackVault] += shareEquivalent;
-        totalShares += shareEquivalent;
-        _rewardDebt[buybackVault] = (_shares[buybackVault] * accYieldPerShare) / REWARD_PRECISION;
-
-        emit BuybackLiquidityStaked(amount);
-    }
-
-    /// @inheritdoc IDepositorVault
-    function unstakeBuybackLiquidity(uint256 amount, address recipient)
-        external
-        override
-        onlyBuybackVault
-        whenNotPaused
-        nonReentrant
-    {
-        require(amount > 0, "DepositorVault: unstake amount is zero");
-        require(recipient != address(0), "DepositorVault: invalid recipient");
-        require(buybackPrincipal >= amount, "DepositorVault: insufficient principal");
-
-        _accrue(buybackVault);
-
-        uint256 shareEquivalent = amount * USDC_TO_APPRAISAL_CONVERSION;
-        require(_shares[buybackVault] >= shareEquivalent, "DepositorVault: insufficient shares");
-
-        buybackPrincipal -= amount;
-        buybackShares -= shareEquivalent;
-
-        _shares[buybackVault] -= shareEquivalent;
-        totalShares -= shareEquivalent;
-        _rewardDebt[buybackVault] = (_shares[buybackVault] * accYieldPerShare) / REWARD_PRECISION;
-
-        asset.safeTransfer(recipient, amount);
-
-        emit BuybackLiquidityUnstaked(amount);
-    }
-
     /**
      * @notice Updates the treasury address
      */
@@ -299,16 +230,6 @@ contract DepositorVault is
         address previous = economyManager;
         economyManager = newManager;
         emit EconomyManagerUpdated(previous, newManager);
-    }
-
-    /**
-     * @notice Sets the buyback vault address allowed to stake liquidity
-     */
-    function setBuybackVault(address newBuybackVault) external onlyOwner {
-        require(newBuybackVault != address(0), "DepositorVault: buyback is zero");
-        address previous = buybackVault;
-        buybackVault = newBuybackVault;
-        emit BuybackVaultUpdated(previous, newBuybackVault);
     }
 
     /**

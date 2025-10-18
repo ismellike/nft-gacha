@@ -37,9 +37,9 @@ export default function NFTRevealModal({
 	// Get enhanced spin result with metadata
 	const enhancedResult = useEnhancedSpinResult(nftResult);
 
-	// Get gacha config for buyback vault address
+	// Get gacha config for protocol treasury address
 	const gachaConfig = gachaId ? getGachaConfig(gachaId) : null;
-	const buybackVaultAddress = gachaConfig?.buybackVaultAddress;
+	const protocolTreasuryAddress = gachaConfig?.protocolTreasuryAddress;
 
 	useEffect(() => {
 		if (isVisible) {
@@ -170,7 +170,7 @@ export default function NFTRevealModal({
 										/>
 
 										{/* Enhanced Buyback Component */}
-										{buybackVaultAddress && (
+										{protocolTreasuryAddress && (
 											<motion.div
 												initial={{ opacity: 0, y: 20 }}
 												animate={{ opacity: 1, y: 0 }}
@@ -181,7 +181,7 @@ export default function NFTRevealModal({
 													collection={nftResult.collection}
 													tokenId={nftResult.tokenId}
 													appraisalContractAddress={appraisalContractAddress}
-													buybackVaultAddress={buybackVaultAddress}
+													protocolTreasuryAddress={protocolTreasuryAddress}
 													rarity={nftResult.rarity}
 													size="lg"
 													variant="full"

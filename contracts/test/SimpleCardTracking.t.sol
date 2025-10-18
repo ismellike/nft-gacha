@@ -33,11 +33,15 @@ contract SimpleCardTrackingTest is Test {
         // Deploy treasury implementation and proxy with a temporary address, then set the real gacha later
         GachaTreasury treasuryImpl = new GachaTreasury();
 
+        uint256[5] memory minPrices = [uint256(0), 25 * 1e18, 70 * 1e18, 300 * 1e18, 1_500 * 1e18];
+        uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
         bytes memory initData = abi.encodeWithSelector(
             GachaTreasury.initialize.selector,
             owner,
             address(this), // temporary gacha address
-            address(mockAppraisal)
+            address(mockAppraisal),
+            minPrices,
+            maxPrices
         );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);

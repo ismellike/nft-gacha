@@ -11,9 +11,10 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use hex;
 use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
-use crate::resolvers::PokemonPriceResolver;
+use crate::resolvers::{ScrydexPokemonResolver, scrydex_resolver::ScrydexCardInfo};
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
 use crate::traits::pricing::{PriceResolver, ResolverQuote};
 use crate::types::{ProviderType, ResolverArgs, ResolverKind, ResolverRoute};
@@ -81,14 +82,6 @@ pub struct NFTAttribute {
     pub value: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CardInfo {
-    pub title: String,
-    pub card_number: Option<String>,
-    pub grade: Option<String>,
-    pub set_name: Option<String>,
-    pub year: Option<String>,
-}
 
 // ============================================================================
 // Client
@@ -250,33 +243,113 @@ impl MetadataProvider for CourtyardProvider {
     }
 }
 
-impl CourtyardProvider {
-    /// Extract card information from Courtyard metadata attributes
-    fn extract_card_info(&self, metadata: &NFTMetadata) -> CardInfo {
-        let mut card_info = CardInfo {
-            title: metadata.name.clone(),
-            card_number: None,
-            grade: None,
-            set_name: None,
-            year: None,
-        };
+impl TryInto<ScrydexCardInfo> for &NFTMetadata {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<ScrydexCardInfo> {
+        let mut card_number = None;
+        let mut grade = None;
+        let mut company = None;
+        let mut is_perfect = false;
+        let mut set_name = None;
+        let mut variant_parts = Vec::new();
 
         // Extract information from attributes
-        for attr in &metadata.attributes {
+        for attr in &self.attributes {
             if let Some(trait_type) = &attr.trait_type {
-                let value_str = Self::attribute_value_as_string(&attr.value);
+                let value_str = CourtyardProvider::attribute_value_as_string(&attr.value);
 
                 match trait_type.to_lowercase().as_str() {
-                    "card number" | "number" => card_info.card_number = value_str,
-                    "grade" | "rating" => card_info.grade = value_str,
-                    "set" | "set name" => card_info.set_name = value_str,
-                    "year" => card_info.year = value_str,
+                    "card number" | "number" => {
+                        if let Some(value) = value_str {
+                            card_number = CourtyardProvider::normalize_card_number(&value);
+                        }
+                    }
+                    "grade" | "rating" => {
+                        if let Some(value) = value_str {
+                            grade = CourtyardProvider::normalize_grade_value(&value);
+                            if CourtyardProvider::detect_perfect_grade(&value) {
+                                is_perfect = true;
+                            }
+                        }
+                    }
+                    "grader" | "grading company" => {
+                        company = value_str
+                            .map(|value| value.trim().to_string())
+                            .filter(|value| !value.is_empty())
+                    }
+                    "set" | "set name" => set_name = value_str,
                     _ => {}
+                }
+            } else {
+                // Handle variant attributes that don't have a trait_type (like "1st Edition", "Shadowless", "Holo")
+                if let Some(value_str) = CourtyardProvider::attribute_value_as_string(&attr.value) {
+                    let value_lower = value_str.to_lowercase();
+                    if matches!(value_lower.as_str(),
+                        "1st edition" | "shadowless" | "unlimited" |
+                        "holo" | "holofoil" | "reverse holofoil" | "reverse holo"
+                    ) {
+                        variant_parts.push(value_str.trim().to_string());
+                    }
                 }
             }
         }
 
-        card_info
+        // Validate that all required fields are present
+        let card_number = card_number.ok_or_else(|| {
+            anyhow!("Missing required card number attribute")
+        })?;
+
+        let grade = grade.ok_or_else(|| {
+            anyhow!("Missing required grade attribute")
+        })?;
+
+        let company = company.ok_or_else(|| {
+            anyhow!("Missing required grading company attribute")
+        })?;
+
+        let set_id = set_name.ok_or_else(|| {
+            anyhow!("Missing required set name attribute")
+        })?;
+
+        let variant = if variant_parts.is_empty() {
+            None
+        } else {
+            Some(CourtyardProvider::construct_variant_string(&variant_parts))
+        };
+
+        Ok(ScrydexCardInfo {
+            card_number,
+            grade,
+            company,
+            is_perfect,
+            set_id,
+            variant,
+        })
+    }
+}
+
+impl CourtyardProvider {
+    /// Construct variant string in the format expected by Scrydex
+    /// e.g., ["1st Edition", "Shadowless"] → "firstEditionShadowless"
+    /// e.g., ["1st Edition", "Shadowless", "Holo"] → "firstEditionShadowlessHolofoil"
+    fn construct_variant_string(variant_parts: &[String]) -> String {
+        let mut result = String::new();
+
+        for part in variant_parts {
+            let part_lower = part.to_lowercase();
+            let mapped = match part_lower.as_str() {
+                "1st edition" => "firstEdition",
+                "shadowless" => "Shadowless",
+                "unlimited" => "unlimited",
+                "holo" | "holofoil" => "Holofoil",
+                "reverse holo" | "reverse holofoil" => "ReverseHolofoil",
+                _ => part, // Keep original if no mapping
+            };
+            result.push_str(mapped);
+        }
+
+        result
     }
 
     fn categories_from_attributes(attributes: &[NFTAttribute]) -> Vec<String> {
@@ -302,26 +375,16 @@ impl CourtyardProvider {
         }
     }
 
-    pub async fn resolve_price(
-        &self,
-        route: &ResolverRoute,
-        pokemon_api_key: &str,
-    ) -> Result<Option<ResolverQuote>> {
-        if pokemon_api_key.trim().is_empty() {
-            return Err(anyhow!(
-                "Pokemon price API key is required to resolve Courtyard appraisals"
-            ));
-        }
-
+    pub async fn resolve_price(&self, route: &ResolverRoute) -> Result<Option<ResolverQuote>> {
         match route.kind {
-            ResolverKind::PokemonTradingCard => {
-                if !matches!(route.args, ResolverArgs::PokemonCardInfo { .. }) {
+            ResolverKind::PokemonGradedCard => {
+                if !matches!(route.args, ResolverArgs::ScrydexCardInfo(_)) {
                     return Err(anyhow!(
                         "Courtyard provider expected Pokemon card info arguments"
                     ));
                 }
 
-                let resolver = PokemonPriceResolver::new(pokemon_api_key.to_string());
+                let resolver = ScrydexPokemonResolver::from_env()?;
                 let quote = resolver.get_price(&route.args).await?;
                 Ok(quote.map(|q| resolver.normalize_quote(q)))
             }
@@ -345,17 +408,116 @@ impl CourtyardProvider {
         });
 
         if is_graded_card && has_pokemon_category {
-            let card_info = Self::new().extract_card_info(metadata);
-            return Some(ResolverRoute::pokemon_card_info(
-                card_info.title,
-                card_info.card_number,
-                card_info.grade,
-                card_info.set_name,
-                card_info.year,
-            ));
+            // Try to convert metadata to ScrydexCardInfo, returning None if conversion fails
+            let card_info: ScrydexCardInfo = match metadata.try_into() {
+                Ok(info) => info,
+                Err(_) => return None, // Silently fail if required attributes are missing
+            };
+
+            let set_id = Self::extract_set_id(&card_info.set_id)
+                .unwrap_or_else(|| card_info.set_id.clone());
+
+            if !card_info.card_number.is_empty()
+                && !card_info.grade.is_empty()
+                && !card_info.company.is_empty()
+                && !set_id.is_empty() {
+                return Some(ResolverRoute::pokemon_card_info(
+                    card_info.card_number,
+                    card_info.grade,
+                    card_info.company,
+                    card_info.is_perfect,
+                    set_id,
+                ));
+            }
         }
 
         None
+    }
+
+    fn extract_set_id(raw_value: &str) -> Option<String> {
+        let trimmed = raw_value.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+
+        let without_prefix = trimmed
+            .strip_prefix("Pokémon ")
+            .or_else(|| trimmed.strip_prefix("Pokemon "))
+            .unwrap_or(trimmed);
+
+        let first_word = without_prefix.split_whitespace().next()?;
+        let head = first_word.split('-').next().unwrap_or(first_word).trim();
+
+        if head.is_empty() {
+            return None;
+        }
+
+        Some(head.to_ascii_lowercase())
+    }
+
+    fn normalize_card_number(value: &str) -> Option<String> {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+
+        let mut digits_end = 0;
+        for (idx, ch) in trimmed.char_indices() {
+            if ch.is_ascii_digit() {
+                digits_end = idx + ch.len_utf8();
+            } else {
+                break;
+            }
+        }
+
+        if digits_end == 0 {
+            return Some(trimmed.to_string());
+        }
+
+        let leading = &trimmed[..digits_end];
+        let remainder = &trimmed[digits_end..];
+        let stripped = leading.trim_start_matches('0');
+        let normalized_digits = if stripped.is_empty() { "0" } else { stripped };
+
+        let mut normalized = normalized_digits.to_string();
+        normalized.push_str(remainder);
+        Some(normalized)
+    }
+
+    fn normalize_grade_value(value: &str) -> Option<String> {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+
+        for token in trimmed.split_whitespace() {
+            let clean = token.trim_matches(|c: char| !c.is_ascii_alphanumeric() && c != '.');
+            if clean.is_empty() {
+                continue;
+            }
+
+            let mut has_digit = false;
+            let mut valid = true;
+            for ch in clean.chars() {
+                if ch.is_ascii_digit() {
+                    has_digit = true;
+                } else if ch != '.' {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if valid && has_digit {
+                return Some(clean.to_string());
+            }
+        }
+
+        Some(trimmed.to_string())
+    }
+
+    fn detect_perfect_grade(value: &str) -> bool {
+        let upper = value.to_ascii_uppercase();
+        upper.contains("PRISTINE") || upper.contains("BLACK LABEL") || upper.contains("PERFECT")
     }
 }
 
@@ -433,6 +595,24 @@ mod tests {
         let metadata = NFTMetadata {
             product_type: Some("GRADED_CARD".to_string()),
             name: "Pokémon Charizard".to_string(),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: json!("Pokémon Sv5a-Crimson Haze"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: json!("070"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: json!("PSA 10"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: json!("PSA"),
+                },
+            ],
             ..Default::default()
         };
         let categories = vec!["Pokémon".to_string()];
@@ -440,20 +620,14 @@ mod tests {
         let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
         assert!(resolver.is_some());
         let route = resolver.unwrap();
-        assert_eq!(route.kind, ResolverKind::PokemonTradingCard);
+        assert_eq!(route.kind, ResolverKind::PokemonGradedCard);
         match route.args {
-            ResolverArgs::PokemonCardInfo {
-                title,
-                card_number,
-                grade,
-                set_name,
-                year,
-            } => {
-                assert_eq!(title, "Pokemon Charizard");
-                assert_eq!(card_number, None);
-                assert_eq!(grade, None);
-                assert_eq!(set_name, None);
-                assert_eq!(year, None);
+            ResolverArgs::ScrydexCardInfo(info) => {
+                assert_eq!(info.card_number, "70");
+                assert_eq!(info.grade, "10");
+                assert_eq!(info.company, "PSA");
+                assert!(!info.is_perfect);
+                assert_eq!(info.set_id, "sv5a");
             }
         }
     }
@@ -473,22 +647,41 @@ mod tests {
     #[test]
     fn test_resolve_price_requires_api_key() {
         let provider = CourtyardProvider::new();
-        let route = ResolverRoute::pokemon_card_info("Sample Title", None, None, None, None);
+        let route = ResolverRoute::pokemon_card_info(
+            "70".to_string(),
+            "10".to_string(),
+            "PSA".to_string(),
+            false,
+            "testset".to_string(),
+        );
 
-        let result = block_on(provider.resolve_price(&route, ""));
+        let scrydex_key = std::env::var("WAVS_ENV_SCRYDEX_API_KEY").ok();
+
+        std::env::remove_var("WAVS_ENV_SCRYDEX_API_KEY");
+
+        let result = block_on(provider.resolve_price(&route));
         assert!(result.is_err());
+
+        match scrydex_key {
+            Some(value) => std::env::set_var("WAVS_ENV_SCRYDEX_API_KEY", value),
+            None => std::env::remove_var("WAVS_ENV_SCRYDEX_API_KEY"),
+        }
     }
 
     #[test]
-    fn test_extract_card_info_from_attributes() {
-        let provider = CourtyardProvider::new();
+    fn test_into_card_info_from_attributes() {
+        let _provider = CourtyardProvider::new();
 
         let metadata = NFTMetadata {
             name: "1999 Fossil #17 Articuno".to_string(),
             attributes: vec![
                 NFTAttribute {
                     trait_type: Some("Card Number".to_string()),
-                    value: json!("17"),
+                    value: json!("070"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: json!("PSA"),
                 },
                 NFTAttribute {
                     trait_type: Some("Grade".to_string()),
@@ -506,12 +699,118 @@ mod tests {
             ..Default::default()
         };
 
-        let card_info = provider.extract_card_info(&metadata);
-        assert_eq!(card_info.title, "1999 Fossil #17 Articuno");
-        assert_eq!(card_info.card_number, Some("17".to_string()));
-        assert_eq!(card_info.grade, Some("PSA 8".to_string()));
-        assert_eq!(card_info.set_name, Some("Fossil".to_string()));
-        assert_eq!(card_info.year, Some("1999".to_string()));
+        let card_info: ScrydexCardInfo = (&metadata).try_into().unwrap();
+        assert_eq!(card_info.card_number, "70");
+        assert_eq!(card_info.grade, "8");
+        assert_eq!(card_info.company, "PSA");
+        assert!(!card_info.is_perfect);
+        assert_eq!(card_info.set_id, "Fossil");
+    }
+
+    #[test]
+    fn test_into_card_info_perfect_grade() {
+        let _provider = CourtyardProvider::new();
+
+        let metadata = NFTMetadata {
+            name: "2023 Shiny Treasure ex #349 Charizard ex - Special Art Rare".to_string(),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: json!("349"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: json!("BGS"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: json!("10 PRISTINE"),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: json!("Pokémon sv5a-Crimson Haze"),
+                },
+            ],
+            ..Default::default()
+        };
+
+        let card_info: ScrydexCardInfo = (&metadata).try_into().unwrap();
+        assert_eq!(card_info.card_number, "349");
+        assert_eq!(card_info.grade, "10");
+        assert_eq!(card_info.company, "BGS");
+        assert!(card_info.is_perfect);
+        assert_eq!(card_info.set_id, "Pokémon sv5a-Crimson Haze");
+    }
+
+    #[test]
+    fn test_extract_set_id_from_attribute() {
+        let value = "Pokémon Sv5a-Crimson Haze";
+        assert_eq!(
+            CourtyardProvider::extract_set_id(value),
+            Some("sv5a".to_string())
+        );
+
+        let value_no_prefix = "SWSH08-Evolving Skies";
+        assert_eq!(
+            CourtyardProvider::extract_set_id(value_no_prefix),
+            Some("swsh08".to_string())
+        );
+
+        let promo_value = "Pokémon Svp EN-SV Black Star Promo";
+        assert_eq!(
+            CourtyardProvider::extract_set_id(promo_value),
+            Some("svp".to_string())
+        );
+
+        let simple_value = "Base Set";
+        assert_eq!(
+            CourtyardProvider::extract_set_id(simple_value),
+            Some("base".to_string())
+        );
+    }
+
+    #[test]
+    fn test_normalize_card_number() {
+        assert_eq!(
+            CourtyardProvider::normalize_card_number("070"),
+            Some("70".to_string())
+        );
+
+        assert_eq!(
+            CourtyardProvider::normalize_card_number("0070/100"),
+            Some("70/100".to_string())
+        );
+
+        assert_eq!(
+            CourtyardProvider::normalize_card_number("000"),
+            Some("0".to_string())
+        );
+
+        assert_eq!(
+            CourtyardProvider::normalize_card_number("TG23"),
+            Some("TG23".to_string())
+        );
+    }
+
+    #[test]
+    fn test_normalize_grade_value_and_perfect_detection() {
+        assert_eq!(
+            CourtyardProvider::normalize_grade_value("10 PRISTINE"),
+            Some("10".to_string())
+        );
+        assert!(CourtyardProvider::detect_perfect_grade("10 PRISTINE"));
+
+        assert_eq!(
+            CourtyardProvider::normalize_grade_value("9.5 GEM MINT"),
+            Some("9.5".to_string())
+        );
+        assert!(!CourtyardProvider::detect_perfect_grade("9.5 GEM MINT"));
+
+        assert_eq!(
+            CourtyardProvider::normalize_grade_value("RAW"),
+            Some("RAW".to_string())
+        );
+        assert!(!CourtyardProvider::detect_perfect_grade("RAW"));
     }
 
     #[test]
@@ -534,25 +833,26 @@ mod tests {
         let categories = vec!["Pokémon".to_string()];
 
         let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
-        assert!(resolver.is_some());
-        let route = resolver.unwrap();
-        assert_eq!(route.kind, ResolverKind::PokemonTradingCard);
+        assert!(resolver.is_none());
+    }
 
-        match route.args {
-            ResolverArgs::PokemonCardInfo {
-                title,
-                card_number,
-                grade,
-                set_name,
-                year,
-            } => {
-                assert_eq!(title, "1999 Fossil #17 Articuno");
-                assert_eq!(card_number, Some("17".to_string()));
-                assert_eq!(grade, Some("CGC 8".to_string()));
-                assert_eq!(set_name, None);
-                assert_eq!(year, None);
-            }
-        }
+    #[test]
+    fn test_try_into_fails_with_missing_required_fields() {
+        let metadata = NFTMetadata {
+            name: "1999 Fossil #17 Articuno".to_string(),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: json!("17"),
+                },
+                // Missing required grade, company, and set attributes
+            ],
+            ..Default::default()
+        };
+
+        let result: Result<ScrydexCardInfo> = (&metadata).try_into();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Missing required"));
     }
 
     #[test]
@@ -643,5 +943,164 @@ mod tests {
             result.unwrap(),
             "Verification returned false - integrity check failed"
         );
+    }
+
+    #[test]
+    fn test_variant_extraction_from_courtyard_metadata() {
+        use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
+
+        let metadata = NFTMetadata {
+            collection_name: None,
+            name: "1999 Base Set #53 Magnemite - 1st Edition Shadowless (PSA 9 MINT)".to_string(),
+            description: Some("A test card".to_string()),
+            external_url: Some("https://example.com".to_string()),
+            image: Some("https://example.com/image.jpg".to_string()),
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            product_type: Some("GRADED_CARD".to_string()),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: serde_json::Value::String("9 MINT".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: serde_json::Value::String("Base Set".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: serde_json::Value::String("53".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("1st Edition".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("Shadowless".to_string()),
+                },
+            ],
+        };
+
+        let card_info: ScrydexCardInfo = (&metadata).try_into().expect("Failed to convert metadata");
+
+        assert_eq!(card_info.card_number, "53");
+        assert_eq!(card_info.grade, "9");
+        assert_eq!(card_info.company, "PSA");
+        assert_eq!(card_info.set_id, "Base Set");
+        assert_eq!(card_info.variant, Some("firstEditionShadowless".to_string()));
+        assert_eq!(card_info.is_perfect, false);
+    }
+
+    #[test]
+    fn test_variant_extraction_with_holo() {
+        use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
+
+        let metadata = NFTMetadata {
+            collection_name: None,
+            name: "1999 Base Set #4 Charizard - 1st Edition Shadowless Holo (PSA 10)".to_string(),
+            description: Some("A test holo card".to_string()),
+            external_url: Some("https://example.com".to_string()),
+            image: Some("https://example.com/image.jpg".to_string()),
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            product_type: Some("GRADED_CARD".to_string()),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: serde_json::Value::String("10 PRISTINE".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: serde_json::Value::String("Base Set".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: serde_json::Value::String("4".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("1st Edition".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("Shadowless".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: None, // Variant attribute
+                    value: serde_json::Value::String("Holo".to_string()),
+                },
+            ],
+        };
+
+        let card_info: ScrydexCardInfo = (&metadata).try_into().expect("Failed to convert metadata");
+
+        assert_eq!(card_info.card_number, "4");
+        assert_eq!(card_info.grade, "10");
+        assert_eq!(card_info.company, "PSA");
+        assert_eq!(card_info.set_id, "Base Set");
+        assert_eq!(card_info.variant, Some("firstEditionShadowlessHolofoil".to_string()));
+        assert_eq!(card_info.is_perfect, true);
+    }
+
+    #[test]
+    fn test_variant_extraction_no_variant_attributes() {
+        use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
+
+        let metadata = NFTMetadata {
+            collection_name: None,
+            name: "1999 Base Set #53 Magnemite (PSA 9 MINT)".to_string(),
+            description: Some("A test card".to_string()),
+            external_url: Some("https://example.com".to_string()),
+            image: Some("https://example.com/image.jpg".to_string()),
+            animation_url: None,
+            video: None,
+            token_info: None,
+            reveal_state: None,
+            item_info: None,
+            product_type: Some("GRADED_CARD".to_string()),
+            attributes: vec![
+                NFTAttribute {
+                    trait_type: Some("Grader".to_string()),
+                    value: serde_json::Value::String("PSA".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Grade".to_string()),
+                    value: serde_json::Value::String("9 MINT".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Set".to_string()),
+                    value: serde_json::Value::String("Base Set".to_string()),
+                },
+                NFTAttribute {
+                    trait_type: Some("Card Number".to_string()),
+                    value: serde_json::Value::String("53".to_string()),
+                },
+                // No variant attributes
+            ],
+        };
+
+        let card_info: ScrydexCardInfo = (&metadata).try_into().expect("Failed to convert metadata");
+
+        assert_eq!(card_info.card_number, "53");
+        assert_eq!(card_info.grade, "9");
+        assert_eq!(card_info.company, "PSA");
+        assert_eq!(card_info.set_id, "Base Set");
+        assert_eq!(card_info.variant, None);
+        assert_eq!(card_info.is_perfect, false);
     }
 }

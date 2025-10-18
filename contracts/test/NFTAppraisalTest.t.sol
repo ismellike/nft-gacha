@@ -60,11 +60,7 @@ contract NFTAppraisalTest is Test {
 
     event AppraisalRequested(address indexed nftContract, uint256 indexed tokenId);
     event AppraisalCompleted(
-        address indexed collection,
-        uint256 indexed tokenId,
-        uint256 priceUSD,
-        address indexed oracle,
-        uint256 timestamp
+        address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed oracle, uint256 timestamp
     );
     event AppraisalStatusChanged(
         address indexed collection,
@@ -178,9 +174,7 @@ contract NFTAppraisalTest is Test {
 
         // Verify fee collection
         assertEq(
-            feeToken.balanceOf(protocol),
-            protocolBalanceBefore + APPRAISAL_FEE,
-            "Protocol should receive appraisal fee"
+            feeToken.balanceOf(protocol), protocolBalanceBefore + APPRAISAL_FEE, "Protocol should receive appraisal fee"
         );
 
         // Verify appraisal status
@@ -188,9 +182,7 @@ contract NFTAppraisalTest is Test {
         assertEq(appraisalInfo.requester, user, "Requester should be set correctly");
         assertEq(appraisalInfo.priceUSD, 0, "Initial price should be zero");
         assertEq(
-            uint256(appraisalInfo.status),
-            uint256(NFTAppraisal.AppraisalStatus.Pending),
-            "Status should be pending"
+            uint256(appraisalInfo.status), uint256(NFTAppraisal.AppraisalStatus.Pending), "Status should be pending"
         );
         assertGt(appraisalInfo.timestamp, 0, "Timestamp should be set");
         assertEq(appraisalInfo.lastUpdated, 0, "LastUpdated should be zero initially");
@@ -214,11 +206,7 @@ contract NFTAppraisalTest is Test {
         // Verify completion
         (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), TOKEN_ID_1);
         assertEq(price, NFT_PRICE_100, "Price should be set correctly");
-        assertEq(
-            uint256(status),
-            uint256(NFTAppraisal.AppraisalStatus.Completed),
-            "Status should be completed"
-        );
+        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.Completed), "Status should be completed");
         assertTrue(appraisal.hasAppraisal(address(nft), TOKEN_ID_1), "Should have completed appraisal");
     }
 
@@ -246,9 +234,7 @@ contract NFTAppraisalTest is Test {
         (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), 0);
         assertEq(price, newPrice, "Price should be overridden");
         assertEq(
-            uint256(status),
-            uint256(NFTAppraisal.AppraisalStatus.OwnerOverride),
-            "Status should be owner override"
+            uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Status should be owner override"
         );
     }
 
@@ -397,11 +383,7 @@ contract NFTAppraisalTest is Test {
         vm.prank(user);
         appraisal.requestAppraisal(address(nft), TOKEN_ID_2);
 
-        assertEq(
-            feeToken.balanceOf(protocol),
-            protocolBalanceBefore + UPDATED_FEE,
-            "New fee should be charged"
-        );
+        assertEq(feeToken.balanceOf(protocol), protocolBalanceBefore + UPDATED_FEE, "New fee should be charged");
     }
 
     /**
@@ -484,11 +466,7 @@ contract NFTAppraisalTest is Test {
         appraisal.requestAppraisal(address(nft), 2); // Use token ID 2
 
         // Verify fee collection
-        assertEq(
-            feeToken.balanceOf(protocol),
-            protocolBalanceBefore + totalFees,
-            "All fees should be collected"
-        );
+        assertEq(feeToken.balanceOf(protocol), protocolBalanceBefore + totalFees, "All fees should be collected");
 
         // Complete all appraisals
         uint256[] memory prices = new uint256[](3);
@@ -547,11 +525,7 @@ contract NFTAppraisalTest is Test {
         vm.prank(user);
         appraisal.requestAppraisal(address(nft), 0); // Use token ID 0
 
-        assertEq(
-            feeToken.balanceOf(protocol),
-            protocolBalanceBefore + maxFee,
-            "Maximum fee should be collected"
-        );
+        assertEq(feeToken.balanceOf(protocol), protocolBalanceBefore + maxFee, "Maximum fee should be collected");
     }
 
     /**
@@ -615,8 +589,7 @@ contract NFTAppraisalTest is Test {
         vm.prank(oracle);
         handler.handleSignedEnvelope(envelope, signatureData);
 
-        (uint256 priceUSD, NFTAppraisal.AppraisalStatus status) =
-            appraisal.getAppraisedPrice(address(nft), TOKEN_ID_1);
+        (uint256 priceUSD, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), TOKEN_ID_1);
         assertEq(priceUSD, successPayload.price * 1e12, "Handler should convert price to 18 decimals");
         assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.Completed), "Status should be completed");
     }

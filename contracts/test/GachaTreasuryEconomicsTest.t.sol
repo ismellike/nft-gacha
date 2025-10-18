@@ -23,12 +23,12 @@ contract GachaTreasuryEconomicsTest is Test {
     address public depositor = address(0x2);
     address public gacha = address(0x3);
 
-    // Price tiers (USD values in 18 decimals)
-    uint256 public constant COMMON_PRICE = 50e18;       // $50
-    uint256 public constant UNCOMMON_PRICE = 250e18;    // $250
-    uint256 public constant RARE_PRICE = 1000e18;       // $1,000
-    uint256 public constant EPIC_PRICE = 5000e18;       // $5,000
-    uint256 public constant LEGENDARY_PRICE = 15000e18; // $15,000
+    // Price tiers (USD values in 18 decimals) - updated to match new price ranges
+    uint256 public constant COMMON_PRICE = 10e18; // $10 (within $0-$15 range)
+    uint256 public constant UNCOMMON_PRICE = 50e18; // $50 (within $25-$60 range)
+    uint256 public constant RARE_PRICE = 100e18; // $100 (within $70-$250 range)
+    uint256 public constant EPIC_PRICE = 500e18; // $500 (within $300-$1200 range)
+    uint256 public constant LEGENDARY_PRICE = 2000e18; // $2,000 (within $1500+ range)
 
     // Card IDs for testing
     bytes32 public constant CARD_COMMON = keccak256("CARD_COMMON");
@@ -45,7 +45,9 @@ contract GachaTreasuryEconomicsTest is Test {
     }
 
     event CollectionWhitelisted(address indexed collection);
-    event NFTDeposited(address indexed collection, uint256 indexed tokenId, address indexed depositor, GachaTreasury.Rarity rarity);
+    event NFTDeposited(
+        address indexed collection, uint256 indexed tokenId, address indexed depositor, GachaTreasury.Rarity rarity
+    );
     event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, address indexed withdrawer);
 
     function setUp() public {
@@ -59,11 +61,10 @@ contract GachaTreasuryEconomicsTest is Test {
 
         // Deploy treasury
         GachaTreasury treasuryImpl = new GachaTreasury();
+        uint256[5] memory minPrices = [uint256(0), 25 * 1e18, 70 * 1e18, 300 * 1e18, 1_500 * 1e18];
+        uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
         bytes memory initData = abi.encodeWithSelector(
-            GachaTreasury.initialize.selector,
-            owner,
-            gacha,
-            address(mockAppraisal)
+            GachaTreasury.initialize.selector, owner, gacha, address(mockAppraisal), minPrices, maxPrices
         );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
@@ -100,10 +101,7 @@ contract GachaTreasuryEconomicsTest is Test {
         for (uint256 i = 0; i < nfts.length; i++) {
             // Set appraisal
             mockAppraisal.setMockAppraisalWithCardId(
-                nfts[i].collection,
-                nfts[i].tokenId,
-                keccak256(abi.encodePacked("CARD_", i)),
-                nfts[i].price
+                nfts[i].collection, nfts[i].tokenId, keccak256(abi.encodePacked("CARD_", i)), nfts[i].price
             );
 
             // Deposit NFT
@@ -133,14 +131,14 @@ contract GachaTreasuryEconomicsTest is Test {
     function testRarityPoolEconomics() public {
         // Create balanced rarity pools
         uint256[] memory prices = new uint256[](10);
-        prices[0] = COMMON_PRICE;    // Common
-        prices[1] = COMMON_PRICE;    // Common
-        prices[2] = UNCOMMON_PRICE;  // Uncommon
-        prices[3] = UNCOMMON_PRICE;  // Uncommon
-        prices[4] = RARE_PRICE;      // Rare
-        prices[5] = RARE_PRICE;      // Rare
-        prices[6] = EPIC_PRICE;      // Epic
-        prices[7] = EPIC_PRICE;      // Epic
+        prices[0] = COMMON_PRICE; // Common
+        prices[1] = COMMON_PRICE; // Common
+        prices[2] = UNCOMMON_PRICE; // Uncommon
+        prices[3] = UNCOMMON_PRICE; // Uncommon
+        prices[4] = RARE_PRICE; // Rare
+        prices[5] = RARE_PRICE; // Rare
+        prices[6] = EPIC_PRICE; // Epic
+        prices[7] = EPIC_PRICE; // Epic
         prices[8] = LEGENDARY_PRICE; // Legendary
         prices[9] = LEGENDARY_PRICE; // Legendary
 
@@ -221,15 +219,20 @@ contract GachaTreasuryEconomicsTest is Test {
         uint256[] memory prices = new uint256[](5);
 
         // Many commons (high supply, low value)
-        nftCounts[0] = 10; prices[0] = COMMON_PRICE;
+        nftCounts[0] = 10;
+        prices[0] = COMMON_PRICE;
         // Few uncommons
-        nftCounts[1] = 5; prices[1] = UNCOMMON_PRICE;
+        nftCounts[1] = 5;
+        prices[1] = UNCOMMON_PRICE;
         // Very few rares
-        nftCounts[2] = 2; prices[2] = RARE_PRICE;
+        nftCounts[2] = 2;
+        prices[2] = RARE_PRICE;
         // Single epic
-        nftCounts[3] = 1; prices[3] = EPIC_PRICE;
+        nftCounts[3] = 1;
+        prices[3] = EPIC_PRICE;
         // Single legendary
-        nftCounts[4] = 1; prices[4] = LEGENDARY_PRICE;
+        nftCounts[4] = 1;
+        prices[4] = LEGENDARY_PRICE;
 
         uint256 totalValue = 0;
         uint256 currentTokenId = 0;
@@ -333,10 +336,7 @@ contract GachaTreasuryEconomicsTest is Test {
         // Verify selections are unique (due to swap-and-pop algorithm)
         for (uint256 i = 0; i < selectedTokenIds.length; i++) {
             for (uint256 j = i + 1; j < selectedTokenIds.length; j++) {
-                assertTrue(
-                    selectedTokenIds[i] != selectedTokenIds[j],
-                    "Selections should be unique"
-                );
+                assertTrue(selectedTokenIds[i] != selectedTokenIds[j], "Selections should be unique");
             }
         }
 
@@ -369,10 +369,7 @@ contract GachaTreasuryEconomicsTest is Test {
 
         // Test that all legendary NFTs are available for selection
         for (uint256 i = 0; i < numLegendary; i++) {
-            assertTrue(
-                treasury.depositedNFTs(address(collection), i),
-                "All legendary NFTs should be deposited"
-            );
+            assertTrue(treasury.depositedNFTs(address(collection), i), "All legendary NFTs should be deposited");
         }
 
         // Test emptying the pool
@@ -390,7 +387,6 @@ contract GachaTreasuryEconomicsTest is Test {
      * @notice Test whitelist management economics
      */
     function testWhitelistManagementEconomics() public {
-        address newCollection = address(0x123);
         BaseERC721 newNFT = new BaseERC721("New Collection", "NEW", owner);
 
         // Should not be able to deposit from non-whitelisted collection
@@ -418,7 +414,9 @@ contract GachaTreasuryEconomicsTest is Test {
         treasury.depositNFT(address(newNFT), tokenId);
         vm.stopPrank();
 
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Should accept deposit from whitelisted collection");
+        assertEq(
+            treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Should accept deposit from whitelisted collection"
+        );
 
         // Remove from whitelist
         vm.prank(owner);
@@ -458,10 +456,10 @@ contract GachaTreasuryEconomicsTest is Test {
     }
 
     function _getCardIdForPrice(uint256 price) internal pure returns (bytes32) {
-        if (price <= 100e18) return CARD_COMMON;
-        if (price <= 500e18) return CARD_UNCOMMON;
-        if (price <= 2000e18) return CARD_RARE;
-        if (price <= 10000e18) return CARD_EPIC;
-        return CARD_LEGENDARY;
+        if (price <= 15e18) return CARD_COMMON; // $0-$15
+        if (price <= 60e18) return CARD_UNCOMMON; // $25-$60
+        if (price <= 250e18) return CARD_RARE; // $70-$250
+        if (price <= 1200e18) return CARD_EPIC; // $300-$1,200
+        return CARD_LEGENDARY; // $1,500+
     }
 }

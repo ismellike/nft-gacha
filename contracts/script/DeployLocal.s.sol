@@ -15,7 +15,6 @@ import {Gacha} from "../src/gacha/Gacha.sol";
 import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
 import {GachaServiceHandler} from "../src/gacha/GachaServiceHandler.sol";
 import {DepositorVault} from "../src/economy/DepositorVault.sol";
-import {BuybackVault} from "../src/economy/BuybackVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../src/tokens/BaseERC721.sol";
@@ -71,7 +70,6 @@ contract DeployLocal is Script {
         address appraisalProxy;
         address treasuryProxy;
         address depositorVaultProxy;
-        address buybackVaultProxy;
         address protocolTreasuryProxy;
         address economyManagerProxy;
         address gachaProxy;
@@ -119,7 +117,6 @@ contract DeployLocal is Script {
         console.log("NFTAppraisal Proxy:    ", deployments.appraisalProxy);
         console.log("GachaTreasury Proxy:   ", deployments.treasuryProxy);
         console.log("DepositorVault Proxy:  ", deployments.depositorVaultProxy);
-        console.log("BuybackVault Proxy:    ", deployments.buybackVaultProxy);
         console.log("ProtocolTreasury Proxy:", deployments.protocolTreasuryProxy);
         console.log("EconomyManager Proxy:  ", deployments.economyManagerProxy);
         console.log("Gacha Proxy:           ", deployments.gachaProxy);
@@ -134,35 +131,77 @@ contract DeployLocal is Script {
     }
 
     function _deployStack(address deployer) internal returns (Deployments memory d) {
-        // Deploy 6-decimal USDC test token
-        TestUSDC usdc = new TestUSDC(deployer);
-
-        // Mint USDC to deployer account
-        usdc.mint(deployer, INITIAL_MINT);
-        d.usdc = address(usdc);
-
-        // Resolve WAVS service manager
+        // Deploy USDC and get service manager
+        d.usdc = address(_deployUSDC(deployer));
         address wavsServiceManager = _resolveWavsServiceManager();
 
-        // Deploy implementations
-        NFTAppraisal appraisalImpl = new NFTAppraisal();
-        GachaTreasury treasuryImpl = new GachaTreasury();
-        DepositorVault depositorVaultImpl = new DepositorVault();
-        BuybackVault buybackVaultImpl = new BuybackVault();
-        ProtocolTreasury protocolTreasuryImpl = new ProtocolTreasury();
-        GachaEconomyManager economyManagerImpl = new GachaEconomyManager();
-        Gacha gachaImpl = new Gacha();
+        // Deploy all contracts
+        _deployImplementations(d);
+        _deployProxies(d, deployer);
+        _deployServiceHandlers(d, wavsServiceManager);
 
-        // Deploy proxies with initializer payloads
+        // Wire dependencies
+        _configureEconomy(d);
+
+        // Deploy collection and trackers
+        _deployCollectionAndTrackers(d, deployer);
+
+        // Seed treasury
+        _seedTreasury(GachaTreasury(d.treasuryProxy), NFTAppraisal(d.appraisalProxy), BaseERC721(d.collection), deployer);
+
+        console.log("\n=== Local Gacha System Status ===");
+        console.log("Whitelist Length:    ", GachaTreasury(d.treasuryProxy).getWhitelistLength());
+        console.log("Gacha Available:     ", GachaTreasury(d.treasuryProxy).isGachaAvailable());
+        console.log("Total NFTs:          ", GachaTreasury(d.treasuryProxy).getTotalItemsCount());
+
+        // Display final stats
+        _displayTreasuryStats(d.treasuryProxy);
+
+        console.log("Local stack deployed successfully");
+        return d;
+    }
+
+    function _deployUSDC(address deployer) internal returns (TestUSDC usdc) {
+        usdc = new TestUSDC(deployer);
+        usdc.mint(deployer, INITIAL_MINT);
+    }
+
+    function _deployImplementations(Deployments memory) internal {
+        // Store implementation addresses in temporary storage to avoid stack issues
+        // Implementations are deployed but addresses not stored in memory
+        new NFTAppraisal();
+        new GachaTreasury();
+        new DepositorVault();
+        new ProtocolTreasury();
+        new GachaEconomyManager();
+        new Gacha();
+    }
+
+    function _deployProxies(Deployments memory d, address deployer) internal {
+        _deployAppraisalProxy(d, deployer);
+        _deployTreasuryProxy(d, deployer);
+        _deployDepositorVaultProxy(d, deployer);
+        _deployProtocolTreasuryProxy(d, deployer);
+        _deployEconomyManagerProxy(d, deployer);
+        _deployGachaProxy(d, deployer);
+    }
+
+    function _deployAppraisalProxy(Deployments memory d, address deployer) internal {
+        NFTAppraisal appraisalImpl = new NFTAppraisal();
         d.appraisalProxy = address(
             new ERC1967Proxy(
                 address(appraisalImpl),
                 abi.encodeWithSelector(
-                    NFTAppraisal.initialize.selector, deployer, d.usdc, 10 * 10 ** usdc.decimals(), deployer
+                    NFTAppraisal.initialize.selector, deployer, d.usdc, 10 * 1e6, deployer
                 )
             )
         );
+    }
 
+    function _deployTreasuryProxy(Deployments memory d, address deployer) internal {
+        GachaTreasury treasuryImpl = new GachaTreasury();
+        uint256[5] memory minPrices = [COMMON_MIN, UNCOMMON_MIN, RARE_MIN, EPIC_MIN, LEGENDARY_MIN];
+        uint256[5] memory maxPrices = [COMMON_MAX, UNCOMMON_MAX, RARE_MAX, EPIC_MAX, LEGENDARY_MAX];
         d.treasuryProxy = address(
             new ERC1967Proxy(
                 address(treasuryImpl),
@@ -171,49 +210,37 @@ contract DeployLocal is Script {
                     deployer,
                     TEMP_GACHA_ADDRESS,
                     d.appraisalProxy,
-                    COMMON_MIN,
-                    COMMON_MAX,
-                    UNCOMMON_MIN,
-                    UNCOMMON_MAX,
-                    RARE_MIN,
-                    RARE_MAX,
-                    EPIC_MIN,
-                    EPIC_MAX,
-                    LEGENDARY_MIN,
-                    LEGENDARY_MAX
+                    minPrices,
+                    maxPrices
                 )
             )
         );
+    }
 
+    function _deployDepositorVaultProxy(Deployments memory d, address deployer) internal {
+        DepositorVault depositorVaultImpl = new DepositorVault();
         d.depositorVaultProxy = address(
             new ERC1967Proxy(
                 address(depositorVaultImpl),
                 abi.encodeWithSelector(DepositorVault.initialize.selector, deployer, d.usdc, d.treasuryProxy, deployer)
             )
         );
+    }
 
+    function _deployProtocolTreasuryProxy(Deployments memory d, address deployer) internal {
+        ProtocolTreasury protocolTreasuryImpl = new ProtocolTreasury();
         d.protocolTreasuryProxy = address(
             new ERC1967Proxy(
                 address(protocolTreasuryImpl),
-                abi.encodeWithSelector(ProtocolTreasury.initialize.selector, deployer, d.usdc, deployer)
-            )
-        );
-
-        d.buybackVaultProxy = address(
-            new ERC1967Proxy(
-                address(buybackVaultImpl),
                 abi.encodeWithSelector(
-                    BuybackVault.initialize.selector,
-                    deployer,
-                    d.usdc,
-                    d.treasuryProxy,
-                    d.depositorVaultProxy,
-                    d.appraisalProxy,
-                    deployer
+                    ProtocolTreasury.initialize.selector, deployer, d.usdc, deployer, d.treasuryProxy, d.appraisalProxy
                 )
             )
         );
+    }
 
+    function _deployEconomyManagerProxy(Deployments memory d, address deployer) internal {
+        GachaEconomyManager economyManagerImpl = new GachaEconomyManager();
         d.economyManagerProxy = address(
             new ERC1967Proxy(
                 address(economyManagerImpl),
@@ -223,12 +250,14 @@ contract DeployLocal is Script {
                     d.usdc,
                     TEMP_GACHA_ADDRESS,
                     d.depositorVaultProxy,
-                    d.buybackVaultProxy,
                     d.protocolTreasuryProxy
                 )
             )
         );
+    }
 
+    function _deployGachaProxy(Deployments memory d, address deployer) internal {
+        Gacha gachaImpl = new Gacha();
         d.gachaProxy = address(
             new ERC1967Proxy(
                 address(gachaImpl),
@@ -243,7 +272,9 @@ contract DeployLocal is Script {
                 )
             )
         );
+    }
 
+    function _deployServiceHandlers(Deployments memory d, address wavsServiceManager) internal {
         // Deploy service handlers
         GachaServiceHandler serviceHandler =
             new GachaServiceHandler(IWavsServiceManager(wavsServiceManager), d.gachaProxy);
@@ -252,63 +283,41 @@ contract DeployLocal is Script {
         NFTAppraisalServiceHandler appraisalServiceHandler =
             new NFTAppraisalServiceHandler(IWavsServiceManager(wavsServiceManager), d.appraisalProxy);
         d.appraisalServiceHandler = address(appraisalServiceHandler);
+    }
 
-        // Wire dependencies
-        _configureEconomy(d);
+    function _deployCollectionAndTrackers(Deployments memory d, address deployer) internal {
+        _deployCollection(d, deployer);
+        _deployTrackers(d, deployer);
+        GachaTreasury(d.treasuryProxy).addToWhitelist(d.collection);
+    }
 
-        // Deploy demo ERC721 collection and seed treasury
+    function _deployCollection(Deployments memory d, address deployer) internal {
         BaseERC721 collection = new BaseERC721("Gacha Collection", "GACHA", deployer);
         d.collection = address(collection);
+    }
 
-        // Deploy rarity trackers
-        RarityTracker commonTracker = new RarityTracker("Common", deployer);
-        d.commonTracker = address(commonTracker);
-
-        RarityTracker uncommonTracker = new RarityTracker("Uncommon", deployer);
-        d.uncommonTracker = address(uncommonTracker);
-
-        RarityTracker rareTracker = new RarityTracker("Rare", deployer);
-        d.rareTracker = address(rareTracker);
-
-        RarityTracker epicTracker = new RarityTracker("Epic", deployer);
-        d.epicTracker = address(epicTracker);
-
-        RarityTracker legendaryTracker = new RarityTracker("Legendary", deployer);
-        d.legendaryTracker = address(legendaryTracker);
-
-        GachaTreasury(d.treasuryProxy).addToWhitelist(d.collection);
-
-        _seedTreasury(GachaTreasury(d.treasuryProxy), NFTAppraisal(d.appraisalProxy), collection, deployer);
-
-        console.log("\n=== Local Gacha System Status ===");
-        console.log("Whitelist Length:    ", GachaTreasury(d.treasuryProxy).getWhitelistLength());
-        console.log("Gacha Available:     ", GachaTreasury(d.treasuryProxy).isGachaAvailable());
-        console.log("Total NFTs:          ", GachaTreasury(d.treasuryProxy).getTotalItemsCount());
-
-        // Display final stats
-        _displayTreasuryStats(d.treasuryProxy);
-
-        console.log("Local stack deployed successfully");
-        return d;
+    function _deployTrackers(Deployments memory d, address deployer) internal {
+        d.commonTracker = address(new RarityTracker("Common", deployer));
+        d.uncommonTracker = address(new RarityTracker("Uncommon", deployer));
+        d.rareTracker = address(new RarityTracker("Rare", deployer));
+        d.epicTracker = address(new RarityTracker("Epic", deployer));
+        d.legendaryTracker = address(new RarityTracker("Legendary", deployer));
     }
 
     function _configureEconomy(Deployments memory d) internal {
         // Treasury wiring
         GachaTreasury(d.treasuryProxy).setGachaContract(d.gachaProxy);
         GachaTreasury(d.treasuryProxy).setDepositorVault(d.depositorVaultProxy);
-        GachaTreasury(d.treasuryProxy).setBuybackVault(d.buybackVaultProxy);
+        GachaTreasury(d.treasuryProxy).setProtocolTreasury(d.protocolTreasuryProxy);
 
         // Economy manager links
         GachaEconomyManager(d.economyManagerProxy).setGacha(d.gachaProxy);
-        GachaEconomyManager(d.economyManagerProxy).setVaults(
-            d.depositorVaultProxy, d.buybackVaultProxy, d.protocolTreasuryProxy
-        );
+        GachaEconomyManager(d.economyManagerProxy).setVaults(d.depositorVaultProxy, d.protocolTreasuryProxy);
 
         // Update vault controllers
         DepositorVault(d.depositorVaultProxy).setEconomyManager(d.economyManagerProxy);
-        DepositorVault(d.depositorVaultProxy).setBuybackVault(d.buybackVaultProxy);
         ProtocolTreasury(d.protocolTreasuryProxy).setEconomyManager(d.economyManagerProxy);
-        BuybackVault(d.buybackVaultProxy).setEconomyManager(d.economyManagerProxy);
+        ProtocolTreasury(d.protocolTreasuryProxy).setGachaTreasury(d.treasuryProxy);
 
         // Point gacha to service handler and economy manager
         Gacha(d.gachaProxy).setGachaServiceHandler(d.serviceHandler);
@@ -596,62 +605,35 @@ contract DeployLocal is Script {
     }
 
     function _writeEnvFile(Deployments memory deployments) internal {
-        string memory envContent = string(
-            abi.encodePacked(
-                "# Auto-generated deployment addresses\n",
-                "CHAIN_ID=31337\n",
-                "USDC_ADDRESS=",
-                vm.toString(deployments.usdc),
-                "\n",
-                "NFT_APPRAISAL_ADDRESS=",
-                vm.toString(deployments.appraisalProxy),
-                "\n",
-                "GACHA_TREASURY_ADDRESS=",
-                vm.toString(deployments.treasuryProxy),
-                "\n",
-                "DEPOSITOR_VAULT_ADDRESS=",
-                vm.toString(deployments.depositorVaultProxy),
-                "\n",
-                "BUYBACK_VAULT_ADDRESS=",
-                vm.toString(deployments.buybackVaultProxy),
-                "\n",
-                "PROTOCOL_TREASURY_ADDRESS=",
-                vm.toString(deployments.protocolTreasuryProxy),
-                "\n",
-                "ECONOMY_MANAGER_ADDRESS=",
-                vm.toString(deployments.economyManagerProxy),
-                "\n",
-                "GACHA_ADDRESS=",
-                vm.toString(deployments.gachaProxy),
-                "\n",
-                "GACHA_SERVICE_HANDLER_ADDRESS=",
-                vm.toString(deployments.serviceHandler),
-                "\n",
-                "APPRAISAL_SERVICE_HANDLER_ADDRESS=",
-                vm.toString(deployments.appraisalServiceHandler),
-                "\n",
-                "COLLECTION_ADDRESS=",
-                vm.toString(deployments.collection),
-                "\n",
-                "COMMON_TRACKER_ADDRESS=",
-                vm.toString(deployments.commonTracker),
-                "\n",
-                "UNCOMMON_TRACKER_ADDRESS=",
-                vm.toString(deployments.uncommonTracker),
-                "\n",
-                "RARE_TRACKER_ADDRESS=",
-                vm.toString(deployments.rareTracker),
-                "\n",
-                "EPIC_TRACKER_ADDRESS=",
-                vm.toString(deployments.epicTracker),
-                "\n",
-                "LEGENDARY_TRACKER_ADDRESS=",
-                vm.toString(deployments.legendaryTracker),
-                "\n"
-            )
-        );
-
+        string memory envContent = _buildEnvContent(deployments);
         vm.writeFile("../.env.local", envContent);
         console.log("Environment file written to: .env.local");
+    }
+
+    function _buildEnvContent(Deployments memory deployments) internal pure returns (string memory) {
+        return string(
+            abi.encodePacked(
+                _envLine("CHAIN_ID", "31337"),
+                _envLine("USDC_ADDRESS", vm.toString(deployments.usdc)),
+                _envLine("NFT_APPRAISAL_ADDRESS", vm.toString(deployments.appraisalProxy)),
+                _envLine("GACHA_TREASURY_ADDRESS", vm.toString(deployments.treasuryProxy)),
+                _envLine("DEPOSITOR_VAULT_ADDRESS", vm.toString(deployments.depositorVaultProxy)),
+                _envLine("PROTOCOL_TREASURY_ADDRESS", vm.toString(deployments.protocolTreasuryProxy)),
+                _envLine("ECONOMY_MANAGER_ADDRESS", vm.toString(deployments.economyManagerProxy)),
+                _envLine("GACHA_ADDRESS", vm.toString(deployments.gachaProxy)),
+                _envLine("GACHA_SERVICE_HANDLER_ADDRESS", vm.toString(deployments.serviceHandler)),
+                _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(deployments.appraisalServiceHandler)),
+                _envLine("COLLECTION_ADDRESS", vm.toString(deployments.collection)),
+                _envLine("COMMON_TRACKER_ADDRESS", vm.toString(deployments.commonTracker)),
+                _envLine("UNCOMMON_TRACKER_ADDRESS", vm.toString(deployments.uncommonTracker)),
+                _envLine("RARE_TRACKER_ADDRESS", vm.toString(deployments.rareTracker)),
+                _envLine("EPIC_TRACKER_ADDRESS", vm.toString(deployments.epicTracker)),
+                _envLine("LEGENDARY_TRACKER_ADDRESS", vm.toString(deployments.legendaryTracker))
+            )
+        );
+    }
+
+    function _envLine(string memory key, string memory value) internal pure returns (string memory) {
+        return string(abi.encodePacked(key, "=", value, "\n"));
     }
 }

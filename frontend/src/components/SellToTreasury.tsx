@@ -6,10 +6,9 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { toast } from "react-hot-toast";
 import { Button, Chip } from "@heroui/react";
 import {
-	useWriteBuybackVaultExecuteBuyback,
-	useReadBuybackVaultAvailableLiquidity,
-	useReadBuybackVaultBuybackPayoutBps,
-	useReadBuybackVaultAsset,
+	useWriteProtocolTreasuryExecuteRedemption,
+	useReadProtocolTreasuryRedemptionPayoutBps,
+	useReadProtocolTreasuryAsset,
 	useReadErc20Allowance,
 	useWriteErc20Approve,
 	useReadNftAppraisalGetAppraisedPrice,
@@ -23,7 +22,7 @@ interface SellToTreasuryProps {
 	collection: string;
 	tokenId: string;
 	appraisalContractAddress: string;
-	buybackVaultAddress: string;
+	protocolTreasuryAddress: string;
 	onSuccess?: (txHash: string) => void;
 	size?: "sm" | "md" | "lg";
 	variant?: "button" | "card";
@@ -33,7 +32,7 @@ export default function SellToTreasury({
 	collection,
 	tokenId,
 	appraisalContractAddress,
-	buybackVaultAddress,
+	protocolTreasuryAddress,
 	onSuccess,
 	size = "md",
 	variant = "button"
@@ -78,18 +77,17 @@ export default function SellToTreasury({
 		}
 	});
 
-	// Get buyback vault data
-	const { data: availableLiquidity } = useReadBuybackVaultAvailableLiquidity({
-		address: buybackVaultAddress as `0x${string}`
+	// Get protocol treasury data
+	const { data: payoutBps } = useReadProtocolTreasuryRedemptionPayoutBps({
+		address: protocolTreasuryAddress as `0x${string}`
 	});
 
-	const { data: payoutBps } = useReadBuybackVaultBuybackPayoutBps({
-		address: buybackVaultAddress as `0x${string}`
+	const { data: usdcAddress } = useReadProtocolTreasuryAsset({
+		address: protocolTreasuryAddress as `0x${string}`
 	});
 
-	const { data: usdcAddress } = useReadBuybackVaultAsset({
-		address: buybackVaultAddress as `0x${string}`
-	});
+	// Note: ProtocolTreasury doesn't have available liquidity hook like BuybackVault did
+	const availableLiquidity = undefined; // This will be handled by contract revert if insufficient
 
 	// Calculate payout amount
 	const payoutAmount = useMemo(() => {
@@ -104,14 +102,14 @@ export default function SellToTreasury({
 	// Check USDC allowance
 	const { data: usdcAllowance } = useReadErc20Allowance({
 		address: usdcAddress as `0x${string}`,
-		args: [connectedAddress, buybackVaultAddress as `0x${string}`],
+		args: [connectedAddress, protocolTreasuryAddress as `0x${string}`],
 		query: {
 			enabled: !!connectedAddress && !!usdcAddress
 		}
 	});
 
-	// Check if vault has enough liquidity
-	const hasEnoughLiquidity = availableLiquidity && payoutAmount ? availableLiquidity >= payoutAmount : false;
+	// Check if treasury has enough liquidity (simplified)
+	const hasEnoughLiquidity = true; // Assume sufficient liquidity, contract will revert if not
 
 	// Check if user owns the NFT
 	const isOwner = ownerOf && connectedAddress ? ownerOf.toLowerCase() === connectedAddress.toLowerCase() : false;
@@ -121,12 +119,12 @@ export default function SellToTreasury({
 
 	// Approve USDC spend
 	const { writeContractAsync: approveUSDC } = useWriteErc20Approve();
-	const { writeContractAsync: executeBuyback } = useWriteBuybackVaultExecuteBuyback();
+	const { writeContractAsync: executeRedemption } = useWriteProtocolTreasuryExecuteRedemption();
 
 	// Handle USDC approval
 	const handleApprove = async () => {
-		if (!usdcAddress || !buybackVaultAddress) {
-			toast.error("USDC or BuybackVault address not found");
+		if (!usdcAddress || !protocolTreasuryAddress) {
+			toast.error("USDC or ProtocolTreasury address not found");
 			return;
 		}
 
@@ -135,10 +133,10 @@ export default function SellToTreasury({
 			const approveAmount = payoutAmount * 2n; // Approve extra for buffer
 			await approveUSDC({
 				address: usdcAddress as `0x${string}`,
-				args: [buybackVaultAddress as `0x${string}`, approveAmount]
+				args: [protocolTreasuryAddress as `0x${string}`, approveAmount]
 			});
 
-			toast.success("USDC approved for buyback");
+			toast.success("USDC approved for redemption");
 			showNotification("✅ USDC approval granted. You can now sell your NFT!", "success");
 		} catch (error) {
 			console.error("Approval error:", error);
@@ -167,14 +165,14 @@ export default function SellToTreasury({
 		}
 
 		if (!hasEnoughLiquidity) {
-			toast.error("Insufficient liquidity in buyback vault");
+			toast.error("Redemption is currently unavailable");
 			return;
 		}
 
 		setIsSelling(true);
 		try {
-			const txHash = await executeBuyback({
-				address: buybackVaultAddress as `0x${string}`,
+			const txHash = await executeRedemption({
+				address: protocolTreasuryAddress as `0x${string}`,
 				args: [collection as `0x${string}`, BigInt(tokenId), connectedAddress]
 			});
 
@@ -186,8 +184,8 @@ export default function SellToTreasury({
 			);
 			onSuccess?.(txHash);
 		} catch (error) {
-			console.error("Buyback error:", error);
-			toast.error("Failed to sell NFT to treasury");
+			console.error("Redemption error:", error);
+			toast.error("Failed to redeem NFT");
 			showNotification("❌ Sale failed. Please check your approval and try again.", "error");
 		} finally {
 			setIsSelling(false);
@@ -256,15 +254,7 @@ export default function SellToTreasury({
 					</div>
 				)}
 
-				{availableLiquidity && (
-					<div className="flex justify-between items-center text-xs">
-						<span className="text-white/60">Vault liquidity:</span>
-						<span className="text-white/80">
-							{formatCurrency(availableLiquidity.toString(), 6, "USDC")}
-						</span>
-					</div>
-				)}
-
+				
 				<div className="flex gap-2">
 					{needsApproval ? (
 						<Button
@@ -320,7 +310,7 @@ export default function SellToTreasury({
 					size="sm"
 					className={classes.chip}
 				>
-					Insufficient liquidity
+					Redemption unavailable
 				</Chip>
 			) : needsApproval ? (
 				<Button
