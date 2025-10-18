@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
+use serde::{Deserialize, Serialize};
 
 /// Provider types supported by the system
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

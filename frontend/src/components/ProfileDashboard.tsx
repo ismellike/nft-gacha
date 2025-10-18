@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { formatTokenAmount } from "../lib/utils";
 import { getRarityConfig } from "../lib/rarityConfig";
-import { Card } from "../ui";
+import { Card, Button } from "../ui";
 import { CardRewardsList } from "./CardRewardsList";
+import { NFTWithdrawal } from "./NFTWithdrawal";
 import { glassTypography } from "../lib/theme-config";
 import {
 	useReadGachaTreasuryGetUserProfileBatch,
@@ -21,12 +23,14 @@ import {
 	CurrencyDollarIcon,
 	ClockIcon,
 	TrophyIcon,
+	ArrowLeftOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 
 export const ProfileDashboard: React.FC = () => {
 	const { address: userAddress } = useAccount();
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
+	const [activeTab, setActiveTab] = useState<"rewards" | "withdrawal">("rewards");
 
 	// 🚀 BATCH OPTIMIZED: Get all user data in 2 calls instead of 3!
 	const { data: userProfileData, refetch: refetchUserProfile } =
@@ -91,6 +95,46 @@ export const ProfileDashboard: React.FC = () => {
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-8">
+			{/* Tab Navigation */}
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5 }}
+			>
+				<Card className="p-2 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
+					<div className="flex space-x-2">
+						<Button
+							className={`flex-1 rounded-xl transition-all duration-300 ${
+								activeTab === "rewards"
+									? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg"
+									: "bg-content2/20 text-foreground/70 hover:bg-content2/30"
+							}`}
+							onPress={() => setActiveTab("rewards")}
+							variant="light"
+						>
+							<span className="flex items-center justify-center gap-2">
+								<TrophyIcon className="w-4 h-4" />
+								Rewards
+							</span>
+						</Button>
+						<Button
+							className={`flex-1 rounded-xl transition-all duration-300 ${
+								activeTab === "withdrawal"
+									? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg"
+									: "bg-content2/20 text-foreground/70 hover:bg-content2/30"
+							}`}
+							onPress={() => setActiveTab("withdrawal")}
+							variant="light"
+						>
+							<span className="flex items-center justify-center gap-2">
+								<ArrowLeftOnRectangleIcon className="w-4 h-4" />
+								Withdraw NFTs
+							</span>
+						</Button>
+					</div>
+				</Card>
+			</motion.div>
+
 			{/* Enhanced Stats Grid */}
 			<div className="grid md:grid-cols-3 gap-6">
 				<motion.div
@@ -183,13 +227,13 @@ export const ProfileDashboard: React.FC = () => {
 				</motion.div>
 			</div>
 
-			{/* Rewards by Card - Main Feature */}
+			{/* Dynamic Content Section */}
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.5 }}
 			>
-				<CardRewardsList />
+				{activeTab === "rewards" ? <CardRewardsList /> : <NFTWithdrawal />}
 			</motion.div>
 
 			{/* Advanced Statistics */}

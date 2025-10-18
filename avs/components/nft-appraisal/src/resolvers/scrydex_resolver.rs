@@ -87,9 +87,15 @@ impl ScrydexCardInfo {
                 if !obj.contains_key("trait_type") {
                     if let Some(value) = obj.get("value").and_then(|v| v.as_str()) {
                         // Common variant indicators that we want to include
-                        if matches!(value.to_lowercase().as_str(),
-                            "1st edition" | "shadowless" | "unlimited" |
-                            "holo" | "holofoil" | "reverse holofoil" | "reverse holo"
+                        if matches!(
+                            value.to_lowercase().as_str(),
+                            "1st edition"
+                                | "shadowless"
+                                | "unlimited"
+                                | "holo"
+                                | "holofoil"
+                                | "reverse holofoil"
+                                | "reverse holo"
                         ) {
                             variant_parts.push(value.trim().to_string());
                         }
@@ -226,10 +232,13 @@ impl ScrydexPokemonResolver {
             Some(requested_variant) => {
                 // Find the specific variant that matches
                 let requested_normalized = requested_variant.to_lowercase().replace(" ", "");
-                card.variants.iter().filter(|v| {
-                    let card_variant_normalized = v.name.to_lowercase().replace(" ", "");
-                    requested_normalized == card_variant_normalized
-                }).collect()
+                card.variants
+                    .iter()
+                    .filter(|v| {
+                        let card_variant_normalized = v.name.to_lowercase().replace(" ", "");
+                        requested_normalized == card_variant_normalized
+                    })
+                    .collect()
             }
             None => {
                 // Only allow if there's exactly 1 variant
@@ -310,9 +319,7 @@ impl PriceResolver for ScrydexPokemonResolver {
     }
 
     async fn get_price(&self, args: &ResolverArgs) -> Result<Option<ResolverQuote>> {
-        let info = match args {
-            ResolverArgs::ScrydexCardInfo(info) => info,
-        };
+        let ResolverArgs::ScrydexCardInfo(info) = args;
 
         let card_identifier = info.card_identifier();
 
@@ -453,36 +460,26 @@ mod tests {
                 name: "Test Set".to_string(),
                 code: Some("TST".to_string()),
             }),
-            variants: vec![
-                ScrydexCardVariant {
-                    name: "Normal".to_string(),
-                    prices: vec![
-                        ScrydexGradedPrice {
-                            grade: "9".to_string(),
-                            company: "PSA".to_string(),
-                            is_perfect: false,
-                            is_signed: false,
-                            is_error: false,
-                            r#type: "graded".to_string(),
-                            low: 100.0,
-                            mid: 120.0,
-                            high: 150.0,
-                            market: 110.0,
-                            currency: "USD".to_string(),
-                            trends: None,
-                        },
-                    ],
-                },
-            ],
+            variants: vec![ScrydexCardVariant {
+                name: "Normal".to_string(),
+                prices: vec![ScrydexGradedPrice {
+                    grade: "9".to_string(),
+                    company: "PSA".to_string(),
+                    is_perfect: false,
+                    is_signed: false,
+                    is_error: false,
+                    r#type: "graded".to_string(),
+                    low: 100.0,
+                    mid: 120.0,
+                    high: 150.0,
+                    market: 110.0,
+                    currency: "USD".to_string(),
+                    trends: None,
+                }],
+            }],
         };
 
-        let price = ScrydexPokemonResolver::find_matching_price(
-            &card,
-            "9",
-            "PSA",
-            false,
-            &None,
-        );
+        let price = ScrydexPokemonResolver::find_matching_price(&card, "9", "PSA", false, &None);
 
         assert!(price.is_some());
         assert_eq!(price.unwrap().market, 110.0);
@@ -503,52 +500,42 @@ mod tests {
             variants: vec![
                 ScrydexCardVariant {
                     name: "Normal".to_string(),
-                    prices: vec![
-                        ScrydexGradedPrice {
-                            grade: "9".to_string(),
-                            company: "PSA".to_string(),
-                            is_perfect: false,
-                            is_signed: false,
-                            is_error: false,
-                            r#type: "graded".to_string(),
-                            low: 100.0,
-                            mid: 120.0,
-                            high: 150.0,
-                            market: 110.0,
-                            currency: "USD".to_string(),
-                            trends: None,
-                        },
-                    ],
+                    prices: vec![ScrydexGradedPrice {
+                        grade: "9".to_string(),
+                        company: "PSA".to_string(),
+                        is_perfect: false,
+                        is_signed: false,
+                        is_error: false,
+                        r#type: "graded".to_string(),
+                        low: 100.0,
+                        mid: 120.0,
+                        high: 150.0,
+                        market: 110.0,
+                        currency: "USD".to_string(),
+                        trends: None,
+                    }],
                 },
                 ScrydexCardVariant {
                     name: "Holofoil".to_string(),
-                    prices: vec![
-                        ScrydexGradedPrice {
-                            grade: "9".to_string(),
-                            company: "PSA".to_string(),
-                            is_perfect: false,
-                            is_signed: false,
-                            is_error: false,
-                            r#type: "graded".to_string(),
-                            low: 200.0,
-                            mid: 220.0,
-                            high: 250.0,
-                            market: 210.0,
-                            currency: "USD".to_string(),
-                            trends: None,
-                        },
-                    ],
+                    prices: vec![ScrydexGradedPrice {
+                        grade: "9".to_string(),
+                        company: "PSA".to_string(),
+                        is_perfect: false,
+                        is_signed: false,
+                        is_error: false,
+                        r#type: "graded".to_string(),
+                        low: 200.0,
+                        mid: 220.0,
+                        high: 250.0,
+                        market: 210.0,
+                        currency: "USD".to_string(),
+                        trends: None,
+                    }],
                 },
             ],
         };
 
-        let price = ScrydexPokemonResolver::find_matching_price(
-            &card,
-            "9",
-            "PSA",
-            false,
-            &None,
-        );
+        let price = ScrydexPokemonResolver::find_matching_price(&card, "9", "PSA", false, &None);
 
         assert!(price.is_none()); // Should return None because multiple variants exist but no variant specified
     }
@@ -568,41 +555,37 @@ mod tests {
             variants: vec![
                 ScrydexCardVariant {
                     name: "Normal".to_string(),
-                    prices: vec![
-                        ScrydexGradedPrice {
-                            grade: "9".to_string(),
-                            company: "PSA".to_string(),
-                            is_perfect: false,
-                            is_signed: false,
-                            is_error: false,
-                            r#type: "graded".to_string(),
-                            low: 100.0,
-                            mid: 120.0,
-                            high: 150.0,
-                            market: 110.0,
-                            currency: "USD".to_string(),
-                            trends: None,
-                        },
-                    ],
+                    prices: vec![ScrydexGradedPrice {
+                        grade: "9".to_string(),
+                        company: "PSA".to_string(),
+                        is_perfect: false,
+                        is_signed: false,
+                        is_error: false,
+                        r#type: "graded".to_string(),
+                        low: 100.0,
+                        mid: 120.0,
+                        high: 150.0,
+                        market: 110.0,
+                        currency: "USD".to_string(),
+                        trends: None,
+                    }],
                 },
                 ScrydexCardVariant {
                     name: "Holofoil".to_string(),
-                    prices: vec![
-                        ScrydexGradedPrice {
-                            grade: "9".to_string(),
-                            company: "PSA".to_string(),
-                            is_perfect: false,
-                            is_signed: false,
-                            is_error: false,
-                            r#type: "graded".to_string(),
-                            low: 200.0,
-                            mid: 220.0,
-                            high: 250.0,
-                            market: 210.0,
-                            currency: "USD".to_string(),
-                            trends: None,
-                        },
-                    ],
+                    prices: vec![ScrydexGradedPrice {
+                        grade: "9".to_string(),
+                        company: "PSA".to_string(),
+                        is_perfect: false,
+                        is_signed: false,
+                        is_error: false,
+                        r#type: "graded".to_string(),
+                        low: 200.0,
+                        mid: 220.0,
+                        high: 250.0,
+                        market: 210.0,
+                        currency: "USD".to_string(),
+                        trends: None,
+                    }],
                 },
             ],
         };

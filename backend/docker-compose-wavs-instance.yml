@@ -5,7 +5,8 @@ services:
     stop_signal: SIGKILL
     environment:
       - WAVS_SUBMISSION_MNEMONIC=${WAVS_SUBMISSION_MNEMONIC:-}
-      - WAVS_ENV_POKEMON_PRICE_API_KEY=${WAVS_ENV_POKEMON_PRICE_API_KEY:-}
+      - WAVS_ENV_SCRYDEX_API_KEY=${WAVS_ENV_SCRYDEX_API_KEY:-}
+      - WAVS_ENV_SCRYDEX_TEAM_ID=${WAVS_ENV_SCRYDEX_TEAM_ID:-}
     command:
       [
         "wavs",

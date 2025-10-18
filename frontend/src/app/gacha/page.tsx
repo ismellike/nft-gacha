@@ -69,8 +69,8 @@ function GachaDetailPageContent() {
 	} as Parameters<typeof useReadGachaTreasuryOwner>[0]);
 
 	const { data: rewardsOwner } = useReadGachaEconomyManagerOwner({
-		address: contracts.rewardsManager,
-		query: { enabled: !!contracts.rewardsManager },
+		address: contracts.economyManager,
+		query: { enabled: !!contracts.economyManager },
 	} as Parameters<typeof useReadGachaEconomyManagerOwner>[0]);
 
 	const isOwner =
@@ -81,8 +81,8 @@ function GachaDetailPageContent() {
 
 	// Check if rewards manager is paused (kept warm for subcomponents)
 	useReadGachaEconomyManagerPaused({
-		address: contracts.rewardsManager,
-		query: { enabled: !!contracts.rewardsManager },
+		address: contracts.economyManager,
+		query: { enabled: !!contracts.economyManager },
 	} as Parameters<typeof useReadGachaEconomyManagerPaused>[0]);
 
 	// Contract reads for rewards functionality

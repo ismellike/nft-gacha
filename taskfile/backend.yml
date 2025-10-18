@@ -323,7 +323,8 @@ tasks:
         sh: task backend:get-wavs-port-{{.WAVS_INSTANCE}}
       WAVS_SUBMISSION_MNEMONIC:
         sh: task backend:get-wavs-submission-mnemonic-{{.WAVS_INSTANCE}}
-      WAVS_ENV_POKEMON_PRICE_API_KEY: "{{.WAVS_ENV_POKEMON_PRICE_API_KEY}}"
+      WAVS_ENV_SCRYDEX_API_KEY: "{{.WAVS_ENV_SCRYDEX_API_KEY}}"
+      WAVS_ENV_SCRYDEX_TEAM_ID: "{{.WAVS_ENV_SCRYDEX_TEAM_ID}}"
     cmds:
       - |
         echo "Starting WAVS #{{.WAVS_INSTANCE}} on port $COMPOSE_WAVS_PORT"

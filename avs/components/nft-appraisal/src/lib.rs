@@ -82,17 +82,3 @@ async fn process_appraisal_request(
 }
 
 export!(Component with_types_in bindings);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_appraisal_processor_creation() {
-        // Test that we can create a processor (may fail without proper config)
-        let result = AppraisalProcessor::new();
-        // The result may fail in test environment without proper config
-        // This just verifies the struct is properly defined
-        assert!(result.is_ok() || result.is_err());
-    }
-}

@@ -2295,6 +2295,13 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'SPIN_TIMEOUT',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'TOTAL_WEIGHT',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -2394,7 +2401,9 @@ export const gachaAbi = [
         components: [
           { name: 'requester', internalType: 'address', type: 'address' },
           { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+          { name: 'reclaimed', internalType: 'bool', type: 'bool' },
           { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
+          { name: 'requestTime', internalType: 'uint256', type: 'uint256' },
         ],
       },
     ],
@@ -2457,7 +2466,9 @@ export const gachaAbi = [
     outputs: [
       { name: 'requester', internalType: 'address', type: 'address' },
       { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+      { name: 'reclaimed', internalType: 'bool', type: 'bool' },
       { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
+      { name: 'requestTime', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -2671,7 +2682,9 @@ export const gachaAbi = [
     outputs: [
       { name: 'requester', internalType: 'address', type: 'address' },
       { name: 'fulfilled', internalType: 'bool', type: 'bool' },
+      { name: 'reclaimed', internalType: 'bool', type: 'bool' },
       { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
+      { name: 'requestTime', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -2771,13 +2784,6 @@ export const gachaAbi = [
     name: 'userSpinCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'to', internalType: 'address', type: 'address' }],
-    name: 'withdrawFees',
-    outputs: [],
-    stateMutability: 'nonpayable',
   },
   {
     type: 'event',
@@ -3144,17 +3150,13 @@ export const gachaAbi = [
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'FailedCall' },
-  { type: 'error', inputs: [], name: 'FeePaymentFailed' },
-  { type: 'error', inputs: [], name: 'FeeWithdrawalFailed' },
   { type: 'error', inputs: [], name: 'InvalidEconomyManager' },
   { type: 'error', inputs: [], name: 'InvalidFeeToken' },
-  { type: 'error', inputs: [], name: 'InvalidGachaInitialization' },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
   { type: 'error', inputs: [], name: 'InvalidRecipient' },
   { type: 'error', inputs: [], name: 'InvalidServiceHandler' },
   { type: 'error', inputs: [], name: 'InvalidTreasuryContract' },
   { type: 'error', inputs: [], name: 'InvalidTriggerId' },
-  { type: 'error', inputs: [], name: 'NoFeesToWithdraw' },
   {
     type: 'error',
     inputs: [
@@ -3166,7 +3168,6 @@ export const gachaAbi = [
     ],
     name: 'NoNFTsAvailable',
   },
-  { type: 'error', inputs: [], name: 'NotGachaInitializing' },
   { type: 'error', inputs: [], name: 'NotInitializing' },
   { type: 'error', inputs: [], name: 'NotSpinRequester' },
   {
@@ -3180,12 +3181,13 @@ export const gachaAbi = [
     name: 'OwnableUnauthorizedAccount',
   },
   { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-  { type: 'error', inputs: [], name: 'RefundFailed' },
   {
     type: 'error',
     inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
     name: 'SafeERC20FailedOperation',
   },
+  { type: 'error', inputs: [], name: 'SpinAlreadyReclaimed' },
+  { type: 'error', inputs: [], name: 'SpinRequestNotExpired' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
   {
     type: 'error',
@@ -3319,6 +3321,13 @@ export const gachaEconomyManagerAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'queuedDepositorYield',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'renounceOwnership',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -3435,6 +3444,19 @@ export const gachaEconomyManagerAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'DepositorYieldQueued',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'previousToken',
         internalType: 'address',
         type: 'address',
@@ -3531,6 +3553,19 @@ export const gachaEconomyManagerAbi = [
       },
     ],
     name: 'ProtocolTreasuryUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'QueuedDepositorYieldProcessed',
   },
   {
     type: 'event',
@@ -5116,7 +5151,6 @@ export const gachaTreasuryAbi = [
   },
   { type: 'error', inputs: [], name: 'AppraisalRequired' },
   { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
-  { type: 'error', inputs: [], name: 'CannotDepositSameNFTTwice' },
   { type: 'error', inputs: [], name: 'CollectionAlreadyWhitelisted' },
   { type: 'error', inputs: [], name: 'CollectionNotInWhitelist' },
   { type: 'error', inputs: [], name: 'CollectionNotWhitelisted' },
@@ -5129,7 +5163,6 @@ export const gachaTreasuryAbi = [
   },
   { type: 'error', inputs: [], name: 'ERC1967NonPayable' },
   { type: 'error', inputs: [], name: 'EmptyArrays' },
-  { type: 'error', inputs: [], name: 'EmptyWhitelist' },
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'FailedCall' },
@@ -5144,7 +5177,6 @@ export const gachaTreasuryAbi = [
   { type: 'error', inputs: [], name: 'InvalidPriceRange' },
   { type: 'error', inputs: [], name: 'InvalidProtocolTreasury' },
   { type: 'error', inputs: [], name: 'InvalidRecipient' },
-  { type: 'error', inputs: [], name: 'InvalidTreasuryInitialization' },
   { type: 'error', inputs: [], name: 'NFTAlreadyDeposited' },
   { type: 'error', inputs: [], name: 'NFTNotAppraised' },
   { type: 'error', inputs: [], name: 'NFTNotDeposited' },
@@ -5162,7 +5194,6 @@ export const gachaTreasuryAbi = [
   { type: 'error', inputs: [], name: 'NotInitializing' },
   { type: 'error', inputs: [], name: 'NotNFTDepositor' },
   { type: 'error', inputs: [], name: 'NotNFTOwner' },
-  { type: 'error', inputs: [], name: 'NotTreasuryInitializing' },
   {
     type: 'error',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
@@ -5173,10 +5204,7 @@ export const gachaTreasuryAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
-  { type: 'error', inputs: [], name: 'PendingDepositAlreadyProcessed' },
-  { type: 'error', inputs: [], name: 'PendingDepositNotFound' },
   { type: 'error', inputs: [], name: 'PriceRangesAlreadySet' },
-  { type: 'error', inputs: [], name: 'RarityMigrationFailed' },
   { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
   { type: 'error', inputs: [], name: 'TooManyItems' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
@@ -6444,15 +6472,6 @@ export const iGachaAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '_rewardsManager', internalType: 'address', type: 'address' },
-    ],
-    name: 'setRewardsManager',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [{ name: '_newFee', internalType: 'uint256', type: 'uint256' }],
     name: 'setSpinFee',
     outputs: [],
@@ -7094,6 +7113,208 @@ export const initializableAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// MockDepositorVault
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const mockDepositorVaultAbi = [
+  {
+    type: 'constructor',
+    inputs: [{ name: '_asset', internalType: 'address', type: 'address' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'asset',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'recipient', internalType: 'address', type: 'address' },
+    ],
+    name: 'claimYield',
+    outputs: [{ name: 'withdrawn', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'deregisterDepositor',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
+    name: 'distributeYield',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'pendingYield',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'appraisalValueUSD', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'registerDepositor',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'shares',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'sharesOf',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalShares',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      {
+        name: 'newAppraisalValueUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+      },
+    ],
+    name: 'updateDepositor',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'appraisalValueUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'DepositorDeregistered',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'appraisalValueUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'DepositorRegistered',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'previousValueUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newValueUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'DepositorUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'account',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'recipient',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'YieldClaimed',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'caller',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'YieldDistributed',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MockNFTAppraisal
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -7249,6 +7470,128 @@ export const mockNftAppraisalAbi = [
     name: 'tokenCardIds',
     outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// MockProtocolTreasury
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const mockProtocolTreasuryAbi = [
+  { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'asset',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: '', internalType: 'address', type: 'address' },
+    ],
+    name: 'executeRedemption',
+    outputs: [{ name: 'payout', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'amount', internalType: 'uint256', type: 'uint256' }],
+    name: 'onRevenueReceived',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'owner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_asset', internalType: 'contract IERC20', type: 'address' },
+    ],
+    name: 'setAsset',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'transferOut',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'ProtocolRevenueReceived',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'to', internalType: 'address', type: 'address', indexed: true },
+      {
+        name: 'amount',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'ProtocolTransfer',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'seller',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'payout',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RedemptionExecuted',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
+    name: 'SafeERC20FailedOperation',
   },
 ] as const
 
@@ -8327,9 +8670,7 @@ export const nftAppraisalAbi = [
   },
   { type: 'error', inputs: [], name: 'AppraisalAlreadyExists' },
   { type: 'error', inputs: [], name: 'AppraisalNotFound' },
-  { type: 'error', inputs: [], name: 'AppraisalNotPending' },
   { type: 'error', inputs: [], name: 'CardIdMismatch' },
-  { type: 'error', inputs: [], name: 'CardIdRequired' },
   {
     type: 'error',
     inputs: [
@@ -8341,7 +8682,6 @@ export const nftAppraisalAbi = [
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'FailedCall' },
-  { type: 'error', inputs: [], name: 'InvalidAppraisalInitialization' },
   { type: 'error', inputs: [], name: 'InvalidCollection' },
   { type: 'error', inputs: [], name: 'InvalidFeeToken' },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
@@ -8349,7 +8689,6 @@ export const nftAppraisalAbi = [
   { type: 'error', inputs: [], name: 'InvalidProtocolAddress' },
   { type: 'error', inputs: [], name: 'InvalidTokenId' },
   { type: 'error', inputs: [], name: 'InvalidTreasuryAddress' },
-  { type: 'error', inputs: [], name: 'NotAppraisalInitializing' },
   { type: 'error', inputs: [], name: 'NotInitializing' },
   {
     type: 'error',
@@ -11677,6 +12016,14 @@ export const useReadGachaContract = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"SPIN_TIMEOUT"`
+ */
+export const useReadGachaSpinTimeout = /*#__PURE__*/ createUseReadContract({
+  abi: gachaAbi,
+  functionName: 'SPIN_TIMEOUT',
+})
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"TOTAL_WEIGHT"`
  */
 export const useReadGachaTotalWeight = /*#__PURE__*/ createUseReadContract({
@@ -12112,14 +12459,6 @@ export const useWriteGachaUpgradeToAndCall =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"withdrawFees"`
- */
-export const useWriteGachaWithdrawFees = /*#__PURE__*/ createUseWriteContract({
-  abi: gachaAbi,
-  functionName: 'withdrawFees',
-})
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__
  */
 export const useSimulateGachaContract = /*#__PURE__*/ createUseSimulateContract(
@@ -12249,15 +12588,6 @@ export const useSimulateGachaUpgradeToAndCall =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaAbi,
     functionName: 'upgradeToAndCall',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"withdrawFees"`
- */
-export const useSimulateGachaWithdrawFees =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaAbi,
-    functionName: 'withdrawFees',
   })
 
 /**
@@ -12523,6 +12853,15 @@ export const useReadGachaEconomyManagerProxiableUuid =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"queuedDepositorYield"`
+ */
+export const useReadGachaEconomyManagerQueuedDepositorYield =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaEconomyManagerAbi,
+    functionName: 'queuedDepositorYield',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"revenueByRarity"`
  */
 export const useReadGachaEconomyManagerRevenueByRarity =
@@ -12784,6 +13123,15 @@ export const useWatchGachaEconomyManagerDepositorVaultUpdated =
   })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `eventName` set to `"DepositorYieldQueued"`
+ */
+export const useWatchGachaEconomyManagerDepositorYieldQueued =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaEconomyManagerAbi,
+    eventName: 'DepositorYieldQueued',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `eventName` set to `"FeeTokenUpdated"`
  */
 export const useWatchGachaEconomyManagerFeeTokenUpdated =
@@ -12835,6 +13183,15 @@ export const useWatchGachaEconomyManagerProtocolTreasuryUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaEconomyManagerAbi,
     eventName: 'ProtocolTreasuryUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `eventName` set to `"QueuedDepositorYieldProcessed"`
+ */
+export const useWatchGachaEconomyManagerQueuedDepositorYieldProcessed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaEconomyManagerAbi,
+    eventName: 'QueuedDepositorYieldProcessed',
   })
 
 /**
@@ -15410,15 +15767,6 @@ export const useWriteIGachaSetRarityWeights =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setRewardsManager"`
- */
-export const useWriteIGachaSetRewardsManager =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: iGachaAbi,
-    functionName: 'setRewardsManager',
-  })
-
-/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setSpinFee"`
  */
 export const useWriteIGachaSetSpinFee = /*#__PURE__*/ createUseWriteContract({
@@ -15465,15 +15813,6 @@ export const useSimulateIGachaSetRarityWeights =
   /*#__PURE__*/ createUseSimulateContract({
     abi: iGachaAbi,
     functionName: 'setRarityWeights',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setRewardsManager"`
- */
-export const useSimulateIGachaSetRewardsManager =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: iGachaAbi,
-    functionName: 'setRewardsManager',
   })
 
 /**
@@ -16083,6 +16422,210 @@ export const useWatchInitializableInitialized =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__
+ */
+export const useReadMockDepositorVaultContract =
+  /*#__PURE__*/ createUseReadContract({ abi: mockDepositorVaultAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"asset"`
+ */
+export const useReadMockDepositorVaultAsset =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'asset',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"pendingYield"`
+ */
+export const useReadMockDepositorVaultPendingYield =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'pendingYield',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"shares"`
+ */
+export const useReadMockDepositorVaultShares =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'shares',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"sharesOf"`
+ */
+export const useReadMockDepositorVaultSharesOf =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'sharesOf',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"totalShares"`
+ */
+export const useReadMockDepositorVaultTotalShares =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'totalShares',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__
+ */
+export const useWriteMockDepositorVaultContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: mockDepositorVaultAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"claimYield"`
+ */
+export const useWriteMockDepositorVaultClaimYield =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'claimYield',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"deregisterDepositor"`
+ */
+export const useWriteMockDepositorVaultDeregisterDepositor =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'deregisterDepositor',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"distributeYield"`
+ */
+export const useWriteMockDepositorVaultDistributeYield =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'distributeYield',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"registerDepositor"`
+ */
+export const useWriteMockDepositorVaultRegisterDepositor =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'registerDepositor',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"updateDepositor"`
+ */
+export const useWriteMockDepositorVaultUpdateDepositor =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'updateDepositor',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__
+ */
+export const useSimulateMockDepositorVaultContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: mockDepositorVaultAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"claimYield"`
+ */
+export const useSimulateMockDepositorVaultClaimYield =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'claimYield',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"deregisterDepositor"`
+ */
+export const useSimulateMockDepositorVaultDeregisterDepositor =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'deregisterDepositor',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"distributeYield"`
+ */
+export const useSimulateMockDepositorVaultDistributeYield =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'distributeYield',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"registerDepositor"`
+ */
+export const useSimulateMockDepositorVaultRegisterDepositor =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'registerDepositor',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `functionName` set to `"updateDepositor"`
+ */
+export const useSimulateMockDepositorVaultUpdateDepositor =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockDepositorVaultAbi,
+    functionName: 'updateDepositor',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockDepositorVaultAbi}__
+ */
+export const useWatchMockDepositorVaultContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: mockDepositorVaultAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `eventName` set to `"DepositorDeregistered"`
+ */
+export const useWatchMockDepositorVaultDepositorDeregistered =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: mockDepositorVaultAbi,
+    eventName: 'DepositorDeregistered',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `eventName` set to `"DepositorRegistered"`
+ */
+export const useWatchMockDepositorVaultDepositorRegistered =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: mockDepositorVaultAbi,
+    eventName: 'DepositorRegistered',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `eventName` set to `"DepositorUpdated"`
+ */
+export const useWatchMockDepositorVaultDepositorUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: mockDepositorVaultAbi,
+    eventName: 'DepositorUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `eventName` set to `"YieldClaimed"`
+ */
+export const useWatchMockDepositorVaultYieldClaimed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: mockDepositorVaultAbi,
+    eventName: 'YieldClaimed',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockDepositorVaultAbi}__ and `eventName` set to `"YieldDistributed"`
+ */
+export const useWatchMockDepositorVaultYieldDistributed =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: mockDepositorVaultAbi,
+    eventName: 'YieldDistributed',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__
  */
 export const useReadMockNftAppraisalContract =
@@ -16215,6 +16758,147 @@ export const useSimulateMockNftAppraisalSetTokenCardId =
   /*#__PURE__*/ createUseSimulateContract({
     abi: mockNftAppraisalAbi,
     functionName: 'setTokenCardId',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__
+ */
+export const useReadMockProtocolTreasuryContract =
+  /*#__PURE__*/ createUseReadContract({ abi: mockProtocolTreasuryAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"asset"`
+ */
+export const useReadMockProtocolTreasuryAsset =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'asset',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"owner"`
+ */
+export const useReadMockProtocolTreasuryOwner =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'owner',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__
+ */
+export const useWriteMockProtocolTreasuryContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: mockProtocolTreasuryAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"executeRedemption"`
+ */
+export const useWriteMockProtocolTreasuryExecuteRedemption =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'executeRedemption',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"onRevenueReceived"`
+ */
+export const useWriteMockProtocolTreasuryOnRevenueReceived =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'onRevenueReceived',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"setAsset"`
+ */
+export const useWriteMockProtocolTreasurySetAsset =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'setAsset',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"transferOut"`
+ */
+export const useWriteMockProtocolTreasuryTransferOut =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'transferOut',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__
+ */
+export const useSimulateMockProtocolTreasuryContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: mockProtocolTreasuryAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"executeRedemption"`
+ */
+export const useSimulateMockProtocolTreasuryExecuteRedemption =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'executeRedemption',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"onRevenueReceived"`
+ */
+export const useSimulateMockProtocolTreasuryOnRevenueReceived =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'onRevenueReceived',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"setAsset"`
+ */
+export const useSimulateMockProtocolTreasurySetAsset =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'setAsset',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `functionName` set to `"transferOut"`
+ */
+export const useSimulateMockProtocolTreasuryTransferOut =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: mockProtocolTreasuryAbi,
+    functionName: 'transferOut',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__
+ */
+export const useWatchMockProtocolTreasuryContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: mockProtocolTreasuryAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `eventName` set to `"ProtocolRevenueReceived"`
+ */
+export const useWatchMockProtocolTreasuryProtocolRevenueReceived =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: mockProtocolTreasuryAbi,
+    eventName: 'ProtocolRevenueReceived',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `eventName` set to `"ProtocolTransfer"`
+ */
+export const useWatchMockProtocolTreasuryProtocolTransfer =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: mockProtocolTreasuryAbi,
+    eventName: 'ProtocolTransfer',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link mockProtocolTreasuryAbi}__ and `eventName` set to `"RedemptionExecuted"`
+ */
+export const useWatchMockProtocolTreasuryRedemptionExecuted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: mockProtocolTreasuryAbi,
+    eventName: 'RedemptionExecuted',
   })
 
 /**

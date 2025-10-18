@@ -1,11 +1,11 @@
 # NFT Appraisal Component
 
-A WAVS component for appraising Pokemon trading cards using the Pokemon Price Tracker API with caching, proof-of-integrity verification, and EVM contract event integration.
+A WAVS component for appraising Scrydex trading cards using the Scrydex API with caching, proof-of-integrity verification, and EVM contract event integration.
 
 ## Features
 
 - **EVM Contract Event Triggered**: Only responds to EVM contract events with AppraisalRequested signature
-- **Real Pokemon Price Tracker API**: Full integration with https://www.pokemonpricetracker.com/api
+- **Real Scrydex API**: Full integration with Scrydex API
 - **WASI Key-Value Caching**: Built-in caching with configurable TTL (default 24 hours)
 - **Grade Support**: PSA 10, PSA 9, raw card pricing from real market data
 - **Proof of Integrity**: Courtyard NFT authenticity verification using SHA3 verification
@@ -21,14 +21,14 @@ Only accepts `TriggerData::EvmContractEvent` - all other trigger types are rejec
 2. **ERC721 Query**: Fetch `tokenURI` from the NFT contract
 3. **Courtyard Validation**: Verify URI is from Courtyard API and fetch metadata
 4. **Integrity Verification**: Validate proof-of-integrity using SHA3 verification
-5. **Pokemon Parsing**: Extract card name, grade, set, etc. from metadata attributes
-6. **Price Lookup**: Query Pokemon Price Tracker API with caching
+5. **Scrydex Parsing**: Extract card name, grade, set, etc. from metadata attributes
+6. **Price Lookup**: Query Scrydex API with caching
 7. **ABI Encoding**: Encode result as `AppraisalSuccess` or `AppraisalError` struct
 
 ## Configuration
 
 ### Environment Variables (Secrets)
-- `WAVS_ENV_POKEMON_PRICE_API_KEY`: Your Pokemon Price Tracker API key (required)
+- `WAVS_ENV_SCRYDEX_API_KEY`: Your Scrydex API key (required)
 
 ## Request Format (EVM Event Data)
 
@@ -75,7 +75,7 @@ struct AppraisalError {
 
 ### Courtyard NFT API
 - **Metadata Endpoint**: Fetches NFT metadata from `tokenURI`
-- **Card Parsing**: Extracts Pokemon card details from metadata attributes:
+- **Card Parsing**: Extracts Scrydex card details from metadata attributes:
   - Card name from `title` or `subject` attributes
   - Grade from grading-related attributes (PSA 10, PSA 9, etc.)
   - Set name, card number, rarity from metadata
@@ -87,11 +87,11 @@ struct AppraisalError {
 - **Multi-chain Support**: Works with any EVM chain specified in events
 - **Contract Validation**: Verifies contract implements ERC721Metadata
 
-### Pokemon Price Tracker API
-- **Endpoint**: `https://www.pokemonpricetracker.com/api/prices`
+### Scrydex API
+- **Endpoint**: Scrydex API endpoint
 - **Authentication**: ✅ Bearer token authentication via `Authorization` header
-- **Query Parameters**: `name`, `setId` for precise card matching
-- **Response Parsing**: JSON with `data`, `error`, and `message` fields  
+- **Query Parameters**: Card name and set parameters for precise card matching
+- **Response Parsing**: JSON with pricing data and metadata fields
 - **WASI Caching**: Results cached with 24-hour TTL using `wasi:keyvalue/store`
 - **Rate Limiting**: Handles 429 responses with clear error messages
 
@@ -110,11 +110,10 @@ cargo test
 
 ## API Rate Limits
 
-Pokemon Price Tracker API limits:
-- **Free Tier**: 200 requests/day
-- **API (Non-Commercial)**: 20,000 requests/day  
-- **Business**: 200,000 requests/day
-- **All plans**: 60 requests per minute
+Scrydex API limits:
+- Rate limits and usage tiers depend on your Scrydex API plan
+- Check your Scrydex documentation for specific limits
+- Handles 429 responses with automatic retry logic
 
 ## Testing
 

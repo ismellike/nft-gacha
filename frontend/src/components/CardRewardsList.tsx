@@ -63,7 +63,7 @@ export function CardRewardsList() {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const treasury = contracts.treasury as Address | undefined;
-	const rewardsManager = contracts.rewardsManager as Address | undefined;
+	const rewardsManager = contracts.economyManager as Address | undefined;
 	const { loadAllCardDeposits } = useTreasuryUserCards(treasury);
 	const { claimForCard, claimAllUserCards, isPending } =
 		useRewardsClaiming(rewardsManager);

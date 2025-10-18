@@ -44,6 +44,10 @@ import {
 	useWriteGachaEmergencyPause,
 	useWriteGachaEmergencyUnpause,
 	useReadGachaPaused,
+	useReadGachaTreasuryGetWhitelistedCollections,
+	useWriteGachaTreasuryAddToWhitelist,
+	useWriteGachaTreasuryRemoveFromWhitelist,
+	useReadGachaTreasuryGetUserCardDepositsPage,
 } from "@/generated";
 import { parseUnits } from "viem";
 import { formatTokenAmount, formatPercentage } from "@/lib/utils";
@@ -459,6 +463,50 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 }
 
 function WhitelistSection() {
+	const [newCollectionAddress, setNewCollectionAddress] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
+
+	const treasuryAddress = process.env.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
+	const { data: whitelistedCollections, refetch: refetchWhitelist } = useReadGachaTreasuryGetWhitelistedCollections({
+		address: treasuryAddress,
+	} as any);
+
+	const { writeContract: addToWhitelist } = useWriteGachaTreasuryAddToWhitelist();
+	const { writeContract: removeFromWhitelist } = useWriteGachaTreasuryRemoveFromWhitelist();
+
+	const handleAddCollection = async () => {
+		if (!newCollectionAddress || !newCollectionAddress.startsWith('0x')) return;
+
+		setIsLoading(true);
+		try {
+			await addToWhitelist({
+				address: treasuryAddress,
+				args: [newCollectionAddress as `0x${string}`],
+			});
+			setNewCollectionAddress("");
+			await refetchWhitelist();
+		} catch (error) {
+			console.error('Error adding collection to whitelist:', error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleRemoveCollection = async (collectionAddress: string) => {
+		setIsLoading(true);
+		try {
+			await removeFromWhitelist({
+				address: treasuryAddress,
+				args: [collectionAddress as `0x${string}`],
+			});
+			await refetchWhitelist();
+		} catch (error) {
+			console.error('Error removing collection from whitelist:', error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
 	return (
 		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
@@ -470,20 +518,95 @@ function WhitelistSection() {
 				</p>
 			</div>
 
-			<div className="text-center py-12">
-				<FolderOpenIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
-				<h3 className="text-lg font-medium text-foreground/60 mb-2">
-					Coming Soon
+			{/* Add New Collection */}
+			<div className="mb-8">
+				<h3 className="text-lg font-semibold text-foreground mb-4">
+					Add Collection to Whitelist
 				</h3>
-				<p className="text-foreground/40">
-					Whitelist management interface will be available in the next update.
-				</p>
+				<div className="flex gap-4">
+					<input
+						type="text"
+						value={newCollectionAddress}
+						onChange={(e) => setNewCollectionAddress(e.target.value)}
+						placeholder="0x..."
+						className="flex-1 bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
+					/>
+					<Button
+						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+						onPress={handleAddCollection}
+						disabled={!newCollectionAddress || isLoading}
+						isLoading={isLoading}
+					>
+						Add Collection
+					</Button>
+				</div>
+			</div>
+
+			{/* Whitelisted Collections */}
+			<div>
+				<h3 className="text-lg font-semibold text-foreground mb-4">
+					Whitelisted Collections
+				</h3>
+				{whitelistedCollections && whitelistedCollections.length > 0 ? (
+					<div className="space-y-3">
+						{whitelistedCollections.map((collection, index) => (
+							<div
+								key={index}
+								className="flex items-center justify-between p-4 bg-content1/10 border border-white/10 rounded-xl"
+							>
+								<div className="flex items-center gap-3">
+									<ShieldCheckIcon className="w-5 h-5 text-success" />
+									<div>
+										<div className="font-mono text-sm text-foreground">
+											{collection}
+										</div>
+										<div className="text-xs text-foreground/60">
+											Approved Collection
+										</div>
+									</div>
+								</div>
+								<Button
+									className="rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30 px-4 py-2"
+									onPress={() => handleRemoveCollection(collection)}
+									disabled={isLoading}
+								>
+									<XCircleIcon className="w-4 h-4" />
+								</Button>
+							</div>
+						))}
+					</div>
+				) : (
+					<div className="text-center py-12">
+						<ShieldCheckIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
+						<h3 className="text-lg font-medium text-foreground/60 mb-2">
+							No Whitelisted Collections
+						</h3>
+						<p className="text-foreground/40">
+							Add NFT collection addresses to approve them for deposits.
+						</p>
+					</div>
+				)}
 			</div>
 		</Card>
 	);
 }
 
 function DepositsSection() {
+	const [userAddress, setUserAddress] = useState("");
+
+	const treasuryAddress = process.env.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
+	const { data: userDeposits, refetch: refetchDeposits } = useReadGachaTreasuryGetUserCardDepositsPage({
+		address: treasuryAddress,
+		args: userAddress && userAddress.startsWith('0x') ? [userAddress as `0x${string}`, 0n, 10n] : undefined,
+		query: { enabled: !!userAddress && userAddress.startsWith('0x') },
+	} as any);
+
+	const handleSearchDeposits = () => {
+		if (userAddress && userAddress.startsWith('0x')) {
+			refetchDeposits();
+		}
+	};
+
 	return (
 		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
@@ -491,19 +614,116 @@ function DepositsSection() {
 					Pending Deposits
 				</h2>
 				<p className="text-foreground/70">
-					Review and approve NFT deposits from contributors.
+					Review and inspect NFT deposits from any user address.
 				</p>
 			</div>
 
-			<div className="text-center py-12">
-				<FolderOpenIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
-				<h3 className="text-lg font-medium text-foreground/60 mb-2">
-					No Pending Deposits
+			{/* User Address Search */}
+			<div className="mb-8">
+				<h3 className="text-lg font-semibold text-foreground mb-4">
+					Search User Deposits
 				</h3>
-				<p className="text-foreground/40">
-					All deposits have been processed. New deposits will appear here for
-					review.
-				</p>
+				<div className="flex gap-4">
+					<input
+						type="text"
+						value={userAddress}
+						onChange={(e) => setUserAddress(e.target.value)}
+						placeholder="Enter user wallet address (0x...)"
+						className="flex-1 bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
+					/>
+					<Button
+						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+						onPress={handleSearchDeposits}
+						disabled={!userAddress || !userAddress.startsWith('0x')}
+					>
+						Search
+					</Button>
+				</div>
+			</div>
+
+			{/* Deposits Display */}
+			<div>
+				<h3 className="text-lg font-semibold text-foreground mb-4">
+					Deposit History
+				</h3>
+				{userDeposits && Array.isArray(userDeposits[0]) && userDeposits[0].length > 0 ? (
+					<div className="space-y-4">
+						{userDeposits[0].map((deposit: any, index: number) => (
+							<div
+								key={index}
+								className="p-4 bg-content1/10 border border-white/10 rounded-xl"
+							>
+								<div className="flex items-center justify-between mb-3">
+									<div className="flex items-center gap-3">
+										<FolderOpenIcon className="w-5 h-5 text-warning" />
+										<div>
+											<div className="font-mono text-sm text-foreground">
+												Card ID: {deposit.cardId ? `${deposit.cardId.slice(0, 10)}...` : 'Unknown'}
+											</div>
+											<div className="text-xs text-foreground/60">
+												Deposit Count: {deposit.depositCount?.toString() || '0'}
+											</div>
+										</div>
+									</div>
+									<Chip
+										className="px-2 py-1 rounded-lg backdrop-blur-xl bg-success/20 border border-success/30 text-success"
+									>
+										{deposit.totalCardDeposits?.toString() || '0'} Total
+									</Chip>
+								</div>
+
+								<div className="grid grid-cols-3 gap-4 text-sm">
+									<div>
+										<span className="text-foreground/60">Card ID:</span>
+										<div className="font-mono text-xs text-foreground">
+											{deposit.cardId || 'Unknown'}
+										</div>
+									</div>
+									<div>
+										<span className="text-foreground/60">Deposits:</span>
+										<div className="font-mono text-xs text-foreground">
+											{deposit.depositCount?.toString() || '0'}
+										</div>
+									</div>
+									<div>
+										<span className="text-foreground/60">Total:</span>
+										<div className="font-mono text-xs text-foreground">
+											{deposit.totalCardDeposits?.toString() || '0'}
+										</div>
+									</div>
+								</div>
+							</div>
+						))}
+
+						{userDeposits[2] && (
+							<div className="text-center mt-4">
+								<p className="text-foreground/60 text-sm">
+									Showing {userDeposits[0].length} of {userDeposits[1]?.toString() || '0'} total deposits
+								</p>
+							</div>
+						)}
+					</div>
+				) : userAddress && userAddress.startsWith('0x') ? (
+					<div className="text-center py-12">
+						<FolderOpenIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
+						<h3 className="text-lg font-medium text-foreground/60 mb-2">
+							No Deposits Found
+						</h3>
+						<p className="text-foreground/40">
+							This user hasn't deposited any NFTs yet.
+						</p>
+					</div>
+				) : (
+					<div className="text-center py-12">
+						<FolderOpenIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
+						<h3 className="text-lg font-medium text-foreground/60 mb-2">
+							Enter User Address
+						</h3>
+						<p className="text-foreground/40">
+							Search for a user's wallet address to view their NFT deposits.
+						</p>
+					</div>
+				)}
 			</div>
 		</Card>
 	);
