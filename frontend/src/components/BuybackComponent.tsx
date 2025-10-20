@@ -25,6 +25,7 @@ interface BuybackComponentProps {
 	gachaTreasuryAddress?: string;
 	rarity?: string;
 	onSuccess?: (txHash: string) => void;
+	onBuybackSuccess?: (txHash: string, payoutAmount: bigint) => void;
 	size?: "sm" | "md" | "lg";
 	variant?: "button" | "card" | "full";
 	showTreasuryRestock?: boolean;
@@ -38,6 +39,7 @@ export default function BuybackComponent({
 	gachaTreasuryAddress,
 	rarity,
 	onSuccess,
+	onBuybackSuccess,
 	size = "md",
 	variant = "card",
 	showTreasuryRestock = true
@@ -68,8 +70,12 @@ export default function BuybackComponent({
 			params.onSuccess = onSuccess;
 		}
 
+		if (onBuybackSuccess) {
+			params.onBuybackSuccess = onBuybackSuccess;
+		}
+
 		return params;
-	}, [tokenId, onSuccess, showNotification]);
+	}, [tokenId, onSuccess, onBuybackSuccess, showNotification]);
 
 	// Use the unified NFT interaction hook
 	const {
@@ -79,7 +85,14 @@ export default function BuybackComponent({
 		isLoading,
 		startInteraction,
 		getActionInfo,
+		reset,
 	} = useNFTInteraction(interactionParams);
+
+	// Enhanced success state data
+	const isSuccessState = currentState === "completed" && (context.successData as any)?.mode === "buyback";
+	const successTimestamp = context.successData && context.completedAt
+		? new Date(context.completedAt).toLocaleString()
+		: null;
 
 	// Contract data hooks
 	const { data: ownerOf } = useReadContract({
@@ -167,6 +180,17 @@ export default function BuybackComponent({
 		? (needsApproval ? "Approve NFT" : "Accept Buyback")
 		: null;
 
+	// Determine button label based on current state
+	const getButtonLabel = () => {
+		if (currentState === "idle") {
+			return needsApproval ? "Approve NFT" : "Accept Buyback";
+		}
+		if (actionInfo.label) {
+			return actionInfo.label;
+		}
+		return "Accept Buyback";
+	};
+
 	// Handle starting the buyback interaction
 	const handleStartBuyback = useCallback(async () => {
 		const priceValue = Array.isArray(appraisalPrice)
@@ -209,15 +233,7 @@ export default function BuybackComponent({
 			await handleStartBuyback();
 			return;
 		}
-
-		if (actionInfo.action) {
-			try {
-				actionInfo.action();
-			} catch (error) {
-				console.error("Action execution failed:", error);
-			}
-		}
-	}, [currentState, actionInfo, handleStartBuyback]);
+	}, [currentState, handleStartBuyback]);
 
 	// Treasury status helper
 	const getTreasuryStatus = () => {
@@ -286,7 +302,7 @@ export default function BuybackComponent({
 					</Chip>
 				</div>
 
-				{currentState === "completed" ? (
+	{isSuccessState ? (
 					<motion.div
 						initial={{ opacity: 0, scale: 0.9 }}
 						animate={{ opacity: 1, scale: 1 }}
@@ -298,25 +314,43 @@ export default function BuybackComponent({
 							</svg>
 						</div>
 						<div>
-							<h4 className="text-white font-bold text-lg mb-2">Sale Successful!</h4>
+							<h4 className="text-white font-bold text-lg mb-2">Buyback Successful!</h4>
 							<p className="text-emerald-300 font-semibold text-xl mb-2">
-								You received {formatCurrency(payoutAmount?.toString() || "0", 6, "USDC")}
+								You received {formatCurrency((context.successData as any)?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
 							</p>
+							{successTimestamp && (
+								<p className="text-white/60 text-xs mb-2">
+									Completed: {successTimestamp}
+								</p>
+							)}
 							{showTreasuryRestock && (
 								<p className="text-white/70 text-sm">
 									Your NFT has been restocked in the treasury for other players to win
 								</p>
 							)}
 						</div>
-						{context.interactionTxHash && (
-							<Button
-								size="sm"
-								color="glass"
-								onPress={() => window.open(`https://etherscan.io/tx/${context.interactionTxHash}`, "_blank")}
-								className="bg-white/10 hover:bg-white/20"
-							>
-								View Transaction
-							</Button>
+						{(context.successData as any)?.txHash && (
+							<div className="flex flex-col gap-2">
+								<Button
+									size="sm"
+									color="glass"
+									onPress={() => window.open(`https://etherscan.io/tx/${(context.successData as any)?.txHash}`, "_blank")}
+									className="bg-white/10 hover:bg-white/20"
+								>
+									View Transaction
+								</Button>
+								<Button
+									size="sm"
+									color="glass"
+									onPress={() => {
+										// Reset the state machine to allow new interactions
+										reset();
+									}}
+									className="bg-white/10 hover:bg-white/20"
+								>
+									Start New Transaction
+								</Button>
+							</div>
 						)}
 					</motion.div>
 				) : (
@@ -376,7 +410,7 @@ export default function BuybackComponent({
 							}
 							className="w-full"
 						>
-							{actionInfo.label || defaultActionLabel || `Sell for ${formattedPayoutAmount}`}
+							{getButtonLabel() || `Sell for ${formattedPayoutAmount}`}
 						</Button>
 
 						{shouldShowPayout && (
@@ -416,14 +450,17 @@ export default function BuybackComponent({
 					)}
 				</div>
 
-				{currentState === "completed" ? (
+				{isSuccessState ? (
 					<div className="text-center space-y-2">
 						<div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
 							<svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
 							</svg>
 						</div>
-						<p className="text-emerald-300 font-bold">Sold for {formatCurrency(payoutAmount?.toString() || "0", 6, "USDC")}</p>
+						<p className="text-emerald-300 font-bold">Sold for {formatCurrency((context.successData as any)?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}</p>
+						{successTimestamp && (
+							<p className="text-white/50 text-xs">Completed: {successTimestamp}</p>
+						)}
 						{showTreasuryRestock && (
 							<p className="text-white/60 text-xs">NFT restocked in treasury</p>
 						)}
@@ -507,7 +544,7 @@ export default function BuybackComponent({
 						}
 						className={`${classes.button} bg-orange-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed`}
 					>
-						{actionInfo.label || defaultActionLabel || `Sell for ${formattedPayoutAmount}`}
+						{getButtonLabel() || `Sell for ${formattedPayoutAmount}`}
 					</button>
 				)}
 			</motion.div>

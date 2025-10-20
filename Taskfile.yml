@@ -19,6 +19,8 @@ includes:
     taskfile: ./taskfile/cli.yml
   pricing:
     taskfile: ./taskfile/pricing.yml
+  debug:
+    taskfile: ./taskfile/debug.yml
   component:
     taskfile: ./taskfile/component.yml
 

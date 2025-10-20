@@ -12,6 +12,7 @@ interface UseNFTInteractionParams {
 	onAction?: (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void;
 	onAppraisalStatusChange?: (collection: string, tokenId: string, hasValidAppraisal: boolean) => void;
 	refetchTreasuryCards?: () => Promise<void>;
+	onBuybackSuccess?: (txHash: string, payoutAmount: bigint) => void;
 }
 
 export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
@@ -25,6 +26,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			onAction: params.onAction,
 			onAppraisalStatusChange: params.onAppraisalStatusChange,
 			refetchTreasuryCards: params.refetchTreasuryCards,
+			onBuybackSuccess: params.onBuybackSuccess,
 		},
 	});
 
@@ -115,6 +117,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			onAction: params.onAction,
 			onAppraisalStatusChange: params.onAppraisalStatusChange,
 			refetchTreasuryCards: params.refetchTreasuryCards,
+			onBuybackSuccess: params.onBuybackSuccess,
 		});
 	}, [userAddress, publicClient, sendInteractionEvent, params]);
 
@@ -360,18 +363,24 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		}
 	}, [isRedemptionError, redemptionError, interactionState, sendInteractionEvent, resetRedemption]);
 
+	// Handle automatic action execution when entering awaitingInteractionSignature
+	useEffect(() => {
+		if (interactionState.matches("awaitingInteractionSignature")) {
+			const mode = interactionState.context.mode;
+			console.log("🎯 Automatically executing action for", mode);
+
+			if (mode === "deposit" && interactionState.context.collection && interactionState.context.tokenId && interactionState.context.treasuryAddress) {
+				handleDepositNFT(interactionState.context.collection, interactionState.context.tokenId, interactionState.context.treasuryAddress);
+			} else if (mode === "buyback" && interactionState.context.collection && interactionState.context.tokenId && interactionState.context.protocolTreasuryAddress) {
+				handleRedemption(interactionState.context.collection, interactionState.context.tokenId, interactionState.context.protocolTreasuryAddress);
+			}
+		}
+	}, [interactionState.matches("awaitingInteractionSignature"), interactionState.context.mode, interactionState.context.collection, interactionState.context.tokenId, interactionState.context.treasuryAddress, interactionState.context.protocolTreasuryAddress, handleDepositNFT, handleRedemption]);
+
 	// Handle transaction receipt confirmation
 	useEffect(() => {
 		const receipt = depositReceipt || redemptionReceipt;
-		console.log("🔍 Checking receipt:", {
-			receipt: !!receipt,
-			depositReceipt: !!depositReceipt,
-			redemptionReceipt: !!redemptionReceipt,
-			currentState: interactionState.value,
-			isAwaitingReceipt: interactionState.matches("awaitingInteractionReceipt")
-		});
 		if (receipt && interactionState.matches("awaitingInteractionReceipt")) {
-			console.log("📤 Sending INTERACTION_REQUESTED event");
 			sendInteractionEvent({
 				type: "INTERACTION_REQUESTED",
 			});

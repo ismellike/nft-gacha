@@ -1,0 +1,86 @@
+version: "3"
+
+vars:
+  DEFAULT_RPC_URL: "http://localhost:8548"
+
+tasks:
+  protocol-wiring:
+    desc: Inspect ProtocolTreasury wiring (appraisal oracle, gacha treasury, economy manager)
+    vars:
+      RPC_URL: "{{.RPC_URL | default .DEFAULT_RPC_URL}}"
+      PROTOCOL_TREASURY: "{{.PROTOCOL_TREASURY | default .PROTOCOL_TREASURY_ADDRESS}}"
+    preconditions:
+      - sh: 'command -v cast'
+        msg: "cast (foundry) is required but not installed"
+      - sh: '[ -n "{{.PROTOCOL_TREASURY}}" ]'
+        msg: "PROTOCOL_TREASURY_ADDRESS (or PROTOCOL_TREASURY var) must be set"
+    cmds:
+      - |
+        echo "[debug] ProtocolTreasury wiring on {{.RPC_URL}}"
+        echo "protocolTreasury: {{.PROTOCOL_TREASURY}}"
+        echo "gachaTreasury: $(cast call {{.PROTOCOL_TREASURY}} 'gachaTreasury()' --rpc-url {{.RPC_URL}})"
+        echo "appraisalOracle: $(cast call {{.PROTOCOL_TREASURY}} 'appraisalOracle()' --rpc-url {{.RPC_URL}})"
+        echo "economyManager: $(cast call {{.PROTOCOL_TREASURY}} 'economyManager()' --rpc-url {{.RPC_URL}})"
+        echo "asset (USDC): $(cast call {{.PROTOCOL_TREASURY}} 'asset()' --rpc-url {{.RPC_URL}})"
+        echo "paused: $(cast call {{.PROTOCOL_TREASURY}} 'paused()' --rpc-url {{.RPC_URL}})"
+
+  gacha-wiring:
+    desc: Inspect GachaTreasury wiring (protocol treasury, gacha contract, appraisal)
+    vars:
+      RPC_URL: "{{.RPC_URL | default .DEFAULT_RPC_URL}}"
+      GACHA_TREASURY: "{{.GACHA_TREASURY | default .GACHA_TREASURY_ADDRESS}}"
+    preconditions:
+      - sh: 'command -v cast'
+        msg: "cast (foundry) is required but not installed"
+      - sh: '[ -n "{{.GACHA_TREASURY}}" ]'
+        msg: "GACHA_TREASURY_ADDRESS (or GACHA_TREASURY var) must be set"
+    cmds:
+      - |
+        echo "[debug] GachaTreasury wiring on {{.RPC_URL}}"
+        echo "gachaTreasury: {{.GACHA_TREASURY}}"
+        echo "protocolTreasury: $(cast call {{.GACHA_TREASURY}} 'protocolTreasury()' --rpc-url {{.RPC_URL}})"
+        echo "gachaContract: $(cast call {{.GACHA_TREASURY}} 'gachaContract()' --rpc-url {{.RPC_URL}})"
+        echo "appraisalContract: $(cast call {{.GACHA_TREASURY}} 'appraisalContract()' --rpc-url {{.RPC_URL}})"
+
+  appraisal:
+    desc: Fetch appraisal price and status for a collection/token pair
+    vars:
+      RPC_URL: "{{.RPC_URL | default .DEFAULT_RPC_URL}}"
+      APPRAISAL_ORACLE: "{{.APPRAISAL_ORACLE | default .NFT_APPRAISAL_ADDRESS}}"
+      COLLECTION: "{{.COLLECTION}}"
+      TOKEN_ID: "{{.TOKEN_ID}}"
+    preconditions:
+      - sh: 'command -v cast'
+        msg: "cast (foundry) is required but not installed"
+      - sh: '[ -n "{{.APPRAISAL_ORACLE}}" ]'
+        msg: "NFT_APPRAISAL_ADDRESS (or APPRAISAL_ORACLE) must be set"
+      - sh: '[ -n "{{.COLLECTION}}" ]'
+        msg: "COLLECTION address is required"
+      - sh: '[ -n "{{.TOKEN_ID}}" ]'
+        msg: "TOKEN_ID is required"
+    cmds:
+      - |
+        echo "[debug] Appraisal for collection {{.COLLECTION}} token {{.TOKEN_ID}} via {{.APPRAISAL_ORACLE}}"
+        cast call {{.APPRAISAL_ORACLE}} 'getAppraisedPrice(address,uint256)' {{.COLLECTION}} {{.TOKEN_ID}} --rpc-url {{.RPC_URL}}
+        echo "hasAppraisal: $(cast call {{.APPRAISAL_ORACLE}} 'hasAppraisal(address,uint256)' {{.COLLECTION}} {{.TOKEN_ID}} --rpc-url {{.RPC_URL}})"
+
+  receive-time:
+    desc: Inspect GachaTreasury receive time for a token
+    vars:
+      RPC_URL: "{{.RPC_URL | default .DEFAULT_RPC_URL}}"
+      GACHA_TREASURY: "{{.GACHA_TREASURY | default .GACHA_TREASURY_ADDRESS}}"
+      COLLECTION: "{{.COLLECTION}}"
+      TOKEN_ID: "{{.TOKEN_ID}}"
+    preconditions:
+      - sh: 'command -v cast'
+        msg: "cast (foundry) is required but not installed"
+      - sh: '[ -n "{{.GACHA_TREASURY}}" ]'
+        msg: "GACHA_TREASURY_ADDRESS (or GACHA_TREASURY) must be set"
+      - sh: '[ -n "{{.COLLECTION}}" ]'
+        msg: "COLLECTION address is required"
+      - sh: '[ -n "{{.TOKEN_ID}}" ]'
+        msg: "TOKEN_ID is required"
+    cmds:
+      - |
+        echo "[debug] Receive time for collection {{.COLLECTION}} token {{.TOKEN_ID}} in treasury {{.GACHA_TREASURY}}"
+        cast call {{.GACHA_TREASURY}} 'getNFTReceiveTime(address,uint256)' {{.COLLECTION}} {{.TOKEN_ID}} --rpc-url {{.RPC_URL}}

@@ -80,6 +80,8 @@ contract ProtocolTreasury is
         _treasury = GachaTreasury(treasury_);
         appraisalOracle = NFTAppraisal(appraisalOracle_);
 
+        redemptionWindow = 1 hours;
+
         _transferOwnership(owner);
     }
 
