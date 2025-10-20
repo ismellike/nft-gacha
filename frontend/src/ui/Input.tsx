@@ -76,7 +76,7 @@ export const GlassInput = extendVariants(HeroInput, {
 export interface InputProps extends React.ComponentProps<typeof GlassInput> {}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => (
-	<GlassInput ref={ref as any} {...props} />
+	<GlassInput ref={ref} {...props} />
 ));
 
 Input.displayName = "Input";

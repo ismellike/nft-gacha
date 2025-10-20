@@ -30,7 +30,7 @@ export const GlassButton = extendVariants(HeroButton, {
 export interface ButtonProps extends React.ComponentProps<typeof GlassButton> {}
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-	(props, ref) => <GlassButton ref={ref as any} {...props} />,
+	(props, ref) => <GlassButton ref={ref} {...props} />,
 );
 
 Button.displayName = "Button";

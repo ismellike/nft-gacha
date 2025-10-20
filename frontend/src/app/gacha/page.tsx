@@ -7,7 +7,6 @@ import { useAccount, useWriteContract } from "wagmi";
 import {
 	ArrowLeftIcon,
 	BoltIcon,
-	GiftIcon,
 	UserCircleIcon,
 	CogIcon,
 	XCircleIcon,
@@ -114,7 +113,7 @@ function GachaDetailPageContent() {
 			// Invalid section parameter, reset to spin
 			handleTabChange("spin");
 		}
-	}, [sectionParam, handleTabChange]);
+	}, [sectionParam, handleTabChange, validSections.includes]);
 
 	// Redirect to spin tab if trying to access admin without permissions
 	useEffect(() => {

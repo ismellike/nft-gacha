@@ -26,7 +26,7 @@ export default defineConfig({
 				"NFTAppraisalServiceHandler",
 				"ProtocolTreasury",
 			],
-		} as any),
+		}),
 		react({
 			getHookName({ type, contractName, itemName }) {
 				// Always include contract name to ensure uniqueness

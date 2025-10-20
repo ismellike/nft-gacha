@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 import { Card, Button } from "../ui";
 import {
 	BanknotesIcon,

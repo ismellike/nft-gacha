@@ -15,7 +15,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { SimpleRarityShowcase } from "../components/RaritySystem";
 import {
-	getRarityConfig,
 	getRarityColorHex,
 	Rarity,
 } from "../lib/rarityConfig";

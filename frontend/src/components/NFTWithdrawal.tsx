@@ -159,7 +159,9 @@ export const NFTWithdrawal: React.FC = () => {
 						</p>
 						<Button
 							variant="light"
-							onPress={() => window.location.hash = "deposits"}
+							onPress={() => {
+								window.location.hash = "deposits";
+							}}
 							className="rounded-xl bg-content2/20 hover:bg-content2/30"
 						>
 							Deposit NFTs

@@ -355,7 +355,7 @@ export const nftInteractionMachine = createMachine(
 			),
 		},
 		actions: {
-			clearState: assign(({
+			clearState: assign({
 				collection: null,
 				tokenId: null,
 				treasuryAddress: null,
@@ -378,8 +378,8 @@ export const nftInteractionMachine = createMachine(
 				onAppraisalStatusChange: undefined as ((collection: string, tokenId: string, hasValidAppraisal: boolean) => void) | undefined,
 				refetchTreasuryCards: undefined as (() => Promise<void>) | undefined,
 				onBuybackSuccess: undefined as ((txHash: string, payoutAmount: bigint) => void) | undefined,
-			}) as any),
-			setInteractionParams: assign(({
+			}),
+			setInteractionParams: assign({
 				collection: ({ event }: { event: NFTInteractionEvent }) =>
 					event.type === "START_INTERACTION" ? event.collection : null,
 				tokenId: ({ event }: { event: NFTInteractionEvent }) =>
@@ -412,7 +412,7 @@ export const nftInteractionMachine = createMachine(
 					event.type === "START_INTERACTION" ? event.onBuybackSuccess : undefined,
 				retryCount: 0,
 				error: null as string | null,
-			}) as any),
+			}),
 			determineApprovalNeeds: assign({
 				nftApprovalNeeded: true,
 			}),
@@ -436,8 +436,9 @@ export const nftInteractionMachine = createMachine(
 				error: null, // Don't set error for user cancellation - this is normal behavior
 				retryCount: 0,
 			}),
-			logCancellation: ({ context, self }: { context: NFTInteractionContext; self: any }) => {
-							},
+			logCancellation: () => {
+				console.log("NFT interaction cancelled by user");
+			},
 			setError: assign({
 				error: ({ event }) => {
 					if (event.type === "FAIL") {
@@ -481,7 +482,7 @@ export const nftInteractionMachine = createMachine(
 					console.error("Error in completion callbacks:", error);
 				}
 			},
-			setSuccessData: assign(({
+			setSuccessData: assign({
 				completedAt: Date.now(),
 				successData: ({ context }) => {
 					if (context.interactionTxHash) {
@@ -493,7 +494,7 @@ export const nftInteractionMachine = createMachine(
 					}
 					return null;
 				},
-			}) as any),
+			}),
 		},
 		guards: {
 			canRetry: ({ context }) => context.retryCount < MAX_RETRIES,

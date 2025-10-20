@@ -34,7 +34,7 @@ export interface ModalProps extends React.ComponentProps<typeof GlassModal> {
 const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 	({ className = "", ...props }, ref) => (
 		<GlassModal
-			ref={ref as any}
+			ref={ref}
 			{...props}
 		/>
 	),

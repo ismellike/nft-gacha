@@ -63,7 +63,7 @@ export const GlassChip = extendVariants(HeroChip, {
 export interface ChipProps extends React.ComponentProps<typeof GlassChip> {}
 
 const Chip = React.forwardRef<HTMLDivElement, ChipProps>((props, ref) => (
-	<GlassChip ref={ref as any} {...props} />
+	<GlassChip ref={ref} {...props} />
 ));
 
 Chip.displayName = "Chip";

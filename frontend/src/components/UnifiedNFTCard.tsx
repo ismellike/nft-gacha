@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, memo, useMemo, useEffect } from "react";
+import { useState, memo, useMemo } from "react";
 import NextImage from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/theme-config";
@@ -30,7 +30,6 @@ import { processImageUrl } from "../lib/nft-metadata";
 import type { NFTMetadata } from "../types/hooks";
 import SellToTreasury from "./SellToTreasury";
 import { getGachaConfig } from "../lib/gacha-config";
-import { Button } from "../ui/Button";
 
 // Enhanced props for the unified NFT card
 export interface UnifiedNFTCardProps {
