@@ -161,6 +161,7 @@ export default function NFTRevealModal({
 											animate={true}
 											rarity={resultRarity}
 											{...(protocolTreasuryAddress && { protocolTreasuryAddress })}
+											{...(gachaConfig?.treasuryAddress && { gachaTreasuryAddress: gachaConfig.treasuryAddress })}
 											{...(gachaId && { gachaId })}
 										/>
 									</div>

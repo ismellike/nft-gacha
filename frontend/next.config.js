@@ -18,25 +18,16 @@ const nextConfig = {
 	images: {
 		unoptimized: true,
 		formats: ["image/webp", "image/avif"],
-		// Allow external image domains
-		domains: [
-			"static.courtyard.io",
-			"api.courtyard.io",
-			"ipfs.io",
-			"gateway.pinata.cloud",
-			"cloudflare-ipfs.com",
-			// Image proxy services
-			"images.weserv.nl",
-			"cors-anywhere.herokuapp.com",
-		],
-		// Remote patterns for more flexible domain matching
+		// Remote patterns for external image domains
 		remotePatterns: [
+			// Courtyard domains - allow all subdomains and paths
 			{
 				protocol: "https",
 				hostname: "*.courtyard.io",
 				port: "",
 				pathname: "/**",
 			},
+			// IPFS and decentralized storage
 			{
 				protocol: "https",
 				hostname: "ipfs.io",
@@ -46,12 +37,6 @@ const nextConfig = {
 			{
 				protocol: "https",
 				hostname: "*.pinata.cloud",
-				port: "",
-				pathname: "/**",
-			},
-			{
-				protocol: "https",
-				hostname: "images.weserv.nl",
 				port: "",
 				pathname: "/**",
 			},

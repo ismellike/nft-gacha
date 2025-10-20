@@ -208,6 +208,10 @@ export const nftInteractionMachine = createMachine(
 						target: "awaitingNFTApprovalReceipt",
 						actions: "setNFTApprovalTxHash",
 					},
+					INTERACTION_CANCELLED: {
+						target: "idle",
+						actions: ["setInteractionCancelled", "logCancellation"],
+					},
 					FAIL: {
 						target: "idle",
 						actions: "setError",
@@ -220,6 +224,10 @@ export const nftInteractionMachine = createMachine(
 					NFT_APPROVAL_REQUESTED: {
 						target: "awaitingInteractionSignature",
 					},
+					INTERACTION_CANCELLED: {
+						target: "idle",
+						actions: ["setInteractionCancelled", "logCancellation"],
+					},
 					FAIL: {
 						target: "idle",
 						actions: "setError",
@@ -230,7 +238,8 @@ export const nftInteractionMachine = createMachine(
 			awaitingInteractionSignature: {
 				on: {
 					INTERACTION_CANCELLED: {
-						actions: "setInteractionCancelled",
+						target: "idle",
+						actions: ["setInteractionCancelled", "logCancellation"],
 					},
 					INTERACTION_CONFIRMED: {
 						target: "awaitingInteractionReceipt",
@@ -247,6 +256,10 @@ export const nftInteractionMachine = createMachine(
 				on: {
 					INTERACTION_REQUESTED: {
 						target: "confirmingInteraction",
+					},
+					INTERACTION_CANCELLED: {
+						target: "idle",
+						actions: ["setInteractionCancelled", "logCancellation"],
 					},
 					FAIL: {
 						target: "idle",
@@ -284,6 +297,13 @@ export const nftInteractionMachine = createMachine(
 			},
 			completed: {
 				entry: ["clearError", "handleInteractionCompletion", "setSuccessData"],
+				after: {
+					// Only auto-reset for deposits, not buybacks (buybacks should stay completed)
+					3000: {
+						target: "idle",
+						guard: ({ context }) => context.mode === "deposit"
+					},
+				},
 				on: {
 					RESET: "idle",
 				},
@@ -323,14 +343,12 @@ export const nftInteractionMachine = createMachine(
 								throw new Error("NFT still owned by user - deposit confirmation failed");
 							}
 
-							console.log("✅ [NFTInteractionMachine] NFT deposit confirmed");
-						} else if (mode === "buyback") {
+													} else if (mode === "buyback") {
 							// For buyback, we just need to confirm the transaction was successful
 							// The user should still own the NFT after buyback (they get paid USDC)
-							console.log("✅ [NFTInteractionMachine] Buyback transaction confirmed - user still owns NFT");
-						}
+													}
 					} catch (error) {
-						console.error(`❌ [NFTInteractionMachine] ${mode} confirmation failed:`, error);
+						console.error(`NFT interaction ${mode} confirmation failed:`, error);
 						throw error;
 					}
 				},
@@ -414,10 +432,12 @@ export const nftInteractionMachine = createMachine(
 			}),
 			setInteractionCancelled: assign({
 				interactionTxHash: null,
-				error: ({ event }) => (event.type === "INTERACTION_CANCELLED"
-					? (event.reason || "Transaction was cancelled before submission.")
-					: null),
+				nftApprovalTxHash: null,
+				error: null, // Don't set error for user cancellation - this is normal behavior
+				retryCount: 0,
 			}),
+			logCancellation: ({ context, self }: { context: NFTInteractionContext; self: any }) => {
+							},
 			setError: assign({
 				error: ({ event }) => {
 					if (event.type === "FAIL") {
@@ -439,8 +459,6 @@ export const nftInteractionMachine = createMachine(
 				retryCount: ({ context }) => context.retryCount + 1,
 			}),
 			handleInteractionCompletion: ({ context }) => {
-				console.log(`✅ [NFTInteractionMachine] ${context.mode} completed successfully`);
-
 				// Trigger completion callbacks if available
 				try {
 					if (context.onSuccess && context.interactionTxHash) {
@@ -460,7 +478,7 @@ export const nftInteractionMachine = createMachine(
 						context.onBuybackSuccess(context.interactionTxHash, context.payoutAmount);
 					}
 				} catch (error) {
-					console.error("❌ [NFTInteractionMachine] Error in completion callbacks:", error);
+					console.error("Error in completion callbacks:", error);
 				}
 			},
 			setSuccessData: assign(({

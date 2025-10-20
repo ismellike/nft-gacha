@@ -3,7 +3,7 @@
 import {
 	useReadDepositorVaultAccYieldPerShare,
 	useReadDepositorVaultAsset,
-		useReadDepositorVaultEconomyManager,
+	useReadDepositorVaultEconomyManager,
 	useReadDepositorVaultOwner,
 	useReadDepositorVaultPaused,
 	useReadDepositorVaultPendingYield,

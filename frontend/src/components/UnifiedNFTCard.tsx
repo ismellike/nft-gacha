@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, memo, useMemo } from "react";
+import { useState, memo, useMemo, useEffect } from "react";
 import NextImage from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/theme-config";
@@ -26,11 +26,11 @@ import {
 	formatCardTitle,
 	formatGradeDisplay,
 } from "../lib/courtyard-utils";
-import { useImageWithFallbacks } from "../lib/image-proxy";
 import { processImageUrl } from "../lib/nft-metadata";
 import type { NFTMetadata } from "../types/hooks";
 import SellToTreasury from "./SellToTreasury";
 import { getGachaConfig } from "../lib/gacha-config";
+import { Button } from "../ui/Button";
 
 // Enhanced props for the unified NFT card
 export interface UnifiedNFTCardProps {
@@ -47,8 +47,6 @@ export interface UnifiedNFTCardProps {
 	size?: "xs" | "sm" | "md" | "lg" | "xl";
 	variant?: "minimal" | "compact" | "detailed" | "showcase";
 	enableTraitExpansion?: boolean; // Whether traits can be expanded/collapsed
-	// Performance options
-	preload?: boolean;
 	// Extended details and actions
 	collectionName?: string; // Custom collection name to display
 	extraDetails?: Array<{ label: string; value: string; highlight?: boolean }>; // Additional detail rows
@@ -106,6 +104,7 @@ const UnifiedAppraisalDisplay: React.FC<{
 		},
 	});
 
+
 	// Use override data if provided, otherwise use hook data
 	const useOverride = override && typeof override.priceUSD === "bigint";
 	const finalHasAppraisal = useOverride ? override?.hasAppraisal : hasAppraisal;
@@ -118,27 +117,45 @@ const UnifiedAppraisalDisplay: React.FC<{
 	const finalPriceError = useOverride ? undefined : priceError;
 
 	const isLoading = finalCheckingAppraisal || finalLoadingPrice;
-	const priceUSD = Array.isArray(finalAppraisalPrice)
-		? (finalAppraisalPrice as readonly unknown[])[0]
-		: finalAppraisalPrice;
 
-	// Normalize to bigint for safe comparison
+	// Extract price and status from appraisal data
 	let priceAsBigInt: bigint = 0n;
-	if (typeof priceUSD === "bigint") {
-		priceAsBigInt = priceUSD;
-	} else if (
-		priceUSD != null &&
-		typeof priceUSD === "object" &&
-		"toString" in priceUSD
-	) {
-		try {
-			priceAsBigInt = BigInt(String(priceUSD));
-		} catch {
-			priceAsBigInt = 0n;
+	let appraisalStatus: number = 0; // Default to Pending
+
+	if (useOverride) {
+		priceAsBigInt = override?.priceUSD || 0n;
+		// For override, assume valid status
+		appraisalStatus = 1; // Completed
+	} else if (finalAppraisalPrice) {
+		// Handle if the data is from getAppraisedPrice (returns [price, status])
+		if (Array.isArray(finalAppraisalPrice)) {
+			priceAsBigInt = finalAppraisalPrice[0] as bigint;
+			appraisalStatus = Number(finalAppraisalPrice[1]);
+		}
+		// Handle if it's already a bigint
+		else if (typeof finalAppraisalPrice === "bigint") {
+			priceAsBigInt = finalAppraisalPrice;
+		}
+		// Handle if it's an object with toString method
+		else if (
+			finalAppraisalPrice != null &&
+			typeof finalAppraisalPrice === "object" &&
+			"toString" in finalAppraisalPrice
+		) {
+			try {
+				priceAsBigInt = BigInt(String(finalAppraisalPrice));
+			} catch {
+				priceAsBigInt = 0n;
+			}
 		}
 	}
 
-	const hasValidAppraisal = Boolean(finalHasAppraisal && priceAsBigInt > 0n);
+	// Check for valid appraisal: has appraisal, price > 0, and status is Completed (1) or OwnerOverride (2)
+	const hasValidAppraisal = Boolean(
+		finalHasAppraisal &&
+		priceAsBigInt > 0n &&
+		(appraisalStatus === 1 || appraisalStatus === 2)
+	);
 	const hasError =
 		(finalAppraisalCheckError as unknown as boolean) ||
 		(finalPriceError as unknown as boolean);
@@ -202,7 +219,7 @@ const UnifiedAppraisalDisplay: React.FC<{
 				<div
 					className={cn("font-bold text-white drop-shadow-lg", styles.price)}
 				>
-					{formatCurrency(priceUSD?.toString() || "0", 18, "USD")}
+					{formatCurrency(priceAsBigInt?.toString() || "0", 18, "USD")}
 				</div>
 			</div>
 		);
@@ -244,116 +261,109 @@ const UnifiedNFTImage: React.FC<{
 	metadata,
 	tokenURI,
 }) => {
-	// Determine the best image URL using the unified metadata provided by parent
-	const actualImageUrl = useMemo(() => {
-		// Priority: provided imageUrl > fallbackImageUrl from hook > processed from metadata
-		if (imageUrl) return imageUrl;
-		if (fallbackImageUrl) return fallbackImageUrl;
+		// Determine the best image URL using the unified metadata provided by parent
+		const actualImageUrl = useMemo(() => {
+			// Priority: provided imageUrl > fallbackImageUrl from hook > processed from metadata
+			if (imageUrl) return imageUrl;
+			if (fallbackImageUrl) return fallbackImageUrl;
 
-		if (metadata) {
-			if (isCourtyardTokenURI(tokenURI || "")) {
-				return processCourtyardImageUrl(metadata as CourtyardMetadata);
+			if (metadata) {
+				if (isCourtyardTokenURI(tokenURI || "")) {
+					return processCourtyardImageUrl(metadata as CourtyardMetadata);
+				}
+				return processImageUrl(metadata.image, metadata);
 			}
-			return processImageUrl(metadata.image, metadata);
+
+			return null;
+		}, [imageUrl, fallbackImageUrl, metadata, tokenURI]);
+
+		// Use the image URL directly
+		const displayImageUrl = actualImageUrl;
+
+		// Size configurations optimized for performance - made images take up more space
+		const sizeClasses = {
+			xs: { container: "w-20 h-20", icon: "w-3 h-3", rounded: "rounded-lg" },
+			sm: { container: "w-32 h-32", icon: "w-4 h-4", rounded: "rounded-lg" },
+			md: { container: "w-48 h-48", icon: "w-6 h-6", rounded: "rounded-xl" },
+			lg: { container: "w-56 h-56", icon: "w-8 h-8", rounded: "rounded-xl" },
+			xl: { container: "w-72 h-72", icon: "w-12 h-12", rounded: "rounded-2xl" },
+		};
+
+		const classes = sizeClasses[size || "md"];
+
+		const isLoading = false;
+		// Show error state only when we have no image URL at all
+		const hasError = !displayImageUrl;
+
+		const rarityConfig = rarity ? getRarityConfig(rarity) : null;
+
+		if (hasError && !isLoading) {
+			return (
+				<div
+					className={cn(
+						classes.container,
+						classes.rounded,
+						"bg-red-500/10 border border-red-500/30 flex items-center justify-center",
+					)}
+				>
+					<div className={cn(classes.icon, "text-red-400")}>⚠</div>
+				</div>
+			);
 		}
 
-		return null;
-	}, [imageUrl, fallbackImageUrl, metadata, tokenURI]);
-
-	// Use image proxy with optimized settings
-	const {
-		finalUrl,
-		isLoading: isProxyLoading,
-		error: proxyError,
-	} = useImageWithFallbacks(actualImageUrl);
-
-	// Size configurations optimized for performance - made images take up more space
-	const sizeClasses = {
-		xs: { container: "w-20 h-20", icon: "w-3 h-3", rounded: "rounded-lg" },
-		sm: { container: "w-32 h-32", icon: "w-4 h-4", rounded: "rounded-lg" },
-		md: { container: "w-48 h-48", icon: "w-6 h-6", rounded: "rounded-xl" },
-		lg: { container: "w-56 h-56", icon: "w-8 h-8", rounded: "rounded-xl" },
-		xl: { container: "w-72 h-72", icon: "w-12 h-12", rounded: "rounded-2xl" },
-	};
-
-	const classes = sizeClasses[size || "md"];
-
-	const isLoading = isProxyLoading;
-	// Only show error state when we actually had an image URL to try and it failed.
-	const attemptedImageLoad = !!actualImageUrl;
-	const hasError =
-		!isProxyLoading && attemptedImageLoad && (proxyError || !finalUrl);
-
-	const rarityConfig = rarity ? getRarityConfig(rarity) : null;
-
-	if (hasError && !isLoading) {
 		return (
 			<div
 				className={cn(
 					classes.container,
 					classes.rounded,
-					"bg-red-500/10 border border-red-500/30 flex items-center justify-center",
+					"relative overflow-hidden bg-white/5 backdrop-blur-xl shadow-lg",
+					rarityConfig
+						? `border ${rarityConfig.borderColor}/40 ${rarityConfig.glowColor}`
+						: "border border-white/20",
 				)}
 			>
-				<div className={cn(classes.icon, "text-red-400")}>⚠</div>
+				{/* Removed gradient overlay to prevent bleeding onto image */}
+
+				{isLoading && (
+					<div
+						className={cn(
+							"absolute inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center z-20",
+							classes.rounded,
+						)}
+					>
+						<motion.div
+							className={cn(
+								classes.icon,
+								"border-2 border-white/30 rounded-full",
+								rarityConfig ? "border-t-warning" : "border-t-warning",
+							)}
+							animate={{ rotate: 360 }}
+							transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+						/>
+					</div>
+				)}
+
+				{displayImageUrl && (
+					<NextImage
+						src={displayImageUrl}
+						alt={
+							(metadata?.name as string | undefined) ||
+							`NFT ${formatTokenId(tokenId)}`
+						}
+						width={512}
+						height={512}
+						className={cn(
+							classes.container,
+							classes.rounded,
+							"object-cover relative z-0",
+						)}
+						priority={priority > 7}
+						unoptimized={displayImageUrl.includes('courtyard.io')}
+					/>
+				)}
 			</div>
 		);
-	}
-
-	return (
-		<div
-			className={cn(
-				classes.container,
-				classes.rounded,
-				"relative overflow-hidden bg-white/5 backdrop-blur-xl shadow-lg",
-				rarityConfig
-					? `border ${rarityConfig.borderColor}/40 ${rarityConfig.glowColor}`
-					: "border border-white/20",
-			)}
-		>
-			{/* Removed gradient overlay to prevent bleeding onto image */}
-
-			{isLoading && (
-				<div
-					className={cn(
-						"absolute inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center z-20",
-						classes.rounded,
-					)}
-				>
-					<motion.div
-						className={cn(
-							classes.icon,
-							"border-2 border-white/30 rounded-full",
-							rarityConfig ? "border-t-warning" : "border-t-warning",
-						)}
-						animate={{ rotate: 360 }}
-						transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-					/>
-				</div>
-			)}
-
-			{finalUrl && (
-				<NextImage
-					src={finalUrl}
-					alt={
-						(metadata?.name as string | undefined) ||
-						`NFT ${formatTokenId(tokenId)}`
-					}
-					width={512}
-					height={512}
-					className={cn(
-						classes.container,
-						classes.rounded,
-						"object-cover relative z-0",
-					)}
-					crossOrigin="anonymous"
-					priority={priority > 7}
-					referrerPolicy="no-referrer-when-downgrade"
-				/>
-			)}
-		</div>
-	);
-};
+	};
 
 // Standard NFT trait filtering following industry best practices
 function filterNFTTraits(
@@ -427,78 +437,78 @@ const UnifiedTraitDisplay: React.FC<{
 	enableExpansion,
 	isCourtyardNFT,
 }) => {
-	// Start with standard traits array
-	let traits = filterNFTTraits(metadata.attributes, isCourtyardNFT);
+		// Start with standard traits array
+		let traits = filterNFTTraits(metadata.attributes, isCourtyardNFT);
 
-	// For Courtyard NFTs, synthesize a minimal trait set if none present
-	const parsedData = isCourtyardNFT
-		? parseCourtyardMetadata(metadata as CourtyardMetadata)
-		: null;
+		// For Courtyard NFTs, synthesize a minimal trait set if none present
+		const parsedData = isCourtyardNFT
+			? parseCourtyardMetadata(metadata as CourtyardMetadata)
+			: null;
 
-	if (isCourtyardNFT && traits.length === 0 && parsedData) {
-		const fallback: Array<{ trait_type: string; value: string | number }> = [];
-		if (parsedData.setInfo.set) {
-			fallback.push({ trait_type: "Set", value: parsedData.setInfo.set });
+		if (isCourtyardNFT && traits.length === 0 && parsedData) {
+			const fallback: Array<{ trait_type: string; value: string | number }> = [];
+			if (parsedData.setInfo.set) {
+				fallback.push({ trait_type: "Set", value: parsedData.setInfo.set });
+			}
+			if (parsedData.setInfo.cardNumber) {
+				fallback.push({
+					trait_type: "Card No.",
+					value: parsedData.setInfo.cardNumber,
+				});
+			}
+			if (parsedData.setInfo.year) {
+				fallback.push({ trait_type: "Year", value: parsedData.setInfo.year });
+			}
+			if (parsedData.cardDetails.category) {
+				fallback.push({
+					trait_type: "Category",
+					value: parsedData.cardDetails.category,
+				});
+			}
+			if (parsedData.cardDetails.variant) {
+				fallback.push({
+					trait_type: "Variant",
+					value: parsedData.cardDetails.variant,
+				});
+			}
+			if (parsedData.setInfo.edition) {
+				fallback.push({
+					trait_type: "Edition",
+					value: parsedData.setInfo.edition,
+				});
+			}
+			if (parsedData.setInfo.rarity) {
+				fallback.push({ trait_type: "Rarity", value: parsedData.setInfo.rarity });
+			}
+			traits = fallback;
 		}
-		if (parsedData.setInfo.cardNumber) {
-			fallback.push({
-				trait_type: "Card No.",
-				value: parsedData.setInfo.cardNumber,
-			});
-		}
-		if (parsedData.setInfo.year) {
-			fallback.push({ trait_type: "Year", value: parsedData.setInfo.year });
-		}
-		if (parsedData.cardDetails.category) {
-			fallback.push({
-				trait_type: "Category",
-				value: parsedData.cardDetails.category,
-			});
-		}
-		if (parsedData.cardDetails.variant) {
-			fallback.push({
-				trait_type: "Variant",
-				value: parsedData.cardDetails.variant,
-			});
-		}
-		if (parsedData.setInfo.edition) {
-			fallback.push({
-				trait_type: "Edition",
-				value: parsedData.setInfo.edition,
-			});
-		}
-		if (parsedData.setInfo.rarity) {
-			fallback.push({ trait_type: "Rarity", value: parsedData.setInfo.rarity });
-		}
-		traits = fallback;
-	}
 
-	if (!traits.length && !(isCourtyardNFT && parsedData?.grading.grade))
-		return null;
+		if (!traits.length && !(isCourtyardNFT && parsedData?.grading.grade))
+			return null;
 
-	// Size-responsive styling
-	const sizeStyles = {
-		xs: { text: "text-[8px]", title: "text-[9px]", padding: "p-1" },
-		sm: { text: "text-[9px]", title: "text-[10px]", padding: "p-1.5" },
-		md: { text: "text-xs", title: "text-sm", padding: "p-2" },
-		lg: { text: "text-sm", title: "text-base", padding: "p-2.5" },
-		xl: { text: "text-base", title: "text-lg", padding: "p-3" },
-	};
+		// Size-responsive styling
+		const sizeStyles = {
+			xs: { text: "text-[8px]", title: "text-[9px]", padding: "p-1" },
+			sm: { text: "text-[9px]", title: "text-[10px]", padding: "p-1.5" },
+			md: { text: "text-xs", title: "text-sm", padding: "p-2" },
+			lg: { text: "text-sm", title: "text-base", padding: "p-2.5" },
+			xl: { text: "text-base", title: "text-lg", padding: "p-3" },
+		};
 
-	const styles = sizeStyles[size || "md"];
+		const styles = sizeStyles[size || "md"];
 
-	// parsedData already computed above
+		// parsedData already computed above
 
-	// Limit traits shown when collapsed
-	const maxCollapsedTraits = size === "xs" ? 2 : size === "sm" ? 3 : 4;
-	const visibleTraits = isExpanded
-		? traits
-		: traits.slice(0, maxCollapsedTraits);
+		// Limit traits shown when collapsed
+		const maxCollapsedTraits = size === "xs" ? 2 : size === "sm" ? 3 : 4;
+		const visibleTraits = isExpanded
+			? traits
+			: traits.slice(0, maxCollapsedTraits);
 
-	// For Courtyard NFTs, add grading info as the first trait if available
-	const allTraitsToShow =
-		isCourtyardNFT && parsedData?.grading.grade
-			? [
+		// For Courtyard NFTs, add grading info as the first trait if available
+		const allTraitsToShow =
+			isCourtyardNFT && parsedData?.grading.grade
+				? [
 					{
 						trait_type: "Grade",
 						value: formatGradeDisplay(
@@ -509,89 +519,89 @@ const UnifiedTraitDisplay: React.FC<{
 					},
 					...visibleTraits,
 				]
-			: visibleTraits;
+				: visibleTraits;
 
-	const adjustedMaxCollapsed =
-		isCourtyardNFT && parsedData?.grading.grade
-			? maxCollapsedTraits + 1 // Add one more to account for grade
-			: maxCollapsedTraits;
+		const adjustedMaxCollapsed =
+			isCourtyardNFT && parsedData?.grading.grade
+				? maxCollapsedTraits + 1 // Add one more to account for grade
+				: maxCollapsedTraits;
 
-	const finalVisibleTraits = isExpanded
-		? allTraitsToShow
-		: allTraitsToShow.slice(0, adjustedMaxCollapsed);
-	const finalHasMoreTraits = allTraitsToShow.length > adjustedMaxCollapsed;
+		const finalVisibleTraits = isExpanded
+			? allTraitsToShow
+			: allTraitsToShow.slice(0, adjustedMaxCollapsed);
+		const finalHasMoreTraits = allTraitsToShow.length > adjustedMaxCollapsed;
 
-	return (
-		<div className="space-y-1">
-			{/* Traits Grid */}
-			<div
-				className={cn(
-					"bg-white/5 backdrop-blur-md rounded-xl border border-white/20",
-					styles.padding,
-				)}
-			>
-				<div className="flex items-center justify-between mb-1">
-					<span
-						className={cn(
-							"text-white/70 font-medium uppercase tracking-wide",
-							styles.title,
-						)}
-					>
-						{isCourtyardNFT ? "Details" : "Traits"}
-					</span>
-					{enableExpansion && finalHasMoreTraits && (
-						<button
-							type="button"
-							onClick={onToggle}
+		return (
+			<div className="space-y-1">
+				{/* Traits Grid */}
+				<div
+					className={cn(
+						"bg-white/5 backdrop-blur-md rounded-xl border border-white/20",
+						styles.padding,
+					)}
+				>
+					<div className="flex items-center justify-between mb-1">
+						<span
 							className={cn(
-								"text-white/60 hover:text-white/90 transition-colors",
-								styles.text,
+								"text-white/70 font-medium uppercase tracking-wide",
+								styles.title,
 							)}
 						>
-							{isExpanded
-								? "Less"
-								: `+${allTraitsToShow.length - adjustedMaxCollapsed}`}
-						</button>
-					)}
-				</div>
-
-				<AnimatePresence>
-					<motion.div
-						layout
-						className="grid grid-cols-1 gap-1"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						transition={{ duration: 0.2 }}
-					>
-						{finalVisibleTraits.map((trait, index) => (
-							<motion.div
-								key={`${trait.trait_type}-${index}`}
-								layout
-								initial={{ opacity: 0, y: 10 }}
-								animate={{ opacity: 1, y: 0 }}
-								exit={{ opacity: 0, y: -10 }}
-								transition={{ delay: index * 0.05 }}
-								className="flex justify-between items-center"
+							{isCourtyardNFT ? "Details" : "Traits"}
+						</span>
+						{enableExpansion && finalHasMoreTraits && (
+							<button
+								type="button"
+								onClick={onToggle}
+								className={cn(
+									"text-white/60 hover:text-white/90 transition-colors",
+									styles.text,
+								)}
 							>
-								<span className={cn("text-white/80", styles.text)}>
-									{trait.trait_type}:
-								</span>
-								<span className={cn("text-white font-medium", styles.text)}>
-									{typeof trait.value === "string"
-										? trait.value.length > 15
-											? `${trait.value.slice(0, 15)}...`
-											: trait.value
-										: trait.value}
-								</span>
-							</motion.div>
-						))}
-					</motion.div>
-				</AnimatePresence>
+								{isExpanded
+									? "Less"
+									: `+${allTraitsToShow.length - adjustedMaxCollapsed}`}
+							</button>
+						)}
+					</div>
+
+					<AnimatePresence>
+						<motion.div
+							layout
+							className="grid grid-cols-1 gap-1"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							transition={{ duration: 0.2 }}
+						>
+							{finalVisibleTraits.map((trait, index) => (
+								<motion.div
+									key={`${trait.trait_type}-${index}`}
+									layout
+									initial={{ opacity: 0, y: 10 }}
+									animate={{ opacity: 1, y: 0 }}
+									exit={{ opacity: 0, y: -10 }}
+									transition={{ delay: index * 0.05 }}
+									className="flex justify-between items-center"
+								>
+									<span className={cn("text-white/80", styles.text)}>
+										{trait.trait_type}:
+									</span>
+									<span className={cn("text-white font-medium", styles.text)}>
+										{typeof trait.value === "string"
+											? trait.value.length > 15
+												? `${trait.value.slice(0, 15)}...`
+												: trait.value
+											: trait.value}
+									</span>
+								</motion.div>
+							))}
+						</motion.div>
+					</AnimatePresence>
+				</div>
 			</div>
-		</div>
-	);
-};
+		);
+	};
 
 // Main unified NFT card component
 export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
@@ -609,7 +619,6 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		size = "md",
 		variant = "detailed",
 		enableTraitExpansion = true,
-		preload = false,
 		collectionName,
 		extraDetails,
 		rewardsSlot,
@@ -668,14 +677,6 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 
 		const isCourtyardNFT =
 			isCourtyardTokenURI(nftData.tokenURI || "") || metadataLooksCourtyard;
-		console.log("[UnifiedNFTCard] token", {
-			collection,
-			tokenId,
-			tokenURI: nftData.tokenURI,
-			isCourtyardNFT,
-			hasMetadata: !!nftData.metadata,
-			hasImageUrl: !!nftData.imageUrl,
-		});
 
 		// Get rarity theming
 		const rarityConfig = rarity ? getRarityConfig(rarity) : null;
@@ -705,7 +706,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		const gachaConfig = gachaId ? getGachaConfig(gachaId) : null;
 		const finalProtocolTreasuryAddress = protocolTreasuryAddress || gachaConfig?.protocolTreasuryAddress;
 
-		// Create redemption action if treasury is available - simplified version
+	// Create redemption action if treasury is available - simplified version
 		const redemptionAction = finalProtocolTreasuryAddress ? (
 			<motion.div
 				initial={{ opacity: 0, y: 10 }}
@@ -727,7 +728,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 			</motion.div>
 		) : null;
 
-		// Merge custom actionSlot with redemption action
+		// Merge custom actionSlot with redemption actions
 		const finalActionSlot = (
 			<div className="flex flex-col gap-2 items-center justify-center">
 				{actionSlot}
@@ -775,23 +776,23 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 			() => ({
 				hover: animate
 					? {
-							scale: size === "xs" ? 1.1 : size === "sm" ? 1.05 : 1.02,
-							transition: {
-								type: "spring" as const,
-								stiffness: 400,
-								damping: 25,
-							},
-						}
+						scale: size === "xs" ? 1.1 : size === "sm" ? 1.05 : 1.02,
+						transition: {
+							type: "spring" as const,
+							stiffness: 400,
+							damping: 25,
+						},
+					}
 					: {},
 				tap: animate
 					? {
-							scale: size === "xs" ? 0.9 : size === "sm" ? 0.95 : 0.98,
-							transition: {
-								type: "spring" as const,
-								stiffness: 500,
-								damping: 30,
-							},
-						}
+						scale: size === "xs" ? 0.9 : size === "sm" ? 0.95 : 0.98,
+						transition: {
+							type: "spring" as const,
+							stiffness: 500,
+							damping: 30,
+						},
+					}
 					: {},
 			}),
 			[animate, size],
@@ -855,12 +856,12 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		const CardComponent = animate ? motion.div : "div";
 		const motionProps = animate
 			? {
-					initial: { opacity: 0, y: 10, scale: 0.98 },
-					animate: { opacity: 1, y: 0, scale: 1 },
-					...(isInteractive && { whileHover: cardVariants.hover }),
-					...(isInteractive && { whileTap: cardVariants.tap }),
-					transition: { duration: 0.2, ease: "easeOut" as const },
-				}
+				initial: { opacity: 0, y: 10, scale: 0.98 },
+				animate: { opacity: 1, y: 0, scale: 1 },
+				...(isInteractive && { whileHover: cardVariants.hover }),
+				...(isInteractive && { whileTap: cardVariants.tap }),
+				transition: { duration: 0.2, ease: "easeOut" as const },
+			}
 			: {};
 
 		return (

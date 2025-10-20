@@ -114,9 +114,10 @@ const VirtualizedGridItem = memo<{
 		enableLazyLoading: _,
 		onItemClick,
 	}) => {
+		// Use stable references for click handler to prevent unnecessary rerenders
 		const handleClick = useCallback(() => {
 			onItemClick?.(item);
-		}, [onItemClick, item]);
+		}, [onItemClick, item.collection, item.tokenId]); // Use stable identifiers instead of object reference
 
 		// Calculate priority based on position in grid
 		const priority = useMemo(() => {
@@ -126,33 +127,48 @@ const VirtualizedGridItem = memo<{
 			return 1;
 		}, [index, priorityLoadCount]);
 
+		// Memoize animation props to prevent recreation
+		const shouldAnimate = animate;
+		const animationDelay = Math.min(index * 0.05, 1);
+
+		// Memoize NFT card props to prevent unnecessary prop changes
+		const nftCardProps = useMemo(() => ({
+			collection: item.collection,
+			tokenId: item.tokenId,
+			...(item.imageUrl && { imageUrl: item.imageUrl }),
+			...(item.rarity && { rarity: item.rarity }),
+			size: config.cardSize,
+			variant: "detailed",
+			showAppraisal,
+			enableTraitExpansion: true,
+			appraisalContractAddress,
+			animate,
+			priority,
+			onClick: handleClick,
+		}), [
+			item.collection,
+			item.tokenId,
+			item.imageUrl,
+			item.rarity,
+			config.cardSize,
+			showAppraisal,
+			appraisalContractAddress,
+			animate,
+			priority,
+			handleClick,
+		]);
+
 		return (
 			<motion.div
-				initial={animate ? { opacity: 0, y: 20, scale: 0.9 } : false}
-				animate={animate ? { opacity: 1, y: 0, scale: 1 } : false}
-				{...(animate && {
-					transition: {
-						duration: 0.3,
-						delay: Math.min(index * 0.05, 1), // Stagger with max 1s delay
-						ease: "easeOut",
-					},
-				})}
+				initial={shouldAnimate ? { opacity: 0, y: 20, scale: 0.9 } : undefined}
+				animate={shouldAnimate ? { opacity: 1, y: 0, scale: 1 } : undefined}
+				transition={shouldAnimate ? {
+					duration: 0.3,
+					delay: animationDelay,
+					ease: [0.4, 0.0, 0.2, 1],
+				} : undefined}
 			>
-				<UnifiedNFTCard
-					collection={item.collection}
-					tokenId={item.tokenId}
-					{...(item.imageUrl && { imageUrl: item.imageUrl })}
-					{...(item.rarity && { rarity: item.rarity })}
-					size={config.cardSize}
-					variant="detailed"
-					showAppraisal={showAppraisal}
-					enableTraitExpansion={true}
-					preload={true}
-					appraisalContractAddress={appraisalContractAddress}
-					animate={animate}
-					priority={priority}
-					onClick={handleClick}
-				/>
+				<UnifiedNFTCard {...nftCardProps} />
 			</motion.div>
 		);
 	},
@@ -170,15 +186,14 @@ const NFTGrid = memo<NFTGridProps>(
 		showAppraisal = true,
 		animate = true,
 		className,
-		virtualizeThreshold = 100,
 		itemsPerPage,
 		enableLazyLoading = true,
 		priorityLoadCount = 12,
 	}) => {
 		const [currentPage, setCurrentPage] = useState(0);
 
-		// Get grid configuration
-		const config = GRID_CONFIGS[layout][size];
+		// Get grid configuration (stable reference)
+		const config = useMemo(() => GRID_CONFIGS[layout][size], [layout, size]);
 
 		// Handle pagination if enabled
 		const paginatedItems = useMemo(() => {
@@ -189,21 +204,20 @@ const NFTGrid = memo<NFTGridProps>(
 			return items.slice(start, end);
 		}, [items, currentPage, itemsPerPage]);
 
-		// Use virtualization for large lists
-		const shouldVirtualize = items.length > virtualizeThreshold;
-
 		// Calculate total pages for pagination
-		const totalPages = itemsPerPage
-			? Math.ceil(items.length / itemsPerPage)
-			: 1;
+		const totalPages = useMemo(() => {
+			return itemsPerPage ? Math.ceil(items.length / itemsPerPage) : 1;
+		}, [items.length, itemsPerPage]);
 
-		const gridContent = (
-			<div className={cn("grid", config.cols, config.gap, className)}>
-				{paginatedItems.map((item, index) => (
+		// Memoize grid items to prevent recreation on every render
+		const gridItems = useMemo(() => {
+			return paginatedItems.map((item, index) => {
+				const itemIndex = currentPage * (itemsPerPage || 0) + index;
+				return (
 					<VirtualizedGridItem
 						key={`${item.collection}-${item.tokenId}`}
 						item={item}
-						index={currentPage * (itemsPerPage || 0) + index}
+						index={itemIndex}
 						config={config}
 						appraisalContractAddress={appraisalContractAddress}
 						showAppraisal={showAppraisal}
@@ -212,61 +226,91 @@ const NFTGrid = memo<NFTGridProps>(
 						enableLazyLoading={enableLazyLoading}
 						{...(onItemClick && { onItemClick })}
 					/>
-				))}
+				);
+			});
+		}, [
+			paginatedItems,
+			currentPage,
+			itemsPerPage,
+			config,
+			appraisalContractAddress,
+			showAppraisal,
+			animate,
+			priorityLoadCount,
+			enableLazyLoading,
+			onItemClick,
+		]);
+
+		// Memoize grid content to prevent recreation
+		const gridContent = useMemo(() => (
+			<div className={cn("grid", config.cols, config.gap, className)}>
+				{gridItems}
 			</div>
-		);
+		), [gridItems, config.cols, config.gap, className]);
+
+		// Memoize animation wrapper
+		const animatedGridContent = useMemo(() => {
+			if (!animate) return gridContent;
+
+			return (
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.5 }}
+				>
+					{gridContent}
+				</motion.div>
+			);
+		}, [animate, gridContent]);
+
+		// Memoize pagination controls
+		const paginationControls = useMemo(() => {
+			if (!itemsPerPage || totalPages <= 1) return null;
+
+			return (
+				<div className="flex justify-center items-center gap-2 mt-8">
+					<button
+						type="button"
+						onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+						disabled={currentPage === 0}
+						className={cn(
+							"px-4 py-2 rounded-lg transition-all duration-200",
+							"bg-white/10 border border-white/20 text-white/80",
+							"hover:bg-white/20 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed",
+						)}
+					>
+						Previous
+					</button>
+
+					<span className="px-4 py-2 text-white/70 text-sm">
+						Page {currentPage + 1} of {totalPages}
+					</span>
+
+					<button
+						type="button"
+						onClick={() =>
+							setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+						}
+						disabled={currentPage === totalPages - 1}
+						className={cn(
+							"px-4 py-2 rounded-lg transition-all duration-200",
+							"bg-white/10 border border-white/20 text-white/80",
+							"hover:bg-white/20 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed",
+						)}
+					>
+						Next
+					</button>
+				</div>
+			);
+		}, [itemsPerPage, totalPages, currentPage]);
 
 		return (
 			<div className="space-y-6">
 				{/* Grid content */}
-				{animate ? (
-					<motion.div
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ duration: 0.5 }}
-					>
-						{gridContent}
-					</motion.div>
-				) : (
-					gridContent
-				)}
+				{animatedGridContent}
 
 				{/* Pagination controls */}
-				{itemsPerPage && totalPages > 1 && (
-					<div className="flex justify-center items-center gap-2 mt-8">
-						<button
-							type="button"
-							onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-							disabled={currentPage === 0}
-							className={cn(
-								"px-4 py-2 rounded-lg transition-all duration-200",
-								"bg-white/10 border border-white/20 text-white/80",
-								"hover:bg-white/20 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed",
-							)}
-						>
-							Previous
-						</button>
-
-						<span className="px-4 py-2 text-white/70 text-sm">
-							Page {currentPage + 1} of {totalPages}
-						</span>
-
-						<button
-							type="button"
-							onClick={() =>
-								setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
-							}
-							disabled={currentPage === totalPages - 1}
-							className={cn(
-								"px-4 py-2 rounded-lg transition-all duration-200",
-								"bg-white/10 border border-white/20 text-white/80",
-								"hover:bg-white/20 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed",
-							)}
-						>
-							Next
-						</button>
-					</div>
-				)}
+				{paginationControls}
 			</div>
 		);
 	},

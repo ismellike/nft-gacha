@@ -17,8 +17,7 @@ import {
 import { Button, Card } from "../../ui";
 import { FlowSwitcher } from "../../components/gacha/FlowSwitcher";
 import { SpinSection } from "../../components/gacha/SpinSection";
-import { DepositorSection } from "../../components/gacha/DepositorSection";
-import { ProfileSection } from "../../components/gacha/ProfileSection";
+import { VaultSection } from "../../components/gacha/VaultSection";
 import { AdminSection } from "../../components/gacha/AdminSection";
 import { EconomySection } from "../../components/gacha/EconomySection";
 import { getGachaConfig } from "../../lib/gacha-config";
@@ -48,7 +47,7 @@ function GachaDetailPageContent() {
 	const contracts = useGachaContracts(gachaId);
 	const sectionParam = useClientSearchParam("section");
 	const updateSearchParams = useUpdateSearchParams();
-	const validSections = ["spin", "deposits", "rewards", "economy", "admin"] as const;
+	const validSections = ["spin", "vault", "economy", "admin"] as const;
 	type ValidSection = (typeof validSections)[number];
 
 	const gacha = gachaId ? getGachaConfig(gachaId) : null;
@@ -57,7 +56,7 @@ function GachaDetailPageContent() {
 		sectionParam as ValidSection,
 	)
 		? (sectionParam as ValidSection)
-		: "spin";
+		: "vault";
 
 	// Owner checks for admin access
 	const { data: gachaOwner } = useReadGachaOwner({
@@ -144,8 +143,7 @@ function GachaDetailPageContent() {
 		if (gacha) {
 			const sectionTitles = {
 				spin: "Spin & Play",
-				deposits: "NFT Deposits",
-				rewards: "My Vault & Profile",
+				vault: "My Vault & Profile",
 				economy: "Economy Overview",
 				admin: "Admin Controls",
 			};
@@ -186,7 +184,7 @@ function GachaDetailPageContent() {
 	}, [claimError]);
 
 	useEffect(() => {
-		if (activeTab === "rewards" && userAddress) {
+		if (activeTab === "vault" && userAddress) {
 			const refetchAllRewardsData = async () => {
 				try {
 					await rewardsData.refetchAllRewardsData();
@@ -208,13 +206,7 @@ function GachaDetailPageContent() {
 				description: "Play & reveal rewards",
 			},
 			{
-				id: "deposits",
-				label: "Deposit",
-				icon: GiftIcon,
-				description: "Fund the treasury",
-			},
-			{
-				id: "rewards",
+				id: "vault",
 				label: "Vault",
 				icon: UserCircleIcon,
 				description: "Manage deposits & yield",
@@ -344,15 +336,8 @@ function GachaDetailPageContent() {
 						/>
 					)}
 
-					{activeTab === "deposits" && (
-						<DepositorSection
-							title="Deposit NFTs and grow the treasury"
-							description="Surface eligible assets, request appraisals, and deposit with confidence while seeing live treasury availability."
-						/>
-					)}
-
-					{activeTab === "rewards" && (
-						<ProfileSection
+					{activeTab === "vault" && (
+						<VaultSection
 							title="Manage vault and withdraw yield"
 							description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
 						/>

@@ -89,7 +89,12 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 			});
 
 			toast.success("Yield claimed successfully!");
+
+			// Refetch immediately and then again after a short delay to ensure UI updates
 			refetchDepositorVault();
+			setTimeout(() => {
+				refetchDepositorVault();
+			}, 2000);
 		} catch (error) {
 			console.error("Error claiming yield:", error);
 			toast.error("Failed to claim yield");
@@ -165,11 +170,7 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 	};
 
 	const formatUSD = (amount: bigint) => {
-		return formatTokenAmount(amount, 6, {
-			maxDecimals: 2,
-			minDecimals: 2,
-			suffix: " USD",
-		});
+		return formatTokenAmount(amount, 6);
 	};
 
 	if (depositorLoading) {
@@ -271,7 +272,7 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 					</div>
 
 					<div className="flex justify-between">
-						<span className="text-gray-400">Est. Total Yield</span>
+						<span className="text-gray-400">Total Earned</span>
 						<span className="text-green-400 font-medium">
 							<TokenAmountDisplay
 								amount={depositorUserData.yieldValue}

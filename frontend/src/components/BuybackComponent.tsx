@@ -269,9 +269,9 @@ export default function BuybackComponent({
 
 	// Size configurations
 	const sizeClasses = {
-		sm: { button: "text-xs px-3 py-1", chip: "text-xs", text: "text-xs" },
-		md: { button: "text-sm px-4 py-2", chip: "text-sm", text: "text-sm" },
-		lg: { button: "text-base px-6 py-3", chip: "text-base", text: "text-base" }
+		sm: { button: "", chip: "text-xs", text: "text-xs" },
+		md: { button: "", chip: "text-sm", text: "text-sm" },
+		lg: { button: "", chip: "text-base", text: "text-base" }
 	};
 
 	const classes = sizeClasses[size];
@@ -521,7 +521,23 @@ export default function BuybackComponent({
 				whileHover={{ scale: 1.02 }}
 				whileTap={{ scale: 0.98 }}
 			>
-				{!hasAppraisal ? (
+				{isSuccessState ? (
+					<div className="flex flex-col items-center space-y-2">
+						<Chip
+							color="success"
+							variant="flat"
+							size="sm"
+							className={classes.chip}
+							startContent={
+								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+								</svg>
+							}
+						>
+							Sold for {formatCurrency((context.successData as any)?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
+						</Chip>
+					</div>
+				) : !hasAppraisal ? (
 					<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
 						Requires appraisal
 					</Chip>
@@ -534,21 +550,24 @@ export default function BuybackComponent({
 						Unavailable
 					</Chip>
 				) : (
-					<button
-						onClick={handleAction}
-						disabled={
+					<Button
+						color="primary"
+						size={size}
+						onPress={handleAction}
+						isLoading={isLoading || actionInfo.type === "processing"}
+						isDisabled={
 							!hasAppraisal ||
 							!hasEnoughLiquidity ||
 							isPaused ||
 							actionInfo.type === "checking"
 						}
-						className={`${classes.button} bg-orange-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed`}
+						className={classes.button}
 					>
 						{getButtonLabel() || `Sell for ${formattedPayoutAmount}`}
-					</button>
+					</Button>
 				)}
 			</motion.div>
-			{shouldShowPayout && (
+			{shouldShowPayout && !isSuccessState && (
 				<p className={`${classes.text} text-white/80 text-center`}>
 					You will receive {formattedPayoutAmount}
 				</p>

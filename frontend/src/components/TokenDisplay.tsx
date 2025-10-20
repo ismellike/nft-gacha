@@ -15,6 +15,7 @@ import { CurrencyDollarIcon } from "@heroicons/react/24/outline";
 interface TokenAmountDisplayProps {
 	amount?: bigint | undefined;
 	showUsd?: boolean;
+	decimals?: number; // Add decimals parameter
 }
 
 // Original interface
@@ -370,6 +371,7 @@ export function TokenFeeDisplay({
 export function TokenAmountDisplay({
 	amount,
 	showUsd = false,
+	decimals: defaultDecimals,
 }: TokenAmountDisplayProps) {
 	if (!amount || amount === 0n) {
 		return <span className="text-gray-400">0</span>;
@@ -377,11 +379,40 @@ export function TokenAmountDisplay({
 
 	// Format bigint to string with appropriate decimal places
 	const formatAmount = (value: bigint) => {
-		// Assuming 18 decimals for most tokens, this could be enhanced
-		// to fetch actual decimals from token contract
-		const decimals = 18n;
-		const formatted = (value * 10000n) / 10n ** decimals / 10000n;
-		return formatted.toString();
+		// Use provided decimals or default to 6 for USD-displaying tokens, 18 for others
+		const decimals = defaultDecimals !== undefined ? BigInt(defaultDecimals) : (showUsd ? 6n : 18n);
+
+		if (decimals === 0n) {
+			return value.toString();
+		}
+
+		// Format with proper decimal handling
+		const wholePart = value / 10n ** decimals;
+		const fractionalPart = value % 10n ** decimals;
+
+		if (fractionalPart === 0n) {
+			return wholePart.toString();
+		}
+
+		// Convert fractional part to string and pad with zeros
+		const fractionalStr = fractionalPart.toString().padStart(Number(decimals), '0');
+
+		// For very small values (< 0.000001), show scientific notation or more decimal places
+		const numericValue = Number(wholePart) + Number(fractionalStr) / 10 ** Number(decimals);
+
+		if (numericValue < 0.000001 && numericValue > 0) {
+			// Show more precision for very small values
+			return numericValue.toExponential(2);
+		}
+
+		// Remove trailing zeros for normal values
+		const trimmedFractional = fractionalStr.replace(/0+$/, '');
+
+		if (trimmedFractional) {
+			return `${wholePart}.${trimmedFractional}`;
+		} else {
+			return wholePart.toString();
+		}
 	};
 
 	const formattedAmount = formatAmount(amount);
@@ -390,6 +421,76 @@ export function TokenAmountDisplay({
 		<span className="text-white font-medium">
 			{formattedAmount}
 			{showUsd && <span className="text-gray-400 ml-1">USD</span>}
+		</span>
+	);
+}
+
+// Revenue display component with token symbol support
+export function RevenueDisplay({
+	amount,
+	tokenSymbol,
+	decimals,
+	compact = true,
+}: {
+	amount: bigint | undefined;
+	tokenSymbol?: string;
+	decimals?: number;
+	compact?: boolean;
+}) {
+	if (!amount || amount === 0n) {
+		return <span className="text-gray-400">0 {tokenSymbol || ''}</span>;
+	}
+
+	// Use provided decimals or default to 18
+	const tokenDecimals = decimals !== undefined ? BigInt(decimals) : 18n;
+
+	// Format bigint to string with appropriate decimal places
+	const formatAmount = (value: bigint) => {
+		if (tokenDecimals === 0n) {
+			return value.toString();
+		}
+
+		const wholePart = value / 10n ** tokenDecimals;
+		const fractionalPart = value % 10n ** tokenDecimals;
+
+		if (fractionalPart === 0n) {
+			return wholePart.toString();
+		}
+
+		// Convert fractional part to string and pad with zeros
+		const fractionalStr = fractionalPart.toString().padStart(Number(tokenDecimals), '0');
+
+		// Convert to numeric value for better formatting
+		const numericValue = Number(wholePart) + Number(fractionalStr) / 10 ** Number(tokenDecimals);
+
+		if (compact) {
+			// For compact display, show appropriate precision
+			if (numericValue < 0.001 && numericValue > 0) {
+				return numericValue.toExponential(2);
+			} else if (numericValue < 1) {
+				// Show up to 6 decimal places for small values
+				return numericValue.toFixed(6).replace(/\.?0+$/, '');
+			} else {
+				// Show up to 4 decimal places for larger values
+				return numericValue.toFixed(4).replace(/\.?0+$/, '');
+			}
+		} else {
+			// For full display, remove trailing zeros but keep precision
+			const trimmedFractional = fractionalStr.replace(/0+$/, '');
+			if (trimmedFractional) {
+				return `${wholePart}.${trimmedFractional}`;
+			} else {
+				return wholePart.toString();
+			}
+		}
+	};
+
+	const formattedAmount = formatAmount(amount);
+
+	return (
+		<span className="text-white font-medium">
+			{formattedAmount}
+			{tokenSymbol && <span className="text-gray-400 ml-1">{tokenSymbol}</span>}
 		</span>
 	);
 }
