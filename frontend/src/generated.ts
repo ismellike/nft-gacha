@@ -7409,6 +7409,26 @@ export const mockNftAppraisalAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getCardInstance',
+    outputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' }],
+    name: 'getCardInstances',
+    outputs: [
+      { name: 'collections', internalType: 'address[]', type: 'address[]' },
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
@@ -7940,6 +7960,26 @@ export const nftAppraisalAbi = [
           },
         ],
       },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getCardInstance',
+    outputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' }],
+    name: 'getCardInstances',
+    outputs: [
+      { name: 'collections', internalType: 'address[]', type: 'address[]' },
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     stateMutability: 'view',
   },
@@ -16942,6 +16982,24 @@ export const useReadMockNftAppraisalGetCardAppraisal =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"getCardInstance"`
+ */
+export const useReadMockNftAppraisalGetCardInstance =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'getCardInstance',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"getCardInstances"`
+ */
+export const useReadMockNftAppraisalGetCardInstances =
+  /*#__PURE__*/ createUseReadContract({
+    abi: mockNftAppraisalAbi,
+    functionName: 'getCardInstances',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link mockNftAppraisalAbi}__ and `functionName` set to `"getTokenCardId"`
  */
 export const useReadMockNftAppraisalGetTokenCardId =
@@ -17446,6 +17504,24 @@ export const useReadNftAppraisalGetCardAppraisals =
   /*#__PURE__*/ createUseReadContract({
     abi: nftAppraisalAbi,
     functionName: 'getCardAppraisals',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getCardInstance"`
+ */
+export const useReadNftAppraisalGetCardInstance =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getCardInstance',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"getCardInstances"`
+ */
+export const useReadNftAppraisalGetCardInstances =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'getCardInstances',
   })
 
 /**

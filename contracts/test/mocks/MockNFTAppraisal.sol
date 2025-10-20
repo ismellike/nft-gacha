@@ -104,4 +104,45 @@ contract MockNFTAppraisal {
     function getCardAppraisal(bytes32 cardId) external view returns (CardAppraisal memory) {
         return cardAppraisals[cardId];
     }
+
+    function getCardInstances(bytes32[] calldata cardIds)
+        external
+        view
+        returns (address[] memory collections, uint256[] memory tokenIds)
+    {
+        uint256 length = cardIds.length;
+        collections = new address[](length);
+        tokenIds = new uint256[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            bytes32 cardId = cardIds[i];
+            CardAppraisal storage cardAppraisal = cardAppraisals[cardId];
+
+            // Return the canonical (first) NFT instance for this card
+            if (cardAppraisal.canonicalContractAddress != address(0)) {
+                collections[i] = cardAppraisal.canonicalContractAddress;
+                tokenIds[i] = cardAppraisal.canonicalTokenId;
+            } else {
+                // No canonical instance available
+                collections[i] = address(0);
+                tokenIds[i] = 0;
+            }
+        }
+    }
+
+    function getCardInstance(bytes32 cardId)
+        external
+        view
+        returns (address collection, uint256 tokenId)
+    {
+        CardAppraisal storage cardAppraisal = cardAppraisals[cardId];
+
+        // Return the canonical (first) NFT instance for this card
+        if (cardAppraisal.canonicalContractAddress != address(0)) {
+            return (cardAppraisal.canonicalContractAddress, cardAppraisal.canonicalTokenId);
+        } else {
+            // No canonical instance available
+            return (address(0), 0);
+        }
+    }
 }

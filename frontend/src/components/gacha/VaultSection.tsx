@@ -27,6 +27,7 @@ import {
 	useClaimYield,
 	useSimulateClaimYield,
 } from "../../hooks/useDepositorVault";
+import { formatCurrency } from "../../lib/utils";
 import {
 	useTreasuryUserCards,
 	type UserCardDeposit,
@@ -39,7 +40,9 @@ import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { getGachaConfig } from "../../lib/gacha-config";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../../generated";
+import { useAppraisalContract, type CardInstance } from "../../hooks/useAppraisalContract";
 import { toast } from "react-hot-toast";
+import type { Address, Hex } from "viem";
 
 interface VaultSectionProps {
 	title: string;
@@ -51,6 +54,7 @@ type VaultTab = "deposit" | "withdraw" | "yield";
 interface WithdrawableCard extends Omit<UserCardDeposit, 'cardId'> {
 	cardId: `0x${string}`;
 	appraisalInfo: CardAppraisalInfo | null;
+	nftInstance?: CardInstance | null; // Representative NFT instance for display
 }
 
 export function VaultSection({ title, description }: VaultSectionProps) {
@@ -90,7 +94,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const { getAllUserCardDeposits } = useTreasuryUserCards(treasury);
 	const { getBatchCardInfo } = useRarityTracker(rarityTracker);
 	const { withdrawNFT, isPending: isWithdrawing } = useNFTWithdrawal(treasury);
+	const { getCardInstances } = useAppraisalContract(appraisal);
 
+	
 	// Whitelisted collections
 	const whitelistedCollectionsQuery = useReadGachaTreasuryGetWhitelistedCollections({
 		address: treasury,
@@ -296,6 +302,8 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		setIsLoadingWithdrawals(true);
 		try {
 			const deposits = await getAllUserCardDeposits();
+			console.log("📦 [Vault] Deposits from treasury:", deposits);
+
 			if (deposits.length === 0) {
 				setWithdrawableCards([]);
 				setIsLoadingWithdrawals(false);
@@ -303,14 +311,31 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			}
 
 			const cardIds = deposits.map(d => d.cardId);
+			console.log("🎯 [Vault] Card IDs to fetch instances for:", cardIds);
+
 			const appraisalInfos = await getBatchCardInfo(cardIds);
+			console.log("💰 [Vault] Appraisal infos:", appraisalInfos);
+
+			// Get NFT instances from appraisal contract (O(1) solution)
+			let nftInstances: (CardInstance | null)[] = [];
+
+			if (appraisal && cardIds.length > 0) {
+				console.log("🔍 [Vault] Fetching NFT instances from appraisal contract:", appraisal);
+				nftInstances = await getCardInstances(cardIds);
+				console.log("🖼️ [Vault] NFT instances from appraisal:", nftInstances);
+			} else {
+				console.log("❌ [Vault] No appraisal contract or no card IDs");
+				nftInstances = Array(cardIds.length).fill(null);
+			}
 
 			const cards: WithdrawableCard[] = deposits.map((deposit, index) => ({
 				...deposit,
 				cardId: deposit.cardId,
 				appraisalInfo: appraisalInfos[index] || null,
+				nftInstance: nftInstances[index] || null,
 			}));
 
+			console.log("🎴 [Vault] Final withdrawable cards:", cards);
 			setWithdrawableCards(cards);
 		} catch (error) {
 			console.error("Error loading withdrawable cards:", error);
@@ -318,7 +343,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		} finally {
 			setIsLoadingWithdrawals(false);
 		}
-	}, [treasury, rarityTracker, address, getAllUserCardDeposits, getBatchCardInfo]);
+	}, [treasury, rarityTracker, address, appraisal, getAllUserCardDeposits, getBatchCardInfo, getCardInstances]);
 
 	// Load withdrawable cards on component mount
 	React.useEffect(() => {
@@ -594,7 +619,6 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 													variant="detailed"
 													size="md"
 													showAppraisal={true}
-													showAppraisalAction={false}
 													{...(appraiseInfo && {
 														appraisalOverride: {
 															hasAppraisal: appraiseInfo.hasAppraisal,
@@ -653,41 +677,74 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 							</div>
 						) : (
 							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-								{withdrawableCards.map((card) => (
+								{withdrawableCards.map((card) => {
+								// Debug logging in development
+								if (process.env.NODE_ENV === 'development') {
+									console.log(`🎴 [Vault] Rendering card ${card.cardId}:`, {
+										nftInstance: card.nftInstance,
+										appraisalInfo: card.appraisalInfo
+									});
+								}
+
+								return (
 									<div key={card.cardId} className="bg-content1/30 rounded-xl p-4 border border-white/10 flex flex-col h-full">
 										<div className="flex-1">
-											<UnifiedNFTCard
-												collection={card.cardId}
-												tokenId={card.cardId}
-												appraisalContractAddress={appraisal || "0x0000000000000000000000000000000000000000"}
-												variant="detailed"
-												size="md"
-												showAppraisal={true}
-												{...(card.appraisalInfo && {
-													appraisalOverride: {
-														hasAppraisal: true,
-														priceUSD: card.appraisalInfo.appraisedValueUsd
-													}
-												})}
-											/>
+											{card.nftInstance ? (
+												<>
+													{process.env.NODE_ENV === 'development' &&
+														console.log("✅ [Vault] Rendering UnifiedNFTCard for:", card.nftInstance)}
+													<UnifiedNFTCard
+														collection={card.nftInstance.collection}
+														tokenId={card.nftInstance.tokenId.toString()}
+														appraisalContractAddress={appraisal || "0x0000000000000000000000000000000000000000"}
+														variant="detailed"
+														size="md"
+														showAppraisal={true}
+														{...(card.appraisalInfo && {
+															appraisalOverride: {
+																hasAppraisal: true,
+																priceUSD: card.appraisalInfo.appraisedValueUsd
+															}
+														})}
+													/>
+												</>
+											) : (
+												<>
+													{process.env.NODE_ENV === 'development' &&
+														console.log("❌ [Vault] No NFT instance available, showing fallback for:", card.cardId)}
+													{/* Fallback display when no NFT instance is available */}
+													<div className="bg-content1/30 rounded-xl p-4 border border-white/10 flex flex-col items-center justify-center h-48">
+														<div className="text-center">
+															<p className="text-sm text-foreground/60 mb-2">Card ID</p>
+															<p className="text-xs font-mono text-foreground/80 break-all">{card.cardId}</p>
+															{card.appraisalInfo && (
+																<p className="text-sm text-success mt-2">
+																	{formatCurrency(card.appraisalInfo.appraisedValueUsd.toString(), 18, "USD")}
+																</p>
+															)}
+														</div>
+													</div>
+												</>
+											)}
 										</div>
-										<div className="mt-4 pt-2 flex items-center justify-between">
-											<div>
-												<p className="text-sm text-foreground/60">Deposit Count</p>
-												<p className="font-medium text-foreground">{card.depositCount.toString()}</p>
+											<div className="mt-4 pt-2 flex items-center justify-between">
+												<div>
+													<p className="text-sm text-foreground/60">Deposit Count</p>
+													<p className="font-medium text-foreground">{card.depositCount.toString()}</p>
+												</div>
+												<GlassButton
+													color="glass"
+													size="sm"
+													onPress={() => handleWithdrawNFT(card.cardId, card.depositCount)}
+													isLoading={isWithdrawing}
+												>
+													<ArrowDownTrayIcon className="w-4 h-4" />
+													Withdraw
+												</GlassButton>
 											</div>
-											<GlassButton
-												color="glass"
-												size="sm"
-												onPress={() => handleWithdrawNFT(card.cardId, card.depositCount)}
-												isLoading={isWithdrawing}
-											>
-												<ArrowDownTrayIcon className="w-4 h-4" />
-												Withdraw
-											</GlassButton>
 										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						)}
 					</div>

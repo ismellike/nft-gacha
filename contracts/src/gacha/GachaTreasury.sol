@@ -1389,6 +1389,7 @@ contract GachaTreasury is
         netContribution = deposited > withdrawn ? deposited - withdrawn : 0;
     }
 
+  
     /// @notice Gets global platform statistics
     /// @return totalDeposited Total value deposited across all users
     /// @return totalClaimed Total rewards claimed across all users

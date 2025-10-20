@@ -187,6 +187,7 @@ export function useTreasuryUserCards(treasury?: Address) {
 		}
 	}, [publicClient, treasury]);
 
+	
 	// Debug functions removed - they should be in a separate debug utilities file
 
 	return {
