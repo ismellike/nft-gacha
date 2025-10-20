@@ -17,6 +17,7 @@ class SearchParamsStore {
 	private static instance: SearchParamsStore;
 	private listeners = new Set<() => void>();
 	private params: URLSearchParams;
+	private static serverSnapshot: URLSearchParams = new URLSearchParams();
 
 	private constructor() {
 		this.params = new URLSearchParams(
@@ -60,7 +61,7 @@ class SearchParamsStore {
 	}
 
 	getServerSnapshot() {
-		return new URLSearchParams();
+		return SearchParamsStore.serverSnapshot;
 	}
 
 	updateParams(

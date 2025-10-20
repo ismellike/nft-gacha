@@ -85,6 +85,7 @@ contract DeployLocal is Script {
 
     address constant TEMP_GACHA_ADDRESS = 0x1111111111111111111111111111111111111111;
     uint256 constant INITIAL_MINT = 1_000_000_000_000; // 1,000,000 tUSDC (6 decimals)
+    uint256 constant PROTOCOL_TREASURY_FUNDING = 100_000_000_000; // 100,000 tUSDC for NFT buybacks
     uint256 constant SPIN_FEE = 25_000_000; // 25 tUSDC in 6 decimals (~$25 USD)
 
     // Original price range constants (all in 18 decimals for USD values)
@@ -145,6 +146,9 @@ contract DeployLocal is Script {
 
         // Deploy collection and trackers
         _deployCollectionAndTrackers(d, deployer);
+
+        // Fund ProtocolTreasury for NFT buybacks
+        _fundProtocolTreasury(TestUSDC(d.usdc), ProtocolTreasury(d.protocolTreasuryProxy), deployer);
 
         // Seed treasury
         _seedTreasury(GachaTreasury(d.treasuryProxy), NFTAppraisal(d.appraisalProxy), BaseERC721(d.collection), deployer);
@@ -565,6 +569,15 @@ contract DeployLocal is Script {
             );
             treasury.depositNFT(address(nft), tokenId);
         }
+    }
+
+    function _fundProtocolTreasury(TestUSDC usdc, ProtocolTreasury protocolTreasury, address deployer) internal {
+        console.log("=== Funding ProtocolTreasury for NFT Buybacks ===");
+        usdc.transfer(address(protocolTreasury), PROTOCOL_TREASURY_FUNDING);
+        console.log("ProtocolTreasury funded with:", PROTOCOL_TREASURY_FUNDING / 1e6, " tUSDC");
+
+        uint256 treasuryBalance = usdc.balanceOf(address(protocolTreasury));
+        console.log("ProtocolTreasury balance:", treasuryBalance / 1e6, " tUSDC");
     }
 
     function _seedNonAppraised(BaseERC721 nft, address deployer) internal {

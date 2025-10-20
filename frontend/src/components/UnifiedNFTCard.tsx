@@ -717,11 +717,10 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					tokenId={tokenId}
 					appraisalContractAddress={appraisalContractAddress}
 					protocolTreasuryAddress={finalProtocolTreasuryAddress}
+					gachaTreasuryAddress={gachaConfig?.treasuryAddress as `0x${string}` || ""}
 					size="md"
 					variant="button"
 					onSuccess={(txHash) => {
-						// Call the callback if provided
-						onBuybackSuccess?.(txHash);
 						console.log("NFT sold successfully:", txHash);
 					}}
 				/>

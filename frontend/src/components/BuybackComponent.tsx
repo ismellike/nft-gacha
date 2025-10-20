@@ -1,30 +1,28 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useAccount, useWaitForTransactionReceipt, useReadContract } from "wagmi";
-import { toast } from "react-hot-toast";
-import { Button, Chip, Progress } from "@heroui/react";
+import { useAccount, useReadContract } from "wagmi";
+import { Chip } from "@heroui/react";
+import { Button } from "../ui/Button";
 import {
-	useWriteProtocolTreasuryExecuteRedemption,
 	useReadProtocolTreasuryRedemptionPayoutBps,
-	useReadProtocolTreasuryAsset,
 	useReadProtocolTreasuryPaused,
-	useReadErc20Allowance,
-	useWriteErc20Approve,
+	useReadErc721IsApprovedForAll,
 	useReadNftAppraisalGetAppraisedPrice,
 	useReadNftAppraisalHasAppraisal
 } from "@/generated";
 import { formatCurrency } from "@/lib/utils";
-import { useNFTMetadata } from "@/hooks/useNFTMetadata";
 import { useBuybackNotificationsContext } from "./BuybackNotificationProvider";
 import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
+import { useNFTInteraction } from "@/hooks/useNFTInteraction";
 
 interface BuybackComponentProps {
 	collection: string;
 	tokenId: string;
 	appraisalContractAddress: string;
 	protocolTreasuryAddress: string;
+	gachaTreasuryAddress?: string;
 	rarity?: string;
 	onSuccess?: (txHash: string) => void;
 	size?: "sm" | "md" | "lg";
@@ -32,19 +30,12 @@ interface BuybackComponentProps {
 	showTreasuryRestock?: boolean;
 }
 
-interface BuybackState {
-	status: "idle" | "approving" | "selling" | "success" | "error";
-	error?: string;
-	txHash?: string;
-	payout?: string;
-	treasuryRestocked?: boolean;
-}
-
 export default function BuybackComponent({
 	collection,
 	tokenId,
 	appraisalContractAddress,
 	protocolTreasuryAddress,
+	gachaTreasuryAddress,
 	rarity,
 	onSuccess,
 	size = "md",
@@ -52,9 +43,45 @@ export default function BuybackComponent({
 	showTreasuryRestock = true
 }: BuybackComponentProps) {
 	const { address: connectedAddress } = useAccount();
-	const [buybackState, setBuybackState] = useState<BuybackState>({ status: "idle" });
+	const { showNotification } = useBuybackNotificationsContext();
 
-	// Check if user owns this NFT
+	// Build interaction params for NFT interaction hook
+	const interactionParams = useMemo(() => {
+		const params: any = {
+			onAction: (_collection: string, tokenId: string, _hasValidAppraisal?: boolean) => {
+				showNotification(`🔄 NFT action initiated for ${tokenId}`, "info");
+			},
+			onAppraisalStatusChange: (_collection: string, tokenId: string, hasValidAppraisal: boolean) => {
+				showNotification(
+					hasValidAppraisal
+						? `✅ NFT ${tokenId} appraisal confirmed`
+						: `❌ NFT ${tokenId} appraisal missing`,
+					hasValidAppraisal ? "success" : "error"
+				);
+			},
+			refetchTreasuryCards: async () => {
+				// Optional: Implement treasury cards refetch if needed
+			}
+		};
+
+		if (onSuccess) {
+			params.onSuccess = onSuccess;
+		}
+
+		return params;
+	}, [tokenId, onSuccess, showNotification]);
+
+	// Use the unified NFT interaction hook
+	const {
+		currentState,
+		context,
+		error,
+		isLoading,
+		startInteraction,
+		getActionInfo,
+	} = useNFTInteraction(interactionParams);
+
+	// Contract data hooks
 	const { data: ownerOf } = useReadContract({
 		address: collection as `0x${string}`,
 		abi: [
@@ -70,13 +97,7 @@ export default function BuybackComponent({
 		args: [BigInt(tokenId)]
 	});
 
-	// Get NFT metadata for display (not currently used but available for future enhancements)
-	const nftData = useNFTMetadata(collection, tokenId, {
-		enabled: true,
-		skipFetch: false
-	});
-
-	// Get appraisal data
+	
 	const { data: hasAppraisal } = useReadNftAppraisalHasAppraisal({
 		address: appraisalContractAddress as `0x${string}`,
 		args: [collection as `0x${string}`, BigInt(tokenId)]
@@ -90,12 +111,7 @@ export default function BuybackComponent({
 		}
 	});
 
-	// Get protocol treasury data
 	const { data: payoutBps } = useReadProtocolTreasuryRedemptionPayoutBps({
-		address: protocolTreasuryAddress as `0x${string}`
-	});
-
-	const { data: usdcAddress } = useReadProtocolTreasuryAsset({
 		address: protocolTreasuryAddress as `0x${string}`
 	});
 
@@ -103,164 +119,111 @@ export default function BuybackComponent({
 		address: protocolTreasuryAddress as `0x${string}`
 	});
 
-	// Note: ProtocolTreasury doesn't have available liquidity hook like BuybackVault did
-	// This might need to be handled differently or the contract might work differently
-	// For now, we'll assume there's always enough liquidity when not paused
-	const availableLiquidity = undefined; // This will be handled by contract revert if insufficient
+	const { data: isApprovedForAll } = useReadErc721IsApprovedForAll({
+		address: collection as `0x${string}`,
+		args: [connectedAddress as `0x${string}`, protocolTreasuryAddress as `0x${string}`],
+		query: {
+			enabled: !!connectedAddress,
+			refetchOnWindowFocus: false,
+			refetchOnMount: true,
+			staleTime: 10000,
+		}
+	});
+
+	// Derived state
+	const isOwner = ownerOf && connectedAddress ?
+		ownerOf.toLowerCase() === connectedAddress.toLowerCase() : false;
+	const hasEnoughLiquidity = !isPaused;
+	const needsApproval = !isApprovedForAll;
 
 	// Calculate payout amount
 	const payoutAmount = useMemo(() => {
-		if (!appraisalPrice || !payoutBps) return 0n;
-		const priceUSD = Array.isArray(appraisalPrice) ? appraisalPrice[0] : appraisalPrice;
-		if (!priceUSD) return 0n;
-		// Ensure priceUSD is a bigint
-		const priceBigInt = typeof priceUSD === 'bigint' ? priceUSD : BigInt(priceUSD);
+		if (!appraisalPrice || !payoutBps) return BigInt(0);
+
+		// Handle both tuple and single value cases for appraisalPrice
+		let priceValue: bigint;
+		if (Array.isArray(appraisalPrice)) {
+			priceValue = appraisalPrice[0] as unknown as bigint;
+		} else {
+			priceValue = appraisalPrice as unknown as bigint;
+		}
+
+		if (!priceValue) return BigInt(0);
+
 		// Convert USD (18 decimals) to USDC (6 decimals) and apply payout percentage
-		const payoutUSD = (priceBigInt * BigInt(payoutBps)) / 10000n;
-		return payoutUSD / 1000000000000n; // Divide by 1e12 to convert 18 decimals to 6 decimals
+		const payoutUSD = (priceValue * BigInt(payoutBps)) / BigInt(10000);
+		return payoutUSD / BigInt(1000000000000); // Divide by 1e12 to convert 18 decimals to 6 decimals
 	}, [appraisalPrice, payoutBps]);
 
-	// Check USDC allowance
-	const { data: usdcAllowance } = useReadErc20Allowance({
-		address: usdcAddress as `0x${string}`,
-		args: [connectedAddress as `0x${string}`, protocolTreasuryAddress as `0x${string}`],
-		query: {
-			enabled: !!connectedAddress && !!usdcAddress
+	// Formatted values
+	const formattedPayoutAmount = useMemo(
+		() => formatCurrency(payoutAmount?.toString() || "0", 6, "USDC"),
+		[payoutAmount],
+	);
+
+	const shouldShowPayout = Boolean(hasAppraisal);
+	const actionInfo = getActionInfo();
+	const defaultActionLabel = currentState === "idle"
+		? (needsApproval ? "Approve NFT" : "Accept Buyback")
+		: null;
+
+	// Handle starting the buyback interaction
+	const handleStartBuyback = useCallback(async () => {
+		const priceValue = Array.isArray(appraisalPrice)
+			? appraisalPrice[0] as unknown as bigint
+			: appraisalPrice as unknown as bigint;
+
+		const interactionConfig: {
+			treasuryAddress: string;
+			protocolTreasuryAddress?: string;
+			hasAppraisal?: boolean;
+			appraisalPrice?: bigint;
+			payoutAmount?: bigint;
+		} = {
+			treasuryAddress: protocolTreasuryAddress,
+		};
+
+		if (protocolTreasuryAddress) {
+			interactionConfig.protocolTreasuryAddress = protocolTreasuryAddress;
 		}
-	});
-
-	// Check if treasury has enough liquidity (simplified since we don't have direct liquidity access)
-	const hasEnoughLiquidity = !isPaused; // Assume sufficient liquidity if not paused
-
-	// Check if user owns the NFT
-	const isOwner = ownerOf && connectedAddress ? ownerOf.toLowerCase() === connectedAddress.toLowerCase() : false;
-
-	// Calculate liquidity health (simplified since we don't have direct liquidity access)
-	const liquidityHealth = useMemo(() => {
-		return isPaused ? 0 : 100; // Either 0% if paused or 100% if available
-	}, [isPaused]);
-
-	// Get notification context
-	const { showNotification } = useBuybackNotificationsContext();
-
-	// Write contracts
-	const { writeContractAsync: approveUSDC } = useWriteErc20Approve();
-	const { writeContractAsync: executeRedemption } = useWriteProtocolTreasuryExecuteRedemption();
-
-	// Wait for transaction receipt
-	const { isLoading: isConfirming } = useWaitForTransactionReceipt({
-		hash: buybackState.txHash as `0x${string}`,
-		query: {
-			enabled: !!buybackState.txHash
+		if (hasAppraisal !== undefined) {
+			interactionConfig.hasAppraisal = hasAppraisal;
 		}
-	});
-
-	// Handle USDC approval
-	const handleApprove = async () => {
-		if (!usdcAddress || !protocolTreasuryAddress) {
-			const error = "USDC or ProtocolTreasury address not found";
-			toast.error(error);
-			setBuybackState({ status: "error", error });
-			return;
+		if (priceValue) {
+			interactionConfig.appraisalPrice = priceValue;
+		}
+		if (payoutAmount) {
+			interactionConfig.payoutAmount = payoutAmount;
 		}
 
-		setBuybackState({ status: "approving" });
 		try {
-			const approveAmount = payoutAmount * 2n; // Approve extra for buffer
-			const txHash = await approveUSDC({
-				address: usdcAddress as `0x${string}`,
-				args: [protocolTreasuryAddress as `0x${string}`, approveAmount]
-			});
-
-			toast.success("USDC approved for buyback");
-			showNotification("✅ USDC approval granted. You can now sell your NFT!", "success");
-			setBuybackState({ status: "idle" });
+			await startInteraction(collection, tokenId, "buyback", interactionConfig);
 		} catch (error) {
-			console.error("Approval error:", error);
-			const errorMsg = "Failed to approve USDC";
-			toast.error(errorMsg);
-			showNotification("❌ USDC approval failed. Please try again.", "error");
-			setBuybackState({ status: "error", error: errorMsg });
+			console.error("Buyback interaction failed:", error);
 		}
-	};
+	}, [collection, tokenId, protocolTreasuryAddress, hasAppraisal, appraisalPrice, payoutAmount, startInteraction]);
 
-	// Handle buyback execution
-	const handleSell = async () => {
-		if (!connectedAddress) {
-			const error = "Please connect your wallet";
-			toast.error(error);
-			setBuybackState({ status: "error", error });
+	// Handle button clicks and state machine actions
+	const handleAction = useCallback(async () => {
+		if (currentState === "idle") {
+			await handleStartBuyback();
 			return;
 		}
 
-		if (!isOwner) {
-			const error = "You don't own this NFT";
-			toast.error(error);
-			setBuybackState({ status: "error", error });
-			return;
+		if (actionInfo.action) {
+			try {
+				actionInfo.action();
+			} catch (error) {
+				console.error("Action execution failed:", error);
+			}
 		}
+	}, [currentState, actionInfo, handleStartBuyback]);
 
-		if (!hasAppraisal) {
-			const error = "NFT must be appraised before selling";
-			toast.error(error);
-			setBuybackState({ status: "error", error });
-			return;
-		}
-
-		if (!hasEnoughLiquidity) {
-			const error = "Redemption is currently unavailable";
-			toast.error(error);
-			setBuybackState({ status: "error", error });
-			return;
-		}
-
-		if (isPaused) {
-			const error = "Redemption is currently paused";
-			toast.error(error);
-			setBuybackState({ status: "error", error });
-			return;
-		}
-
-		setBuybackState({ status: "selling" });
-		try {
-			const txHash = await executeRedemption({
-				address: protocolTreasuryAddress as `0x${string}`,
-				args: [collection as `0x${string}`, BigInt(tokenId), connectedAddress]
-			});
-
-			const payoutFormatted = formatCurrency(payoutAmount.toString(), 6, "USDC");
-
-			setBuybackState({
-				status: "success",
-				txHash,
-				payout: payoutFormatted,
-				treasuryRestocked: true
-			});
-
-			toast.success(`NFT sold for ${payoutFormatted}`);
-			showNotification(
-				`🎉 NFT successfully sold!\nYou received ${payoutFormatted}\nThe NFT has been restocked in the treasury.`,
-				"success"
-			);
-
-			onSuccess?.(txHash);
-		} catch (error) {
-			console.error("Buyback error:", error);
-			const errorMsg = "Failed to sell NFT to treasury";
-			toast.error(errorMsg);
-			showNotification("❌ Sale failed. Please check your approval and try again.", "error");
-			setBuybackState({ status: "error", error: errorMsg });
-		}
-	};
-
-	// Determine if approval is needed
-	const needsApproval = usdcAllowance && payoutAmount ? usdcAllowance < payoutAmount : true;
-
-	// Get treasury status message
-	const getTreasuryStatusMessage = () => {
+	// Treasury status helper
+	const getTreasuryStatus = () => {
 		if (isPaused) {
 			return {
-				type: "error",
+				type: "error" as const,
 				message: "Redemption is currently paused by the protocol",
 				action: "Please check back later"
 			};
@@ -268,20 +231,25 @@ export default function BuybackComponent({
 
 		if (!hasEnoughLiquidity) {
 			return {
-				type: "warning",
+				type: "warning" as const,
 				message: "Redemption is currently unavailable",
 				action: "Please try again later"
 			};
 		}
 
 		return {
-			type: "success",
+			type: "success" as const,
 			message: "Protocol treasury is operating normally",
 			action: "You can redeem your NFT instantly"
 		};
 	};
 
-	const treasuryStatus = getTreasuryStatusMessage();
+	const treasuryStatus = getTreasuryStatus();
+
+	// Early return if user doesn't own the NFT
+	if (!isOwner && connectedAddress) {
+		return null;
+	}
 
 	// Size configurations
 	const sizeClasses = {
@@ -291,11 +259,6 @@ export default function BuybackComponent({
 	};
 
 	const classes = sizeClasses[size];
-
-	// If user doesn't own the NFT, don't show anything
-	if (!isOwner && connectedAddress) {
-		return null;
-	}
 
 	// Full variant - comprehensive buyback interface
 	if (variant === "full") {
@@ -323,8 +286,7 @@ export default function BuybackComponent({
 					</Chip>
 				</div>
 
-				{buybackState.status === "success" ? (
-					/* Success State */
+				{currentState === "completed" ? (
 					<motion.div
 						initial={{ opacity: 0, scale: 0.9 }}
 						animate={{ opacity: 1, scale: 1 }}
@@ -338,7 +300,7 @@ export default function BuybackComponent({
 						<div>
 							<h4 className="text-white font-bold text-lg mb-2">Sale Successful!</h4>
 							<p className="text-emerald-300 font-semibold text-xl mb-2">
-								You received {buybackState.payout}
+								You received {formatCurrency(payoutAmount?.toString() || "0", 6, "USDC")}
 							</p>
 							{showTreasuryRestock && (
 								<p className="text-white/70 text-sm">
@@ -346,11 +308,11 @@ export default function BuybackComponent({
 								</p>
 							)}
 						</div>
-						{buybackState.txHash && (
+						{context.interactionTxHash && (
 							<Button
-								variant="flat"
 								size="sm"
-								onClick={() => window.open(`https://etherscan.io/tx/${buybackState.txHash}`, "_blank")}
+								color="glass"
+								onPress={() => window.open(`https://etherscan.io/tx/${context.interactionTxHash}`, "_blank")}
 								className="bg-white/10 hover:bg-white/20"
 							>
 								View Transaction
@@ -389,61 +351,44 @@ export default function BuybackComponent({
 							</div>
 						)}
 
-						{/* Treasury Status */}
-						<div className="space-y-2">
-							<div className="flex justify-between items-center text-sm">
-								<span className="text-white/60">Treasury Status:</span>
-								<span className="text-white/80">
-									{isPaused ? "Paused" : "Active"}
-								</span>
-							</div>
-						</div>
-
 						{/* Status Messages */}
 						{treasuryStatus.type !== "success" && (
-							<div className={`rounded-lg p-3 ${
-								treasuryStatus.type === "error" ? "bg-danger-500/10 text-danger-300" :
-								treasuryStatus.type === "warning" ? "bg-warning-500/10 text-warning-300" :
-								"bg-success-500/10 text-success-300"
-							}`}>
+							<div className={`rounded-lg p-3 ${treasuryStatus.type === "error" ? "bg-danger-500/10 text-danger-300" :
+									treasuryStatus.type === "warning" ? "bg-warning-500/10 text-warning-300" :
+										"bg-success-500/10 text-success-300"
+								}`}>
 								<p className="text-sm font-medium mb-1">{treasuryStatus.message}</p>
 								<p className="text-xs opacity-80">{treasuryStatus.action}</p>
 							</div>
 						)}
 
-						{/* Action Buttons */}
-						<div className="flex gap-3">
-							{needsApproval ? (
-								<Button
-									color="warning"
-									variant="flat"
-									size={size}
-									onClick={handleApprove}
-									isLoading={buybackState.status === "approving"}
-									isDisabled={!hasAppraisal || !hasEnoughLiquidity || isPaused}
-									className="flex-1"
-								>
-									{buybackState.status === "approving" ? "Approving..." : "Approve USDC"}
-								</Button>
-							) : (
-								<Button
-									color={treasuryStatus.type === "error" ? "default" : "success"}
-									variant="flat"
-									size={size}
-									onClick={handleSell}
-									isLoading={buybackState.status === "selling" || isConfirming}
-									isDisabled={!hasAppraisal || !hasEnoughLiquidity || isPaused}
-									className="flex-1"
-								>
-									{buybackState.status === "selling" ? "Selling..." : `Sell for ${formatCurrency(payoutAmount?.toString() || "0", 6, "USDC")}`}
-								</Button>
-							)}
-						</div>
+						{/* Action Button */}
+						<Button
+							color="primary"
+							size={size}
+							onPress={handleAction}
+							isLoading={isLoading || actionInfo.type === "processing"}
+							isDisabled={
+								!hasAppraisal ||
+								!hasEnoughLiquidity ||
+								isPaused ||
+								actionInfo.type === "checking"
+							}
+							className="w-full"
+						>
+							{actionInfo.label || defaultActionLabel || `Sell for ${formattedPayoutAmount}`}
+						</Button>
+
+						{shouldShowPayout && (
+							<p className={`${classes.text} text-white/80 mt-2 text-center`}>
+								Sell for {formattedPayoutAmount}
+							</p>
+						)}
 
 						{/* Error Display */}
-						{buybackState.status === "error" && (
+						{error && (
 							<div className="text-danger-300 text-sm bg-danger-500/10 rounded-lg p-3">
-								❌ {buybackState.error}
+								❌ {error}
 							</div>
 						)}
 					</>
@@ -471,14 +416,14 @@ export default function BuybackComponent({
 					)}
 				</div>
 
-				{buybackState.status === "success" ? (
+				{currentState === "completed" ? (
 					<div className="text-center space-y-2">
 						<div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
 							<svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
 							</svg>
 						</div>
-						<p className="text-emerald-300 font-bold">Sold for {buybackState.payout}</p>
+						<p className="text-emerald-300 font-bold">Sold for {formatCurrency(payoutAmount?.toString() || "0", 6, "USDC")}</p>
 						{showTreasuryRestock && (
 							<p className="text-white/60 text-xs">NFT restocked in treasury</p>
 						)}
@@ -500,45 +445,30 @@ export default function BuybackComponent({
 							</div>
 						)}
 
-						{!isPaused && !hasEnoughLiquidity && (
-							<div className="text-warning-300 text-xs">
-								Redemption temporarily unavailable
-							</div>
-						)}
+						<Button
+							color={
+								actionInfo.type === "approveNFT" ? "primary" :
+								actionInfo.type === "redeem" ? "primary" : "glass"
+							}
+							size="sm"
+							onPress={handleAction}
+							isLoading={isLoading || actionInfo.type === "processing"}
+							isDisabled={
+								!hasAppraisal ||
+								!hasEnoughLiquidity ||
+								isPaused ||
+								actionInfo.type === "checking"
+							}
+							className="flex-1"
+						>
+							{actionInfo.label || defaultActionLabel || "Sell NFT"}
+						</Button>
 
-						{isPaused && (
-							<div className="text-danger-300 text-xs">
-								Redemption temporarily paused
-							</div>
+						{shouldShowPayout && (
+							<p className="text-xs text-white/70 text-center">
+								You will receive {formattedPayoutAmount}
+							</p>
 						)}
-
-						<div className="flex gap-2">
-							{needsApproval ? (
-								<Button
-									color="warning"
-									variant="flat"
-									size="sm"
-									onClick={handleApprove}
-									isLoading={buybackState.status === "approving"}
-									isDisabled={!hasAppraisal || !hasEnoughLiquidity || isPaused}
-									className="flex-1"
-								>
-									{buybackState.status === "approving" ? "Approving..." : "Approve USDC"}
-								</Button>
-							) : (
-								<Button
-									color="success"
-									variant="flat"
-									size="sm"
-									onClick={handleSell}
-									isLoading={buybackState.status === "selling"}
-									isDisabled={!hasAppraisal || !hasEnoughLiquidity || isPaused}
-									className="flex-1"
-								>
-									{buybackState.status === "selling" ? "Selling..." : "Sell NFT"}
-								</Button>
-							)}
-						</div>
 					</>
 				)}
 			</motion.div>
@@ -547,47 +477,45 @@ export default function BuybackComponent({
 
 	// Button variant - compact button
 	return (
-		<motion.div
-			initial={{ opacity: 0, scale: 0.9 }}
-			animate={{ opacity: 1, scale: 1 }}
-			whileHover={{ scale: 1.02 }}
-			whileTap={{ scale: 0.98 }}
-		>
-			{!hasAppraisal ? (
-				<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
-					Requires appraisal
-				</Chip>
-			) : isPaused ? (
-				<Chip color="danger" variant="flat" size="sm" className={classes.chip}>
-					Redemption paused
-				</Chip>
-			) : !hasEnoughLiquidity ? (
-				<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
-					Unavailable
-				</Chip>
-			) : needsApproval ? (
-				<Button
-					color="warning"
-					variant="flat"
-					size={size}
-					onClick={handleApprove}
-					isLoading={buybackState.status === "approving"}
-					className={classes.button}
-				>
-					{buybackState.status === "approving" ? "Approving..." : "Approve USDC"}
-				</Button>
-			) : (
-				<Button
-					color="success"
-					variant="flat"
-					size={size}
-					onClick={handleSell}
-					isLoading={buybackState.status === "selling"}
-					className={classes.button}
-				>
-					{buybackState.status === "selling" ? "Selling..." : `Sell for ${formatCurrency(payoutAmount?.toString() || "0", 6, "USDC")}`}
-				</Button>
+		<div className="flex flex-col items-center space-y-2">
+			<motion.div
+				initial={{ opacity: 0, scale: 0.9 }}
+				animate={{ opacity: 1, scale: 1 }}
+				whileHover={{ scale: 1.02 }}
+				whileTap={{ scale: 0.98 }}
+			>
+				{!hasAppraisal ? (
+					<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
+						Requires appraisal
+					</Chip>
+				) : isPaused ? (
+					<Chip color="danger" variant="flat" size="sm" className={classes.chip}>
+						Redemption paused
+					</Chip>
+				) : !hasEnoughLiquidity ? (
+					<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
+						Unavailable
+					</Chip>
+				) : (
+					<button
+						onClick={handleAction}
+						disabled={
+							!hasAppraisal ||
+							!hasEnoughLiquidity ||
+							isPaused ||
+							actionInfo.type === "checking"
+						}
+						className={`${classes.button} bg-orange-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed`}
+					>
+						{actionInfo.label || defaultActionLabel || `Sell for ${formattedPayoutAmount}`}
+					</button>
+				)}
+			</motion.div>
+			{shouldShowPayout && (
+				<p className={`${classes.text} text-white/80 text-center`}>
+					You will receive {formattedPayoutAmount}
+				</p>
 			)}
-		</motion.div>
+		</div>
 	);
 }

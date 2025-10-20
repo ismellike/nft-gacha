@@ -101,22 +101,31 @@ export default function RarityShowcaseModal({
 					</motion.button>
 
 					{/* Header Content */}
-					<div className="relative z-10 flex items-center justify-center pt-8 pb-4">
-						<div className="flex items-center gap-4">
-							<div
-								className={`px-4 py-2 rounded-xl bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg border border-white/20`}
-							>
-								<span className="text-lg font-bold text-white drop-shadow flex items-center gap-2">
-									<span className="text-xl">{rarityConfig.emoji}</span>
-									{rarityConfig.name} NFTs
-								</span>
-							</div>
-							{!isLoading && (
-								<Chip className="px-3 py-1 bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning rounded-lg backdrop-blur-xl text-sm">
-									{gridItems.length} Available
-								</Chip>
-							)}
+					<div className="relative z-10 flex items-center justify-between pt-8 pb-4 px-8">
+						{/* Rarity on the left */}
+						<div
+							className={`px-4 py-2 rounded-xl bg-gradient-to-r ${rarityConfig.bgGradient} shadow-lg border border-white/20`}
+						>
+							<span className="text-lg font-bold text-white drop-shadow flex items-center gap-2">
+								<span className="text-xl">{rarityConfig.emoji}</span>
+								{rarityConfig.name} NFTs
+							</span>
 						</div>
+
+						{/* NFT count centered */}
+						{!isLoading && (
+							<div className="flex justify-center flex-1">
+								<div className="flex flex-col items-center gap-1">
+									<p className="text-2xl font-bold text-foreground">
+										{gridItems.length}
+									</p>
+									<p className="text-xs text-foreground/50">Available</p>
+								</div>
+							</div>
+						)}
+
+						{/* Spacer for balance */}
+						<div className="w-32" />
 					</div>
 					{/* Dramatic Background Glow */}
 					<motion.div
