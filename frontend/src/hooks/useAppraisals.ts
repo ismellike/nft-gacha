@@ -4,7 +4,6 @@ import { useReadNftAppraisalGetAppraisal } from "../generated";
 import {
 	useNFTAppraisalStore,
 	type AppraisedNFT,
-	type OptimisticAppraisal
 } from "../stores/nftAppraisalStore";
 
 interface UseAppraisalsOptions {

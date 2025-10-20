@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import type { Address } from "viem";
 import { formatTokenAmount } from "../lib/utils";
 import {
 	useReadGachaTreasuryGetPlatformOverviewBatch,
@@ -20,7 +21,6 @@ import {
 import { Card, Chip } from "../ui";
 import { GachaCardSkeleton } from ".";
 import { GachaCardHeader } from "./GachaCardHeader";
-import { RarityBadge } from "./RaritySystem";
 import { getAllRarities, getRarityEmoji } from "../lib/rarityConfig";
 import type { GachaConfig } from "../lib/gacha-config";
 
@@ -44,14 +44,32 @@ export function GachaCard({ gacha }: GachaCardProps) {
 			address: gacha.address as `0x${string}`,
 		} as Parameters<typeof useReadGachaGetGachaConfigBatch>[0]);
 
+	// Types based on contract return values
+	type PlatformOverviewBatch = readonly [
+		rarityCounts: readonly bigint[], // [5]
+		totalItems: bigint,
+		gachaAvailable: boolean,
+		totalDeposited: bigint,
+		totalClaimed: bigint
+	];
+
+	type GachaConfigBatch = readonly [
+		feeTokenAddr: Address,
+		spinFeeAmount: bigint,
+		isPaused: boolean,
+		rarityWeights: readonly bigint[], // [5]
+		totalWeight: bigint,
+		isAvailable: boolean
+	];
+
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const rarityCounts = (platformData as any)?.[0] || [0n, 0n, 0n, 0n, 0n];
-	const totalItemsCount = (platformData as any)?.[1] || 0n;
-	const isAvailable = (platformData as any)?.[2] || false;
+	const rarityCounts = (platformData as PlatformOverviewBatch)?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = (platformData as PlatformOverviewBatch)?.[1] || 0n;
+	const isAvailable = (platformData as PlatformOverviewBatch)?.[2] || false;
 
 	// Extract gacha config: [feeTokenAddr, spinFeeAmount, isPaused, rarityWeights[5], totalWeight, isAvailable]
-	const feeToken = (gachaConfig as any)?.[0];
-	const spinFee = (gachaConfig as any)?.[1] || 0n;
+	const feeToken = (gachaConfig as GachaConfigBatch)?.[0];
+	const spinFee = (gachaConfig as GachaConfigBatch)?.[1] || 0n;
 
 	const { data: feeTokenSymbol } = useReadErc20Symbol({
 		address: feeToken,

@@ -12,7 +12,7 @@ import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 
 // Registry for refetch callbacks from child components/hooks
-type RefetchFunction = () => Promise<any> | void;
+type RefetchFunction = () => Promise<void> | void;
 
 interface RefetchCallbacks {
 	userProfile?: RefetchFunction;

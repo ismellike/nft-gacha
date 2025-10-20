@@ -149,6 +149,7 @@ export function NFTAppraisalDashboard({
 			>
 				<div className="inline-flex bg-content1/20 backdrop-blur-xl border border-white/10 rounded-full p-1">
 					<button
+						type="button"
 						onClick={() => setViewMode("overview")}
 						className={`px-6 py-3 rounded-full transition-all duration-300 font-medium ${
 							viewMode === "overview"
@@ -159,6 +160,7 @@ export function NFTAppraisalDashboard({
 						Overview
 					</button>
 					<button
+						type="button"
 						onClick={() => setViewMode("form")}
 						className={`px-6 py-3 rounded-full transition-all duration-300 font-medium ${
 							viewMode === "form"
@@ -169,6 +171,7 @@ export function NFTAppraisalDashboard({
 						Appraise NFT
 					</button>
 					<button
+						type="button"
 						onClick={() => setViewMode("list")}
 						className={`px-6 py-3 rounded-full transition-all duration-300 font-medium ${
 							viewMode === "list"

@@ -469,7 +469,7 @@ function WhitelistSection() {
 	const treasuryAddress = process.env.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
 	const { data: whitelistedCollections, refetch: refetchWhitelist } = useReadGachaTreasuryGetWhitelistedCollections({
 		address: treasuryAddress,
-	} as any);
+	} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
 
 	const { writeContract: addToWhitelist } = useWriteGachaTreasuryAddToWhitelist();
 	const { writeContract: removeFromWhitelist } = useWriteGachaTreasuryRemoveFromWhitelist();
@@ -549,9 +549,9 @@ function WhitelistSection() {
 				</h3>
 				{whitelistedCollections && whitelistedCollections.length > 0 ? (
 					<div className="space-y-3">
-						{whitelistedCollections.map((collection, index) => (
+						{whitelistedCollections.map((collection) => (
 							<div
-								key={index}
+								key={collection}
 								className="flex items-center justify-between p-4 bg-content1/10 border border-white/10 rounded-xl"
 							>
 								<div className="flex items-center gap-3">
@@ -597,12 +597,12 @@ function DepositsSection() {
 	const treasuryAddress = process.env.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
 	const { data: userDeposits, refetch: refetchDeposits } = useReadGachaTreasuryGetUserCardDepositsPage({
 		address: treasuryAddress,
-		args: userAddress && userAddress.startsWith('0x') ? [userAddress as `0x${string}`, 0n, 10n] : undefined,
+		args: userAddress?.startsWith('0x') ? [userAddress as `0x${string}`, 0n, 10n] : undefined,
 		query: { enabled: !!userAddress && userAddress.startsWith('0x') },
-	} as any);
+	} as Parameters<typeof useReadGachaTreasuryGetUserCardDepositsPage>[0]);
 
 	const handleSearchDeposits = () => {
-		if (userAddress && userAddress.startsWith('0x')) {
+		if (userAddress?.startsWith('0x')) {
 			refetchDeposits();
 		}
 	};
@@ -648,9 +648,13 @@ function DepositsSection() {
 				</h3>
 				{userDeposits && Array.isArray(userDeposits[0]) && userDeposits[0].length > 0 ? (
 					<div className="space-y-4">
-						{userDeposits[0].map((deposit: any, index: number) => (
+						{userDeposits[0].map((deposit: {
+							cardId: string;
+							depositCount: bigint;
+							totalCardDeposits: bigint;
+						}) => (
 							<div
-								key={index}
+								key={deposit.cardId}
 								className="p-4 bg-content1/10 border border-white/10 rounded-xl"
 							>
 								<div className="flex items-center justify-between mb-3">
@@ -703,7 +707,7 @@ function DepositsSection() {
 							</div>
 						)}
 					</div>
-				) : userAddress && userAddress.startsWith('0x') ? (
+				) : userAddress?.startsWith('0x') ? (
 					<div className="text-center py-12">
 						<FolderOpenIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
 						<h3 className="text-lg font-medium text-foreground/60 mb-2">

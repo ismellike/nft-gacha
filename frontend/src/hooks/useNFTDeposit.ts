@@ -30,7 +30,7 @@ const DEPOSIT_IN_PROGRESS_STATES: ReadonlySet<string> = new Set([
 export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	const gachaConfig = getGachaConfig(gachaId);
+	const _gachaConfig = getGachaConfig(gachaId);
 
 	const {
 		startInteraction,
@@ -69,7 +69,7 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 				tokenId.toString(),
 				"deposit",
 				{
-					treasuryAddress: contracts.treasury!,
+					treasuryAddress: contracts.treasury,
 					...(contracts.protocolTreasury && { protocolTreasuryAddress: contracts.protocolTreasury }),
 					hasAppraisal: options?.hasAppraisal ?? false,
 				}

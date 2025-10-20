@@ -16,6 +16,15 @@ import {
 import { CACHE_DURATIONS } from "../lib/constants";
 import type { NFTWithMetadata, NFTMetadata } from "../types/hooks";
 
+interface ImportedMetadata {
+	name?: string;
+	description?: string;
+	image?: string;
+	external_url?: string;
+	attributes?: readonly unknown[];
+	[key: string]: unknown;
+}
+
 // Global cache shared across all hook instances
 const METADATA_CACHE = new Map<
 	string,
@@ -103,8 +112,8 @@ const fetchMetadataFromURI = async (
 			] as const;
 
 			extendedFields.forEach((field) => {
-				if ((importedMetadata as any)[field]) {
-					(baseMetadata as any)[field] = (importedMetadata as any)[field];
+				if (importedMetadata[field as keyof ImportedMetadata]) {
+					baseMetadata[field as keyof ImportedMetadata] = importedMetadata[field as keyof ImportedMetadata];
 				}
 			});
 
@@ -252,7 +261,7 @@ export function useNFTMetadata(
 		};
 
 		fetchMetadata();
-	}, [tokenURI, collection, tokenId, cacheKey, enabled]);
+	}, [tokenURI, collection, tokenId, cacheKey, enabled, skipFetch]);
 
 	return state;
 }

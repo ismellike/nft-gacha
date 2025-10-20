@@ -160,7 +160,7 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
 		},
 
 		getCombinedAppraisals: (userAddress) => {
-			const address = userAddress.toLowerCase();
+			const _address = userAddress.toLowerCase();
 			const confirmedAppraisals = get().getUserAppraisals(userAddress);
 			const optimisticSubmissions = get().getUserOptimisticSubmissions(userAddress);
 

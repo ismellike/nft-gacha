@@ -117,7 +117,7 @@ const VirtualizedGridItem = memo<{
 		// Use stable references for click handler to prevent unnecessary rerenders
 		const handleClick = useCallback(() => {
 			onItemClick?.(item);
-		}, [onItemClick, item.collection, item.tokenId]); // Use stable identifiers instead of object reference
+		}, [onItemClick, item]);
 
 		// Calculate priority based on position in grid
 		const priority = useMemo(() => {

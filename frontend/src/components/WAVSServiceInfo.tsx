@@ -6,16 +6,12 @@ import { useGachaId } from "../hooks/useGachaId";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 
-interface WAVSServiceInfoProps {
-	gachaId?: string;
-}
-
 /**
  * Component to display WAVS service handler information
  * Shows randomness proofs, envelope status, and service manager details
  */
-export function WAVSServiceInfo({ gachaId: propGachaId }: WAVSServiceInfoProps) {
-	const gachaId = propGachaId || useGachaId();
+export function WAVSServiceInfo() {
+	const gachaId = useGachaId();
 	const [envelopeHistory, setEnvelopeHistory] = useState<Array<{
 		timestamp: number;
 		status: "pending" | "success" | "failed";

@@ -16,6 +16,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useBuybackNotificationsContext } from "./BuybackNotificationProvider";
 import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
 import { useNFTInteraction } from "@/hooks/useNFTInteraction";
+import type { NFTInteractionContext } from "@/machines/nftInteractionMachine";
 
 interface BuybackComponentProps {
 	collection: string;
@@ -36,7 +37,6 @@ export default function BuybackComponent({
 	tokenId,
 	appraisalContractAddress,
 	protocolTreasuryAddress,
-	gachaTreasuryAddress,
 	rarity,
 	onSuccess,
 	onBuybackSuccess,
@@ -49,7 +49,7 @@ export default function BuybackComponent({
 
 	// Build interaction params for NFT interaction hook
 	const interactionParams = useMemo(() => {
-		const params: any = {
+		const params = {
 			onAction: (_collection: string, tokenId: string, _hasValidAppraisal?: boolean) => {
 				showNotification(`🔄 NFT action initiated for ${tokenId}`, "info");
 			},
@@ -64,7 +64,7 @@ export default function BuybackComponent({
 			refetchTreasuryCards: async () => {
 				// Optional: Implement treasury cards refetch if needed
 			}
-		};
+		} as Partial<NFTInteractionContext>;
 
 		if (onSuccess) {
 			params.onSuccess = onSuccess;
@@ -75,7 +75,7 @@ export default function BuybackComponent({
 		}
 
 		return params;
-	}, [tokenId, onSuccess, onBuybackSuccess, showNotification]);
+	}, [onSuccess, onBuybackSuccess, showNotification]);
 
 	// Use the unified NFT interaction hook
 	const {
@@ -89,7 +89,7 @@ export default function BuybackComponent({
 	} = useNFTInteraction(interactionParams);
 
 	// Enhanced success state data
-	const isSuccessState = currentState === "completed" && (context.successData as any)?.mode === "buyback";
+	const isSuccessState = currentState === "completed" && context.successData?.mode === "buyback";
 	const successTimestamp = context.successData && context.completedAt
 		? new Date(context.completedAt).toLocaleString()
 		: null;
@@ -309,14 +309,15 @@ export default function BuybackComponent({
 						className="text-center space-y-4"
 					>
 						<div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
-							<svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="Success checkmark">
+								<title>Success</title>
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
 							</svg>
 						</div>
 						<div>
 							<h4 className="text-white font-bold text-lg mb-2">Buyback Successful!</h4>
 							<p className="text-emerald-300 font-semibold text-xl mb-2">
-								You received {formatCurrency((context.successData as any)?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
+								You received {formatCurrency(context.successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
 							</p>
 							{successTimestamp && (
 								<p className="text-white/60 text-xs mb-2">
@@ -329,12 +330,12 @@ export default function BuybackComponent({
 								</p>
 							)}
 						</div>
-						{(context.successData as any)?.txHash && (
+						{context.successData?.txHash && (
 							<div className="flex flex-col gap-2">
 								<Button
 									size="sm"
 									color="glass"
-									onPress={() => window.open(`https://etherscan.io/tx/${(context.successData as any)?.txHash}`, "_blank")}
+									onPress={() => window.open(`https://etherscan.io/tx/${context.successData?.txHash}`, "_blank")}
 									className="bg-white/10 hover:bg-white/20"
 								>
 									View Transaction
@@ -453,11 +454,12 @@ export default function BuybackComponent({
 				{isSuccessState ? (
 					<div className="text-center space-y-2">
 						<div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
-							<svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="Success checkmark">
+								<title>Success</title>
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
 							</svg>
 						</div>
-						<p className="text-emerald-300 font-bold">Sold for {formatCurrency((context.successData as any)?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}</p>
+						<p className="text-emerald-300 font-bold">Sold for {formatCurrency(context.successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}</p>
 						{successTimestamp && (
 							<p className="text-white/50 text-xs">Completed: {successTimestamp}</p>
 						)}
@@ -529,12 +531,13 @@ export default function BuybackComponent({
 							size="sm"
 							className={classes.chip}
 							startContent={
-								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="Success checkmark">
+									<title>Success</title>
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
 								</svg>
 							}
 						>
-							Sold for {formatCurrency((context.successData as any)?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
+							Sold for {formatCurrency(context.successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
 						</Chip>
 					</div>
 				) : !hasAppraisal ? (

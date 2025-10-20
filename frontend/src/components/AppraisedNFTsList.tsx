@@ -24,6 +24,7 @@ import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { formatCurrency } from "../lib/utils";
 import { useAppraisalData, type AppraisalFilter, type AppraisalSort } from "../hooks/useAppraisalData";
+import type { OptimisticAppraisal } from "../stores/nftAppraisalStore";
 
 interface AppraisedNFT {
 	collection: string;
@@ -45,7 +46,7 @@ interface AppraisedNFTsListProps {
 }
 
 interface NFTAppraisalCardProps {
-	nft: AppraisedNFT | any; // Accept both AppraisedNFT and OptimisticAppraisal
+	nft: AppraisedNFT | OptimisticAppraisal; // Accept both AppraisedNFT and OptimisticAppraisal
 	onDepositAction?: (collection: string, tokenId: string, action: string) => void;
 }
 
@@ -53,7 +54,20 @@ const NFTAppraisalCard = ({ nft, onDepositAction }: NFTAppraisalCardProps) => {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
-	const getStatusInfo = (status: number) => {
+	// Check if this is an optimistic appraisal
+	const isOptimistic = 'isOptimistic' in nft && nft.isOptimistic;
+
+	const getStatusInfo = (status: number | undefined) => {
+		if (isOptimistic) {
+			return {
+				label: "Submitting Appraisal",
+				icon: ClockIcon,
+				color: "text-warning",
+				bgColor: "from-warning/20 to-yellow-400/20",
+				borderColor: "border-warning/30",
+			};
+		}
+
 		switch (status) {
 			case 0:
 				return {
@@ -90,10 +104,10 @@ const NFTAppraisalCard = ({ nft, onDepositAction }: NFTAppraisalCardProps) => {
 		}
 	};
 
-	const statusInfo = getStatusInfo(nft.status);
+	const statusInfo = getStatusInfo(isOptimistic ? undefined : (nft as AppraisedNFT).status);
 	const StatusIcon = statusInfo.icon;
-	const isComplete = nft.status === 1 || nft.status === 2;
-	const hasValue = nft.priceUSD && nft.priceUSD > BigInt(0);
+	const isComplete = !isOptimistic && ((nft as AppraisedNFT).status === 1 || (nft as AppraisedNFT).status === 2);
+	const hasValue = !isOptimistic && (nft as AppraisedNFT).priceUSD && (nft as AppraisedNFT).priceUSD > BigInt(0);
 
 	return (
 		<motion.div
@@ -117,7 +131,10 @@ const NFTAppraisalCard = ({ nft, onDepositAction }: NFTAppraisalCardProps) => {
 
 						{/* Timestamp */}
 						<div className="text-xs text-foreground/60">
-							{new Date(Number(nft.timestamp) * 1000).toLocaleDateString()}
+							{isOptimistic
+								? new Date(nft.timestamp).toLocaleDateString()
+								: new Date(Number((nft as AppraisedNFT).timestamp) * 1000).toLocaleDateString()
+							}
 						</div>
 					</div>
 
@@ -164,12 +181,12 @@ const NFTAppraisalCard = ({ nft, onDepositAction }: NFTAppraisalCardProps) => {
 									Appraised Value
 								</p>
 								<p className="text-2xl font-bold text-warning">
-									{formatCurrency(nft.priceUSD.toString(), 18, "USD")}
+									{formatCurrency((nft as AppraisedNFT).priceUSD.toString(), 18, "USD")}
 								</p>
-								{nft.lastUpdated > BigInt(0) && (
+								{!isOptimistic && (nft as AppraisedNFT).lastUpdated > BigInt(0) && (
 									<p className="text-xs text-foreground/60">
 										Last updated:{" "}
-										{new Date(Number(nft.lastUpdated) * 1000).toLocaleString()}
+										{new Date(Number((nft as AppraisedNFT).lastUpdated) * 1000).toLocaleString()}
 									</p>
 								)}
 							</div>
@@ -305,7 +322,7 @@ export function AppraisedNFTsList({
 			return `Checking status of ${pendingAppraisals.length} pending appraisal${pendingAppraisals.length === 1 ? '' : 's'}...`;
 		}
 		return "Loading your appraisals...";
-	}, [appraisedNFTs, loading]);
+	}, [appraisedNFTs]);
 
 	if (loading) {
 		return (

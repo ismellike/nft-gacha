@@ -13,6 +13,11 @@ import {
  * Hook to interact with the GachaServiceHandler contract
  * Provides access to WAVS randomness functionality
  */
+interface EnvelopeData {
+	address: string;
+	args: readonly unknown[];
+}
+
 export function useGachaServiceHandler(gachaId: string) {
 	const contracts = useGachaContracts(gachaId);
 	const serviceHandlerAddress = contracts.gachaServiceHandler;
@@ -72,7 +77,7 @@ export function useGachaServiceHandler(gachaId: string) {
 export function useRetrySignedEnvelope(gachaId: string) {
 	const { handleSignedEnvelope, isHandlingEnvelope, handleEnvelopeError } = useGachaServiceHandler(gachaId);
 
-	const retryEnvelope = async (envelopeData: any) => {
+	const retryEnvelope = async (envelopeData: EnvelopeData) => {
 		try {
 			await handleSignedEnvelope({
 				address: envelopeData.address,

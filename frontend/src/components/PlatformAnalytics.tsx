@@ -43,6 +43,15 @@ export const PlatformAnalytics: React.FC = () => {
 		query: { enabled: !!feeTokenAddress },
 	});
 
+	// Types based on contract return values
+	type PlatformOverviewBatch = readonly [
+		rarityCounts: readonly bigint[], // [5]
+		totalItems: bigint,
+		gachaAvailable: boolean,
+		totalDeposited: bigint,
+		totalClaimed: bigint
+	];
+
 	// 🚀 BATCH OPTIMIZED: Get platform data in 1 call instead of 2!
 	const { data: platformData } = useReadGachaTreasuryGetPlatformOverviewBatch({
 		address: contracts.treasury as `0x${string}` | undefined,
@@ -50,8 +59,8 @@ export const PlatformAnalytics: React.FC = () => {
 	} as Parameters<typeof useReadGachaTreasuryGetPlatformOverviewBatch>[0]);
 
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const allRarityCounts = (platformData as any)?.[0] || [0n, 0n, 0n, 0n, 0n];
-	const totalItemsCount = (platformData as any)?.[1] || 0n;
+	const allRarityCounts = (platformData as PlatformOverviewBatch)?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = (platformData as PlatformOverviewBatch)?.[1] || 0n;
 
 	// New economy system data
 	const { data: economyData } = useGachaEconomyManagerData({

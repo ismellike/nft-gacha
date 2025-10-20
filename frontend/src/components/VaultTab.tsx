@@ -49,8 +49,9 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 	const contracts = useGachaContracts(gachaId);
 
 	// Depositor Vault data
-	const depositorVaultProps: any = {
+	const depositorVaultProps = {
 		contractAddress: gachaConfig.depositorVaultAddress,
+		userAddress: address,
 	};
 	if (address) {
 		depositorVaultProps.userAddress = address;
@@ -357,7 +358,8 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 				{isLoadingWithdrawals ? (
 					<div className="space-y-4">
 						{Array.from({ length: 3 }).map((_, i) => (
-							<div key={i} className="p-4 bg-white/5 backdrop-blur-md border border-white/20 rounded-xl">
+							<div // biome-ignore lint/suspicious/noArrayIndexKey: skeleton loader placeholders
+								key={`withdrawal-skeleton-loading-${i}`} className="p-4 bg-white/5 backdrop-blur-md border border-white/20 rounded-xl">
 								<div className="flex items-center gap-4">
 									<div className="w-16 h-16 bg-white/10 rounded-lg animate-pulse" />
 									<div className="flex-1 space-y-2">

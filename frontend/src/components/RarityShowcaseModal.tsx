@@ -1,13 +1,7 @@
 "use client";
 
-import {
-	GlassModal,
-	ModalContent,
-	ModalHeader,
-	ModalBody,
-	ModalFooter,
-	Chip
-} from "../ui";
+import { GlassModal } from "../ui";
+import { ModalContent, ModalBody } from "@heroui/react";
 import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";

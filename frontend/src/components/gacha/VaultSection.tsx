@@ -95,7 +95,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const whitelistedCollectionsQuery = useReadGachaTreasuryGetWhitelistedCollections({
 		address: treasury,
 		query: { enabled: !!treasury }
-	} as any);
+	} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
 	const whitelistedCollections: `0x${string}`[] = (whitelistedCollectionsQuery.data as `0x${string}`[]) || [];
 
 	// Create a map to track which NFTs have appraisals for sorting
@@ -379,7 +379,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	};
 
 	// Handle NFT deposit
-	const handleDepositNFT = async (collection: string, tokenId: string, hasAppraisal = false) => {
+	const handleDepositNFT = useCallback(async (collection: string, tokenId: string, hasAppraisal = false) => {
 		const nftKey = `${collection}:${tokenId}`;
 
 		try {
@@ -401,7 +401,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			// Clear all depositing NFTs on error
 			setDepositingNFTs(new Set());
 		}
-	};
+	}, [depositNFT]);
 
 	// Handle NFT actions (deposit vs get appraised)
 	const handleNFTAction = useCallback(
@@ -428,7 +428,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				window.location.href = appraisalUrl;
 			}
 		},
-		[handleDepositNFT, isNFTDepositing],
+		[isNFTDepositing, handleDepositNFT],
 	);
 
 	// Calculate total deposited NFTs (sum of all deposit counts)

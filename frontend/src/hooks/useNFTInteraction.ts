@@ -189,7 +189,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		try {
 			await executeRedemption({
 				address: protocolTreasuryAddress as `0x${string}`,
-				args: [collection as `0x${string}`, BigInt(tokenId), userAddress!]
+				args: [collection as `0x${string}`, BigInt(tokenId), userAddress]
 			});
 		} catch (error) {
 			const isUserRejected = error instanceof UserRejectedRequestError
@@ -299,7 +299,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			interactionState.matches("awaitingInteractionSignature") &&
 			currentMode === "deposit" &&
 			currentCollection && currentTokenId) {
-			const isUserRejected = (depositError as any)?.name === "UserRejectedRequestError"
+			const isUserRejected = (depositError as UserRejectedRequestError)?.name === "UserRejectedRequestError"
 				|| depositError?.message?.toLowerCase().includes("user rejected");
 
 			if (isUserRejected) {
@@ -354,7 +354,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			interactionState.matches("awaitingInteractionSignature") &&
 			currentMode === "buyback" &&
 			currentCollection && currentTokenId) {
-			const isUserRejected = (redemptionError as any)?.name === "UserRejectedRequestError"
+			const isUserRejected = (redemptionError as UserRejectedRequestError)?.name === "UserRejectedRequestError"
 				|| redemptionError?.message?.toLowerCase().includes("user rejected");
 
 			if (isUserRejected) {
@@ -372,7 +372,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				});
 			}
 		}
-	}, [isRedemptionError, redemptionError, interactionState, sendInteractionEvent, resetRedemption]);
+	}, [isRedemptionError, redemptionError, interactionState, sendInteractionEvent, resetRedemption, interactionState.matches]);
 
 	// Handle automatic NFT approval when entering awaitingNFTApprovalSignature
 	useEffect(() => {
@@ -393,7 +393,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				});
 			}
 		}
-	}, [interactionState.matches("awaitingNFTApprovalSignature"), interactionState.context.mode, interactionState.context.collection, interactionState.context.protocolTreasuryAddress, interactionState.context.treasuryAddress, handleNFTApproval, sendInteractionEvent]);
+	}, [interactionState, interactionState.context.mode, interactionState.context.collection, interactionState.context.protocolTreasuryAddress, interactionState.context.treasuryAddress, handleNFTApproval, sendInteractionEvent]);
 
 	// Handle automatic action execution when entering awaitingInteractionSignature
 	useEffect(() => {
@@ -410,7 +410,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				handleRedemption(collection, tokenId, protocolTreasuryAddress);
 			}
 		}
-	}, [interactionState.matches("awaitingInteractionSignature"), interactionState.context.mode, interactionState.context.collection, interactionState.context.tokenId, interactionState.context.treasuryAddress, interactionState.context.protocolTreasuryAddress, handleDepositNFT, handleRedemption]);
+	}, [interactionState, interactionState.context.mode, interactionState.context.collection, interactionState.context.tokenId, interactionState.context.treasuryAddress, interactionState.context.protocolTreasuryAddress, handleDepositNFT, handleRedemption]);
 
 	// Handle transaction receipt confirmation
 	useEffect(() => {
@@ -458,23 +458,31 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			return {
 				type: "approveNFT",
 				label: "Approve NFT",
-				action: () => handleNFTApproval(context.collection!, operatorAddress)
+				action: () => handleNFTApproval(context.collection, operatorAddress)
 			};
 		}
 
 		if (currentState === "awaitingInteractionSignature") {
 			if (mode === "deposit") {
-				return {
-					type: "deposit",
-					label: "Deposit NFT",
-					action: () => handleDepositNFT(context.collection!, context.tokenId!, context.treasuryAddress!)
-				};
+				// All values should be non-null in this state due to state machine guards
+				if (context.collection && context.tokenId && context.treasuryAddress) {
+					return {
+						type: "deposit",
+						label: "Deposit NFT",
+						action: () => handleDepositNFT(context.collection, context.tokenId, context.treasuryAddress)
+					};
+				}
+				return { type: "idle", label: "Missing data", action: () => {} };
 			} else {
-				return {
-					type: "redeem",
-					label: "Accept Buyback",
-					action: () => handleRedemption(context.collection!, context.tokenId!, context.protocolTreasuryAddress!)
-				};
+				// All values should be non-null in this state due to state machine guards
+				if (context.collection && context.tokenId && context.protocolTreasuryAddress) {
+					return {
+						type: "redeem",
+						label: "Accept Buyback",
+						action: () => handleRedemption(context.collection, context.tokenId, context.protocolTreasuryAddress)
+					};
+				}
+				return { type: "idle", label: "Missing data", action: () => {} };
 			}
 		}
 

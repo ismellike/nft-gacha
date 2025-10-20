@@ -343,13 +343,13 @@ export const nftDepositMachine = createMachine(
 				// Trigger completion callbacks if available
 				try {
 					if (context.onAction && context.collection && context.tokenId) {
-						(context.onAction as any)(context.collection, context.tokenId, true);
+						context.onAction(context.collection, context.tokenId, true);
 					}
 					if (context.onAppraisalStatusChange && context.collection && context.tokenId) {
-						(context.onAppraisalStatusChange as any)(context.collection, context.tokenId, true);
+						context.onAppraisalStatusChange(context.collection, context.tokenId, true);
 					}
 					if (context.refetchTreasuryCards) {
-						(context.refetchTreasuryCards as any)();
+						context.refetchTreasuryCards();
 					}
 				} catch (error) {
 					console.error("❌ [NFTDepositMachine] Error in completion callbacks:", error);

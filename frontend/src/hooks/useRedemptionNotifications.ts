@@ -1,6 +1,5 @@
 "use client";
 
-import { useWatchContractEvent } from "wagmi";
 import { useWatchProtocolTreasuryRedemptionExecuted } from "../generated";
 import { toast } from "react-hot-toast";
 
@@ -10,7 +9,7 @@ export function useRedemptionNotifications(protocolTreasuryAddress: `0x${string}
 		address: protocolTreasuryAddress,
 		onLogs: (logs) => {
 			logs.forEach((log) => {
-				const { seller, collection, tokenId, payout } = log.args;
+				const { collection, tokenId, payout } = log.args;
 
 				// Create a detailed notification
 				const collectionShort = `${collection.slice(0, 6)}...${collection.slice(-4)}`;
@@ -41,7 +40,7 @@ export function useRedemptionNotifications(protocolTreasuryAddress: `0x${string}
 						audio.play().catch(() => {
 							// Ignore audio errors (user may not have interacted with page yet)
 						});
-					} catch (error) {
+					} catch (_error) {
 						// Ignore audio errors
 					}
 				}

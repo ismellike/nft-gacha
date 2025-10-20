@@ -1,6 +1,5 @@
 import { useEffect, useCallback } from "react";
 import { useAccount } from "wagmi";
-import { useNFTAppraisalStore } from "../stores/nftAppraisalStore";
 
 interface UserNFTDiscoveryOptions {
 	autoDiscover?: boolean;

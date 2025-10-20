@@ -15,11 +15,11 @@ export function useContractReader() {
 	const publicClient = usePublicClient();
 
 	const readContractWithTimeout = useCallback(
-		async <T = any>(
+		async <T>(
 			address: Address,
-			abi: any,
+			abi: readonly unknown[],
 			functionName: string,
-			args: any[] = [],
+			args: readonly unknown[] = [],
 			options: ContractInteractionOptions = {},
 		): Promise<T | null> => {
 			if (!publicClient) return null;
@@ -103,12 +103,12 @@ export function isValidHex(hex: string | undefined): hex is Hex {
 /**
  * Batch contract call utility
  */
-export async function batchContractReads<T = any>(
+export async function batchContractReads<T>(
 	calls: Array<{
 		address: Address;
-		abi: any;
+		abi: readonly unknown[];
 		functionName: string;
-		args?: any[];
+		args?: readonly unknown[];
 		options?: ContractInteractionOptions;
 	}>,
 ): Promise<Array<T | null>> {

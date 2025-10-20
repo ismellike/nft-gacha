@@ -33,7 +33,7 @@ import {
 } from "../generated";
 import { formatTokenAmount } from "../lib/utils";
 import { useActor } from "@xstate/react";
-import { nftAppraisalMachine, type AppraisalCallbacks } from "../machines/nftAppraisalMachine";
+import { nftAppraisalMachine, type AppraisalCallbacks, type AppraisalResult } from "../machines/nftAppraisalMachine";
 import { useNFTAppraisalStore } from "../stores/nftAppraisalStore";
 import { useRewardsData } from "../hooks/useRewardsData";
 
@@ -146,7 +146,7 @@ export function NFTAppraisalForm({
 	// Handle machine state completion
 	useEffect(() => {
 		if (state.matches('completed') && state.context.appraisalResult) {
-			const appraisalResult = state.context.appraisalResult as any;
+			const appraisalResult = state.context.appraisalResult as AppraisalResult;
 			const collection = appraisalResult.collection;
 			const tokenId = appraisalResult.tokenId;
 
@@ -546,11 +546,12 @@ export function NFTAppraisalForm({
 					<form onSubmit={handleSubmit} className="p-8 pt-4 space-y-4">
 						{/* Collection Address */}
 						<div>
-							<label className="block text-sm font-medium text-foreground mb-2">
+							<label htmlFor="collection" className="block text-sm font-medium text-foreground mb-2">
 								Collection Address
 							</label>
 							<div className="relative">
 								<input
+									id="collection"
 									type="text"
 									placeholder="0x..."
 									value={formData.collection}
@@ -579,11 +580,12 @@ export function NFTAppraisalForm({
 
 						{/* Token ID */}
 						<div>
-							<label className="block text-sm font-medium text-foreground mb-2">
+							<label htmlFor="tokenId" className="block text-sm font-medium text-foreground mb-2">
 								Token ID
 							</label>
 							<div className="relative">
 								<input
+									id="tokenId"
 									type="text"
 									placeholder="123"
 									value={formData.tokenId}

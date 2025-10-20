@@ -7,12 +7,12 @@ import { isAddress } from "viem";
 export interface AppraisalResult {
 	collection: string;
 	tokenId: string;
-	appraisalData: any; // The appraisal data returned from the contract
+	appraisalData: readonly [boolean, bigint, bigint, string, bigint]; // [exists, appraisedPrice, rarityScore, metadata, lastUpdated]
 }
 
 export interface AppraisalCallbacks {
-	approveTokens: (params: { address: `0x${string}`; abi: any[]; functionName: string; args: any[] }) => Promise<any>;
-	requestAppraisal: (params: { address: `0x${string}`; abi: any[]; functionName: string; args: any[] }) => Promise<any>;
+	approveTokens: (params: { address: `0x${string}`; abi: readonly unknown[]; functionName: string; args: readonly unknown[] }) => Promise<`0x${string}`>;
+	requestAppraisal: (params: { address: `0x${string}`; abi: readonly unknown[]; functionName: string; args: readonly unknown[] }) => Promise<`0x${string}`>;
 }
 
 export interface NFTAppraisalContext {

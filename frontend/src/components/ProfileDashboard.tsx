@@ -24,7 +24,6 @@ import {
 	CurrencyDollarIcon,
 	ClockIcon,
 	TrophyIcon,
-	ArrowLeftOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 
 export const ProfileDashboard: React.FC = () => {
@@ -54,14 +53,14 @@ export const ProfileDashboard: React.FC = () => {
 
 	// Extract data from batch calls
 	// userProfileData: [depositCounts[5], totalDeposits, lifetimeClaimed, lifetimeDeposited, lifetimeWithdrawn, netContribution]
-	const userTotalDeposits = (userProfileData as any)?.[1] || 0n;
-	const lifetimeClaimed = (userProfileData as any)?.[2] || 0n;
+	const userTotalDeposits = (userProfileData as readonly [bigint, bigint, bigint, bigint, bigint, bigint])?.[1] || 0n;
+	const lifetimeClaimed = (userProfileData as readonly [bigint, bigint, bigint, bigint, bigint, bigint])?.[2] || 0n;
 
 	// userGachaData: [totalSpins, totalRefunds, totalReclaims, rarityWins[5], spinCount]
-	const userSpinCount = (userGachaData as any)?.[0] || BigInt(0);
-	const userRefundCount = (userGachaData as any)?.[1] || BigInt(0);
-	const userReclaimCount = (userGachaData as any)?.[2] || BigInt(0);
-	const userRarityWins = (userGachaData as any)?.[3] || [
+	const userSpinCount = (userGachaData as readonly [bigint, bigint, bigint, bigint, readonly bigint[], bigint])?.[0] || BigInt(0);
+	const userRefundCount = (userGachaData as readonly [bigint, bigint, bigint, readonly bigint[], bigint])?.[1] || BigInt(0);
+	const userReclaimCount = (userGachaData as readonly [bigint, bigint, bigint, readonly bigint[], bigint])?.[2] || BigInt(0);
+	const userRarityWins = (userGachaData as readonly [bigint, bigint, bigint, readonly bigint[], bigint])?.[3] || [
 		BigInt(0),
 		BigInt(0),
 		BigInt(0),
