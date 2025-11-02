@@ -28,21 +28,16 @@ import {
 	useSimulateClaimYield,
 } from "../../hooks/useDepositorVault";
 import { formatCurrency } from "../../lib/utils";
-import {
-	useTreasuryUserCards,
-	type UserCardDeposit,
-} from "../../hooks/useTreasuryUserCards";
-import { useRarityTracker, type CardAppraisalInfo } from "../../hooks/useRarityTracker";
 import { useNFTWithdrawal } from "../../hooks/useNFTWithdrawal";
+import { useUserDepositedNFTs, type DepositedNFT } from "../../hooks/useUserDepositedNFTs";
 import { useNFTDeposit } from "../../hooks/useNFTDeposit";
 import { useUserOwnedNFTsMultipleCollections } from "../../hooks/useUserOwnedNFTs";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { getGachaConfig } from "../../lib/gacha-config";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../../generated";
-import { useAppraisalContract, type CardInstance } from "../../hooks/useAppraisalContract";
 import { toast } from "react-hot-toast";
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 
 interface VaultSectionProps {
 	title: string;
@@ -51,10 +46,8 @@ interface VaultSectionProps {
 
 type VaultTab = "deposit" | "withdraw" | "yield";
 
-interface WithdrawableCard extends Omit<UserCardDeposit, 'cardId'> {
-	cardId: `0x${string}`;
-	appraisalInfo: CardAppraisalInfo | null;
-	nftInstance?: CardInstance | null; // Representative NFT instance for display
+interface NFTWithCollection extends DepositedNFT {
+	collectionName?: string; // Optional collection name for display
 }
 
 export function VaultSection({ title, description }: VaultSectionProps) {
@@ -90,13 +83,10 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	// NFT Withdrawal functionality
 	const treasury = contracts.treasury as `0x${string}` | undefined;
 	const appraisal = contracts.appraisal as `0x${string}` | undefined;
-	const rarityTracker = contracts.trackers?.common as `0x${string}` | undefined;
-	const { getAllUserCardDeposits } = useTreasuryUserCards(treasury);
-	const { getBatchCardInfo } = useRarityTracker(rarityTracker);
-	const { withdrawNFT, isPending: isWithdrawing } = useNFTWithdrawal(treasury);
-	const { getCardInstances } = useAppraisalContract(appraisal);
+	const { withdrawNFT } = useNFTWithdrawal(treasury);
+	const { getUserDepositedNFTs } = useUserDepositedNFTs(treasury);
 
-	
+
 	// Whitelisted collections
 	const whitelistedCollectionsQuery = useReadGachaTreasuryGetWhitelistedCollections({
 		address: treasury,
@@ -288,67 +278,146 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	}, [userOwnedNFTs]);
 
 	// State for NFT lists
-	const [withdrawableCards, setWithdrawableCards] = useState<WithdrawableCard[]>([]);
+	const [depositedNFTs, setDepositedNFTs] = useState<NFTWithCollection[]>([]);
 	const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(false);
+	const [withdrawingNFT, setWithdrawingNFT] = useState<{collection: Address, tokenId: bigint} | null>(null);
 
-	// Load withdrawable cards
-	const loadWithdrawableCards = useCallback(async () => {
-		if (!treasury || !rarityTracker || !address) {
-			setWithdrawableCards([]);
+	// Debug function to manually test withdrawal functionality
+	const debugWithdrawal = useCallback(async () => {
+		if (!treasury || !address) {
+			console.log("🔍 [Vault] Debug: Missing treasury or address");
+			console.log("🔍 [Vault] Debug info:", { treasury, address });
+			return;
+		}
+
+		console.log("🐛 [Vault] Starting withdrawal debug...");
+		console.log("🔍 [Vault] Debug info:", {
+			treasury,
+			address,
+			gachaId,
+			gachaConfig
+		});
+
+		try {
+			// Test 1: Verify contract exists
+			console.log("🔍 [Vault] Test 1: Verifying contract exists...");
+			const code = await publicClient.getBytecode({ address: treasury });
+			console.log("🔍 [Vault] Contract bytecode length:", code.length);
+			console.log("🔍 [Vault] Contract exists:", code !== '0x');
+
+			if (code === '0x') {
+				console.error("❌ [Vault] No contract found at treasury address!");
+				alert(`No contract found at treasury address: ${treasury}`);
+				return;
+			}
+
+			// Test 2: Check if we can call the contract
+			console.log("🔍 [Vault] Test 2: Checking contract connectivity...");
+			const nfts = await getUserDepositedNFTs();
+			console.log("📦 [Vault] Contract call successful, got NFTs:", nfts);
+
+			// Test 3: Check individual NFT details
+			if (nfts.length > 0) {
+				console.log("🎯 [Vault] Test 3: Examining first NFT...");
+				const firstNFT = nfts[0];
+				console.log("First NFT details:", {
+					collection: firstNFT.collection,
+					tokenId: firstNFT.tokenId.toString(),
+					depositor: firstNFT.depositor,
+					appraisedPrice: firstNFT.appraisedPrice.toString(),
+					currentRarity: firstNFT.currentRarity
+				});
+
+				// Alert the user that we found NFTs
+				alert(`Found ${nfts.length} deposited NFT(s)! Check console for details.`);
+			} else {
+				console.log("📋 [Vault] No NFTs found - trying additional checks...");
+
+				// Try some alternative approaches
+				console.log("🔄 [Vault] Trying to understand the issue...");
+
+				// Let's check if there are any other functions we can call
+				try {
+					const balance = await publicClient.readContract({
+						address: treasury,
+						abi: [
+							{
+								type: "function",
+								name: "balanceOf",
+								stateMutability: "view",
+								inputs: [{ name: "account", type: "address" }],
+								outputs: [{ name: "", type: "uint256" }],
+							},
+						],
+						functionName: "balanceOf",
+						args: [address],
+					});
+					console.log("💰 [Vault] User balance (if available):", balance.toString());
+				} catch (e) {
+					console.log("ℹ️ [Vault] Balance function not available or failed");
+				}
+
+				alert(`No deposited NFTs found for address: ${address}. This could mean:\n\n1. You haven't deposited NFTs in this specific vault\n2. The NFTs are in a different contract\n3. The contract function name has changed\n\nCheck console for detailed debugging information.`);
+			}
+
+			// Test 4: Check if the withdrawal function exists
+			console.log("🔍 [Vault] Test 4: Checking withdrawal function availability...");
+			console.log("Withdraw function available:", typeof withdrawNFT);
+
+		} catch (error) {
+			console.error("❌ [Vault] Debug failed:", error);
+			alert(`Debug failed: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`);
+		}
+	}, [treasury, address, publicClient, getUserDepositedNFTs, withdrawNFT, gachaId, gachaConfig]);
+
+	// Load all deposited NFTs
+	const loadDepositedNFTs = useCallback(async () => {
+		if (!treasury || !address) {
+			console.log("🔍 [Vault] No treasury or address available", { treasury, address });
+			setDepositedNFTs([]);
 			setIsLoadingWithdrawals(false);
 			return;
 		}
 
 		setIsLoadingWithdrawals(true);
-		try {
-			const deposits = await getAllUserCardDeposits();
-			console.log("📦 [Vault] Deposits from treasury:", deposits);
+		console.log("🔍 [Vault] Loading deposited NFTs for:", { treasury, address });
 
-			if (deposits.length === 0) {
-				setWithdrawableCards([]);
+		try {
+			const nfts = await getUserDepositedNFTs();
+			console.log("📦 [Vault] Individual NFTs from treasury:", nfts);
+
+			if (nfts.length === 0) {
+				console.log("📋 [Vault] No deposited NFTs found - checking if user has deposited at all");
+
+				setDepositedNFTs([]);
 				setIsLoadingWithdrawals(false);
 				return;
 			}
 
-			const cardIds = deposits.map(d => d.cardId);
-			console.log("🎯 [Vault] Card IDs to fetch instances for:", cardIds);
-
-			const appraisalInfos = await getBatchCardInfo(cardIds);
-			console.log("💰 [Vault] Appraisal infos:", appraisalInfos);
-
-			// Get NFT instances from appraisal contract (O(1) solution)
-			let nftInstances: (CardInstance | null)[] = [];
-
-			if (appraisal && cardIds.length > 0) {
-				console.log("🔍 [Vault] Fetching NFT instances from appraisal contract:", appraisal);
-				nftInstances = await getCardInstances(cardIds);
-				console.log("🖼️ [Vault] NFT instances from appraisal:", nftInstances);
-			} else {
-				console.log("❌ [Vault] No appraisal contract or no card IDs");
-				nftInstances = Array(cardIds.length).fill(null);
-			}
-
-			const cards: WithdrawableCard[] = deposits.map((deposit, index) => ({
-				...deposit,
-				cardId: deposit.cardId,
-				appraisalInfo: appraisalInfos[index] || null,
-				nftInstance: nftInstances[index] || null,
+			// Group NFTs by collection for better organization
+			const nftsWithCollections: NFTWithCollection[] = nfts.map(nft => ({
+				...nft,
+				collectionName: nft.collectionName || undefined, // Ensure proper type
 			}));
 
-			console.log("🎴 [Vault] Final withdrawable cards:", cards);
-			setWithdrawableCards(cards);
+			console.log("🎴 [Vault] Final deposited NFTs:", nftsWithCollections);
+			setDepositedNFTs(nftsWithCollections);
 		} catch (error) {
-			console.error("Error loading withdrawable cards:", error);
-			setWithdrawableCards([]);
+			console.error("❌ [Vault] Error loading deposited NFTs:", error);
+			console.error("❌ [Vault] Error details:", {
+				message: error instanceof Error ? error.message : 'Unknown error',
+				cause: error instanceof Error ? error.cause : 'No cause available'
+			});
+			setDepositedNFTs([]);
 		} finally {
 			setIsLoadingWithdrawals(false);
 		}
-	}, [treasury, rarityTracker, address, appraisal, getAllUserCardDeposits, getBatchCardInfo, getCardInstances]);
+	}, [treasury, address, getUserDepositedNFTs]);
 
-	// Load withdrawable cards on component mount
+	// Load deposited NFTs on component mount
 	React.useEffect(() => {
-		loadWithdrawableCards();
-	}, [loadWithdrawableCards]);
+		loadDepositedNFTs();
+	}, [loadDepositedNFTs]);
 
 	// Load data on tab change
 	React.useEffect(() => {
@@ -389,17 +458,40 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	};
 
 	// Handle NFT withdrawal
-	const handleWithdrawNFT = async (cardId: `0x${string}`, depositCount: bigint) => {
-		if (!treasury) return;
+	const handleWithdrawNFT = async (collection: Address, tokenId: bigint) => {
+		if (!treasury) {
+			toast.error("Treasury contract not available");
+			return;
+		}
+
+		// Prevent double withdrawals
+		if (withdrawingNFT?.collection === collection && withdrawingNFT?.tokenId === tokenId) {
+			return;
+		}
+
+		// Set the specific NFT being withdrawn
+		setWithdrawingNFT({ collection, tokenId });
 
 		try {
-			await withdrawNFT(cardId, depositCount);
-			toast.success("NFT withdrawal successful!");
-			loadWithdrawableCards();
-			refetchDepositorVault();
+			console.log(`🔄 [Vault] Withdrawing NFT: ${collection} #${tokenId.toString()}`);
+			await withdrawNFT(collection, tokenId);
+			toast.success("NFT withdrawal submitted successfully!");
+
+			// Refetch after a delay to allow transaction to process
+			setTimeout(() => {
+				console.log("🔄 [Vault] Refetching deposited NFTs after withdrawal");
+				loadDepositedNFTs();
+				refetchDepositorVault();
+			}, 3000); // Increased delay for transaction confirmation
 		} catch (error) {
 			console.error("Error withdrawing NFT:", error);
-			toast.error("Failed to withdraw NFT");
+			const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+			toast.error(`Failed to withdraw NFT: ${errorMessage}`);
+		} finally {
+			// Clear the withdrawing NFT state after a reasonable delay
+			setTimeout(() => {
+				setWithdrawingNFT(null);
+			}, 2000); // Increased delay to match refetch
 		}
 	};
 
@@ -456,12 +548,25 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		[isNFTDepositing, handleDepositNFT],
 	);
 
-	// Calculate total deposited NFTs (sum of all deposit counts)
+	// Calculate total deposited NFTs
 	const totalDepositedNFTs = useMemo(() => {
-		return withdrawableCards.reduce((total, card) => {
-			return total + Number(card.depositCount);
-		}, 0);
-	}, [withdrawableCards]);
+		return depositedNFTs.length;
+	}, [depositedNFTs]);
+
+	// Group NFTs by collection for better organization
+	const nftsByCollection = useMemo(() => {
+		const grouped = new Map<string, NFTWithCollection[]>();
+
+		depositedNFTs.forEach(nft => {
+			const collectionKey = nft.collection.toLowerCase();
+			if (!grouped.has(collectionKey)) {
+				grouped.set(collectionKey, []);
+			}
+			grouped.get(collectionKey)?.push(nft);
+		});
+
+		return grouped;
+	}, [depositedNFTs]);
 
 	// Tab configuration
 	const tabs = [
@@ -661,90 +766,202 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 				{activeTab === "withdraw" && (
 					<div>
-						<h3 className="text-xl font-semibold text-foreground mb-4">Withdraw NFTs</h3>
+						<div className="flex items-center justify-between mb-4">
+							<h3 className="text-xl font-semibold text-foreground">Withdraw NFTs</h3>
+							{/* Debug button for development */}
+							{process.env.NODE_ENV === 'development' && (
+								<Button
+									variant="light"
+									size="sm"
+									onPress={debugWithdrawal}
+									className="text-xs"
+								>
+									🐛 Debug Withdrawal
+								</Button>
+							)}
+						</div>
 						{isLoadingWithdrawals ? (
 							<div className="text-center py-12">
 								<ArrowPathIcon className="w-16 h-16 mx-auto mb-4 text-foreground/30 animate-spin" />
-								<p className="text-foreground/60">Loading your withdrawable NFTs...</p>
+								<p className="text-foreground/60">Loading your deposited NFTs...</p>
 							</div>
-						) : withdrawableCards.length === 0 ? (
+						) : depositedNFTs.length === 0 ? (
 							<div className="text-center py-12">
 								<ArrowDownTrayIcon className="w-16 h-16 mx-auto mb-4 text-foreground/30" />
-								<h4 className="text-lg font-medium text-foreground mb-2">No Withdrawable NFTs</h4>
-								<p className="text-foreground/60">
-									You haven't deposited any NFTs yet.
+								<h4 className="text-lg font-medium text-foreground mb-2">No Deposited NFTs</h4>
+								<p className="text-foreground/60 mb-6">
+									{isLoadingWithdrawals
+										? "Checking for your deposited NFTs..."
+										: "No NFTs found in your vault deposits."
+									}
 								</p>
-							</div>
-						) : (
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-								{withdrawableCards.map((card) => {
-								// Debug logging in development
-								if (process.env.NODE_ENV === 'development') {
-									console.log(`🎴 [Vault] Rendering card ${card.cardId}:`, {
-										nftInstance: card.nftInstance,
-										appraisalInfo: card.appraisalInfo
-									});
-								}
-
-								return (
-									<div key={card.cardId} className="bg-content1/30 rounded-xl p-4 border border-white/10 flex flex-col h-full">
-										<div className="flex-1">
-											{card.nftInstance ? (
-												<>
-													{process.env.NODE_ENV === 'development' &&
-														console.log("✅ [Vault] Rendering UnifiedNFTCard for:", card.nftInstance)}
-													<UnifiedNFTCard
-														collection={card.nftInstance.collection}
-														tokenId={card.nftInstance.tokenId.toString()}
-														appraisalContractAddress={appraisal || "0x0000000000000000000000000000000000000000"}
-														variant="detailed"
-														size="md"
-														showAppraisal={true}
-														{...(card.appraisalInfo && {
-															appraisalOverride: {
-																hasAppraisal: true,
-																priceUSD: card.appraisalInfo.appraisedValueUsd
-															}
-														})}
-													/>
-												</>
-											) : (
-												<>
-													{process.env.NODE_ENV === 'development' &&
-														console.log("❌ [Vault] No NFT instance available, showing fallback for:", card.cardId)}
-													{/* Fallback display when no NFT instance is available */}
-													<div className="bg-content1/30 rounded-xl p-4 border border-white/10 flex flex-col items-center justify-center h-48">
-														<div className="text-center">
-															<p className="text-sm text-foreground/60 mb-2">Card ID</p>
-															<p className="text-xs font-mono text-foreground/80 break-all">{card.cardId}</p>
-															{card.appraisalInfo && (
-																<p className="text-sm text-success mt-2">
-																	{formatCurrency(card.appraisalInfo.appraisedValueUsd.toString(), 18, "USD")}
-																</p>
-															)}
-														</div>
-													</div>
-												</>
+								<div className="space-y-4">
+									{/* Debug information panel */}
+									<div className="bg-content2/20 rounded-lg p-4 border border-white/10 text-left">
+										<h5 className="font-medium text-foreground mb-2 flex items-center gap-2">
+											<SparklesIcon className="w-4 h-4" />
+											Debug Information
+										</h5>
+										<div className="text-xs text-foreground/70 space-y-1 font-mono">
+											<div>Treasury: {treasury ? `${treasury.slice(0, 8)}...${treasury.slice(-6)}` : 'Not available'}</div>
+											<div>Your Address: {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : 'Not connected'}</div>
+											<div>Gacha ID: {gachaId || 'Not available'}</div>
+											{process.env.NODE_ENV === 'development' && (
+												<div className="mt-2 pt-2 border-t border-white/10">
+													<div>🔍 Click the debug button above for detailed analysis</div>
+												</div>
 											)}
 										</div>
-											<div className="mt-4 pt-2 flex items-center justify-between">
-												<div>
-													<p className="text-sm text-foreground/60">Deposit Count</p>
-													<p className="font-medium text-foreground">{card.depositCount.toString()}</p>
+									</div>
+
+									<div className="bg-content2/20 rounded-lg p-4 border border-white/10">
+										<h5 className="font-medium text-foreground mb-2">How to deposit NFTs:</h5>
+										<ol className="text-sm text-foreground/70 text-left space-y-1">
+											<li>1. Switch to the "Deposit NFTs" tab</li>
+											<li>2. Get your NFTs appraised (if not already)</li>
+											<li>3. Deposit appraised NFTs to start earning yield</li>
+											<li>4. Return here to withdraw them anytime</li>
+										</ol>
+									</div>
+									<Button
+										variant="light"
+										onPress={() => setActiveTab("deposit")}
+										className="rounded-xl bg-content2/20 hover:bg-content2/30"
+									>
+										Go to Deposit NFTs
+									</Button>
+								</div>
+							</div>
+						) : (
+							<div className="space-y-6">
+								{/* Summary Section */}
+								<div className="bg-content2/20 rounded-xl p-4 border border-white/10">
+									<div className="flex items-center justify-between">
+										<div>
+											<h3 className="font-semibold text-foreground mb-1">Your Vault Inventory</h3>
+											<p className="text-sm text-foreground/70">
+												{nftsByCollection.size} collection{nftsByCollection.size !== 1 ? 's' : ''} with {totalDepositedNFTs} total NFT{totalDepositedNFTs !== 1 ? 's' : ''} deposited
+											</p>
+										</div>
+										<div className="text-right">
+											<div className="text-2xl font-bold text-primary">
+												{totalDepositedNFTs}
+											</div>
+											<div className="text-sm text-foreground/60">Total Deposits</div>
+										</div>
+									</div>
+								</div>
+
+								{/* NFTs grouped by Collection */}
+								{Array.from(nftsByCollection.entries()).map(([collectionAddress, nfts], collectionIndex) => (
+									<motion.div
+										key={collectionAddress}
+										initial={{ opacity: 0, y: 20 }}
+										animate={{ opacity: 1, y: 0 }}
+										transition={{ duration: 0.4, delay: collectionIndex * 0.1 }}
+									>
+										<div className="bg-content1/30 rounded-xl p-6 border border-white/10">
+											{/* Collection Header */}
+											<div className="flex items-center justify-between mb-4">
+												<div className="flex items-center gap-3">
+													<div className="p-2 rounded-lg bg-primary/20">
+														<GiftIcon className="w-6 h-6 text-primary" />
+													</div>
+													<div>
+														<h4 className="font-semibold text-foreground">Collection</h4>
+														<p className="text-sm text-foreground/70 font-mono">
+															{collectionAddress.slice(0, 8)}...{collectionAddress.slice(-6)}
+														</p>
+													</div>
 												</div>
-												<GlassButton
-													color="glass"
-													size="sm"
-													onPress={() => handleWithdrawNFT(card.cardId, card.depositCount)}
-													isLoading={isWithdrawing}
-												>
-													<ArrowDownTrayIcon className="w-4 h-4" />
-													Withdraw
-												</GlassButton>
+												<div className="text-right">
+													<p className="text-sm text-foreground/60">NFTs in Collection</p>
+													<p className="font-semibold text-foreground">
+														{nfts.length} NFT{nfts.length !== 1 ? 's' : ''}
+													</p>
+												</div>
+											</div>
+
+											{/* Individual NFTs in this collection */}
+											<div className="space-y-2">
+												<p className="text-sm text-foreground/70 mb-3">
+													Individual NFTs ({nfts.length}):
+												</p>
+												<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+													{nfts.map((nft) => {
+														const isWithdrawingThisNFT = withdrawingNFT?.collection === nft.collection && withdrawingNFT?.tokenId === nft.tokenId;
+														const nftKey = `${nft.collection}:${nft.tokenId.toString()}`;
+														const rarityEmojis = ['⚪', '🟢', '🔵', '🟣', '🟡']; // Common, Uncommon, Rare, Epic, Legendary
+														const rarityEmoji = rarityEmojis[nft.currentRarity] || '⚪';
+
+														return (
+															<div key={nftKey} className="bg-content2/10 rounded-lg p-4 border border-white/5">
+																<div className="flex flex-col h-full">
+																	{/* NFT Header */}
+																	<div className="flex items-center justify-between mb-3">
+																		<div className="flex items-center gap-2">
+																			<span className="text-lg">{rarityEmoji}</span>
+																			<p className="text-sm font-mono bg-content2/20 px-2 py-1 rounded">
+																				Token #{nft.tokenId.toString()}
+																			</p>
+																		</div>
+																	</div>
+
+																	{/* NFT Details */}
+																	<div className="flex-1 space-y-2 mb-4">
+																		<div className="flex items-center gap-2">
+																			<p className="text-xs text-foreground/60">Collection:</p>
+																			<p className="text-xs font-mono text-foreground/80">
+																				{nft.collection.slice(0, 6)}...{nft.collection.slice(-4)}
+																			</p>
+																		</div>
+																		<div className="flex items-center gap-2">
+																			<p className="text-xs text-foreground/60">Value:</p>
+																			<p className="text-xs font-semibold text-success">
+																				{formatCurrency(nft.appraisedPrice.toString(), 18, "USD")}
+																			</p>
+																		</div>
+																		<div className="flex items-center gap-2">
+																			<p className="text-xs text-foreground/60">Rarity:</p>
+																			<p className="text-xs font-semibold text-foreground">
+																				{['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'][nft.currentRarity] || 'Unknown'}
+																			</p>
+																		</div>
+																	</div>
+
+																	{/* Withdraw Button */}
+																	<GlassButton
+																		size="sm"
+																		color="glass"
+																		onPress={() => handleWithdrawNFT(nft.collection, nft.tokenId)}
+																		isLoading={isWithdrawingThisNFT}
+																		isDisabled={isWithdrawingThisNFT}
+																		className="w-full transition-all duration-300"
+																	>
+																		<ArrowDownTrayIcon className={`w-4 h-4 ${isWithdrawingThisNFT ? 'animate-bounce' : ''}`} />
+																		{isWithdrawingThisNFT ? "Withdrawing..." : "Withdraw"}
+																	</GlassButton>
+																</div>
+															</div>
+														);
+													})}
+												</div>
 											</div>
 										</div>
-									);
-								})}
+									</motion.div>
+								))}
+
+								{/* Information Section */}
+								<div className="mt-8 p-4 bg-content2/20 rounded-lg border border-white/10">
+									<h3 className="font-semibold text-foreground mb-2">About NFT Withdrawals</h3>
+									<ul className="text-sm text-foreground/70 space-y-1">
+										<li>• You can withdraw any individual NFT you have deposited</li>
+										<li>• NFTs currently being used in gacha spins cannot be withdrawn</li>
+										<li>• Withdrawals transfer the NFT back to your wallet immediately</li>
+										<li>• Gas fees apply for withdrawal transactions</li>
+										<li>• Your yield earnings will remain available to claim separately</li>
+									</ul>
+								</div>
 							</div>
 						)}
 					</div>

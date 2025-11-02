@@ -40,10 +40,9 @@ interface IDepositorVault {
     /**
      * @notice Emitted when a depositor claims accrued yield
      * @param account Address claiming rewards
-     * @param recipient Destination receiving USDC
      * @param amount Amount withdrawn (6 decimals)
      */
-    event YieldClaimed(address indexed account, address indexed recipient, uint256 amount);
+    event YieldClaimed(address indexed account, uint256 amount);
 
     /**
      * @notice Returns the USDC token used for yield accounting
@@ -83,10 +82,9 @@ interface IDepositorVault {
     /**
      * @notice Claims accumulated USDC yield for an account
      * @param account Address whose rewards will be withdrawn
-     * @param recipient Target receiving the USDC
      * @return withdrawn Amount paid out in USDC
      */
-    function claimYield(address account, address recipient) external returns (uint256 withdrawn);
+    function claimYield(address account) external returns (uint256 withdrawn);
 
     /**
      * @notice Returns claimable yield for an account

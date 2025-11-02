@@ -160,7 +160,7 @@ contract GachaEconomyManager is
             if (protocolShares > 0) {
                 uint256 pending = depositorVault.pendingYield(protocolTreasuryAddr);
                 if (pending > 0) {
-                    depositorVault.claimYield(protocolTreasuryAddr, protocolTreasuryAddr);
+                    depositorVault.claimYield(protocolTreasuryAddr);
                 }
             }
         }
@@ -173,7 +173,6 @@ contract GachaEconomyManager is
         emit SpinRevenueReceived(usdcAmount, depositShare, protocolShare);
     }
 
-    
     /**
      * @notice Updates the fee split (BPS must sum to <= 10_000)
      */

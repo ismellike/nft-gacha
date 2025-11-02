@@ -14,6 +14,7 @@ import {
 } from "../hooks/useTreasuryUserCards";
 import { useRarityTracker, type CardAppraisalInfo } from "../hooks/useRarityTracker";
 import { useNFTWithdrawal } from "../hooks/useNFTWithdrawal";
+import { useUserDepositedNFTs, type DepositedNFT } from "../hooks/useUserDepositedNFTs";
 import {
 	ArrowLeftOnRectangleIcon,
 	ArrowPathIcon,
@@ -25,6 +26,7 @@ import { getRarityConfig } from "../lib/rarityConfig";
 
 interface WithdrawableCard extends UserCardDeposit {
 	appraisalInfo: CardAppraisalInfo | null;
+	nfts: DepositedNFT[]; // Specific NFTs that can be withdrawn
 }
 
 export const NFTWithdrawal: React.FC = () => {
@@ -34,6 +36,7 @@ export const NFTWithdrawal: React.FC = () => {
 
 	const [isLoading, setIsLoading] = useState(true);
 	const [withdrawingCardId, setWithdrawingCardId] = useState<string | null>(null);
+	const [withdrawingNFT, setWithdrawingNFT] = useState<{collection: Address, tokenId: bigint} | null>(null);
 
 	// Use existing hooks to get user's deposited cards
 	const treasury = contracts.treasury as `0x${string}` | undefined;
@@ -41,6 +44,7 @@ export const NFTWithdrawal: React.FC = () => {
 	const { getAllUserCardDeposits } = useTreasuryUserCards(treasury);
 	const { getBatchCardInfo } = useRarityTracker(rarityTracker);
 	const { withdrawNFT, isPending: isWithdrawing } = useNFTWithdrawal(treasury);
+	const { getUserDepositedNFTsByCardId } = useUserDepositedNFTs(treasury);
 
 	// State for user's deposited cards
 	const [userCards, setUserCards] = useState<WithdrawableCard[]>([]);
@@ -78,13 +82,21 @@ export const NFTWithdrawal: React.FC = () => {
 				const cardIds = deposits.map(d => d.cardId);
 				const appraisalInfos = await getBatchCardInfo(cardIds);
 
-				// Combine the data
-				const cards: WithdrawableCard[] = deposits.map((deposit, index) => ({
-					...deposit,
-					appraisalInfo: appraisalInfos[index] || null,
-				}));
+				// Get specific NFTs for each card ID
+				const cardsWithNFTs: WithdrawableCard[] = [];
 
-				setUserCards(cards);
+				for (let i = 0; i < deposits.length; i++) {
+					const deposit = deposits[i];
+					const nfts = await getUserDepositedNFTsByCardId(deposit.cardId);
+
+					cardsWithNFTs.push({
+						...deposit,
+						appraisalInfo: appraisalInfos[i] || null,
+						nfts: nfts,
+					});
+				}
+
+				setUserCards(cardsWithNFTs);
 			} catch (error) {
 				console.error("Error loading user cards:", error);
 				setUserCards([]);
@@ -94,23 +106,78 @@ export const NFTWithdrawal: React.FC = () => {
 		};
 
 		loadUserCards();
-	}, [treasury, rarityTracker, userAddress, getAllUserCardDeposits, getBatchCardInfo]);
+	}, [treasury, rarityTracker, userAddress, getAllUserCardDeposits, getBatchCardInfo, getUserDepositedNFTsByCardId]);
 
-	const handleWithdraw = async (cardId: string) => {
-		if (!treasury) return;
+	const handleWithdraw = async (collection: Address, tokenId: bigint, cardId: string) => {
+		if (!treasury) {
+			toast.error("Treasury contract not available");
+			return;
+		}
+
+		// Prevent double withdrawals
+		if (withdrawingNFT?.collection === collection && withdrawingNFT?.tokenId === tokenId) {
+			return;
+		}
 
 		setWithdrawingCardId(cardId);
+		setWithdrawingNFT({ collection, tokenId });
+
 		try {
-			await withdrawNFT(cardId as `0x${string}`, 1n);
+			console.log(`🔄 [NFTWithdrawal] Withdrawing NFT: ${collection} #${tokenId.toString()}`);
+			await withdrawNFT(collection, tokenId);
+
+			// Refetch the user's deposited NFTs after successful withdrawal
+			setTimeout(async () => {
+				try {
+					// Trigger the useEffect to reload user cards
+					const deposits = await getAllUserCardDeposits();
+					if (deposits.length === 0) {
+						setUserCards([]);
+						return;
+					}
+
+					// Get appraisal info for all cards
+					const cardIds = deposits.map(d => d.cardId);
+					const appraisalInfos = await getBatchCardInfo(cardIds);
+
+					// Get specific NFTs for each card ID
+					const cardsWithNFTs: WithdrawableCard[] = [];
+
+					for (let i = 0; i < deposits.length; i++) {
+						const deposit = deposits[i];
+						const nfts = await getUserDepositedNFTsByCardId(deposit.cardId);
+
+						cardsWithNFTs.push({
+							...deposit,
+							appraisalInfo: appraisalInfos[i] || null,
+							nfts: nfts,
+						});
+					}
+
+					setUserCards(cardsWithNFTs);
+				} catch (error) {
+					console.error("Error refetching user cards after withdrawal:", error);
+				}
+			}, 3000);
 		} catch (error) {
 			console.error("Withdrawal failed:", error);
+			const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+			toast.error(`Failed to withdraw NFT: ${errorMessage}`);
 		} finally {
-			setWithdrawingCardId(null);
+			// Clear withdrawing states after a delay
+			setTimeout(() => {
+				setWithdrawingCardId(null);
+				setWithdrawingNFT(null);
+			}, 2000);
 		}
 	};
 
 	const canWithdrawCard = (card: WithdrawableCard) => {
-		return card.depositCount > 0n;
+		return card.depositCount > 0n && card.nfts.length > 0;
+	};
+
+	const canWithdrawSpecificNFT = (card: WithdrawableCard, nft: DepositedNFT) => {
+		return card.depositCount > 0n && nft.collection && nft.tokenId !== undefined;
 	};
 
 	if (!userAddress) {
@@ -251,38 +318,64 @@ export const NFTWithdrawal: React.FC = () => {
 															</span>
 														</div>
 													)}
-												</div>
 
-												{/* Withdraw Button */}
-												<Button
-													className={`w-full rounded-xl transition-all duration-300 ${
-														canWithdraw
-															? "bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
-															: "bg-content2/20 text-foreground/50 cursor-not-allowed"
-													}`}
-													onPress={() => handleWithdraw(card.cardId)}
-													isDisabled={!canWithdraw || isWithdrawing}
-													isLoading={isCurrentlyWithdrawing}
-												>
-													<span className="flex items-center justify-center gap-2">
-														{isCurrentlyWithdrawing ? (
-															<>
-																<ArrowPathIcon className="w-4 h-4 animate-spin" />
-																Withdrawing...
-															</>
-														) : canWithdraw ? (
-															<>
-																<ArrowLeftOnRectangleIcon className="w-4 h-4" />
-																Withdraw
-															</>
-														) : (
-															<>
+													{/* Show individual NFTs that can be withdrawn */}
+													{card.nfts.length > 0 && (
+														<div className="mt-3 space-y-2">
+															<div className="text-sm text-foreground/70 mb-2">Available NFTs ({card.nfts.length}):</div>
+															{card.nfts.map((nft, nftIndex) => {
+																const canWithdrawThisNFT = canWithdrawSpecificNFT(card, nft);
+																const isWithdrawingThisNFT = withdrawingNFT?.collection === nft.collection && withdrawingNFT?.tokenId === nft.tokenId;
+
+																return (
+																	<div key={nftIndex} className="flex items-center justify-between p-2 bg-content2/10 rounded-lg border border-white/5">
+																		<div className="flex items-center gap-2">
+																			<div className="text-xs font-mono bg-content2/20 px-2 py-1 rounded">
+																				Token #{nft.tokenId.toString()}
+																			</div>
+																			<div className="text-xs text-foreground/50">
+																				{nft.collection.slice(0, 8)}...{nft.collection.slice(-6)}
+																			</div>
+																		</div>
+																		<Button
+																			size="sm"
+																			className={`rounded-lg text-xs px-3 py-1 transition-all duration-300 ${
+																				canWithdrawThisNFT
+																					? "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:scale-105"
+																					: "bg-content2/20 text-foreground/50 cursor-not-allowed"
+																			}`}
+																			onPress={() => handleWithdraw(nft.collection, nft.tokenId, card.cardId)}
+																			isDisabled={!canWithdrawThisNFT || isWithdrawing}
+																			isLoading={isWithdrawingThisNFT}
+																		>
+																			{isWithdrawingThisNFT ? (
+																				<span className="flex items-center gap-1">
+																					<ArrowPathIcon className="w-3 h-3 animate-spin" />
+																					Withdrawing
+																				</span>
+																			) : (
+																				<span className="flex items-center gap-1">
+																					<ArrowLeftOnRectangleIcon className="w-3 h-3" />
+																					Withdraw
+																				</span>
+																			)}
+																		</Button>
+																	</div>
+																);
+															})}
+														</div>
+													)}
+
+													{/* Fallback button if no NFTs available */}
+													{card.nfts.length === 0 && (
+														<div className="mt-3 text-center p-3 bg-warning/10 rounded-lg border border-warning/20">
+															<div className="flex items-center justify-center gap-2 text-warning text-sm">
 																<ExclamationTriangleIcon className="w-4 h-4" />
-																Unavailable
-															</>
-														)}
-													</span>
-												</Button>
+																<span>No withdrawable NFTs found</span>
+															</div>
+														</div>
+													)}
+												</div>
 											</div>
 										</Card>
 									</motion.div>

@@ -148,10 +148,12 @@ contract DeployLocal is Script {
         _deployCollectionAndTrackers(d, deployer);
 
         // Fund ProtocolTreasury for NFT buybacks
-        _fundProtocolTreasury(TestUSDC(d.usdc), ProtocolTreasury(d.protocolTreasuryProxy), deployer);
+        _fundProtocolTreasury(TestUSDC(d.usdc), ProtocolTreasury(d.protocolTreasuryProxy));
 
         // Seed treasury
-        _seedTreasury(GachaTreasury(d.treasuryProxy), NFTAppraisal(d.appraisalProxy), BaseERC721(d.collection), deployer);
+        _seedTreasury(
+            GachaTreasury(d.treasuryProxy), NFTAppraisal(d.appraisalProxy), BaseERC721(d.collection), deployer
+        );
 
         console.log("\n=== Local Gacha System Status ===");
         console.log("Whitelist Length:    ", GachaTreasury(d.treasuryProxy).getWhitelistLength());
@@ -195,9 +197,7 @@ contract DeployLocal is Script {
         d.appraisalProxy = address(
             new ERC1967Proxy(
                 address(appraisalImpl),
-                abi.encodeWithSelector(
-                    NFTAppraisal.initialize.selector, deployer, d.usdc, 10 * 1e6, deployer
-                )
+                abi.encodeWithSelector(NFTAppraisal.initialize.selector, deployer, d.usdc, 10 * 1e6, deployer)
             )
         );
     }
@@ -303,33 +303,22 @@ contract DeployLocal is Script {
     function _deployTrackers(Deployments memory d, address deployer) internal {
         address trackerImpl = address(new RarityTracker());
         d.commonTracker = address(
-            new ERC1967Proxy(
-                trackerImpl,
-                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Common")
-            )
+            new ERC1967Proxy(trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Common"))
         );
         d.uncommonTracker = address(
             new ERC1967Proxy(
-                trackerImpl,
-                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Uncommon")
+                trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Uncommon")
             )
         );
         d.rareTracker = address(
-            new ERC1967Proxy(
-                trackerImpl,
-                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Rare")
-            )
+            new ERC1967Proxy(trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Rare"))
         );
         d.epicTracker = address(
-            new ERC1967Proxy(
-                trackerImpl,
-                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Epic")
-            )
+            new ERC1967Proxy(trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Epic"))
         );
         d.legendaryTracker = address(
             new ERC1967Proxy(
-                trackerImpl,
-                abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Legendary")
+                trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Legendary")
             )
         );
     }
@@ -571,7 +560,7 @@ contract DeployLocal is Script {
         }
     }
 
-    function _fundProtocolTreasury(TestUSDC usdc, ProtocolTreasury protocolTreasury, address deployer) internal {
+    function _fundProtocolTreasury(TestUSDC usdc, ProtocolTreasury protocolTreasury) internal {
         console.log("=== Funding ProtocolTreasury for NFT Buybacks ===");
         usdc.transfer(address(protocolTreasury), PROTOCOL_TREASURY_FUNDING);
         console.log("ProtocolTreasury funded with:", PROTOCOL_TREASURY_FUNDING / 1e6, " tUSDC");

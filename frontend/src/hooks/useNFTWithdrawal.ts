@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useAccount, useWriteContract } from "wagmi";
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 import { toast } from "react-hot-toast";
 
 // Contract interface for Treasury withdrawal
@@ -12,16 +12,16 @@ const treasuryAbi = [
 		name: "withdrawMyNFT",
 		stateMutability: "nonpayable",
 		inputs: [
-			{ name: "cardId", type: "bytes32" },
-			{ name: "quantity", type: "uint256" },
+			{ name: "collection", type: "address" },
+			{ name: "tokenId", type: "uint256" },
 		],
 		outputs: [],
 	},
 ] as const;
 
 export interface WithdrawalRequest {
-	cardId: Hex;
-	quantity: bigint;
+	collection: Address;
+	tokenId: bigint;
 }
 
 /**
@@ -32,7 +32,7 @@ export function useNFTWithdrawal(treasury?: Address) {
 	const { writeContract, isPending } = useWriteContract();
 
 	const withdrawNFT = useCallback(
-		async (cardId: Hex, quantity: bigint = 1n) => {
+		async (collection: Address, tokenId: bigint) => {
 			if (!treasury || !user) {
 				toast.error("Missing treasury address or user wallet");
 				return;
@@ -43,10 +43,10 @@ export function useNFTWithdrawal(treasury?: Address) {
 					address: treasury,
 					abi: treasuryAbi,
 					functionName: "withdrawMyNFT",
-					args: [cardId, quantity],
+					args: [collection, tokenId],
 				});
 
-				toast.success("NFT withdrawal initiated successfully!");
+				toast.success("NFT withdrawal transaction submitted!");
 			} catch (error) {
 				console.error("Failed to withdraw NFT:", error);
 				toast.error("Failed to withdraw NFT");
@@ -66,7 +66,7 @@ export function useNFTWithdrawal(treasury?: Address) {
 			try {
 				// Process withdrawals sequentially to avoid gas issues
 				for (const withdrawal of withdrawals) {
-					await withdrawNFT(withdrawal.cardId, withdrawal.quantity);
+					await withdrawNFT(withdrawal.collection, withdrawal.tokenId);
 				}
 
 				toast.success(`Successfully initiated ${withdrawals.length} NFT withdrawals!`);

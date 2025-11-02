@@ -98,7 +98,7 @@ contract EconomyFlowTest is Test, IERC721Receiver {
 
         uint256 depositorBalanceBefore = usdc.balanceOf(DEPOSITOR);
         vm.prank(DEPOSITOR);
-        uint256 claimed = depositorVault.claimYield(DEPOSITOR, DEPOSITOR);
+        uint256 claimed = depositorVault.claimYield(DEPOSITOR);
         uint256 depositorBalanceAfter = usdc.balanceOf(DEPOSITOR);
 
         assertEq(claimed, expectedClaim, "Claimed amount mismatch");
@@ -153,12 +153,7 @@ contract EconomyFlowTest is Test, IERC721Receiver {
         );
     }
 
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure override returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
 }

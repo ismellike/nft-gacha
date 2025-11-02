@@ -49,7 +49,7 @@ contract DepositorVaultUnitTest is Test {
     event DepositorUpdated(address indexed account, uint256 oldValueUSD, uint256 newValueUSD);
     event DepositorDeregistered(address indexed account, uint256 appraisalValueUSD);
     event YieldDistributed(address indexed from, uint256 amount);
-    event YieldClaimed(address indexed account, address indexed recipient, uint256 amount);
+    event YieldClaimed(address indexed account, uint256 amount);
 
     // ========================================================================
     // MODIFIERS
@@ -277,10 +277,10 @@ contract DepositorVaultUnitTest is Test {
         uint256 balanceBefore = usdc.balanceOf(recipient);
 
         vm.expectEmit(true, true, true, false);
-        emit YieldClaimed(depositor1, recipient, expectedReward);
+        emit YieldClaimed(depositor1, expectedReward);
 
         vm.startPrank(depositor1);
-        uint256 claimed = vault.claimYield(depositor1, recipient);
+        uint256 claimed = vault.claimYield(depositor1);
         vm.stopPrank();
 
         assertEq(claimed, expectedReward, "Claimed amount should be correct");
@@ -302,7 +302,7 @@ contract DepositorVaultUnitTest is Test {
         uint256 balanceBefore = usdc.balanceOf(recipient);
 
         vm.startPrank(depositor1);
-        vault.claimYield(depositor1, recipient);
+        vault.claimYield(depositor1);
 
         assertGt(usdc.balanceOf(recipient), balanceBefore, "Different recipient should receive reward");
     }
@@ -320,7 +320,7 @@ contract DepositorVaultUnitTest is Test {
         // Only depositor or economy manager can claim
         vm.prank(depositor2);
         vm.expectRevert();
-        vault.claimYield(depositor1, recipient);
+        vault.claimYield(depositor1);
     }
 
     function testClaimYieldWithZeroBalance() public {
@@ -330,7 +330,7 @@ contract DepositorVaultUnitTest is Test {
 
         vm.startPrank(depositor1);
         vm.expectRevert(); // Should fail - nothing to claim
-        vault.claimYield(depositor1, recipient);
+        vault.claimYield(depositor1);
     }
 
     function testPartialYieldClaims() public {
@@ -348,7 +348,7 @@ contract DepositorVaultUnitTest is Test {
         // Claim partial amount (if supported)
         // This test assumes the contract claims full amount
         vm.startPrank(depositor1);
-        uint256 claimed = vault.claimYield(depositor1, recipient);
+        uint256 claimed = vault.claimYield(depositor1);
         vm.stopPrank();
 
         assertEq(claimed, expectedReward, "Should claim full amount");
@@ -485,7 +485,7 @@ contract DepositorVaultUnitTest is Test {
         gasBefore = gasleft();
 
         vm.startPrank(depositor1);
-        vault.claimYield(depositor1, recipient);
+        vault.claimYield(depositor1);
 
         gasAfter = gasleft();
         gasUsed = gasBefore - gasAfter;

@@ -10,6 +10,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IDepositorVault} from "../interfaces/IDepositorVault.sol";
 
+/// @notice Interface for GachaTreasury to record claimed analytics
+interface IGachaTreasury {
+    function recordYieldClaim(address user, uint256 amount) external;
+}
+
 /**
  * @title DepositorVault
  * @notice ERC-2222 style vault that distributes USDC yield to NFT depositors based on appraisal weights.
@@ -175,15 +180,8 @@ contract DepositorVault is
     }
 
     /// @inheritdoc IDepositorVault
-    function claimYield(address account, address recipient)
-        external
-        override
-        whenNotPaused
-        nonReentrant
-        returns (uint256 withdrawn)
-    {
+    function claimYield(address account) external override whenNotPaused nonReentrant returns (uint256 withdrawn) {
         require(account != address(0), "DepositorVault: invalid account");
-        require(recipient != address(0), "DepositorVault: invalid recipient");
         require(msg.sender == account || msg.sender == economyManager, "DepositorVault: unauthorized claim");
 
         _accrue(account);
@@ -194,9 +192,18 @@ contract DepositorVault is
         _unclaimed[account] = 0;
         totalYieldClaimed += withdrawn;
 
-        asset.safeTransfer(recipient, withdrawn);
+        // Record claimed analytics in GachaTreasury if treasury is set
+        if (treasury != address(0)) {
+            try IGachaTreasury(treasury).recordYieldClaim(account, withdrawn) {
+                // Successfully recorded analytics
+            } catch {
+                // Fail silently to not break claim functionality if treasury call fails
+            }
+        }
 
-        emit IDepositorVault.YieldClaimed(account, recipient, withdrawn);
+        asset.safeTransfer(account, withdrawn);
+
+        emit IDepositorVault.YieldClaimed(account, withdrawn);
     }
 
     /// @inheritdoc IDepositorVault

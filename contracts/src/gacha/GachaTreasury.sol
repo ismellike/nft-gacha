@@ -451,8 +451,12 @@ contract GachaTreasury is
 
         NFTItem storage item = treasury[rarity][index];
 
+        // Store item data before modifying the array to prevent reference issues
+        address depositor = item.depositor;
+        uint256 appraisedPrice = item.appraisedPrice;
+
         // Verify the caller is the original depositor
-        if (item.depositor != msg.sender) revert NotNFTDepositor();
+        if (depositor != msg.sender) revert NotNFTDepositor();
 
         // Move the last item to the current position and pop
         uint256 lastIndex = treasury[rarity].length - 1;
@@ -469,18 +473,18 @@ contract GachaTreasury is
         }
 
         // Update user deposit tracking (affects their rewards)
-        if (userDepositCounts[item.depositor][rarity] > 0) {
-            --userDepositCounts[item.depositor][rarity];
-            --userTotalDeposits[item.depositor];
+        if (userDepositCounts[depositor][rarity] > 0) {
+            --userDepositCounts[depositor][rarity];
+            --userTotalDeposits[depositor];
         }
 
         // Update value tracking - subtract the NFT's value from user and total
-        userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
-        totalRarityValue[rarity] -= item.appraisedPrice;
-        _decreaseActiveValue(item.depositor, item.appraisedPrice);
+        userDepositValues[depositor][rarity] -= appraisedPrice;
+        totalRarityValue[rarity] -= appraisedPrice;
+        _decreaseActiveValue(depositor, appraisedPrice);
 
         // Track lifetime withdrawal statistics
-        userLifetimeWithdrawn[item.depositor] += item.appraisedPrice;
+        userLifetimeWithdrawn[depositor] += appraisedPrice;
 
         // Clean up mappings
         depositedNFTs[collection][tokenId] = false;
@@ -490,12 +494,12 @@ contract GachaTreasury is
         // Update card tracking for withdrawal
         bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
         if (cardId != bytes32(0)) {
-            if (userCardDeposits[item.depositor][cardId] > 0) {
-                userCardDeposits[item.depositor][cardId]--;
+            if (userCardDeposits[depositor][cardId] > 0) {
+                userCardDeposits[depositor][cardId]--;
                 cardTotalDeposits[cardId]--;
                 // If user no longer holds this cardId, remove from list
-                if (userCardDeposits[item.depositor][cardId] == 0) {
-                    _removeUserGroupId(item.depositor, cardId);
+                if (userCardDeposits[depositor][cardId] == 0) {
+                    _removeUserGroupId(depositor, cardId);
                 }
             }
         }
@@ -1069,9 +1073,8 @@ contract GachaTreasury is
         userDepositValues[protocol][rarity] += appraisalUSD;
         _increaseActiveValue(protocol, appraisalUSD);
 
-        // Fix protocol depositor accounting for restocked NFTs
-        // Ensure protocol treasury gets shares in the depositor vault for its contributions
-        _syncDepositorVault(protocol, 0, userActiveDepositValueUSD[protocol]);
+        // Note: No additional _syncDepositorVault call needed here
+        // _increaseActiveValue already properly syncs the protocol's vault shares
 
         emit RedemptionRestocked(collection, tokenId, seller, rarity, appraisalUSD);
     }
@@ -1178,6 +1181,24 @@ contract GachaTreasury is
         uint256 totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + rarityCount[Rarity.Rare]
             + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
         return totalItems > 0;
+    }
+
+    /// @notice Record that a user has claimed yield rewards (called by DepositorVault)
+    /// @param user Address of the user who claimed rewards
+    /// @param amount Amount of USDC claimed (in USDC decimals, typically 6)
+    function recordYieldClaim(address user, uint256 amount) external whenNotPaused {
+        if (msg.sender != address(depositorVault)) revert InvalidDepositorVault();
+        if (user == address(0)) revert InvalidRecipient();
+        if (amount == 0) return;
+
+        // Convert USDC amount (6 decimals) to USD value (18 decimals) for consistency
+        uint256 claimedValueUSD = amount * 1e12;
+
+        // Update user lifetime claimed analytics
+        userLifetimeClaimed[user] += claimedValueUSD;
+
+        // Update global lifetime claimed analytics
+        globalLifetimeClaimed += claimedValueUSD;
     }
 
     /// @notice Required for receiving ERC721 tokens
@@ -1368,6 +1389,84 @@ contract GachaTreasury is
     function getUserLifetimeWithdrawn(address user) external view returns (uint256 withdrawn) {
         if (user == address(0)) return 0;
         return userLifetimeWithdrawn[user];
+    }
+
+    /// @notice Gets all NFTs deposited by a specific user
+    /// @param user User address
+    /// @return items Array of NFT items deposited by the user
+    function getUserDepositedNFTs(address user) external view returns (NFTItem[] memory items) {
+        if (user == address(0)) return new NFTItem[](0);
+
+        // First, count how many items the user has to optimize array size
+        uint256 userItemCount = 0;
+        for (uint256 i = 0; i < 5; i++) {
+            userItemCount += userDepositCounts[user][Rarity(i)];
+        }
+
+        if (userItemCount == 0) return new NFTItem[](0);
+
+        // Create array with exact size needed
+        items = new NFTItem[](userItemCount);
+        uint256 currentIndex = 0;
+
+        // Iterate through all rarity tiers and collect user's items
+        for (uint256 rarity = 0; rarity < 5; rarity++) {
+            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
+
+            for (uint256 i = 0; i < rarityItems.length; i++) {
+                if (rarityItems[i].depositor == user) {
+                    items[currentIndex] = rarityItems[i];
+                    currentIndex++;
+                }
+            }
+        }
+    }
+
+    /// @notice Gets all NFTs deposited by a user for a specific card ID
+    /// @param user User address
+    /// @param cardId Card ID to filter by
+    /// @return items Array of NFT items for the specified card ID
+    function getUserDepositedNFTsByCardId(address user, bytes32 cardId) external view returns (NFTItem[] memory items) {
+        if (user == address(0) || cardId == bytes32(0)) return new NFTItem[](0);
+
+        // Get the appraisal contract to check card IDs
+        if (address(appraisalContract) == address(0)) return new NFTItem[](0);
+
+        // First, count how many matching items the user has
+        uint256 matchingItemCount = 0;
+        for (uint256 rarity = 0; rarity < 5; rarity++) {
+            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
+
+            for (uint256 i = 0; i < rarityItems.length; i++) {
+                if (rarityItems[i].depositor == user) {
+                    bytes32 itemCardId = appraisalContract.getTokenCardId(rarityItems[i].collection, rarityItems[i].tokenId);
+                    if (itemCardId == cardId) {
+                        matchingItemCount++;
+                    }
+                }
+            }
+        }
+
+        if (matchingItemCount == 0) return new NFTItem[](0);
+
+        // Create array with exact size needed
+        items = new NFTItem[](matchingItemCount);
+        uint256 currentIndex = 0;
+
+        // Iterate through all rarity tiers and collect matching items
+        for (uint256 rarity = 0; rarity < 5; rarity++) {
+            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
+
+            for (uint256 i = 0; i < rarityItems.length; i++) {
+                if (rarityItems[i].depositor == user) {
+                    bytes32 itemCardId = appraisalContract.getTokenCardId(rarityItems[i].collection, rarityItems[i].tokenId);
+                    if (itemCardId == cardId) {
+                        items[currentIndex] = rarityItems[i];
+                        currentIndex++;
+                    }
+                }
+            }
+        }
     }
 
     /// @notice Gets comprehensive user lifetime statistics

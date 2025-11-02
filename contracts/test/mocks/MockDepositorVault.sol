@@ -48,13 +48,13 @@ contract MockDepositorVault is IDepositorVault {
         emit YieldDistributed(msg.sender, amount);
     }
 
-    function claimYield(address account, address recipient) external override returns (uint256 withdrawn) {
+    function claimYield(address account) external override returns (uint256 withdrawn) {
         withdrawn = pendingYield[account];
         pendingYield[account] = 0;
         if (withdrawn > 0) {
-            asset.transfer(recipient, withdrawn);
+            asset.transfer(account, withdrawn);
         }
-        emit YieldClaimed(account, recipient, withdrawn);
+        emit YieldClaimed(account, withdrawn);
     }
 
     function sharesOf(address account) external view override returns (uint256) {
