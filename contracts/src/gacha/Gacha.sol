@@ -136,14 +136,14 @@ contract Gacha is
      * @param _economyManager Address of the economy manager contract
      */
     function initialize(
-        address, /* _owner */
+        address _owner,
         address _gachaServiceHandler,
         address _feeToken,
         uint256 _spinFee,
         address _treasury,
         address _economyManager
     ) public initializer {
-        __Ownable_init(msg.sender);
+        __Ownable_init(_owner);
         __Pausable_init();
         // ReentrancyGuardTransient doesn't need initialization
 

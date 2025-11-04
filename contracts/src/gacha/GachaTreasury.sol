@@ -206,13 +206,13 @@ contract GachaTreasury is
      *                  Legendary max can be set to `type(uint256).max` to indicate no upper bound.
      */
     function initialize(
-        address, /* _owner */
+        address _owner,
         address _gachaContract,
         address _appraisalContract,
         uint256[5] memory minPrices,
         uint256[5] memory maxPrices
     ) public initializer {
-        __Ownable_init(msg.sender);
+        __Ownable_init(_owner);
         __Pausable_init();
         // ReentrancyGuardTransient doesn't need initialization
 
