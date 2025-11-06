@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { formatTokenAmount } from "../lib/utils";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import type { Address } from "viem";
 import { Card, Button } from "../ui";
 import { glassTypography } from "../lib/theme-config";
@@ -43,7 +43,7 @@ export const NFTWithdrawal: React.FC = () => {
 	const contracts = useGachaContracts(gachaId);
 
 	const [isLoading, setIsLoading] = useState(true);
-	const [withdrawingNFT, setWithdrawingNFT] = useState<{
+		const [withdrawingNFT, setWithdrawingNFT] = useState<{
 		collection: Address;
 		tokenId: bigint;
 	} | null>(null);
@@ -128,7 +128,7 @@ export const NFTWithdrawal: React.FC = () => {
 	const handleWithdraw = async (
 		collection: Address,
 		tokenId: bigint,
-		cardId: string,
+		_cardId: string,
 	) => {
 		if (!treasury) {
 			toast.error("Treasury contract not available");
@@ -143,8 +143,7 @@ export const NFTWithdrawal: React.FC = () => {
 			return;
 		}
 
-		setWithdrawingCardId(cardId);
-		setWithdrawingNFT({ collection, tokenId });
+				setWithdrawingNFT({ collection, tokenId });
 
 		try {
 			console.log(
@@ -193,8 +192,7 @@ export const NFTWithdrawal: React.FC = () => {
 		} finally {
 			// Clear withdrawing states after a delay
 			setTimeout(() => {
-				setWithdrawingCardId(null);
-				setWithdrawingNFT(null);
+								setWithdrawingNFT(null);
 			}, 2000);
 		}
 	};

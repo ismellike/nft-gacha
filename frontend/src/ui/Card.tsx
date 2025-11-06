@@ -36,14 +36,12 @@ export interface CardProps extends React.ComponentProps<typeof GlassCard> {
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
 	({ className = "", ...props }, ref) => (
 		<GlassCard
-			ref={ref}
 			className={`bg-content1/20 backdrop-blur-xl border border-white/10 transition-all duration-300 rounded-2xl shadow-2xl ${className}`}
 			{...props}
+			ref={ref as any}
 		/>
 	),
-) as React.ForwardRefExoticComponent<
-	CardProps & React.RefAttributes<HTMLDivElement>
->;
+);
 
 Card.displayName = "Card";
 
