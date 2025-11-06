@@ -348,7 +348,7 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 
 			<div className="flex justify-end gap-4">
 				<Button
-					className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+					color="glass"
 					onPress={() =>
 						currentWeights &&
 						setWeights(currentWeights.map((w: bigint) => Number(w)))
@@ -357,7 +357,7 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 					Reset to Current
 				</Button>
 				<Button
-					className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+					color="glassPrimary"
 					onPress={handleSave}
 					isDisabled={!isValidTotal}
 					isLoading={isPending}
@@ -442,14 +442,11 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 				</div>
 
 				<div className="flex justify-end gap-4">
-					<Button
-						className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
-						onPress={() => setNewFee("")}
-					>
+					<Button color="glass" onPress={() => setNewFee("")}>
 						Clear
 					</Button>
 					<Button
-						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+						color="glassPrimary"
 						onPress={handleSave}
 						disabled={!newFee}
 						isLoading={isPending}
@@ -466,16 +463,20 @@ function WhitelistSection() {
 	const [newCollectionAddress, setNewCollectionAddress] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 
-	const treasuryAddress = process.env.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
-	const { data: whitelistedCollections, refetch: refetchWhitelist } = useReadGachaTreasuryGetWhitelistedCollections({
-		address: treasuryAddress,
-	} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
+	const treasuryAddress = process.env
+		.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
+	const { data: whitelistedCollections, refetch: refetchWhitelist } =
+		useReadGachaTreasuryGetWhitelistedCollections({
+			address: treasuryAddress,
+		} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
 
-	const { writeContract: addToWhitelist } = useWriteGachaTreasuryAddToWhitelist();
-	const { writeContract: removeFromWhitelist } = useWriteGachaTreasuryRemoveFromWhitelist();
+	const { writeContract: addToWhitelist } =
+		useWriteGachaTreasuryAddToWhitelist();
+	const { writeContract: removeFromWhitelist } =
+		useWriteGachaTreasuryRemoveFromWhitelist();
 
 	const handleAddCollection = async () => {
-		if (!newCollectionAddress || !newCollectionAddress.startsWith('0x')) return;
+		if (!newCollectionAddress || !newCollectionAddress.startsWith("0x")) return;
 
 		setIsLoading(true);
 		try {
@@ -486,7 +487,7 @@ function WhitelistSection() {
 			setNewCollectionAddress("");
 			await refetchWhitelist();
 		} catch (error) {
-			console.error('Error adding collection to whitelist:', error);
+			console.error("Error adding collection to whitelist:", error);
 		} finally {
 			setIsLoading(false);
 		}
@@ -501,7 +502,7 @@ function WhitelistSection() {
 			});
 			await refetchWhitelist();
 		} catch (error) {
-			console.error('Error removing collection from whitelist:', error);
+			console.error("Error removing collection from whitelist:", error);
 		} finally {
 			setIsLoading(false);
 		}
@@ -532,7 +533,7 @@ function WhitelistSection() {
 						className="flex-1 bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
 					/>
 					<Button
-						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+						color="glassPrimary"
 						onPress={handleAddCollection}
 						disabled={!newCollectionAddress || isLoading}
 						isLoading={isLoading}
@@ -547,9 +548,11 @@ function WhitelistSection() {
 				<h3 className="text-lg font-semibold text-foreground mb-4">
 					Whitelisted Collections
 				</h3>
-				{whitelistedCollections && whitelistedCollections.length > 0 ? (
+				{whitelistedCollections &&
+				Array.isArray(whitelistedCollections) &&
+				whitelistedCollections.length > 0 ? (
 					<div className="space-y-3">
-						{whitelistedCollections.map((collection) => (
+						{whitelistedCollections.map((collection: `0x${string}`) => (
 							<div
 								key={collection}
 								className="flex items-center justify-between p-4 bg-content1/10 border border-white/10 rounded-xl"
@@ -594,15 +597,19 @@ function WhitelistSection() {
 function DepositsSection() {
 	const [userAddress, setUserAddress] = useState("");
 
-	const treasuryAddress = process.env.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
-	const { data: userDeposits, refetch: refetchDeposits } = useReadGachaTreasuryGetUserCardDepositsPage({
-		address: treasuryAddress,
-		args: userAddress?.startsWith('0x') ? [userAddress as `0x${string}`, 0n, 10n] : undefined,
-		query: { enabled: !!userAddress && userAddress.startsWith('0x') },
-	} as Parameters<typeof useReadGachaTreasuryGetUserCardDepositsPage>[0]);
+	const treasuryAddress = process.env
+		.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
+	const { data: userDeposits, refetch: refetchDeposits } =
+		useReadGachaTreasuryGetUserCardDepositsPage({
+			address: treasuryAddress,
+			args: userAddress?.startsWith("0x")
+				? [userAddress as `0x${string}`, 0n, 10n]
+				: undefined,
+			query: { enabled: !!userAddress && userAddress.startsWith("0x") },
+		} as Parameters<typeof useReadGachaTreasuryGetUserCardDepositsPage>[0]);
 
 	const handleSearchDeposits = () => {
-		if (userAddress?.startsWith('0x')) {
+		if (userAddress?.startsWith("0x")) {
 			refetchDeposits();
 		}
 	};
@@ -632,9 +639,9 @@ function DepositsSection() {
 						className="flex-1 bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
 					/>
 					<Button
-						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+						color="glassPrimary"
 						onPress={handleSearchDeposits}
-						disabled={!userAddress || !userAddress.startsWith('0x')}
+						disabled={!userAddress || !userAddress.startsWith("0x")}
 					>
 						Search
 					</Button>
@@ -646,68 +653,77 @@ function DepositsSection() {
 				<h3 className="text-lg font-semibold text-foreground mb-4">
 					Deposit History
 				</h3>
-				{userDeposits && Array.isArray(userDeposits[0]) && userDeposits[0].length > 0 ? (
+				{userDeposits &&
+				Array.isArray(userDeposits) &&
+				userDeposits.length > 0 &&
+				Array.isArray(userDeposits[0]) &&
+				userDeposits[0].length > 0 ? (
 					<div className="space-y-4">
-						{userDeposits[0].map((deposit: {
-							cardId: string;
-							depositCount: bigint;
-							totalCardDeposits: bigint;
-						}) => (
-							<div
-								key={deposit.cardId}
-								className="p-4 bg-content1/10 border border-white/10 rounded-xl"
-							>
-								<div className="flex items-center justify-between mb-3">
-									<div className="flex items-center gap-3">
-										<FolderOpenIcon className="w-5 h-5 text-warning" />
+						{userDeposits[0].map(
+							(deposit: {
+								cardId: string;
+								depositCount: bigint;
+								totalCardDeposits: bigint;
+							}) => (
+								<div
+									key={deposit.cardId}
+									className="p-4 bg-content1/10 border border-white/10 rounded-xl"
+								>
+									<div className="flex items-center justify-between mb-3">
+										<div className="flex items-center gap-3">
+											<FolderOpenIcon className="w-5 h-5 text-warning" />
+											<div>
+												<div className="font-mono text-sm text-foreground">
+													Card ID:{" "}
+													{deposit.cardId
+														? `${deposit.cardId.slice(0, 10)}...`
+														: "Unknown"}
+												</div>
+												<div className="text-xs text-foreground/60">
+													Deposit Count:{" "}
+													{deposit.depositCount?.toString() || "0"}
+												</div>
+											</div>
+										</div>
+										<Chip className="px-2 py-1 rounded-lg backdrop-blur-xl bg-success/20 border border-success/30 text-success">
+											{deposit.totalCardDeposits?.toString() || "0"} Total
+										</Chip>
+									</div>
+
+									<div className="grid grid-cols-3 gap-4 text-sm">
 										<div>
-											<div className="font-mono text-sm text-foreground">
-												Card ID: {deposit.cardId ? `${deposit.cardId.slice(0, 10)}...` : 'Unknown'}
-											</div>
-											<div className="text-xs text-foreground/60">
-												Deposit Count: {deposit.depositCount?.toString() || '0'}
+											<span className="text-foreground/60">Card ID:</span>
+											<div className="font-mono text-xs text-foreground">
+												{deposit.cardId || "Unknown"}
 											</div>
 										</div>
-									</div>
-									<Chip
-										className="px-2 py-1 rounded-lg backdrop-blur-xl bg-success/20 border border-success/30 text-success"
-									>
-										{deposit.totalCardDeposits?.toString() || '0'} Total
-									</Chip>
-								</div>
-
-								<div className="grid grid-cols-3 gap-4 text-sm">
-									<div>
-										<span className="text-foreground/60">Card ID:</span>
-										<div className="font-mono text-xs text-foreground">
-											{deposit.cardId || 'Unknown'}
+										<div>
+											<span className="text-foreground/60">Deposits:</span>
+											<div className="font-mono text-xs text-foreground">
+												{deposit.depositCount?.toString() || "0"}
+											</div>
 										</div>
-									</div>
-									<div>
-										<span className="text-foreground/60">Deposits:</span>
-										<div className="font-mono text-xs text-foreground">
-											{deposit.depositCount?.toString() || '0'}
-										</div>
-									</div>
-									<div>
-										<span className="text-foreground/60">Total:</span>
-										<div className="font-mono text-xs text-foreground">
-											{deposit.totalCardDeposits?.toString() || '0'}
+										<div>
+											<span className="text-foreground/60">Total:</span>
+											<div className="font-mono text-xs text-foreground">
+												{deposit.totalCardDeposits?.toString() || "0"}
+											</div>
 										</div>
 									</div>
 								</div>
-							</div>
-						))}
+							),
+						)}
 
-						{userDeposits[2] && (
+						{userDeposits.length > 2 && userDeposits[2] && (
 							<div className="text-center mt-4">
 								<p className="text-foreground/60 text-sm">
-									Showing {userDeposits[0].length} of {userDeposits[1]?.toString() || '0'} total deposits
+									Showing {userDeposits[0]?.length || 0} of{" "}
+									{userDeposits[1]?.toString() || "0"} total deposits
 								</p>
 							</div>
 						)}
 					</div>
-				) : userAddress?.startsWith('0x') ? (
+				) : userAddress?.startsWith("0x") ? (
 					<div className="text-center py-12">
 						<FolderOpenIcon className="w-8 h-8 mx-auto mb-4 text-foreground/40" />
 						<h3 className="text-lg font-medium text-foreground/60 mb-2">
@@ -802,7 +818,7 @@ function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 						</Button>
 					) : (
 						<Button
-							className="flex-1 rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+							color="glassPrimary"
 							onPress={handleUnpause}
 							isLoading={isUnpausing}
 						>

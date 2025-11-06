@@ -28,14 +28,24 @@ interface NFTAppraisalStore {
 
 	// Actions
 	setAppraisals: (userAddress: string, appraisals: AppraisedNFT[]) => void;
-	addOptimisticSubmission: (userAddress: string, collection: string, tokenId: string) => void;
-	removeOptimisticSubmission: (userAddress: string, collection: string, tokenId: string) => void;
+	addOptimisticSubmission: (
+		userAddress: string,
+		collection: string,
+		tokenId: string,
+	) => void;
+	removeOptimisticSubmission: (
+		userAddress: string,
+		collection: string,
+		tokenId: string,
+	) => void;
 	setLoading: (userAddress: string, loading: boolean) => void;
 	setError: (userAddress: string, error: string | null) => void;
 	clearUserError: (userAddress: string) => void;
 	getUserAppraisals: (userAddress: string) => AppraisedNFT[];
 	getUserOptimisticSubmissions: (userAddress: string) => OptimisticAppraisal[];
-	getCombinedAppraisals: (userAddress: string) => (AppraisedNFT | OptimisticAppraisal)[];
+	getCombinedAppraisals: (
+		userAddress: string,
+	) => (AppraisedNFT | OptimisticAppraisal)[];
 	refreshUserAppraisals: (userAddress: string) => void;
 }
 
@@ -79,7 +89,7 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
 			set((state) => {
 				const existingOptimistic = state.optimisticSubmissions[address] || [];
 				const nftExists = existingOptimistic.some(
-					(nft) => getNFTKey(nft.collection, nft.tokenId) === nftKey
+					(nft) => getNFTKey(nft.collection, nft.tokenId) === nftKey,
 				);
 
 				if (nftExists) return state; // Don't add duplicates
@@ -108,7 +118,7 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
 			set((state) => {
 				const existingOptimistic = state.optimisticSubmissions[address] || [];
 				const filtered = existingOptimistic.filter(
-					(nft) => getNFTKey(nft.collection, nft.tokenId) !== nftKey
+					(nft) => getNFTKey(nft.collection, nft.tokenId) !== nftKey,
 				);
 
 				return {
@@ -160,15 +170,16 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
 		},
 
 		getCombinedAppraisals: (userAddress) => {
-			const _address = userAddress.toLowerCase();
 			const confirmedAppraisals = get().getUserAppraisals(userAddress);
-			const optimisticSubmissions = get().getUserOptimisticSubmissions(userAddress);
+			const optimisticSubmissions =
+				get().getUserOptimisticSubmissions(userAddress);
 
 			// Remove any optimistic submissions that already exist in confirmed appraisals
 			const filteredOptimistic = optimisticSubmissions.filter((optimistic) => {
 				const nftKey = getNFTKey(optimistic.collection, optimistic.tokenId);
 				return !confirmedAppraisals.some(
-					(confirmed) => getNFTKey(confirmed.collection, confirmed.tokenId) === nftKey
+					(confirmed) =>
+						getNFTKey(confirmed.collection, confirmed.tokenId) === nftKey,
 				);
 			});
 
@@ -176,11 +187,22 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
 			const combined = [...confirmedAppraisals, ...filteredOptimistic];
 
 			// Sort by timestamp (newest first)
-			return combined.sort((a: AppraisedNFT | OptimisticAppraisal, b: AppraisedNFT | OptimisticAppraisal) => {
-				const timeA = "timestamp" in a ? Number(a.timestamp) : a.timestamp;
-				const timeB = "timestamp" in b ? Number(b.timestamp) : b.timestamp;
-				return timeB - timeA;
-			});
+			return combined.sort(
+				(
+					a: AppraisedNFT | OptimisticAppraisal,
+					b: AppraisedNFT | OptimisticAppraisal,
+				) => {
+					const timeA =
+						"timestamp" in a
+							? Number(a.timestamp)
+							: (a as OptimisticAppraisal).timestamp;
+					const timeB =
+						"timestamp" in b
+							? Number(b.timestamp)
+							: (b as OptimisticAppraisal).timestamp;
+					return timeB - timeA;
+				},
+			);
 		},
 
 		refreshUserAppraisals: (userAddress) => {
@@ -197,30 +219,32 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
 // Selectors for common use cases
 export const useUserAppraisals = (userAddress: string | undefined) => {
 	return useNFTAppraisalStore((state) =>
-		userAddress ? state.getUserAppraisals(userAddress) : []
+		userAddress ? state.getUserAppraisals(userAddress) : [],
 	);
 };
 
-export const useUserOptimisticSubmissions = (userAddress: string | undefined) => {
+export const useUserOptimisticSubmissions = (
+	userAddress: string | undefined,
+) => {
 	return useNFTAppraisalStore((state) =>
-		userAddress ? state.getUserOptimisticSubmissions(userAddress) : []
+		userAddress ? state.getUserOptimisticSubmissions(userAddress) : [],
 	);
 };
 
 export const useCombinedAppraisals = (userAddress: string | undefined) => {
 	return useNFTAppraisalStore((state) =>
-		userAddress ? state.getCombinedAppraisals(userAddress) : []
+		userAddress ? state.getCombinedAppraisals(userAddress) : [],
 	);
 };
 
 export const useAppraisalLoading = (userAddress: string | undefined) => {
 	return useNFTAppraisalStore((state) =>
-		userAddress ? state.loading[userAddress.toLowerCase()] || false : false
+		userAddress ? state.loading[userAddress.toLowerCase()] || false : false,
 	);
 };
 
 export const useAppraisalError = (userAddress: string | undefined) => {
 	return useNFTAppraisalStore((state) =>
-		userAddress ? state.error[userAddress.toLowerCase()] || null : null
+		userAddress ? state.error[userAddress.toLowerCase()] || null : null,
 	);
 };

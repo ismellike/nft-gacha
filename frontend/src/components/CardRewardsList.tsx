@@ -17,7 +17,10 @@ import {
 	useTreasuryUserCards,
 	type UserCardDeposit,
 } from "../hooks/useTreasuryUserCards";
-import { useRarityTracker, type CardAppraisalInfo } from "../hooks/useRarityTracker";
+import {
+	useRarityTracker,
+	type CardAppraisalInfo,
+} from "../hooks/useRarityTracker";
 import { useAccount } from "wagmi";
 import { useRegisterRewardsRefetch } from "../hooks/useRewardsData";
 import {
@@ -41,7 +44,8 @@ export function CardRewardsList() {
 	const treasury = contracts.treasury as Address | undefined;
 	const rarityTracker = contracts.trackers?.common as Address | undefined;
 	const { getAllUserCardDeposits } = useTreasuryUserCards(treasury);
-	const { getBatchCardInfo, getBatchUserCardValues } = useRarityTracker(rarityTracker);
+	const { getBatchCardInfo, getBatchUserCardValues } =
+		useRarityTracker(rarityTracker);
 	const { address: user } = useAccount();
 	const { fetchCardAppraisals } = useBatchCardAppraisal(
 		contracts.appraisal as Address | undefined,
@@ -186,11 +190,11 @@ export function CardRewardsList() {
 	}, [
 		treasury,
 		rarityTracker,
-	user,
-	getAllUserCardDeposits,
-	getBatchCardInfo,
-	getBatchUserCardValues,
-	fetchCardAppraisals,
+		user,
+		getAllUserCardDeposits,
+		getBatchCardInfo,
+		getBatchUserCardValues,
+		fetchCardAppraisals,
 	]);
 
 	// Calculate total inventory value
@@ -234,7 +238,8 @@ export function CardRewardsList() {
 						💎 Card Inventory & Value
 					</h2>
 					<div className="mt-2 text-sm text-foreground/70">
-						{cards.length} unique cards deposited • Total inventory value: {formatUSD(totalInventoryValue)}
+						{cards.length} unique cards deposited • Total inventory value:{" "}
+						{formatUSD(totalInventoryValue)}
 					</div>
 				</div>
 				<div className="flex flex-col sm:items-end gap-3">
@@ -292,9 +297,10 @@ export function CardRewardsList() {
 				<div className="space-y-4">
 					<div className="flex justify-center">
 						<div className="text-sm text-foreground/60 inline-flex items-center gap-2">
-							<TrophyIcon className="w-4 h-4" /> {paginatedCards.length} cards on
-							this page • Total value: {formatUSD(
-								paginatedCards.reduce((sum, c) => sum + c.userValueUsd, 0n)
+							<TrophyIcon className="w-4 h-4" /> {paginatedCards.length} cards
+							on this page • Total value:{" "}
+							{formatUSD(
+								paginatedCards.reduce((sum, c) => sum + c.userValueUsd, 0n),
 							)}
 						</div>
 					</div>
@@ -333,8 +339,7 @@ export function CardRewardsList() {
 								});
 							}
 
-							const canonicalAddress =
-								cardAppraisal?.canonicalContractAddress;
+							const canonicalAddress = cardAppraisal?.canonicalContractAddress;
 							if (
 								cardAppraisal &&
 								canonicalAddress &&
@@ -355,14 +360,12 @@ export function CardRewardsList() {
 										rarity={rarityEnum}
 										extraDetails={detailRows}
 										showAppraisal
-										appraisalOverride={
-											cardAppraisal.priceUSD > 0n
-												? {
-														hasAppraisal: true,
-														priceUSD: cardAppraisal.priceUSD,
-												  }
-												: undefined
-										}
+										{...(cardAppraisal.priceUSD > 0n && {
+											appraisalOverride: {
+												hasAppraisal: true,
+												priceUSD: cardAppraisal.priceUSD,
+											},
+										})}
 										protocolTreasuryAddress={
 											(contracts.protocolTreasury as `0x${string}`) ||
 											(ZERO_ADDRESS as `0x${string}`)

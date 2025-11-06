@@ -39,6 +39,8 @@ This is a test environment using local contracts and test tokens for development
 		// New economy system contracts
 		depositorVaultAddress: process.env
 			.NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS as `0x${string}`,
+		buybackVaultAddress: process.env
+			.NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS as `0x${string}`,
 		protocolTreasuryAddress: process.env
 			.NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS as `0x${string}`,
 		// Collections are now queried dynamically from the treasury contract's whitelist

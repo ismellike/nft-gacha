@@ -132,41 +132,46 @@ const VirtualizedGridItem = memo<{
 		const animationDelay = Math.min(index * 0.05, 1);
 
 		// Memoize NFT card props to prevent unnecessary prop changes
-		const nftCardProps = useMemo(() => ({
-			collection: item.collection,
-			tokenId: item.tokenId,
-			...(item.imageUrl && { imageUrl: item.imageUrl }),
-			...(item.rarity && { rarity: item.rarity }),
-			size: config.cardSize,
-			variant: "detailed",
-			showAppraisal,
-			enableTraitExpansion: true,
-			appraisalContractAddress,
-			animate,
-			priority,
-			onClick: handleClick,
-		}), [
-			item.collection,
-			item.tokenId,
-			item.imageUrl,
-			item.rarity,
-			config.cardSize,
-			showAppraisal,
-			appraisalContractAddress,
-			animate,
-			priority,
-			handleClick,
-		]);
+		const nftCardProps = useMemo(
+			() => ({
+				collection: item.collection,
+				tokenId: item.tokenId,
+				...(item.imageUrl && { imageUrl: item.imageUrl }),
+				...(item.rarity && { rarity: item.rarity }),
+				size: config.cardSize,
+				variant: "detailed" as const,
+				showAppraisal,
+				enableTraitExpansion: true,
+				appraisalContractAddress,
+				animate,
+				priority,
+				onClick: handleClick,
+			}),
+			[
+				item.collection,
+				item.tokenId,
+				item.imageUrl,
+				item.rarity,
+				config.cardSize,
+				showAppraisal,
+				appraisalContractAddress,
+				animate,
+				priority,
+				handleClick,
+			],
+		);
 
 		return (
 			<motion.div
-				initial={shouldAnimate ? { opacity: 0, y: 20, scale: 0.9 } : undefined}
-				animate={shouldAnimate ? { opacity: 1, y: 0, scale: 1 } : undefined}
-				transition={shouldAnimate ? {
-					duration: 0.3,
-					delay: animationDelay,
-					ease: [0.4, 0.0, 0.2, 1],
-				} : undefined}
+				{...(shouldAnimate && {
+					initial: { opacity: 0, y: 20, scale: 0.9 },
+					animate: { opacity: 1, y: 0, scale: 1 },
+					transition: {
+						duration: 0.3,
+						delay: animationDelay,
+						ease: [0.4, 0.0, 0.2, 1],
+					},
+				})}
 			>
 				<UnifiedNFTCard {...nftCardProps} />
 			</motion.div>
@@ -242,11 +247,14 @@ const NFTGrid = memo<NFTGridProps>(
 		]);
 
 		// Memoize grid content to prevent recreation
-		const gridContent = useMemo(() => (
-			<div className={cn("grid", config.cols, config.gap, className)}>
-				{gridItems}
-			</div>
-		), [gridItems, config.cols, config.gap, className]);
+		const gridContent = useMemo(
+			() => (
+				<div className={cn("grid", config.cols, config.gap, className)}>
+					{gridItems}
+				</div>
+			),
+			[gridItems, config.cols, config.gap, className],
+		);
 
 		// Memoize animation wrapper
 		const animatedGridContent = useMemo(() => {
@@ -337,11 +345,11 @@ ShowcaseNFTGrid.displayName = "ShowcaseNFTGrid";
 export function useTreasuryItemsToGridItems(
 	treasuryItems:
 		| readonly {
-			collection: string;
-			tokenId: bigint;
-			depositor: string;
-			[key: string]: unknown;
-		}[]
+				collection: string;
+				tokenId: bigint;
+				depositor: string;
+				[key: string]: unknown;
+		  }[]
 		| undefined,
 	rarity?: Rarity,
 ): NFTGridItem[] {

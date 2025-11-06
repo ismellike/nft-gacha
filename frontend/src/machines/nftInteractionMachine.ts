@@ -4,6 +4,17 @@ import { assign, createMachine, fromPromise } from "xstate";
 import type { PublicClient } from "viem";
 import { erc721Abi } from "../generated";
 
+const logger = {
+	logInfo: (message: string, data?: any) =>
+		console.log(`🔍 [NFTInteractionMachine] ${message}`, data || ""),
+	logSuccess: (message: string, data?: any) =>
+		console.log(`✅ [NFTInteractionMachine] ${message}`, data || ""),
+	logError: (message: string, error?: any) =>
+		console.error(`❌ [NFTInteractionMachine] ${message}`, error || ""),
+	logWarning: (message: string, data?: any) =>
+		console.warn(`⚠️ [NFTInteractionMachine] ${message}`, data || ""),
+};
+
 export type InteractionMode = "deposit" | "buyback";
 
 export interface NFTInteractionContext {
@@ -34,10 +45,24 @@ export interface NFTInteractionContext {
 	} | null;
 	// Callback functions
 	onSuccess: ((txHash: string) => void) | undefined;
-	onAction: ((collection: string, tokenId: string, hasValidAppraisal?: boolean) => void) | undefined;
-	onAppraisalStatusChange: ((collection: string, tokenId: string, hasValidAppraisal: boolean) => void) | undefined;
+	onAction:
+		| ((
+				collection: string,
+				tokenId: string,
+				hasValidAppraisal?: boolean,
+		  ) => void)
+		| undefined;
+	onAppraisalStatusChange:
+		| ((
+				collection: string,
+				tokenId: string,
+				hasValidAppraisal: boolean,
+		  ) => void)
+		| undefined;
 	refetchTreasuryCards: (() => Promise<void>) | undefined;
-	onBuybackSuccess: ((txHash: string, payoutAmount: bigint) => void) | undefined;
+	onBuybackSuccess:
+		| ((txHash: string, payoutAmount: bigint) => void)
+		| undefined;
 }
 
 export type NFTInteractionEvent =
@@ -54,8 +79,16 @@ export type NFTInteractionEvent =
 			appraisalPrice?: bigint;
 			payoutAmount?: bigint;
 			onSuccess?: (txHash: string) => void;
-			onAction?: (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void;
-			onAppraisalStatusChange?: (collection: string, tokenId: string, hasValidAppraisal: boolean) => void;
+			onAction?: (
+				collection: string,
+				tokenId: string,
+				hasValidAppraisal?: boolean,
+			) => void;
+			onAppraisalStatusChange?: (
+				collection: string,
+				tokenId: string,
+				hasValidAppraisal: boolean,
+			) => void;
 			refetchTreasuryCards?: () => Promise<void>;
 			onBuybackSuccess?: (txHash: string, payoutAmount: bigint) => void;
 	  }
@@ -97,7 +130,10 @@ const checkNFTApprovalNeeded = fromPromise(
 
 			return !isApprovedForAll; // Return true if approval needed
 		} catch (error) {
-			console.error("NFT approval check failed, assuming approval needed:", error);
+			console.error(
+				"NFT approval check failed, assuming approval needed:",
+				error,
+			);
 			return true;
 		}
 	},
@@ -125,19 +161,41 @@ export const nftInteractionMachine = createMachine(
 			completedAt: null,
 			successData: null,
 			onSuccess: undefined as ((txHash: string) => void) | undefined,
-			onAction: undefined as ((collection: string, tokenId: string, hasValidAppraisal?: boolean) => void) | undefined,
-			onAppraisalStatusChange: undefined as ((collection: string, tokenId: string, hasValidAppraisal: boolean) => void) | undefined,
+			onAction: undefined as
+				| ((
+						collection: string,
+						tokenId: string,
+						hasValidAppraisal?: boolean,
+				  ) => void)
+				| undefined,
+			onAppraisalStatusChange: undefined as
+				| ((
+						collection: string,
+						tokenId: string,
+						hasValidAppraisal: boolean,
+				  ) => void)
+				| undefined,
 			refetchTreasuryCards: undefined as (() => Promise<void>) | undefined,
-			onBuybackSuccess: undefined as ((txHash: string, payoutAmount: bigint) => void) | undefined,
+			onBuybackSuccess: undefined as
+				| ((txHash: string, payoutAmount: bigint) => void)
+				| undefined,
 		},
 		initial: "idle",
 		states: {
 			idle: {
-				entry: "clearState",
+				entry: ["clearState", () => logger.logInfo("Entered idle state")],
 				on: {
 					START_INTERACTION: {
 						target: "checkingApprovals",
-						actions: "setInteractionParams",
+						actions: [
+							"setInteractionParams",
+							({ context }) =>
+								logger.logInfo("Starting interaction", {
+									mode: context.mode,
+									collection: context.collection,
+									tokenId: context.tokenId,
+								}),
+						],
 					},
 				},
 			},
@@ -147,11 +205,10 @@ export const nftInteractionMachine = createMachine(
 					{
 						target: "checkingNFTApproval",
 						guard: ({ context }) =>
-							context.nftApprovalNeeded
-							&& (
-								(context.mode === "deposit" && !!context.treasuryAddress)
-								|| (context.mode === "buyback" && !!context.protocolTreasuryAddress)
-							),
+							context.nftApprovalNeeded &&
+							((context.mode === "deposit" && !!context.treasuryAddress) ||
+								(context.mode === "buyback" &&
+									!!context.protocolTreasuryAddress)),
 					},
 					{
 						target: "awaitingInteractionSignature",
@@ -171,9 +228,10 @@ export const nftInteractionMachine = createMachine(
 					src: "checkNFTApprovalNeeded",
 					input: ({ context }) => ({
 						collection: context.collection,
-						operatorAddress: context.mode === "buyback"
-							? context.protocolTreasuryAddress
-							: context.treasuryAddress,
+						operatorAddress:
+							context.mode === "buyback"
+								? context.protocolTreasuryAddress
+								: context.treasuryAddress,
 						userAddress: context.userAddress,
 						publicClient: context.publicClient,
 					}),
@@ -210,7 +268,15 @@ export const nftInteractionMachine = createMachine(
 					},
 					INTERACTION_CANCELLED: {
 						target: "idle",
-						actions: ["setInteractionCancelled", "logCancellation"],
+						actions: [
+							"setInteractionCancelled",
+							({ context }) =>
+								logger.logWarning("Interaction cancelled", {
+									mode: context.mode,
+									collection: context.collection,
+									tokenId: context.tokenId,
+								}),
+						],
 					},
 					FAIL: {
 						target: "idle",
@@ -226,7 +292,15 @@ export const nftInteractionMachine = createMachine(
 					},
 					INTERACTION_CANCELLED: {
 						target: "idle",
-						actions: ["setInteractionCancelled", "logCancellation"],
+						actions: [
+							"setInteractionCancelled",
+							({ context }) =>
+								logger.logWarning("Interaction cancelled", {
+									mode: context.mode,
+									collection: context.collection,
+									tokenId: context.tokenId,
+								}),
+						],
 					},
 					FAIL: {
 						target: "idle",
@@ -239,7 +313,15 @@ export const nftInteractionMachine = createMachine(
 				on: {
 					INTERACTION_CANCELLED: {
 						target: "idle",
-						actions: ["setInteractionCancelled", "logCancellation"],
+						actions: [
+							"setInteractionCancelled",
+							({ context }) =>
+								logger.logWarning("Interaction cancelled", {
+									mode: context.mode,
+									collection: context.collection,
+									tokenId: context.tokenId,
+								}),
+						],
 					},
 					INTERACTION_CONFIRMED: {
 						target: "awaitingInteractionReceipt",
@@ -252,14 +334,22 @@ export const nftInteractionMachine = createMachine(
 					RESET: "idle",
 				},
 			},
-						awaitingInteractionReceipt: {
+			awaitingInteractionReceipt: {
 				on: {
 					INTERACTION_REQUESTED: {
 						target: "confirmingInteraction",
 					},
 					INTERACTION_CANCELLED: {
 						target: "idle",
-						actions: ["setInteractionCancelled", "logCancellation"],
+						actions: [
+							"setInteractionCancelled",
+							({ context }) =>
+								logger.logWarning("Interaction cancelled", {
+									mode: context.mode,
+									collection: context.collection,
+									tokenId: context.tokenId,
+								}),
+						],
 					},
 					FAIL: {
 						target: "idle",
@@ -296,12 +386,18 @@ export const nftInteractionMachine = createMachine(
 				},
 			},
 			completed: {
-				entry: ["clearError", "handleInteractionCompletion", "setSuccessData"],
+				entry: [
+					"clearError",
+					"handleInteractionCompletion",
+					"setSuccessData",
+					({ context }) =>
+						logger.logSuccess("Interaction completed", { mode: context.mode }),
+				],
 				after: {
 					// Only auto-reset for deposits, not buybacks (buybacks should stay completed)
 					3000: {
 						target: "idle",
-						guard: ({ context }) => context.mode === "deposit"
+						guard: ({ context }) => context.mode === "deposit",
 					},
 				},
 				on: {
@@ -325,7 +421,8 @@ export const nftInteractionMachine = createMachine(
 						publicClient: PublicClient;
 					};
 				}): Promise<void> => {
-					const { collection, tokenId, mode, userAddress, publicClient } = input;
+					const { collection, tokenId, mode, userAddress, publicClient } =
+						input;
 
 					try {
 						if (mode === "deposit") {
@@ -337,18 +434,23 @@ export const nftInteractionMachine = createMachine(
 								args: [BigInt(tokenId)],
 							});
 
-							const isDeposited = currentOwner?.toLowerCase() !== userAddress.toLowerCase();
+							const isDeposited =
+								currentOwner?.toLowerCase() !== userAddress.toLowerCase();
 
 							if (!isDeposited) {
-								throw new Error("NFT still owned by user - deposit confirmation failed");
+								throw new Error(
+									"NFT still owned by user - deposit confirmation failed",
+								);
 							}
-
-													} else if (mode === "buyback") {
+						} else if (mode === "buyback") {
 							// For buyback, we just need to confirm the transaction was successful
 							// The user should still own the NFT after buyback (they get paid USDC)
-													}
+						}
 					} catch (error) {
-						console.error(`NFT interaction ${mode} confirmation failed:`, error);
+						console.error(
+							`NFT interaction ${mode} confirmation failed:`,
+							error,
+						);
 						throw error;
 					}
 				},
@@ -373,38 +475,64 @@ export const nftInteractionMachine = createMachine(
 				payoutAmount: null,
 				completedAt: null,
 				successData: null,
-				onSuccess: undefined as ((txHash: string) => void) | undefined,
-				onAction: undefined as ((collection: string, tokenId: string, hasValidAppraisal?: boolean) => void) | undefined,
-				onAppraisalStatusChange: undefined as ((collection: string, tokenId: string, hasValidAppraisal: boolean) => void) | undefined,
-				refetchTreasuryCards: undefined as (() => Promise<void>) | undefined,
-				onBuybackSuccess: undefined as ((txHash: string, payoutAmount: bigint) => void) | undefined,
+				onSuccess: undefined,
+				onAction: undefined,
+				onAppraisalStatusChange: undefined,
+				refetchTreasuryCards: undefined,
+				onBuybackSuccess: undefined,
 			}),
-				setInteractionParams: assign(({ context, event }: any) => {
-			if (event.type === "START_INTERACTION") {
-				return {
-					collection: event.collection,
-					tokenId: event.tokenId,
-					treasuryAddress: event.treasuryAddress,
-					protocolTreasuryAddress: event.protocolTreasuryAddress || null,
-					userAddress: event.userAddress,
-					publicClient: event.publicClient,
-					mode: event.mode,
-					hasAppraisal: event.hasAppraisal || false,
-					appraisalPrice: event.appraisalPrice || null,
-					payoutAmount: event.payoutAmount || null,
-					onSuccess: event.onSuccess,
-					onAction: event.onAction,
-					onAppraisalStatusChange: event.onAppraisalStatusChange,
-					refetchTreasuryCards: event.refetchTreasuryCards,
-					onBuybackSuccess: event.onBuybackSuccess,
-					retryCount: 0,
-					error: null
-				};
-			}
-			return context;
-		}),
+			setInteractionParams: assign(({ context, event }) => {
+				if (event.type === "START_INTERACTION") {
+					// Input validation
+					if (
+						!event.collection ||
+						!event.tokenId ||
+						!event.userAddress ||
+						!event.publicClient
+					) {
+						throw new Error("Missing required parameters for interaction");
+					}
+
+					// Validate mode
+					if (event.mode !== "deposit" && event.mode !== "buyback") {
+						throw new Error("Invalid interaction mode");
+					}
+
+					// Validate address format based on mode
+					if (event.mode === "deposit" && !event.treasuryAddress) {
+						throw new Error("Treasury address required for deposit mode");
+					}
+					if (event.mode === "buyback" && !event.protocolTreasuryAddress) {
+						throw new Error(
+							"Protocol treasury address required for buyback mode",
+						);
+					}
+
+					return {
+						collection: event.collection,
+						tokenId: event.tokenId,
+						treasuryAddress: event.treasuryAddress || null,
+						protocolTreasuryAddress: event.protocolTreasuryAddress || null,
+						userAddress: event.userAddress,
+						publicClient: event.publicClient,
+						mode: event.mode,
+						hasAppraisal: event.hasAppraisal || false,
+						appraisalPrice: event.appraisalPrice || null,
+						payoutAmount: event.payoutAmount || null,
+						onSuccess: event.onSuccess,
+						onAction: event.onAction,
+						onAppraisalStatusChange: event.onAppraisalStatusChange,
+						refetchTreasuryCards: event.refetchTreasuryCards,
+						onBuybackSuccess: event.onBuybackSuccess,
+						retryCount: 0,
+						error: null,
+					};
+				}
+				return context;
+			}),
 			determineApprovalNeeds: assign({
-				nftApprovalNeeded: true,
+				nftApprovalNeeded: ({ context }) =>
+					context.mode === "deposit" || context.mode === "buyback",
 			}),
 			setNFTApprovalNeeded: assign({
 				nftApprovalNeeded: true,
@@ -413,19 +541,27 @@ export const nftInteractionMachine = createMachine(
 				nftApprovalNeeded: false,
 			}),
 			setNFTApprovalTxHash: assign({
-				nftApprovalTxHash: ({ event }) =>
-					event.type === "NFT_APPROVAL_CONFIRMED" ? event.txHash : null,
+				nftApprovalTxHash: ({ event }) => {
+					if (event.type === "NFT_APPROVAL_CONFIRMED") {
+						return event.txHash;
+					}
+					return null;
+				},
 			}),
 			setInteractionTxHash: assign({
-				interactionTxHash: ({ event }) =>
-					event.type === "INTERACTION_CONFIRMED" ? event.txHash : null,
+				interactionTxHash: ({ event }) => {
+					if (event.type === "INTERACTION_CONFIRMED") {
+						return event.txHash;
+					}
+					return null;
+				},
 			}),
-			setInteractionCancelled: assign((context, event) => {
-				console.log("🚫 NFT interaction cancelled", {
+			setInteractionCancelled: assign(({ context, event }) => {
+				logger.logWarning("NFT interaction cancelled", {
 					currentMode: context.mode,
 					interactionTxHash: context.interactionTxHash,
 					nftApprovalTxHash: context.nftApprovalTxHash,
-					eventType: event.type,
+					eventType: event?.type || "unknown",
 				});
 				return {
 					interactionTxHash: null,
@@ -435,7 +571,7 @@ export const nftInteractionMachine = createMachine(
 				};
 			}),
 			logCancellation: () => {
-				console.log("NFT interaction cancelled by user");
+				logger.logWarning("NFT interaction cancelled by user");
 			},
 			setError: assign({
 				error: ({ event }) => {
@@ -443,10 +579,14 @@ export const nftInteractionMachine = createMachine(
 						return event.error;
 					}
 					if (event.type === "xstate.error.actor.checkNFTApprovalNeeded") {
-						return (event.error as Error)?.message || "Failed to check NFT approval";
+						return (
+							(event.error as Error)?.message || "Failed to check NFT approval"
+						);
 					}
 					if (event.type === "xstate.error.actor.confirmInteraction") {
-						return (event.error as Error)?.message || "Failed to confirm interaction";
+						return (
+							(event.error as Error)?.message || "Failed to confirm interaction"
+						);
 					}
 					return "Unknown error occurred";
 				},
@@ -460,34 +600,64 @@ export const nftInteractionMachine = createMachine(
 			handleInteractionCompletion: ({ context }) => {
 				// Trigger completion callbacks if available
 				try {
-					if (context.onSuccess && context.interactionTxHash) {
+					// Validate callbacks exist before calling
+					if (
+						typeof context.onSuccess === "function" &&
+						context.interactionTxHash
+					) {
 						context.onSuccess(context.interactionTxHash);
 					}
-					if (context.onAction && context.collection && context.tokenId) {
-						context.onAction(context.collection, context.tokenId, context.hasAppraisal);
+					if (
+						typeof context.onAction === "function" &&
+						context.collection &&
+						context.tokenId
+					) {
+						context.onAction(
+							context.collection,
+							context.tokenId,
+							context.hasAppraisal,
+						);
 					}
-					if (context.onAppraisalStatusChange && context.collection && context.tokenId) {
-						context.onAppraisalStatusChange(context.collection, context.tokenId, context.hasAppraisal);
+					if (
+						typeof context.onAppraisalStatusChange === "function" &&
+						context.collection &&
+						context.tokenId
+					) {
+						context.onAppraisalStatusChange(
+							context.collection,
+							context.tokenId,
+							context.hasAppraisal,
+						);
 					}
-					if (context.refetchTreasuryCards) {
+					if (typeof context.refetchTreasuryCards === "function") {
 						context.refetchTreasuryCards();
 					}
 					// Trigger specific buyback success callback
-					if (context.mode === "buyback" && context.onBuybackSuccess && context.interactionTxHash && context.payoutAmount) {
-						context.onBuybackSuccess(context.interactionTxHash, context.payoutAmount);
+					if (
+						context.mode === "buyback" &&
+						typeof context.onBuybackSuccess === "function" &&
+						context.interactionTxHash &&
+						context.payoutAmount
+					) {
+						context.onBuybackSuccess(
+							context.interactionTxHash,
+							context.payoutAmount,
+						);
 					}
 				} catch (error) {
 					console.error("Error in completion callbacks:", error);
 				}
 			},
-			setSuccessData: assign(({ context }: any) => ({
+			setSuccessData: assign(({ context }) => ({
 				completedAt: Date.now() as any,
-				successData: context.interactionTxHash ? {
-					txHash: context.interactionTxHash,
-					payoutAmount: context.payoutAmount || undefined,
-					mode: context.mode,
-				} : null
-			}) as any),
+				successData: context.interactionTxHash
+					? {
+							txHash: context.interactionTxHash,
+							payoutAmount: context.payoutAmount || undefined,
+							mode: context.mode,
+						}
+					: null,
+			})),
 		},
 		guards: {
 			canRetry: ({ context }) => context.retryCount < MAX_RETRIES,

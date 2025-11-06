@@ -49,7 +49,7 @@ export const PlatformAnalytics: React.FC = () => {
 		totalItems: bigint,
 		gachaAvailable: boolean,
 		totalDeposited: bigint,
-		totalClaimed: bigint
+		totalClaimed: bigint,
 	];
 
 	// 🚀 BATCH OPTIMIZED: Get platform data in 1 call instead of 2!
@@ -59,12 +59,20 @@ export const PlatformAnalytics: React.FC = () => {
 	} as Parameters<typeof useReadGachaTreasuryGetPlatformOverviewBatch>[0]);
 
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const allRarityCounts = (platformData as PlatformOverviewBatch)?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const allRarityCounts = (platformData as PlatformOverviewBatch)?.[0] || [
+		0n,
+		0n,
+		0n,
+		0n,
+		0n,
+	];
 	const totalItemsCount = (platformData as PlatformOverviewBatch)?.[1] || 0n;
 
 	// New economy system data
 	const { data: economyData } = useGachaEconomyManagerData({
-		contractAddress: contracts.economyManager,
+		...(contracts.economyManager && {
+			contractAddress: contracts.economyManager,
+		}),
 	});
 
 	const { data: gachaGlobalAnalytics } = useReadGachaGetGlobalAnalytics({

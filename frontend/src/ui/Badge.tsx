@@ -82,7 +82,9 @@ export interface BadgeProps extends React.ComponentProps<typeof GlassBadge> {}
 
 const Badge = React.forwardRef<HTMLDivElement, BadgeProps>((props, ref) => (
 	<GlassBadge ref={ref} {...props} />
-));
+)) as React.ForwardRefExoticComponent<
+	BadgeProps & React.RefAttributes<HTMLDivElement>
+>;
 
 Badge.displayName = "Badge";
 

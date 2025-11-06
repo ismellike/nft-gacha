@@ -1,14 +1,16 @@
 "use client";
 
-import React from "react";
+import type React from "react";
 import { extendVariants } from "@heroui/react";
 import { Button as HeroButton } from "@heroui/react";
 
 export const GlassButton = extendVariants(HeroButton, {
 	variants: {
 		color: {
-			glass: "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground font-medium shadow-lg transition-all duration-300 hover:bg-content1/30 hover:border-white/30 hover:shadow-xl active:scale-[0.97] disabled:opacity-60 disabled:pointer-events-none",
-			glassPrimary: "bg-gradient-to-r from-warning via-warning/90 to-orange-400 text-black font-bold border-2 border-warning/40 shadow-2xl shadow-warning/30 backdrop-blur-xl transition-all duration-300 hover:shadow-3xl hover:shadow-warning/40 hover:border-warning/60 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none",
+			glass:
+				"bg-content1/10 backdrop-blur-2xl border border-white/15 text-foreground font-medium shadow-xl transition-all duration-300 hover:bg-content1/25 hover:border-white/25 hover:shadow-2xl hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:hover:scale-100 rounded-2xl",
+			glassPrimary:
+				"bg-gradient-to-r from-warning via-warning/90 to-orange-400 text-black font-bold border-2 border-warning/40 shadow-2xl shadow-warning/30 backdrop-blur-xl transition-all duration-300 hover:shadow-3xl hover:shadow-warning/40 hover:border-warning/60 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:hover:scale-100 rounded-2xl",
 		},
 		size: {
 			sm: "px-4 py-2 text-sm min-h-9",
@@ -26,9 +28,7 @@ export const GlassButton = extendVariants(HeroButton, {
 
 export interface ButtonProps extends React.ComponentProps<typeof GlassButton> {}
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-	(props, ref) => <GlassButton ref={ref} {...props} />,
-);
+const Button = GlassButton;
 
 Button.displayName = "Button";
 

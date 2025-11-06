@@ -17,7 +17,10 @@ import {
 	useTreasuryUserCards,
 	type UserCardDeposit,
 } from "@/hooks/useTreasuryUserCards";
-import { useRarityTracker, type CardAppraisalInfo } from "@/hooks/useRarityTracker";
+import {
+	useRarityTracker,
+	type CardAppraisalInfo,
+} from "@/hooks/useRarityTracker";
 import { useNFTWithdrawal } from "@/hooks/useNFTWithdrawal";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -26,7 +29,7 @@ import {
 	BanknotesIcon,
 	ArrowPathIcon,
 	ArrowDownTrayIcon,
-	GiftIcon
+	GiftIcon,
 } from "@heroicons/react/24/outline";
 import { useGachaId } from "@/hooks/useGachaId";
 import { useGachaContracts } from "@/hooks/useGachaContracts";
@@ -49,9 +52,11 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 	const contracts = useGachaContracts(gachaId);
 
 	// Depositor Vault data
-	const depositorVaultProps = {
+	const depositorVaultProps: {
+		contractAddress: string;
+		userAddress?: string;
+	} = {
 		contractAddress: gachaConfig.depositorVaultAddress,
-		userAddress: address,
 	};
 	if (address) {
 		depositorVaultProps.userAddress = address;
@@ -86,7 +91,7 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 		try {
 			await claimYield({
 				address: gachaConfig.depositorVaultAddress as `0x${string}`,
-				args: [address as `0x${string}`, address as `0x${string}`],
+				args: [address as `0x${string}`],
 			});
 
 			toast.success("Yield claimed successfully!");
@@ -112,43 +117,51 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 	const { getBatchCardInfo } = useRarityTracker(rarityTracker);
 	const { withdrawNFT, isPending: isWithdrawing } = useNFTWithdrawal(treasury);
 
-	const [withdrawableCards, setWithdrawableCards] = useState<WithdrawableCard[]>([]);
+	const [withdrawableCards, setWithdrawableCards] = useState<
+		WithdrawableCard[]
+	>([]);
 	const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(true);
 
 	// Load withdrawable cards
 	const loadWithdrawableCards = React.useCallback(async () => {
-			if (!treasury || !rarityTracker || !address) {
+		if (!treasury || !rarityTracker || !address) {
+			setWithdrawableCards([]);
+			setIsLoadingWithdrawals(false);
+			return;
+		}
+
+		setIsLoadingWithdrawals(true);
+		try {
+			const deposits = await getAllUserCardDeposits();
+
+			if (deposits.length === 0) {
 				setWithdrawableCards([]);
 				setIsLoadingWithdrawals(false);
 				return;
 			}
 
-			setIsLoadingWithdrawals(true);
-			try {
-				const deposits = await getAllUserCardDeposits();
+			const cardIds = deposits.map((d) => d.cardId);
+			const appraisalInfos = await getBatchCardInfo(cardIds);
 
-				if (deposits.length === 0) {
-					setWithdrawableCards([]);
-					setIsLoadingWithdrawals(false);
-					return;
-				}
+			const cards: WithdrawableCard[] = deposits.map((deposit, index) => ({
+				...deposit,
+				appraisalInfo: appraisalInfos[index] || null,
+			}));
 
-				const cardIds = deposits.map(d => d.cardId);
-				const appraisalInfos = await getBatchCardInfo(cardIds);
-
-				const cards: WithdrawableCard[] = deposits.map((deposit, index) => ({
-					...deposit,
-					appraisalInfo: appraisalInfos[index] || null,
-				}));
-
-				setWithdrawableCards(cards);
-			} catch (error) {
-				console.error("Error loading withdrawable cards:", error);
-				setWithdrawableCards([]);
-			} finally {
-				setIsLoadingWithdrawals(false);
-			}
-		}, [treasury, rarityTracker, address, getAllUserCardDeposits, getBatchCardInfo]);
+			setWithdrawableCards(cards);
+		} catch (error) {
+			console.error("Error loading withdrawable cards:", error);
+			setWithdrawableCards([]);
+		} finally {
+			setIsLoadingWithdrawals(false);
+		}
+	}, [
+		treasury,
+		rarityTracker,
+		address,
+		getAllUserCardDeposits,
+		getBatchCardInfo,
+	]);
 
 	React.useEffect(() => {
 		loadWithdrawableCards();
@@ -321,7 +334,7 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 									Claiming...
 								</span>
 							) : depositorUserData.pendingYield &&
-							  depositorUserData.pendingYield > 0n ? (
+								depositorUserData.pendingYield > 0n ? (
 								`Claim ${formatTokenAmount(depositorUserData.pendingYield)} USDC`
 							) : (
 								"No Yield Available"
@@ -359,7 +372,9 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 					<div className="space-y-4">
 						{Array.from({ length: 3 }).map((_, i) => (
 							<div // biome-ignore lint/suspicious/noArrayIndexKey: skeleton loader placeholders
-								key={`withdrawal-skeleton-loading-${i}`} className="p-4 bg-white/5 backdrop-blur-md border border-white/20 rounded-xl">
+								key={`withdrawal-skeleton-loading-${i}`}
+								className="p-4 bg-white/5 backdrop-blur-md border border-white/20 rounded-xl"
+							>
 								<div className="flex items-center gap-4">
 									<div className="w-16 h-16 bg-white/10 rounded-lg animate-pulse" />
 									<div className="flex-1 space-y-2">
@@ -406,19 +421,25 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 											<div className="flex items-center gap-4 text-xs text-gray-400">
 												<span>Deposited: {card.depositCount.toString()}</span>
 												{rarityConfig && (
-													<span className={`px-2 py-1 rounded-full ${rarityConfig.textColor} ${rarityConfig.borderColor} border`}>
+													<span
+														className={`px-2 py-1 rounded-full ${rarityConfig.textColor} ${rarityConfig.borderColor} border`}
+													>
 														{rarityConfig.name}
 													</span>
 												)}
 												{appraisalInfo && (
-													<span>Value: {formatUSD(appraisalInfo.appraisedValueUsd)}</span>
+													<span>
+														Value: {formatUSD(appraisalInfo.appraisedValueUsd)}
+													</span>
 												)}
 											</div>
 										</div>
 										<Button
 											size="sm"
 											isLoading={isWithdrawing}
-											onClick={() => handleWithdrawNFT(card.cardId, card.depositCount)}
+											onClick={() =>
+												handleWithdrawNFT(card.cardId, card.depositCount)
+											}
 											className="rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white flex items-center gap-2"
 										>
 											<ArrowDownTrayIcon className="w-3 h-3" />

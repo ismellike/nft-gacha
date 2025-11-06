@@ -23,7 +23,6 @@ interface EconomyDashboardProps {
 }
 
 export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
-
 	// Economy Manager data
 	const {
 		data: economyData,
@@ -60,7 +59,7 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 	// Protocol Treasury Balance
 	const { data: treasuryBalance } = useReadErc20BalanceOf({
 		address: economyData.feeToken as `0x${string}`,
-		args: [gachaConfig.protocolTreasuryAddress],
+		args: [gachaConfig.protocolTreasuryAddress as `0x${string}`],
 		query: {
 			enabled: !!economyData.feeToken && !!gachaConfig.protocolTreasuryAddress,
 		},
@@ -90,7 +89,7 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 						Revenue Distribution
 					</h3>
 
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 						<Card className="p-4 text-center">
 							<div className="text-3xl mb-2">🏦</div>
 							<div className="text-sm text-gray-400 mb-1">Depositors</div>
@@ -155,8 +154,10 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 							<span className="text-xl font-bold text-white">
 								<RevenueDisplay
 									amount={treasuryBalance}
-									tokenSymbol={tokenSymbol}
-									decimals={tokenDecimals !== undefined ? Number(tokenDecimals) : undefined}
+									{...(tokenSymbol && { tokenSymbol })}
+									{...(tokenDecimals !== undefined && {
+										decimals: Number(tokenDecimals),
+									})}
 									compact={false}
 								/>
 							</span>
@@ -176,7 +177,7 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 							<div className="flex justify-between">
 								<span className="text-gray-400">Asset Token</span>
 								<span className="text-sm text-white font-mono bg-gray-800 px-2 py-1 rounded">
-									{tokenSymbol || 'Loading...'}
+									{tokenSymbol || "Loading..."}
 								</span>
 							</div>
 						</div>
@@ -202,9 +203,7 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 			{canShowRevenueOverview && economyData.revenueByRarity && (
 				<GlassCard className="p-6 animate-in fade-in duration-500 delay-450">
 					<div className="flex justify-between items-center mb-4">
-						<h3 className="text-lg font-bold text-white">
-							Revenue by Rarity
-						</h3>
+						<h3 className="text-lg font-bold text-white">Revenue by Rarity</h3>
 						{tokenSymbol && (
 							<div className="text-sm text-gray-400">
 								Values in {tokenSymbol}
@@ -225,8 +224,10 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 								<div className={`text-lg font-bold ${rarity.color}`}>
 									<RevenueDisplay
 										amount={economyData.revenueByRarity?.[index]}
-										tokenSymbol={tokenSymbol || undefined}
-										decimals={tokenDecimals !== undefined ? Number(tokenDecimals) : undefined}
+										{...(tokenSymbol && { tokenSymbol })}
+										{...(tokenDecimals !== undefined && {
+											decimals: Number(tokenDecimals),
+										})}
 										compact={true}
 									/>
 								</div>

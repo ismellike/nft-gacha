@@ -77,7 +77,9 @@ export interface InputProps extends React.ComponentProps<typeof GlassInput> {}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => (
 	<GlassInput ref={ref} {...props} />
-));
+)) as React.ForwardRefExoticComponent<
+	InputProps & React.RefAttributes<HTMLInputElement>
+>;
 
 Input.displayName = "Input";
 

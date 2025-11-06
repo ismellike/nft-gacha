@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { formatTokenAmount } from "../lib/utils";
+import { toast } from "sonner";
+import type { Address } from "viem";
 import { Card, Button } from "../ui";
 import { glassTypography } from "../lib/theme-config";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -12,9 +14,15 @@ import {
 	useTreasuryUserCards,
 	type UserCardDeposit,
 } from "../hooks/useTreasuryUserCards";
-import { useRarityTracker, type CardAppraisalInfo } from "../hooks/useRarityTracker";
+import {
+	useRarityTracker,
+	type CardAppraisalInfo,
+} from "../hooks/useRarityTracker";
 import { useNFTWithdrawal } from "../hooks/useNFTWithdrawal";
-import { useUserDepositedNFTs, type DepositedNFT } from "../hooks/useUserDepositedNFTs";
+import {
+	useUserDepositedNFTs,
+	type DepositedNFT,
+} from "../hooks/useUserDepositedNFTs";
 import {
 	ArrowLeftOnRectangleIcon,
 	ArrowPathIcon,
@@ -35,8 +43,10 @@ export const NFTWithdrawal: React.FC = () => {
 	const contracts = useGachaContracts(gachaId);
 
 	const [isLoading, setIsLoading] = useState(true);
-	const [withdrawingCardId, setWithdrawingCardId] = useState<string | null>(null);
-	const [withdrawingNFT, setWithdrawingNFT] = useState<{collection: Address, tokenId: bigint} | null>(null);
+	const [withdrawingNFT, setWithdrawingNFT] = useState<{
+		collection: Address;
+		tokenId: bigint;
+	} | null>(null);
 
 	// Use existing hooks to get user's deposited cards
 	const treasury = contracts.treasury as `0x${string}` | undefined;
@@ -79,7 +89,7 @@ export const NFTWithdrawal: React.FC = () => {
 				}
 
 				// Get appraisal info for all cards
-				const cardIds = deposits.map(d => d.cardId);
+				const cardIds = deposits.map((d) => d.cardId);
 				const appraisalInfos = await getBatchCardInfo(cardIds);
 
 				// Get specific NFTs for each card ID
@@ -106,16 +116,30 @@ export const NFTWithdrawal: React.FC = () => {
 		};
 
 		loadUserCards();
-	}, [treasury, rarityTracker, userAddress, getAllUserCardDeposits, getBatchCardInfo, getUserDepositedNFTsByCardId]);
+	}, [
+		treasury,
+		rarityTracker,
+		userAddress,
+		getAllUserCardDeposits,
+		getBatchCardInfo,
+		getUserDepositedNFTsByCardId,
+	]);
 
-	const handleWithdraw = async (collection: Address, tokenId: bigint, cardId: string) => {
+	const handleWithdraw = async (
+		collection: Address,
+		tokenId: bigint,
+		cardId: string,
+	) => {
 		if (!treasury) {
 			toast.error("Treasury contract not available");
 			return;
 		}
 
 		// Prevent double withdrawals
-		if (withdrawingNFT?.collection === collection && withdrawingNFT?.tokenId === tokenId) {
+		if (
+			withdrawingNFT?.collection === collection &&
+			withdrawingNFT?.tokenId === tokenId
+		) {
 			return;
 		}
 
@@ -123,7 +147,9 @@ export const NFTWithdrawal: React.FC = () => {
 		setWithdrawingNFT({ collection, tokenId });
 
 		try {
-			console.log(`🔄 [NFTWithdrawal] Withdrawing NFT: ${collection} #${tokenId.toString()}`);
+			console.log(
+				`🔄 [NFTWithdrawal] Withdrawing NFT: ${collection} #${tokenId.toString()}`,
+			);
 			await withdrawNFT(collection, tokenId);
 
 			// Refetch the user's deposited NFTs after successful withdrawal
@@ -137,7 +163,7 @@ export const NFTWithdrawal: React.FC = () => {
 					}
 
 					// Get appraisal info for all cards
-					const cardIds = deposits.map(d => d.cardId);
+					const cardIds = deposits.map((d) => d.cardId);
 					const appraisalInfos = await getBatchCardInfo(cardIds);
 
 					// Get specific NFTs for each card ID
@@ -161,7 +187,8 @@ export const NFTWithdrawal: React.FC = () => {
 			}, 3000);
 		} catch (error) {
 			console.error("Withdrawal failed:", error);
-			const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+			const errorMessage =
+				error instanceof Error ? error.message : "Unknown error occurred";
 			toast.error(`Failed to withdraw NFT: ${errorMessage}`);
 		} finally {
 			// Clear withdrawing states after a delay
@@ -176,8 +203,13 @@ export const NFTWithdrawal: React.FC = () => {
 		return card.depositCount > 0n && card.nfts.length > 0;
 	};
 
-	const canWithdrawSpecificNFT = (card: WithdrawableCard, nft: DepositedNFT) => {
-		return card.depositCount > 0n && nft.collection && nft.tokenId !== undefined;
+	const canWithdrawSpecificNFT = (
+		card: WithdrawableCard,
+		nft: DepositedNFT,
+	) => {
+		return (
+			card.depositCount > 0n && nft.collection && nft.tokenId !== undefined
+		);
 	};
 
 	if (!userAddress) {
@@ -212,7 +244,9 @@ export const NFTWithdrawal: React.FC = () => {
 					<div className="flex items-center justify-center py-12">
 						<div className="flex items-center gap-3">
 							<ArrowPathIcon className="w-6 h-6 animate-spin text-primary" />
-							<span className="text-foreground/70">Loading your deposited NFTs...</span>
+							<span className="text-foreground/70">
+								Loading your deposited NFTs...
+							</span>
 						</div>
 					</div>
 				) : userCards.length === 0 ? (
@@ -222,7 +256,8 @@ export const NFTWithdrawal: React.FC = () => {
 							No Deposited NFTs
 						</h3>
 						<p className="text-foreground/60 mb-6">
-							You don't have any NFTs deposited in the vault. Deposit some NFTs to start earning yield!
+							You don't have any NFTs deposited in the vault. Deposit some NFTs
+							to start earning yield!
 						</p>
 						<Button
 							variant="light"
@@ -240,16 +275,23 @@ export const NFTWithdrawal: React.FC = () => {
 						<Card className="p-6 bg-content2/20 border border-white/10">
 							<div className="flex items-center justify-between">
 								<div>
-									<h3 className="font-semibold text-foreground mb-1">Your Vault Inventory</h3>
+									<h3 className="font-semibold text-foreground mb-1">
+										Your Vault Inventory
+									</h3>
 									<p className="text-sm text-foreground/70">
-										{userCards.length} unique NFT{userCards.length !== 1 ? 's' : ''} deposited
+										{userCards.length} unique NFT
+										{userCards.length !== 1 ? "s" : ""} deposited
 									</p>
 								</div>
 								<div className="text-right">
 									<div className="text-2xl font-bold text-primary">
-										{userCards.reduce((sum, card) => sum + card.depositCount, 0n).toString()}
+										{userCards
+											.reduce((sum, card) => sum + card.depositCount, 0n)
+											.toString()}
 									</div>
-									<div className="text-sm text-foreground/60">Total Deposits</div>
+									<div className="text-sm text-foreground/60">
+										Total Deposits
+									</div>
 								</div>
 							</div>
 						</Card>
@@ -258,11 +300,12 @@ export const NFTWithdrawal: React.FC = () => {
 						<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 							{userCards.map((card, index) => {
 								const rarityConfig = card.appraisalInfo
-									? getRarityConfig(card.appraisalInfo.currentRarity as 0 | 1 | 2 | 3 | 4)
+									? getRarityConfig(
+											card.appraisalInfo.currentRarity as 0 | 1 | 2 | 3 | 4,
+										)
 									: null;
 
 								const canWithdraw = canWithdrawCard(card);
-								const _isCurrentlyWithdrawing = withdrawingCardId === card.cardId;
 
 								return (
 									<motion.div
@@ -271,7 +314,9 @@ export const NFTWithdrawal: React.FC = () => {
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ duration: 0.4, delay: index * 0.1 }}
 									>
-										<Card className={`p-6 border ${canWithdraw ? 'border-white/20 hover:bg-content2/10' : 'border-warning/30 bg-warning/10'} transition-all duration-300`}>
+										<Card
+											className={`p-6 border ${canWithdraw ? "border-white/20 hover:bg-content2/10" : "border-warning/30 bg-warning/10"} transition-all duration-300`}
+										>
 											<div className="space-y-4">
 												{/* NFT Card Preview */}
 												<div className="flex justify-center">
@@ -279,8 +324,12 @@ export const NFTWithdrawal: React.FC = () => {
 														<div className="text-center">
 															{rarityConfig ? (
 																<>
-																	<div className="text-4xl mb-2">{rarityConfig.emoji}</div>
-																	<div className={`text-xs font-medium ${rarityConfig.textColor}`}>
+																	<div className="text-4xl mb-2">
+																		{rarityConfig.emoji}
+																	</div>
+																	<div
+																		className={`text-xs font-medium ${rarityConfig.textColor}`}
+																	>
 																		{rarityConfig.name}
 																	</div>
 																</>
@@ -297,14 +346,18 @@ export const NFTWithdrawal: React.FC = () => {
 												{/* Card Details */}
 												<div className="space-y-2">
 													<div className="flex justify-between items-center">
-														<span className="text-sm text-foreground/70">Card ID:</span>
+														<span className="text-sm text-foreground/70">
+															Card ID:
+														</span>
 														<span className="text-xs font-mono bg-content2/40 px-2 py-1 rounded">
 															{card.cardId.slice(0, 10)}...
 														</span>
 													</div>
 
 													<div className="flex justify-between items-center">
-														<span className="text-sm text-foreground/70">Deposits:</span>
+														<span className="text-sm text-foreground/70">
+															Deposits:
+														</span>
 														<span className="font-semibold text-foreground">
 															{card.depositCount.toString()}
 														</span>
@@ -312,9 +365,13 @@ export const NFTWithdrawal: React.FC = () => {
 
 													{card.appraisalInfo && (
 														<div className="flex justify-between items-center">
-															<span className="text-sm text-foreground/70">Value:</span>
+															<span className="text-sm text-foreground/70">
+																Value:
+															</span>
 															<span className="font-semibold text-primary">
-																{formatUSD(card.appraisalInfo.appraisedValueUsd)}
+																{formatUSD(
+																	card.appraisalInfo.appraisedValueUsd,
+																)}
 															</span>
 														</div>
 													)}
@@ -322,19 +379,29 @@ export const NFTWithdrawal: React.FC = () => {
 													{/* Show individual NFTs that can be withdrawn */}
 													{card.nfts.length > 0 && (
 														<div className="mt-3 space-y-2">
-															<div className="text-sm text-foreground/70 mb-2">Available NFTs ({card.nfts.length}):</div>
+															<div className="text-sm text-foreground/70 mb-2">
+																Available NFTs ({card.nfts.length}):
+															</div>
 															{card.nfts.map((nft) => {
-																const canWithdrawThisNFT = canWithdrawSpecificNFT(card, nft);
-																const isWithdrawingThisNFT = withdrawingNFT?.collection === nft.collection && withdrawingNFT?.tokenId === nft.tokenId;
+																const canWithdrawThisNFT =
+																	canWithdrawSpecificNFT(card, nft);
+																const isWithdrawingThisNFT =
+																	withdrawingNFT?.collection ===
+																		nft.collection &&
+																	withdrawingNFT?.tokenId === nft.tokenId;
 
 																return (
-																	<div key={`${nft.collection}-${nft.tokenId}`} className="flex items-center justify-between p-2 bg-content2/10 rounded-lg border border-white/5">
+																	<div
+																		key={`${nft.collection}-${nft.tokenId}`}
+																		className="flex items-center justify-between p-2 bg-content2/10 rounded-lg border border-white/5"
+																	>
 																		<div className="flex items-center gap-2">
 																			<div className="text-xs font-mono bg-content2/20 px-2 py-1 rounded">
 																				Token #{nft.tokenId.toString()}
 																			</div>
 																			<div className="text-xs text-foreground/50">
-																				{nft.collection.slice(0, 8)}...{nft.collection.slice(-6)}
+																				{nft.collection.slice(0, 8)}...
+																				{nft.collection.slice(-6)}
 																			</div>
 																		</div>
 																		<Button
@@ -344,8 +411,16 @@ export const NFTWithdrawal: React.FC = () => {
 																					? "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:scale-105"
 																					: "bg-content2/20 text-foreground/50 cursor-not-allowed"
 																			}`}
-																			onPress={() => handleWithdraw(nft.collection, nft.tokenId, card.cardId)}
-																			isDisabled={!canWithdrawThisNFT || isWithdrawing}
+																			onPress={() =>
+																				handleWithdraw(
+																					nft.collection,
+																					nft.tokenId,
+																					card.cardId,
+																				)
+																			}
+																			isDisabled={
+																				!canWithdrawThisNFT || isWithdrawing
+																			}
 																			isLoading={isWithdrawingThisNFT}
 																		>
 																			{isWithdrawingThisNFT ? (
@@ -385,13 +460,24 @@ export const NFTWithdrawal: React.FC = () => {
 
 						{/* Information Section */}
 						<div className="mt-8 p-4 bg-content2/20 rounded-lg border border-white/10">
-							<h3 className="font-semibold text-foreground mb-2">About NFT Withdrawals</h3>
+							<h3 className="font-semibold text-foreground mb-2">
+								About NFT Withdrawals
+							</h3>
 							<ul className="text-sm text-foreground/70 space-y-1">
-								<li>• You can only withdraw NFTs that you originally deposited</li>
-								<li>• NFTs currently being used in gacha spins cannot be withdrawn</li>
-								<li>• Withdrawals transfer the NFT back to your wallet immediately</li>
+								<li>
+									• You can only withdraw NFTs that you originally deposited
+								</li>
+								<li>
+									• NFTs currently being used in gacha spins cannot be withdrawn
+								</li>
+								<li>
+									• Withdrawals transfer the NFT back to your wallet immediately
+								</li>
 								<li>• Gas fees apply for withdrawal transactions</li>
-								<li>• Your yield earnings will remain available to claim separately</li>
+								<li>
+									• Your yield earnings will remain available to claim
+									separately
+								</li>
 							</ul>
 						</div>
 					</div>
