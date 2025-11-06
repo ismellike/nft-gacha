@@ -353,7 +353,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 						args: [address],
 					});
 					console.log("💰 [Vault] User balance (if available):", balance.toString());
-				} catch (e) {
+				} catch (_e) {
 					console.log("ℹ️ [Vault] Balance function not available or failed");
 				}
 

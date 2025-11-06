@@ -11,6 +11,7 @@ import {
 	CubeIcon,
 	MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { Card } from "../ui";
 
 // Helper function to get icon component
 function getNavIcon(iconName: string, className: string) {
@@ -46,7 +47,7 @@ export const Header = memo(() => {
 
 			{/* Floating Header */}
 			<div className="sticky top-8 z-40 max-w-7xl mx-auto px-6">
-				<div className="bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-glass">
+				<Card className="shadow-lg" isPressable={false}>
 					<div className="flex items-center justify-between px-8 py-6">
 						{/* Logo */}
 						<Link href="/" className="flex items-center space-x-4 group">
@@ -121,7 +122,7 @@ export const Header = memo(() => {
 						{/* Connect Button */}
 						<ConnectButton />
 					</div>
-				</div>
+				</Card>
 			</div>
 		</div>
 	);

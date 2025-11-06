@@ -64,7 +64,7 @@ export default function NFTRevealModal({
 			placement="center"
 		>
 			<ModalContent>
-				<ModalBody className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center">
+				<ModalBody className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center pointer-events-auto">
 					{/* Close Button - Top Right of Modal */}
 					<motion.button
 						onClick={onClose}
@@ -93,7 +93,7 @@ export default function NFTRevealModal({
 
 					{/* Dramatic Background Glow */}
 					<motion.div
-						className="absolute inset-0 overflow-hidden"
+						className="absolute inset-0 overflow-hidden pointer-events-none"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: showCard ? 1 : 0 }}
 						transition={{ duration: 2 }}

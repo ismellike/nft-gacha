@@ -379,40 +379,30 @@ export const nftInteractionMachine = createMachine(
 				refetchTreasuryCards: undefined as (() => Promise<void>) | undefined,
 				onBuybackSuccess: undefined as ((txHash: string, payoutAmount: bigint) => void) | undefined,
 			}),
-			setInteractionParams: assign({
-				collection: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.collection : null,
-				tokenId: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.tokenId : null,
-				treasuryAddress: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.treasuryAddress : null,
-				protocolTreasuryAddress: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? (event.protocolTreasuryAddress || null) : null,
-				userAddress: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.userAddress : null,
-				publicClient: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.publicClient : null,
-				mode: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.mode : ("deposit" as InteractionMode),
-				hasAppraisal: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? (event.hasAppraisal || false) : false,
-				appraisalPrice: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? (event.appraisalPrice || null) : null,
-				payoutAmount: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? (event.payoutAmount || null) : null,
-				onSuccess: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.onSuccess : undefined,
-				onAction: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.onAction : undefined,
-				onAppraisalStatusChange: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.onAppraisalStatusChange : undefined,
-				refetchTreasuryCards: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.refetchTreasuryCards : undefined,
-				onBuybackSuccess: ({ event }: { event: NFTInteractionEvent }) =>
-					event.type === "START_INTERACTION" ? event.onBuybackSuccess : undefined,
-				retryCount: 0,
-				error: null as string | null,
-			}),
+				setInteractionParams: assign(({ context, event }: any) => {
+			if (event.type === "START_INTERACTION") {
+				return {
+					collection: event.collection,
+					tokenId: event.tokenId,
+					treasuryAddress: event.treasuryAddress,
+					protocolTreasuryAddress: event.protocolTreasuryAddress || null,
+					userAddress: event.userAddress,
+					publicClient: event.publicClient,
+					mode: event.mode,
+					hasAppraisal: event.hasAppraisal || false,
+					appraisalPrice: event.appraisalPrice || null,
+					payoutAmount: event.payoutAmount || null,
+					onSuccess: event.onSuccess,
+					onAction: event.onAction,
+					onAppraisalStatusChange: event.onAppraisalStatusChange,
+					refetchTreasuryCards: event.refetchTreasuryCards,
+					onBuybackSuccess: event.onBuybackSuccess,
+					retryCount: 0,
+					error: null
+				};
+			}
+			return context;
+		}),
 			determineApprovalNeeds: assign({
 				nftApprovalNeeded: true,
 			}),
@@ -482,19 +472,14 @@ export const nftInteractionMachine = createMachine(
 					console.error("Error in completion callbacks:", error);
 				}
 			},
-			setSuccessData: assign({
-				completedAt: Date.now(),
-				successData: ({ context }) => {
-					if (context.interactionTxHash) {
-						return {
-							txHash: context.interactionTxHash,
-							payoutAmount: context.payoutAmount || undefined,
-							mode: context.mode,
-						};
-					}
-					return null;
-				},
-			}),
+			setSuccessData: assign(({ context }: any) => ({
+				completedAt: Date.now() as any,
+				successData: context.interactionTxHash ? {
+					txHash: context.interactionTxHash,
+					payoutAmount: context.payoutAmount || undefined,
+					mode: context.mode,
+				} : null
+			}) as any),
 		},
 		guards: {
 			canRetry: ({ context }) => context.retryCount < MAX_RETRIES,

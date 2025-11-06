@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useAccount, useReadContract } from "wagmi";
 import { Chip } from "@heroui/react";
 import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 import {
 	useReadProtocolTreasuryRedemptionPayoutBps,
 	useReadProtocolTreasuryPaused,
@@ -16,7 +17,6 @@ import { formatCurrency } from "@/lib/utils";
 import { useBuybackNotificationsContext } from "./BuybackNotificationProvider";
 import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
 import { useNFTInteraction } from "@/hooks/useNFTInteraction";
-import type { NFTInteractionContext } from "@/machines/nftInteractionMachine";
 
 interface BuybackComponentProps {
 	collection: string;
@@ -49,7 +49,7 @@ export default function BuybackComponent({
 
 	// Build interaction params for NFT interaction hook
 	const interactionParams = useMemo(() => {
-		const params = {
+		const params: any = {
 			onAction: (_collection: string, tokenId: string, _hasValidAppraisal?: boolean) => {
 				showNotification(`🔄 NFT action initiated for ${tokenId}`, "info");
 			},
@@ -64,7 +64,7 @@ export default function BuybackComponent({
 			refetchTreasuryCards: async () => {
 				// Optional: Implement treasury cards refetch if needed
 			}
-		} as Partial<NFTInteractionContext>;
+		};
 
 		if (onSuccess) {
 			params.onSuccess = onSuccess;
@@ -89,8 +89,9 @@ export default function BuybackComponent({
 	} = useNFTInteraction(interactionParams);
 
 	// Enhanced success state data
-	const isSuccessState = currentState === "completed" && context.successData?.mode === "buyback";
-	const successTimestamp = context.successData && context.completedAt
+	const successData = context.successData as any;
+	const isSuccessState = currentState === "completed" && successData?.mode === "buyback";
+	const successTimestamp = successData && context.completedAt
 		? new Date(context.completedAt).toLocaleString()
 		: null;
 
@@ -285,8 +286,8 @@ export default function BuybackComponent({
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
-				className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/20 p-6 space-y-4"
 			>
+				<Card color="glass" className="p-6 space-y-4">
 				{/* Header */}
 				<div className="flex items-center justify-between">
 					<h3 className={`text-white font-bold ${classes.text}`}>
@@ -317,7 +318,7 @@ export default function BuybackComponent({
 						<div>
 							<h4 className="text-white font-bold text-lg mb-2">Buyback Successful!</h4>
 							<p className="text-emerald-300 font-semibold text-xl mb-2">
-								You received {formatCurrency(context.successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
+								You received {formatCurrency(successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
 							</p>
 							{successTimestamp && (
 								<p className="text-white/60 text-xs mb-2">
@@ -330,24 +331,24 @@ export default function BuybackComponent({
 								</p>
 							)}
 						</div>
-						{context.successData?.txHash && (
+						{successData?.txHash && (
 							<div className="flex flex-col gap-2">
 								<Button
-									size="sm"
-									color="glass"
-									onPress={() => window.open(`https://etherscan.io/tx/${context.successData?.txHash}`, "_blank")}
-									className="bg-white/10 hover:bg-white/20"
+									size="md"
+									color="glassPrimary"
+									onPress={() => window.open(`https://etherscan.io/tx/${successData.txHash}`, "_blank")}
+									className="rounded-2xl px-6 py-2 font-semibold shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
 								>
 									View Transaction
 								</Button>
 								<Button
-									size="sm"
-									color="glass"
+									size="md"
+									color="glassPrimary"
 									onPress={() => {
 										// Reset the state machine to allow new interactions
 										reset();
 									}}
-									className="bg-white/10 hover:bg-white/20"
+									className="rounded-2xl px-6 py-2 font-semibold shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
 								>
 									Start New Transaction
 								</Button>
@@ -399,8 +400,8 @@ export default function BuybackComponent({
 
 						{/* Action Button */}
 						<Button
-							color="primary"
-							size={size}
+							color="glassPrimary"
+							size="lg"
 							onPress={handleAction}
 							isLoading={isLoading || actionInfo.type === "processing"}
 							isDisabled={
@@ -409,7 +410,7 @@ export default function BuybackComponent({
 								isPaused ||
 								actionInfo.type === "checking"
 							}
-							className="w-full"
+							className="w-full rounded-2xl px-12 py-4 text-lg font-bold shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
 						>
 							{getButtonLabel() || `Sell for ${formattedPayoutAmount}`}
 						</Button>
@@ -428,6 +429,7 @@ export default function BuybackComponent({
 						)}
 					</>
 				)}
+				</Card>
 			</motion.div>
 		);
 	}
@@ -438,8 +440,8 @@ export default function BuybackComponent({
 			<motion.div
 				initial={{ opacity: 0, y: 10 }}
 				animate={{ opacity: 1, y: 0 }}
-				className="bg-white/5 backdrop-blur-md rounded-xl border border-white/20 p-4 space-y-3"
 			>
+				<Card color="glass" className="p-4 space-y-3">
 				<div className="flex items-center justify-between">
 					<h3 className="text-white font-semibold">Sell to Treasury</h3>
 					{isPaused ? (
@@ -459,7 +461,7 @@ export default function BuybackComponent({
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
 							</svg>
 						</div>
-						<p className="text-emerald-300 font-bold">Sold for {formatCurrency(context.successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}</p>
+						<p className="text-emerald-300 font-bold">Sold for {formatCurrency(successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}</p>
 						{successTimestamp && (
 							<p className="text-white/50 text-xs">Completed: {successTimestamp}</p>
 						)}
@@ -485,11 +487,8 @@ export default function BuybackComponent({
 						)}
 
 						<Button
-							color={
-								actionInfo.type === "approveNFT" ? "primary" :
-								actionInfo.type === "redeem" ? "primary" : "glass"
-							}
-							size="sm"
+							color="glassPrimary"
+							size="md"
 							onPress={handleAction}
 							isLoading={isLoading || actionInfo.type === "processing"}
 							isDisabled={
@@ -498,7 +497,7 @@ export default function BuybackComponent({
 								isPaused ||
 								actionInfo.type === "checking"
 							}
-							className="flex-1"
+							className="flex-1 rounded-2xl px-8 py-3 font-bold shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
 						>
 							{actionInfo.label || defaultActionLabel || "Sell NFT"}
 						</Button>
@@ -510,6 +509,7 @@ export default function BuybackComponent({
 						)}
 					</>
 				)}
+				</Card>
 			</motion.div>
 		);
 	}
@@ -537,7 +537,7 @@ export default function BuybackComponent({
 								</svg>
 							}
 						>
-							Sold for {formatCurrency(context.successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
+							Sold for {formatCurrency(successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
 						</Chip>
 					</div>
 				) : !hasAppraisal ? (
@@ -554,8 +554,8 @@ export default function BuybackComponent({
 					</Chip>
 				) : (
 					<Button
-						color="primary"
-						size={size}
+						color="glassPrimary"
+						size="lg"
 						onPress={handleAction}
 						isLoading={isLoading || actionInfo.type === "processing"}
 						isDisabled={
@@ -564,7 +564,7 @@ export default function BuybackComponent({
 							isPaused ||
 							actionInfo.type === "checking"
 						}
-						className={classes.button}
+						className="rounded-2xl px-12 py-4 text-lg font-bold shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
 					>
 						{getButtonLabel() || `Sell for ${formattedPayoutAmount}`}
 					</Button>

@@ -6,23 +6,23 @@ import { Card as HeroCard } from "@heroui/react";
 
 export const GlassCard = extendVariants(HeroCard, {
 	variants: {
-		isHoverable: {
-			true: {
-				base: "hover:bg-content1/30 hover:border-white/20 hover:shadow-3xl transition-all duration-300 cursor-pointer",
+		color: {
+			glass: {
+				base: "bg-content1/20 backdrop-blur-xl border border-white/10 shadow-xl transition-all duration-300",
+				hover: "bg-content1/30 hover:border-white/20 hover:shadow-2xl",
 			},
-		},
-		isPressable: {
-			true: {
-				base: "cursor-pointer hover:bg-content1/30 hover:border-white/20 hover:shadow-3xl focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background data-[pressed=true]:scale-[0.98] transition-all duration-300",
+			glassInteractive: {
+				base: "bg-content1/20 backdrop-blur-xl border border-white/10 shadow-xl transition-all duration-300 cursor-pointer",
+				hover: "bg-content1/30 hover:border-white/20 hover:shadow-2xl hover:scale-[1.02]",
+				focus: "outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background",
+				active: "scale-[0.98]",
 			},
 		},
 	},
 	defaultVariants: {
-		shadow: "lg",
+		color: "glass",
+		shadow: "md",
 		radius: "lg",
-	},
-	slots: {
-		base: "bg-content1/20 backdrop-blur-xl border border-white/10 transition-all duration-300 rounded-2xl shadow-2xl",
 	},
 });
 

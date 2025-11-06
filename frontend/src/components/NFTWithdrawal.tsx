@@ -262,7 +262,7 @@ export const NFTWithdrawal: React.FC = () => {
 									: null;
 
 								const canWithdraw = canWithdrawCard(card);
-								const isCurrentlyWithdrawing = withdrawingCardId === card.cardId;
+								const _isCurrentlyWithdrawing = withdrawingCardId === card.cardId;
 
 								return (
 									<motion.div
@@ -323,12 +323,12 @@ export const NFTWithdrawal: React.FC = () => {
 													{card.nfts.length > 0 && (
 														<div className="mt-3 space-y-2">
 															<div className="text-sm text-foreground/70 mb-2">Available NFTs ({card.nfts.length}):</div>
-															{card.nfts.map((nft, nftIndex) => {
+															{card.nfts.map((nft) => {
 																const canWithdrawThisNFT = canWithdrawSpecificNFT(card, nft);
 																const isWithdrawingThisNFT = withdrawingNFT?.collection === nft.collection && withdrawingNFT?.tokenId === nft.tokenId;
 
 																return (
-																	<div key={nftIndex} className="flex items-center justify-between p-2 bg-content2/10 rounded-lg border border-white/5">
+																	<div key={`${nft.collection}-${nft.tokenId}`} className="flex items-center justify-between p-2 bg-content2/10 rounded-lg border border-white/5">
 																		<div className="flex items-center gap-2">
 																			<div className="text-xs font-mono bg-content2/20 px-2 py-1 rounded">
 																				Token #{nft.tokenId.toString()}

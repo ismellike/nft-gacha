@@ -757,10 +757,7 @@ export const depositorVaultAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'recipient', internalType: 'address', type: 'address' },
-    ],
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'claimYield',
     outputs: [{ name: 'withdrawn', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
@@ -1115,12 +1112,6 @@ export const depositorVaultAbi = [
     inputs: [
       {
         name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'recipient',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -2555,7 +2546,7 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '', internalType: 'address', type: 'address' },
+      { name: '_owner', internalType: 'address', type: 'address' },
       {
         name: '_gachaServiceHandler',
         internalType: 'address',
@@ -4263,6 +4254,61 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserDepositedNFTs',
+    outputs: [
+      {
+        name: 'items',
+        internalType: 'struct GachaTreasury.NFTItem[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'rarity',
+            internalType: 'enum GachaTreasury.Rarity',
+            type: 'uint8',
+          },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'getUserDepositedNFTsByCardId',
+    outputs: [
+      {
+        name: 'items',
+        internalType: 'struct GachaTreasury.NFTItem[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'rarity',
+            internalType: 'enum GachaTreasury.Rarity',
+            type: 'uint8',
+          },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
     name: 'getUserLifetimeClaimed',
     outputs: [{ name: 'claimed', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -4359,7 +4405,7 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '', internalType: 'address', type: 'address' },
+      { name: '_owner', internalType: 'address', type: 'address' },
       { name: '_gachaContract', internalType: 'address', type: 'address' },
       { name: '_appraisalContract', internalType: 'address', type: 'address' },
       { name: 'minPrices', internalType: 'uint256[5]', type: 'uint256[5]' },
@@ -4518,6 +4564,16 @@ export const gachaTreasuryAbi = [
     name: 'rarityCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'recordYieldClaim',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -5245,10 +5301,7 @@ export const iDepositorVaultAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'recipient', internalType: 'address', type: 'address' },
-    ],
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'claimYield',
     outputs: [{ name: 'withdrawn', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
@@ -5381,12 +5434,6 @@ export const iDepositorVaultAbi = [
     inputs: [
       {
         name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'recipient',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -6573,6 +6620,23 @@ export const iGachaEconomyManagerAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IGachaTreasury
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const iGachaTreasuryAbi = [
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'amount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'recordYieldClaim',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // IMulticall3
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -7131,10 +7195,7 @@ export const mockDepositorVaultAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'recipient', internalType: 'address', type: 'address' },
-    ],
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'claimYield',
     outputs: [{ name: 'withdrawn', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
@@ -7274,12 +7335,6 @@ export const mockDepositorVaultAbi = [
     inputs: [
       {
         name: 'account',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'recipient',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -8034,7 +8089,7 @@ export const nftAppraisalAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '', internalType: 'address', type: 'address' },
+      { name: '_owner', internalType: 'address', type: 'address' },
       { name: '_feeToken', internalType: 'address', type: 'address' },
       { name: '_appraisalFee', internalType: 'uint256', type: 'uint256' },
       { name: '_protocolAddress', internalType: 'address', type: 'address' },
@@ -13972,6 +14027,24 @@ export const useReadGachaTreasuryGetUserDepositValue =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserDepositedNFTs"`
+ */
+export const useReadGachaTreasuryGetUserDepositedNfTs =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserDepositedNFTs',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserDepositedNFTsByCardId"`
+ */
+export const useReadGachaTreasuryGetUserDepositedNfTsByCardId =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getUserDepositedNFTsByCardId',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeClaimed"`
  */
 export const useReadGachaTreasuryGetUserLifetimeClaimed =
@@ -14415,6 +14488,15 @@ export const useWriteGachaTreasuryMigrateNftRarity =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"recordYieldClaim"`
+ */
+export const useWriteGachaTreasuryRecordYieldClaim =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'recordYieldClaim',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"removeFromWhitelist"`
  */
 export const useWriteGachaTreasuryRemoveFromWhitelist =
@@ -14598,6 +14680,15 @@ export const useSimulateGachaTreasuryMigrateNftRarity =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'migrateNFTRarity',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"recordYieldClaim"`
+ */
+export const useSimulateGachaTreasuryRecordYieldClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'recordYieldClaim',
   })
 
 /**
@@ -16222,6 +16313,36 @@ export const useWatchIGachaEconomyManagerSpinRevenueReceived =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: iGachaEconomyManagerAbi,
     eventName: 'SpinRevenueReceived',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaTreasuryAbi}__
+ */
+export const useWriteIGachaTreasuryContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: iGachaTreasuryAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaTreasuryAbi}__ and `functionName` set to `"recordYieldClaim"`
+ */
+export const useWriteIGachaTreasuryRecordYieldClaim =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: iGachaTreasuryAbi,
+    functionName: 'recordYieldClaim',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaTreasuryAbi}__
+ */
+export const useSimulateIGachaTreasuryContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: iGachaTreasuryAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaTreasuryAbi}__ and `functionName` set to `"recordYieldClaim"`
+ */
+export const useSimulateIGachaTreasuryRecordYieldClaim =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: iGachaTreasuryAbi,
+    functionName: 'recordYieldClaim',
   })
 
 /**

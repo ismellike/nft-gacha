@@ -720,8 +720,8 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					gachaTreasuryAddress={gachaConfig?.treasuryAddress as `0x${string}` || ""}
 					size="md"
 					variant="button"
-					onSuccess={(txHash) => {
-						console.log("NFT sold successfully:", txHash);
+					onSuccess={(_txHash) => {
+						// NFT sold successfully
 					}}
 				/>
 			</motion.div>
@@ -876,11 +876,21 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 					variantConfig.padding,
 					className,
 				)}
-				onClick={onClick}
+				onClick={(e) => {
+		// Check if click is from buyback button area and prevent card onClick
+		const target = e.target as HTMLElement;
+		const buybackArea = target.closest('[data-buyback-area="true"]');
+
+		if (buybackArea) {
+			e.stopPropagation();
+			return;
+		}
+		onClick?.(e);
+	}}
 				{...motionProps}
 			>
 				{/* Subtle glassmorphism background */}
-				<div className="absolute inset-0 bg-gradient-to-br from-white/8 via-white/3 to-transparent" />
+				<div className="absolute inset-0 bg-gradient-to-br from-white/8 via-white/3 to-transparent pointer-events-none" />
 
 				<div className={cn("relative z-10 flex flex-col", styles.gap)}>
 					{/* Header */}
