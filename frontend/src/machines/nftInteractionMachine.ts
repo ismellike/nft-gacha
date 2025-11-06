@@ -420,11 +420,19 @@ export const nftInteractionMachine = createMachine(
 				interactionTxHash: ({ event }) =>
 					event.type === "INTERACTION_CONFIRMED" ? event.txHash : null,
 			}),
-			setInteractionCancelled: assign({
-				interactionTxHash: null,
-				nftApprovalTxHash: null,
-				error: null, // Don't set error for user cancellation - this is normal behavior
-				retryCount: 0,
+			setInteractionCancelled: assign((context, event) => {
+				console.log("🚫 NFT interaction cancelled", {
+					currentMode: context.mode,
+					interactionTxHash: context.interactionTxHash,
+					nftApprovalTxHash: context.nftApprovalTxHash,
+					eventType: event.type,
+				});
+				return {
+					interactionTxHash: null,
+					nftApprovalTxHash: null,
+					error: null, // Don't set error for user cancellation - this is normal behavior
+					retryCount: 0,
+				};
 			}),
 			logCancellation: () => {
 				console.log("NFT interaction cancelled by user");

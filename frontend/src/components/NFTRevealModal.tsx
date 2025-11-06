@@ -7,6 +7,8 @@ import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTHeroCard } from ".";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
 import { getGachaConfig } from "../lib/gacha-config";
+import { useMemo } from "react";
+import SellToTreasury from "./SellToTreasury";
 
 interface SpinResult {
 	rarity: string;
@@ -36,8 +38,12 @@ export default function NFTRevealModal({
 	const enhancedResult = useEnhancedSpinResult(nftResult);
 
 	// Get gacha config for protocol treasury address
-	const gachaConfig = gachaId ? getGachaConfig(gachaId) : null;
+	const gachaConfig = useMemo(
+		() => (gachaId ? getGachaConfig(gachaId) : null),
+		[gachaId],
+	);
 	const protocolTreasuryAddress = gachaConfig?.protocolTreasuryAddress;
+	const gachaTreasuryAddress = gachaConfig?.treasuryAddress || "";
 
 	useEffect(() => {
 		if (isVisible) {
@@ -161,9 +167,23 @@ export default function NFTRevealModal({
 											animate={true}
 											rarity={resultRarity}
 											{...(protocolTreasuryAddress && { protocolTreasuryAddress })}
-											{...(gachaConfig?.treasuryAddress && { gachaTreasuryAddress: gachaConfig.treasuryAddress })}
+											{...(gachaTreasuryAddress && { gachaTreasuryAddress })}
 											{...(gachaId && { gachaId })}
+											disableAutoRedemption
 										/>
+										{protocolTreasuryAddress && (
+											<div className="z-50 w-full flex justify-center pointer-events-auto">
+												<SellToTreasury
+													collection={nftResult.collection}
+													tokenId={nftResult.tokenId}
+													appraisalContractAddress={appraisalContractAddress}
+													protocolTreasuryAddress={protocolTreasuryAddress}
+													gachaTreasuryAddress={gachaTreasuryAddress}
+													size="lg"
+													variant="button"
+												/>
+											</div>
+										)}
 									</div>
 								</motion.div>
 							)}

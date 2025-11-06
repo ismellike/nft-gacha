@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, type MouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { motion } from "framer-motion";
 import { useAccount, useReadContract } from "wagmi";
 import { Chip } from "@heroui/react";
@@ -89,10 +89,10 @@ export default function BuybackComponent({
 	} = useNFTInteraction(interactionParams);
 
 	// Enhanced success state data
-	const successData = context.successData as any;
+	const successData = (context as any).successData;
 	const isSuccessState = currentState === "completed" && successData?.mode === "buyback";
-	const successTimestamp = successData && context.completedAt
-		? new Date(context.completedAt).toLocaleString()
+	const successTimestamp = successData && (context as any).completedAt
+		? new Date((context as any).completedAt).toLocaleString()
 		: null;
 
 	// Contract data hooks
@@ -149,6 +149,7 @@ export default function BuybackComponent({
 		ownerOf.toLowerCase() === connectedAddress.toLowerCase() : false;
 	const hasEnoughLiquidity = !isPaused;
 	const needsApproval = !isApprovedForAll;
+	const hasAppraisalData = hasAppraisal === true;
 
 	// Calculate payout amount
 	const payoutAmount = useMemo(() => {
@@ -175,11 +176,17 @@ export default function BuybackComponent({
 		[payoutAmount],
 	);
 
-	const shouldShowPayout = Boolean(hasAppraisal);
 	const actionInfo = getActionInfo();
-	const defaultActionLabel = currentState === "idle"
-		? (needsApproval ? "Approve NFT" : "Accept Buyback")
-		: null;
+	const isProcessing = isLoading || actionInfo.type === "processing";
+
+	// Don't disable button when waiting for wallet signature - allow user to reject in wallet
+	const isActionDisabled =
+		!hasEnoughLiquidity ||
+		isPaused ||
+		actionInfo.type === "checking" ||
+		(isLoading && currentState !== "awaitingInteractionSignature" && currentState !== "awaitingNFTApprovalSignature");
+
+	const shouldShowPayout = hasAppraisalData;
 
 	// Determine button label based on current state
 	const getButtonLabel = () => {
@@ -192,8 +199,17 @@ export default function BuybackComponent({
 		return "Accept Buyback";
 	};
 
+	const primaryButtonLabel = getButtonLabel() || `Sell for ${formattedPayoutAmount}`;
+
 	// Handle starting the buyback interaction
 	const handleStartBuyback = useCallback(async () => {
+		console.log("BuybackComponent handleStartBuyback invoked", {
+			currentState,
+			actionType: actionInfo.type,
+			hasAppraisal,
+			needsApproval,
+			hasEnoughLiquidity,
+		});
 		const priceValue = Array.isArray(appraisalPrice)
 			? appraisalPrice[0] as unknown as bigint
 			: appraisalPrice as unknown as bigint;
@@ -221,20 +237,64 @@ export default function BuybackComponent({
 			interactionConfig.payoutAmount = payoutAmount;
 		}
 
-		try {
-			await startInteraction(collection, tokenId, "buyback", interactionConfig);
-		} catch (error) {
-			console.error("Buyback interaction failed:", error);
-		}
-	}, [collection, tokenId, protocolTreasuryAddress, hasAppraisal, appraisalPrice, payoutAmount, startInteraction]);
+			try {
+				console.log("BuybackComponent starting interaction", interactionConfig);
+				await startInteraction(collection, tokenId, "buyback", interactionConfig);
+			} catch (error) {
+				console.error("Buyback interaction failed:", error);
+			}
+	}, [collection, tokenId, protocolTreasuryAddress, hasAppraisal, appraisalPrice, payoutAmount, startInteraction, actionInfo.type, currentState, needsApproval, hasEnoughLiquidity]);
 
 	// Handle button clicks and state machine actions
 	const handleAction = useCallback(async () => {
+		// If stuck in completed state from previous buyback, reset first
+		if (currentState === "completed" && (context as any).mode === "buyback") {
+			console.log("🔄 Resetting completed buyback state");
+			reset();
+			// Give a moment for reset to process
+			setTimeout(() => {
+				// Try again after reset
+				handleStartBuyback();
+			}, 100);
+			return;
+		}
+
 		if (currentState === "idle") {
 			await handleStartBuyback();
 			return;
 		}
-	}, [currentState, handleStartBuyback]);
+	}, [currentState, handleStartBuyback, reset, (context as any).mode]);
+
+	const handleButtonPress = useCallback(async () => {
+		if ('action' in actionInfo && actionInfo.action) {
+			try {
+				await Promise.resolve((actionInfo.action as () => Promise<void> | void)());
+			} catch (error) {
+				console.error("BuybackComponent action failed:", error);
+			}
+			return;
+		}
+		await handleAction();
+	}, [actionInfo, handleAction]);
+
+	const handleInteractionButtonClick = useCallback(
+		(event: MouseEvent<HTMLButtonElement>) => {
+			event.preventDefault();
+			event.stopPropagation();
+			void handleButtonPress();
+		},
+		[handleButtonPress],
+	);
+
+	const handleInteractionPointerDown = useCallback(
+		(event: ReactPointerEvent<HTMLButtonElement>) => {
+			event.preventDefault();
+			event.stopPropagation();
+			if (isActionDisabled) return;
+			void handleButtonPress();
+		},
+		[handleButtonPress, isActionDisabled],
+	);
 
 	// Treasury status helper
 	const getTreasuryStatus = () => {
@@ -358,8 +418,8 @@ export default function BuybackComponent({
 				) : (
 					<>
 						{/* Appraisal and Payout Information */}
-						{hasAppraisal && appraisalPrice ? (
-							<div className="space-y-3">
+						{hasAppraisalData && appraisalPrice ? (
+								<div className="space-y-3">
 								<div className="flex justify-between items-center">
 									<span className="text-white/70">Appraised Value:</span>
 									<span className="text-white font-medium">
@@ -399,21 +459,18 @@ export default function BuybackComponent({
 						)}
 
 						{/* Action Button */}
-						<Button
-							color="glassPrimary"
-							size="lg"
-							onPress={handleAction}
-							isLoading={isLoading || actionInfo.type === "processing"}
-							isDisabled={
-								!hasAppraisal ||
-								!hasEnoughLiquidity ||
-								isPaused ||
-								actionInfo.type === "checking"
-							}
-							className="w-full rounded-2xl px-12 py-4 text-lg font-bold shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-						>
-							{getButtonLabel() || `Sell for ${formattedPayoutAmount}`}
-						</Button>
+						<div data-buyback-area="true" className="w-full">
+							<button
+								data-buyback-area="true"
+								type="button"
+								onPointerDown={handleInteractionPointerDown}
+								onClick={handleInteractionButtonClick}
+								disabled={isActionDisabled}
+								className="w-full rounded-2xl px-12 py-4 text-lg font-bold shadow-2xl transition-all duration-300 bg-gradient-to-r from-warning to-orange-400 text-black border border-warning/30 hover:from-warning/90 hover:to-orange-500/90 hover:shadow-xl disabled:opacity-60 disabled:pointer-events-none cursor-pointer relative z-50 pointer-events-auto"
+							>
+								{isProcessing ? "Processing..." : primaryButtonLabel}
+							</button>
+						</div>
 
 						{shouldShowPayout && (
 							<p className={`${classes.text} text-white/80 mt-2 text-center`}>
@@ -471,7 +528,7 @@ export default function BuybackComponent({
 					</div>
 				) : (
 					<>
-						{hasAppraisal && appraisalPrice ? (
+							{hasAppraisalData && appraisalPrice ? (
 							<div className="space-y-2">
 								<div className="flex justify-between items-center">
 									<span className="text-white/70 text-sm">You receive:</span>
@@ -486,21 +543,16 @@ export default function BuybackComponent({
 							</div>
 						)}
 
-						<Button
-							color="glassPrimary"
-							size="md"
-							onPress={handleAction}
-							isLoading={isLoading || actionInfo.type === "processing"}
-							isDisabled={
-								!hasAppraisal ||
-								!hasEnoughLiquidity ||
-								isPaused ||
-								actionInfo.type === "checking"
-							}
-							className="flex-1 rounded-2xl px-8 py-3 font-bold shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-						>
-							{actionInfo.label || defaultActionLabel || "Sell NFT"}
-						</Button>
+							<button
+								data-buyback-area="true"
+								type="button"
+								onPointerDown={handleInteractionPointerDown}
+								onClick={handleInteractionButtonClick}
+								disabled={isActionDisabled}
+								className="flex-1 rounded-2xl px-8 py-3 font-bold shadow-xl transition-all duration-300 bg-gradient-to-r from-warning to-orange-400 text-black border border-warning/30 hover:from-warning/90 hover:to-orange-500/90 hover:shadow-xl disabled:opacity-60 disabled:pointer-events-none cursor-pointer relative z-50 pointer-events-auto"
+							>
+								{isProcessing ? "Processing..." : primaryButtonLabel}
+							</button>
 
 						{shouldShowPayout && (
 							<p className="text-xs text-white/70 text-center">
@@ -517,12 +569,7 @@ export default function BuybackComponent({
 	// Button variant - compact button
 	return (
 		<div className="flex flex-col items-center space-y-2">
-			<motion.div
-				initial={{ opacity: 0, scale: 0.9 }}
-				animate={{ opacity: 1, scale: 1 }}
-				whileHover={{ scale: 1.02 }}
-				whileTap={{ scale: 0.98 }}
-			>
+			<div className="flex flex-col items-center space-y-2">
 				{isSuccessState ? (
 					<div className="flex flex-col items-center space-y-2">
 						<Chip
@@ -540,41 +587,41 @@ export default function BuybackComponent({
 							Sold for {formatCurrency(successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0", 6, "USDC")}
 						</Chip>
 					</div>
-				) : !hasAppraisal ? (
-					<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
-						Requires appraisal
-					</Chip>
-				) : isPaused ? (
-					<Chip color="danger" variant="flat" size="sm" className={classes.chip}>
-						Redemption paused
-					</Chip>
-				) : !hasEnoughLiquidity ? (
-					<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
-						Unavailable
-					</Chip>
 				) : (
-					<Button
-						color="glassPrimary"
-						size="lg"
-						onPress={handleAction}
-						isLoading={isLoading || actionInfo.type === "processing"}
-						isDisabled={
-							!hasAppraisal ||
-							!hasEnoughLiquidity ||
-							isPaused ||
-							actionInfo.type === "checking"
-						}
-						className="rounded-2xl px-12 py-4 text-lg font-bold shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-					>
-						{getButtonLabel() || `Sell for ${formattedPayoutAmount}`}
-					</Button>
+					<>
+						{hasAppraisal === false && (
+							<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
+								Requires appraisal
+							</Chip>
+						)}
+						{isPaused ? (
+							<Chip color="danger" variant="flat" size="sm" className={classes.chip}>
+								Redemption paused
+							</Chip>
+						) : !hasEnoughLiquidity ? (
+							<Chip color="warning" variant="flat" size="sm" className={classes.chip}>
+								Unavailable
+							</Chip>
+						) : null}
+							<button
+								type="button"
+								data-buyback-area="true"
+								onPointerDown={handleInteractionPointerDown}
+								onClick={handleInteractionButtonClick}
+								disabled={isActionDisabled}
+								className="rounded-2xl px-12 py-4 text-lg font-bold shadow-2xl transition-all duration-300 bg-gradient-to-r from-warning to-orange-400 text-black border border-warning/30 hover:from-warning/90 hover:to-orange-500/90 hover:shadow-xl disabled:opacity-60 disabled:pointer-events-none cursor-pointer relative z-50 pointer-events-auto"
+							>
+								{isProcessing ? "Processing..." : primaryButtonLabel}
+							</button>
+					</>
 				)}
-			</motion.div>
+
 			{shouldShowPayout && !isSuccessState && (
 				<p className={`${classes.text} text-white/80 text-center`}>
 					You will receive {formattedPayoutAmount}
 				</p>
 			)}
+			</div>
 		</div>
 	);
 }

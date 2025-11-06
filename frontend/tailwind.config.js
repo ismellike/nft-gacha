@@ -35,7 +35,7 @@ export default {
 			},
 		},
 	},
-	darkMode: "class",
+	darkMode: ["class"],
 	plugins: [
 		heroui({
 			addCommonColors: false,

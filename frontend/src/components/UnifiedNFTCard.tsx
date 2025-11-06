@@ -57,6 +57,7 @@ export interface UnifiedNFTCardProps {
 	protocolTreasuryAddress?: string;
 	gachaId?: string;
 	onBuybackSuccess?: (txHash: string) => void;
+	disableAutoRedemption?: boolean;
 }
 
 // Enhanced appraisal display with better caching
@@ -625,6 +626,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		appraisalOverride,
 		protocolTreasuryAddress,
 		gachaId,
+		disableAutoRedemption = false,
 	}) => {
 		const isInteractive = !!onClick;
 		const [traitsExpanded, setTraitsExpanded] = useState(false);
@@ -706,7 +708,7 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 		const finalProtocolTreasuryAddress = protocolTreasuryAddress || gachaConfig?.protocolTreasuryAddress;
 
 	// Create redemption action if treasury is available - simplified version
-		const redemptionAction = finalProtocolTreasuryAddress ? (
+		const redemptionAction = finalProtocolTreasuryAddress && !disableAutoRedemption ? (
 			<motion.div
 				initial={{ opacity: 0, y: 10 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -729,9 +731,17 @@ export const UnifiedNFTCard = memo<UnifiedNFTCardProps>(
 
 		// Merge custom actionSlot with redemption actions
 		const finalActionSlot = (
-			<div className="flex flex-col gap-2 items-center justify-center">
-				{actionSlot}
-				{redemptionAction}
+			<div className="flex flex-col gap-2 items-center justify-center relative z-[60] pointer-events-none">
+				{actionSlot && (
+					<div className="relative z-[61] pointer-events-auto w-full flex justify-center">
+						{actionSlot}
+					</div>
+				)}
+				{redemptionAction && (
+					<div className="relative z-[61] pointer-events-auto w-full flex justify-center">
+						{redemptionAction}
+					</div>
+				)}
 			</div>
 		);
 

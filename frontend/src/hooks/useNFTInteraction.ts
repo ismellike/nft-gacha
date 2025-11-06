@@ -16,19 +16,20 @@ interface UseNFTInteractionParams {
 }
 
 export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
-	const { address: userAddress } = useAccount();
-	const publicClient = usePublicClient();
+	try {
+		const { address: userAddress } = useAccount();
+		const publicClient = usePublicClient();
 
-	// XState machine for interaction process
-	const [interactionState, sendInteractionEvent] = useMachine(nftInteractionMachine, {
-		input: {
-			onSuccess: params.onSuccess,
-			onAction: params.onAction,
-			onAppraisalStatusChange: params.onAppraisalStatusChange,
-			refetchTreasuryCards: params.refetchTreasuryCards,
-			onBuybackSuccess: params.onBuybackSuccess,
-		},
-	});
+		// XState machine for interaction process
+		const [interactionState, sendInteractionEvent] = useMachine(nftInteractionMachine, {
+			input: {
+				onSuccess: params.onSuccess,
+				onAction: params.onAction,
+				onAppraisalStatusChange: params.onAppraisalStatusChange,
+				refetchTreasuryCards: params.refetchTreasuryCards,
+				onBuybackSuccess: params.onBuybackSuccess,
+			},
+		});
 
 	// Contract write hooks
 	const {
@@ -104,17 +105,45 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		// If we're in completed state from a buyback, don't allow new interactions
 		// (buybacks should stay completed since the NFT is no longer owned by the user)
 		if (interactionState.matches("completed") && interactionState.context.mode === "buyback") {
-			console.log("Cannot start new interaction: buyback already completed");
 			return;
 		}
 
-		// If we're in completed state from a deposit, reset to allow new deposits
-		if (interactionState.matches("completed") && interactionState.context.mode === "deposit") {
+		// Reset the machine if it's not in idle state to handle previous failed/rejected transactions
+		if (!interactionState.matches("idle")) {
+			console.log("🔄 Resetting NFT interaction machine from state:", interactionState.value);
+			console.log("🔄 Current context:", {
+				collection: interactionState.context.collection,
+				tokenId: interactionState.context.tokenId,
+				mode: interactionState.context.mode,
+				error: interactionState.context.error
+			});
+
 			sendInteractionEvent({ type: "RESET" });
 
 			// Small delay to ensure reset is processed
 			await new Promise(resolve => setTimeout(resolve, 100));
+
+			// Additional safety check - if still not idle, force reset
+			if (!interactionState.matches("idle")) {
+				console.warn("⚠️ Force resetting NFT interaction machine - still not idle after RESET");
+				forceReset();
+				await new Promise(resolve => setTimeout(resolve, 100));
+			}
 		}
+
+		// Final safety check before starting the interaction
+		if (!interactionState.matches("idle")) {
+			console.error("❌ Cannot start NFT interaction - machine is not in idle state:", interactionState.value);
+			console.error("❌ Machine context:", interactionState.context);
+
+			// Try one more aggressive reset
+			forceReset();
+
+			// Show user-friendly error
+			throw new Error("Cannot start deposit - previous transaction is still processing. Please wait a moment and try again.");
+		}
+
+		console.log("🚀 Starting NFT interaction:", { collection, tokenId, mode });
 
 		sendInteractionEvent({
 			type: "START_INTERACTION",
@@ -146,14 +175,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				args: [operatorAddress as `0x${string}`, true],
 			});
 		} catch (error) {
-			sendInteractionEvent({
-				type: "FAIL",
-				error: error instanceof Error
-					? `NFT approval failed: ${error.message}`
-					: "Failed to initiate NFT approval. Please check your wallet and try again.",
-			});
+			// Let the useEffect handle user rejection to avoid double processing
+			// Just reset the approval state and let the error bubble up
+			resetNFTApproval();
 		}
-	}, [approveNFT, sendInteractionEvent]);
+	}, [approveNFT, resetNFTApproval]);
 
 	// Handle NFT deposit
 	const handleDepositNFT = useCallback((collection: string, tokenId: string, treasuryAddress: string) => {
@@ -163,26 +189,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				args: [collection as `0x${string}`, BigInt(tokenId)],
 			});
 		} catch (error) {
-			const isUserRejected = error instanceof UserRejectedRequestError
-				|| (error instanceof Error && error.name === "UserRejectedRequestError")
-				|| (error instanceof Error && error.message?.toLowerCase().includes("user rejected"));
-
-			if (isUserRejected) {
-				resetDeposit();
-				sendInteractionEvent({
-					type: "INTERACTION_CANCELLED",
-					reason: "Deposit cancelled by user.",
-				});
-			} else {
-				sendInteractionEvent({
-					type: "FAIL",
-					error: error instanceof Error
-						? `Deposit failed: ${error.message}`
-						: "Failed to initiate NFT deposit. Please check your wallet and try again.",
-				});
-			}
+			// Let the useEffect handle user rejection to avoid double processing
+			// Just reset the deposit state and let the error bubble up
+			resetDeposit();
 		}
-	}, [depositNFT, sendInteractionEvent, resetDeposit]);
+	}, [depositNFT, resetDeposit]);
 
 	// Handle NFT buyback (redemption)
 	const handleRedemption = useCallback(async (collection: string, tokenId: string, protocolTreasuryAddress: string) => {
@@ -192,26 +203,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				args: [collection as `0x${string}`, BigInt(tokenId), userAddress]
 			});
 		} catch (error) {
-			const isUserRejected = error instanceof UserRejectedRequestError
-				|| (error instanceof Error && error.name === "UserRejectedRequestError")
-				|| (error instanceof Error && error.message?.toLowerCase().includes("user rejected"));
-
-			if (isUserRejected) {
-				resetRedemption();
-				sendInteractionEvent({
-					type: "INTERACTION_CANCELLED",
-					reason: "Redemption cancelled by user.",
-				});
-			} else {
-				sendInteractionEvent({
-					type: "FAIL",
-					error: error instanceof Error
-						? `Redemption failed: ${error.message}`
-						: "Failed to initiate NFT redemption. Please check your wallet and try again.",
-				});
-			}
+			// Let the useEffect handle user rejection to avoid double processing
+			// Just reset the redemption state and let the error bubble up
+			resetRedemption();
 		}
-	}, [executeRedemption, userAddress, sendInteractionEvent, resetRedemption]);
+	}, [executeRedemption, userAddress, resetRedemption]);
 
 	// Reset transaction flags when starting a new interaction or when machine is reset
 	useEffect(() => {
@@ -245,7 +241,21 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 
 	// Handle NFT approval transaction error
 	useEffect(() => {
-		if (isNFTApprovalError && nftApprovalError && interactionState.matches("awaitingNFTApprovalSignature")) {
+	if (isNFTApprovalError && nftApprovalError && interactionState.matches("awaitingNFTApprovalSignature")) {
+		const isUserRejected =
+			nftApprovalError instanceof UserRejectedRequestError ||
+			(nftApprovalError as Error | undefined)?.name === "UserRejectedRequestError" ||
+			((nftApprovalError as Error | undefined)?.message || "")
+				.toLowerCase()
+				.includes("user rejected");
+
+		if (isUserRejected) {
+			resetNFTApproval();
+			sendInteractionEvent({
+				type: "INTERACTION_CANCELLED",
+				reason: "NFT approval cancelled by user.",
+			});
+		} else {
 			sendInteractionEvent({
 				type: "FAIL",
 				error: nftApprovalError?.message
@@ -253,7 +263,8 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 					: "NFT approval transaction failed. Please check your wallet and try again.",
 			});
 		}
-	}, [isNFTApprovalError, nftApprovalError, interactionState, sendInteractionEvent]);
+	}
+	}, [isNFTApprovalError, nftApprovalError, interactionState, sendInteractionEvent, resetNFTApproval]);
 
 	// Handle NFT approval receipt confirmation
 	useEffect(() => {
@@ -398,19 +409,34 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	// Handle automatic action execution when entering awaitingInteractionSignature
 	useEffect(() => {
 		if (interactionState.matches("awaitingInteractionSignature")) {
-			const mode = interactionState.context.mode;
-			const collection = interactionState.context.collection;
-			const tokenId = interactionState.context.tokenId;
-			const treasuryAddress = interactionState.context.treasuryAddress;
-			const protocolTreasuryAddress = interactionState.context.protocolTreasuryAddress;
+			// Use a timeout to avoid dependency issues
+			setTimeout(() => {
+				const mode = interactionState.context.mode;
+				const collection = interactionState.context.collection;
+				const tokenId = interactionState.context.tokenId;
+				const treasuryAddress = interactionState.context.treasuryAddress;
+				const protocolTreasuryAddress = interactionState.context.protocolTreasuryAddress;
 
-			if (mode === "deposit" && collection && tokenId && treasuryAddress) {
-				handleDepositNFT(collection, tokenId, treasuryAddress);
-			} else if (mode === "buyback" && collection && tokenId && protocolTreasuryAddress) {
-				handleRedemption(collection, tokenId, protocolTreasuryAddress);
-			}
+				if (mode === "deposit" && collection && tokenId && treasuryAddress) {
+					try {
+						depositNFT({
+							address: treasuryAddress as `0x${string}`,
+							args: [collection as `0x${string}`, BigInt(tokenId)]
+						});
+					} catch (error) {
+						resetDeposit();
+					}
+				} else if (mode === "buyback" && collection && tokenId && protocolTreasuryAddress) {
+					executeRedemption({
+						address: protocolTreasuryAddress as `0x${string}`,
+						args: [collection as `0x${string}`, BigInt(tokenId), userAddress]
+					}).catch(error => {
+						resetRedemption();
+					});
+				}
+			}, 100);
 		}
-	}, [interactionState, interactionState.context.mode, interactionState.context.collection, interactionState.context.tokenId, interactionState.context.treasuryAddress, interactionState.context.protocolTreasuryAddress, handleDepositNFT, handleRedemption]);
+	}, [interactionState.value, depositNFT, resetDeposit, executeRedemption, resetRedemption, userAddress]); // Include all necessary dependencies
 
 	// Handle transaction receipt confirmation
 	useEffect(() => {
@@ -441,7 +467,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	const error = context.error;
 	const isLoading = !interactionState.matches("idle") && !interactionState.matches("completed");
 
-	
 	// Determine current action needed based on state
 	const getActionInfo = useCallback(() => {
 		const mode = context.mode;
@@ -514,4 +539,22 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		interactionState,
 		sendInteractionEvent,
 	};
+
+	} catch (error) {
+		console.error("💥 Error in useNFTInteraction hook:", error);
+
+		// Return a safe fallback
+		return {
+			currentState: "idle",
+			context: {},
+			error: error instanceof Error ? error.message : "Unknown error",
+			isLoading: false,
+			startInteraction: async () => {},
+			reset: () => {},
+			forceReset: () => {},
+			getActionInfo: () => ({ type: "idle", label: "" }),
+			interactionState: { value: "idle", matches: () => false, context: {} } as any,
+			sendInteractionEvent: () => {},
+		};
+	}
 };
