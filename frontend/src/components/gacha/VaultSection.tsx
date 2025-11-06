@@ -517,7 +517,7 @@ const DepositTab: React.FC<{
 									</Button>
 								) : (
 									<Button
-										color="glassPrimary"
+										color="glass"
 										size="sm"
 										onPress={() =>
 											onNFTAction(nft.collection, nft.tokenId.toString(), false)
