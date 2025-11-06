@@ -734,16 +734,16 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 											</div>
 											<div className="mt-4 pt-2">
 												{hasAppraisal ? (
-													<GlassButton
-														color="primary"
-														size="sm"
+													<Button
+														variant="solid"
 														onPress={() => handleNFTAction(nft.collection, nft.tokenId.toString(), true)}
-														isDisabled={depositingNFTs.has(`${nft.collection}:${nft.tokenId.toString()}`) || isNFTDepositing(nft.collection, nft.tokenId.toString())}
-														className="w-full"
+														disabled={depositingNFTs.has(`${nft.collection}:${nft.tokenId.toString()}`) || isNFTDepositing(nft.collection, nft.tokenId.toString())}
+														isLoading={depositingNFTs.has(`${nft.collection}:${nft.tokenId.toString()}`) || isNFTDepositing(nft.collection, nft.tokenId.toString())}
+														className="relative bg-gradient-to-r from-warning via-warning/90 to-orange-400 text-black font-bold border-2 border-warning/40 shadow-2xl shadow-warning/30 backdrop-blur-xl transition-all duration-300 hover:shadow-3xl hover:shadow-warning/40 hover:border-warning/60 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-2xl disabled:hover:border-warning/40 rounded-2xl px-6 py-3 w-full"
 														startContent={<ArrowUpTrayIcon className="w-4 h-4" />}
 													>
 														Deposit NFT
-													</GlassButton>
+													</Button>
 												) : (
 													<GlassButton
 														color="warning"
