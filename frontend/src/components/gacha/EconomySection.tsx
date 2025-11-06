@@ -14,7 +14,7 @@ interface EconomySectionProps {
 
 export function EconomySection({
 	title = "Economy Dashboard",
-	description = "Track protocol revenue, depositor yields, and treasury performance in real-time."
+	description = "Track protocol revenue, depositor yields, and treasury performance in real-time.",
 }: EconomySectionProps) {
 	const gachaId = useGachaId();
 	const gacha = gachaId ? getGachaConfig(gachaId) : null;
@@ -24,7 +24,8 @@ export function EconomySection({
 			<Card className="p-8 text-center bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 				<h2 className="text-2xl font-bold mb-4">Gacha Configuration Error</h2>
 				<p className="text-foreground/70">
-					Unable to load gacha configuration. Please check your environment settings.
+					Unable to load gacha configuration. Please check your environment
+					settings.
 				</p>
 			</Card>
 		);

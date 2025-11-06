@@ -121,7 +121,6 @@ export default function SpinControls({
 		writeContract: spin,
 		data: spinTxHash,
 		isPending: isSpinPending,
-		error: spinWriteError,
 	} = useWriteGachaSpin();
 
 	// Handle refund detection to refresh balances
@@ -455,7 +454,7 @@ export default function SpinControls({
 				// Parse signature hex string into r, s, v components
 				console.log("🔍 [SpinControls] Parsing signature:", {
 					signatureLength: signature.length,
-					signature: signature.slice(0, 20) + "...",
+					signature: `${signature.slice(0, 20)}...`,
 				});
 
 				if (signature.length !== 132) {
@@ -471,8 +470,8 @@ export default function SpinControls({
 				let v = parseInt(sig.slice(128, 130), 16);
 
 				console.log("🔧 [SpinControls] Parsed signature components:", {
-					r: r.slice(0, 20) + "...",
-					s: s.slice(0, 20) + "...",
+					r: `${r.slice(0, 20)}...`,
+					s: `${s.slice(0, 20)}...`,
 					vOriginal: sig.slice(128, 130),
 					vDecimal: v,
 				});
@@ -485,7 +484,7 @@ export default function SpinControls({
 
 				const txParams = {
 					address: contracts.gacha as `0x${string}`,
-					args: [permitDeadline, v, r, s],
+					args: [BigInt(permitDeadline || 0), Number(v), r as `0x${string}`, s as `0x${string}`] as const,
 				};
 
 				console.log(
@@ -496,7 +495,7 @@ export default function SpinControls({
 						v,
 						r,
 						s,
-						signature: signature.slice(0, 10) + "...",
+						signature: `${signature.slice(0, 10)}...`,
 						rawSignature: signature,
 						expectedFunction: "spinWithPermit(uint256,uint8,bytes32,bytes32)",
 					},
@@ -581,7 +580,7 @@ export default function SpinControls({
 			console.log("🔍 [SpinControls] Analyzing transaction error:", {
 				errorMessage: spinWithPermitError.message,
 				errorName: spinWithPermitError.name,
-				errorCode: (spinWithPermitError as any).code,
+				errorCode: (spinWithPermitError as { code?: string }).code,
 				isUserRejection:
 					errorMessage.includes("rejected") ||
 					errorMessage.includes("denied") ||
@@ -607,8 +606,8 @@ export default function SpinControls({
 					message: spinWithPermitError.message,
 					name: spinWithPermitError.name,
 					cause: spinWithPermitError.cause,
-					code: (spinWithPermitError as any).code,
-					data: (spinWithPermitError as any).data,
+					code: (spinWithPermitError as { code?: unknown }).code,
+					data: (spinWithPermitError as { data?: unknown }).data,
 					details: {
 						contract: contracts.gacha,
 						userAddress,

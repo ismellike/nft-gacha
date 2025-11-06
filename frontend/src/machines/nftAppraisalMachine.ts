@@ -11,8 +11,18 @@ export interface AppraisalResult {
 }
 
 export interface AppraisalCallbacks {
-	approveTokens: (params: { address: `0x${string}`; abi: readonly unknown[]; functionName: string; args: readonly unknown[] }) => Promise<`0x${string}`>;
-	requestAppraisal: (params: { address: `0x${string}`; abi: readonly unknown[]; functionName: string; args: readonly unknown[] }) => Promise<`0x${string}`>;
+	approveTokens: (params: {
+		address: `0x${string}`;
+		abi: readonly unknown[];
+		functionName: string;
+		args: readonly unknown[];
+	}) => Promise<`0x${string}`>;
+	requestAppraisal: (params: {
+		address: `0x${string}`;
+		abi: readonly unknown[];
+		functionName: string;
+		args: readonly unknown[];
+	}) => Promise<`0x${string}`>;
 }
 
 export interface NFTAppraisalContext {
@@ -34,7 +44,17 @@ export interface NFTAppraisalContext {
 }
 
 export type NFTAppraisalEvent =
-	| { type: "START_APPRAISAL"; collection: string; tokenId: string; userAddress: string; publicClient: PublicClient; appraisalContractAddress: string; feeTokenAddress: string; appraisalFee: bigint; callbacks: AppraisalCallbacks }
+	| {
+			type: "START_APPRAISAL";
+			collection: string;
+			tokenId: string;
+			userAddress: string;
+			publicClient: PublicClient;
+			appraisalContractAddress: string;
+			feeTokenAddress: string;
+			appraisalFee: bigint;
+			callbacks: AppraisalCallbacks;
+	  }
 	| { type: "APPROVAL_CONFIRMED"; txHash: string }
 	| { type: "SUBMISSION_CONFIRMED"; txHash: string }
 	| { type: "APPRAISAL_COMPLETED"; result: AppraisalResult }
@@ -49,6 +69,13 @@ const MAX_RETRIES = 3;
 const POLLING_INTERVAL = 5000; // 5 seconds
 const MAX_POLLING_TIME = 300000; // 5 minutes
 
+// Utility function for exponential backoff with jitter
+const getPollingDelay = (attempt: number, baseInterval: number): number => {
+	const exponentialDelay = baseInterval * 2 ** Math.min(attempt / 10, 5);
+	const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
+	return Math.min(exponentialDelay + jitter, 30000); // Max 30 seconds
+};
+
 // Actor to check if approval is needed
 const checkApprovalNeeded = fromPromise(
 	async ({
@@ -62,11 +89,25 @@ const checkApprovalNeeded = fromPromise(
 			publicClient: PublicClient | undefined;
 		};
 	}): Promise<boolean> => {
-		const { feeTokenAddress, appraisalContractAddress, appraisalFee, userAddress, publicClient } = input;
+		const {
+			feeTokenAddress,
+			appraisalContractAddress,
+			appraisalFee,
+			userAddress,
+			publicClient,
+		} = input;
 
 		// Validate inputs
-		if (!feeTokenAddress || !appraisalContractAddress || !appraisalFee || !userAddress || !publicClient) {
-			console.error("[NFTAppraisalMachine] Missing required inputs for approval check");
+		if (
+			!feeTokenAddress ||
+			!appraisalContractAddress ||
+			!appraisalFee ||
+			!userAddress ||
+			!publicClient
+		) {
+			console.error(
+				"[NFTAppraisalMachine] Missing required inputs for approval check",
+			);
 			return true; // Assume approval needed on missing inputs
 		}
 
@@ -87,7 +128,10 @@ const checkApprovalNeeded = fromPromise(
 					},
 				],
 				functionName: "allowance",
-				args: [userAddress as `0x${string}`, appraisalContractAddress as `0x${string}`],
+				args: [
+					userAddress as `0x${string}`,
+					appraisalContractAddress as `0x${string}`,
+				],
 			});
 
 			// Return true if current allowance is less than required appraisal fee
@@ -111,10 +155,20 @@ const handleTokenApproval = fromPromise(
 			callbacks: AppraisalCallbacks | undefined;
 		};
 	}): Promise<{ txHash: string }> => {
-		const { feeTokenAddress, appraisalContractAddress, appraisalFee, callbacks } = input;
+		const {
+			feeTokenAddress,
+			appraisalContractAddress,
+			appraisalFee,
+			callbacks,
+		} = input;
 
 		// Validate inputs
-		if (!feeTokenAddress || !appraisalContractAddress || !appraisalFee || !callbacks) {
+		if (
+			!feeTokenAddress ||
+			!appraisalContractAddress ||
+			!appraisalFee ||
+			!callbacks
+		) {
 			throw new Error("Missing required inputs for token approval");
 		}
 
@@ -187,13 +241,16 @@ const handleAppraisalSubmission = fromPromise(
 
 			return { txHash: result };
 		} catch (error) {
-			console.error("[NFTAppraisalMachine] Appraisal submission failed:", error);
+			console.error(
+				"[NFTAppraisalMachine] Appraisal submission failed:",
+				error,
+			);
 			throw error;
 		}
 	},
 );
 
-// Actor to poll for appraisal completion using useReadNftAppraisalGetAppraisal
+// Actor to poll for appraisal completion with improved error handling
 const pollForAppraisalCompletion = fromPromise(
 	async ({
 		input,
@@ -205,29 +262,72 @@ const pollForAppraisalCompletion = fromPromise(
 			appraisalContractAddress: string;
 		};
 	}): Promise<AppraisalResult> => {
-		const { collection, tokenId, publicClient, appraisalContractAddress } = input;
+		const { collection, tokenId, publicClient, appraisalContractAddress } =
+			input;
+		const startTime = Date.now();
+		let timeoutId: NodeJS.Timeout | null = null;
 
 		return new Promise((resolve, reject) => {
 			let attempts = 0;
 			const maxAttempts = Math.floor(MAX_POLLING_TIME / POLLING_INTERVAL);
-			const startTime = Date.now();
+			let isDestroyed = false;
+
+			const cleanup = () => {
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+					timeoutId = null;
+				}
+				isDestroyed = true;
+			};
+
+			// Set up overall timeout
+			timeoutId = setTimeout(() => {
+				if (!isDestroyed) {
+					cleanup();
+					reject(
+						new Error(`Appraisal polling timeout after ${MAX_POLLING_TIME}ms`),
+					);
+				}
+			}, MAX_POLLING_TIME);
 
 			const poll = async () => {
+				if (isDestroyed) return;
+
 				attempts++;
+				const elapsed = Date.now() - startTime;
 
-				// Check timeout
-				if (Date.now() - startTime > MAX_POLLING_TIME) {
-					reject(new Error("Appraisal polling timeout"));
-					return;
-				}
-
-				if (attempts > maxAttempts) {
-					reject(new Error("Maximum polling attempts reached"));
+				// Check both attempt count and overall time
+				if (attempts > maxAttempts || elapsed > MAX_POLLING_TIME) {
+					cleanup();
+					reject(
+						new Error(
+							`Appraisal polling timeout: ${attempts} attempts over ${elapsed}ms`,
+						),
+					);
 					return;
 				}
 
 				try {
-					// Create contract instance to call getAppraisal
+					// Validate inputs before polling
+					if (
+						!publicClient ||
+						!appraisalContractAddress ||
+						!collection ||
+						!tokenId
+					) {
+						cleanup();
+						reject(new Error("Invalid polling parameters"));
+						return;
+					}
+
+					// Validate token ID format
+					const tokenIdNum = Number(tokenId);
+					if (Number.isNaN(tokenIdNum) || tokenIdNum < 0) {
+						cleanup();
+						reject(new Error("Invalid token ID format"));
+						return;
+					}
+
 					const appraisalData = await publicClient.readContract({
 						address: appraisalContractAddress as `0x${string}`,
 						abi: [
@@ -252,33 +352,55 @@ const pollForAppraisalCompletion = fromPromise(
 						args: [collection as `0x${string}`, BigInt(tokenId)],
 					});
 
-					const [exists, appraisedPrice, rarityScore, metadata, lastUpdated] = appraisalData as [boolean, bigint, bigint, string, bigint];
+					const [exists, appraisedPrice, rarityScore, metadata, lastUpdated] =
+						appraisalData as [boolean, bigint, bigint, string, bigint];
 
 					// If appraisal exists and has meaningful data, consider it complete
-					if (exists && appraisedPrice > 0n) {
+					if (exists && appraisedPrice > BigInt(0)) {
 						const result: AppraisalResult = {
 							collection,
 							tokenId,
-							appraisalData: {
+							appraisalData: [
 								exists,
 								appraisedPrice,
 								rarityScore,
-								metadata,
+								metadata || "",
 								lastUpdated,
-							},
+							],
 						};
 
-						console.log("✅ [NFTAppraisalMachine] Appraisal completed:", result);
+						console.log(
+							"✅ [NFTAppraisalMachine] Appraisal completed:",
+							result,
+						);
+						cleanup();
 						resolve(result);
 						return;
 					}
 
-					// Continue polling
-					setTimeout(poll, POLLING_INTERVAL);
+					// Continue polling with exponential backoff
+					if (!isDestroyed) {
+						const delay = getPollingDelay(attempts, POLLING_INTERVAL);
+						timeoutId = setTimeout(poll, delay);
+					}
 				} catch (error) {
-					console.error("[NFTAppraisalMachine] Polling error:", error);
-					// Continue polling on errors, but count attempts
-					setTimeout(poll, POLLING_INTERVAL);
+					console.error(
+						`[NFTAppraisalMachine] Polling error (attempt ${attempts}):`,
+						error,
+					);
+
+					// Continue polling on errors unless we've hit max attempts
+					if (attempts < maxAttempts && !isDestroyed) {
+						const delay = getPollingDelay(attempts, POLLING_INTERVAL);
+						timeoutId = setTimeout(poll, delay);
+					} else {
+						cleanup();
+						reject(
+							error instanceof Error
+								? error
+								: new Error("Unknown appraisal polling error"),
+						);
+					}
 				}
 			};
 
@@ -324,13 +446,24 @@ export const nftAppraisalMachine = createMachine(
 				invoke: {
 					id: "checkApprovalNeeded",
 					src: "checkApprovalNeeded",
-					input: ({ context }) => ({
-						feeTokenAddress: (context.feeTokenAddress as unknown) as string | undefined,
-						appraisalContractAddress: (context.appraisalContractAddress as unknown) as string | undefined,
-						appraisalFee: (context.appraisalFee as unknown) as bigint | undefined,
-						userAddress: (context.userAddress as unknown) as string | undefined,
-						publicClient: (context.publicClient as unknown) as PublicClient | undefined,
-					}),
+					input: ({ context }) => {
+						if (
+							!context.feeTokenAddress ||
+							!context.appraisalContractAddress ||
+							!context.appraisalFee ||
+							!context.userAddress ||
+							!context.publicClient
+						) {
+							throw new Error("Missing required context for approval check");
+						}
+						return {
+							feeTokenAddress: context.feeTokenAddress,
+							appraisalContractAddress: context.appraisalContractAddress,
+							appraisalFee: context.appraisalFee,
+							userAddress: context.userAddress,
+							publicClient: context.publicClient,
+						};
+					},
 					onDone: [
 						{
 							target: "submitting",
@@ -356,12 +489,23 @@ export const nftAppraisalMachine = createMachine(
 				invoke: {
 					id: "handleTokenApproval",
 					src: "handleTokenApproval",
-					input: ({ context }) => ({
-						feeTokenAddress: (context.feeTokenAddress as unknown) as `0x${string}` | undefined,
-						appraisalContractAddress: (context.appraisalContractAddress as unknown) as `0x${string}` | undefined,
-						appraisalFee: (context.appraisalFee as unknown) as bigint | undefined,
-						callbacks: (context.callbacks as unknown) as AppraisalCallbacks | undefined,
-					}),
+					input: ({ context }) => {
+						if (
+							!context.feeTokenAddress ||
+							!context.appraisalContractAddress ||
+							!context.appraisalFee ||
+							!context.callbacks
+						) {
+							throw new Error("Missing required context for token approval");
+						}
+						return {
+							feeTokenAddress: context.feeTokenAddress as `0x${string}`,
+							appraisalContractAddress:
+								context.appraisalContractAddress as `0x${string}`,
+							appraisalFee: context.appraisalFee,
+							callbacks: context.callbacks,
+						};
+					},
 					onDone: {
 						target: "submitting",
 						actions: ({ event }) => ({
@@ -385,12 +529,20 @@ export const nftAppraisalMachine = createMachine(
 				invoke: {
 					id: "handleAppraisalSubmission",
 					src: "handleAppraisalSubmission",
-					input: ({ context }) => ({
-						appraisalContractAddress: (context.appraisalContractAddress as unknown) as `0x${string}` | undefined,
-						collection: context.collection,
-						tokenId: context.tokenId,
-						callbacks: (context.callbacks as unknown) as AppraisalCallbacks | undefined,
-					}),
+					input: ({ context }) => {
+						if (!context.appraisalContractAddress || !context.callbacks) {
+							throw new Error(
+								"Missing required context for appraisal submission",
+							);
+						}
+						return {
+							appraisalContractAddress:
+								context.appraisalContractAddress as `0x${string}`,
+							collection: context.collection,
+							tokenId: context.tokenId,
+							callbacks: context.callbacks,
+						};
+					},
 					onDone: {
 						target: "waitingForCompletion",
 						actions: ({ event }) => ({
@@ -402,7 +554,9 @@ export const nftAppraisalMachine = createMachine(
 						target: "error",
 						actions: ({ event }) => ({
 							type: "setError",
-							error: (event.error as Error)?.message || "Appraisal submission failed",
+							error:
+								(event.error as Error)?.message ||
+								"Appraisal submission failed",
 						}),
 					},
 				},
@@ -414,12 +568,22 @@ export const nftAppraisalMachine = createMachine(
 				invoke: {
 					id: "pollForAppraisalCompletion",
 					src: "pollForAppraisalCompletion",
-					input: ({ context }) => ({
-						collection: context.collection,
-						tokenId: context.tokenId,
-						publicClient: context.publicClient as unknown,
-						appraisalContractAddress: context.appraisalContractAddress as unknown,
-					}),
+					input: ({ context }) => {
+						if (
+							!context.publicClient ||
+							!context.appraisalContractAddress ||
+							!context.collection ||
+							!context.tokenId
+						) {
+							throw new Error("Missing required context for appraisal polling");
+						}
+						return {
+							collection: context.collection,
+							tokenId: context.tokenId,
+							publicClient: context.publicClient,
+							appraisalContractAddress: context.appraisalContractAddress,
+						};
+					},
 					onDone: {
 						target: "completed",
 						actions: "setAppraisalResult",
@@ -503,7 +667,9 @@ export const nftAppraisalMachine = createMachine(
 				publicClient: ({ event }) =>
 					event.type === "START_APPRAISAL" ? event.publicClient : null,
 				appraisalContractAddress: ({ event }) =>
-					event.type === "START_APPRAISAL" ? event.appraisalContractAddress : null,
+					event.type === "START_APPRAISAL"
+						? event.appraisalContractAddress
+						: null,
 				feeTokenAddress: ({ event }) =>
 					event.type === "START_APPRAISAL" ? event.feeTokenAddress : null,
 				appraisalFee: ({ event }) =>
@@ -549,7 +715,10 @@ export const nftAppraisalMachine = createMachine(
 					}
 					// Handle actor completion
 					if (event.type === "xstate.done.actor.pollForAppraisalCompletion") {
-						console.log("✅ [NFTAppraisalMachine] Appraisal actor completed:", event.output);
+						console.log(
+							"✅ [NFTAppraisalMachine] Appraisal actor completed:",
+							event.output,
+						);
 						return event.output;
 					}
 					return null;
@@ -561,19 +730,23 @@ export const nftAppraisalMachine = createMachine(
 						return event.error;
 					}
 					if (event.type === "error.platform.checkApprovalNeeded") {
-						const errorMessage = (event.error as Error)?.message || "Approval check failed";
+						const errorMessage =
+							(event.error as Error)?.message || "Approval check failed";
 						return errorMessage;
 					}
 					if (event.type === "error.platform.handleTokenApproval") {
-						const errorMessage = (event.error as Error)?.message || "Token approval failed";
+						const errorMessage =
+							(event.error as Error)?.message || "Token approval failed";
 						return errorMessage;
 					}
 					if (event.type === "error.platform.handleAppraisalSubmission") {
-						const errorMessage = (event.error as Error)?.message || "Appraisal submission failed";
+						const errorMessage =
+							(event.error as Error)?.message || "Appraisal submission failed";
 						return errorMessage;
 					}
 					if (event.type === "error.platform.pollForAppraisalCompletion") {
-						const errorMessage = (event.error as Error)?.message || "Appraisal polling failed";
+						const errorMessage =
+							(event.error as Error)?.message || "Appraisal polling failed";
 						return errorMessage;
 					}
 					return "Unknown error";
@@ -602,11 +775,13 @@ export const nftAppraisalMachine = createMachine(
 		guards: {
 			canRetry: ({ context }) => context.retryCount < MAX_RETRIES,
 			invalidInput: ({ context }) => {
-				return !context.collection ||
-					   !context.tokenId ||
-					   !isAddress(context.collection) ||
-					   Number.isNaN(Number(context.tokenId)) ||
-					   Number(context.tokenId) < 0;
+				return (
+					!context.collection ||
+					!context.tokenId ||
+					!isAddress(context.collection) ||
+					Number.isNaN(Number(context.tokenId)) ||
+					Number(context.tokenId) < 0
+				);
 			},
 		},
 	},

@@ -59,7 +59,9 @@ export function useNFTWithdrawal(treasury?: Address) {
 	const withdrawMultipleNFTs = useCallback(
 		async (withdrawals: WithdrawalRequest[]) => {
 			if (!treasury || !user || withdrawals.length === 0) {
-				toast.error("Missing treasury address, user wallet, or withdrawal requests");
+				toast.error(
+					"Missing treasury address, user wallet, or withdrawal requests",
+				);
 				return;
 			}
 
@@ -69,7 +71,9 @@ export function useNFTWithdrawal(treasury?: Address) {
 					await withdrawNFT(withdrawal.collection, withdrawal.tokenId);
 				}
 
-				toast.success(`Successfully initiated ${withdrawals.length} NFT withdrawals!`);
+				toast.success(
+					`Successfully initiated ${withdrawals.length} NFT withdrawals!`,
+				);
 			} catch (error) {
 				console.error("Failed to withdraw multiple NFTs:", error);
 				toast.error("Failed to process NFT withdrawals");

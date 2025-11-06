@@ -2,7 +2,12 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { useAccount, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from "wagmi";
+import {
+	useAccount,
+	useWriteContract,
+	usePublicClient,
+	useWaitForTransactionReceipt,
+} from "wagmi";
 import { useMachine } from "@xstate/react";
 
 import { UnifiedNFTCard, type UnifiedNFTCardProps } from "./UnifiedNFTCard";
@@ -19,7 +24,7 @@ import { useGachaId } from "../hooks/useGachaId";
 import {
 	useReadNftAppraisalGetAppraisal,
 	erc721Abi,
-	useWriteGachaTreasuryDepositNft
+	useWriteGachaTreasuryDepositNft,
 } from "../generated";
 import { nftDepositMachine } from "../machines/nftDepositMachine";
 
@@ -125,7 +130,8 @@ export const DepositableNFTCard = ({
 		if (!userAddress || !publicClient || !contracts.treasury) {
 			sendDepositEvent({
 				type: "FAIL",
-				error: "Wallet not connected or network unavailable. Please check your connection and try again.",
+				error:
+					"Wallet not connected or network unavailable. Please check your connection and try again.",
 			});
 			return;
 		}
@@ -166,9 +172,10 @@ export const DepositableNFTCard = ({
 		} catch (error) {
 			sendDepositEvent({
 				type: "FAIL",
-				error: error instanceof Error
-					? `Approval failed: ${error.message}`
-					: "Failed to initiate NFT approval. Please check your wallet and try again.",
+				error:
+					error instanceof Error
+						? `Approval failed: ${error.message}`
+						: "Failed to initiate NFT approval. Please check your wallet and try again.",
 			});
 		}
 	}, [approveNFT, collection, contracts.treasury, sendDepositEvent]);
@@ -185,16 +192,21 @@ export const DepositableNFTCard = ({
 		} catch (error) {
 			sendDepositEvent({
 				type: "FAIL",
-				error: error instanceof Error
-					? `Deposit failed: ${error.message}`
-					: "Failed to initiate NFT deposit. Please check your wallet and try again.",
+				error:
+					error instanceof Error
+						? `Deposit failed: ${error.message}`
+						: "Failed to initiate NFT deposit. Please check your wallet and try again.",
 			});
 		}
 	}, [depositNFT, collection, tokenId, contracts.treasury, sendDepositEvent]);
 
 	// Handle approval transaction success - dispatch APPROVAL_REQUESTED with tx hash
 	useEffect(() => {
-		if (isApprovalSuccess && approvalTxHash && depositState.matches("awaitingApprovalSignature")) {
+		if (
+			isApprovalSuccess &&
+			approvalTxHash &&
+			depositState.matches("awaitingApprovalSignature")
+		) {
 			sendDepositEvent({
 				type: "APPROVAL_REQUESTED",
 			});
@@ -203,7 +215,11 @@ export const DepositableNFTCard = ({
 
 	// Handle approval transaction error
 	useEffect(() => {
-		if (isApprovalError && approvalError && depositState.matches("awaitingApprovalSignature")) {
+		if (
+			isApprovalError &&
+			approvalError &&
+			depositState.matches("awaitingApprovalSignature")
+		) {
 			sendDepositEvent({
 				type: "FAIL",
 				error: approvalError?.message
@@ -225,7 +241,11 @@ export const DepositableNFTCard = ({
 
 	// Handle deposit transaction success - dispatch DEPOSIT_REQUESTED
 	useEffect(() => {
-		if (isDepositSuccess && depositTxHash && depositState.matches("awaitingDepositSignature")) {
+		if (
+			isDepositSuccess &&
+			depositTxHash &&
+			depositState.matches("awaitingDepositSignature")
+		) {
 			sendDepositEvent({
 				type: "DEPOSIT_REQUESTED",
 			});
@@ -234,7 +254,11 @@ export const DepositableNFTCard = ({
 
 	// Handle deposit transaction error
 	useEffect(() => {
-		if (isDepositError && depositError && depositState.matches("awaitingDepositSignature")) {
+		if (
+			isDepositError &&
+			depositError &&
+			depositState.matches("awaitingDepositSignature")
+		) {
 			sendDepositEvent({
 				type: "FAIL",
 				error: depositError?.message
@@ -273,19 +297,20 @@ export const DepositableNFTCard = ({
 		<div className="space-y-2">
 			{!hasValidAppraisal ? (
 				<Button
-					className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+					color="glassPrimary"
+					className="w-full"
 					onPress={() => onAction(collection, tokenId, hasValidAppraisal)}
+					startContent={<SparklesIcon className="w-4 h-4" />}
 				>
-					<span className="flex items-center justify-center gap-2">
-						<SparklesIcon className="w-4 h-4" /> Get Appraised
-					</span>
+					Get Appraised
 				</Button>
 			) : (
 				<div className="space-y-2">
 					{/* Main action button based on state */}
 					{currentDepositState === "idle" && (
 						<Button
-							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
+							color="glassPrimary"
+							className="w-full"
 							onPress={handleDeposit}
 						>
 							<span className="flex items-center justify-center gap-2">
@@ -295,10 +320,7 @@ export const DepositableNFTCard = ({
 					)}
 
 					{currentDepositState === "checkingApproval" && (
-						<Button
-							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
-							isLoading
-						>
+						<Button color="glassPrimary" className="w-full" isLoading>
 							Checking approval...
 						</Button>
 					)}
@@ -350,10 +372,7 @@ export const DepositableNFTCard = ({
 					)}
 
 					{currentDepositState === "confirmingDeposit" && (
-						<Button
-							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
-							isLoading
-						>
+						<Button color="glassPrimary" className="w-full" isLoading>
 							<span className="flex items-center justify-center gap-2">
 								<ArrowPathIcon className="w-4 h-4" /> Confirming deposit...
 							</span>
@@ -361,10 +380,7 @@ export const DepositableNFTCard = ({
 					)}
 
 					{currentDepositState === "completed" && (
-						<Button
-							className="w-full rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
-							isDisabled
-						>
+						<Button color="glassPrimary" className="w-full" isDisabled>
 							<span className="flex items-center justify-center gap-2">
 								<CheckIcon className="w-4 h-4" /> Deposited Successfully
 							</span>

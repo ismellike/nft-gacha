@@ -1,8 +1,17 @@
 "use client";
 
-import { assign, createMachine, fromPromise } from "xstate";
+import { assign, createMachine } from "xstate";
 import type { PublicClient } from "viem";
-import { erc721Abi } from "../generated";
+import {
+	checkApprovalNeeded,
+	confirmNFTOwnershipChange,
+	createMachineLogger,
+	validateAddress,
+	validateTokenId,
+	validateUserAddress,
+	MachineError,
+	ErrorCodes,
+} from "./shared-actors";
 
 export interface NFTDepositContext {
 	collection: string | null;
@@ -16,8 +25,16 @@ export interface NFTDepositContext {
 	retryCount: number;
 	approvalNeeded: boolean;
 	// Callback functions for deposit completion
-	onAction?: (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void;
-	onAppraisalStatusChange?: (collection: string, tokenId: string, hasValidAppraisal: boolean) => void;
+	onAction?: (
+		collection: string,
+		tokenId: string,
+		hasValidAppraisal?: boolean,
+	) => void;
+	onAppraisalStatusChange?: (
+		collection: string,
+		tokenId: string,
+		hasValidAppraisal: boolean,
+	) => void;
 	refetchTreasuryCards?: () => Promise<void>;
 }
 
@@ -29,8 +46,16 @@ export type NFTDepositEvent =
 			treasuryAddress: string;
 			userAddress: string;
 			publicClient: PublicClient;
-			onAction?: (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void;
-			onAppraisalStatusChange?: (collection: string, tokenId: string, hasValidAppraisal: boolean) => void;
+			onAction?: (
+				collection: string,
+				tokenId: string,
+				hasValidAppraisal?: boolean,
+			) => void;
+			onAppraisalStatusChange?: (
+				collection: string,
+				tokenId: string,
+				hasValidAppraisal: boolean,
+			) => void;
 			refetchTreasuryCards?: () => Promise<void>;
 	  }
 	| { type: "APPROVAL_REQUESTED" }
@@ -41,38 +66,7 @@ export type NFTDepositEvent =
 	| { type: "RESET" };
 
 const MAX_RETRIES = 3;
-
-// Actor to check if approval is needed
-const checkApprovalNeeded = fromPromise(
-	async ({
-		input,
-	}: {
-		input: {
-			collection: string;
-			treasuryAddress: string;
-			userAddress: string;
-			publicClient: PublicClient;
-		};
-	}): Promise<boolean> => {
-		const { collection, treasuryAddress, userAddress, publicClient } = input;
-
-		try {
-			// Check if already approved for all (standard EVM pattern)
-			const isApprovedForAll = await publicClient.readContract({
-				address: collection as `0x${string}`,
-				abi: erc721Abi,
-				functionName: "isApprovedForAll",
-				args: [userAddress as `0x${string}`, treasuryAddress as `0x${string}`],
-			});
-
-			return !isApprovedForAll; // Return true if approval needed
-		} catch (error) {
-			console.error("Approval check failed, assuming approval needed:", error);
-			return true; // Assume approval needed on error
-		}
-	},
-);
-
+const logger = createMachineLogger("NFTDepositMachine");
 
 export const nftDepositMachine = createMachine(
 	{
@@ -104,15 +98,30 @@ export const nftDepositMachine = createMachine(
 				},
 			},
 			checkingApproval: {
+				entry: () => logger.logInfo("Checking NFT approval requirements"),
 				invoke: {
 					id: "checkApprovalNeeded",
-					src: "checkApprovalNeeded",
-					input: ({ context }) => ({
-						collection: context.collection,
-						treasuryAddress: context.treasuryAddress,
-						userAddress: context.userAddress,
-						publicClient: context.publicClient,
-					}),
+					src: checkApprovalNeeded,
+					input: ({ context }) => {
+						if (
+							!validateAddress(context.collection) ||
+							!validateAddress(context.treasuryAddress) ||
+							!validateUserAddress(context.userAddress) ||
+							!context.publicClient
+						) {
+							throw new MachineError(
+								"Missing or invalid context for approval check",
+								ErrorCodes.VALIDATION_ERROR,
+								{ context },
+							);
+						}
+						return {
+							collection: context.collection,
+							operatorAddress: context.treasuryAddress,
+							userAddress: context.userAddress,
+							publicClient: context.publicClient,
+						};
+					},
 					onDone: [
 						{
 							target: "awaitingDepositSignature",
@@ -189,15 +198,30 @@ export const nftDepositMachine = createMachine(
 				},
 			},
 			confirmingDeposit: {
+				entry: () => logger.logInfo("Confirming NFT deposit"),
 				invoke: {
 					id: "confirmNFTDeposit",
-					src: "confirmNFTDeposit",
-					input: ({ context }) => ({
-						collection: context.collection,
-						tokenId: context.tokenId,
-						userAddress: context.userAddress,
-						publicClient: context.publicClient,
-					}),
+					src: confirmNFTOwnershipChange,
+					input: ({ context }) => {
+						if (
+							!validateAddress(context.collection) ||
+							!validateTokenId(context.tokenId) ||
+							!validateUserAddress(context.userAddress) ||
+							!context.publicClient
+						) {
+							throw new MachineError(
+								"Missing or invalid context for deposit confirmation",
+								ErrorCodes.VALIDATION_ERROR,
+								{ context },
+							);
+						}
+						return {
+							collection: context.collection,
+							tokenId: context.tokenId,
+							userAddress: context.userAddress,
+							publicClient: context.publicClient,
+						};
+					},
 					onDone: {
 						target: "completed",
 					},
@@ -225,41 +249,7 @@ export const nftDepositMachine = createMachine(
 	{
 		actors: {
 			checkApprovalNeeded,
-			confirmNFTDeposit: fromPromise(
-				async ({
-					input,
-				}: {
-					input: {
-						collection: string;
-						tokenId: string;
-						userAddress: string;
-						publicClient: PublicClient;
-					};
-				}): Promise<void> => {
-					const { collection, tokenId, userAddress, publicClient } = input;
-
-					try {
-						const currentOwner = await publicClient.readContract({
-							address: collection as `0x${string}`,
-							abi: erc721Abi,
-							functionName: "ownerOf",
-							args: [BigInt(tokenId)],
-						});
-
-						const isDeposited =
-							currentOwner?.toLowerCase() !== userAddress.toLowerCase();
-
-						if (!isDeposited) {
-							throw new Error("NFT still owned by user - deposit confirmation failed");
-						}
-
-						console.log("✅ [NFTDepositMachine] NFT deposit confirmed");
-					} catch (error) {
-						console.error("❌ [NFTDepositMachine] Deposit confirmation failed:", error);
-						throw error; // Don't default to success - surface the error
-					}
-				},
-			),
+			confirmNFTDeposit: confirmNFTOwnershipChange,
 		},
 		actions: {
 			clearState: assign({
@@ -277,25 +267,45 @@ export const nftDepositMachine = createMachine(
 				onAppraisalStatusChange: undefined,
 				refetchTreasuryCards: undefined,
 			}),
-			setDepositParams: assign({
-				collection: ({ event }) =>
-					event.type === "START_DEPOSIT" ? event.collection : null,
-				tokenId: ({ event }) =>
-					event.type === "START_DEPOSIT" ? event.tokenId : null,
-				treasuryAddress: ({ event }) =>
-					event.type === "START_DEPOSIT" ? event.treasuryAddress : null,
-				userAddress: ({ event }) =>
-					event.type === "START_DEPOSIT" ? event.userAddress : null,
-				publicClient: ({ event }) =>
-					event.type === "START_DEPOSIT" ? event.publicClient : null,
-				onAction: ({ event }) =>
-					event.type === "START_DEPOSIT" ? event.onAction : undefined,
-				onAppraisalStatusChange: ({ event }) =>
-					event.type === "START_DEPOSIT" ? event.onAppraisalStatusChange : undefined,
-				refetchTreasuryCards: ({ event }) =>
-					event.type === "START_DEPOSIT" ? event.refetchTreasuryCards : undefined,
-				retryCount: 0,
-				error: null,
+			setDepositParams: assign(({ event, context }) => {
+				if (event.type === "START_DEPOSIT") {
+					// Validate inputs
+					if (
+						!validateAddress(event.collection) ||
+						!validateTokenId(event.tokenId) ||
+						!validateAddress(event.treasuryAddress) ||
+						!validateUserAddress(event.userAddress) ||
+						!event.publicClient
+					) {
+						throw new MachineError(
+							"Invalid parameters for deposit",
+							ErrorCodes.VALIDATION_ERROR,
+							{ event },
+						);
+					}
+
+					logger.logInfo("Starting NFT deposit", {
+						collection: event.collection,
+						tokenId: event.tokenId,
+						treasuryAddress: event.treasuryAddress,
+						userAddress: event.userAddress,
+					});
+
+					return {
+						...context,
+						collection: event.collection,
+						tokenId: event.tokenId,
+						treasuryAddress: event.treasuryAddress,
+						userAddress: event.userAddress,
+						publicClient: event.publicClient,
+						onAction: event.onAction,
+						onAppraisalStatusChange: event.onAppraisalStatusChange,
+						refetchTreasuryCards: event.refetchTreasuryCards,
+						retryCount: 0,
+						error: null,
+					} as any;
+				}
+				return {};
 			}),
 			setApprovalNeeded: assign({
 				approvalNeeded: true,
@@ -313,20 +323,21 @@ export const nftDepositMachine = createMachine(
 			}),
 			setError: assign({
 				error: ({ event }) => {
+					let errorMessage = "Unknown error occurred";
+
 					if (event.type === "FAIL") {
-						return event.error;
+						errorMessage = event.error;
+					} else if (event.type === "error.platform.checkApprovalNeeded") {
+						errorMessage =
+							(event.error as Error)?.message || "Failed to check approval";
+					} else if (event.type === "error.platform.confirmNFTDeposit") {
+						errorMessage =
+							(event.error as Error)?.message || "Failed to confirm deposit";
 					}
-					if (event.type === "xstate.error.actor.checkApprovalNeeded") {
-						return (
-							(event.error as Error)?.message || "Failed to check approval"
-						);
-					}
-					if (event.type === "xstate.error.actor.confirmNFTDeposit") {
-						return (
-							(event.error as Error)?.message || "Failed to confirm deposit"
-						);
-					}
-					return "Unknown error occurred";
+
+					// Log error for debugging
+					logger.logError("Deposit error", { error: event, errorMessage });
+					return errorMessage;
 				},
 			}),
 			clearError: assign({
@@ -335,24 +346,37 @@ export const nftDepositMachine = createMachine(
 			incrementRetry: assign({
 				retryCount: ({ context }) => context.retryCount + 1,
 			}),
-			logError: ({ context }) => {
-				console.error("❌ [NFTDepositMachine] Error:", context.error);
-			},
 			handleDepositCompletion: ({ context }) => {
-				console.log("✅ [NFTDepositMachine] Deposit completed successfully");
+				logger.logSuccess("Deposit completed successfully", {
+					collection: context.collection,
+					tokenId: context.tokenId,
+				});
+
 				// Trigger completion callbacks if available
 				try {
-					if (context.onAction && context.collection && context.tokenId) {
-						context.onAction(context.collection, context.tokenId, true);
+					if (
+						typeof context.onAction === "function" &&
+						context.collection &&
+						context.tokenId
+					) {
+						(context.onAction as any)(context.collection, context.tokenId, true);
 					}
-					if (context.onAppraisalStatusChange && context.collection && context.tokenId) {
-						context.onAppraisalStatusChange(context.collection, context.tokenId, true);
+					if (
+						typeof context.onAppraisalStatusChange === "function" &&
+						context.collection &&
+						context.tokenId
+					) {
+						(context.onAppraisalStatusChange as any)(
+							context.collection,
+							context.tokenId,
+							true,
+						);
 					}
-					if (context.refetchTreasuryCards) {
-						context.refetchTreasuryCards();
+					if (typeof context.refetchTreasuryCards === "function") {
+						(context.refetchTreasuryCards as any)();
 					}
 				} catch (error) {
-					console.error("❌ [NFTDepositMachine] Error in completion callbacks:", error);
+					logger.logError("Error in completion callbacks", error as Error);
 				}
 			},
 		},

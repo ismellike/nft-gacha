@@ -14,10 +14,7 @@ import {
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { SimpleRarityShowcase } from "../components/RaritySystem";
-import {
-	getRarityColorHex,
-	Rarity,
-} from "../lib/rarityConfig";
+import { getRarityColorHex, Rarity } from "../lib/rarityConfig";
 
 // Helper function to create radial gradient with concrete hex values
 const createRarityGradient = (rarity: Rarity): string => {
@@ -171,7 +168,7 @@ export default function LandingPage() {
 								whileHover={{ scale: 1.03 }}
 								whileTap={{ scale: 0.97 }}
 							>
-								<Button className="min-w-80 h-18 text-xl font-bold rounded-2xl bg-gradient-to-r from-warning via-orange-400 to-yellow-500 text-black shadow-[0_0_25px_rgba(255,191,0,0.3),0_0_50px_rgba(255,191,0,0.15)] hover:scale-105 transition-all duration-300">
+								<Button color="glassPrimary" size="lg" className="min-w-80">
 									<span className="flex items-center gap-3">
 										<SparklesIcon className="w-6 h-6" />
 										Experience Fair Gaming
@@ -182,7 +179,7 @@ export default function LandingPage() {
 						</Link>
 
 						<Link href="/appraisal">
-							<Button className="min-w-80 h-18 text-xl font-bold rounded-2xl bg-content1/20 backdrop-blur-xl border border-white/30 text-foreground hover:bg-content1/30 hover:border-white/40 transition-all duration-300">
+							<Button color="glass" size="lg" className="min-w-80">
 								<span className="flex items-center gap-3">
 									<GiftIcon className="w-6 h-6" />
 									Deposit & Earn Yield
@@ -396,7 +393,7 @@ export default function LandingPage() {
 										whileHover={{ scale: 1.03 }}
 										whileTap={{ scale: 0.97 }}
 									>
-										<Button className="min-w-72 h-16 text-xl font-bold rounded-2xl bg-gradient-to-r from-warning via-orange-400 to-yellow-500 text-black shadow-[0_0_25px_rgba(255,191,0,0.3)] hover:scale-105 transition-all duration-300">
+										<Button color="glassPrimary" size="lg" className="min-w-72">
 											<span className="flex items-center gap-3">
 												<SparklesIcon className="w-6 h-6" />
 												Start Playing

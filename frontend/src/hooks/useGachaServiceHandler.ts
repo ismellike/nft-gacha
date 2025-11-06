@@ -14,8 +14,11 @@ import {
  * Provides access to WAVS randomness functionality
  */
 interface EnvelopeData {
-	address: string;
-	args: readonly unknown[];
+	address: `0x${string}`;
+	args: readonly [
+		{ eventId: `0x${string}`; ordering: `0x${string}`; payload: `0x${string}`; },
+		{ signers: readonly `0x${string}`[]; signatures: readonly `0x${string}`[]; referenceBlock: number; }
+	];
 }
 
 export function useGachaServiceHandler(gachaId: string) {
@@ -39,7 +42,7 @@ export function useGachaServiceHandler(gachaId: string) {
 	const {
 		writeContract: handleSignedEnvelope,
 		isPending: isHandlingEnvelope,
-		error: handleEnvelopeError
+		error: handleEnvelopeError,
 	} = useWriteGachaServiceHandlerHandleSignedEnvelope();
 
 	// Watch for randomness events
@@ -75,7 +78,8 @@ export function useGachaServiceHandler(gachaId: string) {
  * Useful for handling failed WAVS envelope submissions
  */
 export function useRetrySignedEnvelope(gachaId: string) {
-	const { handleSignedEnvelope, isHandlingEnvelope, handleEnvelopeError } = useGachaServiceHandler(gachaId);
+	const { handleSignedEnvelope, isHandlingEnvelope, handleEnvelopeError } =
+		useGachaServiceHandler(gachaId);
 
 	const retryEnvelope = async (envelopeData: EnvelopeData) => {
 		try {

@@ -41,7 +41,7 @@ export function NFTAppraisalDashboard({
 		autoRefresh: true,
 		refreshInterval: 60000,
 		filter: "all",
-		sort: "newest"
+		sort: "newest",
 	});
 	const { addOptimisticSubmission } = useNFTAppraisalStore();
 
@@ -238,7 +238,9 @@ export function NFTAppraisalDashboard({
 											</div>
 										</div>
 										<h3 className="text-3xl font-bold text-warning">
-											{totalValue > BigInt(0) ? formatCurrency(totalValue.toString(), 18, "USD") : "--"}
+											{totalValue > BigInt(0)
+												? formatCurrency(totalValue.toString(), 18, "USD")
+												: "--"}
 										</h3>
 										<p className="text-xs text-foreground/60">
 											Across all completed appraisals
@@ -263,7 +265,9 @@ export function NFTAppraisalDashboard({
 											</div>
 										</div>
 										<h3 className="text-3xl font-bold text-success">
-											{averageValue > BigInt(0) ? formatCurrency(averageValue.toString(), 18, "USD") : "--"}
+											{averageValue > BigInt(0)
+												? formatCurrency(averageValue.toString(), 18, "USD")
+												: "--"}
 										</h3>
 										<p className="text-xs text-foreground/60">
 											Per completed appraisal
@@ -360,17 +364,11 @@ export function NFTAppraisalDashboard({
 
 						{/* Quick Actions */}
 						<div className="flex flex-col sm:flex-row gap-4 justify-center">
-							<Button
-								className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
-								onPress={() => setViewMode("form")}
-							>
+							<Button color="glassPrimary" onPress={() => setViewMode("form")}>
 								Submit Your First NFT
 							</Button>
 							{totalSubmitted > 0 && (
-								<Button
-									className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
-									onPress={() => setViewMode("list")}
-								>
+								<Button color="glass" onPress={() => setViewMode("list")}>
 									View My Appraisals
 								</Button>
 							)}

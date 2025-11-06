@@ -108,7 +108,12 @@ export function GachaSectionLayout({
 				transition={{ duration: 0.35 }}
 			>
 				<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-6 backdrop-blur-2xl md:p-8">
-					<div className={cn("pointer-events-none absolute inset-0", toneStyles.gradient)} />
+					<div
+						className={cn(
+							"pointer-events-none absolute inset-0",
+							toneStyles.gradient,
+						)}
+					/>
 					<div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 						<div className="max-w-2xl space-y-4">
 							<div className="flex items-center gap-3 group text-foreground">
@@ -152,31 +157,31 @@ export function GachaSectionLayout({
 											key={highlightTitle}
 											className="group flex items-start gap-3 rounded-xl border border-white/5 bg-content1/30 p-3"
 										>
-										{HighlightIcon && (
-											<span
-												className={cn(
-													"flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm transition-colors",
-													toneStyles.highlightIconWrapper,
-												)}
-											>
-												<HighlightIcon className="h-4 w-4" />
-											</span>
-										)}
-										<div className="space-y-1">
-											<span
-												className={cn(
-													"text-xs font-medium uppercase tracking-wide",
-													toneStyles.highlightTitle,
-												)}
-											>
-												{highlightTitle}
-											</span>
-											<p className="text-xs leading-5 text-foreground/60">
-												{highlightDescription}
-											</p>
+											{HighlightIcon && (
+												<span
+													className={cn(
+														"flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm transition-colors",
+														toneStyles.highlightIconWrapper,
+													)}
+												>
+													<HighlightIcon className="h-4 w-4" />
+												</span>
+											)}
+											<div className="space-y-1">
+												<span
+													className={cn(
+														"text-xs font-medium uppercase tracking-wide",
+														toneStyles.highlightTitle,
+													)}
+												>
+													{highlightTitle}
+												</span>
+												<p className="text-xs leading-5 text-foreground/60">
+													{highlightDescription}
+												</p>
+											</div>
 										</div>
-									</div>
-								),
+									),
 								)}
 							</div>
 						) : null}

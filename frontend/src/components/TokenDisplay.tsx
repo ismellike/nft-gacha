@@ -380,7 +380,12 @@ export function TokenAmountDisplay({
 	// Format bigint to string with appropriate decimal places
 	const formatAmount = (value: bigint) => {
 		// Use provided decimals or default to 6 for USD-displaying tokens, 18 for others
-		const decimals = defaultDecimals !== undefined ? BigInt(defaultDecimals) : (showUsd ? 6n : 18n);
+		const decimals =
+			defaultDecimals !== undefined
+				? BigInt(defaultDecimals)
+				: showUsd
+					? 6n
+					: 18n;
 
 		if (decimals === 0n) {
 			return value.toString();
@@ -395,10 +400,13 @@ export function TokenAmountDisplay({
 		}
 
 		// Convert fractional part to string and pad with zeros
-		const fractionalStr = fractionalPart.toString().padStart(Number(decimals), '0');
+		const fractionalStr = fractionalPart
+			.toString()
+			.padStart(Number(decimals), "0");
 
 		// For very small values (< 0.000001), show scientific notation or more decimal places
-		const numericValue = Number(wholePart) + Number(fractionalStr) / 10 ** Number(decimals);
+		const numericValue =
+			Number(wholePart) + Number(fractionalStr) / 10 ** Number(decimals);
 
 		if (numericValue < 0.000001 && numericValue > 0) {
 			// Show more precision for very small values
@@ -406,7 +414,7 @@ export function TokenAmountDisplay({
 		}
 
 		// Remove trailing zeros for normal values
-		const trimmedFractional = fractionalStr.replace(/0+$/, '');
+		const trimmedFractional = fractionalStr.replace(/0+$/, "");
 
 		if (trimmedFractional) {
 			return `${wholePart}.${trimmedFractional}`;
@@ -438,7 +446,7 @@ export function RevenueDisplay({
 	compact?: boolean;
 }) {
 	if (!amount || amount === 0n) {
-		return <span className="text-gray-400">0 {tokenSymbol || ''}</span>;
+		return <span className="text-gray-400">0 {tokenSymbol || ""}</span>;
 	}
 
 	// Use provided decimals or default to 18
@@ -458,10 +466,13 @@ export function RevenueDisplay({
 		}
 
 		// Convert fractional part to string and pad with zeros
-		const fractionalStr = fractionalPart.toString().padStart(Number(tokenDecimals), '0');
+		const fractionalStr = fractionalPart
+			.toString()
+			.padStart(Number(tokenDecimals), "0");
 
 		// Convert to numeric value for better formatting
-		const numericValue = Number(wholePart) + Number(fractionalStr) / 10 ** Number(tokenDecimals);
+		const numericValue =
+			Number(wholePart) + Number(fractionalStr) / 10 ** Number(tokenDecimals);
 
 		if (compact) {
 			// For compact display, show appropriate precision
@@ -469,14 +480,14 @@ export function RevenueDisplay({
 				return numericValue.toExponential(2);
 			} else if (numericValue < 1) {
 				// Show up to 6 decimal places for small values
-				return numericValue.toFixed(6).replace(/\.?0+$/, '');
+				return numericValue.toFixed(6).replace(/\.?0+$/, "");
 			} else {
 				// Show up to 4 decimal places for larger values
-				return numericValue.toFixed(4).replace(/\.?0+$/, '');
+				return numericValue.toFixed(4).replace(/\.?0+$/, "");
 			}
 		} else {
 			// For full display, remove trailing zeros but keep precision
-			const trimmedFractional = fractionalStr.replace(/0+$/, '');
+			const trimmedFractional = fractionalStr.replace(/0+$/, "");
 			if (trimmedFractional) {
 				return `${wholePart}.${trimmedFractional}`;
 			} else {

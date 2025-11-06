@@ -50,7 +50,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 		totalItems: bigint,
 		gachaAvailable: boolean,
 		totalDeposited: bigint,
-		totalClaimed: bigint
+		totalClaimed: bigint,
 	];
 
 	type GachaConfigBatch = readonly [
@@ -59,11 +59,17 @@ export function GachaCard({ gacha }: GachaCardProps) {
 		isPaused: boolean,
 		rarityWeights: readonly bigint[], // [5]
 		totalWeight: bigint,
-		isAvailable: boolean
+		isAvailable: boolean,
 	];
 
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const rarityCounts = (platformData as PlatformOverviewBatch)?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const rarityCounts = (platformData as PlatformOverviewBatch)?.[0] || [
+		0n,
+		0n,
+		0n,
+		0n,
+		0n,
+	];
 	const totalItemsCount = (platformData as PlatformOverviewBatch)?.[1] || 0n;
 	const isAvailable = (platformData as PlatformOverviewBatch)?.[2] || false;
 

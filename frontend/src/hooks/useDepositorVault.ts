@@ -236,7 +236,7 @@ export function useClaimYield() {
 	const {
 		writeContract: claimYield,
 		isPending: isClaiming,
-		error: claimError
+		error: claimError,
 	} = useWriteDepositorVaultClaimYield();
 
 	return {
@@ -254,15 +254,18 @@ export function useSimulateClaimYield({
 }: {
 	contractAddress: string;
 	account: string;
-	recipient: string;
+	recipient?: string;
 }) {
-	const { data: simulation, error: simulationError } = useSimulateDepositorVaultClaimYield({
-		address: contractAddress as `0x${string}`,
-		args: [account as `0x${string}`, recipient as `0x${string}`],
-		query: {
-			enabled: !!contractAddress && !!account && !!recipient,
-		},
-	});
+	// Note: The simulation doesn't use recipient, but it's kept for API consistency
+	console.log("📊 [useSimulateClaimYield] Recipient (not used in simulation):", recipient);
+	const { data: simulation, error: simulationError } =
+		useSimulateDepositorVaultClaimYield({
+			address: contractAddress as `0x${string}`,
+			args: [account as `0x${string}`],
+			query: {
+				enabled: !!contractAddress && !!account,
+			},
+		});
 
 	return {
 		simulation,

@@ -5,13 +5,13 @@ import type { PublicClient } from "viem";
 import { erc721Abi } from "../generated";
 
 const logger = {
-	logInfo: (message: string, data?: any) =>
+	logInfo: (message: string, data?: unknown) =>
 		console.log(`🔍 [NFTInteractionMachine] ${message}`, data || ""),
-	logSuccess: (message: string, data?: any) =>
+	logSuccess: (message: string, data?: unknown) =>
 		console.log(`✅ [NFTInteractionMachine] ${message}`, data || ""),
-	logError: (message: string, error?: any) =>
+	logError: (message: string, error?: unknown) =>
 		console.error(`❌ [NFTInteractionMachine] ${message}`, error || ""),
-	logWarning: (message: string, data?: any) =>
+	logWarning: (message: string, data?: unknown) =>
 		console.warn(`⚠️ [NFTInteractionMachine] ${message}`, data || ""),
 };
 
@@ -649,7 +649,8 @@ export const nftInteractionMachine = createMachine(
 				}
 			},
 			setSuccessData: assign(({ context }) => ({
-				completedAt: Date.now() as any,
+				...context,
+				completedAt: Date.now() as number,
 				successData: context.interactionTxHash
 					? {
 							txHash: context.interactionTxHash,
@@ -657,7 +658,7 @@ export const nftInteractionMachine = createMachine(
 							mode: context.mode,
 						}
 					: null,
-			})),
+			} as any)),
 		},
 		guards: {
 			canRetry: ({ context }) => context.retryCount < MAX_RETRIES,

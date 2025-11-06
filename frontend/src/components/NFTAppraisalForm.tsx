@@ -3,11 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormUrlSync } from "../hooks/useFormUrlSync";
-import {
-	useAccount,
-	useWriteContract,
-	usePublicClient,
-} from "wagmi";
+import { useAccount, useWriteContract, usePublicClient } from "wagmi";
 import { isAddress } from "viem";
 import {
 	CheckBadgeIcon,
@@ -33,14 +29,26 @@ import {
 } from "../generated";
 import { formatTokenAmount } from "../lib/utils";
 import { useActor } from "@xstate/react";
-import { nftAppraisalMachine, type AppraisalCallbacks, type AppraisalResult } from "../machines/nftAppraisalMachine";
+import {
+	nftAppraisalMachine,
+	type AppraisalCallbacks,
+	type AppraisalResult,
+} from "../machines/nftAppraisalMachine";
 import { useNFTAppraisalStore } from "../stores/nftAppraisalStore";
 import { useRewardsData } from "../hooks/useRewardsData";
 
 interface NFTAppraisalFormProps {
 	onSubmissionSuccess?: (collection: string, tokenId: string) => void;
-	onAction?: (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void;
-	onAppraisalStatusChange?: (collection: string, tokenId: string, hasValidAppraisal: boolean) => void;
+	onAction?: (
+		collection: string,
+		tokenId: string,
+		hasValidAppraisal?: boolean,
+	) => void;
+	onAppraisalStatusChange?: (
+		collection: string,
+		tokenId: string,
+		hasValidAppraisal: boolean,
+	) => void;
 	className?: string;
 }
 
@@ -96,7 +104,6 @@ export function NFTAppraisalForm({
 		});
 	}, [urlSyncedData.collection, urlSyncedData.tokenId]);
 
-	
 	// Contract reads for appraisal fee and token info
 	const { data: appraisalFee } = useReadNftAppraisalAppraisalFee({
 		address: contracts.appraisal as `0x${string}` | undefined,
@@ -139,13 +146,11 @@ export function NFTAppraisalForm({
 	const {
 		writeContractAsync: requestAppraisalAsync,
 		isPending: isRequestingAppraisal,
-	} =
-		useWriteContract();
+	} = useWriteContract();
 
-	
 	// Handle machine state completion
 	useEffect(() => {
-		if (state.matches('completed') && state.context.appraisalResult) {
+		if (state.matches("completed") && state.context.appraisalResult) {
 			const appraisalResult = state.context.appraisalResult as AppraisalResult;
 			const collection = appraisalResult.collection;
 			const tokenId = appraisalResult.tokenId;
@@ -175,7 +180,16 @@ export function NFTAppraisalForm({
 				onSubmissionSuccess(collection, tokenId);
 			}
 		}
-	}, [state, onSubmissionSuccess, onAction, onAppraisalStatusChange, userAddress, addOptimisticSubmission, refetchAllRewardsData, send]);
+	}, [
+		state,
+		onSubmissionSuccess,
+		onAction,
+		onAppraisalStatusChange,
+		userAddress,
+		addOptimisticSubmission,
+		refetchAllRewardsData,
+		send,
+	]);
 
 	// Handle errors from machine
 	useEffect(() => {
@@ -246,7 +260,13 @@ export function NFTAppraisalForm({
 			return;
 		}
 
-		if (!userAddress || !publicClient || !contracts.appraisal || !feeToken || !appraisalFee) {
+		if (
+			!userAddress ||
+			!publicClient ||
+			!contracts.appraisal ||
+			!feeToken ||
+			!appraisalFee
+		) {
 			setErrors({ general: "Missing required parameters" });
 			return;
 		}
@@ -255,23 +275,26 @@ export function NFTAppraisalForm({
 			setErrors({});
 
 			// Create callbacks for the state machine
-				const callbacks: AppraisalCallbacks = {
-					approveTokens: async (params) => {
-						try {
-							const hash = await approveTokensAsync(params);
-							return hash;
-						} catch (error) {
-							console.error("[NFTAppraisalForm] Approval callback error:", error);
-							throw error;
-						}
-					},
-					requestAppraisal: async (params) => {
-						try {
-							const hash = await requestAppraisalAsync(params);
-							return hash;
-						} catch (error) {
-							console.error("[NFTAppraisalForm] Appraisal callback error:", error);
-							throw error;
+			const callbacks: AppraisalCallbacks = {
+				approveTokens: async (params) => {
+					try {
+						const hash = await approveTokensAsync(params);
+						return hash;
+					} catch (error) {
+						console.error("[NFTAppraisalForm] Approval callback error:", error);
+						throw error;
+					}
+				},
+				requestAppraisal: async (params) => {
+					try {
+						const hash = await requestAppraisalAsync(params);
+						return hash;
+					} catch (error) {
+						console.error(
+							"[NFTAppraisalForm] Appraisal callback error:",
+							error,
+						);
+						throw error;
 					}
 				},
 			};
@@ -331,9 +354,7 @@ export function NFTAppraisalForm({
 	};
 
 	const isPending =
-		isApproving ||
-		isRequestingAppraisal ||
-		!state.matches('idle');
+		isApproving || isRequestingAppraisal || !state.matches("idle");
 
 	// Show preview if valid NFT details
 	const shouldShowPreview = () => {
@@ -358,7 +379,7 @@ export function NFTAppraisalForm({
 				{/* Header */}
 				<div className="text-center p-8 pb-4">
 					<AnimatePresence mode="wait">
-						{state.matches('completed') ? (
+						{state.matches("completed") ? (
 							<motion.div
 								key="success"
 								initial={{ scale: 0.8, opacity: 0 }}
@@ -381,12 +402,13 @@ export function NFTAppraisalForm({
 										isDisabled
 									>
 										<span className="flex items-center justify-center gap-2">
-											<CheckBadgeIcon className="w-5 h-5" /> Appraised Successfully
+											<CheckBadgeIcon className="w-5 h-5" /> Appraised
+											Successfully
 										</span>
 									</Button>
 								</div>
 							</motion.div>
-						) : state.matches('waitingForCompletion') ? (
+						) : state.matches("waitingForCompletion") ? (
 							<motion.div
 								key="processing"
 								initial={{ scale: 0.8, opacity: 0 }}
@@ -458,8 +480,7 @@ export function NFTAppraisalForm({
 
 				{/* Progress indicator */}
 				<AnimatePresence>
-					{(state.matches('approving') ||
-						state.matches('submitting')) && (
+					{(state.matches("approving") || state.matches("submitting")) && (
 						<motion.div
 							initial={{ height: 0, opacity: 0 }}
 							animate={{ height: "auto", opacity: 1 }}
@@ -470,8 +491,7 @@ export function NFTAppraisalForm({
 								<div className="flex items-center gap-2">
 									<div
 										className={`w-2 h-2 rounded-full ${
-											state.matches('approving') ||
-											state.matches('submitting')
+											state.matches("approving") || state.matches("submitting")
 												? "bg-success"
 												: "bg-default-300"
 										}`}
@@ -479,14 +499,14 @@ export function NFTAppraisalForm({
 									<div className={"w-8 h-0.5 bg-default-300"} />
 									<div
 										className={`w-2 h-2 rounded-full ${
-											state.matches('submitting')
+											state.matches("submitting")
 												? "bg-success"
 												: "bg-default-300"
 										}`}
 									/>
 									<div className="ml-auto text-xs text-foreground">
-										{state.matches('approving') && "Approving..."}
-										{state.matches('submitting') && "Submitting to AVS..."}
+										{state.matches("approving") && "Approving..."}
+										{state.matches("submitting") && "Submitting to AVS..."}
 									</div>
 								</div>
 							</div>
@@ -495,7 +515,7 @@ export function NFTAppraisalForm({
 				</AnimatePresence>
 
 				{/* NFT Preview */}
-				{shouldShowPreview() && state.matches('idle') && (
+				{shouldShowPreview() && state.matches("idle") && (
 					<motion.div
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -542,11 +562,14 @@ export function NFTAppraisalForm({
 				)}
 
 				{/* Form */}
-				{state.matches('idle') && (
+				{state.matches("idle") && (
 					<form onSubmit={handleSubmit} className="p-8 pt-4 space-y-4">
 						{/* Collection Address */}
 						<div>
-							<label htmlFor="collection" className="block text-sm font-medium text-foreground mb-2">
+							<label
+								htmlFor="collection"
+								className="block text-sm font-medium text-foreground mb-2"
+							>
 								Collection Address
 							</label>
 							<div className="relative">
@@ -580,7 +603,10 @@ export function NFTAppraisalForm({
 
 						{/* Token ID */}
 						<div>
-							<label htmlFor="tokenId" className="block text-sm font-medium text-foreground mb-2">
+							<label
+								htmlFor="tokenId"
+								className="block text-sm font-medium text-foreground mb-2"
+							>
 								Token ID
 							</label>
 							<div className="relative">
@@ -694,12 +720,12 @@ export function NFTAppraisalForm({
 				)}
 
 				{/* Pending states with cancel option */}
-				{(state.matches('approving') ||
-					state.matches('submitting') ||
-					state.matches('waitingForCompletion')) && (
+				{(state.matches("approving") ||
+					state.matches("submitting") ||
+					state.matches("waitingForCompletion")) && (
 					<div className="p-8 pt-4 text-center space-y-4">
 						<div className="space-y-2">
-							{state.matches('approving') && (
+							{state.matches("approving") && (
 								<>
 									<div className="w-16 h-16 bg-gradient-to-br from-warning/20 to-orange-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
 										<CpuChipIcon className="w-8 h-8 text-warning animate-pulse" />
@@ -712,7 +738,7 @@ export function NFTAppraisalForm({
 									</p>
 								</>
 							)}
-							{state.matches('submitting') && (
+							{state.matches("submitting") && (
 								<>
 									<div className="w-16 h-16 bg-gradient-to-br from-info/20 to-blue-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
 										<SparklesIcon className="w-8 h-8 text-info animate-pulse" />
@@ -725,7 +751,7 @@ export function NFTAppraisalForm({
 									</p>
 								</>
 							)}
-							{state.matches('waitingForCompletion') && (
+							{state.matches("waitingForCompletion") && (
 								<>
 									<div className="w-16 h-16 bg-gradient-to-br from-success/20 to-green-400/20 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
 										<CpuChipIcon className="w-8 h-8 text-success animate-pulse" />
@@ -742,8 +768,7 @@ export function NFTAppraisalForm({
 						<div className="flex gap-3 pt-4">
 							<Button
 								type="button"
-								color="danger"
-								variant="bordered"
+								color="glass"
 								className="flex-1"
 								onPress={resetForm}
 							>
@@ -753,8 +778,7 @@ export function NFTAppraisalForm({
 						</div>
 					</div>
 				)}
-
-				</Card>
+			</Card>
 		</motion.div>
 	);
 }

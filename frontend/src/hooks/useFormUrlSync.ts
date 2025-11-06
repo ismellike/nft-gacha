@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback } from "react";
-import { useClientSearchParam, useUpdateSearchParams } from "./useClientSearchParams";
+import {
+	useClientSearchParam,
+	useUpdateSearchParams,
+} from "./useClientSearchParams";
 
 /**
  * Hook to sync form data with URL search parameters
@@ -9,7 +12,10 @@ import { useClientSearchParam, useUpdateSearchParams } from "./useClientSearchPa
  * @param initialFormData - Initial form data
  * @returns [formData, setFormDataWithUrlSync] tuple
  */
-export function useFormUrlSync(initialFormData: { collection: string; tokenId: string }) {
+export function useFormUrlSync(initialFormData: {
+	collection: string;
+	tokenId: string;
+}) {
 	const collectionParam = useClientSearchParam("collection");
 	const tokenIdParam = useClientSearchParam("tokenId");
 	const updateSearchParams = useUpdateSearchParams();

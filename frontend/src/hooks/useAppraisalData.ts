@@ -4,12 +4,25 @@ import {
 	useReadNftAppraisalGetAppraisal,
 	useReadNftAppraisalGetBatchAppraisals,
 	useReadNftAppraisalHasBatchAppraisals,
-	useReadNftAppraisalAppraisalFee
+	useReadNftAppraisalAppraisalFee,
 } from "../generated";
-import { useNFTAppraisalStore, type AppraisedNFT } from "../stores/nftAppraisalStore";
+import {
+	useNFTAppraisalStore,
+	type AppraisedNFT,
+} from "../stores/nftAppraisalStore";
 
-export type AppraisalFilter = "all" | "pending" | "completed" | "recent" | "highValue";
-export type AppraisalSort = "newest" | "oldest" | "highestValue" | "lowestValue" | "recentlyUpdated";
+export type AppraisalFilter =
+	| "all"
+	| "pending"
+	| "completed"
+	| "recent"
+	| "highValue";
+export type AppraisalSort =
+	| "newest"
+	| "oldest"
+	| "highestValue"
+	| "lowestValue"
+	| "recentlyUpdated";
 
 interface UseAppraisalDataOptions {
 	autoRefresh?: boolean;
@@ -24,15 +37,14 @@ interface UseAppraisalDataOptions {
 // Cache for 30 seconds to prevent excessive API calls
 const CACHE_DURATION = 30 * 1000;
 
-
 export const useAppraisalData = (
 	userAddress?: string,
 	options: UseAppraisalDataOptions = {
 		autoRefresh: true,
 		refreshInterval: 30000,
 		filter: "all",
-		sort: "newest"
-	}
+		sort: "newest",
+	},
 ) => {
 	const { address: connectedAddress } = useAccount();
 	const address = userAddress || connectedAddress;
@@ -60,13 +72,13 @@ export const useAppraisalData = (
 		const nftMap = new Map<string, { collection: string; tokenId: string }>();
 
 		// Add optimistic NFTs
-		optimisticNFTs.forEach(nft => {
+		optimisticNFTs.forEach((nft) => {
 			const key = `${nft.collection.toLowerCase()}:${nft.tokenId}`;
 			nftMap.set(key, { collection: nft.collection, tokenId: nft.tokenId });
 		});
 
 		// Add known NFTs (don't overwrite optimistic)
-		knownNFTs.forEach(nft => {
+		knownNFTs.forEach((nft) => {
 			const key = `${nft.collection.toLowerCase()}:${nft.tokenId}`;
 			if (!nftMap.has(key)) {
 				nftMap.set(key, { collection: nft.collection, tokenId: nft.tokenId });
@@ -112,14 +124,20 @@ export const useAppraisalData = (
 		if (allKnownNFTs.length === 0) return null;
 
 		return {
-			collections: allKnownNFTs.map(nft => nft.collection as `0x${string}`),
-			tokenIds: allKnownNFTs.map(nft => BigInt(nft.tokenId)),
+			collections: allKnownNFTs.map((nft) => nft.collection as `0x${string}`),
+			tokenIds: allKnownNFTs.map((nft) => BigInt(nft.tokenId)),
 		};
 	}, [allKnownNFTs]);
 
 	// Use the batch appraisal function with wagmi
-	const { data: batchResults, isLoading: isBatchLoading, error: batchError } = useReadNftAppraisalGetBatchAppraisals({
-		args: batchQueryArgs ? [batchQueryArgs.collections, batchQueryArgs.tokenIds] : undefined,
+	const {
+		data: batchResults,
+		isLoading: isBatchLoading,
+		error: batchError,
+	} = useReadNftAppraisalGetBatchAppraisals({
+		args: batchQueryArgs
+			? [batchQueryArgs.collections, batchQueryArgs.tokenIds]
+			: undefined,
 		query: {
 			enabled: !!batchQueryArgs && shouldFetch(),
 			staleTime: CACHE_DURATION,
@@ -135,11 +153,18 @@ export const useAppraisalData = (
 
 		try {
 			// batchResults is a tuple [prices, statuses]
-			if (batchResults && Array.isArray(batchResults) && batchResults.length === 2) {
+			if (
+				batchResults &&
+				Array.isArray(batchResults) &&
+				batchResults.length === 2
+			) {
 				const [prices, statuses] = batchResults;
 
 				// Validate array lengths match the number of NFTs
-				if (prices.length !== allKnownNFTs.length || statuses.length !== allKnownNFTs.length) {
+				if (
+					prices.length !== allKnownNFTs.length ||
+					statuses.length !== allKnownNFTs.length
+				) {
 					console.warn("Batch results length mismatch with NFTs array");
 					return;
 				}
@@ -151,8 +176,9 @@ export const useAppraisalData = (
 
 					// Try to get timestamp from optimistic submissions
 					const optimisticSubmission = optimisticSubmissions.find(
-						sub => sub.collection.toLowerCase() === nft.collection.toLowerCase() &&
-							   sub.tokenId === nft.tokenId
+						(sub) =>
+							sub.collection.toLowerCase() === nft.collection.toLowerCase() &&
+							sub.tokenId === nft.tokenId,
 					);
 
 					// Get current timestamp for lastUpdated
@@ -173,7 +199,7 @@ export const useAppraisalData = (
 
 				// Filter out NFTs that are still pending (no appraisal yet) but keep those with status updates
 				const completedAppraisals = appraisedNFTs.filter(
-					nft => nft.priceUSD > BigInt(0) || nft.status !== 0
+					(nft) => nft.priceUSD > BigInt(0) || nft.status !== 0,
 				);
 
 				setAppraisals(address, completedAppraisals);
@@ -181,16 +207,19 @@ export const useAppraisalData = (
 				// Remove optimistic submissions that are now appraised
 				optimisticSubmissions.forEach((submission) => {
 					const isAppraised = completedAppraisals.some(
-						appraised =>
-							appraised.collection.toLowerCase() === submission.collection.toLowerCase() &&
-							appraised.tokenId === submission.tokenId
+						(appraised) =>
+							appraised.collection.toLowerCase() ===
+								submission.collection.toLowerCase() &&
+							appraised.tokenId === submission.tokenId,
 					);
 					if (isAppraised) {
-						useNFTAppraisalStore.getState().removeOptimisticSubmission(
-							address,
-							submission.collection,
-							submission.tokenId
-						);
+						useNFTAppraisalStore
+							.getState()
+							.removeOptimisticSubmission(
+								address,
+								submission.collection,
+								submission.tokenId,
+							);
 					}
 				});
 			}
@@ -198,12 +227,21 @@ export const useAppraisalData = (
 			console.error("Failed to process batch results:", error);
 			setError(
 				address,
-				error instanceof Error ? error.message : "Failed to process appraisals"
+				error instanceof Error ? error.message : "Failed to process appraisals",
 			);
 		} finally {
 			setLoading(address, false);
 		}
-	}, [address, batchResults, allKnownNFTs, optimisticSubmissions, setLoading, clearUserError, setAppraisals, setError]);
+	}, [
+		address,
+		batchResults,
+		allKnownNFTs,
+		optimisticSubmissions,
+		setLoading,
+		clearUserError,
+		setAppraisals,
+		setError,
+	]);
 
 	// Process results whenever they change
 	useEffect(() => {
@@ -231,7 +269,9 @@ export const useAppraisalData = (
 		if (address && batchError) {
 			setError(
 				address,
-				batchError instanceof Error ? batchError.message : "Failed to fetch appraisals"
+				batchError instanceof Error
+					? batchError.message
+					: "Failed to fetch appraisals",
 			);
 		}
 	}, [address, batchError, setError]);
@@ -245,7 +285,12 @@ export const useAppraisalData = (
 		}, options.refreshInterval);
 
 		return () => clearInterval(interval);
-	}, [address, options.autoRefresh, options.refreshInterval, fetchUserAppraisals]);
+	}, [
+		address,
+		options.autoRefresh,
+		options.refreshInterval,
+		fetchUserAppraisals,
+	]);
 
 	// Initial fetch is handled by the wagmi query automatically
 
@@ -255,25 +300,31 @@ export const useAppraisalData = (
 
 		switch (options.filter) {
 			case "pending":
-				filtered = filtered.filter(appraisal =>
-					!("isOptimistic" in appraisal) && appraisal.status === 0
+				filtered = filtered.filter(
+					(appraisal) =>
+						!("isOptimistic" in appraisal) && appraisal.status === 0,
 				);
 				break;
 			case "completed":
-				filtered = filtered.filter(appraisal =>
-					!("isOptimistic" in appraisal) && (appraisal.status === 1 || appraisal.status === 2)
+				filtered = filtered.filter(
+					(appraisal) =>
+						!("isOptimistic" in appraisal) &&
+						(appraisal.status === 1 || appraisal.status === 2),
 				);
 				break;
 			case "recent":
-				filtered = filtered.filter(appraisal => {
-					const timestamp = "isOptimistic" in appraisal ? appraisal.timestamp : Number(appraisal.timestamp) * 1000;
+				filtered = filtered.filter((appraisal) => {
+					const timestamp =
+						"isOptimistic" in appraisal
+							? appraisal.timestamp
+							: Number(appraisal.timestamp) * 1000;
 					return Date.now() - timestamp < 24 * 60 * 60 * 1000; // Last 24 hours
 				});
 				break;
 			case "highValue":
-				filtered = filtered.filter(appraisal => {
+				filtered = filtered.filter((appraisal) => {
 					if ("isOptimistic" in appraisal) return false;
-					return appraisal.priceUSD > BigInt(1000 * 10**18); // > $1000
+					return appraisal.priceUSD > BigInt(1000 * 10 ** 18); // > $1000
 				});
 				break;
 		}
@@ -288,15 +339,19 @@ export const useAppraisalData = (
 		switch (options.sort) {
 			case "newest":
 				sorted.sort((a, b) => {
-					const timeA = "isOptimistic" in a ? a.timestamp : Number(a.timestamp) * 1000;
-					const timeB = "isOptimistic" in b ? b.timestamp : Number(b.timestamp) * 1000;
+					const timeA =
+						"isOptimistic" in a ? a.timestamp : Number(a.timestamp) * 1000;
+					const timeB =
+						"isOptimistic" in b ? b.timestamp : Number(b.timestamp) * 1000;
 					return timeB - timeA;
 				});
 				break;
 			case "oldest":
 				sorted.sort((a, b) => {
-					const timeA = "isOptimistic" in a ? a.timestamp : Number(a.timestamp) * 1000;
-					const timeB = "isOptimistic" in b ? b.timestamp : Number(b.timestamp) * 1000;
+					const timeA =
+						"isOptimistic" in a ? a.timestamp : Number(a.timestamp) * 1000;
+					const timeB =
+						"isOptimistic" in b ? b.timestamp : Number(b.timestamp) * 1000;
 					return timeA - timeB;
 				});
 				break;
@@ -336,23 +391,30 @@ export const useAppraisalData = (
 	// Memoized statistics derived from the same dataset
 	const stats = useMemo(() => {
 		const total = rawAppraisals.length;
-		const completed = confirmedAppraisals.filter(a => a.status === 1 || a.status === 2).length;
-		const pending = confirmedAppraisals.filter(a => a.status === 0).length;
-		const recent = rawAppraisals.filter(appraisal => {
-			const timestamp = "isOptimistic" in appraisal ? appraisal.timestamp : Number(appraisal.timestamp) * 1000;
+		const completed = confirmedAppraisals.filter(
+			(a) => a.status === 1 || a.status === 2,
+		).length;
+		const pending = confirmedAppraisals.filter((a) => a.status === 0).length;
+		const recent = rawAppraisals.filter((appraisal) => {
+			const timestamp =
+				"isOptimistic" in appraisal
+					? appraisal.timestamp
+					: Number(appraisal.timestamp) * 1000;
 			return Date.now() - timestamp < 24 * 60 * 60 * 1000;
 		}).length;
-		const readyForGacha = rawAppraisals.filter(appraisal => {
+		const readyForGacha = rawAppraisals.filter((appraisal) => {
 			if ("isOptimistic" in appraisal) {
 				return Date.now() - appraisal.timestamp > 30000; // 30 seconds old
 			}
 			return appraisal.status === 1 || appraisal.status === 2;
 		}).length;
 		const totalValue = confirmedAppraisals.reduce(
-			(sum, a) => sum + (a.status === 1 || a.status === 2 ? a.priceUSD : BigInt(0)),
-			BigInt(0)
+			(sum, a) =>
+				sum + (a.status === 1 || a.status === 2 ? a.priceUSD : BigInt(0)),
+			BigInt(0),
 		);
-		const averageValue = completed > 0 ? totalValue / BigInt(completed) : BigInt(0);
+		const averageValue =
+			completed > 0 ? totalValue / BigInt(completed) : BigInt(0);
 
 		return {
 			total,
@@ -362,7 +424,9 @@ export const useAppraisalData = (
 			readyForGacha,
 			totalValue,
 			averageValue,
-			highValue: confirmedAppraisals.filter(a => a.priceUSD > BigInt(1000 * 10**18)).length,
+			highValue: confirmedAppraisals.filter(
+				(a) => a.priceUSD > BigInt(1000 * 10 ** 18),
+			).length,
 		};
 	}, [rawAppraisals, confirmedAppraisals]);
 
@@ -375,7 +439,13 @@ export const useAppraisalData = (
 
 		// Status
 		loading: address ? isBatchLoading : false,
-		error: address ? (batchError ? (batchError instanceof Error ? batchError.message : "Failed to fetch appraisals") : null) : null,
+		error: address
+			? batchError
+				? batchError instanceof Error
+					? batchError.message
+					: "Failed to fetch appraisals"
+				: null
+			: null,
 
 		// Actions
 		refetch: fetchUserAppraisals,
@@ -387,9 +457,9 @@ export const useAppraisalData = (
 		checkHasAppraisal: (collection: string, tokenId: string) => {
 			// Quick check to see if we already have data for this NFT
 			return rawAppraisals.some(
-				appraisal =>
+				(appraisal) =>
 					appraisal.collection.toLowerCase() === collection.toLowerCase() &&
-					appraisal.tokenId === tokenId
+					appraisal.tokenId === tokenId,
 			);
 		},
 
@@ -402,11 +472,12 @@ export const useAppraisalData = (
 };
 
 // Hook for fetching a single appraisal
-export const useSingleAppraisal = (
-	collection: string,
-	tokenId: string
-) => {
-	const { data: appraisal, isLoading, error } = useReadNftAppraisalGetAppraisal({
+export const useSingleAppraisal = (collection: string, tokenId: string) => {
+	const {
+		data: appraisal,
+		isLoading,
+		error,
+	} = useReadNftAppraisalGetAppraisal({
 		args: [collection as `0x${string}`, BigInt(tokenId)],
 		query: {
 			enabled: !!collection && !!tokenId,
@@ -426,19 +497,21 @@ export const useAppraisalStats = (userAddress?: string) => {
 	const { address: connectedAddress } = useAccount();
 	const address = userAddress || connectedAddress;
 	const appraisals = useNFTAppraisalStore((state) =>
-		address ? state.getUserAppraisals(address) : []
+		address ? state.getUserAppraisals(address) : [],
 	);
 
 	const stats = {
 		total: appraisals.length,
-		completed: appraisals.filter((a) => a.status === 1 || a.status === 2).length,
+		completed: appraisals.filter((a) => a.status === 1 || a.status === 2)
+			.length,
 		pending: appraisals.filter((a) => a.status === 0).length,
 		totalValue: appraisals.reduce(
-			(sum, a) => sum + (a.status === 1 || a.status === 2 ? a.priceUSD : BigInt(0)),
-			BigInt(0)
+			(sum, a) =>
+				sum + (a.status === 1 || a.status === 2 ? a.priceUSD : BigInt(0)),
+			BigInt(0),
 		),
 		recent24h: appraisals.filter(
-			(a) => Date.now() - Number(a.timestamp) * 1000 < 24 * 60 * 60 * 1000
+			(a) => Date.now() - Number(a.timestamp) * 1000 < 24 * 60 * 60 * 1000,
 		).length,
 	};
 
@@ -446,17 +519,23 @@ export const useAppraisalStats = (userAddress?: string) => {
 };
 
 // Hook for efficiently checking if multiple NFTs have appraisals
-export const useBatchAppraisalCheck = (nfts: Array<{ collection: string; tokenId: string }>) => {
+export const useBatchAppraisalCheck = (
+	nfts: Array<{ collection: string; tokenId: string }>,
+) => {
 	const batchArgs = useMemo(() => {
 		if (nfts.length === 0) return null;
 
 		return {
-			collections: nfts.map(nft => nft.collection as `0x${string}`),
-			tokenIds: nfts.map(nft => BigInt(nft.tokenId)),
+			collections: nfts.map((nft) => nft.collection as `0x${string}`),
+			tokenIds: nfts.map((nft) => BigInt(nft.tokenId)),
 		};
 	}, [nfts]);
 
-	const { data: hasAppraisals, isLoading, error } = useReadNftAppraisalHasBatchAppraisals({
+	const {
+		data: hasAppraisals,
+		isLoading,
+		error,
+	} = useReadNftAppraisalHasBatchAppraisals({
 		args: batchArgs ? [batchArgs.collections, batchArgs.tokenIds] : undefined,
 		query: {
 			enabled: !!batchArgs,
@@ -473,7 +552,11 @@ export const useBatchAppraisalCheck = (nfts: Array<{ collection: string; tokenId
 
 // Hook for getting appraisal fee info
 export const useAppraisalFee = () => {
-	const { data: appraisalFee, isLoading, error } = useReadNftAppraisalAppraisalFee({
+	const {
+		data: appraisalFee,
+		isLoading,
+		error,
+	} = useReadNftAppraisalAppraisalFee({
 		query: {
 			staleTime: 300000, // 5 minutes cache
 		},

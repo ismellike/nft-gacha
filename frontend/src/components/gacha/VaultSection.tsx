@@ -26,6 +26,8 @@ import {
 	calculateUserSharePercentage,
 	useClaimYield,
 	useSimulateClaimYield,
+	type UserDepositorData,
+	type DepositorVaultData,
 } from "../../hooks/useDepositorVault";
 import { formatCurrency } from "../../lib/utils";
 import { useNFTWithdrawal } from "../../hooks/useNFTWithdrawal";
@@ -34,13 +36,16 @@ import {
 	type DepositedNFT,
 } from "../../hooks/useUserDepositedNFTs";
 import { useNFTDeposit } from "../../hooks/useNFTDeposit";
-import { useUserOwnedNFTsMultipleCollections } from "../../hooks/useUserOwnedNFTs";
+import {
+	useUserOwnedNFTsMultipleCollections,
+} from "../../hooks/useUserOwnedNFTs";
+import type { UserOwnedNFTMultiCollection } from "../../types/hooks";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { getGachaConfig } from "../../lib/gacha-config";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../../generated";
 import { toast } from "react-hot-toast";
-import type { Address } from "viem";
+import type { Address, PublicClient } from "viem";
 
 // Types
 interface VaultSectionProps {
@@ -166,9 +171,9 @@ function useVaultState(initialState: Partial<VaultState> = {}) {
 }
 
 function useAppraisalChecker(
-	userOwnedNFTs: any[],
+	userOwnedNFTs: UserOwnedNFTMultiCollection[],
 	appraisal: string | undefined,
-	publicClient: any,
+	publicClient: PublicClient | undefined,
 	updateAppraisedStatus: (
 		collection: string,
 		tokenId: string,
@@ -286,7 +291,7 @@ const WalletConnectPrompt: React.FC = () => (
 );
 
 const BalanceOverview: React.FC<{
-	depositorUserData: any;
+	depositorUserData: UserDepositorData;
 	canClaim: boolean;
 	isClaiming: boolean;
 	onClaimYield: () => void;
@@ -385,7 +390,7 @@ const TabNavigation: React.FC<{
 	];
 
 	return (
-		<nav
+		<div
 			role="tablist"
 			aria-label="Vault management tabs"
 			className="flex flex-wrap gap-2 p-1 bg-content1/20 rounded-xl"
@@ -408,13 +413,13 @@ const TabNavigation: React.FC<{
 					{tab.label}
 				</Button>
 			))}
-		</nav>
+		</div>
 	);
 };
 
 const DepositTab: React.FC<{
-	userOwnedNFTs: any[];
-	sortedUserOwnedNFTs: any[];
+	userOwnedNFTs: UserOwnedNFTMultiCollection[];
+	sortedUserOwnedNFTs: UserOwnedNFTMultiCollection[];
 	appraisedNFTs: Set<string>;
 	appraisalData: Map<string, AppraisalInfo>;
 	appraisal: string | undefined;
@@ -534,8 +539,8 @@ const DepositTab: React.FC<{
 };
 
 const YieldTab: React.FC<{
-	depositorUserData: any;
-	depositorData: any;
+	depositorUserData: UserDepositorData;
+	depositorData: DepositorVaultData;
 }> = ({ depositorUserData, depositorData }) => (
 	<section id="yield-panel" role="tabpanel" aria-labelledby="yield-tab">
 		<h2 className="text-xl font-semibold text-foreground mb-4">
@@ -878,7 +883,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				updateState("depositingNFTs", new Set());
 			}
 		},
-		[depositNFT, updateState],
+	[depositNFT, updateState, state.depositingNFTs],
 	);
 
 	const handleNFTAction = useCallback(
@@ -900,7 +905,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				window.location.href = appraisalUrl;
 			}
 		},
-		[isNFTDepositing, handleDepositNFT, updateState],
+		[isNFTDepositing, handleDepositNFT, updateState, state.depositingNFTs],
 	);
 
 	// Computed values

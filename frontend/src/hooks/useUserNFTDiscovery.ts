@@ -8,7 +8,7 @@ interface UserNFTDiscoveryOptions {
 }
 
 // Collection addresses to check (in a real app, this would be dynamic)
-const DEFAULT_COLLECTIONS = [
+const DEFAULT_COLLECTIONS: string[] = [
 	// Add known collection addresses here
 	// This could come from treasury whitelist or other sources
 ];
@@ -19,7 +19,7 @@ export const useUserNFTDiscovery = (
 		autoDiscover: true,
 		refreshInterval: 60000, // 1 minute
 		knownCollections: DEFAULT_COLLECTIONS,
-	}
+	},
 ) => {
 	const { address: connectedAddress } = useAccount();
 	const address = userAddress || connectedAddress;
@@ -41,7 +41,9 @@ export const useUserNFTDiscovery = (
 		// - Or use The Graph to query NFT ownership
 		// - Or maintain a local database of known NFTs
 
-		console.log("NFT discovery not implemented yet - would query for user NFTs");
+		console.log(
+			"NFT discovery not implemented yet - would query for user NFTs",
+		);
 	}, [address]);
 
 	// Auto-discover effect
@@ -53,7 +55,12 @@ export const useUserNFTDiscovery = (
 		}, options.refreshInterval);
 
 		return () => clearInterval(interval);
-	}, [address, options.autoDiscover, options.refreshInterval, discoverUserNFTs]);
+	}, [
+		address,
+		options.autoDiscover,
+		options.refreshInterval,
+		discoverUserNFTs,
+	]);
 
 	// Initial discovery
 	useEffect(() => {

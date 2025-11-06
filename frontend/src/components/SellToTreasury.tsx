@@ -16,10 +16,5 @@ interface SellToTreasuryProps {
 }
 
 export default function SellToTreasury(props: SellToTreasuryProps) {
-	return (
-		<BuybackComponent
-			{...props}
-			showTreasuryRestock={true}
-		/>
-	);
+	return <BuybackComponent {...props} showTreasuryRestock={true} />;
 }

@@ -12,11 +12,13 @@ import { Badge } from "../ui/Badge";
  */
 export function WAVSServiceInfo() {
 	const gachaId = useGachaId();
-	const [envelopeHistory, setEnvelopeHistory] = useState<Array<{
-		timestamp: number;
-		status: "pending" | "success" | "failed";
-		txHash?: string;
-	}>>([]);
+	const [envelopeHistory, setEnvelopeHistory] = useState<
+		Array<{
+			timestamp: number;
+			status: "pending" | "success" | "failed";
+			txHash?: string;
+		}>
+	>([]);
 
 	const {
 		serviceHandlerAddress,
@@ -44,7 +46,9 @@ export function WAVSServiceInfo() {
 		return (
 			<Card className="p-6 bg-red-500/10 border-red-500/20">
 				<div className="flex items-center gap-3">
-					<Badge color="danger" variant="solid">Service Unavailable</Badge>
+					<Badge color="danger" variant="solid">
+						Service Unavailable
+					</Badge>
 					<p className="text-sm text-red-400">
 						WAVS Service Handler not available for gacha {gachaId}
 					</p>
@@ -78,7 +82,8 @@ export function WAVSServiceInfo() {
 					<div className="flex justify-between items-center">
 						<span className="text-sm text-gray-400">Service Handler:</span>
 						<code className="text-xs bg-black/30 px-2 py-1 rounded">
-							{serviceHandlerAddress?.slice(0, 8)}...{serviceHandlerAddress?.slice(-6)}
+							{serviceHandlerAddress?.slice(0, 8)}...
+							{serviceHandlerAddress?.slice(-6)}
 						</code>
 					</div>
 
@@ -125,7 +130,7 @@ export function WAVSServiceInfo() {
 							<div
 								key={`${envelope.timestamp}-${index}`}
 								className={`p-3 rounded-lg border ${getStatusColor(
-									envelope.status
+									envelope.status,
 								)}`}
 							>
 								<div className="flex justify-between items-center">
@@ -168,8 +173,9 @@ export function WAVSServiceInfo() {
 
 					<div className="text-xs text-gray-500 mt-4">
 						<p>
-							Randomness is generated using WAVS-DRAND infrastructure with provably fair randomness.
-							All randomness proofs are verifiable on-chain.
+							Randomness is generated using WAVS-DRAND infrastructure with
+							provably fair randomness. All randomness proofs are verifiable
+							on-chain.
 						</p>
 					</div>
 				</div>

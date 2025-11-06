@@ -99,14 +99,7 @@ export function useRarityTracker(rarityTracker?: Address) {
 						appraisedValueUsd,
 						depositorCount,
 						lastUpdated,
-					] = info as [
-						Hex,
-						number,
-						bigint,
-						bigint,
-						bigint,
-						bigint,
-					];
+					] = info as unknown as [Hex, number, bigint, bigint, bigint, bigint];
 
 					return {
 						cardId: cardIdResult,
@@ -116,7 +109,7 @@ export function useRarityTracker(rarityTracker?: Address) {
 						depositorCount: Number(depositorCount),
 						lastUpdated,
 					};
-				} else if (info && typeof info === 'object') {
+				} else if (info && typeof info === "object") {
 					const infoObj = info as {
 						cardId: Hex;
 						currentRarity: number;
@@ -147,8 +140,7 @@ export function useRarityTracker(rarityTracker?: Address) {
 
 	const getBatchCardInfo = useCallback(
 		async (cardIds: Hex[]): Promise<CardAppraisalInfo[]> => {
-			if (!publicClient || !rarityTracker || cardIds.length === 0)
-				return [];
+			if (!publicClient || !rarityTracker || cardIds.length === 0) return [];
 
 			try {
 				const results = await publicClient.multicall({
@@ -171,14 +163,7 @@ export function useRarityTracker(rarityTracker?: Address) {
 							appraisedValueUsd,
 							depositorCount,
 							lastUpdated,
-						] = result.result as [
-							Hex,
-							number,
-							bigint,
-							bigint,
-							bigint,
-							bigint,
-						];
+						] = result.result as unknown as [Hex, number, bigint, bigint, bigint, bigint];
 
 						return {
 							cardId: cardIdResult,
@@ -235,10 +220,13 @@ export function useRarityTracker(rarityTracker?: Address) {
 				});
 
 				return results
-					.filter((result) => result.status === "success" && result.result !== undefined)
+					.filter(
+						(result) =>
+							result.status === "success" && result.result !== undefined,
+					)
 					.map((result, index) => ({
 						cardId: cardIds[index],
-						valueUsd: result.result as bigint,
+						valueUsd: result.result as unknown as bigint,
 					}));
 			} catch (error) {
 				console.error("Failed to get batch user card values:", error);
@@ -267,13 +255,7 @@ export function useRarityTracker(rarityTracker?: Address) {
 					totalWins,
 					totalRewards,
 					totalNftsWon,
-				] = stats as [
-					bigint,
-					bigint,
-					bigint,
-					bigint,
-					bigint,
-				];
+				] = stats as unknown as [bigint, bigint, bigint, bigint, bigint];
 
 				return {
 					totalDepositedCount,
@@ -282,7 +264,7 @@ export function useRarityTracker(rarityTracker?: Address) {
 					totalRewards,
 					totalNftsWon,
 				};
-			} else if (stats && typeof stats === 'object') {
+			} else if (stats && typeof stats === "object") {
 				return stats as {
 					totalDepositedCount: bigint;
 					totalAppraisedValueUsd: bigint;

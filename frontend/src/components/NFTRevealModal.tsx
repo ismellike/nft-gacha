@@ -166,7 +166,9 @@ export default function NFTRevealModal({
 											appraisalContractAddress={appraisalContractAddress}
 											animate={true}
 											rarity={resultRarity}
-											{...(protocolTreasuryAddress && { protocolTreasuryAddress })}
+											{...(protocolTreasuryAddress && {
+												protocolTreasuryAddress,
+											})}
 											{...(gachaTreasuryAddress && { gachaTreasuryAddress })}
 											{...(gachaId && { gachaId })}
 											disableAutoRedemption

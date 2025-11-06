@@ -234,7 +234,7 @@ export function NFTAvailabilitySection({
 						</h3>
 						<p className="text-sm text-danger/80">{error}</p>
 					</div>
-					<Button variant="bordered" onPress={refetchNFTs}>
+					<Button color="glass" onPress={refetchNFTs}>
 						Retry
 					</Button>
 				</Card>
@@ -262,7 +262,7 @@ export function NFTAvailabilitySection({
 							contributing to the treasury.
 						</p>
 					</div>
-					<Button variant="ghost" onPress={refetchNFTs} className="w-full">
+					<Button color="glass" onPress={refetchNFTs} className="w-full">
 						Refresh
 					</Button>
 				</Card>

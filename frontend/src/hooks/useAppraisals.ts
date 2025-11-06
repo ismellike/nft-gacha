@@ -25,7 +25,7 @@ export const useAppraisals = (
 		refreshInterval: DEFAULT_REFRESH_INTERVAL,
 		enablePolling: true,
 		pollingInterval: DEFAULT_POLLING_INTERVAL,
-	}
+	},
 ) => {
 	const { address: connectedAddress } = useAccount();
 	const address = userAddress || connectedAddress;
@@ -69,34 +69,44 @@ export const useAppraisals = (
 	}, [address, lastFetched]);
 
 	// Fetch single appraisal
-	const fetchSingleAppraisal = useCallback(async (
-		collection: string,
-		tokenId: string
-	): Promise<AppraisedNFT | null> => {
-		try {
-			// For now, we need to mock this since the contract integration isn't complete
-			// In a real implementation, this would use the actual contract call
-			const mockStatus = Math.random() > 0.5 ? 1 : 0;
-			const mockPrice = mockStatus === 1
-				? BigInt(Math.floor(Math.random() * 1000) + 100) * BigInt(10 ** 18)
-				: BigInt(0);
+	const fetchSingleAppraisal = useCallback(
+		async (
+			collection: string,
+			tokenId: string,
+		): Promise<AppraisedNFT | null> => {
+			try {
+				// For now, we need to mock this since the contract integration isn't complete
+				// In a real implementation, this would use the actual contract call
+				const mockStatus = Math.random() > 0.5 ? 1 : 0;
+				const mockPrice =
+					mockStatus === 1
+						? BigInt(Math.floor(Math.random() * 1000) + 100) * BigInt(10 ** 18)
+						: BigInt(0);
 
-			const appraisal: AppraisedNFT = {
-				collection,
-				tokenId,
-				priceUSD: mockPrice,
-				status: mockStatus,
-				requester: address || "",
-				timestamp: BigInt(Math.floor(Date.now() / 1000)),
-				lastUpdated: mockStatus === 1 ? BigInt(Math.floor(Date.now() / 1000)) : BigInt(0),
-			};
+				const appraisal: AppraisedNFT = {
+					collection,
+					tokenId,
+					priceUSD: mockPrice,
+					status: mockStatus,
+					requester: address || "",
+					timestamp: BigInt(Math.floor(Date.now() / 1000)),
+					lastUpdated:
+						mockStatus === 1
+							? BigInt(Math.floor(Date.now() / 1000))
+							: BigInt(0),
+				};
 
-			return appraisal;
-		} catch (error) {
-			console.error(`Failed to fetch appraisal for ${collection}:${tokenId}:`, error);
-			return null;
-		}
-	}, [address]);
+				return appraisal;
+			} catch (error) {
+				console.error(
+					`Failed to fetch appraisal for ${collection}:${tokenId}:`,
+					error,
+				);
+				return null;
+			}
+		},
+		[address],
+	);
 
 	// Fetch all appraisals for user
 	const fetchUserAppraisals = useCallback(async () => {
@@ -114,7 +124,10 @@ export const useAppraisals = (
 			const optimisticSubmissions = getUserOptimisticSubmissions(address);
 
 			for (const submission of optimisticSubmissions) {
-				const appraisal = await fetchSingleAppraisal(submission.collection, submission.tokenId);
+				const appraisal = await fetchSingleAppraisal(
+					submission.collection,
+					submission.tokenId,
+				);
 				if (appraisal) {
 					appraisals.push(appraisal);
 				}
@@ -125,7 +138,7 @@ export const useAppraisals = (
 			console.error("Failed to fetch user appraisals:", error);
 			setError(
 				address,
-				error instanceof Error ? error.message : "Failed to fetch appraisals"
+				error instanceof Error ? error.message : "Failed to fetch appraisals",
 			);
 		} finally {
 			setLoading(address, false);
@@ -142,73 +155,82 @@ export const useAppraisals = (
 	]);
 
 	// Fetch appraisals for specific NFTs (used when we have a list of NFTs to check)
-	const fetchAppraisalsForNFTs = useCallback(async (
-		nfts: Array<{ collection: string; tokenId: string }>
-	) => {
-		if (!address || nfts.length === 0) return;
+	const fetchAppraisalsForNFTs = useCallback(
+		async (nfts: Array<{ collection: string; tokenId: string }>) => {
+			if (!address || nfts.length === 0) return;
 
-		setLoading(address, true);
-		clearUserError(address);
+			setLoading(address, true);
+			clearUserError(address);
 
-		try {
-			const appraisals: AppraisedNFT[] = [];
+			try {
+				const appraisals: AppraisedNFT[] = [];
 
-			for (const nft of nfts) {
-				const appraisal = await fetchSingleAppraisal(nft.collection, nft.tokenId);
-				if (appraisal) {
-					appraisals.push(appraisal);
+				for (const nft of nfts) {
+					const appraisal = await fetchSingleAppraisal(
+						nft.collection,
+						nft.tokenId,
+					);
+					if (appraisal) {
+						appraisals.push(appraisal);
+					}
 				}
-			}
 
-			// Merge with existing appraisals
-			const existingAppraisals = getUserAppraisals(address);
-			const mergedAppraisals = [...existingAppraisals];
+				// Merge with existing appraisals
+				const existingAppraisals = getUserAppraisals(address);
+				const mergedAppraisals = [...existingAppraisals];
 
-			for (const newAppraisal of appraisals) {
-				const existingIndex = mergedAppraisals.findIndex(
-					(a) => a.collection.toLowerCase() === newAppraisal.collection.toLowerCase() &&
-					a.tokenId === newAppraisal.tokenId
+				for (const newAppraisal of appraisals) {
+					const existingIndex = mergedAppraisals.findIndex(
+						(a) =>
+							a.collection.toLowerCase() ===
+								newAppraisal.collection.toLowerCase() &&
+							a.tokenId === newAppraisal.tokenId,
+					);
+
+					if (existingIndex >= 0) {
+						mergedAppraisals[existingIndex] = newAppraisal;
+					} else {
+						mergedAppraisals.push(newAppraisal);
+					}
+				}
+
+				setAppraisals(address, mergedAppraisals);
+			} catch (error) {
+				console.error("Failed to fetch appraisals for NFTs:", error);
+				setError(
+					address,
+					error instanceof Error ? error.message : "Failed to fetch appraisals",
 				);
-
-				if (existingIndex >= 0) {
-					mergedAppraisals[existingIndex] = newAppraisal;
-				} else {
-					mergedAppraisals.push(newAppraisal);
-				}
+			} finally {
+				setLoading(address, false);
 			}
-
-			setAppraisals(address, mergedAppraisals);
-		} catch (error) {
-			console.error("Failed to fetch appraisals for NFTs:", error);
-			setError(
-				address,
-				error instanceof Error ? error.message : "Failed to fetch appraisals"
-			);
-		} finally {
-			setLoading(address, false);
-		}
-	}, [
-		address,
-		setLoading,
-		clearUserError,
-		getUserAppraisals,
-		fetchSingleAppraisal,
-		setAppraisals,
-		setError,
-	]);
+		},
+		[
+			address,
+			setLoading,
+			clearUserError,
+			getUserAppraisals,
+			fetchSingleAppraisal,
+			setAppraisals,
+			setError,
+		],
+	);
 
 	// Poll for pending appraisals (more frequent updates)
 	const pollPendingAppraisals = useCallback(async () => {
 		if (!address || !options.enablePolling) return;
 
-		const pendingAppraisals = confirmedAppraisals.filter(a => a.status === 0);
+		const pendingAppraisals = confirmedAppraisals.filter((a) => a.status === 0);
 		if (pendingAppraisals.length === 0) return;
 
 		try {
 			const updatedAppraisals: AppraisedNFT[] = [];
 
 			for (const appraisal of pendingAppraisals) {
-				const updated = await fetchSingleAppraisal(appraisal.collection, appraisal.tokenId);
+				const updated = await fetchSingleAppraisal(
+					appraisal.collection,
+					appraisal.tokenId,
+				);
 				if (updated) {
 					updatedAppraisals.push(updated);
 				}
@@ -221,8 +243,9 @@ export const useAppraisals = (
 
 				for (const updated of updatedAppraisals) {
 					const index = finalAppraisals.findIndex(
-						(a) => a.collection.toLowerCase() === updated.collection.toLowerCase() &&
-						a.tokenId === updated.tokenId
+						(a) =>
+							a.collection.toLowerCase() === updated.collection.toLowerCase() &&
+							a.tokenId === updated.tokenId,
 					);
 
 					if (index >= 0) {
@@ -253,7 +276,12 @@ export const useAppraisals = (
 		}, options.refreshInterval);
 
 		return () => clearInterval(interval);
-	}, [address, options.autoRefresh, options.refreshInterval, fetchUserAppraisals]);
+	}, [
+		address,
+		options.autoRefresh,
+		options.refreshInterval,
+		fetchUserAppraisals,
+	]);
 
 	// Polling effect for pending appraisals
 	useEffect(() => {
@@ -264,7 +292,12 @@ export const useAppraisals = (
 		}, options.pollingInterval);
 
 		return () => clearInterval(interval);
-	}, [address, options.enablePolling, options.pollingInterval, pollPendingAppraisals]);
+	}, [
+		address,
+		options.enablePolling,
+		options.pollingInterval,
+		pollPendingAppraisals,
+	]);
 
 	// Initial fetch
 	useEffect(() => {
@@ -281,20 +314,28 @@ export const useAppraisals = (
 	const stats = useMemo(() => {
 		return {
 			total: combinedAppraisals.length,
-			completed: confirmedAppraisals.filter(a => a.status === 1 || a.status === 2).length,
-			pending: confirmedAppraisals.filter(a => a.status === 0).length,
+			completed: confirmedAppraisals.filter(
+				(a) => a.status === 1 || a.status === 2,
+			).length,
+			pending: confirmedAppraisals.filter((a) => a.status === 0).length,
 			optimistic: optimisticSubmissions.length,
 			totalValue: confirmedAppraisals.reduce(
-				(sum, a) => sum + (a.status === 1 || a.status === 2 ? a.priceUSD : BigInt(0)),
-				BigInt(0)
+				(sum, a) =>
+					sum + (a.status === 1 || a.status === 2 ? a.priceUSD : BigInt(0)),
+				BigInt(0),
 			),
-			recent24h: combinedAppraisals.filter(nft => {
-				const timestamp = "timestamp" in nft
-					? ("isOptimistic" in nft ? nft.timestamp : Number(nft.timestamp) * 1000)
-					: nft.timestamp;
+			recent24h: combinedAppraisals.filter((nft) => {
+				let timestamp: number;
+				if ("isOptimistic" in nft) {
+					// Optimistic appraisal has timestamp as number
+					timestamp = nft.timestamp;
+				} else {
+					// AppraisedNFT has timestamp as bigint (seconds), convert to milliseconds
+					timestamp = Number(nft.timestamp) * 1000;
+				}
 				return Date.now() - timestamp < 24 * 60 * 60 * 1000;
 			}).length,
-			readyForGacha: combinedAppraisals.filter(nft => {
+			readyForGacha: combinedAppraisals.filter((nft) => {
 				// Check if appraisal is complete or if it's an optimistic submission older than 30 seconds
 				if ("isOptimistic" in nft) {
 					return Date.now() - nft.timestamp > 30000;
@@ -341,7 +382,11 @@ export const useAppraisals = (
 
 // Hook for a single appraisal
 export const useSingleAppraisal = (collection: string, tokenId: string) => {
-	const { data: appraisal, isLoading, error } = useReadNftAppraisalGetAppraisal({
+	const {
+		data: appraisal,
+		isLoading,
+		error,
+	} = useReadNftAppraisalGetAppraisal({
 		args: [collection as `0x${string}`, BigInt(tokenId)],
 		query: {
 			enabled: !!collection && !!tokenId,

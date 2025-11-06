@@ -48,8 +48,17 @@ export type GachaSpinEvent =
 
 const MAX_RETRIES = 5;
 const POLLING_INTERVAL = 3000; // 3 seconds
+const BASE_TIMEOUT = 10000; // 10 minutes
+const MAX_POLLING_TIME = BASE_TIMEOUT * 6; // 10 minutes at 3-second intervals
 
-// Actor to poll for SpinFulfilled events
+// Utility function for exponential backoff with jitter
+const getPollingDelay = (attempt: number, baseInterval: number): number => {
+	const exponentialDelay = baseInterval * 2 ** Math.min(attempt / 10, 5);
+	const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
+	return Math.min(exponentialDelay + jitter, 30000); // Max 30 seconds
+};
+
+// Actor to poll for SpinFulfilled events with improved error handling
 const pollForSpinFulfillment = fromPromise(
 	async ({
 		input,
@@ -62,30 +71,67 @@ const pollForSpinFulfillment = fromPromise(
 		};
 	}): Promise<SpinResult> => {
 		const { triggerId, userAddress, publicClient, gachaAddress } = input;
+		const startTime = Date.now();
+		let timeoutId: NodeJS.Timeout | null = null;
 
 		return new Promise((resolve, reject) => {
 			let attempts = 0;
-			const maxAttempts = 200; // 10 minutes at 3-second intervals
-			const refundCheckDelay = 10; // Start checking for refunds after 30 seconds (10 * 3s)
+			const maxAttempts = 200;
+			const refundCheckDelay = 10;
+			let isDestroyed = false;
+
+			const cleanup = () => {
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+					timeoutId = null;
+				}
+				isDestroyed = true;
+			};
+
+			// Set up overall timeout
+			timeoutId = setTimeout(() => {
+				if (!isDestroyed) {
+					cleanup();
+					reject(
+						new Error(
+							`Polling timeout: No event found after ${MAX_POLLING_TIME}ms`,
+						),
+					);
+				}
+			}, MAX_POLLING_TIME);
 
 			const poll = async () => {
-				attempts++;
+				if (isDestroyed) return;
 
-				if (attempts > maxAttempts) {
-					reject(new Error("Polling timeout: SpinFulfilled event not found"));
+				attempts++;
+				const elapsed = Date.now() - startTime;
+
+				// Check both attempt count and overall time
+				if (attempts > maxAttempts || elapsed > MAX_POLLING_TIME) {
+					cleanup();
+					reject(
+						new Error(
+							`Polling timeout: ${attempts} attempts over ${elapsed}ms`,
+						),
+					);
 					return;
 				}
 
 				try {
-					// Get current block number
+					// Validate inputs before polling
+					if (!publicClient || !gachaAddress || !userAddress || !triggerId) {
+						cleanup();
+						reject(new Error("Invalid polling parameters"));
+						return;
+					}
+
 					const currentBlock = await publicClient.getBlockNumber();
-					// Search last 1000 blocks to catch recent events
 					const fromBlock =
 						currentBlock > BigInt(1000)
 							? currentBlock - BigInt(1000)
 							: BigInt(0);
 
-					// Always check for SpinCompleted events (normal successful case)
+					// Check for SpinCompleted events
 					const completedLogs = await publicClient.getLogs({
 						address: gachaAddress as `0x${string}`,
 						event: {
@@ -104,13 +150,18 @@ const pollForSpinFulfillment = fromPromise(
 							triggerId: triggerId,
 							requester: userAddress as `0x${string}`,
 						},
-						fromBlock: fromBlock,
+						fromBlock,
 						toBlock: currentBlock,
 					});
 
 					if (completedLogs.length > 0) {
 						const log = completedLogs[0];
 						const { rarity, collection, tokenId } = log.args;
+
+						// Validate the log data
+						if (!rarity || !collection || tokenId === undefined) {
+							throw new Error("Invalid SpinCompleted event data");
+						}
 
 						const result: SpinResult = {
 							rarity: rarityBigIntToName(rarity),
@@ -122,13 +173,12 @@ const pollForSpinFulfillment = fromPromise(
 							"🎉 [GachaSpinMachine] SpinCompleted event found:",
 							result,
 						);
+						cleanup();
 						resolve(result);
 						return;
 					}
 
-					// Only check for SpinRefunded events after initial delay
-					// This is an optimization since automatic refunds are rare and only happen
-					// when the selected rarity has no available NFTs during fulfillment
+					// Check for refunds after delay
 					if (attempts >= refundCheckDelay) {
 						const refundedLogs = await publicClient.getLogs({
 							address: gachaAddress as `0x${string}`,
@@ -146,13 +196,17 @@ const pollForSpinFulfillment = fromPromise(
 								triggerId: triggerId,
 								requester: userAddress as `0x${string}`,
 							},
-							fromBlock: fromBlock,
+							fromBlock,
 							toBlock: currentBlock,
 						});
 
 						if (refundedLogs.length > 0) {
 							const log = refundedLogs[0];
 							const { selectedRarity, refundAmount } = log.args;
+
+							if (!selectedRarity || refundAmount === undefined) {
+								throw new Error("Invalid SpinRefunded event data");
+							}
 
 							const rarityName = rarityBigIntToName(selectedRarity);
 
@@ -161,25 +215,40 @@ const pollForSpinFulfillment = fromPromise(
 								refundAmount,
 							});
 
-							// Reject with a special refund error that includes the refund data
-							reject(
-								new Error(
-									`REFUND:${JSON.stringify({
-										selectedRarity: rarityName,
-										refundAmount: refundAmount?.toString() || "0",
-									})}`,
-								),
-							);
+							const refundData = {
+								selectedRarity: rarityName,
+								refundAmount: refundAmount?.toString() || "0",
+							};
+
+							cleanup();
+							reject(new Error(`REFUND:${JSON.stringify(refundData)}`));
 							return;
 						}
 					}
 
-					// Continue polling
-					setTimeout(poll, POLLING_INTERVAL);
+					// Continue polling with exponential backoff
+					if (!isDestroyed) {
+						const delay = getPollingDelay(attempts, POLLING_INTERVAL);
+						timeoutId = setTimeout(poll, delay);
+					}
 				} catch (error) {
-					console.error("[GachaSpinMachine] Polling error:", error);
-					// Continue polling on errors, but count attempts
-					setTimeout(poll, POLLING_INTERVAL);
+					console.error(
+						`[GachaSpinMachine] Polling error (attempt ${attempts}):`,
+						error,
+					);
+
+					// Continue polling on errors unless we've hit max attempts
+					if (attempts < maxAttempts && !isDestroyed) {
+						const delay = getPollingDelay(attempts, POLLING_INTERVAL);
+						timeoutId = setTimeout(poll, delay);
+					} else {
+						cleanup();
+						reject(
+							error instanceof Error
+								? error
+								: new Error("Unknown polling error"),
+						);
+					}
 				}
 			};
 
@@ -273,12 +342,24 @@ export const gachaSpinMachine = createMachine(
 				invoke: {
 					id: "pollForSpinFulfillment",
 					src: "pollForSpinFulfillment",
-					input: ({ context }) => ({
-						triggerId: context.triggerId as unknown as bigint,
-						userAddress: context.userAddress as unknown as `0x${string}`,
-						publicClient: context.publicClient as unknown,
-						gachaAddress: context.gachaAddress as unknown as `0x${string}`,
-					}),
+					input: ({ context }) => {
+						if (
+							!context.triggerId ||
+							!context.userAddress ||
+							!context.publicClient ||
+							!context.gachaAddress
+						) {
+							throw new Error(
+								"Missing required context for spin fulfillment polling",
+							);
+						}
+						return {
+							triggerId: context.triggerId,
+							userAddress: context.userAddress as `0x${string}`,
+							publicClient: context.publicClient,
+							gachaAddress: context.gachaAddress as `0x${string}`,
+						};
+					},
 					onDone: {
 						target: "revealing",
 						actions: ["setSpinResult", "clearFromStorage"],
@@ -430,7 +511,20 @@ export const gachaSpinMachine = createMachine(
 						const errorMessage = (event.error as Error)?.message || "";
 						if (errorMessage.startsWith("REFUND:")) {
 							try {
-								const refundData = JSON.parse(errorMessage.substring(7));
+								const refundJson = errorMessage.substring(7);
+								const refundData = JSON.parse(refundJson) as {
+									selectedRarity: string;
+									refundAmount: string;
+								};
+
+								// Validate the parsed data
+								if (
+									!refundData.selectedRarity ||
+									typeof refundData.refundAmount !== "string"
+								) {
+									throw new Error("Invalid refund data structure");
+								}
+
 								return {
 									selectedRarity: refundData.selectedRarity,
 									refundAmount: BigInt(refundData.refundAmount),

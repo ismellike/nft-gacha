@@ -10,5 +10,5 @@ export {
 	ModalContent,
 	ModalBody,
 	ModalHeader,
-	ModalFooter
+	ModalFooter,
 } from "@heroui/react";

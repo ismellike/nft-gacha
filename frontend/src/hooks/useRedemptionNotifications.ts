@@ -3,7 +3,9 @@
 import { useWatchProtocolTreasuryRedemptionExecuted } from "../generated";
 import { toast } from "react-hot-toast";
 
-export function useRedemptionNotifications(protocolTreasuryAddress: `0x${string}`) {
+export function useRedemptionNotifications(
+	protocolTreasuryAddress: `0x${string}`,
+) {
 	// Watch for redemption executed events
 	useWatchProtocolTreasuryRedemptionExecuted({
 		address: protocolTreasuryAddress,
@@ -12,8 +14,8 @@ export function useRedemptionNotifications(protocolTreasuryAddress: `0x${string}
 				const { collection, tokenId, payout } = log.args;
 
 				// Create a detailed notification
-				const collectionShort = `${collection.slice(0, 6)}...${collection.slice(-4)}`;
-				const tokenIdStr = tokenId.toString();
+				const collectionShort = `${collection!.slice(0, 6)}...${collection!.slice(-4)}`;
+				const tokenIdStr = tokenId!.toString();
 
 				// Success notification for NFT redemption
 				toast.success(
@@ -29,7 +31,7 @@ export function useRedemptionNotifications(protocolTreasuryAddress: `0x${string}
 							borderRadius: "12px",
 							fontWeight: "500",
 						},
-					}
+					},
 				);
 
 				// Optional: Play a sound effect
@@ -56,31 +58,44 @@ export function useRedemptionNotifications(protocolTreasuryAddress: `0x${string}
 	});
 
 	// Return a helper function to show custom notifications
-	const showCustomNotification = (message: string, type: "success" | "error" | "info" = "info") => {
-		const toastFn = type === "success" ? toast.success : type === "error" ? toast.error : toast;
+	const showCustomNotification = (
+		message: string,
+		type: "success" | "error" | "info" = "info",
+	) => {
+		const toastFn =
+			type === "success"
+				? toast.success
+				: type === "error"
+					? toast.error
+					: toast;
 
 		toastFn(message, {
 			duration: 4000,
 			position: "top-right",
-			style: type === "success" ? {
-				background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-				color: "white",
-				border: "1px solid #065f46",
-				borderRadius: "12px",
-				fontWeight: "500",
-			} : type === "error" ? {
-				background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-				color: "white",
-				border: "1px solid #991b1b",
-				borderRadius: "12px",
-				fontWeight: "500",
-			} : {
-				background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-				color: "white",
-				border: "1px solid #1e40af",
-				borderRadius: "12px",
-				fontWeight: "500",
-			},
+			style:
+				type === "success"
+					? {
+							background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+							color: "white",
+							border: "1px solid #065f46",
+							borderRadius: "12px",
+							fontWeight: "500",
+						}
+					: type === "error"
+						? {
+								background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+								color: "white",
+								border: "1px solid #991b1b",
+								borderRadius: "12px",
+								fontWeight: "500",
+							}
+						: {
+								background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+								color: "white",
+								border: "1px solid #1e40af",
+								borderRadius: "12px",
+								fontWeight: "500",
+							},
 		});
 	};
 

@@ -30,7 +30,9 @@ export const ProfileDashboard: React.FC = () => {
 	const { address: userAddress } = useAccount();
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	const [activeTab, setActiveTab] = useState<"inventory" | "vault">("inventory");
+	const [activeTab, setActiveTab] = useState<"inventory" | "vault">(
+		"inventory",
+	);
 
 	// 🚀 BATCH OPTIMIZED: Get all user data in 2 calls instead of 3!
 	const { data: userProfileData, refetch: refetchUserProfile } =
@@ -48,25 +50,79 @@ export const ProfileDashboard: React.FC = () => {
 		} as Parameters<typeof useReadGachaGetUserGachaBatch>[0]);
 
 	// Register refetch functions with the rewards system
-	useRegisterRewardsRefetch("userProfile", refetchUserProfile);
-	useRegisterRewardsRefetch("userGacha", refetchUserGacha);
+	useRegisterRewardsRefetch("userProfile", async () => {
+		await refetchUserProfile();
+	});
+	useRegisterRewardsRefetch("userGacha", async () => {
+		await refetchUserGacha();
+	});
 
 	// Extract data from batch calls
 	// userProfileData: [depositCounts[5], totalDeposits, lifetimeClaimed, lifetimeDeposited, lifetimeWithdrawn, netContribution]
-	const userTotalDeposits = (userProfileData as readonly [bigint, bigint, bigint, bigint, bigint, bigint])?.[1] || 0n;
-	const lifetimeClaimed = (userProfileData as readonly [bigint, bigint, bigint, bigint, bigint, bigint])?.[2] || 0n;
+	const userTotalDeposits =
+		(
+			userProfileData as readonly [
+				bigint,
+				bigint,
+				bigint,
+				bigint,
+				bigint,
+				bigint,
+			]
+		)?.[1] || 0n;
+	const lifetimeClaimed =
+		(
+			userProfileData as readonly [
+				bigint,
+				bigint,
+				bigint,
+				bigint,
+				bigint,
+				bigint,
+			]
+		)?.[2] || 0n;
 
 	// userGachaData: [totalSpins, totalRefunds, totalReclaims, rarityWins[5], spinCount]
-	const userSpinCount = (userGachaData as readonly [bigint, bigint, bigint, bigint, readonly bigint[], bigint])?.[0] || BigInt(0);
-	const userRefundCount = (userGachaData as readonly [bigint, bigint, bigint, readonly bigint[], bigint])?.[1] || BigInt(0);
-	const userReclaimCount = (userGachaData as readonly [bigint, bigint, bigint, readonly bigint[], bigint])?.[2] || BigInt(0);
-	const userRarityWins = (userGachaData as readonly [bigint, bigint, bigint, readonly bigint[], bigint])?.[3] || [
-		BigInt(0),
-		BigInt(0),
-		BigInt(0),
-		BigInt(0),
-		BigInt(0),
-	];
+	const userSpinCount =
+		(
+			userGachaData as readonly [
+				bigint,
+				bigint,
+				bigint,
+				bigint,
+				readonly bigint[],
+				bigint,
+			]
+		)?.[0] || BigInt(0);
+	const userRefundCount =
+		(
+			userGachaData as readonly [
+				bigint,
+				bigint,
+				bigint,
+				readonly bigint[],
+				bigint,
+			]
+		)?.[1] || BigInt(0);
+	const userReclaimCount =
+		(
+			userGachaData as readonly [
+				bigint,
+				bigint,
+				bigint,
+				readonly bigint[],
+				bigint,
+			]
+		)?.[2] || BigInt(0);
+	const userRarityWins = (
+		userGachaData as readonly [
+			bigint,
+			bigint,
+			bigint,
+			readonly bigint[],
+			bigint,
+		]
+	)?.[3] || [BigInt(0), BigInt(0), BigInt(0), BigInt(0), BigInt(0)];
 
 	if (!userAddress) {
 		return (
@@ -233,7 +289,25 @@ export const ProfileDashboard: React.FC = () => {
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.5 }}
 			>
-				{activeTab === "inventory" ? <CardRewardsList /> : <VaultTab gachaConfig={getGachaConfig(gachaId)} />}
+				{activeTab === "inventory" ? (
+					<CardRewardsList />
+				) : (
+					(() => {
+						const config = getGachaConfig(gachaId);
+						if (!config) {
+							return (
+								<motion.div
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									className="text-center py-12 text-white/60"
+								>
+									No active gacha configuration found
+								</motion.div>
+							);
+						}
+						return <VaultTab gachaConfig={config} />;
+					})()
+				)}
 			</motion.div>
 
 			{/* Advanced Statistics */}

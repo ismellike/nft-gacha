@@ -53,7 +53,7 @@ const GachaSpinner = memo(() => {
 				/>
 			)}
 
-		{/* Main Grid Layout */}
+			{/* Main Grid Layout */}
 			<div className="grid lg:grid-cols-2 gap-16 items-start">
 				{/* Left Column - Spin Controls */}
 				<div className="space-y-8">

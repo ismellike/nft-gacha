@@ -23,7 +23,7 @@ export function useAppraisalContract(appraisalContract?: Address) {
 				console.log("❌ [AppraisalHook] Missing dependencies:", {
 					publicClient: !!publicClient,
 					appraisalContract,
-					cardIdsLength: cardIds.length
+					cardIdsLength: cardIds.length,
 				});
 				return [];
 			}
@@ -31,7 +31,7 @@ export function useAppraisalContract(appraisalContract?: Address) {
 			try {
 				console.log("🔍 [AppraisalHook] Calling getCardInstances with:", {
 					contract: appraisalContract,
-					cardIds
+					cardIds,
 				});
 
 				const [collections, tokenIds] = await publicClient.readContract({
@@ -43,7 +43,7 @@ export function useAppraisalContract(appraisalContract?: Address) {
 
 				console.log("📦 [AppraisalHook] Raw response:", {
 					collections,
-					tokenIds
+					tokenIds,
 				});
 
 				// Convert to CardInstance array, filtering out zero addresses
@@ -53,7 +53,8 @@ export function useAppraisalContract(appraisalContract?: Address) {
 						cardId: cardIds[i],
 						collection: collections[i],
 						tokenId: tokenIds[i],
-						isZeroAddress: collections[i] === "0x0000000000000000000000000000000000000000"
+						isZeroAddress:
+							collections[i] === "0x0000000000000000000000000000000000000000",
 					});
 
 					if (collections[i] !== "0x0000000000000000000000000000000000000000") {
@@ -67,7 +68,10 @@ export function useAppraisalContract(appraisalContract?: Address) {
 				console.log("✅ [AppraisalHook] Final instances:", instances);
 				return instances;
 			} catch (error) {
-				console.error("❌ [AppraisalHook] Error calling getCardInstances:", error);
+				console.error(
+					"❌ [AppraisalHook] Error calling getCardInstances:",
+					error,
+				);
 				return [];
 			}
 		},
@@ -95,7 +99,7 @@ export function useAppraisalContract(appraisalContract?: Address) {
 
 				console.log(`✅ [AppraisalHook] Found instance for card ${cardId}:`, {
 					collection,
-					tokenId
+					tokenId,
 				});
 
 				return {
@@ -103,7 +107,10 @@ export function useAppraisalContract(appraisalContract?: Address) {
 					tokenId: BigInt(tokenId),
 				};
 			} catch (error) {
-				console.error("❌ [AppraisalHook] Error calling getCardInstance:", error);
+				console.error(
+					"❌ [AppraisalHook] Error calling getCardInstance:",
+					error,
+				);
 				return null;
 			}
 		},

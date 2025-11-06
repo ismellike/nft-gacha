@@ -76,7 +76,7 @@ export function useGachaEconomyManagerData({
 	// Fetch revenue for each rarity level
 	const revenueCommon = useReadGachaEconomyManagerRevenueByRarity({
 		address: contractAddress as `0x${string}`,
-		args: [0n], // Common
+			args: [0], // Common
 		query: {
 			enabled: enabled && !!contractAddress,
 		},
@@ -84,7 +84,7 @@ export function useGachaEconomyManagerData({
 
 	const revenueUncommon = useReadGachaEconomyManagerRevenueByRarity({
 		address: contractAddress as `0x${string}`,
-		args: [1n], // Uncommon
+		args: [1], // Uncommon
 		query: {
 			enabled: enabled && !!contractAddress,
 		},
@@ -92,7 +92,7 @@ export function useGachaEconomyManagerData({
 
 	const revenueRare = useReadGachaEconomyManagerRevenueByRarity({
 		address: contractAddress as `0x${string}`,
-		args: [2n], // Rare
+		args: [2], // Rare
 		query: {
 			enabled: enabled && !!contractAddress,
 		},
@@ -100,7 +100,7 @@ export function useGachaEconomyManagerData({
 
 	const revenueEpic = useReadGachaEconomyManagerRevenueByRarity({
 		address: contractAddress as `0x${string}`,
-		args: [3n], // Epic
+		args: [3], // Epic
 		query: {
 			enabled: enabled && !!contractAddress,
 		},
@@ -108,7 +108,7 @@ export function useGachaEconomyManagerData({
 
 	const revenueLegendary = useReadGachaEconomyManagerRevenueByRarity({
 		address: contractAddress as `0x${string}`,
-		args: [4n], // Legendary
+		args: [4], // Legendary
 		query: {
 			enabled: enabled && !!contractAddress,
 		},
@@ -148,11 +148,11 @@ export function useGachaEconomyManagerData({
 		totalToDepositors: totalToDepositors.data,
 		totalToProtocol: totalToProtocol.data,
 		revenueByRarity: [
-			revenueCommon.data,
-			revenueUncommon.data,
-			revenueRare.data,
-			revenueEpic.data,
-			revenueLegendary.data,
+			revenueCommon.data || BigInt(0),
+			revenueUncommon.data || BigInt(0),
+			revenueRare.data || BigInt(0),
+			revenueEpic.data || BigInt(0),
+			revenueLegendary.data || BigInt(0),
 		],
 	};
 

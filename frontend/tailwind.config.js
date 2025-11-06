@@ -28,10 +28,11 @@ export default {
 				},
 			},
 			backgroundImage: {
-				'glass-morphism': 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+				"glass-morphism":
+					"linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
 			},
 			backdropBlur: {
-				'glass': '20px',
+				glass: "20px",
 			},
 		},
 	},

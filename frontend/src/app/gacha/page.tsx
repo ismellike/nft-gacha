@@ -241,10 +241,7 @@ function GachaDetailPageContent() {
 					<p className="text-foreground/70 mb-6">
 						Please provide a gacha ID in the URL parameters.
 					</p>
-					<Button
-						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
-						onPress={() => router.push("/discover")}
-					>
+					<Button color="glassPrimary" onPress={() => router.push("/discover")}>
 						<span className="inline-flex items-center gap-2">
 							<ArrowLeftIcon className="w-4 h-4" /> Back to Discovery
 						</span>
@@ -265,10 +262,7 @@ function GachaDetailPageContent() {
 					<p className="text-foreground/70 mb-6">
 						The gacha "{gachaId}" is not recognized or configured.
 					</p>
-					<Button
-						className="rounded-xl bg-gradient-to-r from-warning to-orange-400 text-black"
-						onPress={() => router.push("/discover")}
-					>
+					<Button color="glassPrimary" onPress={() => router.push("/discover")}>
 						<span className="inline-flex items-center gap-2">
 							<ArrowLeftIcon className="w-4 h-4" /> Back to Discovery
 						</span>
@@ -282,76 +276,76 @@ function GachaDetailPageContent() {
 		<BuybackNotificationProvider gachaId={gachaId}>
 			<div className="min-h-screen bg-transparent">
 				<header className="mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
-				<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-					<div className="flex items-start gap-4">
-						<Button
-							className="p-2 rounded-xl border border-white/15 bg-content1/20 text-foreground hover:bg-content1/30"
-							onPress={() => router.push("/discover")}
-						>
-							<ArrowLeftIcon className="w-5 h-5" />
-						</Button>
-						<div className="space-y-1">
-							<span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-foreground/40">
-								<span className="flex h-2 w-2 rounded-full bg-success" />
-								Live
-							</span>
-							<h1 className="text-xl font-semibold text-foreground md:text-3xl">
-								{gacha.title}
-							</h1>
-							<p className="text-sm text-foreground/60 md:text-base max-w-2xl">
-								{gacha.description}
-							</p>
+					<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+						<div className="flex items-start gap-4">
+							<Button
+								className="p-2 rounded-xl border border-white/15 bg-content1/20 text-foreground hover:bg-content1/30"
+								onPress={() => router.push("/discover")}
+							>
+								<ArrowLeftIcon className="w-5 h-5" />
+							</Button>
+							<div className="space-y-1">
+								<span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-foreground/40">
+									<span className="flex h-2 w-2 rounded-full bg-success" />
+									Live
+								</span>
+								<h1 className="text-xl font-semibold text-foreground md:text-3xl">
+									{gacha.title}
+								</h1>
+								<p className="text-sm text-foreground/60 md:text-base max-w-2xl">
+									{gacha.description}
+								</p>
+							</div>
+						</div>
+						<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-content1/20 px-4 py-3 text-sm text-foreground/70">
+							<div className="flex flex-col">
+								<span className="text-xs uppercase tracking-wide text-foreground/50">
+									Status
+								</span>
+								<span className="font-medium text-success">Operational</span>
+							</div>
 						</div>
 					</div>
-					<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-content1/20 px-4 py-3 text-sm text-foreground/70">
-						<div className="flex flex-col">
-							<span className="text-xs uppercase tracking-wide text-foreground/50">
-								Status
-							</span>
-							<span className="font-medium text-success">Operational</span>
-						</div>
-					</div>
+
+					<FlowSwitcher
+						className="mt-8"
+						options={flowOptions}
+						activeId={activeTab}
+						onSelect={(section) => handleTabChange(section as ValidSection)}
+					/>
+				</header>
+
+				<div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+					<motion.div
+						key={activeTab}
+						initial={{ opacity: 0, y: 24 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.35 }}
+					>
+						{activeTab === "spin" && (
+							<SpinSection
+								title="Spin & win provably fair NFT rewards"
+								description="Leverage WAVS randomness to reveal vaulted NFTs with real-time transaction feedback across every step of the spin."
+							/>
+						)}
+
+						{activeTab === "vault" && (
+							<VaultSection
+								title="Manage vault and withdraw yield"
+								description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
+							/>
+						)}
+
+						{activeTab === "economy" && (
+							<EconomySection
+								title="Gacha Economy Overview"
+								description="Track protocol revenue, depositor yields, and treasury performance for this specific gacha."
+							/>
+						)}
+
+						{activeTab === "admin" && gacha && <AdminSection gacha={gacha} />}
+					</motion.div>
 				</div>
-
-				<FlowSwitcher
-					className="mt-8"
-					options={flowOptions}
-					activeId={activeTab}
-					onSelect={(section) => handleTabChange(section as ValidSection)}
-				/>
-			</header>
-
-			<div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-				<motion.div
-					key={activeTab}
-					initial={{ opacity: 0, y: 24 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.35 }}
-				>
-					{activeTab === "spin" && (
-						<SpinSection
-							title="Spin & win provably fair NFT rewards"
-							description="Leverage WAVS randomness to reveal vaulted NFTs with real-time transaction feedback across every step of the spin."
-						/>
-					)}
-
-					{activeTab === "vault" && (
-						<VaultSection
-							title="Manage vault and withdraw yield"
-							description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
-						/>
-					)}
-
-					{activeTab === "economy" && (
-						<EconomySection
-							title="Gacha Economy Overview"
-							description="Track protocol revenue, depositor yields, and treasury performance for this specific gacha."
-						/>
-					)}
-
-					{activeTab === "admin" && gacha && <AdminSection gacha={gacha} />}
-				</motion.div>
-			</div>
 			</div>
 		</BuybackNotificationProvider>
 	);

@@ -113,7 +113,8 @@ const fetchMetadataFromURI = async (
 
 			extendedFields.forEach((field) => {
 				if (importedMetadata[field as keyof ImportedMetadata]) {
-					baseMetadata[field as keyof ImportedMetadata] = importedMetadata[field as keyof ImportedMetadata];
+					baseMetadata[field as keyof ImportedMetadata] =
+						importedMetadata[field as keyof ImportedMetadata];
 				}
 			});
 
