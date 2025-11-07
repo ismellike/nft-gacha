@@ -13,7 +13,6 @@ import {
 	useReadDepositorVaultTotalYieldDistributed,
 	useReadDepositorVaultTreasury,
 	useWriteDepositorVaultClaimYield,
-	useSimulateDepositorVaultClaimYield,
 } from "@/generated";
 
 export interface DepositorVaultData {
@@ -246,33 +245,3 @@ export function useClaimYield() {
 	};
 }
 
-// Hook for simulating claim yield transaction
-export function useSimulateClaimYield({
-	contractAddress,
-	account,
-	recipient,
-}: {
-	contractAddress: string;
-	account: string;
-	recipient?: string;
-}) {
-	// Note: The simulation doesn't use recipient, but it's kept for API consistency
-	console.log(
-		"📊 [useSimulateClaimYield] Recipient (not used in simulation):",
-		recipient,
-	);
-	const { data: simulation, error: simulationError } =
-		useSimulateDepositorVaultClaimYield({
-			address: contractAddress as `0x${string}`,
-			args: [account as `0x${string}`],
-			query: {
-				enabled: !!contractAddress && !!account,
-			},
-		});
-
-	return {
-		simulation,
-		simulationError,
-		canClaim: !!simulation && !simulationError,
-	};
-}

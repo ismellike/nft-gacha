@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassModal, ModalContent, ModalBody } from "../ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { NFTCard, ImmersiveNFTCard } from ".";
+import { NFTCard } from ".";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
 import { getGachaConfig } from "../lib/gacha-config";
 import { useMemo } from "react";
@@ -154,7 +154,7 @@ export default function NFTRevealModal({
 									className="relative"
 									style={{ perspective: 1000 }}
 								>
-									{/* NFT Card - Using new immersive card with enhanced features */}
+									{/* NFT Card - Simplified for modal use */}
 									<div className="flex flex-col items-center space-y-8">
 										<NFTCard
 											data={{
@@ -164,12 +164,8 @@ export default function NFTRevealModal({
 												rarity: resultRarity,
 											}}
 											size="lg"
-											variant="detailed"
-											showAppraisal={false}
-											showTraits={false}
+											showCollectionName={true}
 											appraisalContractAddress={appraisalContractAddress}
-											animate={true}
-											theme="glass"
 											{...(protocolTreasuryAddress && { protocolTreasuryAddress })}
 											{...(gachaId && { gachaId })}
 											onBuybackSuccess={(txHash) => {

@@ -303,7 +303,7 @@ export const nftDepositMachine = createMachine(
 						refetchTreasuryCards: event.refetchTreasuryCards,
 						retryCount: 0,
 						error: null,
-					} as any;
+					} as NFTDepositContext;
 				}
 				return {};
 			}),
@@ -359,7 +359,7 @@ export const nftDepositMachine = createMachine(
 						context.collection &&
 						context.tokenId
 					) {
-						(context.onAction as any)(
+						(context.onAction as (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void)(
 							context.collection,
 							context.tokenId,
 							true,
@@ -370,14 +370,14 @@ export const nftDepositMachine = createMachine(
 						context.collection &&
 						context.tokenId
 					) {
-						(context.onAppraisalStatusChange as any)(
+						(context.onAppraisalStatusChange as (collection: string, tokenId: string, hasValidAppraisal: boolean) => void)(
 							context.collection,
 							context.tokenId,
 							true,
 						);
 					}
 					if (typeof context.refetchTreasuryCards === "function") {
-						(context.refetchTreasuryCards as any)();
+						(context.refetchTreasuryCards as () => Promise<void>)();
 					}
 				} catch (error) {
 					logger.logError("Error in completion callbacks", error as Error);

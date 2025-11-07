@@ -14,8 +14,8 @@ export function useRedemptionNotifications(
 				const { collection, tokenId, payout } = log.args;
 
 				// Create a detailed notification
-				const collectionShort = `${collection!.slice(0, 6)}...${collection!.slice(-4)}`;
-				const tokenIdStr = tokenId!.toString();
+				const collectionShort = `${collection?.slice(0, 6)}...${collection?.slice(-4) ?? ''}`;
+				const tokenIdStr = tokenId?.toString() ?? '';
 
 				// Success notification for NFT redemption
 				toast.success(

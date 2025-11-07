@@ -395,7 +395,7 @@ export const nftInteractionMachine = createMachine(
 				],
 				after: {
 					// Only auto-reset for deposits, not buybacks (buybacks should stay completed)
-					3000: {
+					1000: {
 						target: "idle",
 						guard: ({ context }) => context.mode === "deposit",
 					},
@@ -648,20 +648,16 @@ export const nftInteractionMachine = createMachine(
 					console.error("Error in completion callbacks:", error);
 				}
 			},
-			setSuccessData: assign(
-				({ context }) =>
-					({
-						...context,
-						completedAt: Date.now() as number,
-						successData: context.interactionTxHash
-							? {
-									txHash: context.interactionTxHash,
-									payoutAmount: context.payoutAmount || undefined,
-									mode: context.mode,
-								}
-							: null,
-					}) as any,
-			),
+				setSuccessData: assign(({
+				completedAt: Date.now(),
+				successData: ({ context }: { context: NFTInteractionContext }) => context.interactionTxHash
+					? {
+							txHash: context.interactionTxHash,
+							payoutAmount: context.payoutAmount || undefined,
+							mode: context.mode,
+						}
+					: null,
+			} as any)),
 		},
 		guards: {
 			canRetry: ({ context }) => context.retryCount < MAX_RETRIES,

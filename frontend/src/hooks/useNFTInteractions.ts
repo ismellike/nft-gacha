@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { motion, useAnimation } from "framer-motion";
+import { useAnimation } from "framer-motion";
 import type { NFTCardData } from "../components/NFTCard";
 
 // Advanced interaction types
@@ -24,7 +24,7 @@ export interface NFTInteraction {
   data: NFTCardData;
   timestamp: number;
   position?: { x: number; y: number } | undefined;
-  metadata?: Record<string, any> | undefined;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface UseNFTInteractionsOptions {
@@ -95,8 +95,6 @@ export function useNFTInteractions(
     onSwipe,
     onSelect,
     onFavorite,
-    swipeVelocityThreshold = 0.5,
-    swipeOffsetThreshold = 30,
   } = options;
 
   // State management
@@ -119,7 +117,7 @@ export function useNFTInteractions(
   const trackInteraction = useCallback((
     type: NFTInteractionType,
     position?: { x: number; y: number },
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) => {
     const interaction: NFTInteraction = {
       type,
@@ -236,7 +234,9 @@ export function useNFTInteractions(
     // Start long press timer
     if (enableLongPress) {
       longPressTimerRef.current = setTimeout(() => {
-        touchStateRef.current!.isLongPress = true;
+        if (touchStateRef.current) {
+      touchStateRef.current.isLongPress = true;
+    }
         onLongPress?.(data);
         trackInteraction("longPress");
 
@@ -257,8 +257,8 @@ export function useNFTInteractions(
     if (!touchStateRef.current) return;
 
     const touch = event.touches[0];
-    const deltaX = Math.abs(touch.clientX - touchStateRef.current!.startX);
-    const deltaY = Math.abs(touch.clientY - touchStateRef.current!.startY);
+    const deltaX = Math.abs(touch.clientX - touchStateRef.current?.startX);
+    const deltaY = Math.abs(touch.clientY - touchStateRef.current?.startY);
 
     // Cancel long press if moved too much
     if (deltaX > 10 || deltaY > 10) {
@@ -318,7 +318,7 @@ export function useNFTInteractions(
 
     // Handle as tap if not long press
     if (!touchStateRef.current.isLongPress && deltaTime < 300) {
-      handleClick(event as any);
+      handleClick(event as unknown as React.MouseEvent);
     }
 
     controls.start({
@@ -335,7 +335,7 @@ export function useNFTInteractions(
       case "Enter":
       case " ":
         event.preventDefault();
-        handleClick(event as any);
+        handleClick({} as React.MouseEvent);
         break;
       case "f":
       case "F":

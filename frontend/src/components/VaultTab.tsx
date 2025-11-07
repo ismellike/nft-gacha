@@ -11,7 +11,6 @@ import {
 	calculateUserSharePercentage,
 	formatTokenAmount,
 	useClaimYield,
-	useSimulateClaimYield,
 } from "@/hooks/useDepositorVault";
 import {
 	useTreasuryUserCards,
@@ -71,20 +70,9 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 	// Claim yield functionality
 	const { claimYield, isClaiming, claimError } = useClaimYield();
 
-	const { canClaim } = useSimulateClaimYield({
-		contractAddress: gachaConfig.depositorVaultAddress,
-		account: address || "",
-		recipient: address || "",
-	});
-
 	const handleClaimYield = async () => {
 		if (!address) {
 			toast.error("Please connect your wallet");
-			return;
-		}
-
-		if (!canClaim) {
-			toast.error("Cannot claim yield at this time");
 			return;
 		}
 

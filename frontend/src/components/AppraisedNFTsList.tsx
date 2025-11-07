@@ -18,7 +18,7 @@ import {
 
 import { Card, Button } from "../ui";
 import { LoadingState } from ".";
-import { UnifiedNFTCard } from "./UnifiedNFTCard";
+import { NFTCard } from "./NFTCard";
 import { DepositableNFTCard } from "./DepositableNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -157,13 +157,13 @@ const NFTAppraisalCard = ({ nft, onDepositAction }: NFTAppraisalCardProps) => {
 					{/* NFT Preview */}
 					<div className="flex justify-center">
 						{contracts.appraisal && (
-							<UnifiedNFTCard
-								collection={nft.collection}
-								tokenId={nft.tokenId}
-								variant="compact"
+							<NFTCard
+								data={{
+									collection: nft.collection,
+									tokenId: nft.tokenId,
+								}}
 								size="md"
-								showAppraisal={false}
-								animate={true}
+								onClick={() => console.log(`NFT ${nft.collection}:${nft.tokenId} clicked`)}
 								appraisalContractAddress={contracts.appraisal as `0x${string}`}
 							/>
 						)}
@@ -280,8 +280,6 @@ export function AppraisedNFTsList({
 	className,
 }: AppraisedNFTsListProps) {
 	const { address: userAddress } = useAccount();
-	const gachaId = useGachaId();
-	const contracts = useGachaContracts(gachaId);
 
 	// State for filter and sort controls
 	const [filter, setFilter] = useState<AppraisalFilter>("all");
@@ -687,10 +685,6 @@ export function AppraisedNFTsList({
 									onAppraisalStatusChange={() => {
 										// Handle appraisal status changes if needed
 									}}
-									appraisalContractAddress={
-										(contracts.appraisal as `0x${string}`) ||
-										"0x0000000000000000000000000000000000000000"
-									}
 								/>
 							</div>
 						</motion.div>

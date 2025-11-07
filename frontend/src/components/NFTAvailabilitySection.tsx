@@ -394,9 +394,6 @@ export function NFTAvailabilitySection({
 										key={`ready-${nft.collection}:${nft.tokenId}`}
 										collection={nft.collection as `0x${string}`}
 										tokenId={nft.tokenId}
-										appraisalContractAddress={
-											(contracts.appraisal as `0x${string}`) || "0x0"
-										}
 										onAction={handleNFTAction}
 										onAppraisalStatusChange={handleAppraisalStatusChange}
 									/>
@@ -427,9 +424,6 @@ export function NFTAvailabilitySection({
 										key={`appraisal-${nft.collection}:${nft.tokenId}`}
 										collection={nft.collection as `0x${string}`}
 										tokenId={nft.tokenId}
-										appraisalContractAddress={
-											(contracts.appraisal as `0x${string}`) || "0x0"
-										}
 										onAction={handleNFTAction}
 										onAppraisalStatusChange={handleAppraisalStatusChange}
 									/>

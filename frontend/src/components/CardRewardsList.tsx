@@ -27,7 +27,7 @@ import {
 	useBatchCardAppraisal,
 	type CardAppraisal,
 } from "../hooks/useBatchCardAppraisal";
-import { UnifiedNFTCard } from "./UnifiedNFTCard";
+import { NFTCard } from "./NFTCard";
 
 interface CardInventoryInfo extends UserCardDeposit {
 	appraisalInfo: CardAppraisalInfo | null;
@@ -349,30 +349,15 @@ export function CardRewardsList() {
 								const tokenId = cardAppraisal.canonicalTokenId.toString();
 
 								return (
-									<UnifiedNFTCard
+									<NFTCard
 										key={card.cardId}
-										collection={collection}
-										tokenId={tokenId}
-										appraisalContractAddress={
-											(contracts.appraisal as `0x${string}`) ||
-											(ZERO_ADDRESS as `0x${string}`)
-										}
-										rarity={rarityEnum}
-										extraDetails={detailRows}
-										showAppraisal
-										{...(cardAppraisal.priceUSD > 0n && {
-											appraisalOverride: {
-												hasAppraisal: true,
-												priceUSD: cardAppraisal.priceUSD,
-											},
-										})}
-										protocolTreasuryAddress={
-											(contracts.protocolTreasury as `0x${string}`) ||
-											(ZERO_ADDRESS as `0x${string}`)
-										}
-										gachaId={gachaId}
-										variant="detailed"
-										size="md"
+										data={{
+											collection,
+											tokenId,
+											rarity: rarityEnum,
+										}}
+										size="sm"
+										onClick={() => console.log(`Card ${card.cardId} clicked`)}
 									/>
 								);
 							}

@@ -16,7 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { Card, Button } from "../ui";
-import { UnifiedNFTCard } from "./UnifiedNFTCard";
+import { NFTCard } from "./NFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import {
@@ -531,15 +531,14 @@ export function NFTAppraisalForm({
 							<div className="flex justify-center mb-3">
 								<div className="w-48">
 									{contracts.appraisal && (
-										<UnifiedNFTCard
-											collection={formData.collection}
-											tokenId={formData.tokenId}
-											variant="compact"
+										<NFTCard
+											data={{
+												collection: formData.collection,
+												tokenId: formData.tokenId,
+											}}
 											size="sm"
-											appraisalContractAddress={
-												contracts.appraisal as `0x${string}`
-											}
-											priority={8}
+											showCollectionName={false}
+											appraisalContractAddress={contracts.appraisal as `0x${string}`}
 										/>
 									)}
 								</div>

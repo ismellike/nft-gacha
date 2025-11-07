@@ -12,36 +12,14 @@ export {
 	RarityBreakdownSkeleton,
 	StatsGridSkeleton,
 } from "./SkeletonLoader";
-// New NFT Components (10x improved)
+// NFT Card - Simplified for modal use only
 export {
   NFTCard,
-  CompactNFTCard,
-  StandardNFTCard,
-  ShowcaseNFTCard,
-  ImmersiveNFTCard,
   type NFTCardData,
   type NFTCardProps,
-  type NFTCardSize,
-  type NFTCardVariant,
-  type NFTCardTheme,
-  type NFTCardAction,
 } from "./NFTCard";
 
-export {
-  NFTGrid,
-  CompactNFTGrid,
-  StandardNFTGrid,
-  ShowcaseNFTGrid,
-  useTreasuryItemsToGridItems,
-  type NFTGridItem,
-  type NFTGridProps,
-  type NFTGridLayout,
-  type NFTGridSize,
-  type NFTGridTheme,
-} from "./NFTGrid";
 
-// Legacy NFT Components (will be deprecated)
-export { UnifiedNFTCard, NFTHeroCard } from "./UnifiedNFTCard";
 
 // Glass Components are now imported directly from src/ui
 // Please import them from "../ui" in component files
