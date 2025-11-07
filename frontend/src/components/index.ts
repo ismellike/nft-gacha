@@ -12,8 +12,36 @@ export {
 	RarityBreakdownSkeleton,
 	StatsGridSkeleton,
 } from "./SkeletonLoader";
-export { StandardNFTGrid, useTreasuryItemsToGridItems } from "./NFTGrid";
-export { NFTHeroCard } from "./UnifiedNFTCard";
+// New NFT Components (10x improved)
+export {
+  NFTCard,
+  CompactNFTCard,
+  StandardNFTCard,
+  ShowcaseNFTCard,
+  ImmersiveNFTCard,
+  type NFTCardData,
+  type NFTCardProps,
+  type NFTCardSize,
+  type NFTCardVariant,
+  type NFTCardTheme,
+  type NFTCardAction,
+} from "./NFTCard";
+
+export {
+  NFTGrid,
+  CompactNFTGrid,
+  StandardNFTGrid,
+  ShowcaseNFTGrid,
+  useTreasuryItemsToGridItems,
+  type NFTGridItem,
+  type NFTGridProps,
+  type NFTGridLayout,
+  type NFTGridSize,
+  type NFTGridTheme,
+} from "./NFTGrid";
+
+// Legacy NFT Components (will be deprecated)
+export { UnifiedNFTCard, NFTHeroCard } from "./UnifiedNFTCard";
 
 // Glass Components are now imported directly from src/ui
 // Please import them from "../ui" in component files

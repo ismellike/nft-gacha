@@ -7,7 +7,7 @@ import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { type Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { useReadGachaTreasuryGetTreasuryItems } from "../generated";
-import { StandardNFTGrid, useTreasuryItemsToGridItems } from ".";
+import { NFTGrid, useTreasuryItemsToGridItems } from ".";
 import {
 	ExclamationTriangleIcon,
 	ArchiveBoxIcon,
@@ -67,7 +67,7 @@ export default function RarityShowcaseModal({
 			placement="center"
 		>
 			<ModalContent>
-				<ModalBody className="relative overflow-hidden p-0 h-[90vh] flex flex-col">
+				<ModalBody className="relative overflow-hidden p-0 h-[95vh] flex flex-col">
 					{/* Floating Close Button - Top Right */}
 					<motion.button
 						onClick={() => onOpenChange(false)}
@@ -150,7 +150,7 @@ export default function RarityShowcaseModal({
 					</motion.div>
 					<div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-content1/20 via-content1/10 to-content1/30" />
 					{/* Body Content */}
-					<div className="relative z-10 w-full flex-1 overflow-y-auto px-8 pb-8">
+					<div className="relative z-10 w-full flex-1 px-6 pb-6 flex flex-col overflow-hidden">
 						{isLoading ? (
 							<motion.div
 								className="flex flex-col items-center justify-center py-32"
@@ -202,14 +202,21 @@ export default function RarityShowcaseModal({
 								</p>
 							</motion.div>
 						) : contracts.appraisal ? (
-							<StandardNFTGrid
-								items={gridItems}
-								appraisalContractAddress={contracts.appraisal as `0x${string}`}
-								showAppraisal={true}
-								animate={true}
-								enableLazyLoading={true}
-								{...(gridItems.length > 50 && { itemsPerPage: 50 })}
-							/>
+							<div className="w-full h-full overflow-y-auto">
+								<NFTGrid
+									items={gridItems}
+									size="comfortable"
+									layout="grid"
+									theme="glass"
+									gap="md"
+									showAppraisal={false}
+									showTraits={false}
+									animate={true}
+									virtualize={false}
+									lazyLoad={true}
+									className="w-full"
+								/>
+							</div>
 						) : null}
 					</div>
 				</ModalBody>

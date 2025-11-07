@@ -52,6 +52,7 @@ export default function SpinControls({
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
 	const [userCancelledMessage, setUserCancelledMessage] = useState(false);
 	const [permitFailed, setPermitFailed] = useState(false);
+	const [reclaimUserRejected, setReclaimUserRejected] = useState(false);
 
 	// Countdown timer for randomness timeout
 	const [countdown, setCountdown] = useState(SPIN_TIMEOUT_SECONDS);
@@ -829,6 +830,57 @@ export default function SpinControls({
 		}
 	}, [isReclaimReceiptSuccess, gachaSpin, refetchBalance, refetchNonce]);
 
+	// Handle reclaim rejection
+	useEffect(() => {
+		if (reclaimError) {
+			const errorMessage = String(reclaimError.message || "").toLowerCase();
+			console.log("🔍 [SpinControls] Analyzing reclaim error:", {
+				errorMessage: reclaimError.message,
+				errorName: reclaimError.name,
+				errorCode: (reclaimError as { code?: string }).code,
+				isUserRejection:
+					errorMessage.includes("rejected") ||
+					errorMessage.includes("denied") ||
+					errorMessage.includes("cancelled") ||
+					errorMessage.includes("canceled"),
+			});
+
+			if (
+				errorMessage.includes("rejected") ||
+				errorMessage.includes("denied") ||
+				errorMessage.includes("cancelled") ||
+				errorMessage.includes("canceled")
+			) {
+				// User canceled - show subtle feedback and keep them in timeout state
+				console.log("🚫 [SpinControls] User cancelled reclaim transaction");
+				setUserCancelledMessage(true);
+				setReclaimUserRejected(true);
+				setTimeout(() => {
+					setUserCancelledMessage(false);
+					setReclaimUserRejected(false);
+				}, 2000);
+				// Clear the reclaim error to prevent the large transaction failed card
+				// Note: We can't directly clear the wagmi error, but we can prevent displaying it
+			} else {
+				// Real reclaim error - log detailed debugging info
+				console.error("❌ [SpinControls] Reclaim transaction error:", {
+					error: reclaimError,
+					message: reclaimError.message,
+					name: reclaimError.name,
+					cause: reclaimError.cause,
+					code: (reclaimError as { code?: unknown }).code,
+					data: (reclaimError as { data?: unknown }).data,
+					details: {
+						triggerId: gachaSpin.triggerId,
+						contract: contracts.gacha,
+						userAddress,
+						blockExplorer: `https://holesky.etherscan.io/address/${contracts.gacha}`,
+					},
+				});
+			}
+		}
+	}, [reclaimError, gachaSpin.triggerId, contracts.gacha, userAddress]);
+
 	return (
 		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-8 backdrop-blur-2xl">
 			{/* Enhanced background gradient */}
@@ -1119,7 +1171,7 @@ export default function SpinControls({
 					{(spinWithPermitError ||
 						spinWithPermitReceiptError ||
 						signatureError ||
-						reclaimError) && (
+						(reclaimError && !reclaimUserRejected)) && (
 						<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
 							<div>
 								<p className="text-sm mb-2">

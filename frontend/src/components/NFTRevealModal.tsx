@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassModal, ModalContent, ModalBody } from "../ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { NFTHeroCard } from ".";
+import { NFTCard, ImmersiveNFTCard } from ".";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
 import { getGachaConfig } from "../lib/gacha-config";
 import { useMemo } from "react";
@@ -154,27 +154,35 @@ export default function NFTRevealModal({
 									className="relative"
 									style={{ perspective: 1000 }}
 								>
-									{/* NFT Card - Using same size as rarity showcase */}
-									<div className="flex flex-col items-center space-y-6">
-										<NFTHeroCard
-											collection={nftResult.collection}
-											tokenId={nftResult.tokenId}
-											imageUrl={
-												enhancedResult?.imageUrl || nftResult.imageUrl || ""
-											}
-											showAppraisal={true}
+									{/* NFT Card - Using new immersive card with enhanced features */}
+									<div className="flex flex-col items-center space-y-8">
+										<NFTCard
+											data={{
+												collection: nftResult.collection,
+												tokenId: nftResult.tokenId,
+												imageUrl: enhancedResult?.imageUrl || nftResult.imageUrl,
+												rarity: resultRarity,
+											}}
+											size="lg"
+											variant="detailed"
+											showAppraisal={false}
+											showTraits={false}
 											appraisalContractAddress={appraisalContractAddress}
 											animate={true}
-											rarity={resultRarity}
-											{...(protocolTreasuryAddress && {
-												protocolTreasuryAddress,
-											})}
-											{...(gachaTreasuryAddress && { gachaTreasuryAddress })}
+											theme="glass"
+											{...(protocolTreasuryAddress && { protocolTreasuryAddress })}
 											{...(gachaId && { gachaId })}
-											disableAutoRedemption
+											onBuybackSuccess={(txHash) => {
+												console.log("NFT sold successfully:", txHash);
+											}}
 										/>
 										{protocolTreasuryAddress && (
-											<div className="z-50 w-full flex justify-center pointer-events-auto">
+											<motion.div
+												className="z-50 w-full flex justify-center pointer-events-auto"
+												initial={{ opacity: 0, y: 20 }}
+												animate={{ opacity: 1, y: 0 }}
+												transition={{ delay: 0.5, duration: 0.5 }}
+											>
 												<SellToTreasury
 													collection={nftResult.collection}
 													tokenId={nftResult.tokenId}
@@ -184,7 +192,7 @@ export default function NFTRevealModal({
 													size="lg"
 													variant="button"
 												/>
-											</div>
+											</motion.div>
 										)}
 									</div>
 								</motion.div>
