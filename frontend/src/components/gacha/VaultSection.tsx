@@ -69,6 +69,8 @@ interface VaultState {
 	depositedNFTs: NFTWithCollection[];
 	isLoadingWithdrawals: boolean;
 	withdrawingNFT: { collection: Address; tokenId: bigint } | null;
+	selectedForWithdrawal: Set<string>; // Multi-select for batch withdrawal
+	isBatchWithdrawing: boolean;
 }
 
 // Constants
@@ -98,6 +100,8 @@ function useVaultState(initialState: Partial<VaultState> = {}) {
 		depositedNFTs: [],
 		isLoadingWithdrawals: false,
 		withdrawingNFT: null,
+		selectedForWithdrawal: new Set(),
+		isBatchWithdrawing: false,
 		...initialState,
 	});
 
@@ -325,7 +329,7 @@ const BalanceOverview: React.FC<{
 			{canClaim && (
 				<GlassButton
 					className="mt-3 w-full"
-					color="primary"
+					color="glassPrimary"
 					onPress={onClaimYield}
 					isLoading={isClaiming}
 					aria-label="Claim pending yield"
@@ -394,22 +398,22 @@ const TabNavigation: React.FC<{
 			className="flex flex-wrap gap-2 p-1 bg-content1/20 rounded-xl"
 		>
 			{tabs.map((tab) => (
-				<Button
+				<GlassButton
 					key={tab.id}
-					variant={activeTab === tab.id ? "solid" : "light"}
+					color={activeTab === tab.id ? "glass" : "glass"}
 					role="tab"
 					aria-selected={activeTab === tab.id}
 					aria-controls={`${tab.id}-panel`}
 					className={`flex-1 min-w-[120px] justify-center gap-2 rounded-lg ${
 						activeTab === tab.id
 							? "bg-gradient-to-r from-warning to-orange-400 text-black hover:!from-warning hover:!to-orange-400 hover:!text-black"
-							: "text-foreground/70 hover:text-foreground hover:bg-content1/30"
+							: ""
 					}`}
 					onPress={() => onTabChange(tab.id)}
 				>
 					<tab.icon className="w-4 h-4" aria-hidden="true" />
 					{tab.label}
-				</Button>
+				</GlassButton>
 			))}
 		</div>
 	);
@@ -608,8 +612,14 @@ const YieldTab: React.FC<{
 );
 
 const NFTRarityDisplay: React.FC<{ rarity: number }> = ({ rarity }) => {
-	const emoji = RARITY_EMOJIS[rarity] || "⚪";
-	const name = RARITY_NAMES[rarity] || "Unknown";
+	// Ensure rarity is a valid number and within expected range
+	const validRarity = typeof rarity === "number" && !isNaN(rarity) ? rarity : 0;
+	const clampedRarity = Math.max(0, Math.min(4, validRarity));
+
+	const emoji = RARITY_EMOJIS[clampedRarity] || "⚪";
+	const name = validRarity !== clampedRarity
+		? `Unknown (${validRarity})`
+		: (RARITY_NAMES[clampedRarity] || "Unknown");
 
 	return (
 		<div className="flex items-center gap-2">
@@ -661,7 +671,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const treasury = contracts.treasury as `0x${string}` | undefined;
 	const appraisal = contracts.appraisal as `0x${string}` | undefined;
 	const { withdrawNFT } = useNFTWithdrawal(treasury);
-	const { getUserDepositedNFTs } = useUserDepositedNFTs(treasury);
+	const { getUserDepositedNFTs, getCanonicalNFTData } = useUserDepositedNFTs(treasury);
 
 	// Whitelisted collections
 	const whitelistedCollectionsQuery =
@@ -797,14 +807,52 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				return;
 			}
 
-			const nftsWithCollections: NFTWithCollection[] = nfts.map((nft) => {
-				const result: NFTWithCollection = { ...nft };
-				if (nft.collectionName) {
-					result.collectionName = nft.collectionName;
-				}
-				return result;
-			});
+			// Fetch canonical data for each NFT via appraisal contract
+			const nftsWithCanonicalData = await Promise.all(
+				nfts.map(async (nft) => {
+					console.log(`🔍 [VaultSection] Fetching canonical data for NFT:`, {
+						depositedCollection: nft.collection,
+						depositedTokenId: nft.tokenId.toString(),
+						currentRarity: nft.currentRarity,
+						appraisedPrice: nft.appraisedPrice.toString(),
+					});
 
+					if (!appraisal) {
+						console.warn("No appraisal contract available");
+						return { ...nft };
+					}
+
+					const canonicalData = await getCanonicalNFTData(
+						appraisal as Address,
+						nft.collection,
+						nft.tokenId,
+					);
+
+					console.log(`✅ [VaultSection] Canonical data received:`, {
+						canonicalContractAddress: canonicalData.canonicalContractAddress,
+						canonicalTokenId: canonicalData.canonicalTokenId?.toString(),
+					});
+
+					return {
+						...nft,
+						...canonicalData,
+					};
+				}),
+			);
+
+			// Log the final grouping by canonical collections
+			console.log(`📦 [VaultSection] Final grouping by canonical collections:`);
+			const canonicalCollections = new Map<string, number>();
+			nftsWithCanonicalData.forEach(nft => {
+				const collection = nft.canonicalContractAddress || nft.collection;
+				canonicalCollections.set(collection, (canonicalCollections.get(collection) || 0) + 1);
+			});
+			canonicalCollections.forEach((count, collection) => {
+				console.log(`  ${collection}: ${count} NFTs`);
+			});
+			console.log(`📋 [VaultSection] Total unique canonical collections: ${canonicalCollections.size}`);
+
+			const nftsWithCollections: NFTWithCollection[] = nftsWithCanonicalData.map((nft) => ({ ...nft }));
 			updateState("depositedNFTs", nftsWithCollections);
 		} catch (error) {
 			console.error("Error loading deposited NFTs:", error);
@@ -823,11 +871,16 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	React.useEffect(() => {
 		if (activeTab !== "deposit") {
 			resetDeposit();
-			// Clear optimistic state when switching tabs
-			setOptimisticUserNFTs([]);
-			setOptimisticDepositedNFTs([]);
 		}
-	}, [activeTab, resetDeposit]);
+		if (activeTab !== "withdraw") {
+			// Clear selection when switching away from withdraw tab
+			updateState("selectedForWithdrawal", new Set());
+			updateState("isBatchWithdrawing", false);
+		}
+		// Clear optimistic state when switching tabs
+		setOptimisticUserNFTs([]);
+		setOptimisticDepositedNFTs([]);
+	}, [activeTab, resetDeposit, updateState]);
 
 	React.useEffect(() => {
 		return () => {
@@ -887,22 +940,55 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			updateState("withdrawingNFT", { collection, tokenId });
 
 			try {
+				const nftKey = createNFTKey(collection, tokenId);
+
+				// Optimistic updates before the actual withdrawal
+				const nftToWithdraw = displayDepositedNFTs.find(
+					(nft) => createNFTKey(nft.collection, nft.tokenId) === nftKey
+				);
+
+				if (nftToWithdraw) {
+					// Remove from deposited NFTs optimistically
+					setOptimisticDepositedNFTs(prev =>
+						prev.filter(nft => createNFTKey(nft.collection, nft.tokenId) !== nftKey)
+					);
+
+					// Add to user-owned NFTs optimistically
+					const userNFT: UserOwnedNFTMultiCollection = {
+						collection: collection,
+						tokenId: tokenId,
+						...(nftToWithdraw.collectionName && { collectionName: nftToWithdraw.collectionName }),
+					};
+					setOptimisticUserNFTs(prev => [...prev, userNFT]);
+				}
+
 				await withdrawNFT(collection, tokenId);
 				toast.success("NFT withdrawal submitted successfully!", TOAST_CONFIG);
 
+				// Quick refetch of vault data (cheaper than full NFT refresh)
+				refetchDepositorVault();
+
+				// Delayed background refresh to ensure data consistency
 				setTimeout(() => {
 					loadDepositedNFTs();
-					refetchDepositorVault();
-				}, 3000);
+					refetchUserNFTs();
+					// Clear optimistic state after real data loads
+					setOptimisticUserNFTs([]);
+					setOptimisticDepositedNFTs([]);
+				}, 2000);
 			} catch (error) {
 				console.error("Error withdrawing NFT:", error);
 				const errorMessage =
 					error instanceof Error ? error.message : "Unknown error occurred";
 				toast.error(`Failed to withdraw NFT: ${errorMessage}`, TOAST_CONFIG);
+				// Revert optimistic updates on error
+				setOptimisticUserNFTs([]);
+				setOptimisticDepositedNFTs([]);
 			} finally {
+				// Clear withdrawing state with a small delay for UX
 				setTimeout(() => {
 					updateState("withdrawingNFT", null);
-				}, 2000);
+				}, 1000);
 			}
 		},
 		[
@@ -911,7 +997,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			withdrawNFT,
 			loadDepositedNFTs,
 			refetchDepositorVault,
+			refetchUserNFTs,
 			updateState,
+			displayDepositedNFTs,
 		],
 	);
 
@@ -971,6 +1059,96 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			address,
 		],
 	);
+
+	const handleBatchWithdrawal = useCallback(async () => {
+		if (state.selectedForWithdrawal.size === 0 || !treasury) {
+			return;
+		}
+
+		updateState("isBatchWithdrawing", true);
+
+		try {
+			const withdrawals: { collection: Address; tokenId: bigint }[] = [];
+			const nftsToWithdraw: NFTWithCollection[] = [];
+
+			// Collect all NFTs to withdraw
+			for (const nftKey of state.selectedForWithdrawal) {
+				const nft = displayDepositedNFTs.find(
+					(dep) => createNFTKey(dep.collection, dep.tokenId) === nftKey
+				);
+				if (nft) {
+					withdrawals.push({ collection: nft.collection, tokenId: nft.tokenId });
+					nftsToWithdraw.push(nft);
+				}
+			}
+
+			if (withdrawals.length === 0) {
+				toast.error("No valid NFTs selected for withdrawal", TOAST_CONFIG);
+				return;
+			}
+
+			// Optimistic updates
+			setOptimisticDepositedNFTs(prev =>
+				prev.filter(nft => !state.selectedForWithdrawal.has(createNFTKey(nft.collection, nft.tokenId)))
+			);
+
+			const userNFTs: UserOwnedNFTMultiCollection[] = nftsToWithdraw.map(nft => ({
+				collection: nft.collection,
+				tokenId: nft.tokenId,
+				...(nft.collectionName && { collectionName: nft.collectionName }),
+			}));
+			setOptimisticUserNFTs(prev => [...prev, ...userNFTs]);
+
+			// Process withdrawals sequentially
+			for (const withdrawal of withdrawals) {
+				await withdrawNFT(withdrawal.collection, withdrawal.tokenId);
+			}
+
+			toast.success(`Successfully withdrew ${withdrawals.length} NFTs!`, TOAST_CONFIG);
+			updateState("selectedForWithdrawal", new Set());
+
+			// Quick refetch of vault data
+			refetchDepositorVault();
+
+			// Delayed background refresh
+			setTimeout(() => {
+				loadDepositedNFTs();
+				refetchUserNFTs();
+				setOptimisticUserNFTs([]);
+				setOptimisticDepositedNFTs([]);
+			}, 2000);
+
+		} catch (error) {
+			console.error("Error in batch withdrawal:", error);
+			toast.error("Failed to complete batch withdrawal", TOAST_CONFIG);
+			// Revert optimistic updates on error
+			setOptimisticUserNFTs([]);
+			setOptimisticDepositedNFTs([]);
+		} finally {
+			updateState("isBatchWithdrawing", false);
+		}
+	}, [
+		state.selectedForWithdrawal,
+		treasury,
+		displayDepositedNFTs,
+		withdrawNFT,
+		refetchDepositorVault,
+		loadDepositedNFTs,
+		refetchUserNFTs,
+		updateState,
+	]);
+
+	const toggleNFTSelection = useCallback((collection: Address, tokenId: bigint) => {
+		const nftKey = createNFTKey(collection, tokenId);
+		const currentSet = state.selectedForWithdrawal;
+		const newSet = new Set(currentSet);
+		if (newSet.has(nftKey)) {
+			newSet.delete(nftKey);
+		} else {
+			newSet.add(nftKey);
+		}
+		updateState("selectedForWithdrawal", newSet);
+	}, [updateState, state.selectedForWithdrawal]);
 
 	const handleNFTAction = useCallback(
 		(collection: string, tokenId: string, hasAppraisal?: boolean) => {
@@ -1073,9 +1251,46 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 						aria-labelledby="withdraw-tab"
 					>
 						<header className="flex items-center justify-between mb-4">
-							<h2 className="text-xl font-semibold text-foreground">
-								Withdraw NFTs
-							</h2>
+							<div className="flex items-center gap-4">
+								<h2 className="text-xl font-semibold text-foreground">
+									Withdraw NFTs
+								</h2>
+								{state.selectedForWithdrawal.size > 0 && (
+									<div className="flex items-center gap-2">
+										<span className="text-sm text-foreground/60">
+											{state.selectedForWithdrawal.size} selected
+										</span>
+										<GlassButton
+											size="sm"
+											color="glassPrimary"
+											onPress={handleBatchWithdrawal}
+											isLoading={state.isBatchWithdrawing}
+											className="animate-pulse"
+										>
+											Withdraw Selected
+										</GlassButton>
+										<Button
+											size="sm"
+											variant="light"
+											onPress={() => updateState("selectedForWithdrawal", new Set())}
+										>
+											Clear Selection
+										</Button>
+									</div>
+								)}
+							</div>
+							{displayDepositedNFTs.length > 0 && (
+								<Button
+									size="sm"
+									variant="light"
+									onPress={() => {
+										const allKeys = displayDepositedNFTs.map(nft => createNFTKey(nft.collection, nft.tokenId));
+										updateState("selectedForWithdrawal", new Set(allKeys));
+									}}
+								>
+									Select All
+								</Button>
+							)}
 						</header>
 
 						{state.isLoadingWithdrawals ? (
@@ -1192,12 +1407,15 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 													<h5 className="text-sm font-medium text-foreground/70 mb-3">
 														Individual NFTs ({nfts.length}):
 													</h5>
-													<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+													<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 														{nfts.map((nft) => {
 															const isWithdrawingThisNFT =
 																state.withdrawingNFT?.collection ===
 																	nft.collection &&
 																state.withdrawingNFT?.tokenId === nft.tokenId;
+															const isSelected = state.selectedForWithdrawal.has(
+																createNFTKey(nft.collection, nft.tokenId)
+															);
 															const nftKey = createNFTKey(
 																nft.collection,
 																nft.tokenId,
@@ -1206,71 +1424,107 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 															return (
 																<article
 																	key={nftKey}
-																	className="bg-content2/10 rounded-lg p-4 border border-white/5"
+																	className={`bg-content2/10 rounded-xl p-4 border transition-all duration-200 ${
+																		isSelected
+																			? "border-primary/50 ring-2 ring-primary/20 bg-content2/20"
+																			: "border-white/5 hover:border-white/10"
+																	}`}
 																>
-																	<div className="flex flex-col h-full">
-																		<header className="flex items-center justify-between mb-3">
-																			<NFTRarityDisplay
-																				rarity={nft.currentRarity}
-																			/>
+																	<div className="flex flex-col h-full gap-4">
+																		{/* Selection Checkbox and Rarity */}
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center gap-3">
+																				<input
+																					type="checkbox"
+																					checked={isSelected}
+																					onChange={() =>
+																						toggleNFTSelection(
+																							nft.collection,
+																							nft.tokenId,
+																						)
+																					}
+																					className="w-4 h-4 rounded border-white/20 bg-content2/50 text-primary focus:ring-2 focus:ring-primary/50"
+																					aria-label={`Select NFT ${nft.tokenId.toString()}`}
+																				/>
+																				<NFTRarityDisplay
+																					rarity={nft.currentRarity}
+																				/>
+																			</div>
 																			<p className="text-sm font-mono bg-content2/20 px-2 py-1 rounded">
-																				Token #{nft.tokenId.toString()}
+																				#{nft.tokenId.toString()}
 																			</p>
-																		</header>
+																		</div>
 
-																		<div className="flex-1 space-y-2 mb-4">
-																			<div className="flex items-center gap-2">
+																		{/* NFT Image - UnifiedNFTCard will use appraisal contract to get canonical NFT data */}
+																		<div className="flex justify-center">
+																			<UnifiedNFTCard
+																				collection={nft.collection}
+																				tokenId={nft.tokenId.toString()}
+																				appraisalContractAddress={
+																					(appraisal as `0x${string}`) ||
+																					"0x0000000000000000000000000000000000000000"
+																				}
+																				rarity={nft.currentRarity as any}
+																				size="sm"
+																				variant="compact"
+																				showAppraisal={false}
+																				appraisalOverride={{
+																					hasAppraisal: nft.appraisedPrice > 0n,
+																					priceUSD: nft.appraisedPrice,
+																				}}
+																				onClick={() => {}}
+																			/>
+																		</div>
+
+																		{/* NFT Details */}
+																		<div className="space-y-2 flex-1">
+																			<div className="flex items-center justify-between">
 																				<span className="text-xs text-foreground/60">
-																					Collection:
+																					Collection
 																				</span>
 																				<span className="text-xs font-mono text-foreground/80">
 																					{formatShortAddress(nft.collection)}
 																				</span>
 																			</div>
-																			<div className="flex items-center gap-2">
+																			<div className="flex items-center justify-between">
 																				<span className="text-xs text-foreground/60">
-																					Value:
+																					Value
 																				</span>
 																				<span className="text-xs font-semibold text-success">
 																					{formatCurrency(
 																						nft.appraisedPrice.toString(),
-																						18,
+																						0, // Appraised price is already in USD cents
 																						"USD",
 																					)}
 																				</span>
 																			</div>
-																			<div className="flex items-center gap-2">
-																				<span className="text-xs text-foreground/60">
-																					Rarity:
-																				</span>
-																				<NFTRarityDisplay
-																					rarity={nft.currentRarity}
-																				/>
-																			</div>
 																		</div>
 
-																		<GlassButton
-																			size="sm"
-																			color="glass"
-																			onPress={() =>
-																				handleWithdrawNFT(
-																					nft.collection,
-																					nft.tokenId,
-																				)
-																			}
-																			isLoading={isWithdrawingThisNFT}
-																			isDisabled={isWithdrawingThisNFT}
-																			aria-label={`Withdraw NFT ${nft.tokenId.toString()}`}
-																			className="w-full transition-all duration-300"
-																		>
-																			<ArrowDownTrayIcon
-																				className={`w-4 h-4 ${isWithdrawingThisNFT ? "animate-bounce" : ""}`}
-																				aria-hidden="true"
-																			/>
-																			{isWithdrawingThisNFT
-																				? "Withdrawing..."
-																				: "Withdraw"}
-																		</GlassButton>
+																		{/* Withdraw Button */}
+																		<div className="flex gap-2">
+																			<GlassButton
+																				size="sm"
+																				color="glassPrimary"
+																				onPress={() =>
+																					handleWithdrawNFT(
+																						nft.collection,
+																						nft.tokenId,
+																					)
+																				}
+																				isLoading={isWithdrawingThisNFT}
+																				isDisabled={isWithdrawingThisNFT || state.isBatchWithdrawing}
+																				aria-label={`Withdraw NFT ${nft.tokenId.toString()}`}
+																				className="flex-1 transition-all duration-300"
+																			>
+																				<ArrowDownTrayIcon
+																					className={`w-4 h-4 ${isWithdrawingThisNFT ? "animate-bounce" : ""}`}
+																					aria-hidden="true"
+																				/>
+																				{isWithdrawingThisNFT
+																					? "Withdrawing..."
+																					: "Withdraw"}
+																			</GlassButton>
+																		</div>
 																	</div>
 																</article>
 															);
