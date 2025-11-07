@@ -93,7 +93,7 @@ export function NFTAvailabilitySection({
 			appraisalValue: BigInt(0),
 		}));
 
-		setUserNFTs(transformedNFTs);
+					setUserNFTs(transformedNFTs);
 		setLoading(false);
 		setError(null);
 	}, [userAddress, userOwnedNFTs, nftsLoading, nftsError]);
@@ -107,17 +107,28 @@ export function NFTAvailabilitySection({
 					(nft) => `${nft.collection}:${nft.tokenId}` !== nftKey,
 				);
 				if (hasValidAppraisal) {
-					const nft = userNFTs.find(
+					const nft = [...prev, ...needsAppraisalNFTs].find(
 						(n) => n.collection === collection && n.tokenId === tokenId,
 					);
 					if (
 						nft &&
 						!filtered.some((n) => `${n.collection}:${n.tokenId}` === nftKey)
 					) {
-						return [...filtered, nft];
+						// Insert in sorted order by tokenId
+						const updatedArray = [...filtered, nft];
+						return updatedArray.sort((a, b) => {
+							const tokenIdA = BigInt(a.tokenId);
+							const tokenIdB = BigInt(b.tokenId);
+							return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
+						});
 					}
 				}
-				return filtered;
+				// Always return sorted array
+				return filtered.sort((a, b) => {
+					const tokenIdA = BigInt(a.tokenId);
+					const tokenIdB = BigInt(b.tokenId);
+					return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
+				});
 			});
 
 			setNeedsAppraisalNFTs((prev) => {
@@ -125,27 +136,48 @@ export function NFTAvailabilitySection({
 					(nft) => `${nft.collection}:${nft.tokenId}` !== nftKey,
 				);
 				if (!hasValidAppraisal) {
-					const nft = userNFTs.find(
+					const nft = [...prev, ...readyToDepositNFTs].find(
 						(n) => n.collection === collection && n.tokenId === tokenId,
 					);
 					if (
 						nft &&
 						!filtered.some((n) => `${n.collection}:${n.tokenId}` === nftKey)
 					) {
-						return [...filtered, nft];
+						// Insert in sorted order by tokenId
+						const updatedArray = [...filtered, nft];
+						return updatedArray.sort((a, b) => {
+							const tokenIdA = BigInt(a.tokenId);
+							const tokenIdB = BigInt(b.tokenId);
+							return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
+						});
 					}
 				}
-				return filtered;
+				// Always return sorted array
+				return filtered.sort((a, b) => {
+					const tokenIdA = BigInt(a.tokenId);
+					const tokenIdB = BigInt(b.tokenId);
+					return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
+				});
 			});
 		},
-		[userNFTs],
+		[needsAppraisalNFTs, readyToDepositNFTs],
 	);
 
+	// Reset and sort NFT arrays whenever userNFTs change
 	useEffect(() => {
+		// Sort all NFTs by tokenId first
+		const sortedNFTs = [...userNFTs].sort((a, b) => {
+			const tokenIdA = BigInt(a.tokenId);
+			const tokenIdB = BigInt(b.tokenId);
+			return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
+		});
+
 		setReadyToDepositNFTs([]);
-		setNeedsAppraisalNFTs([...userNFTs]);
+		setNeedsAppraisalNFTs(sortedNFTs);
 	}, [userNFTs]);
 
+	
+	
 	const handleNFTAction = useCallback(
 		(collection: string, tokenId: string, hasValidAppraisal?: boolean) => {
 			if (hasValidAppraisal) {
@@ -389,7 +421,11 @@ export function NFTAvailabilitySection({
 						</header>
 						<div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
 							<AnimatePresence>
-								{readyToDepositNFTs.map((nft) => (
+								{[...readyToDepositNFTs].sort((a, b) => {
+								const tokenIdA = BigInt(a.tokenId);
+								const tokenIdB = BigInt(b.tokenId);
+								return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
+							}).map((nft) => (
 									<DepositableNFTCard
 										key={`ready-${nft.collection}:${nft.tokenId}`}
 										collection={nft.collection as `0x${string}`}
@@ -419,7 +455,11 @@ export function NFTAvailabilitySection({
 						</header>
 						<div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
 							<AnimatePresence>
-								{needsAppraisalNFTs.map((nft) => (
+								{[...needsAppraisalNFTs].sort((a, b) => {
+								const tokenIdA = BigInt(a.tokenId);
+								const tokenIdB = BigInt(b.tokenId);
+								return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
+							}).map((nft) => (
 									<DepositableNFTCard
 										key={`appraisal-${nft.collection}:${nft.tokenId}`}
 										collection={nft.collection as `0x${string}`}
