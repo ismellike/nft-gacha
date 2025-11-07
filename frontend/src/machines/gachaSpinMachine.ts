@@ -159,7 +159,12 @@ const pollForSpinFulfillment = fromPromise(
 						const { rarity, collection, tokenId } = log.args;
 
 						// Validate the log data
-						if (rarity === undefined || rarity === null || !collection || tokenId === undefined) {
+						if (
+							rarity === undefined ||
+							rarity === null ||
+							!collection ||
+							tokenId === undefined
+						) {
 							throw new Error("Invalid SpinCompleted event data");
 						}
 

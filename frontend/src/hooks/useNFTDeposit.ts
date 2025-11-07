@@ -35,17 +35,14 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 	// Transaction execution and success tracking happens in useNFTInteraction
 
 	// Use the XState machine directly - this is our single source of truth
-	const {
-		sendInteractionEvent,
-		interactionState,
-		isLoading,
-		error,
-		context,
-	} = useNFTInteraction({
-		...(params?.onSuccess && { onSuccess: params.onSuccess }),
-		...(params?.onAction && { onAction: params.onAction }),
-		...(params?.onAppraisalStatusChange && { onAppraisalStatusChange: params.onAppraisalStatusChange }),
-	});
+	const { sendInteractionEvent, interactionState, isLoading, error, context } =
+		useNFTInteraction({
+			...(params?.onSuccess && { onSuccess: params.onSuccess }),
+			...(params?.onAction && { onAction: params.onAction }),
+			...(params?.onAppraisalStatusChange && {
+				onAppraisalStatusChange: params.onAppraisalStatusChange,
+			}),
+		});
 
 	// Get the state for a specific NFT - this is the only state we need
 	const getNFTDepositState = useCallback(
@@ -55,7 +52,10 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 				return null;
 
 			// Check each state using interactionState.matches() for proper XState state detection
-			if (interactionState.matches("checkingApprovals") || interactionState.matches("checkingNFTApproval")) {
+			if (
+				interactionState.matches("checkingApprovals") ||
+				interactionState.matches("checkingNFTApproval")
+			) {
 				return {
 					isDepositing: true,
 					stage: "checking",

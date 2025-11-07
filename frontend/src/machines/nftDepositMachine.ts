@@ -359,22 +359,26 @@ export const nftDepositMachine = createMachine(
 						context.collection &&
 						context.tokenId
 					) {
-						(context.onAction as (collection: string, tokenId: string, hasValidAppraisal?: boolean) => void)(
-							context.collection,
-							context.tokenId,
-							true,
-						);
+						(
+							context.onAction as (
+								collection: string,
+								tokenId: string,
+								hasValidAppraisal?: boolean,
+							) => void
+						)(context.collection, context.tokenId, true);
 					}
 					if (
 						typeof context.onAppraisalStatusChange === "function" &&
 						context.collection &&
 						context.tokenId
 					) {
-						(context.onAppraisalStatusChange as (collection: string, tokenId: string, hasValidAppraisal: boolean) => void)(
-							context.collection,
-							context.tokenId,
-							true,
-						);
+						(
+							context.onAppraisalStatusChange as (
+								collection: string,
+								tokenId: string,
+								hasValidAppraisal: boolean,
+							) => void
+						)(context.collection, context.tokenId, true);
 					}
 					if (typeof context.refetchTreasuryCards === "function") {
 						(context.refetchTreasuryCards as () => Promise<void>)();

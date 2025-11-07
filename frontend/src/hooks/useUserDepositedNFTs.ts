@@ -84,7 +84,9 @@ export function useUserDepositedNFTs(treasury?: Address) {
 	const { address: user } = useAccount();
 	const publicClient = usePublicClient();
 
-	const getUserDepositedNFTs = useCallback(async (): Promise<DepositedNFT[]> => {
+	const getUserDepositedNFTs = useCallback(async (): Promise<
+		DepositedNFT[]
+	> => {
 		if (!publicClient || !treasury || !user) {
 			return [];
 		}
@@ -130,7 +132,11 @@ export function useUserDepositedNFTs(treasury?: Address) {
 	 * Gets canonical NFT data from appraisal contract for a deposited NFT
 	 */
 	const getCanonicalNFTData = useCallback(
-		async (appraisal: Address, collection: Address, tokenId: bigint): Promise<{
+		async (
+			appraisal: Address,
+			collection: Address,
+			tokenId: bigint,
+		): Promise<{
 			canonicalContractAddress?: Address;
 			canonicalTokenId?: bigint;
 		}> => {
@@ -144,7 +150,11 @@ export function useUserDepositedNFTs(treasury?: Address) {
 					args: [collection, tokenId],
 				});
 
-				if (!cardId || cardId === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+				if (
+					!cardId ||
+					cardId ===
+						"0x0000000000000000000000000000000000000000000000000000000000000000"
+				) {
 					return {};
 				}
 
@@ -168,7 +178,11 @@ export function useUserDepositedNFTs(treasury?: Address) {
 
 				return {};
 			} catch (error) {
-				console.debug("Failed to get canonical data for NFT", { collection, tokenId }, error);
+				console.debug(
+					"Failed to get canonical data for NFT",
+					{ collection, tokenId },
+					error,
+				);
 				return {};
 			}
 		},

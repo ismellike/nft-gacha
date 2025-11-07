@@ -160,13 +160,16 @@ export default function NFTRevealModal({
 											data={{
 												collection: nftResult.collection,
 												tokenId: nftResult.tokenId,
-												imageUrl: enhancedResult?.imageUrl || nftResult.imageUrl,
+												imageUrl:
+													enhancedResult?.imageUrl || nftResult.imageUrl,
 												rarity: resultRarity,
 											}}
 											size="lg"
 											showCollectionName={true}
 											appraisalContractAddress={appraisalContractAddress}
-											{...(protocolTreasuryAddress && { protocolTreasuryAddress })}
+											{...(protocolTreasuryAddress && {
+												protocolTreasuryAddress,
+											})}
 											{...(gachaId && { gachaId })}
 											onBuybackSuccess={(txHash) => {
 												console.log("NFT sold successfully:", txHash);

@@ -538,7 +538,9 @@ export function NFTAppraisalForm({
 											}}
 											size="sm"
 											showCollectionName={false}
-											appraisalContractAddress={contracts.appraisal as `0x${string}`}
+											appraisalContractAddress={
+												contracts.appraisal as `0x${string}`
+											}
 										/>
 									)}
 								</div>

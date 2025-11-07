@@ -16,9 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
-import {
-	useReadNftAppraisalGetAppraisal,
-} from "../generated";
+import { useReadNftAppraisalGetAppraisal } from "../generated";
 import { useNFTInteraction } from "../hooks/useNFTInteraction";
 
 interface DepositableNFTCardProps {
@@ -146,7 +144,6 @@ export const DepositableNFTCard = ({
 		}
 	};
 
-	
 	// Build action slot with appropriate buttons
 	const actionSlot = (
 		<div className="space-y-2">
@@ -184,7 +181,9 @@ export const DepositableNFTCard = ({
 						<Button
 							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
 							onPress={() => {
-								const actionInfoWithAction = actionInfo as { action?: () => void };
+								const actionInfoWithAction = actionInfo as {
+									action?: () => void;
+								};
 								if (actionInfoWithAction.action) {
 									actionInfoWithAction.action();
 								}
@@ -201,7 +200,9 @@ export const DepositableNFTCard = ({
 						<Button
 							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
 							onPress={() => {
-								const actionInfoWithAction = actionInfo as { action?: () => void };
+								const actionInfoWithAction = actionInfo as {
+									action?: () => void;
+								};
 								if (actionInfoWithAction.action) {
 									actionInfoWithAction.action();
 								}
@@ -243,9 +244,7 @@ export const DepositableNFTCard = ({
 									<ArrowPathIcon className="w-4 h-4" /> Try Again
 								</span>
 							</Button>
-							<p className="text-xs text-danger text-center">
-								{hookError}
-							</p>
+							<p className="text-xs text-danger text-center">{hookError}</p>
 						</div>
 					)}
 				</div>
@@ -272,9 +271,7 @@ export const DepositableNFTCard = ({
 			/>
 
 			{/* Action buttons */}
-			<div className="mt-4 flex justify-center">
-				{actionSlot}
-			</div>
+			<div className="mt-4 flex justify-center">{actionSlot}</div>
 		</motion.div>
 	);
 };

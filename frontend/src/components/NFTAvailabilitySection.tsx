@@ -93,7 +93,7 @@ export function NFTAvailabilitySection({
 			appraisalValue: BigInt(0),
 		}));
 
-					setUserNFTs(transformedNFTs);
+		setUserNFTs(transformedNFTs);
 		setLoading(false);
 		setError(null);
 	}, [userAddress, userOwnedNFTs, nftsLoading, nftsError]);
@@ -176,8 +176,6 @@ export function NFTAvailabilitySection({
 		setNeedsAppraisalNFTs(sortedNFTs);
 	}, [userNFTs]);
 
-	
-	
 	const handleNFTAction = useCallback(
 		(collection: string, tokenId: string, hasValidAppraisal?: boolean) => {
 			if (hasValidAppraisal) {
@@ -421,19 +419,25 @@ export function NFTAvailabilitySection({
 						</header>
 						<div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
 							<AnimatePresence>
-								{[...readyToDepositNFTs].sort((a, b) => {
-								const tokenIdA = BigInt(a.tokenId);
-								const tokenIdB = BigInt(b.tokenId);
-								return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
-							}).map((nft) => (
-									<DepositableNFTCard
-										key={`ready-${nft.collection}:${nft.tokenId}`}
-										collection={nft.collection as `0x${string}`}
-										tokenId={nft.tokenId}
-										onAction={handleNFTAction}
-										onAppraisalStatusChange={handleAppraisalStatusChange}
-									/>
-								))}
+								{[...readyToDepositNFTs]
+									.sort((a, b) => {
+										const tokenIdA = BigInt(a.tokenId);
+										const tokenIdB = BigInt(b.tokenId);
+										return tokenIdA < tokenIdB
+											? -1
+											: tokenIdA > tokenIdB
+												? 1
+												: 0;
+									})
+									.map((nft) => (
+										<DepositableNFTCard
+											key={`ready-${nft.collection}:${nft.tokenId}`}
+											collection={nft.collection as `0x${string}`}
+											tokenId={nft.tokenId}
+											onAction={handleNFTAction}
+											onAppraisalStatusChange={handleAppraisalStatusChange}
+										/>
+									))}
 							</AnimatePresence>
 						</div>
 					</section>
@@ -455,19 +459,25 @@ export function NFTAvailabilitySection({
 						</header>
 						<div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
 							<AnimatePresence>
-								{[...needsAppraisalNFTs].sort((a, b) => {
-								const tokenIdA = BigInt(a.tokenId);
-								const tokenIdB = BigInt(b.tokenId);
-								return tokenIdA < tokenIdB ? -1 : tokenIdA > tokenIdB ? 1 : 0;
-							}).map((nft) => (
-									<DepositableNFTCard
-										key={`appraisal-${nft.collection}:${nft.tokenId}`}
-										collection={nft.collection as `0x${string}`}
-										tokenId={nft.tokenId}
-										onAction={handleNFTAction}
-										onAppraisalStatusChange={handleAppraisalStatusChange}
-									/>
-								))}
+								{[...needsAppraisalNFTs]
+									.sort((a, b) => {
+										const tokenIdA = BigInt(a.tokenId);
+										const tokenIdB = BigInt(b.tokenId);
+										return tokenIdA < tokenIdB
+											? -1
+											: tokenIdA > tokenIdB
+												? 1
+												: 0;
+									})
+									.map((nft) => (
+										<DepositableNFTCard
+											key={`appraisal-${nft.collection}:${nft.tokenId}`}
+											collection={nft.collection as `0x${string}`}
+											tokenId={nft.tokenId}
+											onAction={handleNFTAction}
+											onAppraisalStatusChange={handleAppraisalStatusChange}
+										/>
+									))}
 							</AnimatePresence>
 						</div>
 					</section>

@@ -295,12 +295,7 @@ const BalanceOverview: React.FC<{
 	isClaiming: boolean;
 	onClaimYield: () => void;
 	totalDepositedNFTs: number;
-}> = ({
-	depositorUserData,
-	isClaiming,
-	onClaimYield,
-	totalDepositedNFTs,
-}) => (
+}> = ({ depositorUserData, isClaiming, onClaimYield, totalDepositedNFTs }) => (
 	<section
 		aria-label="Account Overview"
 		className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
@@ -327,7 +322,11 @@ const BalanceOverview: React.FC<{
 				color="glassPrimary"
 				onPress={onClaimYield}
 				isLoading={isClaiming}
-				disabled={isClaiming || !depositorUserData.pendingYield || depositorUserData.pendingYield <= 0n}
+				disabled={
+					isClaiming ||
+					!depositorUserData.pendingYield ||
+					depositorUserData.pendingYield <= 0n
+				}
 				aria-label="Claim pending yield"
 			>
 				Claim Yield
@@ -419,7 +418,10 @@ const DepositTab: React.FC<{
 	appraisedNFTs: Set<string>;
 	appraisalData: Map<string, AppraisalInfo>;
 	appraisal: string | undefined;
-	getNFTDepositState: (collection: string, tokenId: string) => {
+	getNFTDepositState: (
+		collection: string,
+		tokenId: string,
+	) => {
 		isDepositing: boolean;
 		stage: string;
 		message: string;
@@ -469,7 +471,10 @@ const DepositTab: React.FC<{
 					const nftKey = createNFTKey(nft.collection, nft.tokenId);
 					const hasAppraisal = appraisedNFTs.has(nftKey);
 					// Get state directly from XState machine - our single source of truth
-					const depositState = getNFTDepositState(nft.collection, nft.tokenId.toString());
+					const depositState = getNFTDepositState(
+						nft.collection,
+						nft.tokenId.toString(),
+					);
 					const isDepositing = !!depositState?.isDepositing;
 
 					// Remove excessive logging - system is working correctly
@@ -494,13 +499,18 @@ const DepositTab: React.FC<{
 										tokenId: nft.tokenId.toString(),
 										appraisalOverride: appraisalData.get(nftKey)
 											? {
-													hasAppraisal: appraisalData.get(nftKey)?.hasAppraisal ?? false,
+													hasAppraisal:
+														appraisalData.get(nftKey)?.hasAppraisal ?? false,
 													priceUSD: appraisalData.get(nftKey)?.priceUSD ?? 0n,
-											  }
+												}
 											: undefined,
 									}}
 									size="md"
-									onClick={() => console.log(`Vault NFT ${nft.collection}:${nft.tokenId} clicked`)}
+									onClick={() =>
+										console.log(
+											`Vault NFT ${nft.collection}:${nft.tokenId} clicked`,
+										)
+									}
 									appraisalContractAddress={appraisal as `0x${string}`}
 								/>
 							</div>
@@ -617,13 +627,15 @@ const YieldTab: React.FC<{
 
 const NFTRarityDisplay: React.FC<{ rarity: number }> = ({ rarity }) => {
 	// Ensure rarity is a valid number and within expected range
-	const validRarity = typeof rarity === "number" && !Number.isNaN(rarity) ? rarity : 0;
+	const validRarity =
+		typeof rarity === "number" && !Number.isNaN(rarity) ? rarity : 0;
 	const clampedRarity = Math.max(0, Math.min(4, validRarity));
 
 	const emoji = RARITY_EMOJIS[clampedRarity] || "⚪";
-	const name = validRarity !== clampedRarity
-		? `Unknown (${validRarity})`
-		: (RARITY_NAMES[clampedRarity] || "Unknown");
+	const name =
+		validRarity !== clampedRarity
+			? `Unknown (${validRarity})`
+			: RARITY_NAMES[clampedRarity] || "Unknown";
 
 	return (
 		<div className="flex items-center gap-2">
@@ -650,7 +662,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const [withdrawSearch, setWithdrawSearch] = useState("");
 	const deferredWithdrawSearch = useDeferredValue(withdrawSearch);
 	const [collectionFilter, setCollectionFilter] = useState<string>("all");
-	const [sortMode, setSortMode] = useState<"rarity" | "value" | "recent">("rarity");
+	const [sortMode, setSortMode] = useState<"rarity" | "value" | "recent">(
+		"rarity",
+	);
 	const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
 	// Contract data
@@ -675,7 +689,8 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const treasury = contracts.treasury as `0x${string}` | undefined;
 	const appraisal = contracts.appraisal as `0x${string}` | undefined;
 	const { withdrawNFT } = useNFTWithdrawal(treasury);
-	const { getUserDepositedNFTs, getCanonicalNFTData } = useUserDepositedNFTs(treasury);
+	const { getUserDepositedNFTs, getCanonicalNFTData } =
+		useUserDepositedNFTs(treasury);
 
 	// Whitelisted collections
 	const whitelistedCollectionsQuery =
@@ -724,10 +739,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	}, [state.depositedNFTs, optimisticDepositedNFTs]);
 
 	// NFT deposit hooks
-	const {
-		depositNFT,
-		getNFTDepositState,
-	} = useNFTDeposit({
+	const { depositNFT, getNFTDepositState } = useNFTDeposit({
 		onSuccess: () => {
 			toast.success("NFT deposited successfully!", TOAST_CONFIG);
 
@@ -822,7 +834,8 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				}),
 			);
 
-			const nftsWithCollections: NFTWithCollection[] = nftsWithCanonicalData.map((nft) => ({ ...nft }));
+			const nftsWithCollections: NFTWithCollection[] =
+				nftsWithCanonicalData.map((nft) => ({ ...nft }));
 			updateState("depositedNFTs", nftsWithCollections);
 			setOptimisticDepositedNFTs([]);
 		} catch (error) {
@@ -832,7 +845,14 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		} finally {
 			updateState("isLoadingWithdrawals", false);
 		}
-	}, [treasury, address, getUserDepositedNFTs, appraisal, getCanonicalNFTData, updateState]);
+	}, [
+		treasury,
+		address,
+		getUserDepositedNFTs,
+		appraisal,
+		getCanonicalNFTData,
+		updateState,
+	]);
 
 	React.useEffect(() => {
 		loadDepositedNFTs();
@@ -858,7 +878,12 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 	// Event handlers
 	const handleClaimYield = useCallback(async () => {
-		if (!address || !depositorUserData.pendingYield || depositorUserData.pendingYield <= 0n) return;
+		if (
+			!address ||
+			!depositorUserData.pendingYield ||
+			depositorUserData.pendingYield <= 0n
+		)
+			return;
 
 		try {
 			await claimYield({
@@ -905,22 +930,26 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 				// Optimistic updates before the actual withdrawal
 				const nftToWithdraw = displayDepositedNFTs.find(
-					(nft) => createNFTKey(nft.collection, nft.tokenId) === nftKey
+					(nft) => createNFTKey(nft.collection, nft.tokenId) === nftKey,
 				);
 
 				if (nftToWithdraw) {
 					// Remove from deposited NFTs optimistically
-					setOptimisticDepositedNFTs(prev =>
-						prev.filter(nft => createNFTKey(nft.collection, nft.tokenId) !== nftKey)
+					setOptimisticDepositedNFTs((prev) =>
+						prev.filter(
+							(nft) => createNFTKey(nft.collection, nft.tokenId) !== nftKey,
+						),
 					);
 
 					// Add to user-owned NFTs optimistically
 					const userNFT: UserOwnedNFTMultiCollection = {
 						collection: collection,
 						tokenId: tokenId,
-						...(nftToWithdraw.collectionName && { collectionName: nftToWithdraw.collectionName }),
+						...(nftToWithdraw.collectionName && {
+							collectionName: nftToWithdraw.collectionName,
+						}),
 					};
-					setOptimisticUserNFTs(prev => [...prev, userNFT]);
+					setOptimisticUserNFTs((prev) => [...prev, userNFT]);
 				}
 
 				await withdrawNFT(collection, tokenId);
@@ -1010,12 +1039,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				setOptimisticDepositedNFTs([]);
 			}
 		},
-		[
-			depositNFT,
-			state.appraisalData,
-			displayUserNFTs,
-			address,
-		],
+		[depositNFT, state.appraisalData, displayUserNFTs, address],
 	);
 
 	const handleBatchWithdrawal = useCallback(async () => {
@@ -1032,10 +1056,13 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			// Collect all NFTs to withdraw
 			for (const nftKey of state.selectedForWithdrawal) {
 				const nft = displayDepositedNFTs.find(
-					(dep) => createNFTKey(dep.collection, dep.tokenId) === nftKey
+					(dep) => createNFTKey(dep.collection, dep.tokenId) === nftKey,
 				);
 				if (nft) {
-					withdrawals.push({ collection: nft.collection, tokenId: nft.tokenId });
+					withdrawals.push({
+						collection: nft.collection,
+						tokenId: nft.tokenId,
+					});
 					nftsToWithdraw.push(nft);
 				}
 			}
@@ -1046,23 +1073,33 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			}
 
 			// Optimistic updates
-			setOptimisticDepositedNFTs(prev =>
-				prev.filter(nft => !state.selectedForWithdrawal.has(createNFTKey(nft.collection, nft.tokenId)))
+			setOptimisticDepositedNFTs((prev) =>
+				prev.filter(
+					(nft) =>
+						!state.selectedForWithdrawal.has(
+							createNFTKey(nft.collection, nft.tokenId),
+						),
+				),
 			);
 
-			const userNFTs: UserOwnedNFTMultiCollection[] = nftsToWithdraw.map(nft => ({
-				collection: nft.collection,
-				tokenId: nft.tokenId,
-				...(nft.collectionName && { collectionName: nft.collectionName }),
-			}));
-			setOptimisticUserNFTs(prev => [...prev, ...userNFTs]);
+			const userNFTs: UserOwnedNFTMultiCollection[] = nftsToWithdraw.map(
+				(nft) => ({
+					collection: nft.collection,
+					tokenId: nft.tokenId,
+					...(nft.collectionName && { collectionName: nft.collectionName }),
+				}),
+			);
+			setOptimisticUserNFTs((prev) => [...prev, ...userNFTs]);
 
 			// Process withdrawals sequentially
 			for (const withdrawal of withdrawals) {
 				await withdrawNFT(withdrawal.collection, withdrawal.tokenId);
 			}
 
-			toast.success(`Successfully withdrew ${withdrawals.length} NFTs!`, TOAST_CONFIG);
+			toast.success(
+				`Successfully withdrew ${withdrawals.length} NFTs!`,
+				TOAST_CONFIG,
+			);
 			updateState("selectedForWithdrawal", new Set());
 
 			// Quick refetch of vault data
@@ -1075,7 +1112,6 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				setOptimisticUserNFTs([]);
 				setOptimisticDepositedNFTs([]);
 			}, 2000);
-
 		} catch (error) {
 			console.error("Error in batch withdrawal:", error);
 			toast.error("Failed to complete batch withdrawal", TOAST_CONFIG);
@@ -1096,17 +1132,20 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		updateState,
 	]);
 
-	const toggleNFTSelection = useCallback((collection: Address, tokenId: bigint) => {
-		const nftKey = createNFTKey(collection, tokenId);
-		const currentSet = state.selectedForWithdrawal;
-		const newSet = new Set(currentSet);
-		if (newSet.has(nftKey)) {
-			newSet.delete(nftKey);
-		} else {
-			newSet.add(nftKey);
-		}
-		updateState("selectedForWithdrawal", newSet);
-	}, [updateState, state.selectedForWithdrawal]);
+	const toggleNFTSelection = useCallback(
+		(collection: Address, tokenId: bigint) => {
+			const nftKey = createNFTKey(collection, tokenId);
+			const currentSet = state.selectedForWithdrawal;
+			const newSet = new Set(currentSet);
+			if (newSet.has(nftKey)) {
+				newSet.delete(nftKey);
+			} else {
+				newSet.add(nftKey);
+			}
+			updateState("selectedForWithdrawal", newSet);
+		},
+		[updateState, state.selectedForWithdrawal],
+	);
 
 	const handleNFTAction = useCallback(
 		(collection: string, tokenId: string, hasAppraisal?: boolean) => {
@@ -1129,7 +1168,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		const grouped = new Map<string, NFTWithCollection[]>();
 
 		displayDepositedNFTs.forEach((nft) => {
-			const collectionKey = (nft.canonicalContractAddress || nft.collection).toLowerCase();
+			const collectionKey = (
+				nft.canonicalContractAddress || nft.collection
+			).toLowerCase();
 			if (!grouped.has(collectionKey)) {
 				grouped.set(collectionKey, []);
 			}
@@ -1146,15 +1187,19 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				if (!sample) {
 					return null;
 				}
-				const resolvedAddress =
-					(sample.canonicalContractAddress || sample.collection || key) as string;
+				const resolvedAddress = (sample.canonicalContractAddress ||
+					sample.collection ||
+					key) as string;
 				return {
 					value: key,
 					label: sample.collectionName || formatShortAddress(resolvedAddress),
 					count: nfts.length,
 				};
 			})
-			.filter((option): option is { value: string; label: string; count: number } => !!option)
+			.filter(
+				(option): option is { value: string; label: string; count: number } =>
+					!!option,
+			)
 			.sort((a, b) => b.count - a.count);
 	}, [nftsByCollection]);
 
@@ -1168,7 +1213,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			}
 
 			if (collectionFilter !== "all") {
-				const collectionKey = (nft.canonicalContractAddress || nft.collection).toLowerCase();
+				const collectionKey = (
+					nft.canonicalContractAddress || nft.collection
+				).toLowerCase();
 				if (collectionKey !== collectionFilter) {
 					return false;
 				}
@@ -1179,7 +1226,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			}
 
 			const tokenMatch = nft.tokenId.toString().includes(normalizedSearch);
-			const collectionMatch = nft.collection.toLowerCase().includes(normalizedSearch);
+			const collectionMatch = nft.collection
+				.toLowerCase()
+				.includes(normalizedSearch);
 			const canonicalMatch = nft.canonicalContractAddress
 				? nft.canonicalContractAddress.toLowerCase().includes(normalizedSearch)
 				: false;
@@ -1220,7 +1269,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		const grouped = new Map<string, NFTWithCollection[]>();
 
 		filteredWithdrawableNFTs.forEach((nft) => {
-			const collectionKey = (nft.canonicalContractAddress || nft.collection).toLowerCase();
+			const collectionKey = (
+				nft.canonicalContractAddress || nft.collection
+			).toLowerCase();
 			if (!grouped.has(collectionKey)) {
 				grouped.set(collectionKey, []);
 			}
@@ -1231,7 +1282,10 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	}, [filteredWithdrawableNFTs]);
 
 	const totalFilteredValue = useMemo(() => {
-		return filteredWithdrawableNFTs.reduce((acc, nft) => acc + (nft.appraisedPrice || 0n), 0n);
+		return filteredWithdrawableNFTs.reduce(
+			(acc, nft) => acc + (nft.appraisedPrice || 0n),
+			0n,
+		);
 	}, [filteredWithdrawableNFTs]);
 
 	const filteredSelectedCount = useMemo(() => {
@@ -1250,7 +1304,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const allFilteredSelected =
 		filteredWithdrawableNFTs.length > 0 &&
 		filteredWithdrawableNFTs.every((nft) =>
-			state.selectedForWithdrawal.has(createNFTKey(nft.collection, nft.tokenId)),
+			state.selectedForWithdrawal.has(
+				createNFTKey(nft.collection, nft.tokenId),
+			),
 		);
 
 	const hasDeposits = displayDepositedNFTs.length > 0;
@@ -1347,436 +1403,465 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 						role="tabpanel"
 						aria-labelledby="withdraw-tab"
 					>
-							<header className="mb-6 space-y-4">
-								<div className="flex flex-wrap items-center justify-between gap-3">
-									<div className="flex flex-wrap items-center gap-3">
-										<h2 className="text-xl font-semibold text-foreground">
-											Withdraw NFTs
-										</h2>
-										{hasDeposits && (
+						<header className="mb-6 space-y-4">
+							<div className="flex flex-wrap items-center justify-between gap-3">
+								<div className="flex flex-wrap items-center gap-3">
+									<h2 className="text-xl font-semibold text-foreground">
+										Withdraw NFTs
+									</h2>
+									{hasDeposits && (
+										<span className="text-sm text-foreground/60">
+											Showing {filteredWithdrawableNFTs.length} of{" "}
+											{totalDepositedNFTs} NFT
+											{totalDepositedNFTs !== 1 ? "s" : ""}
+										</span>
+									)}
+								</div>
+								<div className="flex flex-wrap items-center gap-2">
+									{hasDeposits && (
+										<GlassButton
+											size="sm"
+											onPress={handleSelectAllFiltered}
+											isDisabled={!filteredWithdrawableNFTs.length}
+										>
+											{allFilteredSelected
+												? "Clear View Selection"
+												: "Select View"}
+										</GlassButton>
+									)}
+									{state.selectedForWithdrawal.size > 0 && (
+										<>
 											<span className="text-sm text-foreground/60">
-												Showing {filteredWithdrawableNFTs.length} of {totalDepositedNFTs} NFT
-												{totalDepositedNFTs !== 1 ? "s" : ""}
+												{state.selectedForWithdrawal.size} selected
 											</span>
-										)}
-									</div>
-									<div className="flex flex-wrap items-center gap-2">
-										{hasDeposits && (
 											<GlassButton
 												size="sm"
-												onPress={handleSelectAllFiltered}
-												isDisabled={!filteredWithdrawableNFTs.length}
+												color="glassPrimary"
+												onPress={handleBatchWithdrawal}
+												isLoading={state.isBatchWithdrawing}
+												className="animate-pulse"
 											>
-												{allFilteredSelected
-													? "Clear View Selection"
-													: "Select View"}
+												Withdraw Selected
 											</GlassButton>
-										)}
-										{state.selectedForWithdrawal.size > 0 && (
-											<>
-												<span className="text-sm text-foreground/60">
-													{state.selectedForWithdrawal.size} selected
-												</span>
-												<GlassButton
-													size="sm"
-													color="glassPrimary"
-													onPress={handleBatchWithdrawal}
-													isLoading={state.isBatchWithdrawing}
-													className="animate-pulse"
-												>
-													Withdraw Selected
-												</GlassButton>
-												<Button
-													size="sm"
-													variant="light"
-													onPress={() =>
-														updateState("selectedForWithdrawal", new Set())
-													}
-												>
-													Clear Selection
-												</Button>
-											</>
-										)}
-									</div>
+											<Button
+												size="sm"
+												variant="light"
+												onPress={() =>
+													updateState("selectedForWithdrawal", new Set())
+												}
+											>
+												Clear Selection
+											</Button>
+										</>
+									)}
 								</div>
+							</div>
 
-								<div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-									<label className="flex flex-col gap-1">
-										<span className="text-xs font-semibold uppercase text-foreground/60">
-											Search
-										</span>
+							<div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+								<label className="flex flex-col gap-1">
+									<span className="text-xs font-semibold uppercase text-foreground/60">
+										Search
+									</span>
+									<input
+										type="text"
+										className="w-full rounded-2xl border border-white/10 bg-content2/30 px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 focus:border-primary focus:outline-none"
+										placeholder="Token ID, collection, or name"
+										value={withdrawSearch}
+										onChange={(event) => setWithdrawSearch(event.target.value)}
+									/>
+								</label>
+
+								<label className="flex flex-col gap-1">
+									<span className="text-xs font-semibold uppercase text-foreground/60">
+										Collection
+									</span>
+									<select
+										className="w-full rounded-2xl border border-white/10 bg-content2/30 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+										value={collectionFilter}
+										onChange={(event) =>
+											setCollectionFilter(event.target.value)
+										}
+									>
+										<option value="all">All collections</option>
+										{collectionFilterOptions.map((option) => (
+											<option key={option.value} value={option.value}>
+												{option.label} ({option.count})
+											</option>
+										))}
+									</select>
+								</label>
+
+								<label className="flex flex-col gap-1">
+									<span className="text-xs font-semibold uppercase text-foreground/60">
+										Sort by
+									</span>
+									<select
+										className="w-full rounded-2xl border border-white/10 bg-content2/30 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+										value={sortMode}
+										onChange={(event) =>
+											setSortMode(
+												event.target.value as "rarity" | "recent" | "value",
+											)
+										}
+									>
+										<option value="rarity">Rarity (high → low)</option>
+										<option value="value">Value (high → low)</option>
+										<option value="recent">Recently deposited</option>
+									</select>
+								</label>
+
+								<div className="flex flex-col gap-1 rounded-2xl border border-white/10 bg-content2/30 px-3 py-2">
+									<span className="text-xs font-semibold uppercase text-foreground/60">
+										Display
+									</span>
+									<label className="mt-1 flex items-center gap-2 text-sm text-foreground/80">
 										<input
-											type="text"
-											className="w-full rounded-2xl border border-white/10 bg-content2/30 px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 focus:border-primary focus:outline-none"
-											placeholder="Token ID, collection, or name"
-											value={withdrawSearch}
-											onChange={(event) => setWithdrawSearch(event.target.value)}
-										/>
-									</label>
-
-									<label className="flex flex-col gap-1">
-										<span className="text-xs font-semibold uppercase text-foreground/60">
-											Collection
-										</span>
-										<select
-											className="w-full rounded-2xl border border-white/10 bg-content2/30 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-											value={collectionFilter}
-											onChange={(event) => setCollectionFilter(event.target.value)}
-										>
-											<option value="all">All collections</option>
-											{collectionFilterOptions.map((option) => (
-												<option key={option.value} value={option.value}>
-													{option.label} ({option.count})
-												</option>
-											))}
-										</select>
-									</label>
-
-									<label className="flex flex-col gap-1">
-										<span className="text-xs font-semibold uppercase text-foreground/60">
-											Sort by
-										</span>
-										<select
-											className="w-full rounded-2xl border border-white/10 bg-content2/30 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-											value={sortMode}
+											type="checkbox"
+											className="h-4 w-4 rounded border-white/20 bg-content1/60 text-primary focus:ring-2 focus:ring-primary/50"
+											checked={showSelectedOnly}
 											onChange={(event) =>
-												setSortMode(event.target.value as "rarity" | "recent" | "value")
+												setShowSelectedOnly(event.target.checked)
 											}
-										>
-											<option value="rarity">Rarity (high → low)</option>
-											<option value="value">Value (high → low)</option>
-											<option value="recent">Recently deposited</option>
-										</select>
+										/>
+										Show selected only
 									</label>
-
-									<div className="flex flex-col gap-1 rounded-2xl border border-white/10 bg-content2/30 px-3 py-2">
-										<span className="text-xs font-semibold uppercase text-foreground/60">
-											Display
-										</span>
-										<label className="mt-1 flex items-center gap-2 text-sm text-foreground/80">
-											<input
-												type="checkbox"
-												className="h-4 w-4 rounded border-white/20 bg-content1/60 text-primary focus:ring-2 focus:ring-primary/50"
-												checked={showSelectedOnly}
-												onChange={(event) => setShowSelectedOnly(event.target.checked)}
-											/>
-											Show selected only
-										</label>
-									</div>
 								</div>
+							</div>
 
-								{hasActiveFilters && (
-									<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-2 text-sm">
-										<span className="text-foreground/70">
-											Filters active — {filteredWithdrawableNFTs.length} NFT
-											{filteredWithdrawableNFTs.length !== 1 ? "s" : ""} across{" "}
-											{filteredNftsByCollection.size} collection
-											{filteredNftsByCollection.size !== 1 ? "s" : ""} in view
-										</span>
-										<Button size="sm" variant="light" onPress={handleResetWithdrawFilters}>
-											Reset filters
-										</Button>
-									</div>
-								)}
-							</header>
-
-							{state.isLoadingWithdrawals ? (
-								<div className="py-12 text-center">
-									<ArrowPathIcon
-										className="mx-auto mb-4 h-16 w-16 animate-spin text-foreground/30"
-										aria-hidden="true"
-									/>
-									<p className="text-foreground/60">
-										Loading your deposited NFTs...
-									</p>
+							{hasActiveFilters && (
+								<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-2 text-sm">
+									<span className="text-foreground/70">
+										Filters active — {filteredWithdrawableNFTs.length} NFT
+										{filteredWithdrawableNFTs.length !== 1 ? "s" : ""} across{" "}
+										{filteredNftsByCollection.size} collection
+										{filteredNftsByCollection.size !== 1 ? "s" : ""} in view
+									</span>
+									<Button
+										size="sm"
+										variant="light"
+										onPress={handleResetWithdrawFilters}
+									>
+										Reset filters
+									</Button>
 								</div>
-							) : !hasDeposits ? (
-								<div className="py-12 text-center">
-									<ArrowDownTrayIcon
-										className="mx-auto mb-4 h-16 w-16 text-foreground/30"
-										aria-hidden="true"
-									/>
-									<h3 className="mb-2 text-lg font-medium text-foreground">
-										No Deposited NFTs
-									</h3>
-									<p className="mb-6 text-foreground/60">
-										No NFTs found in your vault deposits.
-									</p>
+							)}
+						</header>
 
-									<div className="mx-auto max-w-md space-y-4">
-										<div className="rounded-lg border border-white/10 bg-content2/20 p-4 text-left">
-											<h4 className="mb-2 font-medium text-foreground">
-												How to deposit NFTs:
-											</h4>
-											<ol className="space-y-1 text-sm text-foreground/70">
-												<li>1. Switch to the "Deposit NFTs" tab</li>
-												<li>2. Get your NFTs appraised (if not already)</li>
-												<li>3. Deposit appraised NFTs to start earning yield</li>
-												<li>4. Return here to withdraw them anytime</li>
-											</ol>
-										</div>
+						{state.isLoadingWithdrawals ? (
+							<div className="py-12 text-center">
+								<ArrowPathIcon
+									className="mx-auto mb-4 h-16 w-16 animate-spin text-foreground/30"
+									aria-hidden="true"
+								/>
+								<p className="text-foreground/60">
+									Loading your deposited NFTs...
+								</p>
+							</div>
+						) : !hasDeposits ? (
+							<div className="py-12 text-center">
+								<ArrowDownTrayIcon
+									className="mx-auto mb-4 h-16 w-16 text-foreground/30"
+									aria-hidden="true"
+								/>
+								<h3 className="mb-2 text-lg font-medium text-foreground">
+									No Deposited NFTs
+								</h3>
+								<p className="mb-6 text-foreground/60">
+									No NFTs found in your vault deposits.
+								</p>
 
-										<Button
-											variant="light"
-											onPress={() => setActiveTab("deposit")}
-											className="w-full rounded-xl bg-content2/20 hover:bg-content2/30"
-										>
-											Go to Deposit NFTs
-										</Button>
+								<div className="mx-auto max-w-md space-y-4">
+									<div className="rounded-lg border border-white/10 bg-content2/20 p-4 text-left">
+										<h4 className="mb-2 font-medium text-foreground">
+											How to deposit NFTs:
+										</h4>
+										<ol className="space-y-1 text-sm text-foreground/70">
+											<li>1. Switch to the "Deposit NFTs" tab</li>
+											<li>2. Get your NFTs appraised (if not already)</li>
+											<li>3. Deposit appraised NFTs to start earning yield</li>
+											<li>4. Return here to withdraw them anytime</li>
+										</ol>
 									</div>
-								</div>
-							) : (
-								<div className="space-y-6">
-									<article className="space-y-4 rounded-xl border border-white/10 bg-content2/20 p-4">
-										<div className="flex flex-wrap items-center justify-between gap-4">
-											<div>
-												<h3 className="mb-1 font-semibold text-foreground">
-													Your Vault Inventory
-												</h3>
-												<p className="text-sm text-foreground/70">
-													{nftsByCollection.size} collection
-													{nftsByCollection.size !== 1 ? "s" : ""} with{" "}
-													{totalDepositedNFTs} total NFT
-													{totalDepositedNFTs !== 1 ? "s" : ""} deposited
-												</p>
-												{hasActiveFilters && (
-													<p className="text-xs text-foreground/60">
-														View focused on {filteredNftsByCollection.size} collection
-														{filteredNftsByCollection.size !== 1 ? "s" : ""} /{" "}
-														{filteredWithdrawableNFTs.length} NFT
-														{filteredWithdrawableNFTs.length !== 1 ? "s" : ""}.
-													</p>
-												)}
-											</div>
-											<div className="text-right">
-												<div className="text-2xl font-bold text-primary">
-													{filteredWithdrawableNFTs.length}
-												</div>
-												<div className="text-sm text-foreground/60">
-													In View
-												</div>
-											</div>
-										</div>
-										<div className="grid gap-3 md:grid-cols-3">
-											<div className="rounded-2xl border border-white/10 bg-content1/30 px-4 py-3">
-												<p className="text-xs uppercase text-foreground/50">
-													Total Deposits
-												</p>
-												<p className="text-lg font-semibold text-foreground">
-													{totalDepositedNFTs}
-												</p>
-											</div>
-											<div className="rounded-2xl border border-white/10 bg-content1/30 px-4 py-3">
-												<p className="text-xs uppercase text-foreground/50">
-													Value In View
-												</p>
-												<p className="text-lg font-semibold text-success">
-													{formatCurrency(totalFilteredValue.toString(), 18, "USD")}
-												</p>
-											</div>
-											<div className="rounded-2xl border border-white/10 bg-content1/30 px-4 py-3">
-												<p className="text-xs uppercase text-foreground/50">
-													Selected
-												</p>
-												<p className="text-lg font-semibold text-foreground">
-													{state.selectedForWithdrawal.size} total
-													{filteredSelectedCount > 0
-														? ` • ${filteredSelectedCount} in view`
-														: ""}
-												</p>
-											</div>
-										</div>
-									</article>
 
-									{filteredWithdrawableNFTs.length === 0 ? (
-										<div className="rounded-xl border border-dashed border-white/10 bg-content2/20 p-8 text-center">
-											<p className="mb-2 font-medium text-foreground">
-												No NFTs match your filters
-											</p>
-											<p className="mb-4 text-sm text-foreground/60">
-												Adjust or reset your filters to see more of your vault inventory.
+									<Button
+										variant="light"
+										onPress={() => setActiveTab("deposit")}
+										className="w-full rounded-xl bg-content2/20 hover:bg-content2/30"
+									>
+										Go to Deposit NFTs
+									</Button>
+								</div>
+							</div>
+						) : (
+							<div className="space-y-6">
+								<article className="space-y-4 rounded-xl border border-white/10 bg-content2/20 p-4">
+									<div className="flex flex-wrap items-center justify-between gap-4">
+										<div>
+											<h3 className="mb-1 font-semibold text-foreground">
+												Your Vault Inventory
+											</h3>
+											<p className="text-sm text-foreground/70">
+												{nftsByCollection.size} collection
+												{nftsByCollection.size !== 1 ? "s" : ""} with{" "}
+												{totalDepositedNFTs} total NFT
+												{totalDepositedNFTs !== 1 ? "s" : ""} deposited
 											</p>
 											{hasActiveFilters && (
-												<Button variant="light" onPress={handleResetWithdrawFilters}>
-													Reset Filters
-												</Button>
+												<p className="text-xs text-foreground/60">
+													View focused on {filteredNftsByCollection.size}{" "}
+													collection
+													{filteredNftsByCollection.size !== 1 ? "s" : ""} /{" "}
+													{filteredWithdrawableNFTs.length} NFT
+													{filteredWithdrawableNFTs.length !== 1 ? "s" : ""}.
+												</p>
 											)}
 										</div>
-									) : (
-										Array.from(filteredNftsByCollection.entries()).map(
-											([collectionAddress, nfts], collectionIndex) => {
-												const sampleNFT = nfts[0];
-												const resolvedAddress =
-													(sampleNFT?.canonicalContractAddress ||
-														sampleNFT?.collection ||
-														collectionAddress) as string;
+										<div className="text-right">
+											<div className="text-2xl font-bold text-primary">
+												{filteredWithdrawableNFTs.length}
+											</div>
+											<div className="text-sm text-foreground/60">In View</div>
+										</div>
+									</div>
+									<div className="grid gap-3 md:grid-cols-3">
+										<div className="rounded-2xl border border-white/10 bg-content1/30 px-4 py-3">
+											<p className="text-xs uppercase text-foreground/50">
+												Total Deposits
+											</p>
+											<p className="text-lg font-semibold text-foreground">
+												{totalDepositedNFTs}
+											</p>
+										</div>
+										<div className="rounded-2xl border border-white/10 bg-content1/30 px-4 py-3">
+											<p className="text-xs uppercase text-foreground/50">
+												Value In View
+											</p>
+											<p className="text-lg font-semibold text-success">
+												{formatCurrency(
+													totalFilteredValue.toString(),
+													18,
+													"USD",
+												)}
+											</p>
+										</div>
+										<div className="rounded-2xl border border-white/10 bg-content1/30 px-4 py-3">
+											<p className="text-xs uppercase text-foreground/50">
+												Selected
+											</p>
+											<p className="text-lg font-semibold text-foreground">
+												{state.selectedForWithdrawal.size} total
+												{filteredSelectedCount > 0
+													? ` • ${filteredSelectedCount} in view`
+													: ""}
+											</p>
+										</div>
+									</div>
+								</article>
 
-												return (
-													<motion.div
-														key={collectionAddress}
-														initial={{ opacity: 0, y: 20 }}
-														animate={{ opacity: 1, y: 0 }}
-														transition={{
-															duration: 0.4,
-															delay: collectionIndex * 0.1,
-														}}
-													>
-														<article className="rounded-xl border border-white/10 bg-content1/30 p-6">
-															<header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-																<div className="flex items-center gap-3">
-																	<div className="rounded-lg bg-primary/20 p-2">
-																		<GiftIcon
-																			className="h-6 w-6 text-primary"
-																			aria-hidden="true"
-																		/>
-																	</div>
-																	<div>
-																		<h4 className="font-semibold text-foreground">
-																			{sampleNFT?.collectionName || "Collection"}
-																		</h4>
-																		<p className="font-mono text-sm text-foreground/70">
-																			{formatAddress(resolvedAddress)}
-																		</p>
-																		<p className="text-xs text-foreground/50">
-																			{nfts.length} NFT
-																			{nfts.length !== 1 ? "s" : ""} available
-																		</p>
-																	</div>
-																</div>
-																<div className="text-right">
-																	<p className="text-sm text-foreground/60">
-																		Withdraw-ready
-																	</p>
-																	<p className="font-semibold text-foreground">
-																		{nfts.length} NFT{nfts.length !== 1 ? "s" : ""}
-																	</p>
-																</div>
-															</header>
+								{filteredWithdrawableNFTs.length === 0 ? (
+									<div className="rounded-xl border border-dashed border-white/10 bg-content2/20 p-8 text-center">
+										<p className="mb-2 font-medium text-foreground">
+											No NFTs match your filters
+										</p>
+										<p className="mb-4 text-sm text-foreground/60">
+											Adjust or reset your filters to see more of your vault
+											inventory.
+										</p>
+										{hasActiveFilters && (
+											<Button
+												variant="light"
+												onPress={handleResetWithdrawFilters}
+											>
+												Reset Filters
+											</Button>
+										)}
+									</div>
+								) : (
+									Array.from(filteredNftsByCollection.entries()).map(
+										([collectionAddress, nfts], collectionIndex) => {
+											const sampleNFT = nfts[0];
+											const resolvedAddress =
+												(sampleNFT?.canonicalContractAddress ||
+													sampleNFT?.collection ||
+													collectionAddress) as string;
 
-															<div className="space-y-2">
-																<h5 className="mb-3 text-sm font-medium text-foreground/70">
-																	Individual NFTs ({nfts.length}):
-																</h5>
-																<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-																	{nfts.map((nft) => {
-																		const isWithdrawingThisNFT =
-																			state.withdrawingNFT?.collection ===
-																				nft.collection &&
-																			state.withdrawingNFT?.tokenId === nft.tokenId;
-																		const isSelected = state.selectedForWithdrawal.has(
+											return (
+												<motion.div
+													key={collectionAddress}
+													initial={{ opacity: 0, y: 20 }}
+													animate={{ opacity: 1, y: 0 }}
+													transition={{
+														duration: 0.4,
+														delay: collectionIndex * 0.1,
+													}}
+												>
+													<article className="rounded-xl border border-white/10 bg-content1/30 p-6">
+														<header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+															<div className="flex items-center gap-3">
+																<div className="rounded-lg bg-primary/20 p-2">
+																	<GiftIcon
+																		className="h-6 w-6 text-primary"
+																		aria-hidden="true"
+																	/>
+																</div>
+																<div>
+																	<h4 className="font-semibold text-foreground">
+																		{sampleNFT?.collectionName || "Collection"}
+																	</h4>
+																	<p className="font-mono text-sm text-foreground/70">
+																		{formatAddress(resolvedAddress)}
+																	</p>
+																	<p className="text-xs text-foreground/50">
+																		{nfts.length} NFT
+																		{nfts.length !== 1 ? "s" : ""} available
+																	</p>
+																</div>
+															</div>
+															<div className="text-right">
+																<p className="text-sm text-foreground/60">
+																	Withdraw-ready
+																</p>
+																<p className="font-semibold text-foreground">
+																	{nfts.length} NFT
+																	{nfts.length !== 1 ? "s" : ""}
+																</p>
+															</div>
+														</header>
+
+														<div className="space-y-2">
+															<h5 className="mb-3 text-sm font-medium text-foreground/70">
+																Individual NFTs ({nfts.length}):
+															</h5>
+															<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+																{nfts.map((nft) => {
+																	const isWithdrawingThisNFT =
+																		state.withdrawingNFT?.collection ===
+																			nft.collection &&
+																		state.withdrawingNFT?.tokenId ===
+																			nft.tokenId;
+																	const isSelected =
+																		state.selectedForWithdrawal.has(
 																			createNFTKey(nft.collection, nft.tokenId),
 																		);
-																		const nftKey = createNFTKey(
-																			nft.collection,
-																			nft.tokenId,
-																		);
+																	const nftKey = createNFTKey(
+																		nft.collection,
+																		nft.tokenId,
+																	);
 
-																		return (
-																			<article
-																				key={nftKey}
-																				className={`rounded-xl border bg-content2/10 p-4 transition-all duration-200 ${
-																					isSelected
-																						? "border-primary/50 bg-content2/20 ring-2 ring-primary/20"
-																						: "border-white/5 hover:border-white/10"
-																				}`}
-																			>
-																				<div className="flex h-full flex-col gap-4">
-																					<div className="flex items-center justify-between">
-																						<div className="flex items-center gap-3">
-																							<input
-																								type="checkbox"
-																								checked={isSelected}
-																								onChange={() =>
-																									toggleNFTSelection(
-																										nft.collection,
-																										nft.tokenId,
-																									)
-																								}
-																								className="h-4 w-4 rounded border-white/20 bg-content2/50 text-primary focus:ring-2 focus:ring-primary/50"
-																								aria-label={`Select NFT ${nft.tokenId.toString()}`}
-																							/>
-																							<NFTRarityDisplay rarity={nft.currentRarity} />
-																						</div>
-																						<p className="rounded bg-content2/20 px-2 py-1 font-mono text-sm">
-																							#{nft.tokenId.toString()}
-																						</p>
-																					</div>
-
-																					<div className="flex justify-center">
-																						<NFTCard
-																							data={{
-																								collection: nft.collection,
-																								tokenId: nft.tokenId.toString(),
-																								rarity: nft.currentRarity as Rarity,
-																							}}
-																							size="sm"
-																							onClick={() => {}}
-																						/>
-																					</div>
-
-																					<div className="flex-1 space-y-2">
-																						<div className="flex items-center justify-between">
-																							<span className="text-xs text-foreground/60">
-																								Collection
-																							</span>
-																							<span className="font-mono text-xs text-foreground/80">
-																								{formatShortAddress(nft.collection)}
-																							</span>
-																						</div>
-																						<div className="flex items-center justify-between">
-																							<span className="text-xs text-foreground/60">
-																								Value
-																							</span>
-																							<span className="text-xs font-semibold text-success">
-																								{formatCurrency(
-																									nft.appraisedPrice.toString(),
-																									18,
-																									"USD",
-																								)}
-																							</span>
-																						</div>
-																					</div>
-
-																					<div className="flex gap-2">
-																						<GlassButton
-																							size="sm"
-																							color="glassPrimary"
-																							onPress={() =>
-																								handleWithdrawNFT(
+																	return (
+																		<article
+																			key={nftKey}
+																			className={`rounded-xl border bg-content2/10 p-4 transition-all duration-200 ${
+																				isSelected
+																					? "border-primary/50 bg-content2/20 ring-2 ring-primary/20"
+																					: "border-white/5 hover:border-white/10"
+																			}`}
+																		>
+																			<div className="flex h-full flex-col gap-4">
+																				<div className="flex items-center justify-between">
+																					<div className="flex items-center gap-3">
+																						<input
+																							type="checkbox"
+																							checked={isSelected}
+																							onChange={() =>
+																								toggleNFTSelection(
 																									nft.collection,
 																									nft.tokenId,
 																								)
 																							}
-																							isLoading={isWithdrawingThisNFT}
-																							isDisabled={
-																								isWithdrawingThisNFT || state.isBatchWithdrawing
-																							}
-																							aria-label={`Withdraw NFT ${nft.tokenId.toString()}`}
-																							className="flex-1 transition-all duration-300"
-																						>
-																							<ArrowDownTrayIcon
-																								className={`h-4 w-4 ${
-																									isWithdrawingThisNFT ? "animate-bounce" : ""
-																								}`}
-																								aria-hidden="true"
-																							/>
-																							{isWithdrawingThisNFT
-																								? "Withdrawing..."
-																								: "Withdraw"}
-																						</GlassButton>
+																							className="h-4 w-4 rounded border-white/20 bg-content2/50 text-primary focus:ring-2 focus:ring-primary/50"
+																							aria-label={`Select NFT ${nft.tokenId.toString()}`}
+																						/>
+																						<NFTRarityDisplay
+																							rarity={nft.currentRarity}
+																						/>
+																					</div>
+																					<p className="rounded bg-content2/20 px-2 py-1 font-mono text-sm">
+																						#{nft.tokenId.toString()}
+																					</p>
+																				</div>
+
+																				<div className="flex justify-center">
+																					<NFTCard
+																						data={{
+																							collection: nft.collection,
+																							tokenId: nft.tokenId.toString(),
+																							rarity:
+																								nft.currentRarity as Rarity,
+																						}}
+																						size="sm"
+																						onClick={() => {}}
+																					/>
+																				</div>
+
+																				<div className="flex-1 space-y-2">
+																					<div className="flex items-center justify-between">
+																						<span className="text-xs text-foreground/60">
+																							Collection
+																						</span>
+																						<span className="font-mono text-xs text-foreground/80">
+																							{formatShortAddress(
+																								nft.collection,
+																							)}
+																						</span>
+																					</div>
+																					<div className="flex items-center justify-between">
+																						<span className="text-xs text-foreground/60">
+																							Value
+																						</span>
+																						<span className="text-xs font-semibold text-success">
+																							{formatCurrency(
+																								nft.appraisedPrice.toString(),
+																								18,
+																								"USD",
+																							)}
+																						</span>
 																					</div>
 																				</div>
-																			</article>
-																		);
-																	})}
-																</div>
+
+																				<div className="flex gap-2">
+																					<GlassButton
+																						size="sm"
+																						color="glassPrimary"
+																						onPress={() =>
+																							handleWithdrawNFT(
+																								nft.collection,
+																								nft.tokenId,
+																							)
+																						}
+																						isLoading={isWithdrawingThisNFT}
+																						isDisabled={
+																							isWithdrawingThisNFT ||
+																							state.isBatchWithdrawing
+																						}
+																						aria-label={`Withdraw NFT ${nft.tokenId.toString()}`}
+																						className="flex-1 transition-all duration-300"
+																					>
+																						<ArrowDownTrayIcon
+																							className={`h-4 w-4 ${
+																								isWithdrawingThisNFT
+																									? "animate-bounce"
+																									: ""
+																							}`}
+																							aria-hidden="true"
+																						/>
+																						{isWithdrawingThisNFT
+																							? "Withdrawing..."
+																							: "Withdraw"}
+																					</GlassButton>
+																				</div>
+																			</div>
+																		</article>
+																	);
+																})}
 															</div>
-														</article>
-													</motion.div>
-												);
-											},
-										)
-									)}
+														</div>
+													</article>
+												</motion.div>
+											);
+										},
+									)
+								)}
 
 								<footer className="mt-8 p-4 bg-content2/20 rounded-lg border border-white/10">
 									<h3 className="font-semibold text-foreground mb-2">

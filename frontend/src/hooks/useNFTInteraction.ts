@@ -80,28 +80,28 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		reset: resetDeposit,
 	} = useWriteGachaTreasuryDepositNft();
 
-// Capture success values in refs when they become available and log state
-useEffect(() => {
-	// Update refs when success is detected
-	if (isDepositSuccess && depositTxHash && !depositSuccessRef.current) {
-		depositSuccessRef.current = true;
-		depositTxHashRef.current = depositTxHash;
-		console.log("💾 [useNFTInteraction] Captured success in refs:", {
-			success: isDepositSuccess,
-			txHash: depositTxHash,
-		});
-	}
+	// Capture success values in refs when they become available and log state
+	useEffect(() => {
+		// Update refs when success is detected
+		if (isDepositSuccess && depositTxHash && !depositSuccessRef.current) {
+			depositSuccessRef.current = true;
+			depositTxHashRef.current = depositTxHash;
+			console.log("💾 [useNFTInteraction] Captured success in refs:", {
+				success: isDepositSuccess,
+				txHash: depositTxHash,
+			});
+		}
 
-	console.log("🔍 [useNFTInteraction] Wagmi deposit hook state:", {
-		isDepositSuccess,
-		isDepositError,
-		hasDepositTxHash: !!depositTxHash,
-		depositTxHash,
-		depositError,
-		cachedSuccess: depositSuccessRef.current,
-		cachedTxHash: depositTxHashRef.current,
-	});
-}, [isDepositSuccess, isDepositError, depositTxHash, depositError]);
+		console.log("🔍 [useNFTInteraction] Wagmi deposit hook state:", {
+			isDepositSuccess,
+			isDepositError,
+			hasDepositTxHash: !!depositTxHash,
+			depositTxHash,
+			depositError,
+			cachedSuccess: depositSuccessRef.current,
+			cachedTxHash: depositTxHashRef.current,
+		});
+	}, [isDepositSuccess, isDepositError, depositTxHash, depositError]);
 
 	const {
 		writeContractAsync: executeRedemption,
@@ -185,7 +185,9 @@ useEffect(() => {
 					interactionState.matches("completed") &&
 					interactionState.context.mode === "deposit"
 				) {
-					console.log("🔄 Auto-resetting completed deposit state for new interaction");
+					console.log(
+						"🔄 Auto-resetting completed deposit state for new interaction",
+					);
 					sendInteractionEvent({ type: "RESET" });
 					// Small delay to ensure reset is processed before continuing
 					await new Promise((resolve) => setTimeout(resolve, 100));
@@ -259,7 +261,9 @@ useEffect(() => {
 
 					// For completed states, always try to reset one more time
 					if (interactionState.matches("completed")) {
-						console.log("🔄 Completed state detected, attempting final reset...");
+						console.log(
+							"🔄 Completed state detected, attempting final reset...",
+						);
 						forceReset();
 
 						// Wait a bit longer for the final reset to take effect
@@ -267,12 +271,16 @@ useEffect(() => {
 
 						// Check one last time after the final reset
 						if (!interactionState.matches("idle")) {
-							console.error("💀 Machine still not idle after final reset. Giving up.");
+							console.error(
+								"💀 Machine still not idle after final reset. Giving up.",
+							);
 							throw new Error(
 								"Cannot start deposit - previous transaction is still processing. Please refresh the page and try again.",
 							);
 						} else {
-							console.log("✅ Final reset successful, proceeding with interaction");
+							console.log(
+								"✅ Final reset successful, proceeding with interaction",
+							);
 						}
 					} else if (isDifferentNFT) {
 						// For different NFTs in non-completed states, we should wait
@@ -280,7 +288,9 @@ useEffect(() => {
 							"Cannot start deposit - previous transaction is still processing. Please wait a moment and try again.",
 						);
 					} else {
-						console.log("⚠️ Same NFT is still processing, will continue with existing interaction");
+						console.log(
+							"⚠️ Same NFT is still processing, will continue with existing interaction",
+						);
 						// Don't throw error for same NFT in progress
 						return; // Exit early since the same NFT is already being processed
 					}
@@ -374,11 +384,11 @@ useEffect(() => {
 			try {
 				await executeRedemption({
 					address: protocolTreasuryAddress as `0x${string}`,
-					args: [
-						collection as `0x${string}`,
-						BigInt(tokenId),
-						userAddress,
-					] as [`0x${string}`, bigint, `0x${string}`],
+					args: [collection as `0x${string}`, BigInt(tokenId), userAddress] as [
+						`0x${string}`,
+						bigint,
+						`0x${string}`,
+					],
 				});
 			} catch (_error) {
 				// Let the useEffect handle user rejection to avoid double processing
@@ -518,16 +528,17 @@ useEffect(() => {
 				console.log("📋 [useNFTInteraction] SUCCESS DETECTED!", {
 					cachedTxHash,
 					currentState: interactionState.value,
-					source: depositSuccessRef.current ? 'cached' : 'live',
+					source: depositSuccessRef.current ? "cached" : "live",
 				});
 			}
 
 			// Handle success in all deposit-related states including idle (in case machine resets)
-			const isInDepositState = interactionState.matches("idle") ||
-									   interactionState.matches("awaitingInteractionSignature") ||
-									   interactionState.matches("awaitingInteractionReceipt") ||
-									   interactionState.matches("confirmingInteraction") ||
-									   interactionState.matches("completed");
+			const isInDepositState =
+				interactionState.matches("idle") ||
+				interactionState.matches("awaitingInteractionSignature") ||
+				interactionState.matches("awaitingInteractionReceipt") ||
+				interactionState.matches("confirmingInteraction") ||
+				interactionState.matches("completed");
 
 			const isInIdleState = interactionState.matches("idle");
 			const hasContext = currentCollection && currentTokenId;
@@ -535,20 +546,24 @@ useEffect(() => {
 			// Different logic for idle state vs other states, using cached values to survive machine resets
 			const shouldProcessSuccess = isInIdleState
 				? // In idle state, process any deposit success since context is cleared (use cached values)
-				  cachedSuccess &&
-				  cachedTxHash &&
-				  currentMode === "deposit" &&
-				  (!contextInteractionTxHash || contextInteractionTxHash !== cachedTxHash)
+					cachedSuccess &&
+					cachedTxHash &&
+					currentMode === "deposit" &&
+					(!contextInteractionTxHash ||
+						contextInteractionTxHash !== cachedTxHash)
 				: // In other states, require full context validation (use live values)
-				  isDepositSuccess &&
-				  depositTxHash &&
-				  isInDepositState &&
-				  currentMode === "deposit" &&
-				  hasContext &&
-				  (!contextInteractionTxHash || contextInteractionTxHash !== depositTxHash);
+					isDepositSuccess &&
+					depositTxHash &&
+					isInDepositState &&
+					currentMode === "deposit" &&
+					hasContext &&
+					(!contextInteractionTxHash ||
+						contextInteractionTxHash !== depositTxHash);
 
 			if (shouldProcessSuccess) {
-				console.log("✅ [useNFTInteraction] Sending INTERACTION_CONFIRMED event");
+				console.log(
+					"✅ [useNFTInteraction] Sending INTERACTION_CONFIRMED event",
+				);
 				sendInteractionEvent({
 					type: "INTERACTION_CONFIRMED",
 					txHash: cachedTxHash, // Use cached tx hash to survive resets
@@ -557,7 +572,9 @@ useEffect(() => {
 				// Clear the refs after successful processing to prevent duplicate events
 				depositSuccessRef.current = false;
 				depositTxHashRef.current = undefined;
-				console.log("🧹 [useNFTInteraction] Cleared success refs after processing");
+				console.log(
+					"🧹 [useNFTInteraction] Cleared success refs after processing",
+				);
 			} else if (cachedSuccess && cachedTxHash) {
 				// Only log as failure if it's a genuine issue, not if already processed
 				console.log("ℹ️ [useNFTInteraction] Deposit success already processed", {
@@ -567,17 +584,20 @@ useEffect(() => {
 					cachedTxHash,
 				});
 			} else {
-				console.log("⚠️ [useNFTInteraction] Deposit success not processed due to failed conditions", {
-					isDepositSuccess,
-					hasTxHash: !!depositTxHash,
-					currentState: interactionState.value,
-					currentMode,
-					hasCollection: !!currentCollection,
-					hasTokenId: !!currentTokenId,
-					contextInteractionTxHash,
-					txHashMismatch: contextInteractionTxHash !== depositTxHash,
-					isInIdleState,
-				});
+				console.log(
+					"⚠️ [useNFTInteraction] Deposit success not processed due to failed conditions",
+					{
+						isDepositSuccess,
+						hasTxHash: !!depositTxHash,
+						currentState: interactionState.value,
+						currentMode,
+						hasCollection: !!currentCollection,
+						hasTokenId: !!currentTokenId,
+						contextInteractionTxHash,
+						txHashMismatch: contextInteractionTxHash !== depositTxHash,
+						isInIdleState,
+					},
+				);
 			}
 		} catch (error) {
 			console.error("💥 Error in deposit success effect:", error);
@@ -780,10 +800,13 @@ useEffect(() => {
 
 					if (mode === "deposit" && collection && tokenId && treasuryAddress) {
 						try {
-							console.log("🚀 [useNFTInteraction] Executing deposit transaction:", {
-								address: treasuryAddress as `0x${string}`,
-								args: [collection as `0x${string}`, BigInt(tokenId)],
-							});
+							console.log(
+								"🚀 [useNFTInteraction] Executing deposit transaction:",
+								{
+									address: treasuryAddress as `0x${string}`,
+									args: [collection as `0x${string}`, BigInt(tokenId)],
+								},
+							);
 
 							depositNFT({
 								address: treasuryAddress as `0x${string}`,
@@ -797,18 +820,19 @@ useEffect(() => {
 							resetDeposit();
 
 							// Check if it's a user rejection
-							const errorCode = (error as Error & { code?: number | string })?.code;
+							const errorCode = (error as Error & { code?: number | string })
+								?.code;
 							const isUserRejected =
-								error instanceof Error && (
-									error.message.toLowerCase().includes("user rejected") ||
+								error instanceof Error &&
+								(error.message.toLowerCase().includes("user rejected") ||
 									error.message.toLowerCase().includes("user denied") ||
 									error.message.toLowerCase().includes("cancelled") ||
 									error.message.toLowerCase().includes("rejected") ||
 									error.message.toLowerCase().includes("denied") ||
 									error.name === "UserRejectedRequestError" ||
 									errorCode === 4001 || // MetaMask user rejected error
-									(typeof errorCode === 'string' && errorCode.includes('ACTION_REJECTED'))
-								);
+									(typeof errorCode === "string" &&
+										errorCode.includes("ACTION_REJECTED")));
 
 							if (isUserRejected) {
 								sendInteractionEvent({
@@ -818,9 +842,10 @@ useEffect(() => {
 							} else {
 								sendInteractionEvent({
 									type: "FAIL",
-									error: error instanceof Error
-										? `Deposit transaction failed: ${error.message}`
-										: "Deposit transaction failed. Please check your wallet and try again.",
+									error:
+										error instanceof Error
+											? `Deposit transaction failed: ${error.message}`
+											: "Deposit transaction failed. Please check your wallet and try again.",
 								});
 							}
 						}
@@ -910,17 +935,22 @@ useEffect(() => {
 				hasRedemptionReceipt: !!redemptionReceipt,
 				receipt,
 				currentState: interactionState.value,
-				isAwaitingInteractionReceipt: interactionState.matches("awaitingInteractionReceipt"),
+				isAwaitingInteractionReceipt: interactionState.matches(
+					"awaitingInteractionReceipt",
+				),
 			});
 
 			// Handle receipt confirmation in multiple states including idle
-			const isInAwaitingOrCompletedState = interactionState.matches("idle") ||
-												 interactionState.matches("awaitingInteractionReceipt") ||
-												 interactionState.matches("confirmingInteraction") ||
-												 interactionState.matches("completed");
+			const isInAwaitingOrCompletedState =
+				interactionState.matches("idle") ||
+				interactionState.matches("awaitingInteractionReceipt") ||
+				interactionState.matches("confirmingInteraction") ||
+				interactionState.matches("completed");
 
 			if (receipt && isInAwaitingOrCompletedState) {
-				console.log("✅ [useNFTInteraction] Sending INTERACTION_REQUESTED event");
+				console.log(
+					"✅ [useNFTInteraction] Sending INTERACTION_REQUESTED event",
+				);
 				sendInteractionEvent({
 					type: "INTERACTION_REQUESTED",
 				});
@@ -929,8 +959,12 @@ useEffect(() => {
 					hasReceipt: !!receipt,
 					currentState: interactionState.value,
 					isIdle: interactionState.matches("idle"),
-					isAwaitingInteractionReceipt: interactionState.matches("awaitingInteractionReceipt"),
-					isConfirmingInteraction: interactionState.matches("confirmingInteraction"),
+					isAwaitingInteractionReceipt: interactionState.matches(
+						"awaitingInteractionReceipt",
+					),
+					isConfirmingInteraction: interactionState.matches(
+						"confirmingInteraction",
+					),
 					isCompleted: interactionState.matches("completed"),
 				});
 			}
@@ -977,7 +1011,10 @@ useEffect(() => {
 				return {
 					type: "approveNFT",
 					label: "Approve NFT",
-					action: () => context.collection ? handleNFTApproval(context.collection, operatorAddress) : null,
+					action: () =>
+						context.collection
+							? handleNFTApproval(context.collection, operatorAddress)
+							: null,
 				};
 			}
 
@@ -998,7 +1035,7 @@ useEffect(() => {
 											context.collection,
 											context.tokenId,
 											context.treasuryAddress,
-									  )
+										)
 									: null,
 						};
 					}
@@ -1014,12 +1051,14 @@ useEffect(() => {
 							type: "redeem",
 							label: "Accept Buyback",
 							action: () =>
-								context.collection && context.tokenId && context.protocolTreasuryAddress
+								context.collection &&
+								context.tokenId &&
+								context.protocolTreasuryAddress
 									? handleRedemption(
 											context.collection,
 											context.tokenId,
 											context.protocolTreasuryAddress,
-									  )
+										)
 									: null,
 						};
 					}
@@ -1069,7 +1108,10 @@ useEffect(() => {
 
 				// For deposits, trigger success immediately
 				// For buybacks, ensure we have payout data
-				if (context.mode === "deposit" || (context.mode === "buyback" && context.payoutAmount)) {
+				if (
+					context.mode === "deposit" ||
+					(context.mode === "buyback" && context.payoutAmount)
+				) {
 					params.onSuccess?.(context.interactionTxHash);
 				}
 			}

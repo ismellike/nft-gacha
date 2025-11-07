@@ -14,12 +14,10 @@ export {
 } from "./SkeletonLoader";
 // NFT Card - Simplified for modal use only
 export {
-  NFTCard,
-  type NFTCardData,
-  type NFTCardProps,
+	NFTCard,
+	type NFTCardData,
+	type NFTCardProps,
 } from "./NFTCard";
-
-
 
 // Glass Components are now imported directly from src/ui
 // Please import them from "../ui" in component files

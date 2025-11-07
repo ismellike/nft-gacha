@@ -202,9 +202,9 @@ export default function SpinControls({
 	const formattedBalance =
 		tokenBalance && tokenDecimals
 			? formatTokenAmount(tokenBalance, tokenDecimals, {
-				maxDecimals: 4,
-				useGrouping: true,
-			})
+					maxDecimals: 4,
+					useGrouping: true,
+				})
 			: "0";
 
 	const formatSpinFee = () => {
@@ -753,7 +753,7 @@ export default function SpinControls({
 						triggerId = decoded.args.triggerId as bigint;
 						break;
 					}
-				} catch (_error) { }
+				} catch (_error) {}
 			}
 
 			if (triggerId !== null) {
@@ -937,10 +937,11 @@ export default function SpinControls({
 					<div className="relative group">
 						{/* Outer glow rings */}
 						<div
-							className={`absolute inset-0 w-64 h-64 rounded-full ${gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
-								? "animate-pulse"
-								: ""
-								}`}
+							className={`absolute inset-0 w-64 h-64 rounded-full ${
+								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+									? "animate-pulse"
+									: ""
+							}`}
 						>
 							<div
 								className="w-full h-full rounded-full border-2 border-warning/20 animate-spin"
@@ -948,10 +949,11 @@ export default function SpinControls({
 							></div>
 						</div>
 						<div
-							className={`absolute inset-2 w-60 h-60 rounded-full ${gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
-								? "animate-pulse"
-								: ""
-								}`}
+							className={`absolute inset-2 w-60 h-60 rounded-full ${
+								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+									? "animate-pulse"
+									: ""
+							}`}
 						>
 							<div
 								className="w-full h-full rounded-full border border-warning/10 animate-spin"

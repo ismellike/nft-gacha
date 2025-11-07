@@ -163,7 +163,9 @@ const NFTAppraisalCard = ({ nft, onDepositAction }: NFTAppraisalCardProps) => {
 									tokenId: nft.tokenId,
 								}}
 								size="md"
-								onClick={() => console.log(`NFT ${nft.collection}:${nft.tokenId} clicked`)}
+								onClick={() =>
+									console.log(`NFT ${nft.collection}:${nft.tokenId} clicked`)
+								}
 								appraisalContractAddress={contracts.appraisal as `0x${string}`}
 							/>
 						)}

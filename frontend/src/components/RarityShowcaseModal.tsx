@@ -208,8 +208,14 @@ export default function RarityShowcaseModal({
 												rarity: rarity,
 											}}
 											size="sm"
-											onClick={() => console.log(`NFT ${item.collection}:${item.tokenId} clicked`)}
-											appraisalContractAddress={contracts.appraisal as `0x${string}`}
+											onClick={() =>
+												console.log(
+													`NFT ${item.collection}:${item.tokenId} clicked`,
+												)
+											}
+											appraisalContractAddress={
+												contracts.appraisal as `0x${string}`
+											}
 										/>
 									))}
 								</div>
