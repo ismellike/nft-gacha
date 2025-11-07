@@ -52,7 +52,6 @@ export default function SpinControls({
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
 	const [userCancelledMessage, setUserCancelledMessage] = useState(false);
 	const [permitFailed, setPermitFailed] = useState(false);
-	const [reclaimUserRejected, setReclaimUserRejected] = useState(false);
 
 	// Countdown timer for randomness timeout
 	const [countdown, setCountdown] = useState(SPIN_TIMEOUT_SECONDS);
@@ -203,9 +202,9 @@ export default function SpinControls({
 	const formattedBalance =
 		tokenBalance && tokenDecimals
 			? formatTokenAmount(tokenBalance, tokenDecimals, {
-					maxDecimals: 4,
-					useGrouping: true,
-				})
+				maxDecimals: 4,
+				useGrouping: true,
+			})
 			: "0";
 
 	const formatSpinFee = () => {
@@ -754,7 +753,7 @@ export default function SpinControls({
 						triggerId = decoded.args.triggerId as bigint;
 						break;
 					}
-				} catch (_error) {}
+				} catch (_error) { }
 			}
 
 			if (triggerId !== null) {
@@ -834,33 +833,35 @@ export default function SpinControls({
 	useEffect(() => {
 		if (reclaimError) {
 			const errorMessage = String(reclaimError.message || "").toLowerCase();
+			const errorCode = (reclaimError as { code?: number }).code;
+			const errorName = (reclaimError as { name?: string }).name;
+
 			console.log("🔍 [SpinControls] Analyzing reclaim error:", {
 				errorMessage: reclaimError.message,
 				errorName: reclaimError.name,
-				errorCode: (reclaimError as { code?: string }).code,
-				isUserRejection:
-					errorMessage.includes("rejected") ||
-					errorMessage.includes("denied") ||
-					errorMessage.includes("cancelled") ||
-					errorMessage.includes("canceled"),
+				errorCode: errorCode,
+				cause: (reclaimError as { cause?: string }).cause,
 			});
 
-			if (
+			// More robust user rejection detection
+			const isUserRejected =
 				errorMessage.includes("rejected") ||
 				errorMessage.includes("denied") ||
 				errorMessage.includes("cancelled") ||
-				errorMessage.includes("canceled")
-			) {
+				errorMessage.includes("canceled") ||
+				errorMessage.includes("User rejected") ||
+				errorCode === 4001 || // MetaMask user rejection code
+				errorName?.includes("UserRejectedRequestError") ||
+				errorName?.includes("UserRejected") ||
+				(reclaimError as { cause?: { code?: number } }).cause?.code === 4001;
+
+			if (isUserRejected) {
 				// User canceled - show subtle feedback and keep them in timeout state
 				console.log("🚫 [SpinControls] User cancelled reclaim transaction");
 				setUserCancelledMessage(true);
-				setReclaimUserRejected(true);
 				setTimeout(() => {
 					setUserCancelledMessage(false);
-					setReclaimUserRejected(false);
 				}, 2000);
-				// Clear the reclaim error to prevent the large transaction failed card
-				// Note: We can't directly clear the wagmi error, but we can prevent displaying it
 			} else {
 				// Real reclaim error - log detailed debugging info
 				console.error("❌ [SpinControls] Reclaim transaction error:", {
@@ -936,11 +937,10 @@ export default function SpinControls({
 					<div className="relative group">
 						{/* Outer glow rings */}
 						<div
-							className={`absolute inset-0 w-64 h-64 rounded-full ${
-								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
-									? "animate-pulse"
-									: ""
-							}`}
+							className={`absolute inset-0 w-64 h-64 rounded-full ${gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+								? "animate-pulse"
+								: ""
+								}`}
 						>
 							<div
 								className="w-full h-full rounded-full border-2 border-warning/20 animate-spin"
@@ -948,11 +948,10 @@ export default function SpinControls({
 							></div>
 						</div>
 						<div
-							className={`absolute inset-2 w-60 h-60 rounded-full ${
-								gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
-									? "animate-pulse"
-									: ""
-							}`}
+							className={`absolute inset-2 w-60 h-60 rounded-full ${gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
+								? "animate-pulse"
+								: ""
+								}`}
 						>
 							<div
 								className="w-full h-full rounded-full border border-warning/10 animate-spin"
@@ -1166,26 +1165,6 @@ export default function SpinControls({
 							</div>
 						</Card>
 					)}
-
-					{/* Error display for transaction errors */}
-					{(spinWithPermitError ||
-						spinWithPermitReceiptError ||
-						signatureError ||
-						(reclaimError && !reclaimUserRejected)) && (
-						<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
-							<div>
-								<p className="text-sm mb-2">
-									Transaction failed. Please try again.
-								</p>
-								{reclaimError && (
-									<p className="text-xs opacity-60">
-										Reclaim error: {reclaimError.message}
-									</p>
-								)}
-							</div>
-						</Card>
-					)}
-
 					{/* Enhanced Spin Button */}
 					<div className="relative group">
 						{/* Glow effect on hover */}

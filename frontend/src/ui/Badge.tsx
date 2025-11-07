@@ -80,8 +80,8 @@ export const GlassBadge = extendVariants(HeroBadge, {
 
 export interface BadgeProps extends React.ComponentProps<typeof GlassBadge> {}
 
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>((props, ref) => (
-	<GlassBadge {...props} ref={ref as any} />
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(({ ...props }, ref) => (
+	<GlassBadge {...props} ref={ref as never} />
 ));
 
 Badge.displayName = "Badge";
