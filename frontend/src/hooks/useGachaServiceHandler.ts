@@ -16,8 +16,12 @@ import {
 interface EnvelopeData {
 	address: `0x${string}`;
 	args: readonly [
-		{ eventId: `0x${string}`; ordering: `0x${string}`; payload: `0x${string}`; },
-		{ signers: readonly `0x${string}`[]; signatures: readonly `0x${string}`[]; referenceBlock: number; }
+		{ eventId: `0x${string}`; ordering: `0x${string}`; payload: `0x${string}` },
+		{
+			signers: readonly `0x${string}`[];
+			signatures: readonly `0x${string}`[];
+			referenceBlock: number;
+		},
 	];
 }
 

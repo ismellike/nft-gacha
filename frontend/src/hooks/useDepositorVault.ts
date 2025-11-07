@@ -257,7 +257,10 @@ export function useSimulateClaimYield({
 	recipient?: string;
 }) {
 	// Note: The simulation doesn't use recipient, but it's kept for API consistency
-	console.log("📊 [useSimulateClaimYield] Recipient (not used in simulation):", recipient);
+	console.log(
+		"📊 [useSimulateClaimYield] Recipient (not used in simulation):",
+		recipient,
+	);
 	const { data: simulation, error: simulationError } =
 		useSimulateDepositorVaultClaimYield({
 			address: contractAddress as `0x${string}`,

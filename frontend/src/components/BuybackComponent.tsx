@@ -122,8 +122,11 @@ export default function BuybackComponent({
 	const isSuccessState =
 		currentState === "completed" && successData?.mode === "buyback";
 	const successTimestamp =
-		successData && (context as { completedAt?: string | number }).completedAt != null
-			? new Date((context as { completedAt: string | number }).completedAt).toLocaleString()
+		successData &&
+		(context as { completedAt?: string | number }).completedAt != null
+			? new Date(
+					(context as { completedAt: string | number }).completedAt,
+				).toLocaleString()
 			: null;
 
 	// Contract data hooks

@@ -163,7 +163,14 @@ export function useRarityTracker(rarityTracker?: Address) {
 							appraisedValueUsd,
 							depositorCount,
 							lastUpdated,
-						] = result.result as unknown as [Hex, number, bigint, bigint, bigint, bigint];
+						] = result.result as unknown as [
+							Hex,
+							number,
+							bigint,
+							bigint,
+							bigint,
+							bigint,
+						];
 
 						return {
 							cardId: cardIdResult,

@@ -484,7 +484,12 @@ export default function SpinControls({
 
 				const txParams = {
 					address: contracts.gacha as `0x${string}`,
-					args: [BigInt(permitDeadline || 0), Number(v), r as `0x${string}`, s as `0x${string}`] as const,
+					args: [
+						BigInt(permitDeadline || 0),
+						Number(v),
+						r as `0x${string}`,
+						s as `0x${string}`,
+					] as const,
 				};
 
 				console.log(

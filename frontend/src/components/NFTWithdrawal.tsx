@@ -43,7 +43,7 @@ export const NFTWithdrawal: React.FC = () => {
 	const contracts = useGachaContracts(gachaId);
 
 	const [isLoading, setIsLoading] = useState(true);
-		const [withdrawingNFT, setWithdrawingNFT] = useState<{
+	const [withdrawingNFT, setWithdrawingNFT] = useState<{
 		collection: Address;
 		tokenId: bigint;
 	} | null>(null);
@@ -143,7 +143,7 @@ export const NFTWithdrawal: React.FC = () => {
 			return;
 		}
 
-				setWithdrawingNFT({ collection, tokenId });
+		setWithdrawingNFT({ collection, tokenId });
 
 		try {
 			console.log(
@@ -192,7 +192,7 @@ export const NFTWithdrawal: React.FC = () => {
 		} finally {
 			// Clear withdrawing states after a delay
 			setTimeout(() => {
-								setWithdrawingNFT(null);
+				setWithdrawingNFT(null);
 			}, 2000);
 		}
 	};

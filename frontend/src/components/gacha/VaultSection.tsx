@@ -36,9 +36,7 @@ import {
 	type DepositedNFT,
 } from "../../hooks/useUserDepositedNFTs";
 import { useNFTDeposit } from "../../hooks/useNFTDeposit";
-import {
-	useUserOwnedNFTsMultipleCollections,
-} from "../../hooks/useUserOwnedNFTs";
+import { useUserOwnedNFTsMultipleCollections } from "../../hooks/useUserOwnedNFTs";
 import type { UserOwnedNFTMultiCollection } from "../../types/hooks";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
@@ -418,7 +416,6 @@ const TabNavigation: React.FC<{
 };
 
 const DepositTab: React.FC<{
-	userOwnedNFTs: UserOwnedNFTMultiCollection[];
 	sortedUserOwnedNFTs: UserOwnedNFTMultiCollection[];
 	appraisedNFTs: Set<string>;
 	appraisalData: Map<string, AppraisalInfo>;
@@ -431,7 +428,6 @@ const DepositTab: React.FC<{
 		hasAppraisal?: boolean,
 	) => void;
 }> = ({
-	userOwnedNFTs,
 	sortedUserOwnedNFTs,
 	appraisedNFTs,
 	appraisalData,
@@ -440,7 +436,7 @@ const DepositTab: React.FC<{
 	isNFTDepositing,
 	onNFTAction,
 }) => {
-	if (userOwnedNFTs.length === 0) {
+	if (sortedUserOwnedNFTs.length === 0) {
 		return (
 			<section
 				id="deposit-panel"
@@ -676,6 +672,43 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const whitelistedCollections: `0x${string}`[] =
 		(whitelistedCollectionsQuery.data as `0x${string}`[]) || [];
 
+	// Local cache for optimistic updates
+	const [optimisticUserNFTs, setOptimisticUserNFTs] = useState<
+		UserOwnedNFTMultiCollection[]
+	>([]);
+	const [optimisticDepositedNFTs, setOptimisticDepositedNFTs] = useState<
+		NFTWithCollection[]
+	>([]);
+
+	const { nfts: userOwnedNFTs, refetch: refetchUserNFTs } =
+		useUserOwnedNFTsMultipleCollections(whitelistedCollections);
+
+	// Merge actual and optimistic data
+	const displayUserNFTs = useMemo(() => {
+		if (optimisticUserNFTs.length > 0) {
+			return optimisticUserNFTs;
+		}
+		return userOwnedNFTs;
+	}, [userOwnedNFTs, optimisticUserNFTs]);
+
+	const displayDepositedNFTs = useMemo(() => {
+		return [...optimisticDepositedNFTs, ...state.depositedNFTs].reduce(
+			(acc, nft) => {
+				const key = createNFTKey(nft.collection, nft.tokenId);
+				if (
+					!acc.some(
+						(existing) =>
+							createNFTKey(existing.collection, existing.tokenId) === key,
+					)
+				) {
+					acc.push(nft);
+				}
+				return acc;
+			},
+			[] as NFTWithCollection[],
+		);
+	}, [state.depositedNFTs, optimisticDepositedNFTs]);
+
 	// NFT deposit hooks
 	const {
 		depositNFT,
@@ -685,20 +718,29 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	} = useNFTDeposit({
 		onSuccess: () => {
 			toast.success("NFT deposited successfully!", TOAST_CONFIG);
+
+			// Update depositing state immediately
 			updateState("depositingNFTs", new Set());
-			refetchUserNFTs();
+
+			// Quick refetch of vault data (cheaper than full NFT refresh)
 			refetchDepositorVault();
+
+			// Delayed background refresh to ensure data consistency
+			setTimeout(() => {
+				refetchUserNFTs();
+				loadDepositedNFTs();
+				// Clear optimistic state after real data loads
+				setOptimisticUserNFTs([]);
+				setOptimisticDepositedNFTs([]);
+			}, 2000);
 		},
 		onAction: updateAppraisedStatus,
 		onAppraisalStatusChange: updateAppraisedStatus,
 	});
 
-	const { nfts: userOwnedNFTs, refetch: refetchUserNFTs } =
-		useUserOwnedNFTsMultipleCollections(whitelistedCollections);
-
 	// Appraisal checking
 	useAppraisalChecker(
-		userOwnedNFTs,
+		displayUserNFTs,
 		appraisal,
 		publicClient,
 		updateAppraisedStatus,
@@ -706,12 +748,12 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 	// Sort NFTs by appraisal status
 	const sortedUserOwnedNFTs = useMemo(() => {
-		if (!userOwnedNFTs.length) return [];
+		if (!displayUserNFTs.length) return [];
 
-		const appraised: typeof userOwnedNFTs = [];
-		const needsAppraisal: typeof userOwnedNFTs = [];
+		const appraised: typeof displayUserNFTs = [];
+		const needsAppraisal: typeof displayUserNFTs = [];
 
-		for (const nft of userOwnedNFTs) {
+		for (const nft of displayUserNFTs) {
 			const key = createNFTKey(nft.collection, nft.tokenId);
 			if (state.appraisedNFTs.has(key)) {
 				appraised.push(nft);
@@ -721,21 +763,21 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		}
 
 		return [...appraised, ...needsAppraisal];
-	}, [userOwnedNFTs, state.appraisedNFTs]);
+	}, [displayUserNFTs, state.appraisedNFTs]);
 
 	// Cleanup orphaned state
 	React.useEffect(() => {
-		if (!userOwnedNFTs.length) {
+		if (!displayUserNFTs.length) {
 			updateState("appraisedNFTs", new Set());
 			updateState("appraisalData", new Map());
 			return;
 		}
 
 		const validKeys = new Set(
-			userOwnedNFTs.map((nft) => createNFTKey(nft.collection, nft.tokenId)),
+			displayUserNFTs.map((nft) => createNFTKey(nft.collection, nft.tokenId)),
 		);
 		cleanupOrphanedState(validKeys);
-	}, [userOwnedNFTs, cleanupOrphanedState, updateState]);
+	}, [displayUserNFTs, cleanupOrphanedState, updateState]);
 
 	// Load deposited NFTs
 	const loadDepositedNFTs = useCallback(async () => {
@@ -781,6 +823,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	React.useEffect(() => {
 		if (activeTab !== "deposit") {
 			resetDeposit();
+			// Clear optimistic state when switching tabs
+			setOptimisticUserNFTs([]);
+			setOptimisticDepositedNFTs([]);
 		}
 	}, [activeTab, resetDeposit]);
 
@@ -789,6 +834,13 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			forceResetDeposit();
 		};
 	}, [forceResetDeposit]);
+
+	// Clear optimistic state when user NFTs change (real data loaded)
+	React.useEffect(() => {
+		if (userOwnedNFTs.length > 0) {
+			setOptimisticUserNFTs([]);
+		}
+	}, [userOwnedNFTs]);
 
 	// Event handlers
 	const handleClaimYield = useCallback(async () => {
@@ -868,22 +920,56 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			const nftKey = createNFTKey(collection, tokenId);
 
 			try {
+				// Optimistic updates before the actual deposit
+				const nftToRemove = displayUserNFTs.find(
+					(nft) => createNFTKey(nft.collection, nft.tokenId) === nftKey,
+				);
+
+				if (nftToRemove) {
+					// Remove from user-owned NFTs optimistically
+					setOptimisticUserNFTs((prev) =>
+						prev.filter(
+							(nft) => createNFTKey(nft.collection, nft.tokenId) !== nftKey,
+						),
+					);
+
+					// Add to deposited NFTs optimistically if we have appraisal info
+					const appraiseInfo = state.appraisalData.get(nftKey);
+					if (appraiseInfo) {
+						const depositedNFT: NFTWithCollection = {
+							collection: collection as Address,
+							tokenId: BigInt(tokenId),
+							depositor: address as Address,
+							currentRarity: 0, // Will be updated when actual data loads
+							appraisedPrice: appraiseInfo.priceUSD,
+							...(nftToRemove.collectionName && {
+								collectionName: nftToRemove.collectionName,
+							}),
+						};
+						setOptimisticDepositedNFTs((prev) => [...prev, depositedNFT]);
+					}
+				}
+
 				await depositNFT(collection as `0x${string}`, BigInt(tokenId), {
 					hasAppraisal,
 				});
-
-				setTimeout(() => {
-					const newSet = new Set(state.depositingNFTs);
-					newSet.delete(nftKey);
-					updateState("depositingNFTs", newSet);
-				}, 3000);
 			} catch (error) {
 				console.error("Error depositing NFT:", error);
 				toast.error("Failed to deposit NFT", TOAST_CONFIG);
 				updateState("depositingNFTs", new Set());
+				// Revert optimistic updates on error
+				setOptimisticUserNFTs([]);
+				setOptimisticDepositedNFTs([]);
 			}
 		},
-	[depositNFT, updateState, state.depositingNFTs],
+		[
+			depositNFT,
+			updateState,
+			state.depositingNFTs,
+			state.appraisalData,
+			displayUserNFTs,
+			address,
+		],
 	);
 
 	const handleNFTAction = useCallback(
@@ -909,11 +995,11 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	);
 
 	// Computed values
-	const totalDepositedNFTs = state.depositedNFTs.length;
+	const totalDepositedNFTs = displayDepositedNFTs.length;
 	const nftsByCollection = useMemo(() => {
 		const grouped = new Map<string, NFTWithCollection[]>();
 
-		state.depositedNFTs.forEach((nft) => {
+		displayDepositedNFTs.forEach((nft) => {
 			const collectionKey = nft.collection.toLowerCase();
 			if (!grouped.has(collectionKey)) {
 				grouped.set(collectionKey, []);
@@ -922,7 +1008,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		});
 
 		return grouped;
-	}, [state.depositedNFTs]);
+	}, [displayDepositedNFTs]);
 
 	// Early return if not connected
 	if (!address) {
@@ -970,7 +1056,6 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			>
 				{activeTab === "deposit" && (
 					<DepositTab
-						userOwnedNFTs={userOwnedNFTs}
 						sortedUserOwnedNFTs={sortedUserOwnedNFTs}
 						appraisedNFTs={state.appraisedNFTs}
 						appraisalData={state.appraisalData}

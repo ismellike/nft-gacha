@@ -648,17 +648,20 @@ export const nftInteractionMachine = createMachine(
 					console.error("Error in completion callbacks:", error);
 				}
 			},
-			setSuccessData: assign(({ context }) => ({
-				...context,
-				completedAt: Date.now() as number,
-				successData: context.interactionTxHash
-					? {
-							txHash: context.interactionTxHash,
-							payoutAmount: context.payoutAmount || undefined,
-							mode: context.mode,
-						}
-					: null,
-			} as any)),
+			setSuccessData: assign(
+				({ context }) =>
+					({
+						...context,
+						completedAt: Date.now() as number,
+						successData: context.interactionTxHash
+							? {
+									txHash: context.interactionTxHash,
+									payoutAmount: context.payoutAmount || undefined,
+									mode: context.mode,
+								}
+							: null,
+					}) as any,
+			),
 		},
 		guards: {
 			canRetry: ({ context }) => context.retryCount < MAX_RETRIES,

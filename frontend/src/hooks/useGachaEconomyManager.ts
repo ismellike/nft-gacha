@@ -76,7 +76,7 @@ export function useGachaEconomyManagerData({
 	// Fetch revenue for each rarity level
 	const revenueCommon = useReadGachaEconomyManagerRevenueByRarity({
 		address: contractAddress as `0x${string}`,
-			args: [0], // Common
+		args: [0], // Common
 		query: {
 			enabled: enabled && !!contractAddress,
 		},

@@ -38,7 +38,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	const { address: userAddress } = useAccount();
 	const publicClient = usePublicClient();
 
-	
 	// XState machine for interaction process
 	const [interactionState, sendInteractionEvent] = useMachine(
 		nftInteractionMachine,
@@ -222,7 +221,8 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				console.error("💥 Error in startInteraction:", error);
 				sendInteractionEvent({
 					type: "FAIL",
-					error: error instanceof Error ? error.message : "Unknown error occurred",
+					error:
+						error instanceof Error ? error.message : "Unknown error occurred",
 				});
 			}
 		},
@@ -280,7 +280,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			try {
 				await executeRedemption({
 					address: protocolTreasuryAddress as `0x${string}`,
-					args: [collection! as `0x${string}`, BigInt(tokenId), userAddress!] as any,
+					args: [
+						collection! as `0x${string}`,
+						BigInt(tokenId),
+						userAddress!,
+					] as any,
 				});
 			} catch (_error) {
 				// Let the useEffect handle user rejection to avoid double processing
@@ -428,12 +432,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		} catch (error) {
 			console.error("💥 Error in deposit success effect:", error);
 		}
-	}, [
-		isDepositSuccess,
-		depositTxHash,
-		interactionState,
-		sendInteractionEvent,
-	]);
+	}, [isDepositSuccess, depositTxHash, interactionState, sendInteractionEvent]);
 
 	// Handle deposit transaction error
 	useEffect(() => {
@@ -650,7 +649,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 					) {
 						executeRedemption({
 							address: protocolTreasuryAddress as `0x${string}`,
-							args: [collection! as `0x${string}`, BigInt(tokenId), userAddress!] as any,
+							args: [
+								collection! as `0x${string}`,
+								BigInt(tokenId),
+								userAddress!,
+							] as any,
 						}).catch((error) => {
 							console.error(
 								"❌ [useNFTInteraction] Redemption execution failed:",
@@ -725,7 +728,10 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				});
 			}
 		} catch (error) {
-			console.error("💥 Error in transaction receipt confirmation effect:", error);
+			console.error(
+				"💥 Error in transaction receipt confirmation effect:",
+				error,
+			);
 		}
 	}, [
 		depositReceipt,
@@ -739,8 +745,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	const context = interactionState.context;
 	const hookError = context.error;
 	const isLoading =
-		!interactionState.matches("idle") &&
-		!interactionState.matches("completed");
+		!interactionState.matches("idle") && !interactionState.matches("completed");
 
 	// Determine current action needed based on state
 	const getActionInfo = useCallback(() => {

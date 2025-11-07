@@ -153,24 +153,24 @@ export function useUserDepositedNFTs(treasury?: Address) {
 			);
 
 			type RawDepositedNFT = {
-			collection: string;
-			tokenId: string;
-			depositor: string;
-			appraisedPrice?: string;
-			currentRarity?: string;
-		};
+				collection: string;
+				tokenId: string;
+				depositor: string;
+				appraisedPrice?: string;
+				currentRarity?: string;
+			};
 
-		let items: RawDepositedNFT[] = [];
+			let items: RawDepositedNFT[] = [];
 			let functionUsed = "";
 
 			// Try the primary function first
 			try {
-				items = await publicClient.readContract({
+				items = (await publicClient.readContract({
 					address: treasury,
 					abi: userDepositedNFTsAbi,
 					functionName: "getUserDepositedNFTs",
 					args: [user],
-				}) as any[];
+				})) as any[];
 				functionUsed = "getUserDepositedNFTs";
 				console.log("✅ [useUserDepositedNFTs] Primary function worked!");
 			} catch (primaryError) {
@@ -181,12 +181,12 @@ export function useUserDepositedNFTs(treasury?: Address) {
 
 				// Try alternative function name
 				try {
-					items = await publicClient.readContract({
+					items = (await publicClient.readContract({
 						address: treasury,
 						abi: userDepositedNFTsAbi,
 						functionName: "getDepositedNFTs",
 						args: [user],
-					}) as any[];
+					})) as any[];
 					functionUsed = "getDepositedNFTs";
 					console.log("✅ [useUserDepositedNFTs] Alternative function worked!");
 				} catch (altError) {
@@ -404,13 +404,15 @@ export function useUserDepositedNFTs(treasury?: Address) {
 				});
 
 				// Convert the contract response to our interface
-				return (items as unknown as RawDepositedNFT[]).map((item: RawDepositedNFT) => ({
-					collection: item.collection as Address,
-					tokenId: BigInt(item.tokenId),
-					depositor: item.depositor as Address,
-					appraisedPrice: BigInt(item.appraisedPrice),
-					currentRarity: Number(item.currentRarity),
-				}));
+				return (items as unknown as RawDepositedNFT[]).map(
+					(item: RawDepositedNFT) => ({
+						collection: item.collection as Address,
+						tokenId: BigInt(item.tokenId),
+						depositor: item.depositor as Address,
+						appraisedPrice: BigInt(item.appraisedPrice),
+						currentRarity: Number(item.currentRarity),
+					}),
+				);
 			} catch (error) {
 				console.error(`Error fetching NFTs for card ID ${cardId}:`, error);
 				return [];

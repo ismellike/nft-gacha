@@ -359,7 +359,11 @@ export const nftDepositMachine = createMachine(
 						context.collection &&
 						context.tokenId
 					) {
-						(context.onAction as any)(context.collection, context.tokenId, true);
+						(context.onAction as any)(
+							context.collection,
+							context.tokenId,
+							true,
+						);
 					}
 					if (
 						typeof context.onAppraisalStatusChange === "function" &&

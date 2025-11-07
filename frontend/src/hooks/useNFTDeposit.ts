@@ -33,7 +33,7 @@ const DEPOSIT_IN_PROGRESS_STATES: ReadonlySet<string> = new Set([
 export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	
+
 	const {
 		startInteraction,
 		isLoading,
@@ -45,14 +45,16 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 	} = useNFTInteraction({
 		...(params?.onSuccess && { onSuccess: params.onSuccess }),
 		...(params?.onAction && { onAction: params.onAction }),
-		...(params?.onAppraisalStatusChange && { onAppraisalStatusChange: params.onAppraisalStatusChange }),
+		...(params?.onAppraisalStatusChange && {
+			onAppraisalStatusChange: params.onAppraisalStatusChange,
+		}),
 	});
 
 	// Check if a specific NFT is currently being deposited
 	const isNFTDepositing = useCallback(
 		(collection: string, tokenId: string) => {
 			if (!isLoading) return false;
-			if (!('collection' in context) || !('tokenId' in context)) return false;
+			if (!("collection" in context) || !("tokenId" in context)) return false;
 			if (context.collection !== collection || context.tokenId !== tokenId)
 				return false;
 			return DEPOSIT_IN_PROGRESS_STATES.has(currentState);
