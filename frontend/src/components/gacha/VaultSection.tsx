@@ -1862,30 +1862,6 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 										},
 									)
 								)}
-
-								<footer className="mt-8 p-4 bg-content2/20 rounded-lg border border-white/10">
-									<h3 className="font-semibold text-foreground mb-2">
-										About NFT Withdrawals
-									</h3>
-									<ul className="text-sm text-foreground/70 space-y-1">
-										<li>
-											• You can withdraw any individual NFT you have deposited
-										</li>
-										<li>
-											• NFTs currently being used in gacha spins cannot be
-											withdrawn
-										</li>
-										<li>
-											• Withdrawals transfer the NFT back to your wallet
-											immediately
-										</li>
-										<li>• Gas fees apply for withdrawal transactions</li>
-										<li>
-											• Your yield earnings will remain available to claim
-											separately
-										</li>
-									</ul>
-								</footer>
 							</div>
 						)}
 					</section>

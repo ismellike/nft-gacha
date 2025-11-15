@@ -1,11 +1,7 @@
 "use client";
 
-import {
-	GiftIcon,
-	WalletIcon,
-	ArrowUpTrayIcon,
-} from "@heroicons/react/24/outline";
-import { NFTAvailabilitySection } from "../NFTAvailabilitySection";
+import { GiftIcon } from "@heroicons/react/24/outline";
+import { SimpleNFTManagement } from "../SimpleNFTManagement";
 import { GachaSectionLayout } from "./GachaSectionLayout";
 
 interface DepositorSectionProps {
@@ -24,22 +20,9 @@ export function DepositorSection({
 			label="Depositor Flow"
 			title={title}
 			description={description}
-			highlights={[
-				{
-					icon: WalletIcon,
-					title: "Wallet Insight",
-					description:
-						"Auto-detects whitelisted collections in your connected wallet.",
-				},
-				{
-					icon: ArrowUpTrayIcon,
-					title: "Appraise & Deposit",
-					description:
-						"Request appraisals and commit NFTs with immediate treasury feedback.",
-				},
-			]}
+			highlights={[]}
 		>
-			<NFTAvailabilitySection />
+			<SimpleNFTManagement mode="deposit" />
 		</GachaSectionLayout>
 	);
 }

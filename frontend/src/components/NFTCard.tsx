@@ -46,6 +46,7 @@ export interface NFTCardData {
 	imageUrl?: string | undefined;
 	rarity?: Rarity | undefined;
 	appraisalOverride?: { hasAppraisal: boolean; priceUSD: bigint } | undefined;
+	appraisedValue?: bigint | undefined;
 }
 
 export interface NFTCardProps {
@@ -129,94 +130,106 @@ const AppraisalDisplay = memo<{
 	contractAddress: `0x${string}`;
 	size: "xs" | "sm" | "md" | "lg" | "xl";
 	override?: NFTCardData["appraisalOverride"];
-}>(({ data, contractAddress, size, override }) => {
-	const themeStyles = GLASS_THEME;
-	const sizeStyles = SIZE_CONFIG[size];
+}>(
+	({
+		data: { collection, tokenId, appraisedValue },
+		contractAddress,
+		size,
+		override,
+	}) => {
+		const themeStyles = GLASS_THEME;
+		const sizeStyles = SIZE_CONFIG[size];
 
-	// Smart caching - skip calls if override is provided
-	const shouldSkipAppraisalCall =
-		!!override || !isValidAddress(contractAddress);
+		// Smart caching - skip calls if override is provided
+		const shouldSkipAppraisalCall =
+			!!override || !isValidAddress(contractAddress);
 
-	const { data: hasAppraisal, isLoading: checkingAppraisal } =
-		useReadNftAppraisalHasAppraisal({
-			address: contractAddress,
-			args: [data.collection as `0x${string}`, BigInt(data.tokenId)],
-			query: {
-				enabled: !shouldSkipAppraisalCall,
-				staleTime: 300_000, // 5 minutes
-				gcTime: 600_000, // 10 minutes
-				retry: 1,
-			},
-		});
+		const { data: hasAppraisal, isLoading: checkingAppraisal } =
+			useReadNftAppraisalHasAppraisal({
+				address: contractAddress,
+				args: [collection as `0x${string}`, BigInt(tokenId)],
+				query: {
+					enabled: !shouldSkipAppraisalCall,
+					staleTime: 300_000, // 5 minutes
+					gcTime: 600_000, // 10 minutes
+					retry: 1,
+				},
+			});
 
-	const { data: appraisalPrice, isLoading: loadingPrice } =
-		useReadNftAppraisalGetAppraisedPrice({
-			address: contractAddress,
-			args: [data.collection as `0x${string}`, BigInt(data.tokenId)],
-			query: {
-				enabled: !shouldSkipAppraisalCall && !!hasAppraisal,
-				staleTime: 300_000,
-				gcTime: 600_000,
-				retry: 1,
-			},
-		});
+		const { data: appraisalPrice, isLoading: loadingPrice } =
+			useReadNftAppraisalGetAppraisedPrice({
+				address: contractAddress,
+				args: [collection as `0x${string}`, BigInt(tokenId)],
+				query: {
+					enabled: !shouldSkipAppraisalCall && !!hasAppraisal,
+					staleTime: 300_000,
+					gcTime: 600_000,
+					retry: 1,
+				},
+			});
 
-	// Use override data if available
-	const finalAppraisal =
-		override ||
-		(appraisalPrice
-			? {
-					hasAppraisal: !!hasAppraisal,
-					priceUSD: Array.isArray(appraisalPrice)
-						? appraisalPrice[0]
-						: (appraisalPrice as unknown as bigint),
-				}
-			: null);
+		// Use override data if available
+		const finalAppraisal =
+			override ||
+			(appraisedValue
+				? {
+						hasAppraisal: true,
+						priceUSD: appraisedValue,
+					}
+				: appraisalPrice
+					? {
+							hasAppraisal: !!hasAppraisal,
+							priceUSD: Array.isArray(appraisalPrice)
+								? appraisalPrice[0]
+								: (appraisalPrice as unknown as bigint),
+						}
+					: null);
 
-	const isLoading = override ? false : checkingAppraisal || loadingPrice;
+		const isLoading = override ? false : checkingAppraisal || loadingPrice;
 
-	if (isLoading) {
+		if (isLoading) {
+			return (
+				<div className="flex items-center justify-center gap-1">
+					<motion.div
+						className={cn(
+							"w-2 h-2 border-2 border-t-transparent rounded-full",
+							themeStyles.textSecondary,
+						)}
+						animate={{ rotate: 360 }}
+						transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+					/>
+					<span className={cn(sizeStyles.text, themeStyles.textSecondary)}>
+						Appraising...
+					</span>
+				</div>
+			);
+		}
+
+		// Only show appraisal if it exists and has a valid price
+		if (!finalAppraisal?.hasAppraisal || finalAppraisal.priceUSD <= 0n) {
+			return null;
+		}
+
 		return (
-			<div className="flex items-center justify-center gap-1">
-				<motion.div
-					className={cn(
-						"w-2 h-2 border-2 border-t-transparent rounded-full",
-						themeStyles.textSecondary,
-					)}
-					animate={{ rotate: 360 }}
-					transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-				/>
-				<span className={cn(sizeStyles.text, themeStyles.textSecondary)}>
-					Appraising...
-				</span>
-			</div>
+			<motion.div
+				className="text-center space-y-1"
+				initial={{ opacity: 0, scale: 0.9 }}
+				animate={{ opacity: 1, scale: 1 }}
+				transition={{ duration: 0.3 }}
+			>
+				<div className="flex items-center justify-center gap-1">
+					<div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+					<span className={cn(sizeStyles.text, "text-emerald-300 font-medium")}>
+						Appraised
+					</span>
+				</div>
+				<div className={cn("font-bold", sizeStyles.title, themeStyles.text)}>
+					{formatCurrency(finalAppraisal.priceUSD.toString(), 18, "USD")}
+				</div>
+			</motion.div>
 		);
-	}
-
-	// Only show appraisal if it exists and has a valid price
-	if (!finalAppraisal?.hasAppraisal || finalAppraisal.priceUSD <= 0n) {
-		return null;
-	}
-
-	return (
-		<motion.div
-			className="text-center space-y-1"
-			initial={{ opacity: 0, scale: 0.9 }}
-			animate={{ opacity: 1, scale: 1 }}
-			transition={{ duration: 0.3 }}
-		>
-			<div className="flex items-center justify-center gap-1">
-				<div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-				<span className={cn(sizeStyles.text, "text-emerald-300 font-medium")}>
-					Appraised
-				</span>
-			</div>
-			<div className={cn("font-bold", sizeStyles.title, themeStyles.text)}>
-				{formatCurrency(finalAppraisal.priceUSD.toString(), 18, "USD")}
-			</div>
-		</motion.div>
-	);
-});
+	},
+);
 AppraisalDisplay.displayName = "AppraisalDisplay";
 
 // Optimized image component with better loading states
@@ -327,7 +340,14 @@ NFTImage.displayName = "NFTImage";
 // Main NFT Card Component - Flexible for all use cases
 export const NFTCard = memo<NFTCardProps>(
 	({
-		data,
+		data: {
+			collection,
+			tokenId,
+			imageUrl,
+			rarity,
+			appraisalOverride,
+			appraisedValue,
+		},
 		size = "md",
 		showCollectionName = true,
 		onClick,
@@ -336,7 +356,7 @@ export const NFTCard = memo<NFTCardProps>(
 		style,
 	}) => {
 		// Enhanced metadata fetching with better error handling
-		const nftData = useNFTMetadata(data.collection, data.tokenId, {
+		const nftData = useNFTMetadata(collection, tokenId, {
 			enabled: true,
 			skipFetch: false,
 		});
@@ -346,23 +366,22 @@ export const NFTCard = memo<NFTCardProps>(
 
 		// Collection name fetching with caching
 		const { data: collectionName } = useReadErc721Name({
-			address: data.collection as `0x${string}`,
+			address: collection as `0x${string}`,
 			query: { staleTime: 300_000, gcTime: 600_000 },
 		});
 
 		// Memoized expensive calculations
 		const { rarityConfig, displayName } = useMemo(() => {
 			const rarityConfig =
-				data.rarity !== undefined ? getRarityConfig(data.rarity) : null;
+				rarity !== undefined ? getRarityConfig(rarity) : null;
 
-			const displayName =
-				metadata?.name || `Token ${formatTokenId(data.tokenId)}`;
+			const displayName = metadata?.name || `Token ${formatTokenId(tokenId)}`;
 
 			return {
 				rarityConfig,
 				displayName,
 			};
-		}, [data.rarity, metadata, data.tokenId]);
+		}, [rarity, metadata, tokenId]);
 
 		const themeStyles = GLASS_THEME;
 		const sizeStyles = SIZE_CONFIG[size];
@@ -470,7 +489,7 @@ export const NFTCard = memo<NFTCardProps>(
 									rarityConfig ? "pl-6" : "", // Add left padding when rarity indicator is present
 								)}
 							>
-								{collectionName || formatAddress(data.collection)}
+								{collectionName || formatAddress(collection)}
 							</span>
 							<span
 								className={cn(
@@ -479,7 +498,7 @@ export const NFTCard = memo<NFTCardProps>(
 									themeStyles.text,
 								)}
 							>
-								{formatTokenId(data.tokenId)}
+								{formatTokenId(tokenId)}
 							</span>
 						</div>
 					)}
@@ -487,7 +506,7 @@ export const NFTCard = memo<NFTCardProps>(
 					{/* NFT Image */}
 					<div className="flex justify-center">
 						<NFTImage
-							data={data}
+							data={{ collection, tokenId, imageUrl, rarity }}
 							metadata={metadata}
 							tokenURI={nftData.tokenURI || null}
 							size={size}
@@ -508,10 +527,10 @@ export const NFTCard = memo<NFTCardProps>(
 					{/* Appraisal - Always show when available */}
 					{appraisalContractAddress && (
 						<AppraisalDisplay
-							data={data}
+							data={{ collection, tokenId, appraisedValue }}
 							contractAddress={appraisalContractAddress}
 							size={size}
-							override={data.appraisalOverride}
+							override={appraisalOverride}
 						/>
 					)}
 				</div>
