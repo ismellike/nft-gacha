@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import {
 	useAccount,
 	usePublicClient,
@@ -37,10 +37,6 @@ interface UseNFTInteractionParams {
 export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	const { address: userAddress } = useAccount();
 	const publicClient = usePublicClient();
-
-	// Refs to persist success values across machine resets
-	const depositSuccessRef = useRef(false);
-	const depositTxHashRef = useRef<string | undefined>(undefined);
 
 	// XState machine for interaction process
 	const [interactionState, sendInteractionEvent] = useMachine(
@@ -80,29 +76,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		reset: resetDeposit,
 	} = useWriteGachaTreasuryDepositNft();
 
-	// Capture success values in refs when they become available and log state
-	useEffect(() => {
-		// Update refs when success is detected
-		if (isDepositSuccess && depositTxHash && !depositSuccessRef.current) {
-			depositSuccessRef.current = true;
-			depositTxHashRef.current = depositTxHash;
-			console.log("💾 [useNFTInteraction] Captured success in refs:", {
-				success: isDepositSuccess,
-				txHash: depositTxHash,
-			});
-		}
-
-		console.log("🔍 [useNFTInteraction] Wagmi deposit hook state:", {
-			isDepositSuccess,
-			isDepositError,
-			hasDepositTxHash: !!depositTxHash,
-			depositTxHash,
-			depositError,
-			cachedSuccess: depositSuccessRef.current,
-			cachedTxHash: depositTxHashRef.current,
-		});
-	}, [isDepositSuccess, isDepositError, depositTxHash, depositError]);
-
 	const {
 		writeContractAsync: executeRedemption,
 		isSuccess: isRedemptionSuccess,
@@ -139,17 +112,9 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		sendInteractionEvent({ type: "RESET" });
 	}, [sendInteractionEvent]);
 
-	// Force reset function to clear any stuck state
-	const forceReset = useCallback(() => {
-		resetNFTApproval();
-		resetDeposit();
-		resetRedemption();
-		sendInteractionEvent({ type: "RESET" });
-	}, [sendInteractionEvent, resetNFTApproval, resetDeposit, resetRedemption]);
-
 	// Start interaction function
 	const startInteraction = useCallback(
-		async (
+		(
 			collection: string,
 			tokenId: string,
 			mode: InteractionMode,
@@ -171,29 +136,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 					return;
 				}
 
-				// If we're in completed state from a buyback, don't allow new interactions
-				// (buybacks should stay completed since the NFT is no longer owned by the user)
-				if (
-					interactionState.matches("completed") &&
-					interactionState.context.mode === "buyback"
-				) {
-					return;
-				}
-
-				// If we're in completed state from a deposit, reset immediately since deposits should be reusable
-				if (
-					interactionState.matches("completed") &&
-					interactionState.context.mode === "deposit"
-				) {
-					console.log(
-						"🔄 Auto-resetting completed deposit state for new interaction",
-					);
-					sendInteractionEvent({ type: "RESET" });
-					// Small delay to ensure reset is processed before continuing
-					await new Promise((resolve) => setTimeout(resolve, 100));
-				}
-
-				// Check if the current interaction is for a different NFT
 				const currentNFTKey = createNFTKey(
 					interactionState.context.collection || "",
 					interactionState.context.tokenId || "",
@@ -201,105 +143,29 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				const newNFTKey = createNFTKey(collection, tokenId);
 				const isDifferentNFT = currentNFTKey !== newNFTKey;
 
-				console.log("🔍 NFT comparison:", {
-					currentNFTKey,
-					newNFTKey,
-					currentState: interactionState.value,
-					isDifferentNFT,
-					currentCollection: interactionState.context.collection,
-					currentTokenId: interactionState.context.tokenId,
-					requestedCollection: collection,
-					requestedTokenId: tokenId,
-				});
-
-				// Reset logic based on state and NFT differences
-				if (!interactionState.matches("idle")) {
-					// Allow proceeding if it's the same NFT in processing state
-					if (!isDifferentNFT && !interactionState.matches("completed")) {
-						console.log("✅ Continuing existing interaction for the same NFT");
-						// Don't reset, just continue with the current interaction
-					} else {
-						// Different NFT or completed state, need to reset
-						const resetReason = isDifferentNFT
-							? "Different NFT requested"
-							: "Previous interaction completed";
-
-						console.log(
-							`🔄 Resetting machine: ${resetReason}. Current state:`,
-							interactionState.value,
-						);
-						console.log("🔄 Current context:", {
-							collection: interactionState.context.collection,
-							tokenId: interactionState.context.tokenId,
-							mode: interactionState.context.mode,
-							error: interactionState.context.error,
+				// Prevent cross-NFT overlap while another interaction is in-flight
+				if (
+					!interactionState.matches("idle") &&
+					!interactionState.matches("completed")
+				) {
+					if (isDifferentNFT) {
+						sendInteractionEvent({
+							type: "FAIL",
+							error:
+								"Another NFT interaction is still processing. Please wait for it to finish or timeout.",
 						});
-
-						sendInteractionEvent({ type: "RESET" });
-
-						// Small delay to ensure reset is processed
-						await new Promise((resolve) => setTimeout(resolve, 100));
-
-						// Additional safety check - if still not idle, force reset
-						if (!interactionState.matches("idle")) {
-							console.warn(
-								"⚠️ Force resetting NFT interaction machine - still not idle after RESET",
-							);
-							forceReset();
-							await new Promise((resolve) => setTimeout(resolve, 100));
-						}
+						return;
 					}
-				}
 
-				// Final safety check before starting the interaction
-				if (!interactionState.matches("idle")) {
-					console.error(
-						"❌ Cannot start NFT interaction - machine is not in idle state:",
-						interactionState.value,
-					);
-					console.error("❌ Machine context:", interactionState.context);
-
-					// For completed states, always try to reset one more time
-					if (interactionState.matches("completed")) {
-						console.log(
-							"🔄 Completed state detected, attempting final reset...",
-						);
-						forceReset();
-
-						// Wait a bit longer for the final reset to take effect
-						await new Promise((resolve) => setTimeout(resolve, 200));
-
-						// Check one last time after the final reset
-						if (!interactionState.matches("idle")) {
-							console.error(
-								"💀 Machine still not idle after final reset. Giving up.",
-							);
-							throw new Error(
-								"Cannot start deposit - previous transaction is still processing. Please refresh the page and try again.",
-							);
-						} else {
-							console.log(
-								"✅ Final reset successful, proceeding with interaction",
-							);
-						}
-					} else if (isDifferentNFT) {
-						// For different NFTs in non-completed states, we should wait
-						throw new Error(
-							"Cannot start deposit - previous transaction is still processing. Please wait a moment and try again.",
-						);
-					} else {
-						console.log(
-							"⚠️ Same NFT is still processing, will continue with existing interaction",
-						);
-						// Don't throw error for same NFT in progress
-						return; // Exit early since the same NFT is already being processed
-					}
+					console.log("✅ Continuing existing interaction for the same NFT");
+					return;
 				}
 
 				console.log("🚀 Starting NFT interaction:", {
 					collection,
 					tokenId,
 					mode,
+					currentState: interactionState.value,
 				});
 
 				sendInteractionEvent({
@@ -335,7 +201,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			sendInteractionEvent,
 			params,
 			interactionState,
-			forceReset,
 			createNFTKey,
 		],
 	);
@@ -509,96 +374,33 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	// Handle deposit transaction success (transaction submitted)
 	useEffect(() => {
 		try {
-			const currentCollection = interactionState.context.collection;
-			const currentTokenId = interactionState.context.tokenId;
-			const currentMode = interactionState.context.mode;
-			const contextInteractionTxHash =
-				interactionState.context.interactionTxHash;
+			const { collection, tokenId, mode, interactionTxHash } =
+				interactionState.context;
 
-			// Only process deposit success if we're in the right state, in deposit mode, AND
-			// the transaction is for the current NFT (prevents stale deposits from previous interactions)
-			// AND there's no existing interactionTxHash in context OR the tx hash is different (prevents replay)
+			const isWaitingForSignature = interactionState.matches(
+				"awaitingInteractionSignature",
+			);
 
-			// Use cached values from refs to survive machine resets
-			const cachedSuccess = depositSuccessRef.current || isDepositSuccess;
-			const cachedTxHash = depositTxHashRef.current || depositTxHash;
-
-			// Log success when detected
-			if (cachedSuccess && cachedTxHash) {
-				console.log("📋 [useNFTInteraction] SUCCESS DETECTED!", {
-					cachedTxHash,
-					currentState: interactionState.value,
-					source: depositSuccessRef.current ? "cached" : "live",
-				});
+			if (
+				!isWaitingForSignature ||
+				mode !== "deposit" ||
+				!collection ||
+				!tokenId ||
+				!isDepositSuccess ||
+				!depositTxHash
+			) {
+				return;
 			}
 
-			// Handle success in all deposit-related states including idle (in case machine resets)
-			const isInDepositState =
-				interactionState.matches("idle") ||
-				interactionState.matches("awaitingInteractionSignature") ||
-				interactionState.matches("awaitingInteractionReceipt") ||
-				interactionState.matches("confirmingInteraction") ||
-				interactionState.matches("completed");
-
-			const isInIdleState = interactionState.matches("idle");
-			const hasContext = currentCollection && currentTokenId;
-
-			// Different logic for idle state vs other states, using cached values to survive machine resets
-			const shouldProcessSuccess = isInIdleState
-				? // In idle state, process any deposit success since context is cleared (use cached values)
-					cachedSuccess &&
-					cachedTxHash &&
-					currentMode === "deposit" &&
-					(!contextInteractionTxHash ||
-						contextInteractionTxHash !== cachedTxHash)
-				: // In other states, require full context validation (use live values)
-					isDepositSuccess &&
-					depositTxHash &&
-					isInDepositState &&
-					currentMode === "deposit" &&
-					hasContext &&
-					(!contextInteractionTxHash ||
-						contextInteractionTxHash !== depositTxHash);
-
-			if (shouldProcessSuccess) {
-				console.log(
-					"✅ [useNFTInteraction] Sending INTERACTION_CONFIRMED event",
-				);
-				sendInteractionEvent({
-					type: "INTERACTION_CONFIRMED",
-					txHash: cachedTxHash, // Use cached tx hash to survive resets
-				});
-
-				// Clear the refs after successful processing to prevent duplicate events
-				depositSuccessRef.current = false;
-				depositTxHashRef.current = undefined;
-				console.log(
-					"🧹 [useNFTInteraction] Cleared success refs after processing",
-				);
-			} else if (cachedSuccess && cachedTxHash) {
-				// Only log as failure if it's a genuine issue, not if already processed
-				console.log("ℹ️ [useNFTInteraction] Deposit success already processed", {
-					currentState: interactionState.value,
-					contextInteractionTxHash,
-					reason: "Transaction hash already processed",
-					cachedTxHash,
-				});
-			} else {
-				console.log(
-					"⚠️ [useNFTInteraction] Deposit success not processed due to failed conditions",
-					{
-						isDepositSuccess,
-						hasTxHash: !!depositTxHash,
-						currentState: interactionState.value,
-						currentMode,
-						hasCollection: !!currentCollection,
-						hasTokenId: !!currentTokenId,
-						contextInteractionTxHash,
-						txHashMismatch: contextInteractionTxHash !== depositTxHash,
-						isInIdleState,
-					},
-				);
+			// Prevent replaying the same hash
+			if (interactionTxHash && interactionTxHash === depositTxHash) {
+				return;
 			}
+
+			sendInteractionEvent({
+				type: "INTERACTION_CONFIRMED",
+				txHash: depositTxHash,
+			});
 		} catch (error) {
 			console.error("💥 Error in deposit success effect:", error);
 		}
@@ -929,43 +731,48 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	// Handle transaction receipt confirmation
 	useEffect(() => {
 		try {
-			const receipt = depositReceipt || redemptionReceipt;
-			console.log("🔍 [useNFTInteraction] Receipt confirmation check:", {
-				hasDepositReceipt: !!depositReceipt,
-				hasRedemptionReceipt: !!redemptionReceipt,
-				receipt,
-				currentState: interactionState.value,
-				isAwaitingInteractionReceipt: interactionState.matches(
-					"awaitingInteractionReceipt",
-				),
-			});
+			const { mode, interactionTxHash } = interactionState.context;
 
-			// Handle receipt confirmation in multiple states including idle
-			const isInAwaitingOrCompletedState =
-				interactionState.matches("idle") ||
-				interactionState.matches("awaitingInteractionReceipt") ||
-				interactionState.matches("confirmingInteraction") ||
-				interactionState.matches("completed");
+			const depositReceiptMatches =
+				mode === "deposit" &&
+				interactionTxHash &&
+				depositReceipt &&
+				depositReceipt.transactionHash === interactionTxHash;
 
-			if (receipt && isInAwaitingOrCompletedState) {
-				console.log(
-					"✅ [useNFTInteraction] Sending INTERACTION_REQUESTED event",
-				);
+			const redemptionReceiptMatches =
+				mode === "buyback" &&
+				interactionTxHash &&
+				redemptionReceipt &&
+				redemptionReceipt.transactionHash === interactionTxHash;
+
+			const receipt = depositReceiptMatches
+				? depositReceipt
+				: redemptionReceiptMatches
+					? redemptionReceipt
+					: null;
+
+			if (
+				!receipt ||
+				!(
+					interactionState.matches("awaitingInteractionReceipt") ||
+					interactionState.matches("confirmingInteraction")
+				)
+			) {
+				return;
+			}
+
+			if (receipt.status === "reverted") {
+				sendInteractionEvent({
+					type: "FAIL",
+					error:
+						"Transaction reverted on-chain. Please verify the transaction status in your wallet.",
+				});
+				return;
+			}
+
+			if (receipt.status === "success") {
 				sendInteractionEvent({
 					type: "INTERACTION_REQUESTED",
-				});
-			} else {
-				console.log("⚠️ [useNFTInteraction] Receipt not processed", {
-					hasReceipt: !!receipt,
-					currentState: interactionState.value,
-					isIdle: interactionState.matches("idle"),
-					isAwaitingInteractionReceipt: interactionState.matches(
-						"awaitingInteractionReceipt",
-					),
-					isConfirmingInteraction: interactionState.matches(
-						"confirmingInteraction",
-					),
-					isCompleted: interactionState.matches("completed"),
 				});
 			}
 		} catch (error) {
@@ -1130,7 +937,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			// Actions
 			startInteraction,
 			reset,
-			forceReset,
 			getActionInfo,
 
 			// State machine (for advanced usage)
@@ -1148,7 +954,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			isLoading: false,
 			startInteraction: async () => {},
 			reset: () => {},
-			forceReset: () => {},
 			getActionInfo: () => ({ type: "idle", label: "" }),
 			interactionState: {
 				value: "idle",

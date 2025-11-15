@@ -401,6 +401,18 @@ export const nftInteractionMachine = createMachine(
 					},
 				},
 				on: {
+					START_INTERACTION: {
+						target: "checkingApprovals",
+						actions: [
+							"setInteractionParams",
+							({ context }) =>
+								logger.logInfo("Starting interaction", {
+									mode: context.mode,
+									collection: context.collection,
+									tokenId: context.tokenId,
+								}),
+						],
+					},
 					RESET: "idle",
 				},
 			},
