@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useAccount, useWriteContract } from "wagmi";
+import { useAccount } from "wagmi";
 import {
 	ArrowLeftIcon,
 	BoltIcon,
@@ -30,32 +30,26 @@ import {
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useRewardsData } from "../../hooks/useRewardsData";
-import {
-	useClientSearchParam,
-	useUpdateSearchParams,
-} from "../../hooks/useClientSearchParams";
-import type { FlowOption } from "../../components/gacha/FlowSwitcher";
+import { useGachaSections } from "../../hooks/useGachaSections";
 import { BuybackNotificationProvider } from "../../components/BuybackNotificationProvider";
+
+type FlowOption = {
+	id: "spin" | "vault" | "economy" | "admin";
+	label: string;
+	icon: typeof BoltIcon;
+	description: string;
+};
 
 function GachaDetailPageContent() {
 	const router = useRouter();
 	const { address: userAddress, isConnected } = useAccount();
-	const [, setOptimisticClaim] = useState(false);
-	const [, setOptimisticClaimedAmount] = useState<bigint | null>(null);
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
-	const sectionParam = useClientSearchParam("section");
-	const updateSearchParams = useUpdateSearchParams();
-	const validSections = ["spin", "vault", "economy", "admin"] as const;
-	type ValidSection = (typeof validSections)[number];
 
-	const gacha = gachaId ? getGachaConfig(gachaId) : null;
-
-	const activeTab: ValidSection = validSections.includes(
-		sectionParam as ValidSection,
-	)
-		? (sectionParam as ValidSection)
-		: "vault";
+	const gacha = useMemo(
+		() => (gachaId ? getGachaConfig(gachaId) : null),
+		[gachaId],
+	);
 
 	// Owner checks for admin access
 	const { data: gachaOwner } = useReadGachaOwner({
@@ -73,11 +67,15 @@ function GachaDetailPageContent() {
 		query: { enabled: !!contracts.economyManager },
 	} as Parameters<typeof useReadGachaEconomyManagerOwner>[0]);
 
-	const isOwner =
+	const isOwner = Boolean(
 		userAddress &&
-		(userAddress === gachaOwner ||
-			userAddress === treasuryOwner ||
-			userAddress === rewardsOwner);
+			(userAddress === gachaOwner ||
+				userAddress === treasuryOwner ||
+				userAddress === rewardsOwner),
+	);
+	const shouldGateAdmin = Boolean(
+		isConnected && gachaOwner && treasuryOwner && rewardsOwner,
+	);
 
 	// Check if rewards manager is paused (kept warm for subcomponents)
 	useReadGachaEconomyManagerPaused({
@@ -91,99 +89,18 @@ function GachaDetailPageContent() {
 		query: { enabled: !!contracts.gacha },
 	} as Parameters<typeof useReadGachaFeeToken>[0]);
 
-	// Use the consolidated rewards data hook
 	const rewardsData = useRewardsData();
 
-	// Claim rewards mutation - use generic writeContract for individual tracker calls
-	const { isSuccess: isClaimSuccess, error: claimError } = useWriteContract();
-
-	const handleTabChange = useCallback(
-		(section: ValidSection) => {
-			updateSearchParams({ section });
-		},
-		[updateSearchParams],
-	);
-
-	// Ensure default tab is spin and clean up invalid sections
-	useEffect(() => {
-		if (!sectionParam) {
-			// No section parameter, default to spin
-			handleTabChange("spin");
-		} else if (!validSections.includes(sectionParam as ValidSection)) {
-			// Invalid section parameter, reset to spin
-			handleTabChange("spin");
-		}
-	}, [sectionParam, handleTabChange, validSections.includes]);
-
-	// Redirect to spin tab if trying to access admin without permissions
-	useEffect(() => {
-		if (
-			activeTab === "admin" &&
-			isConnected &&
-			gachaOwner &&
-			treasuryOwner &&
-			rewardsOwner &&
-			!isOwner
-		) {
-			handleTabChange("spin");
-		}
-	}, [
-		activeTab,
-		isConnected,
+	const { activeSection, selectSection } = useGachaSections({
 		isOwner,
-		gachaOwner,
-		treasuryOwner,
-		rewardsOwner,
-		handleTabChange,
-	]);
+		gachaTitle: gacha?.title ?? null,
+		defaultSection: "spin",
+		shouldGateAdmin,
+	});
 
-	// Update document title based on active section
+	// When users land on Vault ensure balances are fresh
 	useEffect(() => {
-		if (gacha) {
-			const sectionTitles = {
-				spin: "Spin & Play",
-				vault: "My Vault & Profile",
-				economy: "Economy Overview",
-				admin: "Admin Controls",
-			};
-			const sectionTitle = sectionTitles[activeTab];
-			document.title = `${gacha.title} - ${sectionTitle} | Spin-Fi`;
-		}
-	}, [gacha, activeTab]);
-
-	// Handle claim success
-	useEffect(() => {
-		if (isClaimSuccess) {
-			setOptimisticClaim(false);
-			setOptimisticClaimedAmount(null);
-
-			const refetchAfterClaim = async () => {
-				await new Promise((resolve) => setTimeout(resolve, 2000));
-
-				try {
-					await rewardsData.refetchAllRewardsData();
-				} catch (error) {
-					console.warn(
-						"Some rewards data failed to refetch after claim:",
-						error,
-					);
-				}
-			};
-
-			refetchAfterClaim();
-		}
-	}, [isClaimSuccess, rewardsData]);
-
-	useEffect(() => {
-		if (claimError) {
-			console.error("Claim rewards error:", claimError);
-			setOptimisticClaim(false);
-			setOptimisticClaimedAmount(null);
-		}
-	}, [claimError]);
-
-	useEffect(() => {
-		if (activeTab === "vault" && userAddress) {
+		if (activeSection === "vault" && userAddress) {
 			const refetchAllRewardsData = async () => {
 				try {
 					await rewardsData.refetchAllRewardsData();
@@ -194,7 +111,7 @@ function GachaDetailPageContent() {
 
 			refetchAllRewardsData();
 		}
-	}, [activeTab, userAddress, rewardsData]);
+	}, [activeSection, userAddress, rewardsData]);
 
 	const flowOptions = useMemo(() => {
 		const base: FlowOption[] = [
@@ -310,40 +227,42 @@ function GachaDetailPageContent() {
 					<FlowSwitcher
 						className="mt-8"
 						options={flowOptions}
-						activeId={activeTab}
-						onSelect={(section) => handleTabChange(section as ValidSection)}
+						activeId={activeSection}
+						onSelect={(section) => selectSection(section as FlowOption["id"])}
 					/>
 				</header>
 
 				<div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
 					<motion.div
-						key={activeTab}
+						key={activeSection}
 						initial={{ opacity: 0, y: 24 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.35 }}
 					>
-						{activeTab === "spin" && (
+						{activeSection === "spin" && (
 							<SpinSection
 								title="Spin & win provably fair NFT rewards"
 								description="Leverage WAVS randomness to reveal vaulted NFTs with real-time transaction feedback across every step of the spin."
 							/>
 						)}
 
-						{activeTab === "vault" && (
+						{activeSection === "vault" && (
 							<VaultSection
 								title="Manage vault and withdraw yield"
 								description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
 							/>
 						)}
 
-						{activeTab === "economy" && (
+						{activeSection === "economy" && (
 							<EconomySection
 								title="Gacha Economy Overview"
 								description="Track protocol revenue, depositor yields, and treasury performance for this specific gacha."
 							/>
 						)}
 
-						{activeTab === "admin" && gacha && <AdminSection gacha={gacha} />}
+						{activeSection === "admin" && gacha && (
+							<AdminSection gacha={gacha} />
+						)}
 					</motion.div>
 				</div>
 			</div>

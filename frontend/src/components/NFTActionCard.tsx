@@ -55,29 +55,17 @@ export function NFTActionCard({
 			className="group"
 		>
 			<div className="relative bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4 hover:border-white/20 transition-all duration-200">
-				{/* NFT Card - different behavior for deposit vs withdraw */}
-				{mode === "deposit" ? (
-					<NFTCard
-						data={{
-							collection: nft.collection,
-							tokenId: nft.tokenId,
-							rarity: nft.rarity as any,
-							appraisedValue: nft.appraisedValue,
-						}}
-						size="lg"
-						showCollectionName={true}
-					/>
-				) : (
-					// Ultra-minimal for withdrawals - just the NFT visual
-					<NFTCard
-						data={{
-							collection: nft.collection,
-							tokenId: nft.tokenId,
-						}}
-						size="lg"
-						showCollectionName={false}
-					/>
-				)}
+				{/* NFT Card - consistent layout across deposit/withdraw */}
+				<NFTCard
+					data={{
+						collection: nft.collection,
+						tokenId: nft.tokenId,
+						rarity: nft.rarity as any,
+						appraisedValue: nft.appraisedValue,
+					}}
+					size="lg"
+					showCollectionName={true}
+				/>
 
 				{/* Simple Action Button */}
 				<Button
