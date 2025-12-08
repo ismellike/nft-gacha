@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-import { useActor } from "@xstate/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount, useWatchContractEvent, usePublicClient } from "wagmi";
 import {
-	gachaSpinMachine,
 	loadFromStorage,
+	pollForSpinFulfillment,
 	validatePendingSpins,
+	MAX_RETRIES,
 } from "../machines/gachaSpinMachine";
 import { useGachaStore } from "../stores/gachaStore";
 import type { SpinResult, RefundResult } from "../machines/gachaSpinMachine";
@@ -45,6 +45,39 @@ export interface UseGachaSpinMachineReturn {
 	clearPendingSpins: () => void;
 }
 
+type GachaSpinStatus =
+	| "idle"
+	| "spinning"
+	| "waitingForFulfillment"
+	| "revealing"
+	| "error"
+	| "timeout"
+	| "refunded";
+
+interface GachaSpinLocalState {
+	value: GachaSpinStatus;
+	context: {
+		triggerId: bigint | null;
+		spinResult: SpinResult | null;
+		refundResult: RefundResult | null;
+		userAddress: string | null;
+		publicClient: ReturnType<typeof usePublicClient>;
+		gachaAddress: string | null;
+		error: string | null;
+		retryCount: number;
+	};
+	matches: (status: GachaSpinStatus) => boolean;
+}
+
+const buildState = (
+	value: GachaSpinStatus,
+	context: GachaSpinLocalState["context"],
+): GachaSpinLocalState => ({
+	value,
+	context,
+	matches: (status: GachaSpinStatus) => status === value,
+});
+
 export function useGachaSpinMachine(
 	onSpinComplete?: () => void,
 	onRefund?: () => void,
@@ -54,7 +87,34 @@ export function useGachaSpinMachine(
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
-	const [state, send] = useActor(gachaSpinMachine);
+	const [state, setState] = useState<GachaSpinLocalState>(() =>
+		buildState("idle", {
+			triggerId: null,
+			spinResult: null,
+			refundResult: null,
+			userAddress: null,
+			publicClient: null,
+			gachaAddress: null,
+			error: null,
+			retryCount: 0,
+		}),
+	);
+	const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const isPollingRef = useRef(false);
+
+	const updateState = useCallback(
+		(
+			value: GachaSpinStatus,
+			patch: Partial<GachaSpinLocalState["context"]> = {},
+		) =>
+			setState((prev) =>
+				buildState(value, {
+					...prev.context,
+					...patch,
+				}),
+			),
+		[],
+	);
 
 	// Watch for SpinCompleted events from the contract
 	useWatchContractEvent({
@@ -78,7 +138,11 @@ export function useGachaSpinMachine(
 						tokenId: tokenId?.toString() || "",
 					};
 
-					send({ type: "SPIN_FULFILLED", result });
+					updateState("revealing", {
+						spinResult: result,
+						refundResult: null,
+						error: null,
+					});
 					onSpinComplete?.();
 					break;
 				}
@@ -109,14 +173,13 @@ export function useGachaSpinMachine(
 						storedTriggerId,
 					);
 					if (contracts.gacha) {
-						send({
-							type: "START_SPIN",
+						updateState("waitingForFulfillment", {
 							userAddress,
 							publicClient,
 							gachaAddress: contracts.gacha,
+							triggerId: storedTriggerId,
 						});
 					}
-					send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
 				}
 			})
 			.catch((error) => {
@@ -131,43 +194,79 @@ export function useGachaSpinMachine(
 						storedTriggerId,
 					);
 					if (contracts.gacha) {
-						send({
-							type: "START_SPIN",
+						updateState("waitingForFulfillment", {
 							userAddress,
 							publicClient,
 							gachaAddress: contracts.gacha,
+							triggerId: storedTriggerId,
 						});
 					}
-					send({ type: "TRANSACTION_CONFIRMED", triggerId: storedTriggerId });
 				}
 			});
-	}, [userAddress, publicClient, contracts.gacha, state, send]);
+	}, [userAddress, publicClient, contracts.gacha, state.value, updateState]);
 
 	// Actions
 	const startSpin = () => {
 		if (userAddress && publicClient && contracts.gacha) {
-			send({
-				type: "START_SPIN",
+			updateState("spinning", {
 				userAddress,
 				publicClient,
 				gachaAddress: contracts.gacha,
+				error: null,
+				retryCount: 0,
+				spinResult: null,
+				refundResult: null,
 			});
 		}
 	};
 
 	const confirmTransaction = (triggerId: bigint) => {
-		send({ type: "TRANSACTION_CONFIRMED", triggerId });
+		if (state.context.userAddress && state.context.gachaAddress) {
+			useGachaStore
+				.getState()
+				.addPendingSpin({
+					userAddress: state.context.userAddress,
+					gachaAddress: state.context.gachaAddress,
+					triggerId,
+				});
+		}
+		updateState("waitingForFulfillment", {
+			triggerId,
+			retryCount: 0,
+		});
 	};
 
 	const fulfillSpin = (result: SpinResult) => {
-		send({ type: "SPIN_FULFILLED", result });
+		updateState("revealing", {
+			spinResult: result,
+			refundResult: null,
+			error: null,
+		});
 		onSpinComplete?.();
 	};
 
-	const closeReveal = () => send({ type: "CLOSE_REVEAL" });
-	const retry = () => send({ type: "RETRY" });
-	const reset = () => send({ type: "RESET" });
-	const timeout = () => send({ type: "TIMEOUT" });
+	const closeReveal = () => updateState("idle", { spinResult: null });
+	const retry = () => {
+		if (state.context.retryCount < MAX_RETRIES) {
+			updateState("waitingForFulfillment", {
+				retryCount: state.context.retryCount + 1,
+				error: null,
+			});
+		}
+	};
+	const reset = () =>
+		updateState("idle", {
+			triggerId: null,
+			spinResult: null,
+			refundResult: null,
+			error: null,
+			retryCount: 0,
+		});
+	const timeout = () =>
+		updateState("timeout", {
+			error:
+				"Randomness generation timed out. You can reclaim your funds or try again.",
+		});
 	const clearPendingSpins = () => {
 		// Clear just this gacha's pending spins, not all
 		if (userAddress && contracts.gacha) {
@@ -175,6 +274,89 @@ export function useGachaSpinMachine(
 		}
 		reset();
 	};
+
+	// Kick off polling while waiting for fulfillment
+	useEffect(() => {
+		if (
+			!state.matches("waitingForFulfillment") ||
+			!state.context.triggerId ||
+			!state.context.userAddress ||
+			!state.context.publicClient ||
+			!state.context.gachaAddress
+		) {
+			return;
+		}
+
+		if (isPollingRef.current) return;
+		isPollingRef.current = true;
+
+		pollForSpinFulfillment({
+			triggerId: state.context.triggerId,
+			userAddress: state.context.userAddress,
+			publicClient: state.context.publicClient,
+			gachaAddress: state.context.gachaAddress,
+		})
+			.then((result) => {
+				updateState("revealing", {
+					spinResult: result,
+					refundResult: null,
+					error: null,
+				});
+				onSpinComplete?.();
+				if (state.context.userAddress && state.context.gachaAddress) {
+					useGachaStore
+						.getState()
+						.removePendingSpin(
+							state.context.userAddress,
+							state.context.gachaAddress,
+						);
+				}
+			})
+			.catch((error) => {
+				const errorMessage = (error as Error)?.message || "";
+				if (errorMessage.startsWith("REFUND:")) {
+					try {
+						const payload = JSON.parse(errorMessage.slice("REFUND:".length));
+						updateState("refunded", {
+							refundResult: {
+								selectedRarity: payload.selectedRarity,
+								refundAmount: BigInt(payload.refundAmount),
+							},
+							error: null,
+						});
+						if (state.context.userAddress && state.context.gachaAddress) {
+							useGachaStore
+								.getState()
+								.removePendingSpin(
+									state.context.userAddress,
+									state.context.gachaAddress,
+								);
+						}
+					} catch (parseError) {
+						console.error("Failed to parse refund payload", parseError);
+						updateState("error", { error: errorMessage });
+					}
+				} else {
+					updateState("error", { error: errorMessage || "Polling failed" });
+				}
+			})
+			.finally(() => {
+				isPollingRef.current = false;
+			});
+
+		return () => {
+			if (pollingRef.current) clearTimeout(pollingRef.current);
+			isPollingRef.current = false;
+		};
+	}, [
+		state.value,
+		state.context.triggerId,
+		state.context.userAddress,
+		state.context.publicClient,
+		state.context.gachaAddress,
+		onSpinComplete,
+		updateState,
+	]);
 
 	// Derived state
 	const isIdle = state.matches("idle");
@@ -184,7 +366,7 @@ export function useGachaSpinMachine(
 	const isError = state.matches("error");
 	const isTimeout = state.matches("timeout");
 	const isRefunded = state.matches("refunded");
-	const canRetry = state.context.retryCount < 5; // MAX_RETRIES from machine
+	const canRetry = state.context.retryCount < MAX_RETRIES;
 
 	// Handle refund completion
 	useEffect(() => {

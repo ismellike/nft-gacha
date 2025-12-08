@@ -1,6 +1,5 @@
 "use client";
 
-import { fromPromise } from "xstate";
 import type { PublicClient } from "viem";
 import { erc721Abi } from "../generated";
 import { isAddress } from "viem";
@@ -34,94 +33,78 @@ export const validateUserAddress = (
 	return validateAddress(address);
 };
 
-// Common approval checking actor
-export const checkApprovalNeeded = fromPromise(
-	async ({
-		input,
-	}: {
-		input: {
-			collection: string;
-			operatorAddress: string;
-			userAddress: string;
-			publicClient: PublicClient;
-		};
-	}): Promise<boolean> => {
-		const { collection, operatorAddress, userAddress, publicClient } = input;
+// Common approval checking helper
+export const checkApprovalNeeded = async ({
+	collection,
+	operatorAddress,
+	userAddress,
+	publicClient,
+}: {
+	collection: string;
+	operatorAddress: string;
+	userAddress: string;
+	publicClient: PublicClient;
+}): Promise<boolean> => {
+	if (
+		!validateAddress(collection) ||
+		!validateAddress(operatorAddress) ||
+		!validateUserAddress(userAddress) ||
+		!publicClient
+	) {
+		throw new Error("Invalid parameters for approval check");
+	}
 
-		// Validate inputs
-		if (
-			!validateAddress(collection) ||
-			!validateAddress(operatorAddress) ||
-			!validateUserAddress(userAddress) ||
-			!publicClient
-		) {
-			throw new Error("Invalid parameters for approval check");
-		}
+	try {
+		const isApprovedForAll = await publicClient.readContract({
+			address: collection,
+			abi: erc721Abi,
+			functionName: "isApprovedForAll",
+			args: [userAddress, operatorAddress],
+		});
 
-		try {
-			const isApprovedForAll = await publicClient.readContract({
-				address: collection,
-				abi: erc721Abi,
-				functionName: "isApprovedForAll",
-				args: [userAddress, operatorAddress],
-			});
+		return !isApprovedForAll;
+	} catch (error) {
+		console.error("Approval check failed, assuming approval needed:", error);
+		return true;
+	}
+};
 
-			return !isApprovedForAll;
-		} catch (error) {
-			console.error("Approval check failed, assuming approval needed:", error);
-			return true; // Fail safe - assume approval needed
-		}
-	},
-);
+// NFT ownership confirmation helper
+export const confirmNFTOwnershipChange = async ({
+	collection,
+	tokenId,
+	userAddress,
+	publicClient,
+}: {
+	collection: string;
+	tokenId: string;
+	userAddress: string;
+	publicClient: PublicClient;
+}): Promise<void> => {
+	if (
+		!validateAddress(collection) ||
+		!validateTokenId(tokenId) ||
+		!validateUserAddress(userAddress) ||
+		!publicClient
+	) {
+		throw new Error("Invalid parameters for NFT ownership confirmation");
+	}
 
-// NFT ownership confirmation actor
-export const confirmNFTOwnershipChange = fromPromise(
-	async ({
-		input,
-	}: {
-		input: {
-			collection: string;
-			tokenId: string;
-			userAddress: string;
-			publicClient: PublicClient;
-		};
-	}): Promise<void> => {
-		const { collection, tokenId, userAddress, publicClient } = input;
+	const currentOwner = await publicClient.readContract({
+		address: collection as `0x${string}`,
+		abi: erc721Abi,
+		functionName: "ownerOf",
+		args: [BigInt(tokenId)],
+	});
 
-		// Validate inputs
-		if (
-			!validateAddress(collection) ||
-			!validateTokenId(tokenId) ||
-			!validateUserAddress(userAddress) ||
-			!publicClient
-		) {
-			throw new Error("Invalid parameters for NFT ownership confirmation");
-		}
+	const isDeposited = currentOwner?.toLowerCase() !== userAddress.toLowerCase();
 
-		try {
-			const currentOwner = await publicClient.readContract({
-				address: collection,
-				abi: erc721Abi,
-				functionName: "ownerOf",
-				args: [BigInt(tokenId)],
-			});
+	if (!isDeposited) {
+		throw new Error("NFT still owned by user - ownership change confirmation failed");
+	}
 
-			const isDeposited =
-				currentOwner?.toLowerCase() !== userAddress.toLowerCase();
-
-			if (!isDeposited) {
-				throw new Error(
-					"NFT still owned by user - ownership change confirmation failed",
-				);
-			}
-
-			console.log("✅ [SharedActors] NFT ownership change confirmed");
-		} catch (error) {
-			console.error("❌ [SharedActors] Ownership confirmation failed:", error);
-			throw error;
-		}
-	},
-);
+	console.log("✅ [SharedActors] NFT ownership change confirmed");
+};
 
 // Enhanced logging utility
 export const createMachineLogger = (machineName: string) => ({

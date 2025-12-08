@@ -1,21 +1,21 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	useAccount,
 	usePublicClient,
 	useWaitForTransactionReceipt,
 } from "wagmi";
-import { useMachine } from "@xstate/react";
 import { UserRejectedRequestError } from "viem";
 import {
 	useWriteErc721SetApprovalForAll,
 	useWriteGachaTreasuryDepositNft,
 	useWriteProtocolTreasuryExecuteRedemption,
+	erc721Abi,
 } from "../generated";
-import {
-	nftInteractionMachine,
-	type InteractionMode,
+import type {
+	InteractionMode,
+	NFTInteractionContext,
 } from "../machines/nftInteractionMachine";
 
 interface UseNFTInteractionParams {
@@ -38,18 +38,198 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	const { address: userAddress } = useAccount();
 	const publicClient = usePublicClient();
 
-	// XState machine for interaction process
-	const [interactionState, sendInteractionEvent] = useMachine(
-		nftInteractionMachine,
-		{
-			input: {
-				onSuccess: params.onSuccess,
-				onAction: params.onAction,
-				onAppraisalStatusChange: params.onAppraisalStatusChange,
-				refetchTreasuryCards: params.refetchTreasuryCards,
-				onBuybackSuccess: params.onBuybackSuccess,
-			},
+	type InteractionStatus =
+		| "idle"
+		| "checkingApprovals"
+		| "awaitingNFTApprovalSignature"
+		| "awaitingNFTApprovalReceipt"
+		| "awaitingInteractionSignature"
+		| "awaitingInteractionReceipt"
+		| "confirmingInteraction"
+		| "completed";
+
+	const initialContext = useMemo<NFTInteractionContext>(
+		() => ({
+			collection: null,
+			tokenId: null,
+			treasuryAddress: null,
+			protocolTreasuryAddress: null,
+			userAddress: null,
+			publicClient: null,
+			mode: "deposit",
+			nftApprovalNeeded: true,
+			nftApprovalTxHash: null,
+			interactionTxHash: null,
+			error: null,
+			retryCount: 0,
+			hasAppraisal: false,
+			appraisalPrice: null,
+			payoutAmount: null,
+			completedAt: null,
+			successData: null,
+			onSuccess: params.onSuccess,
+			onAction: params.onAction,
+			onAppraisalStatusChange: params.onAppraisalStatusChange,
+			refetchTreasuryCards: params.refetchTreasuryCards,
+			onBuybackSuccess: params.onBuybackSuccess,
+		}),
+		[
+			params.onAction,
+			params.onAppraisalStatusChange,
+			params.onBuybackSuccess,
+			params.onSuccess,
+			params.refetchTreasuryCards,
+		],
+	);
+
+	const [context, setContext] =
+		useState<NFTInteractionContext>(initialContext);
+	const [status, setStatus] = useState<InteractionStatus>("idle");
+
+	useEffect(() => {
+		setContext(initialContext);
+	}, [initialContext]);
+
+	const interactionState = useMemo(
+		() => ({
+			value: status,
+			matches: (test: InteractionStatus) => status === test,
+			context,
+		}),
+		[status, context],
+	);
+
+	const sendInteractionEvent = useCallback(
+		(event:
+			| {
+					type: "START_INTERACTION";
+					collection: string;
+					tokenId: string;
+					mode: InteractionMode;
+					treasuryAddress: string;
+					protocolTreasuryAddress?: string;
+					userAddress: string;
+					publicClient: ReturnType<typeof usePublicClient>;
+					hasAppraisal?: boolean;
+					appraisalPrice?: bigint;
+					payoutAmount?: bigint;
+			  }
+			| { type: "NFT_APPROVAL_CONFIRMED"; txHash: string }
+			| { type: "NFT_APPROVAL_REQUESTED" }
+			| { type: "INTERACTION_CONFIRMED"; txHash: string }
+			| { type: "INTERACTION_REQUESTED" }
+			| { type: "INTERACTION_CANCELLED"; reason?: string }
+			| { type: "FAIL"; error: string }
+			| { type: "RESET" }) => {
+			switch (event.type) {
+				case "START_INTERACTION": {
+					setContext((prev) => ({
+						...prev,
+						collection: event.collection,
+						tokenId: event.tokenId,
+						mode: event.mode,
+						treasuryAddress: event.treasuryAddress,
+						protocolTreasuryAddress: event.protocolTreasuryAddress || null,
+						userAddress: event.userAddress,
+						publicClient: event.publicClient,
+						hasAppraisal: event.hasAppraisal || false,
+						appraisalPrice: event.appraisalPrice || null,
+						payoutAmount: event.payoutAmount || null,
+						error: null,
+						interactionTxHash: null,
+						nftApprovalTxHash: null,
+					}));
+					setStatus("checkingApprovals");
+
+					const operatorAddress =
+						event.mode === "buyback"
+							? event.protocolTreasuryAddress
+							: event.treasuryAddress;
+
+					if (!operatorAddress) {
+						setContext((prev) => ({
+							...prev,
+							error: "Missing required operator address",
+						}));
+						setStatus("idle");
+						return;
+					}
+
+					(async () => {
+						try {
+							const approvalNeeded = await event.publicClient
+								?.readContract({
+									address: event.collection as `0x${string}`,
+									abi: erc721Abi,
+									functionName: "isApprovedForAll",
+									args: [
+										event.userAddress as `0x${string}`,
+										operatorAddress as `0x${string}`,
+									],
+								})
+								.then((isApprovedForAll: boolean) => !isApprovedForAll)
+								.catch(() => true);
+
+							if (approvalNeeded) {
+								setStatus("awaitingNFTApprovalSignature");
+							} else {
+								setStatus("awaitingInteractionSignature");
+							}
+						} catch (err) {
+							setContext((prev) => ({
+								...prev,
+								error:
+									err instanceof Error
+										? err.message
+										: "Failed to check approvals",
+							}));
+							setStatus("idle");
+						}
+					})();
+					break;
+				}
+				case "NFT_APPROVAL_CONFIRMED":
+					setContext((prev) => ({
+						...prev,
+						nftApprovalTxHash: event.txHash,
+					}));
+					setStatus("awaitingNFTApprovalReceipt");
+					break;
+				case "NFT_APPROVAL_REQUESTED":
+					setStatus("awaitingInteractionSignature");
+					break;
+				case "INTERACTION_CONFIRMED":
+					setContext((prev) => ({
+						...prev,
+						interactionTxHash: event.txHash,
+					}));
+					setStatus("awaitingInteractionReceipt");
+					break;
+				case "INTERACTION_REQUESTED":
+					setStatus("confirmingInteraction");
+					break;
+				case "INTERACTION_CANCELLED":
+					setContext((prev) => ({
+						...prev,
+						interactionTxHash: null,
+						nftApprovalTxHash: null,
+						error: null,
+					}));
+					setStatus("idle");
+					break;
+				case "FAIL":
+					setContext((prev) => ({ ...prev, error: event.error }));
+					setStatus("idle");
+					break;
+				case "RESET":
+					setContext(initialContext);
+					setStatus("idle");
+					break;
+				default:
+					break;
+			}
 		},
+		[initialContext],
 	);
 
 	// Helper to create a key for collection + tokenId
@@ -141,9 +321,8 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 					interactionState.context.tokenId || "",
 				);
 				const newNFTKey = createNFTKey(collection, tokenId);
-				const isDifferentNFT = currentNFTKey !== newNFTKey;
+					const isDifferentNFT = currentNFTKey !== newNFTKey;
 
-				// Prevent cross-NFT overlap while another interaction is in-flight
 				if (
 					!interactionState.matches("idle") &&
 					!interactionState.matches("completed")
@@ -180,29 +359,17 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 					hasAppraisal: config.hasAppraisal,
 					appraisalPrice: config.appraisalPrice,
 					payoutAmount: config.payoutAmount,
-					onSuccess: params.onSuccess,
-					onAction: params.onAction,
-					onAppraisalStatusChange: params.onAppraisalStatusChange,
-					refetchTreasuryCards: params.refetchTreasuryCards,
-					onBuybackSuccess: params.onBuybackSuccess,
 				});
 			} catch (error) {
 				console.error("💥 Error in startInteraction:", error);
 				sendInteractionEvent({
 					type: "FAIL",
 					error:
-						error instanceof Error ? error.message : "Unknown error occurred",
+							(error instanceof Error ? error.message : "Unknown error occurred"),
 				});
 			}
 		},
-		[
-			userAddress,
-			publicClient,
-			sendInteractionEvent,
-			params,
-			interactionState,
-			createNFTKey,
-		],
+		[userAddress, publicClient, sendInteractionEvent, createNFTKey, interactionState],
 	);
 
 	// Handle NFT approval

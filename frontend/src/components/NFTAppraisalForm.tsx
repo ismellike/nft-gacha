@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormUrlSync } from "../hooks/useFormUrlSync";
 import { useAccount, useWriteContract, usePublicClient } from "wagmi";
@@ -28,12 +28,7 @@ import {
 	useReadErc20Allowance,
 } from "../generated";
 import { formatTokenAmount } from "../lib/utils";
-import { useActor } from "@xstate/react";
-import {
-	nftAppraisalMachine,
-	type AppraisalCallbacks,
-	type AppraisalResult,
-} from "../machines/nftAppraisalMachine";
+import type { AppraisalResult } from "../machines/nftAppraisalMachine";
 import { useNFTAppraisalStore } from "../stores/nftAppraisalStore";
 import { useRewardsData } from "../hooks/useRewardsData";
 
@@ -63,6 +58,14 @@ interface FormErrors {
 	general?: string;
 }
 
+type AppraisalStatus =
+	| "idle"
+	| "approving"
+	| "submitting"
+	| "waitingForCompletion"
+	| "completed"
+	| "error";
+
 export function NFTAppraisalForm({
 	onSubmissionSuccess,
 	onAction,
@@ -87,8 +90,27 @@ export function NFTAppraisalForm({
 
 	const [errors, setErrors] = useState<FormErrors>({});
 
-	// XState machine integration
-	const [state, send] = useActor(nftAppraisalMachine);
+	const [status, setStatus] = useState<AppraisalStatus>("idle");
+	const [appraisalResult, setAppraisalResult] = useState<AppraisalResult | null>(
+		null,
+	);
+	const [appraisalError, setAppraisalError] = useState<string | null>(null);
+	const [approvalTxHash, setApprovalTxHash] = useState<string | null>(null);
+	const [submissionTxHash, setSubmissionTxHash] = useState<string | null>(null);
+
+	const state = useMemo(
+		() => ({
+			value: status,
+			matches: (test: AppraisalStatus) => status === test,
+			context: {
+				appraisalResult,
+				error: appraisalError,
+				approvalTxHash,
+				submissionTxHash,
+			},
+		}),
+		[status, appraisalResult, appraisalError, approvalTxHash, submissionTxHash],
+	);
 
 	// Store for optimistic updates
 	const { addOptimisticSubmission } = useNFTAppraisalStore();
@@ -150,55 +172,50 @@ export function NFTAppraisalForm({
 
 	// Handle machine state completion
 	useEffect(() => {
-		if (state.matches("completed") && state.context.appraisalResult) {
-			const appraisalResult = state.context.appraisalResult as AppraisalResult;
+		if (status === "completed" && appraisalResult) {
 			const collection = appraisalResult.collection;
 			const tokenId = appraisalResult.tokenId;
 
-			// Add optimistic submission to store
 			if (userAddress && collection && tokenId) {
 				addOptimisticSubmission(userAddress, collection, tokenId);
 			}
 
-			// Trigger refetch of user's treasury cards and other rewards data
 			refetchAllRewardsData();
 
-			// Call onAction callback to notify upstream components
 			if (onAction && collection && tokenId) {
-				onAction(collection, tokenId, true); // hasValidAppraisal = true
+				onAction(collection, tokenId, true);
 			}
 
-			// Call onAppraisalStatusChange callback to notify about appraisal status
 			if (onAppraisalStatusChange && collection && tokenId) {
-				onAppraisalStatusChange(collection, tokenId, true); // hasValidAppraisal = true
+				onAppraisalStatusChange(collection, tokenId, true);
 			}
 
-			// Clear outstanding transaction hashes from machine context
-			send({ type: "CLEAR_TX_HASHES" });
+			setApprovalTxHash(null);
+			setSubmissionTxHash(null);
 
 			if (onSubmissionSuccess && collection && tokenId) {
 				onSubmissionSuccess(collection, tokenId);
 			}
 		}
 	}, [
-		state,
+		status,
+		appraisalResult,
 		onSubmissionSuccess,
 		onAction,
 		onAppraisalStatusChange,
 		userAddress,
 		addOptimisticSubmission,
 		refetchAllRewardsData,
-		send,
 	]);
 
 	// Handle errors from machine
 	useEffect(() => {
-		if (state.context.error) {
-			setErrors({ general: state.context.error });
+		if (appraisalError) {
+			setErrors({ general: appraisalError });
 		} else {
 			setErrors({});
 		}
-	}, [state.context.error]);
+	}, [appraisalError]);
 
 	// Helper functions
 	const formatFeeAmount = (amount: bigint | undefined) => {
@@ -273,55 +290,74 @@ export function NFTAppraisalForm({
 
 		try {
 			setErrors({});
+			setAppraisalError(null);
 
-			// Create callbacks for the state machine
-			const callbacks: AppraisalCallbacks = {
-				approveTokens: async (params) => {
-					try {
-						const hash = await approveTokensAsync(params);
-						return hash;
-					} catch (error) {
-						console.error("[NFTAppraisalForm] Approval callback error:", error);
-						throw error;
-					}
-				},
-				requestAppraisal: async (params) => {
-					try {
-						const hash = await requestAppraisalAsync(params);
-						return hash;
-					} catch (error) {
-						console.error(
-							"[NFTAppraisalForm] Appraisal callback error:",
-							error,
-						);
-						throw error;
-					}
-				},
-			};
+			if (needsApproval()) {
+				setStatus("approving");
+				const hash = await approveTokensAsync({
+					address: feeToken as `0x${string}`,
+					abi: [
+						{
+							name: "approve",
+							type: "function",
+							stateMutability: "nonpayable",
+							inputs: [
+								{ name: "spender", type: "address" },
+								{ name: "amount", type: "uint256" },
+							],
+							outputs: [{ name: "", type: "bool" }],
+						},
+					],
+					functionName: "approve",
+					args: [contracts.appraisal as `0x${string}`, appraisalFee],
+				});
+				setApprovalTxHash(hash);
+				await publicClient.waitForTransactionReceipt({ hash });
+			}
 
-			// Start the appraisal process with callbacks
-			send({
-				type: "START_APPRAISAL",
+			setStatus("submitting");
+			const submissionHash = await requestAppraisalAsync({
+				address: contracts.appraisal as `0x${string}`,
+				abi: [
+					{
+						name: "requestAppraisal",
+						type: "function",
+						stateMutability: "payable",
+						inputs: [
+							{ name: "collection", type: "address" },
+							{ name: "tokenId", type: "uint256" },
+						],
+						outputs: [],
+					},
+				],
+				functionName: "requestAppraisal",
+				args: [
+					formData.collection as `0x${string}`,
+					BigInt(formData.tokenId),
+				],
+				value: appraisalFee,
+			});
+			setSubmissionTxHash(submissionHash);
+			await publicClient.waitForTransactionReceipt({ hash: submissionHash });
+
+			setStatus("waitingForCompletion");
+			setAppraisalResult({
 				collection: formData.collection,
 				tokenId: formData.tokenId,
-				userAddress,
-				publicClient,
-				appraisalContractAddress: contracts.appraisal,
-				feeTokenAddress: feeToken,
-				appraisalFee,
-				callbacks,
+				appraisalData: [true, appraisalFee, BigInt(0), "", BigInt(Date.now())],
 			});
+			setStatus("completed");
 		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error("Error:", error);
-			send({
-				type: "ERROR",
-				error: message.includes("rejected")
+			setAppraisalError(
+				message.includes("rejected")
 					? "Transaction cancelled"
 					: message.includes("already exists")
 						? "This NFT was already appraised"
 						: "Something went wrong, please try again",
-			});
+			);
+			setStatus("error");
 		}
 	};
 
@@ -346,7 +382,11 @@ export function NFTAppraisalForm({
 	};
 
 	const resetForm = () => {
-		send({ type: "RESET" });
+		setStatus("idle");
+		setAppraisalError(null);
+		setAppraisalResult(null);
+		setApprovalTxHash(null);
+		setSubmissionTxHash(null);
 		setErrors({});
 		const emptyFormData = { collection: "", tokenId: "" };
 		setFormData(emptyFormData);
@@ -354,7 +394,7 @@ export function NFTAppraisalForm({
 	};
 
 	const isPending =
-		isApproving || isRequestingAppraisal || !state.matches("idle");
+		isApproving || isRequestingAppraisal || state.value !== "idle";
 
 	// Show preview if valid NFT details
 	const shouldShowPreview = () => {
