@@ -1,46 +1,51 @@
 "use client";
 
-import React from "react";
-import { extendVariants } from "@heroui/react";
-import { Card as HeroCard } from "@heroui/react";
+import * as React from "react";
+import type { VariantProps } from "tailwind-variants";
+import { glassCard, cn } from "../lib/theme-config";
 
-export const GlassCard = extendVariants(HeroCard, {
-	variants: {
-		color: {
-			glass: {
-				base: "bg-content1/20 backdrop-blur-xl border border-white/10 shadow-xl transition-all duration-300",
-				hover: "bg-content1/30 hover:border-white/20 hover:shadow-2xl",
-			},
-			glassInteractive: {
-				base: "bg-content1/20 backdrop-blur-xl border border-white/10 shadow-xl transition-all duration-300 cursor-pointer",
-				hover:
-					"bg-content1/30 hover:border-white/20 hover:shadow-2xl hover:scale-[1.02]",
-				focus:
-					"outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background",
-				active: "scale-[0.98]",
-			},
-		},
-	},
-	defaultVariants: {
-		color: "glass",
-		shadow: "md",
-		radius: "lg",
-	},
-});
-
-export interface CardProps extends React.ComponentProps<typeof GlassCard> {
-	// Override to ensure default glass styling
-	className?: string;
+export interface CardProps
+	extends React.HTMLAttributes<HTMLDivElement>,
+		VariantProps<typeof glassCard> {
+	color?: "glass" | "glassInteractive";
+	isPressable?: boolean;
+	shadow?: string;
+	radius?: string;
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-	({ className, ...props }, ref) => (
-		<GlassCard
-			className={`bg-content1/20 backdrop-blur-xl border border-white/10 transition-all duration-300 rounded-2xl shadow-2xl ${className || ""}`}
-			{...props}
-			ref={ref as never}
-		/>
-	),
+	(
+		{
+			className,
+			variant,
+			padding,
+			animate,
+			color,
+			isPressable,
+			shadow: _shadow,
+			radius: _radius,
+			children,
+			...props
+		},
+		ref,
+	) => {
+		const resolvedVariant =
+			variant ??
+			(color === "glassInteractive" || isPressable ? "interactive" : "base");
+
+		return (
+			<div
+				ref={ref}
+				className={cn(
+					glassCard({ variant: resolvedVariant, padding, animate }),
+					className,
+				)}
+				{...props}
+			>
+				{children}
+			</div>
+		);
+	},
 );
 
 Card.displayName = "Card";

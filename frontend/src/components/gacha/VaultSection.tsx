@@ -16,8 +16,8 @@ import {
 	SparklesIcon,
 } from "@heroicons/react/24/outline";
 
-import { Button, GlassButton } from "../../ui";
-import { GlassCard } from "../../ui/Card";
+import { Button } from "../../ui";
+import { Card } from "../../ui";
 import { NFTCard } from "../NFTCard";
 import { GachaSectionLayout } from "./GachaSectionLayout";
 import {
@@ -275,7 +275,7 @@ function useAppraisalChecker(
 // Components
 const WalletConnectPrompt: React.FC = () => (
 	<section role="alert" aria-live="polite">
-		<GlassCard className="text-center p-8">
+		<Card className="text-center p-8">
 			<WalletIcon
 				className="w-16 h-16 mx-auto mb-4 text-foreground/50"
 				aria-hidden="true"
@@ -286,7 +286,7 @@ const WalletConnectPrompt: React.FC = () => (
 			<p className="text-foreground/70">
 				Please connect your wallet to view your vault.
 			</p>
-		</GlassCard>
+		</Card>
 	</section>
 );
 
@@ -317,7 +317,7 @@ const BalanceOverview: React.FC<{
 					</p>
 				</div>
 			</div>
-			<GlassButton
+			<Button
 				className="mt-3 w-full"
 				color="glassPrimary"
 				onPress={onClaimYield}
@@ -330,7 +330,7 @@ const BalanceOverview: React.FC<{
 				aria-label="Claim pending yield"
 			>
 				Claim Yield
-			</GlassButton>
+			</Button>
 		</article>
 
 		<article className="bg-content1/30 rounded-xl p-4 border border-white/10">
@@ -392,7 +392,7 @@ const TabNavigation: React.FC<{
 			className="flex flex-wrap gap-2 p-1 bg-content1/20 rounded-xl"
 		>
 			{tabs.map((tab) => (
-				<GlassButton
+				<Button
 					key={tab.id}
 					color={activeTab === tab.id ? "glass" : "glass"}
 					role="tab"
@@ -407,7 +407,7 @@ const TabNavigation: React.FC<{
 				>
 					<tab.icon className="w-4 h-4" aria-hidden="true" />
 					{tab.label}
-				</GlassButton>
+				</Button>
 			))}
 		</div>
 	);
@@ -1419,7 +1419,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 								</div>
 								<div className="flex flex-wrap items-center gap-2">
 									{hasDeposits && (
-										<GlassButton
+										<Button
 											size="sm"
 											onPress={handleSelectAllFiltered}
 											isDisabled={!filteredWithdrawableNFTs.length}
@@ -1427,14 +1427,14 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 											{allFilteredSelected
 												? "Clear View Selection"
 												: "Select View"}
-										</GlassButton>
+										</Button>
 									)}
 									{state.selectedForWithdrawal.size > 0 && (
 										<>
 											<span className="text-sm text-foreground/60">
 												{state.selectedForWithdrawal.size} selected
 											</span>
-											<GlassButton
+											<Button
 												size="sm"
 												color="glassPrimary"
 												onPress={handleBatchWithdrawal}
@@ -1442,7 +1442,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 												className="animate-pulse"
 											>
 												Withdraw Selected
-											</GlassButton>
+											</Button>
 											<Button
 												size="sm"
 												variant="light"
@@ -1820,7 +1820,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 																				</div>
 
 																				<div className="flex gap-2">
-																					<GlassButton
+																					<Button
 																						size="sm"
 																						color="glassPrimary"
 																						onPress={() =>
@@ -1848,7 +1848,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 																						{isWithdrawingThisNFT
 																							? "Withdrawing..."
 																							: "Withdraw"}
-																					</GlassButton>
+																					</Button>
 																				</div>
 																			</div>
 																		</article>

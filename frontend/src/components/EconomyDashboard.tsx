@@ -1,5 +1,5 @@
 "use client";
-import { Card, GlassCard } from "@/ui/Card";
+import { Card } from "../ui";
 import { TokenAmountDisplay, RevenueDisplay } from "./TokenDisplay";
 import { Skeleton } from "./SkeletonLoader";
 import {
@@ -84,7 +84,7 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 		<div className="space-y-8">
 			{/* Revenue Distribution Overview */}
 			{canShowRevenueOverview ? (
-				<GlassCard className="p-6 animate-in fade-in duration-500">
+				<Card className="p-6 animate-in fade-in duration-500">
 					<h3 className="text-xl font-bold text-white mb-6">
 						Revenue Distribution
 					</h3>
@@ -119,21 +119,21 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 							</span>
 						</div>
 					</Card>
-				</GlassCard>
+				</Card>
 			) : (
-				<GlassCard className="p-6">
+				<Card className="p-6">
 					<div className="flex items-center justify-center h-32">
 						<div className="flex flex-col items-center space-y-2">
 							<Skeleton className="h-6 w-32" />
 							<Skeleton className="h-8 w-48" />
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			)}
 
 			{/* Protocol Treasury */}
 			{canShowProtocolTreasury ? (
-				<GlassCard className="p-6 animate-in fade-in duration-500 delay-300">
+				<Card className="p-6 animate-in fade-in duration-500 delay-300">
 					<div className="flex justify-between items-center mb-6">
 						<h3 className="text-lg font-bold text-white">Protocol Treasury</h3>
 						<div
@@ -182,9 +182,9 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 							</div>
 						</div>
 					</Card>
-				</GlassCard>
+				</Card>
 			) : (
-				<GlassCard className="p-6">
+				<Card className="p-6">
 					<div className="flex items-center justify-center h-48">
 						<div className="flex flex-col items-center space-y-3">
 							<Skeleton className="h-5 w-32" />
@@ -196,12 +196,12 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 							</div>
 						</div>
 					</div>
-				</GlassCard>
+				</Card>
 			)}
 
 			{/* Revenue by Rarity */}
 			{canShowRevenueOverview && economyData.revenueByRarity && (
-				<GlassCard className="p-6 animate-in fade-in duration-500 delay-450">
+				<Card className="p-6 animate-in fade-in duration-500 delay-450">
 					<div className="flex justify-between items-center mb-4">
 						<h3 className="text-lg font-bold text-white">Revenue by Rarity</h3>
 						{tokenSymbol && (
@@ -234,7 +234,7 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 							</Card>
 						))}
 					</div>
-				</GlassCard>
+				</Card>
 			)}
 		</div>
 	);

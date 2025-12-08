@@ -22,13 +22,13 @@ export {
 // Glass Components are now imported directly from src/ui
 // Please import them from "../ui" in component files
 
-// Modal components (from HeroUI directly)
+// Modal components (shadcn-based)
 export {
 	Modal,
 	ModalContent,
 	ModalHeader,
 	ModalBody,
 	ModalFooter,
-} from "@heroui/react";
+} from "../ui";
 
 // Courtyard functionality is now built into UnifiedNFTCard

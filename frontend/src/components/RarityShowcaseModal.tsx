@@ -1,7 +1,6 @@
 "use client";
 
-import { GlassModal } from "../ui";
-import { ModalContent, ModalBody } from "@heroui/react";
+import { Modal, ModalContent, ModalBody } from "../ui";
 import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -54,7 +53,7 @@ export default function RarityShowcaseModal({
 	const rarityConfig = getRarityConfig(rarity);
 
 	return (
-		<GlassModal
+		<Modal
 			isOpen={isOpen}
 			onOpenChange={onOpenChange}
 			size="full"
@@ -224,6 +223,6 @@ export default function RarityShowcaseModal({
 					</div>
 				</ModalBody>
 			</ModalContent>
-		</GlassModal>
+		</Modal>
 	);
 }

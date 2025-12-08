@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useAccount } from "wagmi";
 import type { Hex } from "viem";
-import { GlassCard } from "@/ui/Card";
+import { Button, Card } from "../ui";
 import { TokenAmountDisplay } from "./TokenDisplay";
 import { Skeleton } from "./SkeletonLoader";
 import {
@@ -21,8 +21,6 @@ import {
 	type CardAppraisalInfo,
 } from "@/hooks/useRarityTracker";
 import { useNFTWithdrawal } from "@/hooks/useNFTWithdrawal";
-import { Button } from "../ui/Button";
-import { Card } from "../ui/Card";
 import { toast } from "react-hot-toast";
 import {
 	BanknotesIcon,
@@ -183,11 +181,11 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 					{ id: "user-shares-skeleton" },
 					{ id: "yield-info-skeleton" },
 				].map((skeleton) => (
-					<GlassCard key={skeleton.id} className="p-6">
+					<Card key={skeleton.id} className="p-6">
 						<Skeleton className="h-4 w-3/4 mb-4" />
 						<Skeleton className="h-8 w-1/2 mb-2" />
 						<Skeleton className="h-3 w-full" />
-					</GlassCard>
+					</Card>
 				))}
 			</div>
 		);
@@ -196,7 +194,7 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 	return (
 		<div className="space-y-6">
 			{/* Vault Overview */}
-			<GlassCard className="p-6">
+			<Card className="p-6">
 				<div className="flex justify-between items-center mb-6">
 					<h3 className="text-xl font-bold text-white">Depositor Vault</h3>
 					<div className="flex items-center gap-3">
@@ -242,10 +240,10 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 						</span>
 					</div>
 				</Card>
-			</GlassCard>
+			</Card>
 
 			{/* Yield Information */}
-			<GlassCard className="p-6">
+			<Card className="p-6">
 				<div className="flex justify-between items-center mb-6">
 					<h3 className="text-xl font-bold text-white">Yield Information</h3>
 					<div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2">
@@ -336,10 +334,10 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 						)}
 					</div>
 				)}
-			</GlassCard>
+			</Card>
 
 			{/* NFT Withdrawal Section */}
-			<GlassCard className="p-6">
+			<Card className="p-6">
 				<div className="flex justify-between items-center mb-6">
 					<h3 className="text-xl font-bold text-white">NFT Withdrawals</h3>
 					<div className="flex items-center gap-3">
@@ -439,7 +437,7 @@ export function VaultTab({ gachaConfig }: VaultTabProps) {
 						})}
 					</div>
 				)}
-			</GlassCard>
+			</Card>
 		</div>
 	);
 }

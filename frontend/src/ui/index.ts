@@ -1,14 +1,13 @@
-export { Button, GlassButton, type ButtonProps } from "./Button";
-export { Card, GlassCard, type CardProps } from "./Card";
-export { Chip, GlassChip, type ChipProps } from "./Chip";
-export { Input, GlassInput, type InputProps } from "./Input";
-export { Badge, GlassBadge, type BadgeProps } from "./Badge";
-export { Modal, GlassModal, type ModalProps } from "./Modal";
-
-// Re-export HeroUI modal components
+export { Button, type ButtonProps } from "./Button";
+export { Card, type CardProps } from "./Card";
+export { Chip, type ChipProps } from "./Chip";
+export { Input, type InputProps } from "./Input";
+export { Badge, type BadgeProps } from "./Badge";
 export {
+	Modal,
+	type ModalProps,
 	ModalContent,
 	ModalBody,
 	ModalHeader,
 	ModalFooter,
-} from "@heroui/react";
+} from "./Modal";

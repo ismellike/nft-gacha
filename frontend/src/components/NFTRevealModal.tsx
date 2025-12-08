@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GlassModal, ModalContent, ModalBody } from "../ui";
+import { Modal, ModalContent, ModalBody } from "../ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTCard } from ".";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
@@ -62,7 +62,7 @@ export default function NFTRevealModal({
 	const rarityConfig = getRarityConfig(resultRarity);
 
 	return (
-		<GlassModal
+		<Modal
 			isOpen={isVisible}
 			onClose={onClose}
 			size="full"
@@ -200,6 +200,6 @@ export default function NFTRevealModal({
 					</div>
 				</ModalBody>
 			</ModalContent>
-		</GlassModal>
+		</Modal>
 	);
 }

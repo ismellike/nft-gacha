@@ -82,8 +82,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		],
 	);
 
-	const [context, setContext] =
-		useState<NFTInteractionContext>(initialContext);
+	const [context, setContext] = useState<NFTInteractionContext>(initialContext);
 	const [status, setStatus] = useState<InteractionStatus>("idle");
 
 	useEffect(() => {
@@ -100,27 +99,29 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	);
 
 	const sendInteractionEvent = useCallback(
-		(event:
-			| {
-					type: "START_INTERACTION";
-					collection: string;
-					tokenId: string;
-					mode: InteractionMode;
-					treasuryAddress: string;
-					protocolTreasuryAddress?: string;
-					userAddress: string;
-					publicClient: ReturnType<typeof usePublicClient>;
-					hasAppraisal?: boolean;
-					appraisalPrice?: bigint;
-					payoutAmount?: bigint;
-			  }
-			| { type: "NFT_APPROVAL_CONFIRMED"; txHash: string }
-			| { type: "NFT_APPROVAL_REQUESTED" }
-			| { type: "INTERACTION_CONFIRMED"; txHash: string }
-			| { type: "INTERACTION_REQUESTED" }
-			| { type: "INTERACTION_CANCELLED"; reason?: string }
-			| { type: "FAIL"; error: string }
-			| { type: "RESET" }) => {
+		(
+			event:
+				| {
+						type: "START_INTERACTION";
+						collection: string;
+						tokenId: string;
+						mode: InteractionMode;
+						treasuryAddress: string;
+						protocolTreasuryAddress?: string;
+						userAddress: string;
+						publicClient: ReturnType<typeof usePublicClient>;
+						hasAppraisal?: boolean;
+						appraisalPrice?: bigint;
+						payoutAmount?: bigint;
+				  }
+				| { type: "NFT_APPROVAL_CONFIRMED"; txHash: string }
+				| { type: "NFT_APPROVAL_REQUESTED" }
+				| { type: "INTERACTION_CONFIRMED"; txHash: string }
+				| { type: "INTERACTION_REQUESTED" }
+				| { type: "INTERACTION_CANCELLED"; reason?: string }
+				| { type: "FAIL"; error: string }
+				| { type: "RESET" },
+		) => {
 			switch (event.type) {
 				case "START_INTERACTION": {
 					setContext((prev) => ({
@@ -321,7 +322,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 					interactionState.context.tokenId || "",
 				);
 				const newNFTKey = createNFTKey(collection, tokenId);
-					const isDifferentNFT = currentNFTKey !== newNFTKey;
+				const isDifferentNFT = currentNFTKey !== newNFTKey;
 
 				if (
 					!interactionState.matches("idle") &&
@@ -365,11 +366,17 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				sendInteractionEvent({
 					type: "FAIL",
 					error:
-							(error instanceof Error ? error.message : "Unknown error occurred"),
+						error instanceof Error ? error.message : "Unknown error occurred",
 				});
 			}
 		},
-		[userAddress, publicClient, sendInteractionEvent, createNFTKey, interactionState],
+		[
+			userAddress,
+			publicClient,
+			sendInteractionEvent,
+			createNFTKey,
+			interactionState,
+		],
 	);
 
 	// Handle NFT approval

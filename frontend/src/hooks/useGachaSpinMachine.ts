@@ -222,13 +222,11 @@ export function useGachaSpinMachine(
 
 	const confirmTransaction = (triggerId: bigint) => {
 		if (state.context.userAddress && state.context.gachaAddress) {
-			useGachaStore
-				.getState()
-				.addPendingSpin({
-					userAddress: state.context.userAddress,
-					gachaAddress: state.context.gachaAddress,
-					triggerId,
-				});
+			useGachaStore.getState().addPendingSpin({
+				userAddress: state.context.userAddress,
+				gachaAddress: state.context.gachaAddress,
+				triggerId,
+			});
 		}
 		updateState("waitingForFulfillment", {
 			triggerId,

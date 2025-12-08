@@ -91,9 +91,8 @@ export function NFTAppraisalForm({
 	const [errors, setErrors] = useState<FormErrors>({});
 
 	const [status, setStatus] = useState<AppraisalStatus>("idle");
-	const [appraisalResult, setAppraisalResult] = useState<AppraisalResult | null>(
-		null,
-	);
+	const [appraisalResult, setAppraisalResult] =
+		useState<AppraisalResult | null>(null);
 	const [appraisalError, setAppraisalError] = useState<string | null>(null);
 	const [approvalTxHash, setApprovalTxHash] = useState<string | null>(null);
 	const [submissionTxHash, setSubmissionTxHash] = useState<string | null>(null);
@@ -331,10 +330,7 @@ export function NFTAppraisalForm({
 					},
 				],
 				functionName: "requestAppraisal",
-				args: [
-					formData.collection as `0x${string}`,
-					BigInt(formData.tokenId),
-				],
+				args: [formData.collection as `0x${string}`, BigInt(formData.tokenId)],
 				value: appraisalFee,
 			});
 			setSubmissionTxHash(submissionHash);

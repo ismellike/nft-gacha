@@ -3,6 +3,8 @@
  * Defines glassmorphism variants and component customizations
  */
 
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { tv } from "tailwind-variants";
 
 // Glassmorphism Button Variants
@@ -181,14 +183,14 @@ export const glassModal = tv({
 		],
 		backdrop: [
 			"absolute inset-0 bg-transparent backdrop-blur-sm",
-			"data-[enter=true]:animate-in data-[enter=true]:fade-in-0",
-			"data-[exit=true]:animate-out data-[exit=true]:fade-out-0",
+			"data-[state=open]:animate-in data-[state=open]:fade-in-0",
+			"data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
 		],
 		base: [
 			"relative bg-white/5 backdrop-blur-2xl border border-white/20",
 			"shadow-2xl rounded-2xl max-h-[90vh] overflow-hidden",
-			"data-[enter=true]:animate-in data-[enter=true]:zoom-in-95",
-			"data-[exit=true]:animate-out data-[exit=true]:zoom-out-95",
+			"data-[state=open]:animate-in data-[state=open]:zoom-in-95 data-[state=open]:fade-in-0",
+			"data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=closed]:fade-out-0",
 		],
 		header: "flex flex-col gap-1 p-6 pb-2 border-b border-white/10",
 		body: "flex-1 px-6 py-2 overflow-auto",
@@ -383,11 +385,7 @@ export const glassBorders = {
 } as const;
 
 // Utility function for combining classes
-export const cn = (
-	...classes: (string | undefined | null | false)[]
-): string => {
-	return classes.filter(Boolean).join(" ");
-};
+export const cn = (...inputs: ClassValue[]): string => twMerge(clsx(inputs));
 
 // Export all variants
 export const glassTheme = {

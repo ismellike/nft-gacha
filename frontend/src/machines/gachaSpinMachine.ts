@@ -89,7 +89,9 @@ export const pollForSpinFulfillment = async ({
 			if (!isDestroyed) {
 				cleanup();
 				reject(
-					new Error(`Polling timeout: No event found after ${MAX_POLLING_TIME}ms`),
+					new Error(
+						`Polling timeout: No event found after ${MAX_POLLING_TIME}ms`,
+					),
 				);
 			}
 		}, MAX_POLLING_TIME);
@@ -117,9 +119,7 @@ export const pollForSpinFulfillment = async ({
 
 				const currentBlock = await publicClient.getBlockNumber();
 				const fromBlock =
-					currentBlock > BigInt(1000)
-						? currentBlock - BigInt(1000)
-						: BigInt(0);
+					currentBlock > BigInt(1000) ? currentBlock - BigInt(1000) : BigInt(0);
 
 				const completedLogs = await publicClient.getLogs({
 					address: gachaAddress as `0x${string}`,
@@ -162,7 +162,10 @@ export const pollForSpinFulfillment = async ({
 						tokenId: tokenId?.toString() || "",
 					};
 
-					console.log("🎉 [GachaSpinMachine] SpinCompleted event found:", result);
+					console.log(
+						"🎉 [GachaSpinMachine] SpinCompleted event found:",
+						result,
+					);
 					cleanup();
 					resolve(result);
 					return;

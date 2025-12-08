@@ -42,5 +42,7 @@ export interface NFTInteractionContext {
 		  ) => void)
 		| undefined;
 	refetchTreasuryCards?: (() => Promise<void>) | undefined;
-	onBuybackSuccess?: ((txHash: string, payoutAmount: bigint) => void) | undefined;
+	onBuybackSuccess?:
+		| ((txHash: string, payoutAmount: bigint) => void)
+		| undefined;
 }

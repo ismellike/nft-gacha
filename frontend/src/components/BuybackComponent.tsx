@@ -3,9 +3,9 @@
 import { useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useAccount, useReadContract } from "wagmi";
-import { Chip } from "@heroui/react";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { Chip } from "../ui/Chip";
 import {
 	useReadProtocolTreasuryRedemptionPayoutBps,
 	useReadProtocolTreasuryPaused,

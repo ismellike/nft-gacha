@@ -65,12 +65,7 @@ const nextConfig = {
 		// reactCompiler: true, // Disabled - requires babel-plugin-react-compiler
 
 		// Optimize package imports for better tree shaking
-		optimizePackageImports: [
-			"@heroicons/react",
-			"@heroui/react",
-			"framer-motion",
-			"zustand",
-		],
+		optimizePackageImports: ["@heroicons/react", "framer-motion", "zustand"],
 
 		// Lightning CSS for faster CSS processing (disabled due to PostCSS plugin conflict)
 		// useLightningcss: true,
@@ -78,9 +73,6 @@ const nextConfig = {
 		// Partial Prerendering for improved performance
 		ppr: false, // Set to true if using app router with SSG
 	},
-
-	// Transpile packages for better compatibility
-	transpilePackages: ["@heroui/react", "@heroui/theme"],
 
 	// Compiler options (SWC is now default, no need to specify swcMinify)
 	compiler: {

@@ -100,7 +100,9 @@ export const confirmNFTOwnershipChange = async ({
 	const isDeposited = currentOwner?.toLowerCase() !== userAddress.toLowerCase();
 
 	if (!isDeposited) {
-		throw new Error("NFT still owned by user - ownership change confirmation failed");
+		throw new Error(
+			"NFT still owned by user - ownership change confirmation failed",
+		);
 	}
 
 	console.log("✅ [SharedActors] NFT ownership change confirmed");

@@ -4,8 +4,6 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
-import { HeroUIProvider } from "@heroui/react";
-import { useRouter } from "next/navigation";
 import { config } from "../wagmi";
 import { RewardsRefetchProvider } from "../hooks/useRewardsData";
 
@@ -18,8 +16,6 @@ const customDarkTheme = darkTheme({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-	const router = useRouter();
-
 	// Create QueryClient lazily to prevent cross-session cache sharing
 	const [queryClient] = useState(
 		() =>
@@ -42,9 +38,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
 				<RainbowKitProvider theme={customDarkTheme} modalSize="compact">
-					<HeroUIProvider navigate={router.push}>
-						<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
-					</HeroUIProvider>
+					<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
 				</RainbowKitProvider>
 			</QueryClientProvider>
 		</WagmiProvider>

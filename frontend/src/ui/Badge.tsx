@@ -1,87 +1,65 @@
 "use client";
 
-import React from "react";
-import { extendVariants } from "@heroui/react";
-import { Badge as HeroBadge } from "@heroui/react";
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "../lib/theme-config";
 
-export const GlassBadge = extendVariants(HeroBadge, {
-	variants: {
-		color: {
-			glass: {
-				base: "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80",
-				badge:
-					"bg-content1/30 backdrop-blur-xl border border-white/30 text-foreground",
+const badgeVariants = cva(
+	"inline-flex items-center gap-2 rounded-full border text-[11px] font-semibold uppercase tracking-wide backdrop-blur-xl transition-colors duration-200",
+	{
+		variants: {
+			variant: {
+				flat: "bg-content1/30 border-white/20 text-foreground/80",
+				solid: "bg-warning text-black border-warning/50",
+				ghost: "bg-transparent border-white/10 text-foreground/70",
+				success: "bg-success/20 border-success/40 text-success",
+				danger: "bg-danger/20 border-danger/40 text-danger",
+				warning: "bg-warning/20 border-warning/40 text-warning",
 			},
-			primary: {
-				base: "bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30 text-warning",
-				badge:
-					"bg-gradient-to-r from-warning/40 to-orange-400/40 border border-warning/50 text-warning",
-			},
-			success: {
-				base: "bg-success/20 border border-success/30 text-success",
-				badge: "bg-success/40 border border-success/50 text-success",
-			},
-			warning: {
-				base: "bg-warning/20 border border-warning/30 text-warning",
-				badge: "bg-warning/40 border border-warning/50 text-warning",
-			},
-			danger: {
-				base: "bg-danger/20 border border-danger/30 text-danger",
-				badge: "bg-danger/40 border border-danger/50 text-danger",
+			size: {
+				sm: "px-3 py-1",
+				md: "px-4 py-1.5",
+				lg: "px-5 py-2",
 			},
 		},
-		variant: {
-			flat: {
-				base: "bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80",
-				badge:
-					"bg-content1/30 backdrop-blur-xl border border-white/30 text-foreground",
-			},
-			solid: {
-				base: "bg-content1/30 backdrop-blur-xl border border-white/30 text-foreground",
-				badge:
-					"bg-content1/40 backdrop-blur-xl border border-white/40 text-foreground",
-			},
-			faded: {
-				base: "bg-content1/10 backdrop-blur-xl border border-white/10 text-foreground/60",
-				badge:
-					"bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground/80",
-			},
-			shadow: {
-				base: "bg-content1/25 backdrop-blur-xl border border-white/25 text-foreground/80 shadow-lg",
-				badge:
-					"bg-content1/35 backdrop-blur-xl border border-white/35 text-foreground shadow-xl",
-			},
-		},
-		size: {
-			sm: {
-				base: "text-tiny",
-				badge: "min-w-[12px] h-3 text-tiny px-1 text-tiny rounded-sm",
-			},
-			md: {
-				base: "text-small",
-				badge: "min-w-[16px] h-4 text-small px-1.5 text-small rounded-md",
-			},
-			lg: {
-				base: "text-medium",
-				badge: "min-w-[20px] h-5 text-medium px-2 text-medium rounded-lg",
-			},
+		defaultVariants: {
+			variant: "flat",
+			size: "md",
 		},
 	},
-	defaultVariants: {
-		color: "glass",
-		variant: "flat",
-		size: "md",
-	},
-	slots: {
-		base: "transition-all duration-200",
-		badge: "transition-all duration-200",
-	},
-});
+);
 
-export interface BadgeProps extends React.ComponentProps<typeof GlassBadge> {}
+export interface BadgeProps
+	extends React.HTMLAttributes<HTMLSpanElement>,
+		VariantProps<typeof badgeVariants> {
+	color?: "danger" | "success" | "warning" | "info" | "neutral";
+}
 
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
-	({ ...props }, ref) => <GlassBadge {...props} ref={ref as never} />,
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+	({ className, variant, size, color, children, ...props }, ref) => {
+		const resolvedVariant =
+			variant ??
+			(color === "danger"
+				? "danger"
+				: color === "success"
+					? "success"
+					: color === "warning"
+						? "warning"
+						: "flat");
+
+		return (
+			<span
+				ref={ref}
+				className={cn(
+					badgeVariants({ variant: resolvedVariant, size }),
+					className,
+				)}
+				{...props}
+			>
+				{children}
+			</span>
+		);
+	},
 );
 
 Badge.displayName = "Badge";
