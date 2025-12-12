@@ -244,23 +244,6 @@ export const pollForSpinFulfillment = async ({
 	});
 };
 
-// Persistence helpers using Zustand store
-const saveToStorage = (
-	userAddress: string,
-	gachaAddress: string,
-	triggerId: bigint,
-) => {
-	useGachaStore.getState().addPendingSpin({
-		userAddress,
-		gachaAddress,
-		triggerId,
-	});
-};
-
-const removeFromStorage = (userAddress: string, gachaAddress: string) => {
-	useGachaStore.getState().removePendingSpin(userAddress, gachaAddress);
-};
-
 export const loadFromStorage = (
 	userAddress: string,
 	gachaAddress: string,

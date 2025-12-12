@@ -171,57 +171,18 @@ export const DepositableNFTCard = ({
 						</Button>
 					)}
 
-					{actionInfo.type === "checking" && (
-						<Button color="glassPrimary" className="w-full" isLoading>
-							{actionInfo.label}
-						</Button>
-					)}
-
-					{actionInfo.type === "approveNFT" && (
+					{actionInfo.type !== "idle" && actionInfo.type !== "completed" && (
 						<Button
 							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
-							onPress={() => {
-								const actionInfoWithAction = actionInfo as {
-									action?: () => void;
-								};
-								if (actionInfoWithAction.action) {
-									actionInfoWithAction.action();
-								}
-							}}
-							isLoading={false}
+							isLoading={actionInfo.type === "processing" || actionInfo.type === "checking"}
 						>
 							<span className="flex items-center justify-center gap-2">
-								<ShieldCheckIcon className="w-4 h-4" /> {actionInfo.label}
-							</span>
-						</Button>
-					)}
-
-					{actionInfo.type === "deposit" && (
-						<Button
-							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
-							onPress={() => {
-								const actionInfoWithAction = actionInfo as {
-									action?: () => void;
-								};
-								if (actionInfoWithAction.action) {
-									actionInfoWithAction.action();
-								}
-							}}
-							isLoading={false}
-						>
-							<span className="flex items-center justify-center gap-2">
-								<GiftIcon className="w-4 h-4" /> {actionInfo.label}
-							</span>
-						</Button>
-					)}
-
-					{actionInfo.type === "processing" && (
-						<Button
-							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
-							isLoading
-						>
-							<span className="flex items-center justify-center gap-2">
-								<ArrowPathIcon className="w-4 h-4" /> {actionInfo.label}
+								{actionInfo.type === "approveNFT" ? (
+									<ShieldCheckIcon className="w-4 h-4" />
+								) : (
+									<ArrowPathIcon className="w-4 h-4" />
+								)}
+								{actionInfo.label || "Processing"}
 							</span>
 						</Button>
 					)}

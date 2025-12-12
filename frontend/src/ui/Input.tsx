@@ -5,7 +5,7 @@ import type { VariantProps } from "tailwind-variants";
 import { glassInput, cn } from "../lib/theme-config";
 
 export interface InputProps
-	extends React.InputHTMLAttributes<HTMLInputElement>,
+	extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size">,
 		VariantProps<typeof glassInput> {
 	isDisabled?: boolean;
 }

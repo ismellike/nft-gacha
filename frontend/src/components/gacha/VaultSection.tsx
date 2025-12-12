@@ -783,8 +783,13 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	// Cleanup orphaned state
 	React.useEffect(() => {
 		if (!displayUserNFTs.length) {
-			updateState("appraisedNFTs", new Set());
-			updateState("appraisalData", new Map());
+			// Avoid infinite loops: only clear when we actually have cached entries
+			if (state.appraisedNFTs.size > 0) {
+				updateState("appraisedNFTs", new Set());
+			}
+			if (state.appraisalData.size > 0) {
+				updateState("appraisalData", new Map());
+			}
 			return;
 		}
 
@@ -792,7 +797,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			displayUserNFTs.map((nft) => createNFTKey(nft.collection, nft.tokenId)),
 		);
 		cleanupOrphanedState(validKeys);
-	}, [displayUserNFTs, cleanupOrphanedState, updateState]);
+	}, [displayUserNFTs, cleanupOrphanedState, state.appraisedNFTs.size, state.appraisalData.size, updateState]);
 
 	// Manual refresh function for external calls
 	const loadDepositedNFTs = useCallback(async () => {

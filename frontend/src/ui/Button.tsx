@@ -6,7 +6,7 @@ import type { VariantProps } from "tailwind-variants";
 import { glassButton, cn } from "../lib/theme-config";
 
 export interface ButtonProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+	extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color">,
 		VariantProps<typeof glassButton> {
 	asChild?: boolean;
 	color?:
@@ -15,9 +15,13 @@ export interface ButtonProps
 		| "primary"
 		| "secondary"
 		| "danger"
-		| "ghost";
+		| "ghost"
+		| "warning"
+		| "default";
 	isDisabled?: boolean;
 	onPress?: React.MouseEventHandler<HTMLButtonElement>;
+	startContent?: React.ReactNode;
+	endContent?: React.ReactNode;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -34,6 +38,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			disabled,
 			onPress,
 			onClick,
+			startContent,
+			endContent,
 			children,
 			...props
 		},
@@ -46,13 +52,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				? "primary"
 				: color === "glass"
 					? "secondary"
-					: color === "danger"
-						? "danger"
-						: color === "ghost"
-							? "ghost"
-							: color === "secondary"
-								? "secondary"
-								: "primary");
+					: color === "warning"
+						? "primary"
+						: color === "default"
+							? "secondary"
+							: color === "danger"
+								? "danger"
+								: color === "ghost"
+									? "ghost"
+									: color === "secondary"
+										? "secondary"
+										: "primary");
 
 		return (
 			<Comp
@@ -66,7 +76,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				aria-busy={isLoading || undefined}
 				{...props}
 			>
+				{startContent ? (
+					<span className="mr-2 inline-flex items-center">{startContent}</span>
+				) : null}
 				{children}
+				{endContent ? (
+					<span className="ml-2 inline-flex items-center">{endContent}</span>
+				) : null}
 			</Comp>
 		);
 	},

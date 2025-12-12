@@ -35,13 +35,22 @@ export function useRedemptionNotifications(
 				);
 
 				// Optional: Play a sound effect
-				if (typeof window !== "undefined" && window.Audio) {
+				if (typeof window !== "undefined" && "AudioContext" in window) {
 					try {
-						const audio = new Audio("/sounds/success.mp3");
-						audio.volume = 0.3;
-						audio.play().catch(() => {
-							// Ignore audio errors (user may not have interacted with page yet)
-						});
+						const ctx = new window.AudioContext();
+						const oscillator = ctx.createOscillator();
+						const gain = ctx.createGain();
+						oscillator.type = "sine";
+						oscillator.frequency.value = 880;
+						gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+						gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+						gain.gain.exponentialRampToValueAtTime(
+							0.0001,
+							ctx.currentTime + 0.25,
+						);
+						oscillator.connect(gain).connect(ctx.destination);
+						oscillator.start();
+						oscillator.stop(ctx.currentTime + 0.3);
 					} catch (_error) {
 						// Ignore audio errors
 					}

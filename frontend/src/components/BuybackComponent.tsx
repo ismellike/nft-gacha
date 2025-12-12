@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAccount, useReadContract } from "wagmi";
 import { Button } from "../ui/Button";
@@ -48,22 +48,8 @@ export default function BuybackComponent({
 	const { showNotification } = useBuybackNotificationsContext();
 
 	// Build interaction params for NFT interaction hook
-	const interactionParams = useMemo(() => {
-		const params: {
-			onAction: (
-				_collection: string,
-				tokenId: string,
-				_hasValidAppraisal?: boolean,
-			) => void;
-			onAppraisalStatusChange: (
-				_collection: string,
-				tokenId: string,
-				hasValidAppraisal: boolean,
-			) => void;
-			refetchTreasuryCards: () => Promise<void>;
-			onSuccess?: (txHash: string) => void;
-			onBuybackSuccess?: (txHash: string, payoutAmount: bigint) => void;
-		} = {
+	const interactionParams = useMemo(
+		() => ({
 			onAction: (
 				_collection: string,
 				tokenId: string,
@@ -83,21 +69,12 @@ export default function BuybackComponent({
 					hasValidAppraisal ? "success" : "error",
 				);
 			},
-			refetchTreasuryCards: async () => {
-				// Optional: Implement treasury cards refetch if needed
-			},
-		};
-
-		if (onSuccess) {
-			params.onSuccess = onSuccess;
-		}
-
-		if (onBuybackSuccess) {
-			params.onBuybackSuccess = onBuybackSuccess;
-		}
-
-		return params;
-	}, [onSuccess, onBuybackSuccess, showNotification]);
+			refetchTreasuryCards: async () => {},
+			onSuccess,
+			onBuybackSuccess,
+		}),
+		[onSuccess, onBuybackSuccess, showNotification],
+	);
 
 	// Use the unified NFT interaction hook
 	const {
@@ -105,28 +82,41 @@ export default function BuybackComponent({
 		context,
 		error,
 		isLoading,
+		isCompleted,
+		successData: hookSuccessData,
 		startInteraction,
 		getActionInfo,
 		reset,
-	} = useNFTInteraction(interactionParams);
+	} = useNFTInteraction(interactionParams as any);
 
 	// Enhanced success state data
 	type SuccessData = {
 		mode: string;
-		completedAt?: string | number;
+		completedAt: number;
 		payoutAmount?: bigint;
-		txHash?: string;
+		txHash: string;
+		collection?: string | null;
+		tokenId?: string | null;
 	};
 
-	const successData = (context as { successData?: SuccessData }).successData;
+	const successData = hookSuccessData as SuccessData | null;
 	const isSuccessState =
-		currentState === "completed" && successData?.mode === "buyback";
+		isCompleted &&
+		successData?.mode === "buyback" &&
+		!!successData.txHash &&
+		successData.collection === collection &&
+		successData.tokenId === tokenId;
+	const isCompletedOtherNFT = currentState === "completed" && !isSuccessState;
+
+	// If we previously completed a different NFT, reset to avoid showing stale "Completed" state
+	useEffect(() => {
+		if (isCompletedOtherNFT) {
+			reset();
+		}
+	}, [isCompletedOtherNFT, reset]);
 	const successTimestamp =
-		successData &&
-		(context as { completedAt?: string | number }).completedAt != null
-			? new Date(
-					(context as { completedAt: string | number }).completedAt,
-				).toLocaleString()
+		successData?.completedAt != null
+			? new Date(successData.completedAt).toLocaleString()
 			: null;
 
 	// Contract data hooks
@@ -335,47 +325,25 @@ export default function BuybackComponent({
 		}
 
 		// Special handling for stuck awaitingInteractionSignature state
-		if (currentState === "awaitingInteractionSignature") {
-			console.log(
-				"🔄 User clicked during awaitingInteractionSignature - attempting reset",
-			);
-
-			// Force reset all transaction states
-			reset();
-
-			// Wait for reset to process
-			await new Promise((resolve) => setTimeout(resolve, 200));
-
-			// Start fresh buyback
+		// Only start buyback if we're idle
+		if (currentState === "idle") {
 			await handleStartBuyback();
 			return;
 		}
 
-		// If we're in any other non-idle state that isn't completed, reset first
-		if (currentState !== "idle" && currentState !== "completed") {
-			console.log("🔄 Resetting stuck state before starting new buyback", {
-				currentState,
-			});
+		// If we previously completed a different NFT, reset and start fresh
+		if (isCompletedOtherNFT) {
 			reset();
-
-			// Wait for state to properly reset before proceeding
-			await new Promise((resolve) => {
-				const checkReset = () => {
-					// In a real implementation, we'd need to check the actual state
-					// For now, we'll use a reasonable delay
-					setTimeout(resolve, 150);
-				};
-				checkReset();
-			});
+			await new Promise((resolve) => setTimeout(resolve, 150));
+			await handleStartBuyback();
+			return;
 		}
 
-		// Only start buyback if we're in idle state
-		if (currentState === "idle") {
+		// If we're stuck in an in-flight state, allow reset then retry
+		if (currentState !== "completed") {
+			reset();
+			await new Promise((resolve) => setTimeout(resolve, 150));
 			await handleStartBuyback();
-		} else {
-			console.warn("⚠️ Cannot start buyback - not in idle state", {
-				currentState,
-			});
 		}
 	}, [
 		currentState,
@@ -383,6 +351,7 @@ export default function BuybackComponent({
 		isSuccessState,
 		isProcessing,
 		error,
+		isCompletedOtherNFT,
 		reset,
 		handleStartBuyback,
 	]);

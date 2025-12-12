@@ -43,6 +43,16 @@ export const glassButton = tv({
 				"hover:bg-content1/20 hover:text-foreground",
 				"data-[pressed=true]:scale-[0.97]",
 			],
+			warning: [
+				"bg-warning/20 text-warning font-semibold border border-warning/30 backdrop-blur-xl",
+				"hover:bg-warning/30 hover:border-warning/40",
+				"data-[pressed=true]:scale-[0.97]",
+			],
+			light: [
+				"bg-content1/15 border border-white/10 text-foreground",
+				"hover:bg-content1/25 hover:border-white/20",
+				"data-[pressed=true]:scale-[0.97]",
+			],
 		},
 		size: {
 			sm: "px-4 py-2 text-sm min-h-[36px]",

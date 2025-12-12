@@ -61,7 +61,7 @@ interface GachaSpinLocalState {
 		spinResult: SpinResult | null;
 		refundResult: RefundResult | null;
 		userAddress: string | null;
-		publicClient: ReturnType<typeof usePublicClient>;
+		publicClient: ReturnType<typeof usePublicClient> | undefined;
 		gachaAddress: string | null;
 		error: string | null;
 		retryCount: number;
@@ -93,7 +93,7 @@ export function useGachaSpinMachine(
 			spinResult: null,
 			refundResult: null,
 			userAddress: null,
-			publicClient: null,
+			publicClient: undefined,
 			gachaAddress: null,
 			error: null,
 			retryCount: 0,

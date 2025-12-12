@@ -284,7 +284,7 @@ export default function LandingPage() {
 			</section>
 
 			{/* User Journey */}
-			<section className="py-32 px-4 relative">
+			<section className="py-32 px-4 relative text-foreground">
 				<div className="max-w-6xl mx-auto">
 					<motion.div
 						initial={{ opacity: 0, y: 30 }}
@@ -293,7 +293,7 @@ export default function LandingPage() {
 						viewport={{ once: true }}
 						className="text-center mb-20"
 					>
-						<h2 className="text-5xl md:text-7xl font-black mb-6">
+						<h2 className="text-5xl md:text-7xl font-black mb-6 text-foreground">
 							How It Works
 						</h2>
 						<p className="text-xl text-foreground/80 max-w-3xl mx-auto leading-relaxed font-medium">

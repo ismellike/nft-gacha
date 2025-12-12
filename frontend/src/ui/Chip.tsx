@@ -43,10 +43,24 @@ export interface ChipProps
 		| "warning"
 		| "danger"
 		| "ghost";
+	startContent?: React.ReactNode;
+	endContent?: React.ReactNode;
 }
 
 const Chip = React.forwardRef<HTMLSpanElement, ChipProps>(
-	({ className, variant, size, color, children, ...props }, ref) => {
+	(
+		{
+			className,
+			variant,
+			size,
+			color,
+			startContent,
+			endContent,
+			children,
+			...props
+		},
+		ref,
+	) => {
 		const resolvedVariant =
 			variant ??
 			(color === "primary"
@@ -72,7 +86,13 @@ const Chip = React.forwardRef<HTMLSpanElement, ChipProps>(
 				)}
 				{...props}
 			>
+				{startContent ? (
+					<span className="mr-2 inline-flex items-center">{startContent}</span>
+				) : null}
 				{children}
+				{endContent ? (
+					<span className="ml-2 inline-flex items-center">{endContent}</span>
+				) : null}
 			</span>
 		);
 	},

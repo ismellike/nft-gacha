@@ -54,7 +54,7 @@ export function Modal({
 
 	return (
 		<DialogPrimitive.Root
-			open={isOpen}
+			{...(isOpen !== undefined ? { open: isOpen } : {})}
 			onOpenChange={handleOpenChange}
 			{...props}
 		>
@@ -154,4 +154,5 @@ const ModalFooter = React.forwardRef<HTMLDivElement, ModalSectionProps>(
 );
 
 ModalFooter.displayName = "ModalFooter";
-export { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter };
+
+export { ModalContent, ModalHeader, ModalBody, ModalFooter };
