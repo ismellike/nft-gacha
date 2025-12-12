@@ -116,20 +116,7 @@ const ModalContent = React.forwardRef<
 
 ModalContent.displayName = "ModalContent";
 
-export interface ModalSectionProps
-	extends React.HTMLAttributes<HTMLDivElement> {}
-
-const ModalHeader = React.forwardRef<HTMLDivElement, ModalSectionProps>(
-	({ className, ...props }, ref) => {
-		const { size, placement } = useModalContext();
-		const styles = glassModal({ size, placement });
-		return (
-			<div ref={ref} className={cn(styles.header(), className)} {...props} />
-		);
-	},
-);
-
-ModalHeader.displayName = "ModalHeader";
+interface ModalSectionProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 const ModalBody = React.forwardRef<HTMLDivElement, ModalSectionProps>(
 	({ className, ...props }, ref) => {
@@ -143,16 +130,4 @@ const ModalBody = React.forwardRef<HTMLDivElement, ModalSectionProps>(
 
 ModalBody.displayName = "ModalBody";
 
-const ModalFooter = React.forwardRef<HTMLDivElement, ModalSectionProps>(
-	({ className, ...props }, ref) => {
-		const { size, placement } = useModalContext();
-		const styles = glassModal({ size, placement });
-		return (
-			<div ref={ref} className={cn(styles.footer(), className)} {...props} />
-		);
-	},
-);
-
-ModalFooter.displayName = "ModalFooter";
-
-export { ModalContent, ModalHeader, ModalBody, ModalFooter };
+export { ModalContent, ModalBody };

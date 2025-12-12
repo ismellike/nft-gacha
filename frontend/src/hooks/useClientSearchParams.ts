@@ -112,7 +112,7 @@ const searchParamsStore = SearchParamsStore.getInstance();
 /**
  * Hook to get all URL search parameters efficiently
  */
-export function useClientSearchParams(): URLSearchParams {
+function useClientSearchParams(): URLSearchParams {
 	return useSyncExternalStore(
 		searchParamsStore.subscribe.bind(searchParamsStore),
 		searchParamsStore.getSnapshot.bind(searchParamsStore),

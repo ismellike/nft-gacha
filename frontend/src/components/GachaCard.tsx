@@ -19,7 +19,7 @@ import {
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { Card, Chip } from "../ui";
-import { GachaCardSkeleton } from ".";
+import { GachaCardSkeleton } from "./SkeletonLoader";
 import { GachaCardHeader } from "./GachaCardHeader";
 import { getAllRarities, getRarityEmoji } from "../lib/rarityConfig";
 import type { GachaConfig } from "../lib/gacha-config";

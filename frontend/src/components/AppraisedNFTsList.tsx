@@ -17,7 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { Card, Button } from "../ui";
-import { LoadingState } from ".";
+import { LoadingState } from "./LoadingState";
 import { NFTCard } from "./NFTCard";
 import { DepositableNFTCard } from "./DepositableNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";

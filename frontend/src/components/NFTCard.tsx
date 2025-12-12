@@ -539,5 +539,3 @@ export const NFTCard = memo<NFTCardProps>(
 	},
 );
 NFTCard.displayName = "NFTCard";
-
-export default NFTCard;

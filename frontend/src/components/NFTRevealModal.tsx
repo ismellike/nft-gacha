@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalContent, ModalBody } from "../ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { NFTCard } from ".";
+import { NFTCard } from "./NFTCard";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
 import { getGachaConfig } from "../lib/gacha-config";
 import { useMemo } from "react";

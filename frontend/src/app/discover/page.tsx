@@ -7,7 +7,7 @@ import {
 	ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { Card, Chip } from "../../ui";
-import { GachaCard } from "../../components";
+import { GachaCard } from "../../components/GachaCard";
 import { getAllActiveGachas } from "../../lib/gacha-config";
 
 export default function DiscoverPage() {

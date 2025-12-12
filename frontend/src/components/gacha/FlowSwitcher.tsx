@@ -4,7 +4,7 @@ import type { ElementType } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../lib/theme-config";
 
-export interface FlowOption {
+interface FlowOption {
 	id: string;
 	label: string;
 	icon?: ElementType;
