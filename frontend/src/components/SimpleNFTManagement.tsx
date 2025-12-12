@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { Card } from "../ui";
@@ -11,6 +11,9 @@ import { useUserOwnedNFTsMultipleCollections } from "../hooks/useUserOwnedNFTs";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../generated";
 import { useUserDepositedNFTs } from "../hooks/useUserDepositedNFTs";
 import { LoadingState } from ".";
+import { useNFTVaultStore, type VaultNFT } from "../stores/nftVaultStore";
+import { useNFTInteraction } from "../hooks/useNFTInteraction";
+import { useNFTWithdrawal } from "../hooks/useNFTWithdrawal";
 
 interface SimpleNFTManagementProps {
 	mode: "deposit" | "withdraw";
@@ -21,9 +24,26 @@ export function SimpleNFTManagement({ mode }: SimpleNFTManagementProps) {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
-	const [nfts, setNfts] = useState<SimpleNFT[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [processing, setProcessing] = useState<Set<string>>(new Set());
+	const {
+		walletNFTs,
+		depositedNFTs,
+		loadingWallet,
+		loadingDeposited,
+		processing,
+		setWalletNFTs,
+		setDepositedNFTs,
+		setLoadingWallet,
+		setLoadingDeposited,
+		startProcessing,
+		stopProcessing,
+		removeWalletNFT,
+		removeDepositedNFT,
+		addDepositedNFT,
+		addWalletNFT,
+		setError,
+		reset,
+		error,
+	} = useNFTVaultStore();
 
 	// Get contract addresses
 	const treasuryAddress = contracts.treasury as `0x${string}` | undefined;
@@ -44,94 +64,238 @@ export function SimpleNFTManagement({ mode }: SimpleNFTManagementProps) {
 	);
 
 	const { getUserDepositedNFTs } = useUserDepositedNFTs(treasuryAddress);
+	const { withdrawNFT } = useNFTWithdrawal(treasuryAddress);
+
+	// Unified interaction hook for deposits
+	const interaction = useNFTInteraction({
+		onSuccess: () => {
+			if (
+				interaction.context.collection &&
+				interaction.context.tokenId &&
+				interaction.context.mode === "deposit"
+			) {
+				const key = `${interaction.context.collection}:${interaction.context.tokenId}`;
+				const existing = walletNFTs.find(
+					(nft) =>
+						nft.collection === interaction.context.collection &&
+						nft.tokenId === interaction.context.tokenId,
+				);
+
+				removeWalletNFT(key);
+				addDepositedNFT({
+					collection: interaction.context.collection,
+					tokenId: interaction.context.tokenId,
+					collectionName: existing?.collectionName,
+					rarity: existing?.rarity,
+					appraisedValue: existing?.appraisedValue,
+					canWithdraw: true,
+					depositCount: existing?.depositCount,
+					isAppraised: true,
+				});
+				stopProcessing(key);
+			}
+		},
+	});
 
 	// Load NFTs based on mode
+	// Load wallet NFTs for deposits
 	useEffect(() => {
-		const loadNFTs = async () => {
+		if (mode !== "deposit") return;
+		if (!isConnected || !userAddress) {
+			setWalletNFTs([]);
+			setLoadingWallet(false);
+			return;
+		}
+
+		if (nftsLoading || whitelistedCollectionsQuery.isLoading) {
+			setLoadingWallet(true);
+			return;
+		}
+
+		setLoadingWallet(true);
+		try {
+			const transformedNFTs: VaultNFT[] = userOwnedNFTs.map((ownedNFT) => ({
+				collection: ownedNFT.collection,
+				tokenId: ownedNFT.tokenId.toString(),
+				collectionName: ownedNFT.collectionName || "",
+				isAppraised: true,
+				canWithdraw: false,
+			}));
+			setWalletNFTs(transformedNFTs);
+		} catch (err) {
+			console.error("Error loading depositable NFTs:", err);
+			setWalletNFTs([]);
+			setError("Failed to load depositable NFTs");
+		} finally {
+			setLoadingWallet(false);
+		}
+	}, [
+		mode,
+		isConnected,
+		userAddress,
+		userOwnedNFTs,
+		nftsLoading,
+		setWalletNFTs,
+		setLoadingWallet,
+		setError,
+		whitelistedCollectionsQuery.isLoading,
+	]);
+
+	// Load deposited NFTs for withdrawals
+	useEffect(() => {
+		if (mode !== "withdraw") return;
+
+		const loadDeposited = async () => {
 			if (!isConnected || !userAddress) {
-				setNfts([]);
-				setLoading(false);
+				setDepositedNFTs([]);
+				setLoadingDeposited(false);
 				return;
 			}
 
-			setLoading(true);
+			setLoadingDeposited(true);
 			try {
-				if (mode === "deposit") {
-					// Load user's wallet NFTs for deposit
-					const transformedNFTs: SimpleNFT[] = userOwnedNFTs.map(
-						(ownedNFT) => ({
-							collection: ownedNFT.collection,
-							tokenId: ownedNFT.tokenId.toString(),
-							collectionName: ownedNFT.collectionName || "",
-							isAppraised: false, // Will be updated by appraisal status check
-						}),
-					);
-					setNfts(transformedNFTs);
-				} else {
-					// Load deposited NFTs for withdrawal
-					const depositedNFTs = await getUserDepositedNFTs();
-					const transformedNFTs: SimpleNFT[] = depositedNFTs.map((nft) => ({
-						collection: nft.collection,
-						tokenId: nft.tokenId.toString(),
-						collectionName: nft.collectionName || "",
-						canWithdraw: true, // Simplified - assume all can be withdrawn
-						depositCount: BigInt(1), // Simplified
-						appraisedValue: nft.appraisedPrice || BigInt(0), // Use actual appraised price
-					}));
-					setNfts(transformedNFTs);
-				}
-			} catch (error) {
-				console.error(`Error loading ${mode} NFTs:`, error);
-				setNfts([]);
+				const deposited = await getUserDepositedNFTs();
+				const transformedNFTs: VaultNFT[] = deposited.map((nft) => ({
+					collection: nft.collection,
+					tokenId: nft.tokenId.toString(),
+					collectionName: nft.collectionName || "",
+					canWithdraw: true,
+					depositCount: BigInt(1),
+					appraisedValue: nft.appraisedPrice || BigInt(0),
+				}));
+				setDepositedNFTs(transformedNFTs);
+			} catch (err) {
+				console.error("Error loading deposited NFTs:", err);
+				setDepositedNFTs([]);
+				setError("Failed to load deposited NFTs");
 			} finally {
-				setLoading(false);
+				setLoadingDeposited(false);
 			}
 		};
 
-		loadNFTs();
-	}, [mode, isConnected, userAddress, userOwnedNFTs, getUserDepositedNFTs]);
+		void loadDeposited();
+	}, [
+		mode,
+		isConnected,
+		userAddress,
+		getUserDepositedNFTs,
+		setDepositedNFTs,
+		setLoadingDeposited,
+		setError,
+	]);
+
+	// Reset state when switching modes
+	useEffect(() => {
+		reset();
+	}, [mode, reset]);
+
+	const nfts = useMemo<SimpleNFT[]>(() => {
+		return mode === "deposit" ? walletNFTs : depositedNFTs;
+	}, [walletNFTs, depositedNFTs, mode]);
+
+	const isLoading =
+		mode === "deposit"
+			? loadingWallet || nftsLoading
+			: loadingDeposited || false;
+
+	// Clear processing flags if interaction errors out
+	useEffect(() => {
+		if (
+			interaction.currentState === "error" &&
+			interaction.context.collection &&
+			interaction.context.tokenId
+		) {
+			const key = `${interaction.context.collection}:${interaction.context.tokenId}`;
+			stopProcessing(key);
+		}
+	}, [
+		interaction.context.collection,
+		interaction.context.tokenId,
+		interaction.currentState,
+		stopProcessing,
+	]);
+
+	useEffect(() => {
+		if (
+			interaction.currentState === "idle" &&
+			interaction.context.collection &&
+			interaction.context.tokenId
+		) {
+			const key = `${interaction.context.collection}:${interaction.context.tokenId}`;
+			stopProcessing(key);
+		}
+	}, [
+		interaction.context.collection,
+		interaction.context.tokenId,
+		interaction.currentState,
+		stopProcessing,
+	]);
 
 	// Handle NFT action
-	const handleAction = async (nft: SimpleNFT) => {
-		const key = `${nft.collection}:${nft.tokenId}`;
+	const handleAction = useCallback(
+		async (nft: SimpleNFT) => {
+			const key = `${nft.collection}:${nft.tokenId}`;
+			if (processing[key]) return;
 
-		// Prevent double actions
-		if (processing.has(key)) return;
+			startProcessing(key, mode);
 
-		setProcessing((prev) => new Set([...prev, key]));
+			try {
+				if (mode === "deposit") {
+					if (!contracts.treasury) {
+						throw new Error("Missing treasury address");
+					}
 
-		try {
-			if (mode === "deposit") {
-				if (nft.isAppraised) {
-					// Handle deposit
-					console.log("Depositing NFT:", nft);
-					// TODO: Implement deposit logic
+					interaction.startInteraction(
+						nft.collection,
+						nft.tokenId,
+						"deposit",
+						{
+							treasuryAddress: contracts.treasury,
+							hasAppraisal: true,
+						},
+					);
 				} else {
-					// Handle appraisal
-					console.log("Getting appraisal for NFT:", nft);
-					// TODO: Implement appraisal logic
+					await withdrawNFT(
+						nft.collection as `0x${string}`,
+						BigInt(nft.tokenId),
+					);
+					removeDepositedNFT(key);
+					addWalletNFT({
+						collection: nft.collection,
+						tokenId: nft.tokenId,
+						collectionName: nft.collectionName,
+						rarity: nft.rarity,
+						appraisedValue: nft.appraisedValue,
+						isAppraised: true,
+					});
+					stopProcessing(key);
 				}
-			} else {
-				// Handle withdrawal
-				console.log("Withdrawing NFT:", nft);
-				// TODO: Implement withdrawal logic
+			} catch (err) {
+				console.error(`${mode} action failed:`, err);
+				setError(
+					err instanceof Error
+						? err.message
+						: `Unable to ${mode === "deposit" ? "deposit" : "withdraw"} NFT`,
+				);
+				stopProcessing(key);
 			}
-		} catch (error) {
-			console.error(`${mode} action failed:`, error);
-		} finally {
-			// Clear processing state after a delay
-			setTimeout(() => {
-				setProcessing((prev) => {
-					const newSet = new Set(prev);
-					newSet.delete(key);
-					return newSet;
-				});
-			}, 2000);
-		}
-	};
+		},
+		[
+			processing,
+			mode,
+			startProcessing,
+			treasuryAddress,
+			interaction,
+			withdrawNFT,
+			removeDepositedNFT,
+			addWalletNFT,
+			setError,
+			stopProcessing,
+		],
+	);
 
 	// Loading state
-	if (loading || nftsLoading) {
+	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center py-20">
 				<div className="text-center space-y-4">
@@ -160,13 +324,13 @@ export function SimpleNFTManagement({ mode }: SimpleNFTManagementProps) {
 	}
 
 	// Error state
-	if (nftsError) {
+	if (nftsError || error) {
 		return (
 			<Card className="text-center p-12 bg-danger/10 backdrop-blur-xl border border-danger/20 rounded-2xl">
 				<h3 className="text-xl font-semibold mb-2 text-danger">
 					Error Loading NFTs
 				</h3>
-				<p className="text-foreground/60 mb-4">{nftsError}</p>
+				<p className="text-foreground/60 mb-4">{nftsError || error}</p>
 				<button
 					type="button"
 					onClick={() => window.location.reload()}
@@ -202,14 +366,19 @@ export function SimpleNFTManagement({ mode }: SimpleNFTManagementProps) {
 			className="space-y-8"
 		>
 			{/* Header */}
-			<div className="text-center space-y-2">
-				<h2 className="text-3xl font-bold">
-					{mode === "deposit" ? "Deposit NFTs" : "Withdraw NFTs"}
+			<div className="flex flex-col gap-2 text-center">
+				<h2 className="text-2xl font-semibold text-foreground">
+					{mode === "deposit" ? "Deposit to Vault" : "Withdraw from Vault"}
 				</h2>
-				<p className="text-foreground/70">
-					{nfts.length} NFT{nfts.length !== 1 ? "s" : ""}{" "}
-					{mode === "deposit" ? "in wallet" : "available"}
+				<p className="text-foreground/60 text-sm">
+					{mode === "deposit"
+						? "Select an NFT from your wallet to deposit into the vault."
+						: "Select an NFT from your vault to withdraw back to your wallet."}
 				</p>
+				<div className="text-foreground/70 text-sm">
+					{nfts.length} NFT{nfts.length !== 1 ? "s" : ""}{" "}
+					{mode === "deposit" ? "in wallet" : "in vault"}
+				</div>
 			</div>
 
 			{/* NFT Grid */}
@@ -220,7 +389,14 @@ export function SimpleNFTManagement({ mode }: SimpleNFTManagementProps) {
 						nft={nft}
 						mode={mode}
 						onAction={handleAction}
-						isProcessing={processing.has(`${nft.collection}:${nft.tokenId}`)}
+						isProcessing={
+							!!processing[`${nft.collection}:${nft.tokenId}`] ||
+							(interaction.context.collection === nft.collection &&
+								interaction.context.tokenId === nft.tokenId &&
+								interaction.currentState !== "idle" &&
+								interaction.currentState !== "completed" &&
+								interaction.currentState !== "error")
+						}
 					/>
 				))}
 			</div>

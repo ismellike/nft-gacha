@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { NFTCard } from "./NFTCard";
 import { Button } from "../ui";
+import { Chip } from "../ui/Chip";
 
 export interface SimpleNFT {
 	collection: string;
@@ -28,14 +29,16 @@ export function NFTActionCard({
 	onAction,
 	isProcessing = false,
 }: NFTActionCardProps) {
+	const id = `${nft.collection}:${nft.tokenId}`;
+
 	const getActionConfig = () => {
 		if (mode === "deposit") {
 			return nft.isAppraised
-				? { text: "Deposit NFT", color: "primary" as const }
-				: { text: "Get Appraised", color: "warning" as const };
+				? { text: "Deposit to vault", color: "primary" as const }
+				: { text: "Appraisal required", color: "warning" as const };
 		} else {
 			return nft.canWithdraw
-				? { text: "Withdraw NFT", color: "primary" as const }
+				? { text: "Withdraw from vault", color: "primary" as const }
 				: {
 						text: "Locked in Gacha",
 						color: "default" as const,
@@ -54,7 +57,21 @@ export function NFTActionCard({
 			whileHover={{ scale: 1.02 }}
 			className="group"
 		>
-			<div className="relative bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4 hover:border-white/20 transition-all duration-200">
+			<div className="relative bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4 space-y-3 hover:border-white/20 transition-all duration-200">
+				<div className="flex items-center justify-between text-foreground/70 text-xs">
+					<span className="truncate" title={nft.collectionName || nft.collection}>
+						{nft.collectionName || id}
+					</span>
+					<Chip
+						size="sm"
+						variant="flat"
+						color="primary"
+						className="text-xs"
+					>
+						{mode === "deposit" ? "Wallet NFT" : "Vault NFT"}
+					</Chip>
+				</div>
+
 				{/* NFT Card - consistent layout across deposit/withdraw */}
 				<NFTCard
 					data={{
@@ -66,6 +83,19 @@ export function NFTActionCard({
 					size="lg"
 					showCollectionName={true}
 				/>
+
+				<div className="flex items-center justify-between text-foreground/60 text-sm">
+					<span>Token #{nft.tokenId}</span>
+					{nft.appraisedValue ? (
+						<span className="text-foreground/80">
+							Appraised: {nft.appraisedValue.toString()}
+						</span>
+					) : (
+						<span className="text-foreground/50">
+							{mode === "deposit" ? "Awaiting appraisal" : "No appraisal data"}
+						</span>
+					)}
+				</div>
 
 				{/* Simple Action Button */}
 				<Button
