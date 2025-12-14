@@ -73,7 +73,11 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 					return null;
 			}
 		},
-		[interaction.context.collection, interaction.context.tokenId, interaction.currentState],
+		[
+			interaction.context.collection,
+			interaction.context.tokenId,
+			interaction.currentState,
+		],
 	);
 
 	const isNFTDepositing = useCallback(

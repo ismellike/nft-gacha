@@ -2,7 +2,7 @@
 
 import { memo, useMemo } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -30,6 +30,7 @@ function getNavIcon(iconName: string, className: string) {
 
 export const Header = memo(() => {
 	const pathname = usePathname();
+	const reduceMotion = useReducedMotion();
 
 	const navItems = useMemo(
 		() => [
@@ -51,21 +52,14 @@ export const Header = memo(() => {
 					<div className="flex items-center justify-between px-8 py-6">
 						{/* Logo */}
 						<Link href="/" className="flex items-center space-x-4 group">
-							<div className="relative">
-								{/* Subtle glow effect behind logo */}
-								<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-orange-400/20 to-warning/30 rounded-2xl blur-md animate-pulse opacity-60" />
+								<div className="relative">
+									{/* Subtle glow effect behind logo */}
+									<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-orange-400/20 to-warning/30 rounded-2xl blur-md animate-pulse opacity-60" />
 
-								<motion.div
-									className="relative w-12 h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105"
-									animate={{
-										rotate: -360,
-									}}
-									transition={{
-										duration: 20,
-										repeat: Infinity,
-										ease: "linear",
-									}}
-								>
+									<motion.div
+										className="relative w-12 h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+										whileHover={reduceMotion ? undefined : { rotate: -8 }}
+									>
 									<Image
 										src="/logo.webp"
 										alt="SPINFI Logo"

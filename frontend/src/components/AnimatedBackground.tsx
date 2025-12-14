@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useState, useEffect, memo, useCallback } from "react";
 
 interface FloatingElement {
@@ -15,16 +15,21 @@ interface FloatingElement {
 }
 
 export const AnimatedBackground = memo(() => {
+	const shouldReduceMotion = useReducedMotion();
 	const [elements, setElements] = useState<FloatingElement[]>([]);
 
 	// Removed window resize tracking (not used in animations)
 
 	useEffect(() => {
+		if (shouldReduceMotion) {
+			return;
+		}
+
 		const generateElements = () => {
 			const newElements: FloatingElement[] = [];
 
 			// Generate floating orbs
-			for (let i = 0; i < 8; i++) {
+			for (let i = 0; i < 5; i++) {
 				newElements.push({
 					id: `orb-${i}`,
 					x: Math.random() * 100,
@@ -38,7 +43,7 @@ export const AnimatedBackground = memo(() => {
 			}
 
 			// Generate crystal particles
-			for (let i = 0; i < 12; i++) {
+			for (let i = 0; i < 8; i++) {
 				newElements.push({
 					id: `crystal-${i}`,
 					x: Math.random() * 100,
@@ -52,7 +57,7 @@ export const AnimatedBackground = memo(() => {
 			}
 
 			// Generate small particles
-			for (let i = 0; i < 20; i++) {
+			for (let i = 0; i < 12; i++) {
 				newElements.push({
 					id: `particle-${i}`,
 					x: Math.random() * 100,
@@ -69,7 +74,7 @@ export const AnimatedBackground = memo(() => {
 		};
 
 		generateElements();
-	}, []);
+	}, [shouldReduceMotion]);
 
 	// Removed mouse tracking to avoid unused state and simplify dependencies
 
@@ -161,6 +166,26 @@ export const AnimatedBackground = memo(() => {
 				return null;
 		}
 	}, []);
+
+	if (shouldReduceMotion) {
+		return (
+			<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+				<div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black" />
+				<div className="absolute inset-0 opacity-5">
+					<div
+						className="absolute inset-0"
+						style={{
+							backgroundImage: `
+								linear-gradient(rgba(234, 179, 8, 0.08) 1px, transparent 1px),
+								linear-gradient(90deg, rgba(234, 179, 8, 0.08) 1px, transparent 1px)
+							`,
+							backgroundSize: "50px 50px",
+						}}
+					/>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">

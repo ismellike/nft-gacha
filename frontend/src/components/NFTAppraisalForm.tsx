@@ -389,8 +389,13 @@ export function NFTAppraisalForm({
 		updateUrlFromFormData(emptyFormData);
 	};
 
+	// Only treat in-flight contract steps as pending; allow error state to re-enable inputs
 	const isPending =
-		isApproving || isRequestingAppraisal || state.value !== "idle";
+		isApproving ||
+		isRequestingAppraisal ||
+		state.value === "approving" ||
+		state.value === "submitting" ||
+		state.value === "waitingForCompletion";
 
 	// Show preview if valid NFT details
 	const shouldShowPreview = () => {
@@ -435,11 +440,11 @@ export function NFTAppraisalForm({
 								<div className="pt-4">
 									<Button
 										className="w-full bg-gradient-to-r from-success to-emerald-500 text-white font-medium"
-										isDisabled
+										onPress={resetForm}
 									>
 										<span className="flex items-center justify-center gap-2">
 											<CheckBadgeIcon className="w-5 h-5" /> Appraised
-											Successfully
+											Successfully — Start another
 										</span>
 									</Button>
 								</div>
@@ -551,7 +556,7 @@ export function NFTAppraisalForm({
 				</AnimatePresence>
 
 				{/* NFT Preview */}
-				{shouldShowPreview() && state.matches("idle") && (
+				{shouldShowPreview() && (
 					<motion.div
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -598,8 +603,8 @@ export function NFTAppraisalForm({
 					</motion.div>
 				)}
 
-				{/* Form */}
-				{state.matches("idle") && (
+		{/* Form */}
+		{(state.matches("idle") || state.matches("error")) && (
 					<form onSubmit={handleSubmit} className="p-8 pt-4 space-y-4">
 						{/* Collection Address */}
 						<div>
@@ -619,11 +624,11 @@ export function NFTAppraisalForm({
 										handleInputChange("collection", e.target.value)
 									}
 									disabled={isPending}
-									className={`w-full px-4 py-3 border rounded-lg transition-colors ${
+									className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
 										errors.collection
-											? "border-red-300 focus:border-red-500"
-											: "border-gray-300 focus:border-blue-500"
-									} focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-50 disabled:cursor-not-allowed`}
+											? "border-red-400 focus:border-red-400 focus:ring-red-400/30"
+											: "border-white/10 focus:border-warning focus:ring-warning/30"
+									} focus:outline-none focus:ring-2 disabled:bg-content1/30 disabled:text-foreground/40 disabled:cursor-not-allowed`}
 								/>
 								{errors.collection && (
 									<motion.p
@@ -654,11 +659,11 @@ export function NFTAppraisalForm({
 									value={formData.tokenId}
 									onChange={(e) => handleInputChange("tokenId", e.target.value)}
 									disabled={isPending}
-									className={`w-full px-4 py-3 border rounded-lg transition-colors ${
+									className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
 										errors.tokenId
-											? "border-red-300 focus:border-red-500"
-											: "border-gray-300 focus:border-blue-500"
-									} focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-50 disabled:cursor-not-allowed`}
+											? "border-red-400 focus:border-red-400 focus:ring-red-400/30"
+											: "border-white/10 focus:border-warning focus:ring-warning/30"
+									} focus:outline-none focus:ring-2 disabled:bg-content1/30 disabled:text-foreground/40 disabled:cursor-not-allowed`}
 								/>
 								{errors.tokenId && (
 									<motion.p

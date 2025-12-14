@@ -54,17 +54,17 @@ function GachaDetailPageContent() {
 	// Owner checks for admin access
 	const { data: gachaOwner } = useReadGachaOwner({
 		address: gacha?.address as `0x${string}`,
-		query: { enabled: !!gacha },
+		query: { enabled: isConnected && !!gacha },
 	} as Parameters<typeof useReadGachaOwner>[0]);
 
 	const { data: treasuryOwner } = useReadGachaTreasuryOwner({
 		address: gacha?.treasuryAddress as `0x${string}`,
-		query: { enabled: !!gacha },
+		query: { enabled: isConnected && !!gacha },
 	} as Parameters<typeof useReadGachaTreasuryOwner>[0]);
 
 	const { data: rewardsOwner } = useReadGachaEconomyManagerOwner({
 		address: contracts.economyManager,
-		query: { enabled: !!contracts.economyManager },
+		query: { enabled: isConnected && !!contracts.economyManager },
 	} as Parameters<typeof useReadGachaEconomyManagerOwner>[0]);
 
 	const isOwner = Boolean(
@@ -76,12 +76,6 @@ function GachaDetailPageContent() {
 	const shouldGateAdmin = Boolean(
 		isConnected && gachaOwner && treasuryOwner && rewardsOwner,
 	);
-
-	// Check if rewards manager is paused (kept warm for subcomponents)
-	useReadGachaEconomyManagerPaused({
-		address: contracts.economyManager,
-		query: { enabled: !!contracts.economyManager },
-	} as Parameters<typeof useReadGachaEconomyManagerPaused>[0]);
 
 	// Contract reads for rewards functionality
 	useReadGachaFeeToken({
@@ -97,6 +91,17 @@ function GachaDetailPageContent() {
 		defaultSection: "spin",
 		shouldGateAdmin,
 	});
+
+	// Check if rewards manager is paused only when admin tools are visible
+	useReadGachaEconomyManagerPaused({
+		address: contracts.economyManager,
+		query: {
+			enabled:
+				isConnected &&
+				activeSection === "admin" &&
+				Boolean(contracts.economyManager),
+		},
+	} as Parameters<typeof useReadGachaEconomyManagerPaused>[0]);
 
 	// When users land on Vault ensure balances are fresh
 	useEffect(() => {

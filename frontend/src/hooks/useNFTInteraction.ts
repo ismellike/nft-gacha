@@ -13,7 +13,10 @@ import {
 	useWriteProtocolTreasuryExecuteRedemption,
 	erc721Abi,
 } from "../generated";
-import { useNFTInteractionStore, type InteractionMode } from "../stores/nftInteractionStore";
+import {
+	useNFTInteractionStore,
+	type InteractionMode,
+} from "../stores/nftInteractionStore";
 
 type MaybeFn<T extends (...args: any) => any> = T | undefined;
 
@@ -48,12 +51,12 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	} = useNFTInteractionStore();
 
 	// Wagmi writes
-const {
-	writeContractAsync: approveCollection,
-	reset: resetNFTApproval,
-	data: nftApprovalTxHash,
-	isSuccess: isNFTApprovalSuccess,
-} = useWriteErc721SetApprovalForAll();
+	const {
+		writeContractAsync: approveCollection,
+		reset: resetNFTApproval,
+		data: nftApprovalTxHash,
+		isSuccess: isNFTApprovalSuccess,
+	} = useWriteErc721SetApprovalForAll();
 
 	const {
 		writeContractAsync: depositNFT,
@@ -64,21 +67,21 @@ const {
 		error: depositError,
 	} = useWriteGachaTreasuryDepositNft();
 
-const {
-	writeContractAsync: executeRedemption,
-	reset: resetRedemption,
-	data: redemptionTxHash,
-	isSuccess: isRedemptionSuccess,
-	isError: isRedemptionError,
-	error: redemptionError,
-} = useWriteProtocolTreasuryExecuteRedemption();
+	const {
+		writeContractAsync: executeRedemption,
+		reset: resetRedemption,
+		data: redemptionTxHash,
+		isSuccess: isRedemptionSuccess,
+		isError: isRedemptionError,
+		error: redemptionError,
+	} = useWriteProtocolTreasuryExecuteRedemption();
 
-const { data: depositReceipt } = useWaitForTransactionReceipt({
-	hash: depositTxHash,
-});
-const { data: redemptionReceipt } = useWaitForTransactionReceipt({
-	hash: redemptionTxHash,
-});
+	const { data: depositReceipt } = useWaitForTransactionReceipt({
+		hash: depositTxHash,
+	});
+	const { data: redemptionReceipt } = useWaitForTransactionReceipt({
+		hash: redemptionTxHash,
+	});
 
 	const startInteraction = useCallback(
 		(
@@ -136,14 +139,23 @@ const { data: redemptionReceipt } = useWaitForTransactionReceipt({
 
 			storeStart(startConfig as any);
 		},
-		[context.collection, context.tokenId, publicClient, setError, status, storeStart, userAddress],
+		[
+			context.collection,
+			context.tokenId,
+			publicClient,
+			setError,
+			status,
+			storeStart,
+			userAddress,
+		],
 	);
 
 	// Kick off approval automatically when entering checkingApprovals
 	const maybeStartApproval = useCallback(async () => {
 		if (status !== "checkingApprovals") return;
 
-		const { collection, treasuryAddress, protocolTreasuryAddress, mode } = context;
+		const { collection, treasuryAddress, protocolTreasuryAddress, mode } =
+			context;
 		const operatorAddress =
 			mode === "buyback" ? protocolTreasuryAddress : treasuryAddress;
 
@@ -205,8 +217,13 @@ const { data: redemptionReceipt } = useWaitForTransactionReceipt({
 	// Deposit action for deposits or redemption for buybacks when awaitingInteractionSignature
 	const maybeExecuteAction = useCallback(async () => {
 		if (status !== "awaitingInteractionSignature") return;
-		const { collection, tokenId, mode, treasuryAddress, protocolTreasuryAddress } =
-			context;
+		const {
+			collection,
+			tokenId,
+			mode,
+			treasuryAddress,
+			protocolTreasuryAddress,
+		} = context;
 		if (!collection || !tokenId) return;
 
 		try {
@@ -290,8 +307,10 @@ const { data: redemptionReceipt } = useWaitForTransactionReceipt({
 		if (isDepositError && depositError) {
 			const isUserRejected =
 				(depositError as UserRejectedRequestError)?.name ===
-					"UserRejectedRequestError" ||
-				(depositError as Error)?.message?.toLowerCase?.().includes("user rejected");
+				"UserRejectedRequestError" ||
+				(depositError as Error)?.message
+					?.toLowerCase?.()
+					.includes("user rejected");
 			if (isUserRejected) {
 				setStatus("idle");
 			} else {
@@ -308,8 +327,10 @@ const { data: redemptionReceipt } = useWaitForTransactionReceipt({
 		if (isRedemptionError && redemptionError) {
 			const isUserRejected =
 				(redemptionError as UserRejectedRequestError)?.name ===
-					"UserRejectedRequestError" ||
-				(redemptionError as Error)?.message?.toLowerCase?.().includes("user rejected");
+				"UserRejectedRequestError" ||
+				(redemptionError as Error)?.message
+					?.toLowerCase?.()
+					.includes("user rejected");
 			if (isUserRejected) {
 				setStatus("idle");
 			} else {
@@ -337,7 +358,10 @@ const { data: redemptionReceipt } = useWaitForTransactionReceipt({
 					context.mode === "buyback" &&
 					context.payoutAmount
 				) {
-					params.onBuybackSuccess(context.interactionTxHash, context.payoutAmount);
+					params.onBuybackSuccess(
+						context.interactionTxHash,
+						context.payoutAmount,
+					);
 				}
 			}
 		}

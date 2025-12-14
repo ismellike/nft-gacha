@@ -64,6 +64,26 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 										? "secondary"
 										: "primary");
 
+		if (asChild) {
+			// When asChild is true, Slot expects exactly one child
+			return (
+				<Comp
+					className={cn(
+						glassButton({ variant: derivedVariant, size, isLoading, animate }),
+						className,
+					)}
+					disabled={disabled || isDisabled || isLoading}
+					onClick={onPress ?? onClick}
+					ref={ref}
+					aria-busy={isLoading || undefined}
+					{...props}
+				>
+					{children}
+				</Comp>
+			);
+		}
+
+		// Normal rendering with startContent and endContent
 		return (
 			<Comp
 				className={cn(

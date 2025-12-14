@@ -799,7 +799,13 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			displayUserNFTs.map((nft) => createNFTKey(nft.collection, nft.tokenId)),
 		);
 		cleanupOrphanedState(validKeys);
-	}, [displayUserNFTs, cleanupOrphanedState, state.appraisedNFTs.size, state.appraisalData.size, updateState]);
+	}, [
+		displayUserNFTs,
+		cleanupOrphanedState,
+		state.appraisedNFTs.size,
+		state.appraisalData.size,
+		updateState,
+	]);
 
 	// Manual refresh function for external calls
 	const loadDepositedNFTs = useCallback(async () => {
@@ -1415,7 +1421,8 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 								Withdraw NFTs
 							</h2>
 							<p className="text-sm text-foreground/60">
-								Select an NFT from your vault to withdraw it back to your wallet.
+								Select an NFT from your vault to withdraw it back to your
+								wallet.
 							</p>
 							{hasDeposits && (
 								<p className="text-sm text-foreground/70">

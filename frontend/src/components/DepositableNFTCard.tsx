@@ -174,7 +174,10 @@ export const DepositableNFTCard = ({
 					{actionInfo.type !== "idle" && actionInfo.type !== "completed" && (
 						<Button
 							className="w-full rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
-							isLoading={actionInfo.type === "processing" || actionInfo.type === "checking"}
+							isLoading={
+								actionInfo.type === "processing" ||
+								actionInfo.type === "checking"
+							}
 						>
 							<span className="flex items-center justify-center gap-2">
 								{actionInfo.type === "approveNFT" ? (

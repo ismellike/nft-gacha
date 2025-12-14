@@ -6,6 +6,7 @@ import {
 	useRef,
 	createContext,
 	useContext,
+	useEffect,
 	type ReactNode,
 } from "react";
 import { useGachaContracts } from "./useGachaContracts";
@@ -162,10 +163,10 @@ export function useRegisterRewardsRefetch(
 	const { registerRefetch, unregisterRefetch } = useRewardsRefetchContext();
 
 	// Register refetch function when component mounts or dependencies change
-	useCallback(() => {
+	useEffect(() => {
 		registerRefetch(key, refetchFn);
 		return () => unregisterRefetch(key);
-	}, [key, refetchFn, registerRefetch, unregisterRefetch])();
+	}, [key, refetchFn, registerRefetch, unregisterRefetch]);
 
 	// Return cleanup function for manual unregistration
 	return useCallback(() => {
