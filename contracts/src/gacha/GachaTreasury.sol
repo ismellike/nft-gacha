@@ -48,6 +48,7 @@ contract GachaTreasury is
     error AppraisalRequired();
     error InvalidPriceRange();
     error PriceRangesAlreadySet();
+    error PriceOutOfBounds(uint256 priceUSD);
     error NoNFTsAvailable(Rarity rarity);
     error NFTNotDeposited();
     error NotNFTDepositor();
@@ -239,7 +240,7 @@ contract GachaTreasury is
 
         uint256 commonMin = minPrices[uint256(Rarity.Common)];
         uint256 commonMax = maxPrices[uint256(Rarity.Common)];
-        if (commonMin >= commonMax) revert InvalidPriceRange();
+        if (commonMin != 0 || commonMin >= commonMax) revert InvalidPriceRange();
         commonMinPrice = commonMin;
         commonMaxPrice = commonMax;
 
@@ -263,11 +264,17 @@ contract GachaTreasury is
 
         uint256 legendaryMin = minPrices[uint256(Rarity.Legendary)];
         uint256 legendaryMax = maxPrices[uint256(Rarity.Legendary)];
-        if (legendaryMin >= legendaryMax && legendaryMax != legendaryMaxOverride) {
+        if (legendaryMax != legendaryMaxOverride || legendaryMin >= legendaryMax) {
             revert InvalidPriceRange();
         }
         legendaryMinPrice = legendaryMin;
         legendaryMaxPrice = legendaryMax;
+
+        // Ensure ranges are continuous and non-overlapping so every price fits exactly one bucket
+        if (commonMax + 1 != uncommonMin) revert InvalidPriceRange();
+        if (uncommonMax + 1 != rareMin) revert InvalidPriceRange();
+        if (rareMax + 1 != epicMin) revert InvalidPriceRange();
+        if (epicMax + 1 != legendaryMin) revert InvalidPriceRange();
 
         priceRangesSet = true;
     }
@@ -736,7 +743,7 @@ contract GachaTreasury is
      * @return rarity The appropriate rarity tier for the price
      */
     function getRarityByPrice(uint256 priceUSD) public view returns (Rarity rarity) {
-        // Check from most expensive to least expensive tier
+        // Open-ended top tier guarantees a slot for any sufficiently high price
         if (priceUSD >= legendaryMinPrice && priceUSD <= legendaryMaxPrice) {
             return Rarity.Legendary;
         } else if (priceUSD >= epicMinPrice && priceUSD <= epicMaxPrice) {
@@ -749,8 +756,7 @@ contract GachaTreasury is
             return Rarity.Common;
         }
 
-        // Default to Common if no range matches (shouldn't happen with proper configuration)
-        return Rarity.Common;
+        revert PriceOutOfBounds(priceUSD);
     }
 
     /**

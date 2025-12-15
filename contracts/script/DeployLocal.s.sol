@@ -91,13 +91,13 @@ contract DeployLocal is Script {
     // Original price range constants (all in 18 decimals for USD values)
     uint256 constant COMMON_MIN = 0; // $0 minimum for Common
     uint256 constant COMMON_MAX = 15 * 1e18; // $15 maximum for Common
-    uint256 constant UNCOMMON_MIN = 25 * 1e18; // $25 minimum for Uncommon
+    uint256 constant UNCOMMON_MIN = COMMON_MAX + 1; // contiguous ranges
     uint256 constant UNCOMMON_MAX = 60 * 1e18; // $60 maximum for Uncommon
-    uint256 constant RARE_MIN = 70 * 1e18; // $70 minimum for Rare
+    uint256 constant RARE_MIN = UNCOMMON_MAX + 1; // contiguous ranges
     uint256 constant RARE_MAX = 250 * 1e18; // $250 maximum for Rare
-    uint256 constant EPIC_MIN = 300 * 1e18; // $300 minimum for Epic
+    uint256 constant EPIC_MIN = RARE_MAX + 1; // contiguous ranges
     uint256 constant EPIC_MAX = 1200 * 1e18; // $1,200 maximum for Epic
-    uint256 constant LEGENDARY_MIN = 1500 * 1e18; // $1,500 minimum for Legendary
+    uint256 constant LEGENDARY_MIN = EPIC_MAX + 1; // contiguous ranges
     uint256 constant LEGENDARY_MAX = type(uint256).max; // No upper limit for Legendary
 
     function run() external {
