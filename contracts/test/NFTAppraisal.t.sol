@@ -22,9 +22,7 @@ contract NFTAppraisalTest is Test {
     uint256 public constant NFT_PRICE_100 = 100e18; // $100
     uint256 public constant NFT_PRICE_1000 = 1000e18; // $1000
 
-    event AppraisalRequested(
-        address indexed nftContract, uint256 indexed tokenId
-    );
+    event AppraisalRequested(address indexed nftContract, uint256 indexed tokenId);
 
     event AppraisalCompleted(
         address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed oracle, uint256 timestamp
@@ -55,13 +53,8 @@ contract NFTAppraisalTest is Test {
         NFTAppraisal appraisalImpl = new NFTAppraisal();
 
         vm.prank(owner);
-        bytes memory initData = abi.encodeWithSelector(
-            NFTAppraisal.initialize.selector,
-            owner,
-            address(feeToken),
-            APPRAISAL_FEE,
-            protocol
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(NFTAppraisal.initialize.selector, owner, address(feeToken), APPRAISAL_FEE, protocol);
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), initData);
         appraisal = NFTAppraisal(address(proxy));

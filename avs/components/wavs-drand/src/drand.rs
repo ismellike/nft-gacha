@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
 #[cfg(not(test))]
-use crate::bindings::wasi::keyvalue::store::open;
-use crate::bindings::wasi::keyvalue::store::Bucket;
+use crate::wasi::keyvalue::store::open;
+use crate::wasi::keyvalue::store::Bucket;
 
 /// Drand client for fetching randomness
 #[derive(Debug)]

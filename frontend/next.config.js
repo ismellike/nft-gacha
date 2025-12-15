@@ -18,25 +18,16 @@ const nextConfig = {
 	images: {
 		unoptimized: true,
 		formats: ["image/webp", "image/avif"],
-		// Allow external image domains
-		domains: [
-			"static.courtyard.io",
-			"api.courtyard.io",
-			"ipfs.io",
-			"gateway.pinata.cloud",
-			"cloudflare-ipfs.com",
-			// Image proxy services
-			"images.weserv.nl",
-			"cors-anywhere.herokuapp.com",
-		],
-		// Remote patterns for more flexible domain matching
+		// Remote patterns for external image domains
 		remotePatterns: [
+			// Courtyard domains - allow all subdomains and paths
 			{
 				protocol: "https",
 				hostname: "*.courtyard.io",
 				port: "",
 				pathname: "/**",
 			},
+			// IPFS and decentralized storage
 			{
 				protocol: "https",
 				hostname: "ipfs.io",
@@ -46,12 +37,6 @@ const nextConfig = {
 			{
 				protocol: "https",
 				hostname: "*.pinata.cloud",
-				port: "",
-				pathname: "/**",
-			},
-			{
-				protocol: "https",
-				hostname: "images.weserv.nl",
 				port: "",
 				pathname: "/**",
 			},
@@ -80,12 +65,7 @@ const nextConfig = {
 		// reactCompiler: true, // Disabled - requires babel-plugin-react-compiler
 
 		// Optimize package imports for better tree shaking
-		optimizePackageImports: [
-			"@heroicons/react",
-			"@heroui/react",
-			"framer-motion",
-			"zustand",
-		],
+		optimizePackageImports: ["@heroicons/react", "framer-motion", "zustand"],
 
 		// Lightning CSS for faster CSS processing (disabled due to PostCSS plugin conflict)
 		// useLightningcss: true,
@@ -93,9 +73,6 @@ const nextConfig = {
 		// Partial Prerendering for improved performance
 		ppr: false, // Set to true if using app router with SSG
 	},
-
-	// Transpile packages for better compatibility
-	transpilePackages: ["@heroui/react", "@heroui/theme"],
 
 	// Compiler options (SWC is now default, no need to specify swcMinify)
 	compiler: {

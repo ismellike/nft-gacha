@@ -10,19 +10,19 @@ import { ClientAnimatedBackground } from "../components/ClientAnimatedBackground
 // Optimize font loading
 const inter = Inter({
 	subsets: ["latin"],
-	weight: ["300", "400", "500", "600", "700", "800"],
+	weight: ["400", "600", "700"], // trim unused weights to cut font bytes
 	variable: "--font-inter",
 });
 
 const jetbrainsMono = JetBrains_Mono({
 	subsets: ["latin"],
-	weight: ["400", "500", "600"],
+	weight: ["400", "600"], // keep light + semi-bold for code snippets
 	variable: "--font-jetbrains-mono",
 });
 
 const orbitron = Orbitron({
 	subsets: ["latin"],
-	weight: ["400", "500", "600", "700", "800", "900"],
+	weight: ["400", "700", "800"], // keep display weights, drop the rest
 	variable: "--font-orbitron",
 });
 

@@ -22,6 +22,7 @@ export interface RarityConfigItem {
 		| "warning"
 		| "danger";
 	glowColor: string;
+	hexColor: string; // Added explicit hex color for glow effects
 	description: string;
 	emoji: string;
 }
@@ -35,6 +36,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-common-200",
 		chipColor: "default" as const,
 		glowColor: "shadow-rarity-common-500/20",
+		hexColor: "#9CA3AF", // Gray
 		description: "Standard cards with steady rewards and high availability",
 		emoji: "⚪",
 	},
@@ -46,6 +48,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-uncommon-200",
 		chipColor: "success" as const,
 		glowColor: "shadow-rarity-uncommon-500/20",
+		hexColor: "#10B981", // Green
 		description: "Enhanced cards with improved reward multipliers",
 		emoji: "🟢",
 	},
@@ -57,6 +60,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-rare-200",
 		chipColor: "primary" as const,
 		glowColor: "shadow-rarity-rare-500/20",
+		hexColor: "#3B82F6", // Blue
 		description: "Valuable cards with significant reward bonuses",
 		emoji: "🔵",
 	},
@@ -68,6 +72,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-epic-200",
 		chipColor: "secondary" as const,
 		glowColor: "shadow-rarity-epic-500/20",
+		hexColor: "#8B5CF6", // Purple
 		description: "Premium cards with substantial reward amplification",
 		emoji: "🟣",
 	},
@@ -79,6 +84,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		textColor: "text-rarity-legendary-200",
 		chipColor: "warning" as const,
 		glowColor: "shadow-rarity-legendary-500/20",
+		hexColor: "#F59E0B", // Orange/Amber
 		description: "Elite cards with maximum reward potential",
 		emoji: "🟠",
 	},

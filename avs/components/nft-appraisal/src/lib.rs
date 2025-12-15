@@ -1,16 +1,8 @@
-#[rustfmt::skip]
-#[allow(clippy::all)]
-mod bindings;
-
-use crate::bindings::{
-    export, host,
-    wavs::types::{core::LogLevel, events::TriggerDataEvmContractEvent},
-    Guest, TriggerAction, WasmResponse,
-};
+use crate::wavs::operator::input::TriggerData;
+use crate::wavs::types::{core::LogLevel, events::TriggerDataEvmContractEvent};
 use wstd::runtime::block_on;
 
 mod core;
-mod engine;
 mod providers;
 mod resolvers;
 mod traits;
@@ -21,41 +13,50 @@ use anyhow::Result;
 use core::AppraisalErrorCode;
 use core::AppraisalProcessor;
 
+wit_bindgen::generate!({
+    path: "../../../wit-definitions/operator/wit",
+    world: "wavs-world",
+    generate_all,
+    with: {
+        "wasi:io/poll@0.2.0": wasip2::io::poll
+    },
+    features: ["tls"]
+});
+
 alloy_sol_types::sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 
 struct Component;
 
 impl Guest for Component {
-    fn run(action: TriggerAction) -> std::result::Result<Option<WasmResponse>, String> {
+    fn run(action: TriggerAction) -> std::result::Result<Vec<WasmResponse>, String> {
         block_on(async move {
             let evm_event = match action.data {
-                crate::bindings::wavs::operator::input::TriggerData::EvmContractEvent(event) => {
-                    event
-                }
-                _ => return Ok(None),
+                TriggerData::EvmContractEvent(event) => event,
+                _ => return Ok(vec![]),
             };
 
-            match process_appraisal_request(evm_event.clone()).await {
-                Ok(Some(response)) => {
-                    host::log(
-                        LogLevel::Info,
-                        &format!("Appraisal success: {:?}", response),
-                    );
-                    Ok(Some(response))
-                }
-                Ok(None) => {
-                    host::log(LogLevel::Warn, "No appraisal result available");
-                    Ok(None)
+            match process_appraisal_request(&evm_event).await {
+                Ok(response) => {
+                    if response.is_empty() {
+                        host::log(LogLevel::Warn, "No appraisal result available");
+                    } else {
+                        host::log(
+                            LogLevel::Info,
+                            &format!("Appraisal success: {:?}", response),
+                        );
+                    }
+                    Ok(response)
                 }
                 Err(e) => {
                     let error_response =
                         AppraisalErrorCode::create_error_response(&evm_event, e.to_string());
                     let response_payload = error_response.to_error_payload(e.to_string());
                     host::log(LogLevel::Error, &format!("Appraisal error: {}", e));
-                    Ok(Some(WasmResponse {
+                    Ok(vec![WasmResponse {
                         payload: response_payload,
                         ordering: None,
-                    }))
+                        event_id_salt: None,
+                    }])
                 }
             }
         })
@@ -63,37 +64,24 @@ impl Guest for Component {
 }
 
 async fn process_appraisal_request(
-    evm_event: TriggerDataEvmContractEvent,
-) -> Result<Option<WasmResponse>> {
+    evm_event: &TriggerDataEvmContractEvent,
+) -> Result<Vec<WasmResponse>> {
     let processor = AppraisalProcessor::new()
         .map_err(|e| anyhow::anyhow!("Failed to initialize appraisal processor: {}", e))?;
 
-    let appraisal_result = processor.process_appraisal_request(&evm_event).await?;
+    let appraisal_result = processor.process_appraisal_request(evm_event).await?;
 
     // Try to create success payload
     if let Some(payload) = appraisal_result.to_success_payload() {
-        return Ok(Some(WasmResponse {
+        return Ok(vec![WasmResponse {
             payload,
             ordering: None,
-        }));
+            event_id_salt: None,
+        }]);
     }
 
     // No success payload available (no price or zero price)
-    Ok(None)
+    Ok(vec![])
 }
 
-export!(Component with_types_in bindings);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_appraisal_processor_creation() {
-        // Test that we can create a processor (may fail without proper config)
-        let result = AppraisalProcessor::new();
-        // The result may fail in test environment without proper config
-        // This just verifies the struct is properly defined
-        assert!(result.is_ok() || result.is_err());
-    }
-}
+export!(Component);

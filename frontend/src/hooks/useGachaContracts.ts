@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo } from "react";
 import { getGachaContracts } from "../lib/gacha-config/contracts";
 import { isValidContractAddress } from "../lib/contract-utils";
@@ -6,7 +8,11 @@ export interface GachaContracts {
 	gacha: string | undefined;
 	treasury: string | undefined;
 	appraisal: string | undefined;
-	rewardsManager: string | undefined;
+	economyManager: string | undefined;
+	gachaServiceHandler: string | undefined;
+	depositorVault: string | undefined;
+	buybackVault: string | undefined;
+	protocolTreasury: string | undefined;
 	trackers:
 		| {
 				common: string | undefined;
@@ -38,7 +44,11 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 				gacha: contractAddresses.gacha,
 				treasury: contractAddresses.treasury,
 				appraisal: contractAddresses.appraisal,
-				rewardsManager: contractAddresses.rewardsManager,
+				economyManager: contractAddresses.economyManager,
+				gachaServiceHandler: contractAddresses.gachaServiceHandler,
+				depositorVault: contractAddresses.depositorVault,
+				buybackVault: contractAddresses.buybackVault,
+				protocolTreasury: contractAddresses.protocolTreasury,
 				trackers: contractAddresses.trackers,
 			};
 
@@ -74,7 +84,11 @@ function getEmptyContracts(): GachaContracts {
 		gacha: undefined,
 		treasury: undefined,
 		appraisal: undefined,
-		rewardsManager: undefined,
+		economyManager: undefined,
+		gachaServiceHandler: undefined,
+		depositorVault: undefined,
+		buybackVault: undefined,
+		protocolTreasury: undefined,
 		trackers: {
 			common: undefined,
 			uncommon: undefined,

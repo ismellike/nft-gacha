@@ -2,15 +2,28 @@ version: "3"
 
 tasks:
   get-submission-address:
-    vars:
-      WORKFLOW_ID: '{{.WORKFLOW_ID | default "wavs_drand"}}'
+    requires:
+      vars: [WORKFLOW_ID]
     cmds:
-      - bash -c 'if [ "{{.WORKFLOW_ID}}" = "nft_appraisals" ]; then echo "$NFT_APPRAISAL_SERVICE_HANDLER_ADDRESS"; else echo "$GACHA_SERVICE_HANDLER_ADDRESS"; fi'
+      - |
+        case "{{.WORKFLOW_ID}}" in
+          "nft_appraisals")
+            echo "$APPRAISAL_SERVICE_HANDLER_ADDRESS"
+            ;;
+          "wavs_drand")
+            echo "$GACHA_SERVICE_HANDLER_ADDRESS"
+            ;;
+          *)
+            echo "Error: Unknown workflow ID {{.WORKFLOW_ID}}" >&2
+            exit 1
+            ;;
+        esac
 
   get-aggregator-simple-flags:
     desc: "Get --values flags with chain_name=address format"
+    requires:
+      vars: [WORKFLOW_ID]
     vars:
-      WORKFLOW_ID: '{{.WORKFLOW_ID | default "wavs_drand"}}'
       CHAIN:
         sh: cd "{{.REPO_ROOT}}" && task backend:get-chain-name-1
       SUBMISSION_ADDRESS:

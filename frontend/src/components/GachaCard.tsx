@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import type { Address } from "viem";
 import { formatTokenAmount } from "../lib/utils";
 import {
 	useReadGachaTreasuryGetPlatformOverviewBatch,
@@ -18,9 +19,8 @@ import {
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { Card, Chip } from "../ui";
-import { GachaCardSkeleton } from ".";
+import { GachaCardSkeleton } from "./SkeletonLoader";
 import { GachaCardHeader } from "./GachaCardHeader";
-import { RarityBadge } from "./RaritySystem";
 import { getAllRarities, getRarityEmoji } from "../lib/rarityConfig";
 import type { GachaConfig } from "../lib/gacha-config";
 
@@ -44,14 +44,38 @@ export function GachaCard({ gacha }: GachaCardProps) {
 			address: gacha.address as `0x${string}`,
 		} as Parameters<typeof useReadGachaGetGachaConfigBatch>[0]);
 
+	// Types based on contract return values
+	type PlatformOverviewBatch = readonly [
+		rarityCounts: readonly bigint[], // [5]
+		totalItems: bigint,
+		gachaAvailable: boolean,
+		totalDeposited: bigint,
+		totalClaimed: bigint,
+	];
+
+	type GachaConfigBatch = readonly [
+		feeTokenAddr: Address,
+		spinFeeAmount: bigint,
+		isPaused: boolean,
+		rarityWeights: readonly bigint[], // [5]
+		totalWeight: bigint,
+		isAvailable: boolean,
+	];
+
 	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const rarityCounts = (platformData as any)?.[0] || [0n, 0n, 0n, 0n, 0n];
-	const totalItemsCount = (platformData as any)?.[1] || 0n;
-	const isAvailable = (platformData as any)?.[2] || false;
+	const rarityCounts = (platformData as PlatformOverviewBatch)?.[0] || [
+		0n,
+		0n,
+		0n,
+		0n,
+		0n,
+	];
+	const totalItemsCount = (platformData as PlatformOverviewBatch)?.[1] || 0n;
+	const isAvailable = (platformData as PlatformOverviewBatch)?.[2] || false;
 
 	// Extract gacha config: [feeTokenAddr, spinFeeAmount, isPaused, rarityWeights[5], totalWeight, isAvailable]
-	const feeToken = (gachaConfig as any)?.[0];
-	const spinFee = (gachaConfig as any)?.[1] || 0n;
+	const feeToken = (gachaConfig as GachaConfigBatch)?.[0];
+	const spinFee = (gachaConfig as GachaConfigBatch)?.[1] || 0n;
 
 	const { data: feeTokenSymbol } = useReadErc20Symbol({
 		address: feeToken,
@@ -91,7 +115,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	return (
 		<motion.button
-			className="h-full cursor-pointer"
+			className="h-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background rounded-2xl"
 			onClick={handleExplore}
 			whileHover={{ scale: 1.02 }}
 			whileTap={{ scale: 0.98 }}
@@ -191,7 +215,9 @@ export function GachaCard({ gacha }: GachaCardProps) {
 											key={rarity}
 											className="text-center p-1 rounded bg-content1/10 border border-white/5"
 										>
-											<div className={`text-lg mb-1 ${hasCards ? 'opacity-100' : 'opacity-30'}`}>
+											<div
+												className={`text-lg mb-1 ${hasCards ? "opacity-100" : "opacity-30"}`}
+											>
 												{getRarityEmoji(rarity)}
 											</div>
 											<div className="text-xs text-foreground/60 font-medium">

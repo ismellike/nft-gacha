@@ -17,10 +17,6 @@ interface IGacha {
     /// @return The fee token address
     function feeToken() external view returns (IERC20);
 
-    /// @notice Set the rewards manager contract
-    /// @param _rewardsManager Address of the rewards manager
-    function setRewardsManager(address _rewardsManager) external;
-
     /// @notice Set the service handler contract
     /// @param _serviceHandler Address of the service handler
     function setGachaServiceHandler(address _serviceHandler) external;
@@ -35,13 +31,8 @@ interface IGacha {
     /// @param _rare Weight for rare rarity
     /// @param _epic Weight for epic rarity
     /// @param _legendary Weight for legendary rarity
-    function setRarityWeights(
-        uint256 _common,
-        uint256 _uncommon,
-        uint256 _rare,
-        uint256 _epic,
-        uint256 _legendary
-    ) external;
+    function setRarityWeights(uint256 _common, uint256 _uncommon, uint256 _rare, uint256 _epic, uint256 _legendary)
+        external;
 
     /// @notice Spin the gacha
     /// @return triggerId The trigger ID for randomness fulfillment

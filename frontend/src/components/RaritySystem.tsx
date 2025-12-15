@@ -12,7 +12,7 @@ interface RarityBadgeProps {
 	className?: string;
 }
 
-export function RarityBadge({
+function RarityBadge({
 	rarity,
 	showEmoji = true,
 	size = "md",
@@ -50,7 +50,7 @@ interface RarityShowcaseProps {
 	onRarityClick?: (rarity: Rarity) => void;
 }
 
-export function RarityShowcase({
+function RarityShowcase({
 	className = "",
 	animate = false,
 	onRarityClick,

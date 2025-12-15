@@ -1,7 +1,8 @@
-use crate::bindings::wavs::types::events::TriggerDataEvmContractEvent;
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use wavs_wasi_utils::decode_event_log_data;
+
+use crate::wavs::types::events::TriggerDataEvmContractEvent;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppraisalRequest {

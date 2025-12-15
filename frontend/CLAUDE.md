@@ -45,7 +45,7 @@ The gacha spinning flow uses `gachaSpinMachine.ts` with states:
 - **Generated Hooks**: Auto-generated hooks like `useReadGachaGetRarityWeights()`
 
 ### Component Architecture
-- **Glass UI System**: Reusable glassmorphism components in `src/components/ui/`
+- **Glass UI System**: Reusable glassmorphism components in `src/ui/`
 - **Gacha Components**: Modular spin controls, history, reveal modals in `src/components/`
 - **State Integration**: Components consume XState actors and Zustand stores
 
@@ -59,7 +59,7 @@ The gacha spinning flow uses `gachaSpinMachine.ts` with states:
 - `src/stores/` - Zustand state management
 - `src/hooks/` - Custom React hooks for contract interactions
 - `src/lib/gacha-config/` - Environment-specific configurations
-- `src/components/ui/` - Reusable UI components
+- `src/ui/` - Reusable UI components
 - `src/generated.ts` - Auto-generated contract types
 
 ## Important Development Notes

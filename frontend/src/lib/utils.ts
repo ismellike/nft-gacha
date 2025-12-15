@@ -54,7 +54,7 @@ export function formatBlockNumber(blockNumber: bigint | number): string {
 // ============================================================================
 
 /**
- * Enhanced token amount formatting with industry standards
+ * Enhanced token amount formatting with pure BigInt arithmetic
  */
 export function formatTokenAmount(
 	amount: bigint | string | number,
@@ -70,9 +70,7 @@ export function formatTokenAmount(
 ): string {
 	const {
 		maxDecimals = 6,
-		minDecimals = 0,
 		useGrouping = true,
-		notation = "standard",
 		suffix = "",
 		prefix = "",
 	} = options;
@@ -84,38 +82,51 @@ export function formatTokenAmount(
 		const bigIntAmount =
 			typeof amount === "bigint" ? amount : BigInt(amount.toString());
 
-		const divisor = BigInt(10 ** decimals);
+		// Use pure BigInt arithmetic for divisor
+		let divisor = BigInt(10);
+		for (let i = 1; i < decimals; i++) {
+			divisor *= BigInt(10);
+		}
 		const quotient = bigIntAmount / divisor;
 		const remainder = bigIntAmount % divisor;
 
+		// Helper function to format BigInt numbers with grouping
+		const formatBigInt = (bigNum: bigint): string => {
+			const str = bigNum.toString();
+			if (!useGrouping || str.length <= 3) return str;
+
+			// Add thousands separators from right to left
+			const groups = [];
+			let start = str.length;
+
+			while (start > 0) {
+				const end = start;
+				start = Math.max(0, start - 3);
+				groups.unshift(str.slice(start, end));
+			}
+
+			return groups.join(",");
+		};
+
+		// Handle whole numbers (no remainder)
 		if (remainder === BigInt(0)) {
-			const formatted = Number(quotient).toLocaleString("en-US", {
-				minimumFractionDigits: minDecimals,
-				maximumFractionDigits: 0,
-				useGrouping,
-				notation,
-			});
+			const formatted = formatBigInt(quotient);
 			return `${prefix}${formatted}${suffix}`;
 		}
 
+		// Convert remainder to decimal string
 		const remainderStr = remainder.toString().padStart(decimals, "0");
 		const trimmedRemainder = remainderStr.replace(/0+$/, "");
 
+		// Handle cases where decimal part gets trimmed away
 		if (trimmedRemainder === "") {
-			const formatted = Number(quotient).toLocaleString("en-US", {
-				minimumFractionDigits: minDecimals,
-				maximumFractionDigits: 0,
-				useGrouping,
-				notation,
-			});
+			const formatted = formatBigInt(quotient);
 			return `${prefix}${formatted}${suffix}`;
 		}
 
+		// Get the decimal part limited by maxDecimals
 		const decimalPart = trimmedRemainder.slice(0, maxDecimals);
-		const wholeNumber = Number(quotient).toLocaleString("en-US", {
-			useGrouping,
-			notation: notation === "compact" ? "standard" : notation, // Avoid compact for whole numbers with decimals
-		});
+		const wholeNumber = formatBigInt(quotient);
 
 		return `${prefix}${wholeNumber}.${decimalPart}${suffix}`;
 	} catch (error) {

@@ -13,7 +13,7 @@ prometheus = "http://localhost:9090"
 # == Ethereum chains ==
 
 [default.chains.evm.31337] # Local: anvil
-ws_endpoint = "ws://localhost:8548"
+ws_endpoints = ["ws://localhost:8548"]
 http_endpoint = "http://localhost:8548"
 poll_interval_ms = 7000
 

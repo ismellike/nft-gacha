@@ -5,14 +5,14 @@
 import type { Address, Hex } from "viem";
 
 // Base hook result interface
-export interface BaseHookResult<T = any> {
+export interface BaseHookResult<T> {
 	data: T | null;
 	isLoading: boolean;
 	error: string | null;
 }
 
 // Extended hook result with refetch
-export interface HookResult<T = any> extends BaseHookResult<T> {
+export interface HookResult<T> extends BaseHookResult<T> {
 	refetch: () => Promise<void>;
 }
 
@@ -36,7 +36,7 @@ export interface NFTMetadata {
 	card_number?: string;
 	artist?: string;
 	// Allow additional properties for future extensions
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 // Hook result interfaces
@@ -108,7 +108,7 @@ export interface ContractInteractionOptions {
 }
 
 // Batch operation options
-export interface BatchOperationOptions<T = any> {
+export interface BatchOperationOptions<T> {
 	batchSize?: number;
 	enabled?: boolean;
 	onProgress?: (completed: number, total: number) => void;

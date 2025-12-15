@@ -7,8 +7,8 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "../utils/ReentrancyGuardUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {AppraisalRequested} from "../interfaces/NFTAppraisalTypes.sol";
 
@@ -23,7 +23,7 @@ contract NFTAppraisal is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
+    ReentrancyGuardTransient,
     UUPSUpgradeable
 {
     using SafeERC20 for IERC20;
@@ -35,16 +35,12 @@ contract NFTAppraisal is
     error InvalidTokenId();
     error AppraisalNotFound();
     error AppraisalAlreadyExists();
-    error AppraisalNotPending();
     error UnauthorizedServiceHandler();
     error InvalidPrice();
     error CardIdMismatch();
-    error CardIdRequired();
     error InvalidTreasuryAddress();
     error TreasuryAlreadyWhitelisted();
     error TreasuryNotWhitelisted();
-    error InvalidAppraisalInitialization();
-    error NotAppraisalInitializing();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
@@ -137,14 +133,13 @@ contract NFTAppraisal is
      * @param _appraisalFee Fee amount for each appraisal request
      * @param _protocolAddress Address to receive protocol fees
      */
-    function initialize(address /* _owner */, address _feeToken, uint256 _appraisalFee, address _protocolAddress)
+    function initialize(address _owner, address _feeToken, uint256 _appraisalFee, address _protocolAddress)
         public
         initializer
     {
-        __Ownable_init();
+        __Ownable_init(_owner);
         __Pausable_init();
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
+        // ReentrancyGuardTransient doesn't need initialization
 
         if (_feeToken == address(0)) revert InvalidFeeToken();
         if (_protocolAddress == address(0)) revert InvalidProtocolAddress();
@@ -532,6 +527,63 @@ contract NFTAppraisal is
         appraisals = new CardAppraisal[](cardIds.length);
         for (uint256 i = 0; i < cardIds.length; i++) {
             appraisals[i] = cardAppraisals[cardIds[i]];
+        }
+    }
+
+    /**
+     * @notice Gets representative NFT instances for card IDs for frontend display
+     * @param cardIds Array of card IDs to get sample instances for
+     * @return collections Array of collection addresses corresponding to each card ID
+     * @return tokenIds Array of token IDs corresponding to each card ID
+     * @dev Returns the canonical (first appraised) NFT instance for each card ID
+     * @dev If no canonical instance exists, returns zero address and zero token ID for that card
+     */
+    function getCardInstances(bytes32[] calldata cardIds)
+        external
+        view
+        returns (address[] memory collections, uint256[] memory tokenIds)
+    {
+        uint256 length = cardIds.length;
+        collections = new address[](length);
+        tokenIds = new uint256[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            bytes32 cardId = cardIds[i];
+            CardAppraisal storage cardAppraisal = cardAppraisals[cardId];
+
+            // Return the canonical (first) NFT instance for this card
+            if (cardAppraisal.canonicalContractAddress != address(0)) {
+                collections[i] = cardAppraisal.canonicalContractAddress;
+                tokenIds[i] = cardAppraisal.canonicalTokenId;
+            } else {
+                // No canonical instance available
+                collections[i] = address(0);
+                tokenIds[i] = 0;
+            }
+        }
+    }
+
+    /**
+     * @notice Gets a single representative NFT instance for a card ID
+     * @param cardId Card ID to get sample instance for
+     * @return collection Collection address of the representative NFT
+     * @return tokenId Token ID of the representative NFT
+     * @dev Returns the canonical (first appraised) NFT instance for the card ID
+     * @dev If no canonical instance exists, returns zero address and zero token ID
+     */
+    function getCardInstance(bytes32 cardId)
+        external
+        view
+        returns (address collection, uint256 tokenId)
+    {
+        CardAppraisal storage cardAppraisal = cardAppraisals[cardId];
+
+        // Return the canonical (first) NFT instance for this card
+        if (cardAppraisal.canonicalContractAddress != address(0)) {
+            return (cardAppraisal.canonicalContractAddress, cardAppraisal.canonicalTokenId);
+        } else {
+            // No canonical instance available
+            return (address(0), 0);
         }
     }
 

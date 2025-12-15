@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Modal, ModalContent, ModalBody } from "@heroui/react";
-import { glassModalClasses } from "../ui/modals";
+import { Modal, ModalContent, ModalBody } from "../ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
-import { NFTHeroCard } from ".";
+import { NFTCard } from "./NFTCard";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
+import { getGachaConfig } from "../lib/gacha-config";
+import { useMemo } from "react";
+import SellToTreasury from "./SellToTreasury";
 
 interface SpinResult {
 	rarity: string;
@@ -20,6 +22,7 @@ interface NFTRevealModalProps {
 	nftResult: SpinResult;
 	onClose: () => void;
 	appraisalContractAddress: `0x${string}`;
+	gachaId?: string;
 }
 
 export default function NFTRevealModal({
@@ -27,11 +30,20 @@ export default function NFTRevealModal({
 	nftResult,
 	onClose,
 	appraisalContractAddress,
+	gachaId,
 }: NFTRevealModalProps) {
 	const [showCard, setShowCard] = useState(false);
 
 	// Get enhanced spin result with metadata
 	const enhancedResult = useEnhancedSpinResult(nftResult);
+
+	// Get gacha config for protocol treasury address
+	const gachaConfig = useMemo(
+		() => (gachaId ? getGachaConfig(gachaId) : null),
+		[gachaId],
+	);
+	const protocolTreasuryAddress = gachaConfig?.protocolTreasuryAddress;
+	const gachaTreasuryAddress = gachaConfig?.treasuryAddress || "";
 
 	useEffect(() => {
 		if (isVisible) {
@@ -55,15 +67,10 @@ export default function NFTRevealModal({
 			onClose={onClose}
 			size="full"
 			hideCloseButton
-			classNames={{
-				backdrop: glassModalClasses.backdrop,
-				base: glassModalClasses.contentDark,
-				body: glassModalClasses.body,
-			}}
 			placement="center"
 		>
 			<ModalContent>
-				<ModalBody className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center">
+				<ModalBody className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center pointer-events-auto">
 					{/* Close Button - Top Right of Modal */}
 					<motion.button
 						onClick={onClose}
@@ -92,7 +99,7 @@ export default function NFTRevealModal({
 
 					{/* Dramatic Background Glow */}
 					<motion.div
-						className="absolute inset-0 overflow-hidden"
+						className="absolute inset-0 overflow-hidden pointer-events-none"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: showCard ? 1 : 0 }}
 						transition={{ duration: 2 }}
@@ -147,19 +154,45 @@ export default function NFTRevealModal({
 									className="relative"
 									style={{ perspective: 1000 }}
 								>
-									{/* NFT Card - Using same size as rarity showcase */}
-									<div className="flex flex-col items-center">
-										<NFTHeroCard
-											collection={nftResult.collection}
-											tokenId={nftResult.tokenId}
-											imageUrl={
-												enhancedResult?.imageUrl || nftResult.imageUrl || ""
-											}
-											showAppraisal={true}
+									{/* NFT Card - Simplified for modal use */}
+									<div className="flex flex-col items-center space-y-8">
+										<NFTCard
+											data={{
+												collection: nftResult.collection,
+												tokenId: nftResult.tokenId,
+												imageUrl:
+													enhancedResult?.imageUrl || nftResult.imageUrl,
+												rarity: resultRarity,
+											}}
+											size="lg"
+											showCollectionName={true}
 											appraisalContractAddress={appraisalContractAddress}
-											animate={true}
-											rarity={resultRarity}
+											{...(protocolTreasuryAddress && {
+												protocolTreasuryAddress,
+											})}
+											{...(gachaId && { gachaId })}
+											onBuybackSuccess={(txHash) => {
+												console.log("NFT sold successfully:", txHash);
+											}}
 										/>
+										{protocolTreasuryAddress && (
+											<motion.div
+												className="z-50 w-full flex justify-center pointer-events-auto"
+												initial={{ opacity: 0, y: 20 }}
+												animate={{ opacity: 1, y: 0 }}
+												transition={{ delay: 0.5, duration: 0.5 }}
+											>
+												<SellToTreasury
+													collection={nftResult.collection}
+													tokenId={nftResult.tokenId}
+													appraisalContractAddress={appraisalContractAddress}
+													protocolTreasuryAddress={protocolTreasuryAddress}
+													gachaTreasuryAddress={gachaTreasuryAddress}
+													size="lg"
+													variant="button"
+												/>
+											</motion.div>
+										)}
 									</div>
 								</motion.div>
 							)}

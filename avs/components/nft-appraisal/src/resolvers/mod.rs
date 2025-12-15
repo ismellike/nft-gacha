@@ -1,3 +1,3 @@
-pub mod pokemon_price_resolver;
+pub mod scrydex_resolver;
 
-pub use pokemon_price_resolver::PokemonPriceResolver;
+pub use scrydex_resolver::ScrydexPokemonResolver;

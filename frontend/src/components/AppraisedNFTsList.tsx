@@ -9,14 +9,26 @@ import {
 	ExclamationTriangleIcon,
 	MagnifyingGlassIcon,
 	ArrowPathIcon,
+	GiftIcon,
+	FunnelIcon,
+	ArrowsUpDownIcon,
+	DocumentTextIcon,
+	SparklesIcon,
 } from "@heroicons/react/24/outline";
 
 import { Card, Button } from "../ui";
-import { LoadingState } from ".";
-import { UnifiedNFTCard } from "./UnifiedNFTCard";
+import { LoadingState } from "./LoadingState";
+import { NFTCard } from "./NFTCard";
+import { DepositableNFTCard } from "./DepositableNFTCard";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import { formatCurrency } from "../lib/utils";
+import {
+	useAppraisalData,
+	type AppraisalFilter,
+	type AppraisalSort,
+} from "../hooks/useAppraisalData";
+import type { OptimisticAppraisal } from "../stores/nftAppraisalStore";
 
 interface AppraisedNFT {
 	collection: string;
@@ -38,14 +50,32 @@ interface AppraisedNFTsListProps {
 }
 
 interface NFTAppraisalCardProps {
-	nft: AppraisedNFT;
+	nft: AppraisedNFT | OptimisticAppraisal; // Accept both AppraisedNFT and OptimisticAppraisal
+	onDepositAction?: (
+		collection: string,
+		tokenId: string,
+		action: string,
+	) => void;
 }
 
-const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
+const NFTAppraisalCard = ({ nft, onDepositAction }: NFTAppraisalCardProps) => {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
-	const getStatusInfo = (status: number) => {
+	// Check if this is an optimistic appraisal
+	const isOptimistic = "isOptimistic" in nft && nft.isOptimistic;
+
+	const getStatusInfo = (status: number | undefined) => {
+		if (isOptimistic) {
+			return {
+				label: "Submitting Appraisal",
+				icon: ClockIcon,
+				color: "text-warning",
+				bgColor: "from-warning/20 to-yellow-400/20",
+				borderColor: "border-warning/30",
+			};
+		}
+
 		switch (status) {
 			case 0:
 				return {
@@ -82,10 +112,17 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 		}
 	};
 
-	const statusInfo = getStatusInfo(nft.status);
+	const statusInfo = getStatusInfo(
+		isOptimistic ? undefined : (nft as AppraisedNFT).status,
+	);
 	const StatusIcon = statusInfo.icon;
-	const isComplete = nft.status === 1 || nft.status === 2;
-	const hasValue = nft.priceUSD && nft.priceUSD > BigInt(0);
+	const isComplete =
+		!isOptimistic &&
+		((nft as AppraisedNFT).status === 1 || (nft as AppraisedNFT).status === 2);
+	const hasValue =
+		!isOptimistic &&
+		(nft as AppraisedNFT).priceUSD &&
+		(nft as AppraisedNFT).priceUSD > BigInt(0);
 
 	return (
 		<motion.div
@@ -109,21 +146,27 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 
 						{/* Timestamp */}
 						<div className="text-xs text-foreground/60">
-							{new Date(Number(nft.timestamp) * 1000).toLocaleDateString()}
+							{isOptimistic
+								? new Date(nft.timestamp).toLocaleDateString()
+								: new Date(
+										Number((nft as AppraisedNFT).timestamp) * 1000,
+									).toLocaleDateString()}
 						</div>
 					</div>
 
 					{/* NFT Preview */}
 					<div className="flex justify-center">
 						{contracts.appraisal && (
-							<UnifiedNFTCard
-								collection={nft.collection}
-								tokenId={nft.tokenId}
-								variant="compact"
+							<NFTCard
+								data={{
+									collection: nft.collection,
+									tokenId: nft.tokenId,
+								}}
 								size="md"
-								showAppraisal={false}
-								animate={true}
-								appraisalContractAddress={contracts.appraisal}
+								onClick={() =>
+									console.log(`NFT ${nft.collection}:${nft.tokenId} clicked`)
+								}
+								appraisalContractAddress={contracts.appraisal as `0x${string}`}
 							/>
 						)}
 					</div>
@@ -156,14 +199,21 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 									Appraised Value
 								</p>
 								<p className="text-2xl font-bold text-warning">
-									{formatCurrency(nft.priceUSD.toString(), 18, "USD")}
+									{formatCurrency(
+										(nft as AppraisedNFT).priceUSD.toString(),
+										18,
+										"USD",
+									)}
 								</p>
-								{nft.lastUpdated > BigInt(0) && (
-									<p className="text-xs text-foreground/60">
-										Last updated:{" "}
-										{new Date(Number(nft.lastUpdated) * 1000).toLocaleString()}
-									</p>
-								)}
+								{!isOptimistic &&
+									(nft as AppraisedNFT).lastUpdated > BigInt(0) && (
+										<p className="text-xs text-foreground/60">
+											Last updated:{" "}
+											{new Date(
+												Number((nft as AppraisedNFT).lastUpdated) * 1000,
+											).toLocaleString()}
+										</p>
+									)}
 							</div>
 						</div>
 					)}
@@ -195,16 +245,29 @@ const NFTAppraisalCard = ({ nft }: NFTAppraisalCardProps) => {
 						</div>
 					)}
 
-					{/* Status Information */}
+					{/* Status Information & Deposit CTA */}
 					{isComplete && hasValue && (
 						<div className="pt-2">
-							<div className="bg-gradient-to-r from-success/20 to-green-400/20 backdrop-blur-xl border border-success/30 rounded-xl p-3 text-center">
-								<p className="text-sm font-medium text-success">
-									Ready for Gacha Deposit
-								</p>
-								<p className="text-xs text-foreground/60 mt-1">
-									Visit the gacha pages to deposit this NFT
-								</p>
+							<div className="bg-gradient-to-r from-success/20 to-green-400/20 backdrop-blur-xl border border-success/30 rounded-xl p-3">
+								<div className="text-center space-y-2">
+									<p className="text-sm font-medium text-success">
+										Ready for Gacha Deposit
+									</p>
+									<Button
+										color="glassPrimary"
+										className="w-full"
+										onPress={() => {
+											if (onDepositAction) {
+												onDepositAction(nft.collection, nft.tokenId, "deposit");
+											}
+										}}
+									>
+										<span className="flex items-center justify-center gap-2">
+											<GiftIcon className="w-4 h-4" />
+											Deposit to Gacha
+										</span>
+									</Button>
+								</div>
 							</div>
 						</div>
 					)}
@@ -219,80 +282,78 @@ export function AppraisedNFTsList({
 	className,
 }: AppraisedNFTsListProps) {
 	const { address: userAddress } = useAccount();
-	const gachaId = useGachaId();
-	const contracts = useGachaContracts(gachaId);
-	const [appraisedNFTs, setAppraisedNFTs] = useState<AppraisedNFT[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 
-	// Fetch appraisal data for each submitted NFT
-	const fetchAppraisalData = useCallback(async () => {
-		if (!contracts.appraisal || userSubmittedNFTs.length === 0) {
-			setLoading(false);
-			return;
-		}
+	// State for filter and sort controls
+	const [filter, setFilter] = useState<AppraisalFilter>("all");
+	const [sort, setSort] = useState<AppraisalSort>("newest");
 
-		setLoading(true);
-		setError(null);
+	// Use enhanced hook for appraisal data management with filtering and sorting
+	const { appraisals, loading, error, refetch, stats } = useAppraisalData(
+		userAddress,
+		{
+			autoRefresh: true,
+			refreshInterval: 60000, // 1 minute
+			filter,
+			sort,
+		},
+	);
 
-		try {
-			const appraisals: AppraisedNFT[] = [];
+	const appraisedNFTs = appraisals; // Alias for compatibility
+	const [depositModalNFT, setDepositModalNFT] = useState<{
+		collection: string;
+		tokenId: string;
+	} | null>(null);
 
-			for (const nft of userSubmittedNFTs) {
-				try {
-					// For now, we'll create mock data since we don't have the actual contract integration set up
-					// In a real implementation, this would use the useReadNftAppraisalGetAppraisal hook
-					const mockStatus = Math.random() > 0.5 ? 1 : 0; // Random status for demo
-					const mockPrice =
-						mockStatus === 1
-							? BigInt(Math.floor(Math.random() * 1000) + 100) *
-								BigInt(10 ** 18)
-							: BigInt(0);
-
-					const appraisal: AppraisedNFT = {
-						collection: nft.collection,
-						tokenId: nft.tokenId,
-						priceUSD: mockPrice,
-						status: mockStatus,
-						requester: userAddress || "",
-						timestamp: BigInt(Math.floor((nft.timestamp || Date.now()) / 1000)),
-						lastUpdated:
-							mockStatus === 1
-								? BigInt(Math.floor(Date.now() / 1000))
-								: BigInt(0),
-					};
-
-					appraisals.push(appraisal);
-				} catch (err) {
-					console.warn(
-						`Failed to fetch appraisal for ${nft.collection}:${nft.tokenId}`,
-						err,
-					);
-				}
-			}
-
-			setAppraisedNFTs(appraisals);
-		} catch (err) {
-			console.error("Failed to fetch appraisal data:", err);
-			setError("Failed to load appraisal data. Please try again.");
-		} finally {
-			setLoading(false);
-		}
-	}, [contracts.appraisal, userSubmittedNFTs, userAddress]);
-
+	// Fetch appraisals for specific NFTs if provided via props and check for updates
 	useEffect(() => {
-		fetchAppraisalData();
-	}, [fetchAppraisalData]);
+		if (userSubmittedNFTs.length > 0) {
+			// Use the shared hook's method to fetch for specific NFTs
+			refetch();
+		}
+	}, [userSubmittedNFTs, refetch]);
 
-	const completedAppraisals = useMemo(
-		() => appraisedNFTs.filter((nft) => nft.status === 1 || nft.status === 2),
-		[appraisedNFTs],
+	// Periodically refresh pending appraisals to check for status updates
+	useEffect(() => {
+		if (!userAddress || loading) return;
+
+		const pendingAppraisals = appraisedNFTs.filter(
+			(nft) => !("isOptimistic" in nft) && nft.status === 0,
+		);
+		if (pendingAppraisals.length === 0) return;
+
+		// Refresh every 30 seconds for pending appraisals
+		const interval = setInterval(() => {
+			refetch();
+		}, 30000);
+
+		return () => clearInterval(interval);
+	}, [appraisedNFTs, userAddress, loading, refetch]);
+
+	// Handle deposit actions from NFT cards
+	const handleDepositAction = useCallback(
+		(collection: string, tokenId: string, action: string) => {
+			if (action === "deposit") {
+				setDepositModalNFT({ collection, tokenId });
+			}
+		},
+		[],
 	);
 
-	const pendingAppraisals = useMemo(
-		() => appraisedNFTs.filter((nft) => nft.status === 0),
-		[appraisedNFTs],
-	);
+	// Handle closing the deposit modal
+	const handleCloseDepositModal = useCallback(() => {
+		setDepositModalNFT(null);
+	}, []);
+
+	// Enhanced loading state with more context
+	const loadingMessage = useMemo(() => {
+		const pendingAppraisals = appraisedNFTs.filter(
+			(nft) => !("isOptimistic" in nft) && nft.status === 0,
+		);
+		if (pendingAppraisals.length > 0) {
+			return `Checking status of ${pendingAppraisals.length} pending appraisal${pendingAppraisals.length === 1 ? "" : "s"}...`;
+		}
+		return "Loading your appraisals...";
+	}, [appraisedNFTs]);
 
 	if (loading) {
 		return (
@@ -304,7 +365,10 @@ export function AppraisedNFTsList({
 				<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<div className="text-center space-y-4">
 						<LoadingState size="lg" />
-						<p className="text-foreground/70">Loading your appraisals...</p>
+						<p className="text-foreground/70">{loadingMessage}</p>
+						<p className="text-xs text-foreground/50">
+							Fetching live data from NFT Appraisal contract...
+						</p>
 					</div>
 				</Card>
 			</motion.div>
@@ -323,15 +387,24 @@ export function AppraisedNFTsList({
 						<ExclamationTriangleIcon className="w-12 h-12 text-danger mx-auto" />
 						<div>
 							<h3 className="text-lg font-medium text-danger mb-2">
-								Error Loading Appraisals
+								Unable to Connect to Appraisal Contract
 							</h3>
-							<p className="text-foreground/70 mb-4">{error}</p>
-							<Button
-								className="rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
-								onPress={fetchAppraisalData}
-							>
-								Try Again
-							</Button>
+							<p className="text-foreground/70 mb-2">{error}</p>
+							<p className="text-xs text-foreground/60 mb-4">
+								This could be due to network issues or contract problems. Please
+								try again.
+							</p>
+							<div className="flex gap-3 justify-center">
+								<Button
+									className="rounded-xl bg-danger/20 border border-danger/30 text-danger hover:bg-danger/30"
+									onPress={refetch}
+								>
+									<span className="flex items-center gap-2">
+										<ArrowPathIcon className="w-4 h-4" />
+										Retry Connection
+									</span>
+								</Button>
+							</div>
 						</div>
 					</div>
 				</Card>
@@ -340,6 +413,8 @@ export function AppraisedNFTsList({
 	}
 
 	if (appraisedNFTs.length === 0) {
+		const isFilteredView = filter !== "all";
+
 		return (
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
@@ -353,11 +428,23 @@ export function AppraisedNFTsList({
 						</div>
 						<div>
 							<h3 className="text-xl font-medium text-foreground mb-2">
-								No Appraisals Yet
+								{isFilteredView
+									? "No Appraisals Match Filter"
+									: "No Appraisals Yet"}
 							</h3>
 							<p className="text-foreground/70">
-								Submit your NFTs for appraisal to see them here
+								{isFilteredView
+									? `No appraisals found for "${filter}" filter. Try a different filter or check back later.`
+									: "Submit your NFTs for appraisal to see them here"}
 							</p>
+							{isFilteredView && stats.total > 0 && (
+								<Button
+									className="mt-4 rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
+									onPress={() => setFilter("all")}
+								>
+									View All Appraisals
+								</Button>
+							)}
 						</div>
 					</div>
 				</Card>
@@ -385,26 +472,96 @@ export function AppraisedNFTsList({
 					</p>
 				</div>
 
-				{/* Statistics */}
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+				{/* Filter Tabs */}
+				<div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between mb-8">
+					{/* Status Filter Tabs */}
+					<div className="flex flex-wrap gap-2 items-center">
+						<span className="text-sm font-medium text-foreground/70 mr-2 flex items-center gap-1">
+							<FunnelIcon className="w-4 h-4" />
+							Filter:
+						</span>
+						{[
+							{ key: "all", label: "All", icon: DocumentTextIcon },
+							{ key: "pending", label: "Pending", icon: ClockIcon },
+							{ key: "completed", label: "Completed", icon: CheckBadgeIcon },
+							{ key: "recent", label: "Recent (24h)", icon: SparklesIcon },
+							{ key: "highValue", label: "High Value", icon: SparklesIcon },
+						].map(({ key, label, icon: Icon }) => (
+							<Button
+								key={key}
+								size="sm"
+								className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 ${
+									filter === key
+										? "bg-gradient-to-r from-warning to-orange-400 text-black shadow-lg"
+										: "bg-content1/20 backdrop-blur-xl border border-white/10 text-foreground/70 hover:text-foreground hover:bg-content1/30"
+								}`}
+								onPress={() => setFilter(key as AppraisalFilter)}
+							>
+								<span className="flex items-center gap-2">
+									<Icon className="w-4 h-4" />
+									{label}
+									{key === "all" && (
+										<span className="ml-1 px-2 py-0.5 bg-black/10 rounded-full text-xs">
+											{stats.total}
+										</span>
+									)}
+									{key === "pending" && (
+										<span className="ml-1 px-2 py-0.5 bg-black/10 rounded-full text-xs">
+											{stats.pending}
+										</span>
+									)}
+									{key === "completed" && (
+										<span className="ml-1 px-2 py-0.5 bg-black/10 rounded-full text-xs">
+											{stats.completed}
+										</span>
+									)}
+									{key === "recent" && (
+										<span className="ml-1 px-2 py-0.5 bg-black/10 rounded-full text-xs">
+											{stats.recent}
+										</span>
+									)}
+									{key === "highValue" && (
+										<span className="ml-1 px-2 py-0.5 bg-black/10 rounded-full text-xs">
+											{stats.highValue}
+										</span>
+									)}
+								</span>
+							</Button>
+						))}
+					</div>
+
+					{/* Sort Controls */}
+					<div className="flex items-center gap-2">
+						<span className="text-sm font-medium text-foreground/70 flex items-center gap-1">
+							<ArrowsUpDownIcon className="w-4 h-4" />
+							Sort:
+						</span>
+						<select
+							value={sort}
+							onChange={(e) => setSort(e.target.value as AppraisalSort)}
+							className="bg-content1/20 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-warning/50"
+						>
+							<option value="newest">Newest First</option>
+							<option value="oldest">Oldest First</option>
+							<option value="highestValue">Highest Value</option>
+							<option value="lowestValue">Lowest Value</option>
+							<option value="recentlyUpdated">Recently Updated</option>
+						</select>
+					</div>
+				</div>
+
+				{/* Filter Results Summary */}
+				<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Total Submitted
+								Showing
 							</p>
 							<p className="text-2xl font-bold text-foreground">
 								{appraisedNFTs.length}
 							</p>
-						</div>
-					</Card>
-
-					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-						<div className="text-center">
-							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Completed
-							</p>
-							<p className="text-2xl font-bold text-success">
-								{completedAppraisals.length}
+							<p className="text-xs text-foreground/60">
+								of {stats.total} total
 							</p>
 						</div>
 					</Card>
@@ -412,48 +569,64 @@ export function AppraisedNFTsList({
 					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
 						<div className="text-center">
 							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
-								Pending
+								Total Value
 							</p>
 							<p className="text-2xl font-bold text-warning">
-								{pendingAppraisals.length}
+								{stats.totalValue > BigInt(0)
+									? formatCurrency(stats.totalValue.toString(), 18, "USD")
+									: "--"}
+							</p>
+						</div>
+					</Card>
+
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
+						<div className="text-center">
+							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
+								Average Value
+							</p>
+							<p className="text-2xl font-bold text-info">
+								{stats.averageValue > BigInt(0)
+									? formatCurrency(stats.averageValue.toString(), 18, "USD")
+									: "--"}
+							</p>
+						</div>
+					</Card>
+
+					<Card className="p-4 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
+						<div className="text-center">
+							<p className="text-sm text-foreground/60 uppercase tracking-wide mb-2">
+								Ready for Gacha
+							</p>
+							<p className="text-2xl font-bold text-success">
+								{stats.readyForGacha}
 							</p>
 						</div>
 					</Card>
 				</div>
 
-				{/* Completed Appraisals */}
-				{completedAppraisals.length > 0 && (
+				{/* Filtered Appraisals Grid */}
+				{appraisedNFTs.length > 0 && (
 					<div className="space-y-4">
-						<h3 className="text-xl font-medium text-foreground flex items-center gap-2">
-							<CheckBadgeIcon className="w-6 h-6 text-success" />
-							Appraisal Complete
-						</h3>
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-							<AnimatePresence>
-								{completedAppraisals.map((nft) => (
-									<NFTAppraisalCard
-										key={`${nft.collection}:${nft.tokenId}`}
-										nft={nft}
-									/>
-								))}
-							</AnimatePresence>
+						<div className="flex items-center justify-between">
+							<h3 className="text-xl font-medium text-foreground">
+								{filter === "all" && "All Appraisals"}
+								{filter === "pending" && "Pending Appraisals"}
+								{filter === "completed" && "Completed Appraisals"}
+								{filter === "recent" && "Recent Appraisals (24h)"}
+								{filter === "highValue" && "High Value Appraisals"}
+							</h3>
+							<p className="text-sm text-foreground/60">
+								{appraisedNFTs.length}{" "}
+								{appraisedNFTs.length === 1 ? "item" : "items"}
+							</p>
 						</div>
-					</div>
-				)}
-
-				{/* Pending Appraisals */}
-				{pendingAppraisals.length > 0 && (
-					<div className="space-y-4">
-						<h3 className="text-xl font-medium text-foreground flex items-center gap-2">
-							<ClockIcon className="w-6 h-6 text-warning" />
-							Processing
-						</h3>
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 							<AnimatePresence>
-								{pendingAppraisals.map((nft) => (
+								{appraisedNFTs.map((nft) => (
 									<NFTAppraisalCard
 										key={`${nft.collection}:${nft.tokenId}`}
 										nft={nft}
+										onDepositAction={handleDepositAction}
 									/>
 								))}
 							</AnimatePresence>
@@ -465,13 +638,61 @@ export function AppraisedNFTsList({
 				<div className="flex justify-center pt-4">
 					<Button
 						className="rounded-xl bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30"
-						onPress={fetchAppraisalData}
+						onPress={refetch}
 						isLoading={loading}
 					>
 						Refresh Status
 					</Button>
 				</div>
 			</div>
+
+			{/* Deposit Modal */}
+			<AnimatePresence>
+				{depositModalNFT && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+						onClick={handleCloseDepositModal}
+					>
+						<motion.div
+							initial={{ opacity: 0, scale: 0.95, y: 20 }}
+							animate={{ opacity: 1, scale: 1, y: 0 }}
+							exit={{ opacity: 0, scale: 0.95, y: 20 }}
+							transition={{ duration: 0.3 }}
+							className="w-full max-w-md"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<div className="bg-content1/20 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-6">
+								<div className="flex items-center justify-between mb-6">
+									<h3 className="text-xl font-bold text-foreground">
+										Deposit NFT to Gacha
+									</h3>
+									<Button
+										className="rounded-full bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground hover:bg-content1/30 w-8 h-8 p-0"
+										onPress={handleCloseDepositModal}
+									>
+										×
+									</Button>
+								</div>
+
+								<DepositableNFTCard
+									collection={depositModalNFT.collection}
+									tokenId={depositModalNFT.tokenId}
+									onAction={() => {
+										// Handle any action needed (like appraisal if somehow not completed)
+										handleCloseDepositModal();
+									}}
+									onAppraisalStatusChange={() => {
+										// Handle appraisal status changes if needed
+									}}
+								/>
+							</div>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</motion.div>
 	);
 }

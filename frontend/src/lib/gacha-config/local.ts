@@ -3,7 +3,7 @@ import type { GachaConfig } from "./types";
 export const LOCAL_GACHA_CONFIGS: Record<string, GachaConfig> = {
 	"graded-pokemon": {
 		id: "graded-pokemon",
-		address: process.env.NEXT_PUBLIC_GACHA_CONTRACT_ADDRESS as `0x${string}`,
+		address: process.env.NEXT_PUBLIC_GACHA_ADDRESS as `0x${string}`,
 		title: "Graded Pokémon Cards",
 		description:
 			"Collect professionally graded Pokémon trading cards from five distinct rarity tiers. Each spin unlocks authentic cards with verified grades and pristine condition ratings.",
@@ -26,14 +26,23 @@ Each Pokémon card belongs to one of five carefully balanced rarity tiers:
 This is a test environment using local contracts and test tokens for development purposes.`,
 		theme: "from-secondary to-warning-500",
 		treasuryAddress: process.env
-			.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS as `0x${string}`,
+			.NEXT_PUBLIC_GACHA_TREASURY_ADDRESS as `0x${string}`,
 		isActive: true,
 		createdAt: "2024-01-01",
 		// Required contract addresses
 		appraisalAddress: process.env
-			.NEXT_PUBLIC_NFT_APPRAISAL_CONTRACT_ADDRESS as `0x${string}`,
-		rewardsManagerAddress: process.env
-			.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as `0x${string}`,
+			.NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS as `0x${string}`,
+		economyManagerAddress: process.env
+			.NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS as `0x${string}`,
+		gachaServiceHandlerAddress: process.env
+			.NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS as `0x${string}`,
+		// New economy system contracts
+		depositorVaultAddress: process.env
+			.NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS as `0x${string}`,
+		buybackVaultAddress: process.env
+			.NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS as `0x${string}`,
+		protocolTreasuryAddress: process.env
+			.NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS as `0x${string}`,
 		// Collections are now queried dynamically from the treasury contract's whitelist
 		// Removed nftCollectionAddress - use useReadGachaTreasuryGetWhitelistedCollections hook instead
 		trackerAddresses: {

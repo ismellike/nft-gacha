@@ -8,8 +8,7 @@ import {
 	useChainId,
 } from "wagmi";
 import { glassTypography, cn } from "../lib/theme-config";
-import { Card, Button, Chip } from "../ui";
-import { TokenFeeDisplay } from ".";
+import { Card, Button } from "../ui";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -51,6 +50,8 @@ export default function SpinControls({
 	const [permitDeadline, setPermitDeadline] = useState<bigint | null>(null);
 	const [usedSignature, setUsedSignature] = useState<string | null>(null);
 	const [processedTxHash, setProcessedTxHash] = useState<string | null>(null);
+	const [userCancelledMessage, setUserCancelledMessage] = useState(false);
+	const [permitFailed, setPermitFailed] = useState(false);
 
 	// Countdown timer for randomness timeout
 	const [countdown, setCountdown] = useState(SPIN_TIMEOUT_SECONDS);
@@ -212,7 +213,7 @@ export default function SpinControls({
 	};
 
 	// Validation utilities
-	const hasPermitSupport = !noncesError;
+	const hasPermitSupport = !noncesError && tokenNonce !== undefined && feeToken;
 	const isSpinDataReady =
 		isConnected &&
 		canSpin &&
@@ -235,6 +236,9 @@ export default function SpinControls({
 		if (gachaSpin.isSpinning) return "Preparing Spin...";
 		if (gachaSpin.isWaitingForFulfillment) return "Awaiting Randomness...";
 		if (gachaSpin.isRevealing) return "Revealing NFT...";
+
+		// Fallback mode
+		if (permitFailed) return "SPIN (Direct Approval)";
 
 		// Validation checks
 		if (!hasSufficientBalance) return "Insufficient Balance";
@@ -269,7 +273,7 @@ export default function SpinControls({
 				gachaSpin.triggerId,
 			);
 			reclaimFailedSpin({
-				address: contracts.gacha,
+				address: contracts.gacha as `0x${string}`,
 				args: [gachaSpin.triggerId],
 			});
 		} catch (error) {
@@ -292,6 +296,12 @@ export default function SpinControls({
 			isGachaAvailable,
 			tokenBalance: tokenBalance?.toString(),
 			gachaContract: contracts.gacha,
+			hasPermitSupport,
+			noncesError: noncesError?.message,
+			tokenDecimals,
+			tokenName,
+			chainId,
+			permitFailed,
 		});
 
 		// Handle retry for error state
@@ -299,6 +309,21 @@ export default function SpinControls({
 			if (gachaSpin.canRetry) {
 				gachaSpin.retry();
 			} else {
+				gachaSpin.reset();
+			}
+			return;
+		}
+
+		// If permit failed before, try direct spin
+		if (permitFailed) {
+			console.log(
+				"🔄 [SpinControls] Permit failed previously, trying direct spin (requires pre-approval)",
+			);
+			try {
+				gachaSpin.startSpin();
+				spin({ address: contracts.gacha as `0x${string}` });
+			} catch (error) {
+				console.error("[SpinControls] Direct spin error:", error);
 				gachaSpin.reset();
 			}
 			return;
@@ -336,20 +361,64 @@ export default function SpinControls({
 				return;
 			}
 
+			// Validate all required parameters before signing
+			if (
+				!userAddress ||
+				!feeToken ||
+				!spinFee ||
+				tokenNonce === undefined ||
+				!contracts.gacha
+			) {
+				console.error(
+					"❌ [SpinControls] Missing required parameters for permit signing:",
+					{
+						userAddress: !!userAddress,
+						feeToken: !!feeToken,
+						spinFee: !!spinFee,
+						tokenNonce: tokenNonce !== undefined,
+						gachaContract: !!contracts.gacha,
+					},
+				);
+				gachaSpin.reset();
+				return;
+			}
+
 			// Create permit signature
 			const deadline = BigInt(
 				Math.floor(Date.now() / 1000) + PERMIT_DEADLINE_SECONDS,
 			);
 			setPermitDeadline(deadline);
 
-			console.log("📝 [SpinControls] Requesting permit signature...");
-			signTypedData({
-				domain: {
-					name: tokenName || "Token",
-					version: "1",
-					chainId: chainId,
-					verifyingContract: feeToken,
+			const domain = {
+				name: tokenName || "Token",
+				version: "1",
+				chainId: chainId,
+				verifyingContract: feeToken,
+			};
+
+			const message = {
+				owner: userAddress,
+				spender: contracts.gacha as `0x${string}`,
+				value: spinFee,
+				nonce: tokenNonce as bigint,
+				deadline,
+			};
+
+			console.log(
+				"📝 [SpinControls] Requesting permit signature with params:",
+				{
+					domain,
+					message: {
+						...message,
+						value: message.value.toString(),
+						nonce: message.nonce.toString(),
+						deadline: message.deadline.toString(),
+					},
 				},
+			);
+
+			signTypedData({
+				domain,
 				types: {
 					Permit: [
 						{ name: "owner", type: "address" },
@@ -360,13 +429,7 @@ export default function SpinControls({
 					],
 				},
 				primaryType: "Permit",
-				message: {
-					owner: userAddress,
-					spender: contracts.gacha as `0x${string}`,
-					value: spinFee,
-					nonce: tokenNonce as bigint,
-					deadline,
-				},
+				message,
 			});
 		} catch (error) {
 			console.error("[SpinControls] Error in spin click handler:", error);
@@ -389,23 +452,64 @@ export default function SpinControls({
 				);
 
 				// Parse signature hex string into r, s, v components
+				console.log("🔍 [SpinControls] Parsing signature:", {
+					signatureLength: signature.length,
+					signature: `${signature.slice(0, 20)}...`,
+				});
+
+				if (signature.length !== 132) {
+					// 0x + 130 hex chars (65 bytes)
+					throw new Error(
+						`Invalid signature length: expected 132 chars, got ${signature.length}`,
+					);
+				}
+
 				const sig = signature.slice(2); // remove 0x
 				const r = `0x${sig.slice(0, 64)}` as `0x${string}`;
 				const s = `0x${sig.slice(64, 128)}` as `0x${string}`;
 				let v = parseInt(sig.slice(128, 130), 16);
 
+				console.log("🔧 [SpinControls] Parsed signature components:", {
+					r: `${r.slice(0, 20)}...`,
+					s: `${s.slice(0, 20)}...`,
+					vOriginal: sig.slice(128, 130),
+					vDecimal: v,
+				});
+
 				// Ensure v is 27 or 28 for Ethereum
 				if (v < 27) {
 					v += 27;
+					console.log("🔧 [SpinControls] Adjusted v value to:", v);
 				}
+
+				const txParams = {
+					address: contracts.gacha as `0x${string}`,
+					args: [
+						BigInt(permitDeadline || 0),
+						Number(v),
+						r as `0x${string}`,
+						s as `0x${string}`,
+					] as const,
+				};
+
+				console.log(
+					"📤 [SpinControls] Submitting spinWithPermit transaction:",
+					{
+						contract: txParams.address,
+						deadline: permitDeadline?.toString(),
+						v,
+						r,
+						s,
+						signature: `${signature.slice(0, 10)}...`,
+						rawSignature: signature,
+						expectedFunction: "spinWithPermit(uint256,uint8,bytes32,bytes32)",
+					},
+				);
 
 				// Mark signature as used to prevent reuse
 				setUsedSignature(signature);
 
-				spinWithPermit({
-					address: contracts.gacha as `0x${string}`,
-					args: [permitDeadline, v, r, s],
-				});
+				spinWithPermit(txParams);
 			} catch (error) {
 				console.error("[SpinControls] Error calling spinWithPermit:", error);
 				gachaSpin.reset();
@@ -425,8 +529,6 @@ export default function SpinControls({
 	// Handle signature errors (user canceled signing)
 	useEffect(() => {
 		if (signatureError) {
-			console.error("❌ [SpinControls] Signature error:", signatureError);
-
 			// Check if user canceled the signature
 			const errorMessage = signatureError.message.toLowerCase();
 			if (
@@ -435,40 +537,137 @@ export default function SpinControls({
 				errorMessage.includes("cancelled") ||
 				errorMessage.includes("canceled")
 			) {
-				// User canceled, just reset to idle state
+				// User canceled - silently reset to idle state and show subtle feedback
+				console.log("🚫 [SpinControls] User cancelled signature request");
 				gachaSpin.reset();
+				setUserCancelledMessage(true);
+				setTimeout(() => setUserCancelledMessage(false), 2000);
 			} else {
-				// Real signature error, go to error state
+				// Real signature error - log detailed debugging info and go to error state
+				console.error("❌ [SpinControls] Signature error occurred:", {
+					error: signatureError,
+					message: signatureError.message,
+					name: signatureError.name,
+					stack: signatureError.stack,
+					details: {
+						userAddress,
+						feeToken,
+						spinFee: spinFee?.toString(),
+						tokenNonce: tokenNonce?.toString(),
+						contracts: contracts.gacha,
+						chainId,
+						tokenName,
+					},
+				});
 				gachaSpin.timeout(); // Using timeout as a way to show error state
 				// TODO: Add proper error handling method to the hook
 			}
 		}
-	}, [signatureError, gachaSpin]);
+	}, [
+		signatureError,
+		gachaSpin,
+		userAddress,
+		feeToken,
+		spinFee,
+		tokenNonce,
+		contracts.gacha,
+		chainId,
+		tokenName,
+	]);
 
 	// Handle transaction submission errors
 	useEffect(() => {
 		if (spinWithPermitError) {
-			console.error(
-				"❌ [SpinControls] Transaction submission error:",
-				spinWithPermitError,
-			);
+			// Check if user canceled the transaction
+			const errorMessage = String(
+				spinWithPermitError.message || "",
+			).toLowerCase();
+			console.log("🔍 [SpinControls] Analyzing transaction error:", {
+				errorMessage: spinWithPermitError.message,
+				errorName: spinWithPermitError.name,
+				errorCode: (spinWithPermitError as { code?: string }).code,
+				isUserRejection:
+					errorMessage.includes("rejected") ||
+					errorMessage.includes("denied") ||
+					errorMessage.includes("cancelled") ||
+					errorMessage.includes("canceled"),
+			});
 
-			const errorMessage = spinWithPermitError.message.toLowerCase();
 			if (
 				errorMessage.includes("rejected") ||
 				errorMessage.includes("denied") ||
 				errorMessage.includes("cancelled") ||
 				errorMessage.includes("canceled")
 			) {
-				// User canceled, just reset to idle state
+				// User canceled - silently reset to idle state and show subtle feedback
+				console.log("🚫 [SpinControls] User cancelled transaction");
 				gachaSpin.reset();
+				setUserCancelledMessage(true);
+				setTimeout(() => setUserCancelledMessage(false), 2000);
 			} else {
-				// Real transaction error
+				// Real transaction error - log detailed debugging info
+				console.error("❌ [SpinControls] Transaction submission error:", {
+					error: spinWithPermitError,
+					message: spinWithPermitError.message,
+					name: spinWithPermitError.name,
+					cause: spinWithPermitError.cause,
+					code: (spinWithPermitError as { code?: unknown }).code,
+					data: (spinWithPermitError as { data?: unknown }).data,
+					details: {
+						contract: contracts.gacha,
+						userAddress,
+						feeToken,
+						spinFee: spinFee?.toString(),
+						permitDeadline: permitDeadline?.toString(),
+						signatureUsed: !!usedSignature,
+						blockExplorer: `https://holesky.etherscan.io/address/${contracts.gacha}`,
+						tokenName,
+						tokenVersion: "1",
+						chainId,
+					},
+				});
+
+				// Check if this might be a permit implementation issue
+				if (
+					errorMessage.includes("invalid signature") ||
+					errorMessage.includes("permit") ||
+					errorMessage.includes("signature") ||
+					errorMessage.includes("execution reverted") ||
+					errorMessage.includes("revert")
+				) {
+					console.warn(
+						"⚠️ [SpinControls] Permit signature rejected by contract, this might indicate:",
+					);
+					console.warn("  1. Token contract doesn't support EIP-712 permits");
+					console.warn("  2. Domain separator mismatch (name/version/chainId)");
+					console.warn("  3. Permit implementation differs from standard");
+					console.warn("  4. Contract expects different signature format");
+					console.warn("  5. Permit expired or already used");
+					console.warn("  6. Insufficient allowance despite permit");
+
+					// Mark permit as failed and enable fallback
+					setPermitFailed(true);
+					console.warn(
+						"💡 [SpinControls] Trying direct spin as fallback. Make sure you've approved the gacha contract to spend your tokens.",
+					);
+				}
+
 				gachaSpin.timeout(); // Using timeout as a way to show error state
 				// TODO: Add proper error handling method to the hook
 			}
 		}
-	}, [spinWithPermitError, gachaSpin]);
+	}, [
+		spinWithPermitError,
+		gachaSpin,
+		contracts.gacha,
+		userAddress,
+		feeToken,
+		spinFee,
+		permitDeadline,
+		usedSignature,
+		tokenName,
+		chainId,
+	]);
 
 	// Handle transaction receipt errors
 	useEffect(() => {
@@ -478,7 +677,8 @@ export default function SpinControls({
 				spinWithPermitReceiptError,
 			);
 
-			const errorMessage = spinWithPermitReceiptError.message.toLowerCase();
+			const errorMessage =
+				String(spinWithPermitReceiptError?.message || "").toLowerCase() || "";
 			if (
 				errorMessage.includes("reverted") ||
 				errorMessage.includes("failed") ||
@@ -499,22 +699,24 @@ export default function SpinControls({
 	useEffect(() => {
 		const spinError = spinWait.error;
 		if (spinError) {
-			console.error(
-				"❌ [SpinControls] Direct spin transaction error:",
-				spinError,
-			);
-
-			const errorMessage = spinError.message.toLowerCase();
+			// Check if user canceled the transaction
+			const errorMessage = String(spinError.message || "").toLowerCase();
 			if (
 				errorMessage.includes("rejected") ||
 				errorMessage.includes("denied") ||
 				errorMessage.includes("cancelled") ||
 				errorMessage.includes("canceled")
 			) {
-				// User canceled, just reset to idle state
+				// User canceled - silently reset to idle state and show subtle feedback
 				gachaSpin.reset();
+				setUserCancelledMessage(true);
+				setTimeout(() => setUserCancelledMessage(false), 2000);
 			} else {
-				// Real transaction error
+				// Real transaction error - log and go to error state
+				console.error(
+					"❌ [SpinControls] Direct spin transaction error:",
+					spinError,
+				);
 				gachaSpin.timeout(); // Using timeout as a way to show error state
 				// TODO: Add proper error handling method to the hook
 			}
@@ -626,6 +828,59 @@ export default function SpinControls({
 			refetchNonce();
 		}
 	}, [isReclaimReceiptSuccess, gachaSpin, refetchBalance, refetchNonce]);
+
+	// Handle reclaim rejection
+	useEffect(() => {
+		if (reclaimError) {
+			const errorMessage = String(reclaimError.message || "").toLowerCase();
+			const errorCode = (reclaimError as { code?: number }).code;
+			const errorName = (reclaimError as { name?: string }).name;
+
+			console.log("🔍 [SpinControls] Analyzing reclaim error:", {
+				errorMessage: reclaimError.message,
+				errorName: reclaimError.name,
+				errorCode: errorCode,
+				cause: (reclaimError as { cause?: string }).cause,
+			});
+
+			// More robust user rejection detection
+			const isUserRejected =
+				errorMessage.includes("rejected") ||
+				errorMessage.includes("denied") ||
+				errorMessage.includes("cancelled") ||
+				errorMessage.includes("canceled") ||
+				errorMessage.includes("User rejected") ||
+				errorCode === 4001 || // MetaMask user rejection code
+				errorName?.includes("UserRejectedRequestError") ||
+				errorName?.includes("UserRejected") ||
+				(reclaimError as { cause?: { code?: number } }).cause?.code === 4001;
+
+			if (isUserRejected) {
+				// User canceled - show subtle feedback and keep them in timeout state
+				console.log("🚫 [SpinControls] User cancelled reclaim transaction");
+				setUserCancelledMessage(true);
+				setTimeout(() => {
+					setUserCancelledMessage(false);
+				}, 2000);
+			} else {
+				// Real reclaim error - log detailed debugging info
+				console.error("❌ [SpinControls] Reclaim transaction error:", {
+					error: reclaimError,
+					message: reclaimError.message,
+					name: reclaimError.name,
+					cause: reclaimError.cause,
+					code: (reclaimError as { code?: unknown }).code,
+					data: (reclaimError as { data?: unknown }).data,
+					details: {
+						triggerId: gachaSpin.triggerId,
+						contract: contracts.gacha,
+						userAddress,
+						blockExplorer: `https://holesky.etherscan.io/address/${contracts.gacha}`,
+					},
+				});
+			}
+		}
+	}, [reclaimError, gachaSpin.triggerId, contracts.gacha, userAddress]);
 
 	return (
 		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-8 backdrop-blur-2xl">
@@ -751,7 +1006,11 @@ export default function SpinControls({
 
 					{/* Timeout Display */}
 					{gachaSpin.isTimeout && (
-						<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
+						<Card
+							className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl"
+							role="alert"
+							aria-live="assertive"
+						>
 							<div>
 								<div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-3">
 									<svg
@@ -760,6 +1019,7 @@ export default function SpinControls({
 										stroke="currentColor"
 										viewBox="0 0 24 24"
 										strokeWidth={2}
+										aria-hidden="true"
 									>
 										<title>Error</title>
 										<path
@@ -781,14 +1041,14 @@ export default function SpinControls({
 										type="button"
 										onClick={handleReclaim}
 										disabled={isReclaimPending}
-										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
+										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
 									>
 										{isReclaimPending ? "Reclaiming..." : "Reclaim Funds"}
 									</button>
 									<button
 										type="button"
 										onClick={gachaSpin.reset}
-										className="px-4 py-2 bg-content2 hover:bg-content3 text-foreground rounded-lg transition-colors text-sm"
+										className="px-4 py-2 bg-content2 hover:bg-content3 text-foreground rounded-lg transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
 									>
 										Try Again
 									</button>
@@ -803,7 +1063,11 @@ export default function SpinControls({
 
 					{/* Refund Display */}
 					{gachaSpin.isRefunded && gachaSpin.refundResult && (
-						<Card className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl">
+						<Card
+							className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
+							role="status"
+							aria-live="polite"
+						>
 							<div>
 								<div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-3">
 									<svg
@@ -812,6 +1076,7 @@ export default function SpinControls({
 										stroke="currentColor"
 										viewBox="0 0 24 24"
 										strokeWidth={2}
+										aria-hidden="true"
 									>
 										<title>Warning</title>
 										<path
@@ -848,7 +1113,7 @@ export default function SpinControls({
 									<button
 										type="button"
 										onClick={gachaSpin.reset}
-										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm w-full"
+										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm w-full focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
 									>
 										Try Another Spin
 									</button>
@@ -864,7 +1129,11 @@ export default function SpinControls({
 					{gachaSpin.isError &&
 						!gachaSpin.isTimeout &&
 						!gachaSpin.isRefunded && (
-							<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
+							<Card
+								className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl"
+								role="alert"
+								aria-live="assertive"
+							>
 								<div>
 									<p className="text-sm mb-2">{gachaSpin.error}</p>
 									<p className="text-xs opacity-60">
@@ -874,9 +1143,43 @@ export default function SpinControls({
 							</Card>
 						)}
 
+					{/* User Cancelled Message */}
+					{userCancelledMessage && (
+						<div className="animate-fade-in text-center text-xs text-foreground/50 px-4 py-2">
+							Transaction cancelled
+						</div>
+					)}
+
+					{/* Permit Fallback Message */}
+					{permitFailed && (
+						<output
+							className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
+							aria-live="polite"
+						>
+							<div>
+								<p className="text-sm mb-2 font-semibold text-warning">
+									Using Direct Approval Mode
+								</p>
+								<p className="text-xs opacity-60 mb-3">
+									Permit signing failed. Using direct approval instead. Make
+									sure you've approved the gacha contract to spend your{" "}
+									{tokenSymbol || "tokens"}.
+								</p>
+								<div className="text-xs opacity-50">
+									Contract: {contracts.gacha?.slice(0, 8)}...
+									{contracts.gacha?.slice(-6)}
+								</div>
+							</div>
+						</output>
+					)}
+
 					{/* Gacha Unavailable Warning */}
 					{isConnected && isGachaAvailable === false && (
-						<Card className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl">
+						<Card
+							className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
+							role="alert"
+							aria-live="assertive"
+						>
 							<div>
 								<p className="text-sm mb-2">Gacha System Unavailable</p>
 								<p className="text-xs opacity-60">
@@ -885,26 +1188,6 @@ export default function SpinControls({
 							</div>
 						</Card>
 					)}
-
-					{/* Error display for transaction errors */}
-					{(spinWithPermitError ||
-						spinWithPermitReceiptError ||
-						signatureError ||
-						reclaimError) && (
-						<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
-							<div>
-								<p className="text-sm mb-2">
-									Transaction failed. Please try again.
-								</p>
-								{reclaimError && (
-									<p className="text-xs opacity-60">
-										Reclaim error: {reclaimError.message}
-									</p>
-								)}
-							</div>
-						</Card>
-					)}
-
 					{/* Enhanced Spin Button */}
 					<div className="relative group">
 						{/* Glow effect on hover */}
@@ -913,6 +1196,7 @@ export default function SpinControls({
 						{/* Removed particle effects for cleaner look */}
 
 						<Button
+							color="glassPrimary"
 							size="lg"
 							onPress={onSpinClick}
 							disabled={isButtonDisabled()}
@@ -922,20 +1206,21 @@ export default function SpinControls({
 								gachaSpin.isSpinning
 							}
 							className={cn(
-								"relative border-2 border-warning/40 bg-gradient-to-r from-warning via-warning/90 to-orange-400 text-black font-bold text-lg px-12 py-4 rounded-2xl shadow-2xl shadow-warning/30 backdrop-blur-xl transition-all duration-300",
-								"hover:shadow-3xl hover:shadow-warning/40 hover:border-warning/60 hover:scale-[1.02] active:scale-[0.98]",
-								"disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-2xl disabled:hover:border-warning/40",
 								// Dynamic styling based on state
-								gachaSpin.isWaitingForFulfillment &&
-									"border-orange-400/60 shadow-orange-400/40",
-								gachaSpin.isSpinning &&
-									"border-orange-400 shadow-orange-400/30",
-								gachaSpin.isRevealing &&
-									"bg-gradient-to-r from-success via-success/90 to-emerald-400 border-success/40 shadow-success/30",
-								gachaSpin.isError &&
-									"bg-gradient-to-r from-danger via-danger/90 to-red-600 border-danger/40 shadow-danger/30",
-								canSpin && "hover:from-warning/110 hover:to-orange-400/110",
+								gachaSpin.isWaitingForFulfillment
+									? "border-orange-400/60 shadow-orange-400/40"
+									: undefined,
+								gachaSpin.isSpinning
+									? "border-orange-400 shadow-orange-400/30"
+									: undefined,
+								gachaSpin.isRevealing
+									? "bg-gradient-to-r from-success via-success/90 to-emerald-400 border-success/40 shadow-success/30"
+									: undefined,
+								gachaSpin.isError
+									? "bg-gradient-to-r from-danger via-danger/90 to-red-600 border-danger/40 shadow-danger/30"
+									: undefined,
 							)}
+							aria-label={getButtonText()}
 						>
 							{/* Button content with icon */}
 							<div className="flex items-center justify-center gap-3">
