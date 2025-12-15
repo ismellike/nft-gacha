@@ -99,7 +99,13 @@ contract NFTAppraisalEconomicsTest is Test {
     function _deployTreasuryContract() internal {
         vm.startPrank(owner);
         GachaTreasury treasuryImpl = new GachaTreasury();
-        uint256[5] memory minPrices = [uint256(0), 25 * 1e18, 70 * 1e18, 300 * 1e18, 1_500 * 1e18];
+        uint256[5] memory minPrices = [
+            uint256(0),
+            uint256(15 * 1e18) + 1,
+            uint256(60 * 1e18) + 1,
+            uint256(250 * 1e18) + 1,
+            uint256(1_200 * 1e18) + 1
+        ];
         uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
 
         bytes memory initData = abi.encodeWithSelector(

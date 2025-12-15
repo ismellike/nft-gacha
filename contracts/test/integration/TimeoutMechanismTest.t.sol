@@ -47,8 +47,14 @@ contract TimeoutMechanismTest is Test {
         vm.startPrank(owner);
 
         // Initialize treasury with minimal price ranges
-        uint256[5] memory minPrices = [uint256(0), 100e6, 500e6, 2000e6, 10000e6];
-        uint256[5] memory maxPrices = [uint256(99e6), 499e6, 1999e6, 9999e6, type(uint256).max];
+        uint256[5] memory minPrices = [
+            uint256(0),
+            uint256(99e6) + 1,
+            uint256(499e6) + 1,
+            uint256(1_999e6) + 1,
+            uint256(9_999e6) + 1
+        ];
+        uint256[5] memory maxPrices = [uint256(99e6), 499e6, 1_999e6, 9_999e6, type(uint256).max];
 
         treasury.initialize(
             owner,
