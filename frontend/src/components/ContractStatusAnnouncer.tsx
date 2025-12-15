@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
+import {
+	CheckCircleIcon,
+	ExclamationTriangleIcon,
+	ClockIcon,
+	InformationCircleIcon,
+} from "@heroicons/react/24/outline";
 import { cn } from "../lib/theme-config";
 
 export type ContractStatusType = "success" | "error" | "pending" | "info";
@@ -27,7 +32,7 @@ export function ContractStatusAnnouncer({
 	compact = false,
 }: ContractStatusAnnouncerProps) {
 	const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-	const statusRef = useRef<HTMLDivElement>(null);
+	const statusRef = useRef<HTMLOutputElement>(null);
 
 	// Clear status after timeout
 	useEffect(() => {
@@ -57,7 +62,7 @@ export function ContractStatusAnnouncer({
 
 	if (compact) {
 		return (
-			<div
+			<output
 				ref={statusRef}
 				className={cn(
 					"flex items-center gap-2 text-sm animate-fade-in",
@@ -67,18 +72,17 @@ export function ContractStatusAnnouncer({
 					status.type === "info" && "text-foreground/60",
 					className,
 				)}
-				role="status"
 				aria-live={status.type === "error" ? "assertive" : "polite"}
 				aria-atomic="true"
 			>
 				<Icon className="w-4 h-4 flex-shrink-0" />
 				<span>{status.message}</span>
-			</div>
+			</output>
 		);
 	}
 
 	return (
-		<div
+		<output
 			ref={statusRef}
 			className={cn(
 				"rounded-xl border p-4 animate-fade-in",
@@ -88,7 +92,6 @@ export function ContractStatusAnnouncer({
 				status.type === "info" && "border-foreground/20 bg-content1/10",
 				className,
 			)}
-			role="status"
 			aria-live={status.type === "error" ? "assertive" : "polite"}
 			aria-atomic="true"
 		>
@@ -104,7 +107,7 @@ export function ContractStatusAnnouncer({
 				/>
 				<p className="text-sm text-foreground/80">{status.message}</p>
 			</div>
-		</div>
+		</output>
 	);
 }
 

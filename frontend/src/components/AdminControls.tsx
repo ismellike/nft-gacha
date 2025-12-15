@@ -265,7 +265,7 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 
 	const handleWeightChange = (index: number, value: string) => {
 		const newWeights = [...weights];
-		newWeights[index] = parseInt(value) || 0;
+		newWeights[index] = parseInt(value, 10) || 0;
 		setWeights(newWeights);
 	};
 

@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ExclamationTriangleIcon, ArrowPathIcon, WifiIcon, WalletIcon } from "@heroicons/react/24/outline";
+import {
+	ExclamationTriangleIcon,
+	ArrowPathIcon,
+	WifiIcon,
+	WalletIcon,
+} from "@heroicons/react/24/outline";
 import { Button } from "../ui";
 import { cn } from "../lib/theme-config";
 
@@ -52,7 +57,7 @@ export function InlineRetryMessage({
 		if (!onRetry || isRetrying) return;
 
 		try {
-			setRetryCount(prev => prev + 1);
+			setRetryCount((prev) => prev + 1);
 			setLastError(null);
 			await onRetry();
 		} catch (error) {
@@ -66,7 +71,7 @@ export function InlineRetryMessage({
 
 	if (compact) {
 		return (
-			<div
+			<output
 				className={cn(
 					"flex items-center gap-2 text-sm",
 					type === "wallet" && "text-warning/80",
@@ -75,7 +80,6 @@ export function InlineRetryMessage({
 					type === "general" && "text-foreground/60",
 					className,
 				)}
-				role="status"
 				aria-live="polite"
 				aria-label={ariaLabel}
 			>
@@ -83,6 +87,7 @@ export function InlineRetryMessage({
 				<span className="flex-1">{displayMessage}</span>
 				{onRetry && !isRetrying && (
 					<button
+						type="button"
 						onClick={handleRetry}
 						className="text-foreground/50 hover:text-foreground transition-colors"
 						aria-label={`Retry ${type} connection`}
@@ -90,12 +95,12 @@ export function InlineRetryMessage({
 						<ArrowPathIcon className="w-4 h-4" />
 					</button>
 				)}
-			</div>
+			</output>
 		);
 	}
 
 	return (
-		<div
+		<output
 			className={cn(
 				"rounded-xl border p-4",
 				type === "wallet" && "border-warning/20 bg-warning/5",
@@ -104,7 +109,6 @@ export function InlineRetryMessage({
 				type === "general" && "border-foreground/20 bg-content1/10",
 				className,
 			)}
-			role="status"
 			aria-live="polite"
 			aria-label={ariaLabel}
 		>
@@ -139,7 +143,11 @@ export function InlineRetryMessage({
 							onPress={handleRetry}
 							isDisabled={isRetrying}
 							isLoading={isRetrying}
-							startContent={<ArrowPathIcon className={cn("w-4 h-4", isRetrying && "animate-spin")} />}
+							startContent={
+								<ArrowPathIcon
+									className={cn("w-4 h-4", isRetrying && "animate-spin")}
+								/>
+							}
 							className="h-8"
 						>
 							{isRetrying ? "Retrying..." : "Retry"}
@@ -147,12 +155,15 @@ export function InlineRetryMessage({
 					)}
 				</div>
 			</div>
-		</div>
+		</output>
 	);
 }
 
 // Hook for managing retry state
-export function useRetryState(onRetry: () => Promise<void>, maxRetries: number = 3) {
+export function useRetryState(
+	onRetry: () => Promise<void>,
+	maxRetries: number = 3,
+) {
 	const [isRetrying, setIsRetrying] = useState(false);
 	const [retryCount, setRetryCount] = useState(0);
 	const [shouldRetry, setShouldRetry] = useState(true);
@@ -163,7 +174,7 @@ export function useRetryState(onRetry: () => Promise<void>, maxRetries: number =
 		setIsRetrying(true);
 		try {
 			await onRetry();
-			setRetryCount(prev => prev + 1);
+			setRetryCount((prev) => prev + 1);
 
 			// Disable further retries after max attempts
 			if (retryCount + 1 >= maxRetries) {

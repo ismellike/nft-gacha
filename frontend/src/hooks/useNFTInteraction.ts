@@ -18,9 +18,13 @@ import {
 	type InteractionMode,
 } from "../stores/nftInteractionStore";
 
-type MaybeFn<T extends (...args: any) => any> = T | undefined;
+type MaybeFn<T extends (...args: unknown[]) => unknown> = T | undefined;
 
-interface UseNFTInteractionParams {
+type StartInteractionConfig = Parameters<
+	ReturnType<typeof useNFTInteractionStore.getState>["startInteraction"]
+>[0];
+
+export interface UseNFTInteractionParams {
 	onSuccess?: MaybeFn<(txHash: string) => void>;
 	onAction?: MaybeFn<
 		(collection: string, tokenId: string, hasValidAppraisal?: boolean) => void
@@ -115,7 +119,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				return;
 			}
 
-			const startConfig: Record<string, unknown> = {
+			const startConfig: StartInteractionConfig = {
 				collection,
 				tokenId,
 				mode,
@@ -137,7 +141,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				startConfig.payoutAmount = config.payoutAmount;
 			}
 
-			storeStart(startConfig as any);
+			storeStart(startConfig);
 		},
 		[
 			context.collection,
@@ -307,7 +311,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		if (isDepositError && depositError) {
 			const isUserRejected =
 				(depositError as UserRejectedRequestError)?.name ===
-				"UserRejectedRequestError" ||
+					"UserRejectedRequestError" ||
 				(depositError as Error)?.message
 					?.toLowerCase?.()
 					.includes("user rejected");
@@ -327,7 +331,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		if (isRedemptionError && redemptionError) {
 			const isUserRejected =
 				(redemptionError as UserRejectedRequestError)?.name ===
-				"UserRejectedRequestError" ||
+					"UserRejectedRequestError" ||
 				(redemptionError as Error)?.message
 					?.toLowerCase?.()
 					.includes("user rejected");

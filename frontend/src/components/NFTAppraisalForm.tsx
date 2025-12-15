@@ -603,8 +603,8 @@ export function NFTAppraisalForm({
 					</motion.div>
 				)}
 
-		{/* Form */}
-		{(state.matches("idle") || state.matches("error")) && (
+				{/* Form */}
+				{(state.matches("idle") || state.matches("error")) && (
 					<form onSubmit={handleSubmit} className="p-8 pt-4 space-y-4">
 						{/* Collection Address */}
 						<div>

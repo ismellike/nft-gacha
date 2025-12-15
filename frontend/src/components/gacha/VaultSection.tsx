@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useState, useCallback, useMemo, useDeferredValue } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import { motion } from "framer-motion";
 import {
@@ -75,8 +75,6 @@ interface VaultState {
 }
 
 // Constants
-const RARITY_EMOJIS = ["⚪", "🟢", "🔵", "🟣", "🟡"];
-const RARITY_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 const TOAST_CONFIG = {
 	duration: 4000,
 	position: "bottom-right" as const,
@@ -85,9 +83,6 @@ const TOAST_CONFIG = {
 // Helper functions
 const createNFTKey = (collection: string, tokenId: string | bigint): string =>
 	`${collection.toLowerCase()}:${tokenId.toString()}`;
-
-const formatAddress = (address: string): string =>
-	`${address.slice(0, 8)}...${address.slice(-6)}`;
 
 const formatShortAddress = (address: string): string =>
 	`${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -627,28 +622,6 @@ const YieldTab: React.FC<{
 	</section>
 );
 
-const NFTRarityDisplay: React.FC<{ rarity: number }> = ({ rarity }) => {
-	// Ensure rarity is a valid number and within expected range
-	const validRarity =
-		typeof rarity === "number" && !Number.isNaN(rarity) ? rarity : 0;
-	const clampedRarity = Math.max(0, Math.min(4, validRarity));
-
-	const emoji = RARITY_EMOJIS[clampedRarity] || "⚪";
-	const name =
-		validRarity !== clampedRarity
-			? `Unknown (${validRarity})`
-			: RARITY_NAMES[clampedRarity] || "Unknown";
-
-	return (
-		<div className="flex items-center gap-2">
-			<span aria-hidden="true" className="text-lg">
-				{emoji}
-			</span>
-			<span className="text-sm">{name}</span>
-		</div>
-	);
-};
-
 // Main component
 export function VaultSection({ title, description }: VaultSectionProps) {
 	const { address } = useAccount();
@@ -661,13 +634,11 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const [activeTab, setActiveTab] = useState<VaultTab>("deposit");
 	const { state, updateState, updateAppraisedStatus, cleanupOrphanedState } =
 		useVaultState();
-	const [withdrawSearch, setWithdrawSearch] = useState("");
-	const deferredWithdrawSearch = useDeferredValue(withdrawSearch);
-	const [collectionFilter, setCollectionFilter] = useState<string>("all");
-	const [sortMode, setSortMode] = useState<"rarity" | "value" | "recent">(
-		"rarity",
-	);
-	const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+	const withdrawSearch = "";
+	const deferredWithdrawSearch = withdrawSearch;
+	const collectionFilter = "all";
+	const sortMode: "rarity" | "value" | "recent" = "rarity";
+	const showSelectedOnly = false;
 
 	// Contract data
 	const depositorVaultProps = useMemo(
@@ -1055,111 +1026,6 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		[depositNFT, state.appraisalData, displayUserNFTs, address],
 	);
 
-	const handleBatchWithdrawal = useCallback(async () => {
-		if (state.selectedForWithdrawal.size === 0 || !treasury) {
-			return;
-		}
-
-		updateState("isBatchWithdrawing", true);
-
-		try {
-			const withdrawals: { collection: Address; tokenId: bigint }[] = [];
-			const nftsToWithdraw: NFTWithCollection[] = [];
-
-			// Collect all NFTs to withdraw
-			for (const nftKey of state.selectedForWithdrawal) {
-				const nft = displayDepositedNFTs.find(
-					(dep) => createNFTKey(dep.collection, dep.tokenId) === nftKey,
-				);
-				if (nft) {
-					withdrawals.push({
-						collection: nft.collection,
-						tokenId: nft.tokenId,
-					});
-					nftsToWithdraw.push(nft);
-				}
-			}
-
-			if (withdrawals.length === 0) {
-				toast.error("No valid NFTs selected for withdrawal", TOAST_CONFIG);
-				return;
-			}
-
-			// Optimistic updates
-			setOptimisticDepositedNFTs((prev) =>
-				prev.filter(
-					(nft) =>
-						!state.selectedForWithdrawal.has(
-							createNFTKey(nft.collection, nft.tokenId),
-						),
-				),
-			);
-
-			const userNFTs: UserOwnedNFTMultiCollection[] = nftsToWithdraw.map(
-				(nft) => ({
-					collection: nft.collection,
-					tokenId: nft.tokenId,
-					...(nft.collectionName && { collectionName: nft.collectionName }),
-				}),
-			);
-			setOptimisticUserNFTs((prev) => [...prev, ...userNFTs]);
-
-			// Process withdrawals sequentially
-			for (const withdrawal of withdrawals) {
-				await withdrawNFT(withdrawal.collection, withdrawal.tokenId);
-			}
-
-			toast.success(
-				`Successfully withdrew ${withdrawals.length} NFTs!`,
-				TOAST_CONFIG,
-			);
-			updateState("selectedForWithdrawal", new Set());
-
-			// Quick refetch of vault data
-			refetchDepositorVault();
-
-			// Delayed background refresh
-			setTimeout(() => {
-				loadDepositedNFTs();
-				refetchUserNFTs();
-				setOptimisticUserNFTs([]);
-				setOptimisticDepositedNFTs([]);
-			}, 2000);
-		} catch (error) {
-			console.error("Error in batch withdrawal:", error);
-			toast.error("Failed to complete batch withdrawal", TOAST_CONFIG);
-			// Revert optimistic updates on error
-			setOptimisticUserNFTs([]);
-			setOptimisticDepositedNFTs([]);
-		} finally {
-			updateState("isBatchWithdrawing", false);
-		}
-	}, [
-		state.selectedForWithdrawal,
-		treasury,
-		displayDepositedNFTs,
-		withdrawNFT,
-		refetchDepositorVault,
-		loadDepositedNFTs,
-		refetchUserNFTs,
-		updateState,
-	]);
-
-	const toggleNFTSelection = useCallback(
-		(collection: Address, tokenId: bigint) => {
-			const nftKey = createNFTKey(collection, tokenId);
-			const currentSet = state.selectedForWithdrawal;
-			const newSet = new Set(currentSet);
-			if (newSet.has(nftKey)) {
-				newSet.delete(nftKey);
-			} else {
-				newSet.add(nftKey);
-			}
-			updateState("selectedForWithdrawal", newSet);
-		},
-		[updateState, state.selectedForWithdrawal],
-	);
-
 	const handleNFTAction = useCallback(
 		(collection: string, tokenId: string, hasAppraisal?: boolean) => {
 			if (hasAppraisal) {
@@ -1177,44 +1043,6 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 	// Computed values
 	const totalDepositedNFTs = displayDepositedNFTs.length;
-	const nftsByCollection = useMemo(() => {
-		const grouped = new Map<string, NFTWithCollection[]>();
-
-		displayDepositedNFTs.forEach((nft) => {
-			const collectionKey = (
-				nft.canonicalContractAddress || nft.collection
-			).toLowerCase();
-			if (!grouped.has(collectionKey)) {
-				grouped.set(collectionKey, []);
-			}
-			grouped.get(collectionKey)?.push(nft);
-		});
-
-		return grouped;
-	}, [displayDepositedNFTs]);
-
-	const collectionFilterOptions = useMemo(() => {
-		return Array.from(nftsByCollection.entries())
-			.map(([key, nfts]) => {
-				const sample = nfts[0];
-				if (!sample) {
-					return null;
-				}
-				const resolvedAddress = (sample.canonicalContractAddress ||
-					sample.collection ||
-					key) as string;
-				return {
-					value: key,
-					label: sample.collectionName || formatShortAddress(resolvedAddress),
-					count: nfts.length,
-				};
-			})
-			.filter(
-				(option): option is { value: string; label: string; count: number } =>
-					!!option,
-			)
-			.sort((a, b) => b.count - a.count);
-	}, [nftsByCollection]);
 
 	const filteredWithdrawableNFTs = useMemo(() => {
 		const normalizedSearch = deferredWithdrawSearch.trim().toLowerCase();
@@ -1272,89 +1100,10 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	}, [
 		displayDepositedNFTs,
 		deferredWithdrawSearch,
-		showSelectedOnly,
 		state.selectedForWithdrawal,
-		collectionFilter,
-		sortMode,
 	]);
-
-	const filteredNftsByCollection = useMemo(() => {
-		const grouped = new Map<string, NFTWithCollection[]>();
-
-		filteredWithdrawableNFTs.forEach((nft) => {
-			const collectionKey = (
-				nft.canonicalContractAddress || nft.collection
-			).toLowerCase();
-			if (!grouped.has(collectionKey)) {
-				grouped.set(collectionKey, []);
-			}
-			grouped.get(collectionKey)?.push(nft);
-		});
-
-		return grouped;
-	}, [filteredWithdrawableNFTs]);
-
-	const totalFilteredValue = useMemo(() => {
-		return filteredWithdrawableNFTs.reduce(
-			(acc, nft) => acc + (nft.appraisedPrice || 0n),
-			0n,
-		);
-	}, [filteredWithdrawableNFTs]);
-
-	const filteredSelectedCount = useMemo(() => {
-		return filteredWithdrawableNFTs.reduce((count, nft) => {
-			const nftKey = createNFTKey(nft.collection, nft.tokenId);
-			return count + (state.selectedForWithdrawal.has(nftKey) ? 1 : 0);
-		}, 0);
-	}, [filteredWithdrawableNFTs, state.selectedForWithdrawal]);
-
-	const hasActiveFilters =
-		collectionFilter !== "all" ||
-		showSelectedOnly ||
-		Boolean(deferredWithdrawSearch.trim()) ||
-		sortMode !== "rarity";
-
-	const allFilteredSelected =
-		filteredWithdrawableNFTs.length > 0 &&
-		filteredWithdrawableNFTs.every((nft) =>
-			state.selectedForWithdrawal.has(
-				createNFTKey(nft.collection, nft.tokenId),
-			),
-		);
 
 	const hasDeposits = displayDepositedNFTs.length > 0;
-
-	const handleSelectAllFiltered = useCallback(() => {
-		if (!filteredWithdrawableNFTs.length) {
-			return;
-		}
-
-		const nextSelection = new Set(state.selectedForWithdrawal);
-
-		if (allFilteredSelected) {
-			filteredWithdrawableNFTs.forEach((nft) => {
-				nextSelection.delete(createNFTKey(nft.collection, nft.tokenId));
-			});
-		} else {
-			filteredWithdrawableNFTs.forEach((nft) => {
-				nextSelection.add(createNFTKey(nft.collection, nft.tokenId));
-			});
-		}
-
-		updateState("selectedForWithdrawal", nextSelection);
-	}, [
-		filteredWithdrawableNFTs,
-		state.selectedForWithdrawal,
-		updateState,
-		allFilteredSelected,
-	]);
-
-	const handleResetWithdrawFilters = useCallback(() => {
-		setWithdrawSearch("");
-		setCollectionFilter("all");
-		setSortMode("rarity");
-		setShowSelectedOnly(false);
-	}, []);
 
 	// Early return if not connected
 	if (!address) {

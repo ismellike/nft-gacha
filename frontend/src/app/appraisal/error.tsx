@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { ExclamationTriangleIcon, ArrowPathIcon, HomeIcon } from "@heroicons/react/24/outline";
+import {
+	ExclamationTriangleIcon,
+	ArrowPathIcon,
+	HomeIcon,
+} from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { Button, Card } from "../../ui";
 
@@ -18,15 +22,18 @@ export default function AppraisalError({ error, reset }: ErrorProps) {
 		console.error("Appraisal route error:", error);
 	}, [error]);
 
-	const isWalletError = error.message.toLowerCase().includes("wallet") ||
+	const isWalletError =
+		error.message.toLowerCase().includes("wallet") ||
 		error.message.toLowerCase().includes("connector") ||
 		error.message.toLowerCase().includes("provider");
 
-	const isNetworkError = error.message.toLowerCase().includes("network") ||
+	const isNetworkError =
+		error.message.toLowerCase().includes("network") ||
 		error.message.toLowerCase().includes("rpc") ||
 		error.message.toLowerCase().includes("connection");
 
-	const isContractError = error.message.toLowerCase().includes("contract") ||
+	const isContractError =
+		error.message.toLowerCase().includes("contract") ||
 		error.message.toLowerCase().includes("transaction") ||
 		error.message.toLowerCase().includes("call") ||
 		error.message.toLowerCase().includes("appraisal");
@@ -110,17 +117,20 @@ export default function AppraisalError({ error, reset }: ErrorProps) {
 				<div className="mt-6 text-sm text-foreground/50" aria-live="polite">
 					{isWalletError && (
 						<p>
-							Tip: Connect your wallet to access the appraisal service. Make sure it's unlocked and has ETH for fees.
+							Tip: Connect your wallet to access the appraisal service. Make
+							sure it's unlocked and has ETH for fees.
 						</p>
 					)}
 					{isNetworkError && (
 						<p>
-							Tip: The appraisal service requires a stable internet connection. Check your connection and try again.
+							Tip: The appraisal service requires a stable internet connection.
+							Check your connection and try again.
 						</p>
 					)}
 					{isContractError && (
 						<p>
-							Tip: Appraisal contracts might be experiencing high demand. Please wait a moment and retry.
+							Tip: Appraisal contracts might be experiencing high demand. Please
+							wait a moment and retry.
 						</p>
 					)}
 				</div>

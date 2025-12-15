@@ -49,14 +49,14 @@ export const Header = memo(() => {
 					<div className="flex items-center justify-between px-8 py-6">
 						{/* Logo */}
 						<Link href="/" className="flex items-center space-x-4 group">
-								<div className="relative">
-									{/* Subtle glow effect behind logo */}
-									<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-orange-400/20 to-warning/30 rounded-2xl blur-md animate-pulse opacity-60" />
+							<div className="relative">
+								{/* Subtle glow effect behind logo */}
+								<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-orange-400/20 to-warning/30 rounded-2xl blur-md animate-pulse opacity-60" />
 
-									<motion.div
-										className="relative w-12 h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105"
-										{...(!reduceMotion && { whileHover: { rotate: -8 } })}
-									>
+								<motion.div
+									className="relative w-12 h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+									{...(!reduceMotion && { whileHover: { rotate: -8 } })}
+								>
 									<Image
 										src="/logo.webp"
 										alt="SPINFI Logo"
@@ -72,7 +72,10 @@ export const Header = memo(() => {
 						</Link>
 
 						{/* Navigation Items */}
-						<nav className="hidden md:flex items-center space-x-6" aria-label="Main navigation">
+						<nav
+							className="hidden md:flex items-center space-x-6"
+							aria-label="Main navigation"
+						>
 							{navItems.map((item) => {
 								const isActive =
 									item.href === "/"
@@ -80,7 +83,11 @@ export const Header = memo(() => {
 										: pathname.startsWith(item.href);
 
 								return (
-									<Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined}>
+									<Link
+										key={item.href}
+										href={item.href}
+										aria-current={isActive ? "page" : undefined}
+									>
 										<motion.div
 											className={`px-4 py-3 rounded-xl transition-all duration-300 font-medium ${
 												isActive

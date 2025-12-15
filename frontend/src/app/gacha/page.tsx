@@ -15,7 +15,10 @@ import {
 
 import { Button, Card, CardSkeleton } from "../../ui";
 import { InlineRetryMessage } from "../../components/InlineRetryMessage";
-import { ContractStatusAnnouncer, useContractStatusAnnouncer } from "../../components/ContractStatusAnnouncer";
+import {
+	ContractStatusAnnouncer,
+	useContractStatusAnnouncer,
+} from "../../components/ContractStatusAnnouncer";
 import { FlowSwitcher } from "../../components/gacha/FlowSwitcher";
 import { SpinSection } from "../../components/gacha/SpinSection";
 import { VaultSection } from "../../components/gacha/VaultSection";
@@ -58,7 +61,7 @@ function GachaDetailPageContent() {
 	const {
 		data: gachaOwner,
 		isLoading: isLoadingGachaOwner,
-		isError: isGachaOwnerError
+		isError: isGachaOwnerError,
 	} = useReadGachaOwner({
 		address: gacha?.address as `0x${string}`,
 		query: { enabled: isConnected && !!gacha },
@@ -67,7 +70,7 @@ function GachaDetailPageContent() {
 	const {
 		data: treasuryOwner,
 		isLoading: isLoadingTreasuryOwner,
-		isError: isTreasuryOwnerError
+		isError: isTreasuryOwnerError,
 	} = useReadGachaTreasuryOwner({
 		address: gacha?.treasuryAddress as `0x${string}`,
 		query: { enabled: isConnected && !!gacha },
@@ -76,14 +79,15 @@ function GachaDetailPageContent() {
 	const {
 		data: rewardsOwner,
 		isLoading: isLoadingRewardsOwner,
-		isError: isRewardsOwnerError
+		isError: isRewardsOwnerError,
 	} = useReadGachaEconomyManagerOwner({
 		address: contracts.economyManager,
 		query: { enabled: isConnected && !!contracts.economyManager },
 	} as Parameters<typeof useReadGachaEconomyManagerOwner>[0]);
 
 	// Show loading skeleton while fetching owner permissions
-	const isLoadingOwnerData = isLoadingGachaOwner || isLoadingTreasuryOwner || isLoadingRewardsOwner;
+	const isLoadingOwnerData =
+		isLoadingGachaOwner || isLoadingTreasuryOwner || isLoadingRewardsOwner;
 
 	const isOwner = Boolean(
 		userAddress &&
@@ -231,7 +235,10 @@ function GachaDetailPageContent() {
 							</Button>
 							<div className="space-y-1">
 								<span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-foreground/40">
-									<span className="flex h-2 w-2 rounded-full bg-success" aria-hidden="true" />
+									<span
+										className="flex h-2 w-2 rounded-full bg-success"
+										aria-hidden="true"
+									/>
 									Live
 								</span>
 								<h1 className="text-xl font-semibold text-foreground md:text-3xl">
@@ -262,7 +269,9 @@ function GachaDetailPageContent() {
 
 				{/* Error messages for contract reads */}
 				<div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-					{(isGachaOwnerError || isTreasuryOwnerError || isRewardsOwnerError) && (
+					{(isGachaOwnerError ||
+						isTreasuryOwnerError ||
+						isRewardsOwnerError) && (
 						<InlineRetryMessage
 							type="contract"
 							message="Failed to load owner permissions. Some admin features may be unavailable."
@@ -299,8 +308,8 @@ function GachaDetailPageContent() {
 							/>
 						)}
 
-						{activeSection === "admin" && (
-							isLoadingOwnerData ? (
+						{activeSection === "admin" &&
+							(isLoadingOwnerData ? (
 								<div className="space-y-6">
 									<div className="grid gap-6 lg:grid-cols-3">
 										<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
@@ -310,8 +319,7 @@ function GachaDetailPageContent() {
 								</div>
 							) : (
 								gacha && <AdminSection gacha={gacha} />
-							)
-						)}
+							))}
 					</motion.div>
 				</div>
 			</div>

@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { ExclamationTriangleIcon, ArrowPathIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import {
+	ExclamationTriangleIcon,
+	ArrowPathIcon,
+	ArrowLeftIcon,
+} from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { Button, Card } from "../../ui";
 
@@ -18,15 +22,18 @@ export default function GachaError({ error, reset }: ErrorProps) {
 		console.error("Gacha route error:", error);
 	}, [error]);
 
-	const isWalletError = error.message.toLowerCase().includes("wallet") ||
+	const isWalletError =
+		error.message.toLowerCase().includes("wallet") ||
 		error.message.toLowerCase().includes("connector") ||
 		error.message.toLowerCase().includes("provider");
 
-	const isNetworkError = error.message.toLowerCase().includes("network") ||
+	const isNetworkError =
+		error.message.toLowerCase().includes("network") ||
 		error.message.toLowerCase().includes("rpc") ||
 		error.message.toLowerCase().includes("connection");
 
-	const isContractError = error.message.toLowerCase().includes("contract") ||
+	const isContractError =
+		error.message.toLowerCase().includes("contract") ||
 		error.message.toLowerCase().includes("transaction") ||
 		error.message.toLowerCase().includes("call");
 
@@ -109,17 +116,20 @@ export default function GachaError({ error, reset }: ErrorProps) {
 				<div className="mt-6 text-sm text-foreground/50" aria-live="polite">
 					{isWalletError && (
 						<p>
-							Tip: Make sure your wallet is unlocked and you've granted the necessary permissions.
+							Tip: Make sure your wallet is unlocked and you've granted the
+							necessary permissions.
 						</p>
 					)}
 					{isNetworkError && (
 						<p>
-							Tip: Check if you're connected to the correct network and your internet connection is stable.
+							Tip: Check if you're connected to the correct network and your
+							internet connection is stable.
 						</p>
 					)}
 					{isContractError && (
 						<p>
-							Tip: The contract might be temporarily unavailable. Try again in a few moments.
+							Tip: The contract might be temporarily unavailable. Try again in a
+							few moments.
 						</p>
 					)}
 				</div>

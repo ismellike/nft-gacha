@@ -203,7 +203,7 @@ export function useGachaSpinMachine(
 					}
 				}
 			});
-	}, [userAddress, publicClient, contracts.gacha, state.value, updateState]);
+	}, [userAddress, publicClient, contracts.gacha, state.matches, updateState]);
 
 	// Actions
 	const startSpin = () => {
@@ -347,7 +347,7 @@ export function useGachaSpinMachine(
 			isPollingRef.current = false;
 		};
 	}, [
-		state.value,
+		state.matches,
 		state.context.triggerId,
 		state.context.userAddress,
 		state.context.publicClient,

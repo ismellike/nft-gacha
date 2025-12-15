@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { Card, Button } from "../ui";
 import Link from "next/link";
@@ -80,8 +80,12 @@ export default function LandingPage() {
 				Skip to main content
 			</a>
 			<main id="main-content">
-			{/* Hero Section - Streamlined & Impactful */}
-			<section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden px-4" aria-labelledby="hero-heading">
+				{/* Hero Section - Streamlined & Impactful */}
+				<section
+					id="hero"
+					className="relative min-h-screen flex items-center justify-center overflow-hidden px-4"
+					aria-labelledby="hero-heading"
+				>
 					{/* Subtle Animated Background */}
 					<div className="absolute inset-0 opacity-30" aria-hidden="true">
 						{rarities.slice(0, 3).map((rarity, i) => {
@@ -117,7 +121,10 @@ export default function LandingPage() {
 
 						{/* Main Headline - More Impactful */}
 						<div className="mb-8">
-							<h1 id="hero-heading" className="text-6xl md:text-8xl lg:text-9xl font-black mb-6 leading-tight font-orbitron">
+							<h1
+								id="hero-heading"
+								className="text-6xl md:text-8xl lg:text-9xl font-black mb-6 leading-tight font-orbitron"
+							>
 								<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent drop-shadow-2xl">
 									Provably Fair
 								</span>
@@ -130,8 +137,8 @@ export default function LandingPage() {
 
 						{/* Refined Value Proposition */}
 						<p className="text-xl md:text-2xl text-foreground/80 mb-16 max-w-4xl mx-auto leading-relaxed font-medium">
-							Verifiably fair randomness and automated appraisals powered by WAVS
-							components.
+							Verifiably fair randomness and automated appraisals powered by
+							WAVS components.
 							<br className="hidden md:block" />
 							<span className="text-warning font-semibold">
 								No manipulation. No black boxes. Just cryptographic proof.
@@ -139,8 +146,14 @@ export default function LandingPage() {
 						</p>
 
 						{/* Primary CTA */}
-						<nav className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20" aria-label="Primary navigation">
-							<Link href="/gacha/?id=graded-pokemon&section=spin" aria-describedby="play-description">
+						<nav
+							className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20"
+							aria-label="Primary navigation"
+						>
+							<Link
+								href="/gacha/?id=graded-pokemon&section=spin"
+								aria-describedby="play-description"
+							>
 								<Button
 									color="glassPrimary"
 									size="lg"
@@ -154,11 +167,16 @@ export default function LandingPage() {
 								</Button>
 							</Link>
 							<div id="play-description" className="sr-only">
-								Start playing provably fair NFT gacha games with WAVS-powered randomness
+								Start playing provably fair NFT gacha games with WAVS-powered
+								randomness
 							</div>
 
 							<Link href="/appraisal" aria-describedby="deposit-description">
-								<Button color="glass" size="lg" className="min-w-64 sm:min-w-80">
+								<Button
+									color="glass"
+									size="lg"
+									className="min-w-64 sm:min-w-80"
+								>
 									<span className="flex items-center gap-3">
 										<GiftIcon className="w-6 h-6" aria-hidden="true" />
 										Deposit & Earn Yield
@@ -171,16 +189,23 @@ export default function LandingPage() {
 						</nav>
 
 						{/* Quick Trust Signals */}
-						<div className="flex flex-wrap justify-center gap-6" role="list" aria-label="Trust indicators">
+						<ul
+							className="flex flex-wrap justify-center gap-6"
+							aria-label="Trust indicators"
+						>
 							{[
 								{
 									id: "wavs-secured",
-									icon: <ShieldCheckIcon className="w-5 h-5" aria-hidden="true" />,
+									icon: (
+										<ShieldCheckIcon className="w-5 h-5" aria-hidden="true" />
+									),
 									text: "WAVS Secured",
 								},
 								{
 									id: "on-chain-verifiable",
-									icon: <FingerPrintIcon className="w-5 h-5" aria-hidden="true" />,
+									icon: (
+										<FingerPrintIcon className="w-5 h-5" aria-hidden="true" />
+									),
 									text: "On-Chain Verifiable",
 								},
 								{
@@ -189,37 +214,43 @@ export default function LandingPage() {
 									text: "Automated Appraisals",
 								},
 							].map((signal) => (
-								<div
+								<li
 									key={signal.id}
 									className="flex items-center gap-2 px-4 py-2 bg-content1/10 backdrop-blur-sm rounded-full border border-white/20"
-									role="listitem"
 								>
 									<span className="text-warning">{signal.icon}</span>
 									<span className="text-sm font-medium text-foreground/80">
 										{signal.text}
 									</span>
-								</div>
+								</li>
 							))}
-						</div>
+						</ul>
 					</div>
 				</section>
 
-			{/* Technology Deep Dive */}
-			<section id="technology" className="py-32 px-4 relative bg-gradient-to-b from-content1/5 to-transparent" aria-labelledby="tech-heading">
+				{/* Technology Deep Dive */}
+				<section
+					id="technology"
+					className="py-32 px-4 relative bg-gradient-to-b from-content1/5 to-transparent"
+					aria-labelledby="tech-heading"
+				>
 					<div className="max-w-7xl mx-auto">
 						<div className="text-center mb-20">
-							<h2 id="tech-heading" className="text-5xl md:text-7xl font-black mb-6">
+							<h2
+								id="tech-heading"
+								className="text-5xl md:text-7xl font-black mb-6"
+							>
 								<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
 									WAVS Technology
 								</span>
 							</h2>
-						<p className="text-xl text-foreground/80 max-w-4xl mx-auto leading-relaxed font-medium">
+							<p className="text-xl text-foreground/80 max-w-4xl mx-auto leading-relaxed font-medium">
 								Enterprise-grade infrastructure providing verifiable randomness
 								and automated appraisals
 							</p>
 						</div>
 
-					<div className="grid lg:grid-cols-3 gap-12">
+						<div className="grid lg:grid-cols-3 gap-12">
 							{valueProps.map((prop) => (
 								<div key={prop.title}>
 									<Card className="h-full p-10 text-center bg-content1/10 backdrop-blur-xl border border-white/10 rounded-3xl hover:border-warning/30 transition-all duration-500 group">
@@ -228,32 +259,39 @@ export default function LandingPage() {
 											<div className="text-warning">{prop.icon}</div>
 										</div>
 
-									{/* Content */}
-									<div>
-										<h3 className="text-2xl font-bold text-foreground mb-4">
-											{prop.title}
-										</h3>
-										<p className="text-foreground/80 leading-relaxed text-lg mb-6">
-											{prop.description}
-										</p>
-										<div className="inline-flex px-4 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 rounded-xl border border-warning/30">
-											<span className="text-warning font-semibold text-sm">
-												{prop.highlight}
-											</span>
+										{/* Content */}
+										<div>
+											<h3 className="text-2xl font-bold text-foreground mb-4">
+												{prop.title}
+											</h3>
+											<p className="text-foreground/80 leading-relaxed text-lg mb-6">
+												{prop.description}
+											</p>
+											<div className="inline-flex px-4 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 rounded-xl border border-warning/30">
+												<span className="text-warning font-semibold text-sm">
+													{prop.highlight}
+												</span>
 											</div>
 										</div>
 									</Card>
 								</div>
 							))}
 						</div>
-				</div>
-			</section>
+					</div>
+				</section>
 
-			{/* User Journey */}
-			<section id="how-it-works" className="py-32 px-4 relative text-foreground" aria-labelledby="journey-heading">
+				{/* User Journey */}
+				<section
+					id="how-it-works"
+					className="py-32 px-4 relative text-foreground"
+					aria-labelledby="journey-heading"
+				>
 					<div className="max-w-6xl mx-auto">
 						<div className="text-center mb-20">
-							<h2 id="journey-heading" className="text-5xl md:text-7xl font-black mb-6 text-foreground">
+							<h2
+								id="journey-heading"
+								className="text-5xl md:text-7xl font-black mb-6 text-foreground"
+							>
 								How It Works
 							</h2>
 							<p className="text-xl text-foreground/80 max-w-3xl mx-auto leading-relaxed font-medium">
@@ -269,17 +307,17 @@ export default function LandingPage() {
 										{index + 1}
 									</div>
 
-								<Card className="h-full p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl hover:border-warning/30 transition-all duration-300">
-									<h3 className="text-xl font-bold text-foreground mb-4">
-										{step.title}
-									</h3>
-									<p className="text-foreground/80 leading-relaxed mb-4">
-										{step.description}
-									</p>
-									<div className="text-sm font-semibold text-warning bg-warning/10 px-3 py-1.5 rounded-lg">
-										{step.benefit}
-									</div>
-								</Card>
+									<Card className="h-full p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl hover:border-warning/30 transition-all duration-300">
+										<h3 className="text-xl font-bold text-foreground mb-4">
+											{step.title}
+										</h3>
+										<p className="text-foreground/80 leading-relaxed mb-4">
+											{step.description}
+										</p>
+										<div className="text-sm font-semibold text-warning bg-warning/10 px-3 py-1.5 rounded-lg">
+											{step.benefit}
+										</div>
+									</Card>
 
 									{/* Connection Line */}
 									{index < userFlow.length - 1 && (
@@ -292,22 +330,35 @@ export default function LandingPage() {
 				</section>
 
 				{/* Simple Rarity Showcase */}
-				<section id="rarity-system" className="py-24 px-4 relative" aria-labelledby="rarity-heading">
+				<section
+					id="rarity-system"
+					className="py-24 px-4 relative"
+					aria-labelledby="rarity-heading"
+				>
 					<div className="max-w-7xl mx-auto">
-						<h2 id="rarity-heading" className="sr-only">NFT Rarity System</h2>
+						<h2 id="rarity-heading" className="sr-only">
+							NFT Rarity System
+						</h2>
 						<SimpleRarityShowcase />
 					</div>
 				</section>
 
 				{/* Final CTA - Streamlined */}
-				<section id="cta" className="py-32 px-4 relative" aria-labelledby="cta-heading">
+				<section
+					id="cta"
+					className="py-32 px-4 relative"
+					aria-labelledby="cta-heading"
+				>
 					<div className="max-w-5xl mx-auto">
 						<Card className="p-16 text-center bg-gradient-to-br from-content1/20 via-content1/10 to-content1/20 backdrop-blur-xl border border-warning/30 rounded-3xl shadow-2xl shadow-warning/10">
 							<div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-r from-warning via-orange-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-warning/40">
 								<BoltIcon className="w-10 h-10 text-black" aria-hidden="true" />
 							</div>
 
-							<h2 id="cta-heading" className="text-4xl md:text-6xl font-black mb-6 font-orbitron">
+							<h2
+								id="cta-heading"
+								className="text-4xl md:text-6xl font-black mb-6 font-orbitron"
+							>
 								<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
 									Experience True Fairness
 								</span>
@@ -319,7 +370,10 @@ export default function LandingPage() {
 							</p>
 
 							<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-								<Link href="/gacha/?id=graded-pokemon&section=spin" aria-label="Start playing provably fair gacha games">
+								<Link
+									href="/gacha/?id=graded-pokemon&section=spin"
+									aria-label="Start playing provably fair gacha games"
+								>
 									<Button
 										color="glassPrimary"
 										size="lg"
@@ -335,18 +389,27 @@ export default function LandingPage() {
 							</div>
 
 							{/* Trust Indicators */}
-							<div className="flex items-center justify-center gap-8 mt-12 text-foreground/60" role="list" aria-label="Security features">
-								<div className="flex items-center gap-2" role="listitem">
-									<ShieldCheckIcon className="w-5 h-5 text-success-400" aria-hidden="true" />
+							<ul
+								className="flex items-center justify-center gap-8 mt-12 text-foreground/60"
+								aria-label="Security features"
+							>
+								<li className="flex items-center gap-2">
+									<ShieldCheckIcon
+										className="w-5 h-5 text-success-400"
+										aria-hidden="true"
+									/>
 									<span className="text-sm font-medium">WAVS Secured</span>
-								</div>
-								<div className="flex items-center gap-2" role="listitem">
-									<FingerPrintIcon className="w-5 h-5 text-warning" aria-hidden="true" />
+								</li>
+								<li className="flex items-center gap-2">
+									<FingerPrintIcon
+										className="w-5 h-5 text-warning"
+										aria-hidden="true"
+									/>
 									<span className="text-sm font-medium">
 										Cryptographically Verifiable
 									</span>
-								</div>
-							</div>
+								</li>
+							</ul>
 						</Card>
 					</div>
 				</section>

@@ -12,10 +12,12 @@ import { useAccount } from "wagmi";
 import { NFTAppraisalDashboard } from "../../components/NFTAppraisalDashboard";
 import { Card, Button, Skeleton } from "../../ui";
 import { InlineRetryMessage } from "../../components/InlineRetryMessage";
-import { ContractStatusAnnouncer, useContractStatusAnnouncer } from "../../components/ContractStatusAnnouncer";
+import {
+	ContractStatusAnnouncer,
+	useContractStatusAnnouncer,
+} from "../../components/ContractStatusAnnouncer";
 import { useAppraisalData } from "../../hooks/useAppraisalData";
 import { formatCurrency } from "../../lib/utils";
-
 
 export default function AppraisalPage() {
 	const { address } = useAccount();
@@ -47,6 +49,11 @@ export default function AppraisalPage() {
 		},
 	];
 
+	const statusSkeletonKeys = Array.from(
+		{ length: 4 },
+		(_, idx) => `status-skeleton-${idx}`,
+	);
+
 	return (
 		<div className="min-h-screen bg-transparent">
 			{/* Global contract status announcer */}
@@ -69,7 +76,9 @@ export default function AppraisalPage() {
 							Appraise any NFT in one clean path
 						</h1>
 						<p className="text-base sm:text-lg text-foreground/70 max-w-3xl">
-							Enter a contract and token, preview the NFT, pay the single appraisal fee, and follow the live status until your valuation lands in the treasury.
+							Enter a contract and token, preview the NFT, pay the single
+							appraisal fee, and follow the live status until your valuation
+							lands in the treasury.
 						</p>
 						<div className="flex flex-wrap items-center gap-3">
 							<Button asChild color="glassPrimary" size="lg" animate>
@@ -84,7 +93,8 @@ export default function AppraisalPage() {
 								<div className="flex items-center gap-2 rounded-full border border-white/10 bg-content1/30 px-3 py-2 text-sm text-foreground/70">
 									<BoltIcon className="h-4 w-4 text-warning" />
 									<span>
-										Current fee: {formatCurrency(appraisalFee.toString(), 18, "ETH")}
+										Current fee:{" "}
+										{formatCurrency(appraisalFee.toString(), 18, "ETH")}
 									</span>
 								</div>
 							) : null}
@@ -110,7 +120,9 @@ export default function AppraisalPage() {
 										Enter NFT → Preview card → Pay fee → Track result
 									</h3>
 									<p className="text-sm text-foreground/70 max-w-3xl">
-										The full flow lives here. Submit contract + token ID, see the NFT card, pay the appraisal fee, and watch status update in place. No extra navigation.
+										The full flow lives here. Submit contract + token ID, see
+										the NFT card, pay the appraisal fee, and watch status update
+										in place. No extra navigation.
 									</p>
 								</div>
 
@@ -135,20 +147,18 @@ export default function AppraisalPage() {
 								</div>
 								<div className="mt-4 grid gap-3">
 									{loading ? (
-										<>
-											{Array.from({ length: 4 }).map((_, i) => (
-												<div
-													key={i}
-													className="flex items-center gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3"
-												>
-													<Skeleton variant="circle" size="w10 h10" />
-													<div className="flex-1">
-														<Skeleton size="h4 w20 mb-1" />
-														<Skeleton size="h6 w16" />
-													</div>
+										statusSkeletonKeys.map((skeletonKey) => (
+											<div
+												key={skeletonKey}
+												className="flex items-center gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3"
+											>
+												<Skeleton variant="circle" size="w10 h10" />
+												<div className="flex-1">
+													<Skeleton size="h4 w20 mb-1" />
+													<Skeleton size="h6 w16" />
 												</div>
-											))}
-										</>
+											</div>
+										))
 									) : (
 										<>
 											{heroStats.map((item) => (

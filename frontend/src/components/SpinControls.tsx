@@ -1152,9 +1152,8 @@ export default function SpinControls({
 
 					{/* Permit Fallback Message */}
 					{permitFailed && (
-						<div
+						<output
 							className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
-							role="status"
 							aria-live="polite"
 						>
 							<div>
@@ -1171,7 +1170,7 @@ export default function SpinControls({
 									{contracts.gacha?.slice(-6)}
 								</div>
 							</div>
-						</div>
+						</output>
 					)}
 
 					{/* Gacha Unavailable Warning */}

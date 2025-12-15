@@ -16,7 +16,10 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { useBuybackNotificationsContext } from "./BuybackNotificationProvider";
 import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
-import { useNFTInteraction } from "@/hooks/useNFTInteraction";
+import {
+	useNFTInteraction,
+	type UseNFTInteractionParams,
+} from "@/hooks/useNFTInteraction";
 
 interface BuybackComponentProps {
 	collection: string;
@@ -48,7 +51,7 @@ export default function BuybackComponent({
 	const { showNotification } = useBuybackNotificationsContext();
 
 	// Build interaction params for NFT interaction hook
-	const interactionParams = useMemo(
+	const interactionParams = useMemo<UseNFTInteractionParams>(
 		() => ({
 			onAction: (
 				_collection: string,
@@ -87,7 +90,7 @@ export default function BuybackComponent({
 		startInteraction,
 		getActionInfo,
 		reset,
-	} = useNFTInteraction(interactionParams as any);
+	} = useNFTInteraction(interactionParams);
 
 	// Enhanced success state data
 	type SuccessData = {

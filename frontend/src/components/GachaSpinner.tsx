@@ -57,19 +57,15 @@ const GachaSpinner = memo(() => {
 			<div className="space-y-16 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-16 lg:items-start">
 				{/* Top-pinned Actions on Mobile */}
 				<div className="lg:hidden sticky top-20 z-30 bg-background/80 backdrop-blur-md -mx-4 px-4 py-4 border-b border-white/10">
-					<div
-						role="status"
-						aria-live="polite"
-						aria-atomic="true"
-						className="sr-only"
-					>
+					<output aria-live="polite" aria-atomic="true" className="sr-only">
 						{gachaSpin.isSpinning && "Starting spin..."}
 						{gachaSpin.isWaitingForFulfillment && "Awaiting randomness..."}
 						{gachaSpin.isRevealing && "Revealing your NFT..."}
 						{gachaSpin.isError && `Error: ${gachaSpin.error}`}
 						{gachaSpin.isRefunded && "Spin refunded due to empty rarity pool"}
-						{gachaSpin.isTimeout && "Randomness timeout - you can reclaim your funds"}
-					</div>
+						{gachaSpin.isTimeout &&
+							"Randomness timeout - you can reclaim your funds"}
+					</output>
 					<SpinControls
 						gachaSpin={gachaSpin}
 						onRefund={() => {

@@ -2,6 +2,13 @@
 
 import { CardSkeleton } from "../../ui";
 
+const LOADING_PLACEHOLDERS = [
+	"loading-1",
+	"loading-2",
+	"loading-3",
+	"loading-4",
+];
+
 export default function GachaLoading() {
 	return (
 		<div className="min-h-screen bg-transparent">
@@ -25,9 +32,9 @@ export default function GachaLoading() {
 
 				<div className="mt-8">
 					<div className="flex gap-2">
-						{Array.from({ length: 4 }).map((_, i) => (
+						{LOADING_PLACEHOLDERS.map((placeholder) => (
 							<div
-								key={i}
+								key={placeholder}
 								className="h-12 w-24 rounded-xl bg-content1/20 border border-white/10 animate-pulse"
 							/>
 						))}

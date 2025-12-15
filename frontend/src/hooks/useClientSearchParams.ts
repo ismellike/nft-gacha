@@ -46,7 +46,9 @@ class SearchParamsStore {
 	};
 
 	private notifyListeners() {
-		this.listeners.forEach((listener) => listener());
+		this.listeners.forEach((listener) => {
+			listener();
+		});
 	}
 
 	subscribe(listener: () => void) {

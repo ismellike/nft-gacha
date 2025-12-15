@@ -16,6 +16,55 @@ a {
 	text-decoration: none;
 }
 
+/* Accessible focus styles for links */
+a:focus-visible {
+	outline: 2px solid rgba(234, 179, 8, 0.6);
+	outline-offset: 2px;
+	border-radius: 4px;
+	background-color: rgba(234, 179, 8, 0.1);
+}
+
+/* High contrast focus for better visibility */
+@media (prefers-contrast: high) {
+	a:focus-visible {
+		outline-width: 3px;
+		outline-color: rgb(234, 179, 8);
+		background-color: rgba(234, 179, 8, 0.2);
+	}
+}
+
+/* Respect users' motion preferences */
+@media (prefers-reduced-motion: reduce) {
+	/* Disable animations for users who prefer reduced motion */
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms;
+		animation-iteration-count: 1;
+		transition-duration: 0.01ms;
+		scroll-behavior: auto;
+	}
+
+	/* Keep essential animations but make them instant */
+	.animate-float-gentle,
+	.animate-float,
+	.animate-fade-in,
+	.animate-spin-wobble {
+		animation: none;
+	}
+
+	/* Transform animations become instant changes */
+	.float-gentle {
+		transform: none;
+	}
+
+	/* Keep pulse animations static */
+	.animate-pulse {
+		animation: none;
+		opacity: 1;
+	}
+}
+
 * {
 	box-sizing: border-box;
 }
