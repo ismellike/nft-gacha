@@ -4,10 +4,10 @@ pragma solidity ^0.8.27;
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {IDepositorVault} from "../interfaces/IDepositorVault.sol";
 
 /// @notice Interface for GachaTreasury to record claimed analytics
@@ -86,7 +86,6 @@ contract DepositorVault is
         require(owner != address(0), "DepositorVault: owner is zero");
         __Ownable_init(owner);
         __Pausable_init();
-        // ReentrancyGuardTransient doesn't need initialization
 
         require(asset_ != address(0), "DepositorVault: asset is zero");
         require(treasury_ != address(0), "DepositorVault: treasury is zero");
@@ -192,8 +191,8 @@ contract DepositorVault is
         _unclaimed[account] = 0;
         totalYieldClaimed += withdrawn;
 
-        // Record claimed analytics in GachaTreasury if treasury is set
-        if (treasury != address(0)) {
+        // Record claimed analytics in GachaTreasury if treasury is set and is a contract
+        if (treasury != address(0) && treasury.code.length > 0) {
             try IGachaTreasury(treasury).recordYieldClaim(account, withdrawn) {
                 // Successfully recorded analytics
             } catch {
@@ -201,6 +200,7 @@ contract DepositorVault is
             }
         }
 
+        require(asset.balanceOf(address(this)) >= withdrawn, "DepositorVault: insufficient vault balance");
         asset.safeTransfer(account, withdrawn);
 
         emit IDepositorVault.YieldClaimed(account, withdrawn);

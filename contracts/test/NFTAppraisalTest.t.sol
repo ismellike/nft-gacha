@@ -127,11 +127,10 @@ contract NFTAppraisalTest is Test {
     function _deployAppraisalContract() internal {
         NFTAppraisal appraisalImpl = new NFTAppraisal();
 
-        ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), "");
+        bytes memory initData =
+            abi.encodeWithSelector(NFTAppraisal.initialize.selector, owner, address(feeToken), APPRAISAL_FEE, protocol);
+        ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), initData);
         appraisal = NFTAppraisal(address(proxy));
-
-        vm.prank(owner);
-        appraisal.initialize(owner, address(feeToken), APPRAISAL_FEE, protocol);
     }
 
     /**

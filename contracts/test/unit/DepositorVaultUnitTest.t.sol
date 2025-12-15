@@ -274,7 +274,7 @@ contract DepositorVaultUnitTest is Test {
         vm.stopPrank();
 
         uint256 expectedReward = vault.pendingYield(depositor1);
-        uint256 balanceBefore = usdc.balanceOf(recipient);
+        uint256 balanceBefore = usdc.balanceOf(depositor1);
 
         vm.expectEmit(true, true, true, false);
         emit YieldClaimed(depositor1, expectedReward);
@@ -284,7 +284,7 @@ contract DepositorVaultUnitTest is Test {
         vm.stopPrank();
 
         assertEq(claimed, expectedReward, "Claimed amount should be correct");
-        assertEq(usdc.balanceOf(recipient), balanceBefore + expectedReward, "Recipient should receive reward");
+        assertEq(usdc.balanceOf(depositor1), balanceBefore + expectedReward, "Depositor should receive reward");
         assertEq(vault.pendingYield(depositor1), 0, "Pending reward should be zero after claim");
         assertEq(vault.totalYieldClaimed(), expectedReward, "Total claimed should be tracked");
     }
@@ -299,12 +299,12 @@ contract DepositorVaultUnitTest is Test {
         vault.distributeYield(REWARD_AMOUNT);
         vm.stopPrank();
 
-        uint256 balanceBefore = usdc.balanceOf(recipient);
+        uint256 balanceBefore = usdc.balanceOf(depositor1);
 
         vm.startPrank(depositor1);
         vault.claimYield(depositor1);
 
-        assertGt(usdc.balanceOf(recipient), balanceBefore, "Different recipient should receive reward");
+        assertGt(usdc.balanceOf(depositor1), balanceBefore, "Depositor should receive reward");
     }
 
     function testClaimYieldAuthorization() public {
