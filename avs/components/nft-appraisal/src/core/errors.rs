@@ -1,6 +1,7 @@
-use crate::bindings::wavs::types::events::TriggerDataEvmContractEvent;
 use alloy_primitives::{Address, B256, U256};
 use alloy_sol_types::sol;
+
+use crate::wavs::types::events::TriggerDataEvmContractEvent;
 
 sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 

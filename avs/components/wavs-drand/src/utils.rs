@@ -3,7 +3,7 @@ use alloy_rpc_types::Block;
 use anyhow::anyhow;
 use wavs_wasi_utils::evm::new_evm_provider;
 
-use crate::bindings::{host::EvmChainConfig, wavs::types::chain::EvmAddress};
+use crate::{host::EvmChainConfig, wavs::types::chain::EvmAddress};
 
 impl From<EvmAddress> for alloy_primitives::Address {
     fn from(addr: EvmAddress) -> Self {

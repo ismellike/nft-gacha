@@ -1,9 +1,10 @@
-use crate::bindings::host::get_evm_chain_config;
 use alloy_primitives::{Address, U256};
 use alloy_provider::network::Ethereum;
 use alloy_sol_types::sol;
 use anyhow::{anyhow, Result};
 use wavs_wasi_utils::evm::new_evm_provider;
+
+use crate::host::get_evm_chain_config;
 
 // Generate sol! macro from the actual ERC721.json ABI file
 sol!(

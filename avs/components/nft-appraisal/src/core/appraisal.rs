@@ -1,4 +1,3 @@
-use crate::bindings::wavs::types::events::TriggerDataEvmContractEvent;
 use crate::core::cache::AppraisalCache;
 use crate::providers::CourtyardProvider;
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
@@ -6,6 +5,7 @@ use crate::traits::pricing::ResolverQuote;
 use crate::types::ResolverRoute;
 use crate::utils::event_parser::AppraisalRequest;
 use crate::utils::{ERC721Client, EventParser};
+use crate::wavs::types::events::TriggerDataEvmContractEvent;
 use alloy_primitives::{Address, B256, U256};
 use alloy_sol_types::{sol, SolValue};
 use anyhow::{anyhow, Result};

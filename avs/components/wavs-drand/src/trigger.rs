@@ -5,13 +5,12 @@ use anyhow::{anyhow, Result};
 use wavs_wasi_utils::decode_event_log_data;
 use wavs_wasi_utils::evm::new_evm_provider;
 
-use crate::bindings::host::{get_cosmos_chain_config, get_evm_chain_config};
-use crate::bindings::wavs::operator::input::TriggerData;
-use crate::bindings::wavs::types::events::TriggerDataEvmContractEvent;
-use crate::bindings::TriggerAction;
 use crate::config::Config;
+use crate::host::{get_cosmos_chain_config, get_evm_chain_config};
 use crate::utils::get_evm_block;
-use crate::RandomnessRequested;
+use crate::wavs::operator::input::TriggerData;
+use crate::wavs::types::events::TriggerDataEvmContractEvent;
+use crate::{RandomnessRequested, TriggerAction};
 
 /// Extracted trigger information
 #[derive(Debug, Clone)]
@@ -89,10 +88,7 @@ impl TriggerInfo {
                     Err(anyhow!("Chain config for {0} not found", block.chain))
                 }
             }
-            TriggerData::CosmosContractEvent(_event) => {
-                unimplemented!()
-            }
-            TriggerData::Raw(_raw_data) => {
+            _ => {
                 unimplemented!()
             }
         }

@@ -1,4 +1,7 @@
-use crate::traits::pricing::{AppraisalPrice, ResolverQuote};
+use crate::{
+    traits::pricing::{AppraisalPrice, ResolverQuote},
+    wasi::keyvalue::store::{self, Bucket},
+};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -6,7 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 /// Cache management for NFT appraisals
 #[derive(Debug)]
 pub struct AppraisalCache {
-    bucket: Option<crate::bindings::wasi::keyvalue::store::Bucket>,
+    bucket: Option<Bucket>,
     default_ttl: Duration,
 }
 
@@ -61,7 +64,7 @@ impl CachedResolverQuote {
 impl AppraisalCache {
     pub fn new(ttl: Duration) -> Self {
         Self {
-            bucket: crate::bindings::wasi::keyvalue::store::open("nft-card-price-cache").ok(),
+            bucket: store::open("nft-card-price-cache").ok(),
             default_ttl: ttl,
         }
     }
