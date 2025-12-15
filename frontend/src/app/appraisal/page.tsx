@@ -3,8 +3,6 @@
 import { motion } from "framer-motion";
 import {
 	BoltIcon,
-	SparklesIcon,
-	ShieldCheckIcon,
 	ClockIcon,
 	ChartBarIcon,
 	CheckBadgeIcon,
@@ -12,31 +10,17 @@ import {
 import { useAccount } from "wagmi";
 
 import { NFTAppraisalDashboard } from "../../components/NFTAppraisalDashboard";
-import { Card, Button } from "../../ui";
+import { Card, Button, Skeleton } from "../../ui";
+import { InlineRetryMessage } from "../../components/InlineRetryMessage";
+import { ContractStatusAnnouncer, useContractStatusAnnouncer } from "../../components/ContractStatusAnnouncer";
 import { useAppraisalData } from "../../hooks/useAppraisalData";
 import { formatCurrency } from "../../lib/utils";
 
-const flowSteps = [
-	{
-		icon: BoltIcon,
-		title: "Enter an NFT",
-		copy: "Paste contract + token ID. We validate and fetch the preview automatically.",
-	},
-	{
-		icon: ShieldCheckIcon,
-		title: "Pay appraisal fee",
-		copy: "One upfront fee covers metadata, rarity, and market comps for that token.",
-	},
-	{
-		icon: SparklesIcon,
-		title: "Receive the result",
-		copy: "Track progress live and send the valuation straight into the SPINFI treasury.",
-	},
-];
 
 export default function AppraisalPage() {
 	const { address } = useAccount();
-	const { stats, appraisalFee } = useAppraisalData(address, {
+	const { status: contractStatus } = useContractStatusAnnouncer();
+	const { stats, appraisalFee, loading, error } = useAppraisalData(address, {
 		autoRefresh: true,
 		filter: "all",
 		sort: "newest",
@@ -65,6 +49,11 @@ export default function AppraisalPage() {
 
 	return (
 		<div className="min-h-screen bg-transparent">
+			{/* Global contract status announcer */}
+			<div className="fixed top-4 right-4 z-50 max-w-sm">
+				<ContractStatusAnnouncer status={contractStatus} compact />
+			</div>
+
 			<motion.section
 				initial={{ opacity: 0, y: 24 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -86,14 +75,19 @@ export default function AppraisalPage() {
 							<Button asChild color="glassPrimary" size="lg" animate>
 								<a href="#appraisal-workbench">Start appraisal</a>
 							</Button>
-							{appraisalFee && (
+							{loading ? (
+								<div className="flex items-center gap-2 rounded-full border border-white/10 bg-content1/30 px-3 py-2">
+									<Skeleton variant="circle" size="w4 h4" />
+									<Skeleton size="h4 w24" />
+								</div>
+							) : appraisalFee ? (
 								<div className="flex items-center gap-2 rounded-full border border-white/10 bg-content1/30 px-3 py-2 text-sm text-foreground/70">
 									<BoltIcon className="h-4 w-4 text-warning" />
 									<span>
 										Current fee: {formatCurrency(appraisalFee.toString(), 18, "ETH")}
 									</span>
 								</div>
-							)}
+							) : null}
 						</div>
 					</div>
 
@@ -130,46 +124,77 @@ export default function AppraisalPage() {
 									<h3 className="text-lg font-semibold text-foreground">
 										Status & fee
 									</h3>
-									{appraisalFee && (
+									{loading ? (
+										<div className="h-6 w-20 rounded-full bg-white/10" />
+									) : appraisalFee ? (
 										<span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-xs font-semibold text-warning">
 											<BoltIcon className="h-4 w-4" />
 											{formatCurrency(appraisalFee.toString(), 18, "ETH")}
 										</span>
-									)}
+									) : null}
 								</div>
 								<div className="mt-4 grid gap-3">
-									{heroStats.map((item) => (
-										<div
-											key={item.label}
-											className="flex items-center gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3"
-										>
-											<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
-												<item.icon className="h-5 w-5 text-warning" />
+									{loading ? (
+										<>
+											{Array.from({ length: 4 }).map((_, i) => (
+												<div
+													key={i}
+													className="flex items-center gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3"
+												>
+													<Skeleton variant="circle" size="w10 h10" />
+													<div className="flex-1">
+														<Skeleton size="h4 w20 mb-1" />
+														<Skeleton size="h6 w16" />
+													</div>
+												</div>
+											))}
+										</>
+									) : (
+										<>
+											{heroStats.map((item) => (
+												<div
+													key={item.label}
+													className="flex items-center gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3"
+												>
+													<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
+														<item.icon className="h-5 w-5 text-warning" />
+													</div>
+													<div>
+														<p className="text-xs uppercase tracking-wide text-foreground/50">
+															{item.label}
+														</p>
+														<p className="text-lg font-semibold text-foreground">
+															{item.value}
+														</p>
+													</div>
+												</div>
+											))}
+											<div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3">
+												<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
+													<ClockIcon className="h-5 w-5 text-warning" />
+												</div>
+												<div>
+													<p className="text-xs uppercase tracking-wide text-foreground/50">
+														Ready to spin
+													</p>
+													<p className="text-lg font-semibold text-foreground">
+														{stats.readyForGacha}
+													</p>
+												</div>
 											</div>
-											<div>
-												<p className="text-xs uppercase tracking-wide text-foreground/50">
-													{item.label}
-												</p>
-												<p className="text-lg font-semibold text-foreground">
-													{item.value}
-												</p>
-											</div>
-										</div>
-									))}
-									<div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3">
-										<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
-											<ClockIcon className="h-5 w-5 text-warning" />
-										</div>
-										<div>
-											<p className="text-xs uppercase tracking-wide text-foreground/50">
-												Ready to spin
-											</p>
-											<p className="text-lg font-semibold text-foreground">
-												{stats.readyForGacha}
-											</p>
-										</div>
-									</div>
+										</>
+									)}
 								</div>
+
+								{/* Error message for appraisal data */}
+								{error && (
+									<InlineRetryMessage
+										type="contract"
+										message="Failed to load appraisal statistics"
+										className="mt-4"
+										compact
+									/>
+								)}
 							</Card>
 						</div>
 					</div>

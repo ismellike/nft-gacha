@@ -53,10 +53,23 @@ const GachaSpinner = memo(() => {
 				/>
 			)}
 
-			{/* Main Grid Layout */}
-			<div className="grid lg:grid-cols-2 gap-16 items-start">
-				{/* Left Column - Spin Controls */}
-				<div className="space-y-8">
+			{/* Main Grid Layout - Mobile First, Single Column */}
+			<div className="space-y-16 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-16 lg:items-start">
+				{/* Top-pinned Actions on Mobile */}
+				<div className="lg:hidden sticky top-20 z-30 bg-background/80 backdrop-blur-md -mx-4 px-4 py-4 border-b border-white/10">
+					<div
+						role="status"
+						aria-live="polite"
+						aria-atomic="true"
+						className="sr-only"
+					>
+						{gachaSpin.isSpinning && "Starting spin..."}
+						{gachaSpin.isWaitingForFulfillment && "Awaiting randomness..."}
+						{gachaSpin.isRevealing && "Revealing your NFT..."}
+						{gachaSpin.isError && `Error: ${gachaSpin.error}`}
+						{gachaSpin.isRefunded && "Spin refunded due to empty rarity pool"}
+						{gachaSpin.isTimeout && "Randomness timeout - you can reclaim your funds"}
+					</div>
 					<SpinControls
 						gachaSpin={gachaSpin}
 						onRefund={() => {
@@ -68,9 +81,22 @@ const GachaSpinner = memo(() => {
 					/>
 				</div>
 
-				{/* Right Column - Rarity Information */}
+				{/* Rarity Information - Mobile First */}
 				<div className="space-y-8">
 					<RarityBreakdown key={`breakdown-${refreshTrigger}`} />
+				</div>
+
+				{/* Desktop Left Column - Spin Controls */}
+				<div className="hidden lg:block space-y-8">
+					<SpinControls
+						gachaSpin={gachaSpin}
+						onRefund={() => {
+							console.log(
+								"💰 [GachaSpinner] SpinControls refund callback triggered",
+							);
+							setRefreshTrigger(REFRESH_TRIGGERS.REFUND);
+						}}
+					/>
 				</div>
 			</div>
 		</div>

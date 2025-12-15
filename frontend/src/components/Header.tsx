@@ -43,11 +43,8 @@ export const Header = memo(() => {
 
 	return (
 		<div className="relative">
-			{/* Spacing element to create gap from top */}
-			<div className="h-8"></div>
-
 			{/* Floating Header */}
-			<div className="sticky top-8 z-40 max-w-7xl mx-auto px-6">
+			<div className="sticky top-0 z-40 max-w-7xl mx-auto px-6 pt-2">
 				<Card className="shadow-lg" isPressable={false}>
 					<div className="flex items-center justify-between px-8 py-6">
 						{/* Logo */}
@@ -58,7 +55,7 @@ export const Header = memo(() => {
 
 									<motion.div
 										className="relative w-12 h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105"
-										whileHover={reduceMotion ? undefined : { rotate: -8 }}
+										{...(!reduceMotion && { whileHover: { rotate: -8 } })}
 									>
 									<Image
 										src="/logo.webp"
@@ -75,7 +72,7 @@ export const Header = memo(() => {
 						</Link>
 
 						{/* Navigation Items */}
-						<div className="hidden md:flex items-center space-x-6">
+						<nav className="hidden md:flex items-center space-x-6" aria-label="Main navigation">
 							{navItems.map((item) => {
 								const isActive =
 									item.href === "/"
@@ -83,7 +80,7 @@ export const Header = memo(() => {
 										: pathname.startsWith(item.href);
 
 								return (
-									<Link key={item.href} href={item.href}>
+									<Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined}>
 										<motion.div
 											className={`px-4 py-3 rounded-xl transition-all duration-300 font-medium ${
 												isActive
@@ -111,7 +108,7 @@ export const Header = memo(() => {
 									</Link>
 								);
 							})}
-						</div>
+						</nav>
 
 						{/* Connect Button */}
 						<ConnectButton />

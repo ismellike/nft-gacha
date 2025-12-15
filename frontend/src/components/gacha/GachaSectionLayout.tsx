@@ -146,7 +146,7 @@ export function GachaSectionLayout({
 						{asideSlot ? (
 							<div className="w-full lg:w-auto">{asideSlot}</div>
 						) : highlights && highlights.length > 0 ? (
-							<div className="grid w-full gap-3 rounded-2xl border border-white/10 bg-content1/40 p-4 text-sm text-foreground/80 shadow-inner md:grid-cols-2 lg:w-auto lg:min-w-[320px]">
+							<div className="grid w-full gap-3 rounded-2xl border border-white/10 bg-content1/40 p-4 text-sm text-foreground/80 shadow-inner lg:grid-cols-2 lg:w-auto lg:min-w-[320px]">
 								{highlights.map(
 									({
 										icon: HighlightIcon,

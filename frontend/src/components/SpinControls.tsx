@@ -1006,7 +1006,11 @@ export default function SpinControls({
 
 					{/* Timeout Display */}
 					{gachaSpin.isTimeout && (
-						<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
+						<Card
+							className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl"
+							role="alert"
+							aria-live="assertive"
+						>
 							<div>
 								<div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-3">
 									<svg
@@ -1015,6 +1019,7 @@ export default function SpinControls({
 										stroke="currentColor"
 										viewBox="0 0 24 24"
 										strokeWidth={2}
+										aria-hidden="true"
 									>
 										<title>Error</title>
 										<path
@@ -1036,14 +1041,14 @@ export default function SpinControls({
 										type="button"
 										onClick={handleReclaim}
 										disabled={isReclaimPending}
-										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
+										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
 									>
 										{isReclaimPending ? "Reclaiming..." : "Reclaim Funds"}
 									</button>
 									<button
 										type="button"
 										onClick={gachaSpin.reset}
-										className="px-4 py-2 bg-content2 hover:bg-content3 text-foreground rounded-lg transition-colors text-sm"
+										className="px-4 py-2 bg-content2 hover:bg-content3 text-foreground rounded-lg transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
 									>
 										Try Again
 									</button>
@@ -1058,7 +1063,11 @@ export default function SpinControls({
 
 					{/* Refund Display */}
 					{gachaSpin.isRefunded && gachaSpin.refundResult && (
-						<Card className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl">
+						<Card
+							className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
+							role="status"
+							aria-live="polite"
+						>
 							<div>
 								<div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-3">
 									<svg
@@ -1067,6 +1076,7 @@ export default function SpinControls({
 										stroke="currentColor"
 										viewBox="0 0 24 24"
 										strokeWidth={2}
+										aria-hidden="true"
 									>
 										<title>Warning</title>
 										<path
@@ -1103,7 +1113,7 @@ export default function SpinControls({
 									<button
 										type="button"
 										onClick={gachaSpin.reset}
-										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm w-full"
+										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm w-full focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
 									>
 										Try Another Spin
 									</button>
@@ -1119,7 +1129,11 @@ export default function SpinControls({
 					{gachaSpin.isError &&
 						!gachaSpin.isTimeout &&
 						!gachaSpin.isRefunded && (
-							<Card className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl">
+							<Card
+								className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl"
+								role="alert"
+								aria-live="assertive"
+							>
 								<div>
 									<p className="text-sm mb-2">{gachaSpin.error}</p>
 									<p className="text-xs opacity-60">
@@ -1138,7 +1152,11 @@ export default function SpinControls({
 
 					{/* Permit Fallback Message */}
 					{permitFailed && (
-						<div className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl">
+						<div
+							className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
+							role="status"
+							aria-live="polite"
+						>
 							<div>
 								<p className="text-sm mb-2 font-semibold text-warning">
 									Using Direct Approval Mode
@@ -1158,7 +1176,11 @@ export default function SpinControls({
 
 					{/* Gacha Unavailable Warning */}
 					{isConnected && isGachaAvailable === false && (
-						<Card className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl">
+						<Card
+							className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
+							role="alert"
+							aria-live="assertive"
+						>
 							<div>
 								<p className="text-sm mb-2">Gacha System Unavailable</p>
 								<p className="text-xs opacity-60">
@@ -1199,6 +1221,7 @@ export default function SpinControls({
 									? "bg-gradient-to-r from-danger via-danger/90 to-red-600 border-danger/40 shadow-danger/30"
 									: undefined,
 							)}
+							aria-label={getButtonText()}
 						>
 							{/* Button content with icon */}
 							<div className="flex items-center justify-center gap-3">

@@ -115,7 +115,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	return (
 		<motion.button
-			className="h-full cursor-pointer"
+			className="h-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background rounded-2xl"
 			onClick={handleExplore}
 			whileHover={{ scale: 1.02 }}
 			whileTap={{ scale: 0.98 }}

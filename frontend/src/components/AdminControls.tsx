@@ -168,7 +168,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 
 	return (
 		<div className="space-y-8">
-			<div className="grid lg:grid-cols-4 gap-8">
+			<div className="grid gap-8 lg:grid-cols-4">
 				{/* Sidebar Navigation */}
 				<motion.div
 					initial={{ opacity: 0, x: -20 }}
@@ -306,7 +306,7 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 				</Chip>
 			</div>
 
-			<div className="grid md:grid-cols-2 gap-6 mb-8">
+			<div className="grid gap-6 mb-8 lg:grid-cols-2">
 				{weights.map((weight, index) => {
 					const rarity = Object.values(RARITY_CONFIG)[index];
 					const percentage = formatPercentage(weight / 100, 2, true);
@@ -690,7 +690,7 @@ function DepositsSection() {
 										</Chip>
 									</div>
 
-									<div className="grid grid-cols-3 gap-4 text-sm">
+									<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
 										<div>
 											<span className="text-foreground/60">Card ID:</span>
 											<div className="font-mono text-xs text-foreground">
