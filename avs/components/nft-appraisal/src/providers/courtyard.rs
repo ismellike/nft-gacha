@@ -427,6 +427,7 @@ impl CourtyardProvider {
                     card_info.company,
                     card_info.is_perfect,
                     set_id,
+                    card_info.variant,
                 ));
             }
         }
@@ -653,6 +654,7 @@ mod tests {
             "PSA".to_string(),
             false,
             "testset".to_string(),
+            None,
         );
 
         let scrydex_key = std::env::var("WAVS_ENV_SCRYDEX_API_KEY").ok();

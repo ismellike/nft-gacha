@@ -88,12 +88,12 @@ struct AppraisalError {
 - **Contract Validation**: Verifies contract implements ERC721Metadata
 
 ### Scrydex API
-- **Endpoint**: Scrydex API endpoint
-- **Authentication**: ✅ Bearer token authentication via `Authorization` header
-- **Query Parameters**: Card name and set parameters for precise card matching
-- **Response Parsing**: JSON with pricing data and metadata fields
+- **Endpoint**: `GET https://api.scrydex.com/pokemon/v1/cards/{set_id}-{card_number}?include=prices`
+- **Authentication**: ✅ `X-Api-Key` header (plus optional `X-Team-ID` if provided)
+- **Query Parameters**: `include=prices` to fetch graded price objects for each variant
+- **Response Parsing**: Reads graded prices from `variants[].prices` (market/low/mid/high + currency/trends)
 - **WASI Caching**: Results cached with 24-hour TTL using `wasi:keyvalue/store`
-- **Rate Limiting**: Handles 429 responses with clear error messages
+- **Rate Limiting**: Propagates Scrydex errors; ensure your key has sufficient quota
 
 ### Supported Grade Types
 - **PSA 10**: `psa_10_price` field from API

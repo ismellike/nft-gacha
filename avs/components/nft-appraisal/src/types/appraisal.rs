@@ -23,13 +23,20 @@ impl ResolverArgs {
     pub fn cache_fragment(&self) -> String {
         match self {
             ResolverArgs::ScrydexCardInfo(info) => {
+                let variant_fragment = info
+                    .variant
+                    .as_ref()
+                    .map(|v| v.trim().to_ascii_lowercase())
+                    .filter(|v| !v.is_empty())
+                    .unwrap_or_else(|| "novariant".to_string());
                 format!(
-                    "{}-{}-{}-{}-{}",
+                    "{}-{}-{}-{}-{}-{}",
                     info.card_number.trim().to_ascii_lowercase(),
                     info.grade.trim().to_ascii_lowercase(),
                     info.company.trim().to_ascii_lowercase(),
                     info.is_perfect,
-                    info.set_id.trim().to_ascii_lowercase()
+                    info.set_id.trim().to_ascii_lowercase(),
+                    variant_fragment
                 )
             }
         }
@@ -50,6 +57,7 @@ impl ResolverRoute {
         company: String,
         is_perfect: bool,
         set_id: String,
+        variant: Option<String>,
     ) -> Self {
         Self {
             kind: ResolverKind::PokemonGradedCard,
@@ -59,7 +67,7 @@ impl ResolverRoute {
                 company,
                 is_perfect,
                 set_id,
-                variant: None, // Default to None for direct construction
+                variant,
             }),
         }
     }

@@ -85,7 +85,14 @@ impl AppraisalCache {
 
     pub fn set(&self, cache_key: &str, quote: Option<&ResolverQuote>) -> Result<()> {
         if let Some(ref bucket) = self.bucket {
-            let cached_quote = CachedResolverQuote::from_quote(quote, self.default_ttl);
+            let fallback_ttl = if quote.is_some() {
+                self.default_ttl
+            } else {
+                // Keep negative lookups short-lived to avoid sticking on transient failures
+                Duration::from_secs(300)
+            };
+
+            let cached_quote = CachedResolverQuote::from_quote(quote, fallback_ttl);
             if let Ok(serialized) = serde_json::to_string(&cached_quote) {
                 let _ = bucket.set(cache_key, serialized.as_bytes());
             }
@@ -151,5 +158,12 @@ mod tests {
 
         cached.ttl_secs = 86_400;
         assert!(!cached.is_expired());
+    }
+
+    #[test]
+    fn test_negative_cache_ttl_is_short() {
+        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
+        assert_eq!(cached.ttl_secs, 300);
+        assert!(cached.price.is_none());
     }
 }

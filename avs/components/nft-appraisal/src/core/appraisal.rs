@@ -295,6 +295,7 @@ mod tests {
             "PSA".to_string(),
             true,
             "BASE-SET".to_string(),
+            None,
         );
         let seed = AppraisalProcessor::cache_seed(&route);
         let expected_suffix = route.cache_key_fragment();
