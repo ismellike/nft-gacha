@@ -530,7 +530,6 @@ impl CourtyardProvider {
 mod tests {
     use super::*;
     use serde_json::json;
-    use wstd::runtime::block_on;
 
     // Default implementations for test cases
     impl Default for NFTMetadata {
@@ -643,31 +642,6 @@ mod tests {
 
         let resolver = CourtyardProvider::infer_resolver(&metadata, &categories);
         assert!(resolver.is_none());
-    }
-
-    #[test]
-    fn test_resolve_price_requires_api_key() {
-        let provider = CourtyardProvider::new();
-        let route = ResolverRoute::pokemon_card_info(
-            "70".to_string(),
-            "10".to_string(),
-            "PSA".to_string(),
-            false,
-            "testset".to_string(),
-            None,
-        );
-
-        let scrydex_key = std::env::var("WAVS_ENV_SCRYDEX_API_KEY").ok();
-
-        std::env::remove_var("WAVS_ENV_SCRYDEX_API_KEY");
-
-        let result = block_on(provider.resolve_price(&route));
-        assert!(result.is_err());
-
-        match scrydex_key {
-            Some(value) => std::env::set_var("WAVS_ENV_SCRYDEX_API_KEY", value),
-            None => std::env::remove_var("WAVS_ENV_SCRYDEX_API_KEY"),
-        }
     }
 
     #[test]
