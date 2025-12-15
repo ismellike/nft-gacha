@@ -1,7 +1,8 @@
-use alloy_primitives::{Address, B256, U256};
+use alloy_primitives::{Address, U256};
 use alloy_sol_types::sol;
 
 use crate::wavs::types::events::TriggerDataEvmContractEvent;
+use crate::core::payload::AppraisalIdentity;
 
 sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 
@@ -42,21 +43,22 @@ impl AppraisalErrorCode {
         evm_event: &TriggerDataEvmContractEvent,
         _error: String,
     ) -> crate::core::appraisal::AppraisalResponse {
-        let (contract_address, token_id, group_id) = Self::parse_basic_info(evm_event);
-
-        let tx_hash = Self::extract_tx_hash(&evm_event.log.tx_hash);
-
-        crate::core::appraisal::AppraisalResponse {
-            chain: "unknown".to_string(),
+        let (chain, contract_address, token_id) = Self::parse_basic_info(evm_event);
+        let identity = AppraisalIdentity::new(
+            chain,
             contract_address,
             token_id,
-            group_id,
+            None,
+            &evm_event.log.tx_hash,
+        );
+
+        crate::core::appraisal::AppraisalResponse {
+            identity,
             price: None,
-            tx_hash,
         }
     }
 
-    fn parse_basic_info(evm_event: &TriggerDataEvmContractEvent) -> (Address, U256, [u8; 32]) {
+    fn parse_basic_info(evm_event: &TriggerDataEvmContractEvent) -> (String, Address, U256) {
         if let Ok(request) =
             crate::utils::event_parser::EventParser::parse_appraisal_request(evm_event)
         {
@@ -66,22 +68,10 @@ impl AppraisalErrorCode {
                 .unwrap_or(Address::ZERO);
             let token_id_val = U256::from_str_radix(request.token_id.trim_start_matches("0x"), 16)
                 .unwrap_or(U256::ZERO);
-            (contract_addr, token_id_val, [0u8; 32])
+            (request.chain, contract_addr, token_id_val)
         } else {
-            (Address::ZERO, U256::ZERO, [0u8; 32])
+            ("unknown".to_string(), Address::ZERO, U256::ZERO)
         }
-    }
-
-    fn extract_tx_hash(tx_hash_bytes: &[u8]) -> B256 {
-        let mut hash_bytes = [0u8; 32];
-        let src = tx_hash_bytes;
-        if src.len() == 32 {
-            hash_bytes.copy_from_slice(src);
-        } else {
-            let copy_len = src.len().min(32);
-            hash_bytes[32 - copy_len..].copy_from_slice(&src[src.len() - copy_len..]);
-        }
-        B256::from(hash_bytes)
     }
 }
 

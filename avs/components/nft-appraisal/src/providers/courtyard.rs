@@ -14,10 +14,9 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use wavs_wasi_utils::http::{fetch_string, http_request_get};
 
-use crate::resolvers::{scrydex_resolver::ScrydexCardInfo, ScrydexPokemonResolver};
+use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
-use crate::traits::pricing::{PriceResolver, ResolverQuote};
-use crate::types::{ProviderType, ResolverArgs, ResolverKind, ResolverRoute};
+use crate::types::{ProviderType, ResolverRoute};
 
 // ============================================================================
 // Types
@@ -374,22 +373,6 @@ impl CourtyardProvider {
         }
     }
 
-    pub async fn resolve_price(&self, route: &ResolverRoute) -> Result<Option<ResolverQuote>> {
-        match route.kind {
-            ResolverKind::PokemonGradedCard => {
-                if !matches!(route.args, ResolverArgs::ScrydexCardInfo(_)) {
-                    return Err(anyhow!(
-                        "Courtyard provider expected Pokemon card info arguments"
-                    ));
-                }
-
-                let resolver = ScrydexPokemonResolver::from_env()?;
-                let quote = resolver.get_price(&route.args).await?;
-                Ok(quote.map(|q| resolver.normalize_quote(q)))
-            }
-        }
-    }
-
     fn infer_resolver(metadata: &NFTMetadata, categories: &[String]) -> Option<ResolverRoute> {
         let is_graded_card = metadata
             .product_type
@@ -529,6 +512,7 @@ impl CourtyardProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::{ResolverArgs, ResolverKind};
     use serde_json::json;
 
     // Default implementations for test cases
