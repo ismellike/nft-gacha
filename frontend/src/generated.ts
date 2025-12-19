@@ -5261,6 +5261,11 @@ export const gachaTreasuryAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
+  {
+    type: 'error',
+    inputs: [{ name: 'priceUSD', internalType: 'uint256', type: 'uint256' }],
+    name: 'PriceOutOfBounds',
+  },
   { type: 'error', inputs: [], name: 'PriceRangesAlreadySet' },
   { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
   { type: 'error', inputs: [], name: 'TooManyItems' },
@@ -6621,10 +6626,10 @@ export const iGachaEconomyManagerAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// IGachaTreasury
+// IGachaTreasuryYieldTracker
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const iGachaTreasuryAbi = [
+export const iGachaTreasuryYieldTrackerAbi = [
   {
     type: 'function',
     inputs: [
@@ -16325,32 +16330,34 @@ export const useWatchIGachaEconomyManagerSpinRevenueReceived =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaTreasuryAbi}__
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaTreasuryYieldTrackerAbi}__
  */
-export const useWriteIGachaTreasuryContract =
-  /*#__PURE__*/ createUseWriteContract({ abi: iGachaTreasuryAbi })
+export const useWriteIGachaTreasuryYieldTrackerContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: iGachaTreasuryYieldTrackerAbi })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaTreasuryAbi}__ and `functionName` set to `"recordYieldClaim"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaTreasuryYieldTrackerAbi}__ and `functionName` set to `"recordYieldClaim"`
  */
-export const useWriteIGachaTreasuryRecordYieldClaim =
+export const useWriteIGachaTreasuryYieldTrackerRecordYieldClaim =
   /*#__PURE__*/ createUseWriteContract({
-    abi: iGachaTreasuryAbi,
+    abi: iGachaTreasuryYieldTrackerAbi,
     functionName: 'recordYieldClaim',
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaTreasuryAbi}__
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaTreasuryYieldTrackerAbi}__
  */
-export const useSimulateIGachaTreasuryContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: iGachaTreasuryAbi })
+export const useSimulateIGachaTreasuryYieldTrackerContract =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: iGachaTreasuryYieldTrackerAbi,
+  })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaTreasuryAbi}__ and `functionName` set to `"recordYieldClaim"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaTreasuryYieldTrackerAbi}__ and `functionName` set to `"recordYieldClaim"`
  */
-export const useSimulateIGachaTreasuryRecordYieldClaim =
+export const useSimulateIGachaTreasuryYieldTrackerRecordYieldClaim =
   /*#__PURE__*/ createUseSimulateContract({
-    abi: iGachaTreasuryAbi,
+    abi: iGachaTreasuryYieldTrackerAbi,
     functionName: 'recordYieldClaim',
   })
 

@@ -94,10 +94,14 @@ export default function AppraisalPage() {
 									<BoltIcon className="h-4 w-4 text-warning" />
 									<span>
 										Current fee:{" "}
-										{formatCurrency(appraisalFee.toString(), 18, "ETH")}
+										{formatCurrency(appraisalFee.toString(), 6, "USDC")}
 									</span>
 								</div>
 							) : null}
+							<p className="text-xs sm:text-sm text-foreground/60">
+								If USDC isn’t approved yet, we’ll prompt approval first, then
+								submit the appraisal in one flow—no extra steps needed.
+							</p>
 						</div>
 					</div>
 
@@ -141,7 +145,7 @@ export default function AppraisalPage() {
 									) : appraisalFee ? (
 										<span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-xs font-semibold text-warning">
 											<BoltIcon className="h-4 w-4" />
-											{formatCurrency(appraisalFee.toString(), 18, "ETH")}
+											{formatCurrency(appraisalFee.toString(), 6, "USDC")}
 										</span>
 									) : null}
 								</div>

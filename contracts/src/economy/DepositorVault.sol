@@ -11,7 +11,7 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 import {IDepositorVault} from "../interfaces/IDepositorVault.sol";
 
 /// @notice Interface for GachaTreasury to record claimed analytics
-interface IGachaTreasury {
+interface IGachaTreasuryYieldTracker {
     function recordYieldClaim(address user, uint256 amount) external;
 }
 
@@ -193,7 +193,7 @@ contract DepositorVault is
 
         // Record claimed analytics in GachaTreasury if treasury is set and is a contract
         if (treasury != address(0) && treasury.code.length > 0) {
-            try IGachaTreasury(treasury).recordYieldClaim(account, withdrawn) {
+            try IGachaTreasuryYieldTracker(treasury).recordYieldClaim(account, withdrawn) {
                 // Successfully recorded analytics
             } catch {
                 // Fail silently to not break claim functionality if treasury call fails

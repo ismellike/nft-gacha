@@ -11,6 +11,7 @@ export interface GachaConfig {
 	appraisalAddress: string;
 	economyManagerAddress: string;
 	gachaServiceHandlerAddress: string;
+	appraisalServiceHandlerAddress: string;
 	// New economy system contracts
 	depositorVaultAddress: string;
 	buybackVaultAddress: string;

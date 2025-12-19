@@ -88,7 +88,7 @@ export function NFTAppraisalDashboard({
 
 	// Format appraisal fee for display
 	const formattedAppraisalFee = appraisalFee
-		? formatCurrency(appraisalFee.toString(), 18, "ETH")
+		? formatCurrency(appraisalFee.toString(), 6, "USDC")
 		: "--";
 
 	// Avoid hydration mismatches when wallet state differs between server and client

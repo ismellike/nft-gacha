@@ -5,11 +5,15 @@ import {
 	useReadNftAppraisalGetBatchAppraisals,
 	useReadNftAppraisalHasBatchAppraisals,
 	useReadNftAppraisalAppraisalFee,
+	useWatchNftAppraisalServiceHandlerAppraisalProcessed,
+	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived,
 } from "../generated";
 import {
 	useNFTAppraisalStore,
 	type AppraisedNFT,
 } from "../stores/nftAppraisalStore";
+import { useGachaId } from "./useGachaId";
+import { useGachaContracts } from "./useGachaContracts";
 
 export type AppraisalFilter =
 	| "all"
@@ -48,6 +52,8 @@ export const useAppraisalData = (
 ) => {
 	const { address: connectedAddress } = useAccount();
 	const address = userAddress || connectedAddress;
+	const gachaId = useGachaId();
+	const contracts = useGachaContracts(gachaId);
 
 	const {
 		setAppraisals,
@@ -111,6 +117,14 @@ export const useAppraisalData = (
 	const optimisticSubmissions = useMemo(() => {
 		return address ? getUserOptimisticSubmissions(address) : [];
 	}, [address, getUserOptimisticSubmissions]);
+
+	const knownKeys = useMemo(() => {
+		const keys = new Set<string>();
+		allKnownNFTs.forEach((nft) => {
+			keys.add(`${nft.collection.toLowerCase()}:${nft.tokenId}`);
+		});
+		return keys;
+	}, [allKnownNFTs]);
 
 	// Get appraisal fee information
 	const { data: appraisalFee } = useReadNftAppraisalAppraisalFee({
@@ -291,6 +305,49 @@ export const useAppraisalData = (
 		options.refreshInterval,
 		fetchUserAppraisals,
 	]);
+
+	// React to service handler events for the user's known NFTs
+	useWatchNftAppraisalServiceHandlerAppraisalProcessed({
+		address: contracts.appraisalServiceHandler as `0x${string}` | undefined,
+		enabled: !!contracts.appraisalServiceHandler && !!address,
+		listener: (logs) => {
+			const shouldRefetch = logs.some((log) => {
+				const { collection, tokenId } = (log.args || {}) as {
+					collection?: `0x${string}`;
+					tokenId?: bigint;
+				};
+				if (!collection || tokenId === undefined) return false;
+				const key = `${collection.toLowerCase()}:${BigInt(tokenId).toString()}`;
+				return knownKeys.has(key);
+			});
+
+			if (shouldRefetch) {
+				fetchUserAppraisals();
+			}
+		},
+	});
+
+	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived({
+		address: contracts.appraisalServiceHandler as `0x${string}` | undefined,
+		enabled: !!contracts.appraisalServiceHandler && !!address,
+		listener: (logs) => {
+			const shouldRefetch = logs.some((log) => {
+				const { contractAddress, tokenId } = (log.args || {}) as {
+					contractAddress?: `0x${string}`;
+					tokenId?: bigint;
+				};
+				if (!contractAddress || tokenId === undefined) return false;
+				const key = `${contractAddress.toLowerCase()}:${BigInt(tokenId).toString()}`;
+				return knownKeys.has(key);
+			});
+
+			if (shouldRefetch) {
+				// Mark a user-visible error, then trigger a refresh so UI can drop optimistic entries
+				setError(address, "Appraisal failed to process");
+				fetchUserAppraisals();
+			}
+		},
+	});
 
 	// Initial fetch is handled by the wagmi query automatically
 

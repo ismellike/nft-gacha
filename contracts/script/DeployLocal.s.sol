@@ -641,7 +641,8 @@ contract DeployLocal is Script {
     function _buildEnvContent(Deployments memory deployments) internal pure returns (string memory) {
         return string(
             abi.encodePacked(
-                _envLine("CHAIN_ID", "31337"),
+                // WAVS local anvil chain id
+                _envLine("CHAIN_ID", "17000"),
                 _envLine("USDC_ADDRESS", vm.toString(deployments.usdc)),
                 _envLine("NFT_APPRAISAL_ADDRESS", vm.toString(deployments.appraisalProxy)),
                 _envLine("GACHA_TREASURY_ADDRESS", vm.toString(deployments.treasuryProxy)),

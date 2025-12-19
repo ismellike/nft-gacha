@@ -10,6 +10,7 @@ export interface GachaContracts {
 	appraisal: string | undefined;
 	economyManager: string | undefined;
 	gachaServiceHandler: string | undefined;
+	appraisalServiceHandler: string | undefined;
 	depositorVault: string | undefined;
 	buybackVault: string | undefined;
 	protocolTreasury: string | undefined;
@@ -46,6 +47,7 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 				appraisal: contractAddresses.appraisal,
 				economyManager: contractAddresses.economyManager,
 				gachaServiceHandler: contractAddresses.gachaServiceHandler,
+				appraisalServiceHandler: contractAddresses.appraisalServiceHandler,
 				depositorVault: contractAddresses.depositorVault,
 				buybackVault: contractAddresses.buybackVault,
 				protocolTreasury: contractAddresses.protocolTreasury,
@@ -83,14 +85,15 @@ function getEmptyContracts(): GachaContracts {
 	return {
 		gacha: undefined,
 		treasury: undefined,
-		appraisal: undefined,
-		economyManager: undefined,
-		gachaServiceHandler: undefined,
-		depositorVault: undefined,
-		buybackVault: undefined,
-		protocolTreasury: undefined,
-		trackers: {
-			common: undefined,
+	appraisal: undefined,
+	economyManager: undefined,
+	gachaServiceHandler: undefined,
+	appraisalServiceHandler: undefined,
+	depositorVault: undefined,
+	buybackVault: undefined,
+	protocolTreasury: undefined,
+	trackers: {
+		common: undefined,
 			uncommon: undefined,
 			rare: undefined,
 			epic: undefined,

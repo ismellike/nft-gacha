@@ -36,6 +36,9 @@ This is a test environment using local contracts and test tokens for development
 			.NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS as `0x${string}`,
 		gachaServiceHandlerAddress: process.env
 			.NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS as `0x${string}`,
+		appraisalServiceHandlerAddress: (process.env
+			.NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS ||
+			process.env.APPRAISAL_SERVICE_HANDLER_ADDRESS) as `0x${string}`,
 		// New economy system contracts
 		depositorVaultAddress: process.env
 			.NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS as `0x${string}`,
