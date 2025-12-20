@@ -94,9 +94,9 @@ tasks:
         set -euo pipefail
         echo "Fetching on-chain data from {{.GACHA_ADDRESS}}..."
         
-        CURRENT_FEE=$(cast call "{{.GACHA_ADDRESS}}" "spinFee()" --rpc-url "{{.RPC_URL}}")
+        CURRENT_FEE=$(cast call "{{.GACHA_ADDRESS}}" "getCurrentSpinFee()(uint256)" --rpc-url "{{.RPC_URL}}")
         AVGS=$(cast call "{{.GACHA_ADDRESS}}" "getAverageRarityValues()(uint256[5])" --rpc-url "{{.RPC_URL}}" | tr -d '[]' | tr ',' ' ')
-        WEIGHTS=$(cast call "{{.GACHA_ADDRESS}}" "getRarityWeights()(uint256,uint256,uint256,uint256,uint256)" --rpc-url "{{.RPC_URL}}" | tr -d '()' | tr ',' ' ')
+        WEIGHTS=$(cast call "{{.GACHA_ADDRESS}}" "getCurrentRarityWeights()(uint256[5])" --rpc-url "{{.RPC_URL}}" | tr -d '[]' | tr ',' ' ')
         
         read -r AVG_C AVG_U AVG_R AVG_E AVG_L <<< "$AVGS"
         read -r W_C W_U W_R W_E W_L <<< "$WEIGHTS"

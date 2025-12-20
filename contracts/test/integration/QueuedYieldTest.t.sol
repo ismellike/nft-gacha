@@ -31,12 +31,13 @@ contract QueuedYieldTest is Test, IERC721Receiver {
         appraisal = new MockNFTAppraisal();
 
         treasury = new GachaTreasury();
+        uint256 PRICE_STEP = 1e16;
         uint256[5] memory minPrices = [
             uint256(0),
-            uint256(100 * 1e18) + 1,
-            uint256(500 * 1e18) + 1,
-            uint256(2_000 * 1e18) + 1,
-            uint256(10_000 * 1e18) + 1
+            uint256(100 * 1e18) + PRICE_STEP,
+            uint256(500 * 1e18) + PRICE_STEP,
+            uint256(2_000 * 1e18) + PRICE_STEP,
+            uint256(10_000 * 1e18) + PRICE_STEP
         ];
         uint256[5] memory maxPrices = [uint256(100 * 1e18), 500 * 1e18, 2_000 * 1e18, 10_000 * 1e18, type(uint256).max];
         treasury.initialize(address(this), address(0xDEAD), address(appraisal), minPrices, maxPrices);

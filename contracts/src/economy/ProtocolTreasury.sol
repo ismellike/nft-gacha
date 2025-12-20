@@ -28,8 +28,17 @@ contract ProtocolTreasury is
 {
     using SafeERC20 for IERC20;
 
-    /// @notice Payout percentage (in basis points) for NFT redemptions (85%)
-    uint256 public constant REDEMPTION_PAYOUT_BPS = 8_500;
+    /// @notice Custom errors for gas efficiency
+    error UnauthorizedEconomyManager();
+    error ZeroAddress(string context);
+    error InvalidAmount();
+    error InsufficientLiquidity();
+    error AppraisalMissing();
+    error RedemptionWindowExpired();
+    error InvalidArrayLength();
+
+    /// @notice Payout percentage (in basis points) for NFT redemptions (80%)
+    uint256 public constant REDEMPTION_PAYOUT_BPS = 8_000;
     /// @notice Conversion multiplier between 18-decimal appraisals and 6-decimal USDC
     uint256 private constant USD_TO_USDC_CONVERSION = 1e12;
     /// @notice Redemption window after winning NFT (configurable by admin)
@@ -47,7 +56,7 @@ contract ProtocolTreasury is
     event RedemptionWindowUpdated(uint256 indexed oldWindow, uint256 indexed newWindow);
 
     modifier onlyEconomyManager() {
-        require(msg.sender == economyManager, "ProtocolTreasury: caller not manager");
+        if (msg.sender != economyManager) revert UnauthorizedEconomyManager();
         _;
     }
 
@@ -66,11 +75,11 @@ contract ProtocolTreasury is
         address treasury_,
         address appraisalOracle_
     ) external initializer {
-        require(owner != address(0), "ProtocolTreasury: owner is zero");
-        require(asset_ != address(0), "ProtocolTreasury: asset is zero");
-        require(economyManager_ != address(0), "ProtocolTreasury: manager is zero");
-        require(treasury_ != address(0), "ProtocolTreasury: treasury is zero");
-        require(appraisalOracle_ != address(0), "ProtocolTreasury: oracle is zero");
+        if (owner == address(0)) revert ZeroAddress("owner");
+        if (asset_ == address(0)) revert ZeroAddress("asset");
+        if (economyManager_ == address(0)) revert ZeroAddress("economyManager");
+        if (treasury_ == address(0)) revert ZeroAddress("treasury");
+        if (appraisalOracle_ == address(0)) revert ZeroAddress("appraisalOracle");
 
         __Ownable_init(owner);
         __Pausable_init();
@@ -99,13 +108,13 @@ contract ProtocolTreasury is
 
     /// @inheritdoc IProtocolTreasury
     function onRevenueReceived(uint256 amount) external override onlyEconomyManager whenNotPaused {
-        require(amount > 0, "ProtocolTreasury: amount is zero");
+        if (amount == 0) revert InvalidAmount();
         _asset.safeTransferFrom(msg.sender, address(this), amount);
         emit ProtocolRevenueReceived(amount);
     }
 
     /**
-     * @notice Allows players to redeem NFTs back to the protocol at 85% of the appraised value.
+     * @notice Allows players to redeem NFTs back to the protocol at 80% of the appraised value.
      * @param collection NFT contract address
      * @param tokenId NFT identifier
      * @param recipient Address receiving the USDC payout
@@ -117,33 +126,35 @@ contract ProtocolTreasury is
         nonReentrant
         returns (uint256 payout)
     {
-        require(collection != address(0), "ProtocolTreasury: bad collection");
-        require(recipient != address(0), "ProtocolTreasury: bad recipient");
+        if (collection == address(0)) revert ZeroAddress("collection");
+        if (recipient == address(0)) revert ZeroAddress("recipient");
 
         (uint256 appraisalUSD, NFTAppraisal.AppraisalStatus status) =
             appraisalOracle.getAppraisedPrice(collection, tokenId);
-        require(
-            appraisalUSD > 0
-                && (
-                    status == NFTAppraisal.AppraisalStatus.Completed || status == NFTAppraisal.AppraisalStatus.OwnerOverride
-                ),
-            "ProtocolTreasury: appraisal missing"
-        );
+        if (
+            appraisalUSD == 0
+                || (
+                    status != NFTAppraisal.AppraisalStatus.Completed && status != NFTAppraisal.AppraisalStatus.OwnerOverride
+                )
+        ) {
+            revert AppraisalMissing();
+        }
 
         payout = Math.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000) / USD_TO_USDC_CONVERSION;
-        require(payout > 0, "ProtocolTreasury: payout underflows");
+        if (payout == 0) revert InvalidAmount();
 
         // Check redemption window (user must redeem within configured time of winning)
         uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
-        require(
-            receiveTime > 0 && block.timestamp <= receiveTime + redemptionWindow,
-            "ProtocolTreasury: Redemption window expired"
-        );
+        if (
+            receiveTime == 0 || block.timestamp > receiveTime + redemptionWindow
+        ) {
+            revert RedemptionWindowExpired();
+        }
 
         uint256 timeSinceWin = block.timestamp - receiveTime;
         emit RedemptionWindowEnforced(collection, tokenId, msg.sender, timeSinceWin);
 
-        require(_asset.balanceOf(address(this)) >= payout, "ProtocolTreasury: insufficient liquidity");
+        if (_asset.balanceOf(address(this)) < payout) revert InsufficientLiquidity();
 
         IERC721(collection).safeTransferFrom(msg.sender, address(_treasury), tokenId);
         _treasury.handleRedemptionReturn(collection, tokenId, msg.sender, appraisalUSD);
@@ -156,8 +167,8 @@ contract ProtocolTreasury is
 
     /// @inheritdoc IProtocolTreasury
     function transferOut(address to, uint256 amount) external override onlyOwner whenNotPaused {
-        require(to != address(0), "ProtocolTreasury: bad recipient");
-        require(amount > 0, "ProtocolTreasury: amount is zero");
+        if (to == address(0)) revert ZeroAddress("recipient");
+        if (amount == 0) revert InvalidAmount();
         _asset.safeTransfer(to, amount);
         emit ProtocolTransfer(to, amount);
     }
@@ -166,7 +177,7 @@ contract ProtocolTreasury is
      * @notice Sets a new economy manager
      */
     function setEconomyManager(address newManager) external onlyOwner {
-        require(newManager != address(0), "ProtocolTreasury: manager is zero");
+        if (newManager == address(0)) revert ZeroAddress("newManager");
         address previous = economyManager;
         economyManager = newManager;
         emit EconomyManagerUpdated(previous, newManager);
@@ -176,7 +187,7 @@ contract ProtocolTreasury is
      * @notice Updates the gacha treasury reference
      */
     function setGachaTreasury(address newTreasury) external onlyOwner {
-        require(newTreasury != address(0), "ProtocolTreasury: treasury is zero");
+        if (newTreasury == address(0)) revert ZeroAddress("newTreasury");
         address previous = address(_treasury);
         _treasury = GachaTreasury(newTreasury);
         emit GachaTreasuryUpdated(previous, newTreasury);
@@ -186,7 +197,7 @@ contract ProtocolTreasury is
      * @notice Updates the appraisal oracle
      */
     function setAppraisalOracle(address newOracle) external onlyOwner {
-        require(newOracle != address(0), "ProtocolTreasury: oracle is zero");
+        if (newOracle == address(0)) revert ZeroAddress("newOracle");
         address previous = address(appraisalOracle);
         appraisalOracle = NFTAppraisal(newOracle);
         emit AppraisalOracleUpdated(previous, newOracle);
@@ -243,7 +254,7 @@ contract ProtocolTreasury is
      * @dev Only owner can call this function
      */
     function setRedemptionWindow(uint256 newWindow) external onlyOwner {
-        require(newWindow > 0, "ProtocolTreasury: window must be > 0");
+        if (newWindow == 0) revert InvalidAmount();
         uint256 oldWindow = redemptionWindow;
         redemptionWindow = newWindow;
         emit RedemptionWindowUpdated(oldWindow, newWindow);

@@ -40,12 +40,13 @@ contract AnalyticsFixTest is Test {
         vault.initialize(owner, address(usdc), address(treasury), economyManager);
 
         // Initialize GachaTreasury with dummy values
+        uint256 PRICE_STEP = 1e16;
         uint256[5] memory minPrices = [
             uint256(0),
-            uint256(15e18) + 1,
-            uint256(60e18) + 1,
-            uint256(250e18) + 1,
-            uint256(1200e18) + 1
+            uint256(15e18) + PRICE_STEP,
+            uint256(60e18) + PRICE_STEP,
+            uint256(250e18) + PRICE_STEP,
+            uint256(1200e18) + PRICE_STEP
         ];
         uint256[5] memory maxPrices = [uint256(15e18), 60e18, 250e18, 1200e18, type(uint256).max];
         treasury.initialize(owner, gachaContract, appraisalContract, minPrices, maxPrices);

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -9,6 +10,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
 import {RandomnessRequested} from "../interfaces/WavsDrandTypes.sol";
@@ -46,14 +48,17 @@ contract Gacha is
     error NotSpinRequester();
     error SpinRequestNotExpired();
     error SpinAlreadyReclaimed();
+    error InvalidPricingConfig();
+    error NoTreasuryInventory();
+    error InvalidFeeTokenDecimals();
+    error MaxFeeExceeded(uint256 currentFee, uint256 maxFee);
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
-        address requester; // Address that initiated the spin
-        bool fulfilled; // Whether the spin has been completed
-        bool reclaimed; // Whether the user has reclaimed their fee after timeout
         uint256 feePaid; // Fee amount paid at time of spin (in fee tokens)
         uint256 requestTime; // Timestamp when the spin was requested (for timeout)
+        address requester; // Address that initiated the spin
+        uint32 statusFlags; // Packed flags: bit 0 = fulfilled, bit 1 = reclaimed, bits 2-31 unused
     }
 
     /// @notice Core contract interfaces and addresses
@@ -61,9 +66,6 @@ contract Gacha is
     IERC20 public feeToken;
     IGachaEconomyManager public economyManager;
     address public gachaServiceHandler;
-
-    /// @notice Fee configuration
-    uint256 public spinFee;
 
     /// @notice Internal state
     uint256 private _nextTriggerId;
@@ -83,12 +85,13 @@ contract Gacha is
     /// @notice Total weight constant for rarity calculations (basis points)
     uint256 public constant TOTAL_WEIGHT = 10_000;
 
-    /// @notice Rarity weights for selection (out of 10,000 for precision)
-    uint256 public commonWeight = 7_000; // 70%
-    uint256 public uncommonWeight = 2_000; // 20%
-    uint256 public rareWeight = 600; // 6%
-    uint256 public epicWeight = 300; // 3%
-    uint256 public legendaryWeight = 100; // 1%
+    /// @notice Dynamic pricing and weights configuration
+    uint8 public feeTokenDecimals;
+    uint256 public feeTokenScalar;
+    uint256 public pricingPremiumBps;
+    uint256 public minSpinFee;
+    uint256 public maxSpinFee;
+    uint256[5] public targetRarityBps;
 
     event SpinCompleted(
         uint256 indexed triggerId,
@@ -105,9 +108,9 @@ contract Gacha is
 
     event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
 
-    event FeeUpdated(uint256 oldFee, uint256 newFee);
-
-    event RarityWeightsUpdated(uint256 common, uint256 uncommon, uint256 rare, uint256 epic, uint256 legendary);
+    event PricingConfigUpdated(uint256 premiumBps, uint256 minFee, uint256 maxFee);
+    event DynamicWeightsUpdated(uint256[5] targetBps);
+    event FeeTokenDecimalsUpdated(uint8 previousDecimals, uint8 newDecimals);
 
     event GachaServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
     event EmergencyPause(address indexed admin);
@@ -124,14 +127,11 @@ contract Gacha is
         _;
     }
 
-    /// @notice Custom gap for future storage variables (50 slots)
-    uint256[49] private __gap;
-
     /**
      * @notice Initializes the Gacha contract with required dependencies
      * @param _gachaServiceHandler Address of the randomness service handler
-     * @param _feeToken Token used for spin fees (can be zero address for free spins)
-     * @param _spinFee Amount of tokens required per spin
+     * @param _feeToken Token used for spin fees (must be non-zero)
+     * @param _minSpinFee Minimum amount of tokens required per spin
      * @param _treasury Address of the NFT treasury contract
      * @param _economyManager Address of the economy manager contract
      */
@@ -139,7 +139,7 @@ contract Gacha is
         address _owner,
         address _gachaServiceHandler,
         address _feeToken,
-        uint256 _spinFee,
+        uint256 _minSpinFee,
         address _treasury,
         address _economyManager
     ) public initializer {
@@ -152,26 +152,31 @@ contract Gacha is
         if (_treasury == address(0)) revert InvalidTreasuryContract();
         if (_economyManager == address(0)) revert InvalidEconomyManager();
 
-        // Validate fee configuration (allow zero fee with zero token for free spins)
-        if (_spinFee == 0 && _feeToken != address(0)) revert InvalidFeeToken();
-        if (_spinFee > 0 && _feeToken == address(0)) revert InvalidFeeToken();
+        // Validate fee configuration (no free spins)
+        if (_minSpinFee == 0 || _feeToken == address(0)) revert InvalidFeeToken();
 
         // Set initial values
         treasury = GachaTreasury(_treasury);
         gachaServiceHandler = _gachaServiceHandler;
         feeToken = IERC20(_feeToken);
-        spinFee = _spinFee;
         economyManager = IGachaEconomyManager(_economyManager);
+        if (_feeToken != address(0)) {
+            feeTokenDecimals = IERC20Metadata(_feeToken).decimals();
+            if (feeTokenDecimals > 18) revert InvalidFeeTokenDecimals();
+            feeTokenScalar = 10 ** uint256(feeTokenDecimals);
+        }
 
         // Initialize trigger ID to start from 1 instead of 0
         _nextTriggerId = 1;
 
-        // Initialize default rarity weights
-        commonWeight = 7_000; // 70%
-        uncommonWeight = 2_000; // 20%
-        rareWeight = 600; // 6%
-        epicWeight = 300; // 3%
-        legendaryWeight = 100; // 1%
+        pricingPremiumBps = 500; // 5% premium over EV
+        minSpinFee = _minSpinFee;
+        maxSpinFee = 0;
+        targetRarityBps[0] = 7_000;
+        targetRarityBps[1] = 2_000;
+        targetRarityBps[2] = 600;
+        targetRarityBps[3] = 300;
+        targetRarityBps[4] = 100;
     }
 
     /**
@@ -180,25 +185,26 @@ contract Gacha is
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    /// @notice Initiates a gacha spin
+    /// @notice Initiates a gacha spin with a max fee guard
+    /// @param maxFee Maximum fee the caller is willing to pay
     /// @return triggerId The unique identifier for this spin request
-    function spin() external whenNotPaused nonReentrant returns (uint256 triggerId) {
-        if (spinFee > 0 && address(feeToken) == address(0)) revert InvalidFeeToken();
+    function spin(uint256 maxFee) external whenNotPaused nonReentrant returns (uint256 triggerId) {
+        uint256 feeToCharge = _getSpinFeeToCharge();
+        if (feeToCharge > maxFee) revert MaxFeeExceeded(feeToCharge, maxFee);
 
         // Check that all rarities with non-zero weights have at least one NFT
         _validateTreasuryHasItems();
 
-        if (spinFee > 0) {
-            feeToken.safeTransferFrom(msg.sender, address(this), spinFee);
+        if (feeToCharge > 0) {
+            feeToken.safeTransferFrom(msg.sender, address(this), feeToCharge);
         }
 
         triggerId = _nextTriggerId++;
         spinRequests[triggerId] = SpinRequest({
+            feePaid: feeToCharge,
+            requestTime: block.timestamp,
             requester: msg.sender,
-            fulfilled: false,
-            reclaimed: false,
-            feePaid: spinFee,
-            requestTime: block.timestamp
+            statusFlags: 0 // Both fulfilled and reclaimed flags start as false
         });
 
         emit RandomnessRequested(triggerId);
@@ -212,30 +218,30 @@ contract Gacha is
     /// @param r Half of the ECDSA signature pair
     /// @param s Half of the ECDSA signature pair
     /// @return triggerId The unique identifier for this spin request
-    function spinWithPermit(uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+    function spinWithPermit(uint256 deadline, uint8 v, bytes32 r, bytes32 s, uint256 maxFee)
         external
         whenNotPaused
         nonReentrant
         returns (uint256 triggerId)
     {
-        if (spinFee > 0 && address(feeToken) == address(0)) revert InvalidFeeToken();
+        uint256 feeToCharge = _getSpinFeeToCharge();
+        if (feeToCharge > maxFee) revert MaxFeeExceeded(feeToCharge, maxFee);
 
         // Check that all rarities with non-zero weights have at least one NFT
         _validateTreasuryHasItems();
 
-        if (spinFee > 0) {
+        if (feeToCharge > 0) {
             // Use permit to approve the fee transfer
-            IERC20Permit(address(feeToken)).permit(msg.sender, address(this), spinFee, deadline, v, r, s);
-            feeToken.safeTransferFrom(msg.sender, address(this), spinFee);
+            IERC20Permit(address(feeToken)).permit(msg.sender, address(this), feeToCharge, deadline, v, r, s);
+            feeToken.safeTransferFrom(msg.sender, address(this), feeToCharge);
         }
 
         triggerId = _nextTriggerId++;
         spinRequests[triggerId] = SpinRequest({
+            feePaid: feeToCharge,
+            requestTime: block.timestamp,
             requester: msg.sender,
-            fulfilled: false,
-            reclaimed: false,
-            feePaid: spinFee,
-            requestTime: block.timestamp
+            statusFlags: 0 // Both fulfilled and reclaimed flags start as false
         });
 
         emit RandomnessRequested(triggerId);
@@ -245,19 +251,27 @@ contract Gacha is
 
     /// @dev Validates that treasury has NFTs for all weighted rarities
     function _validateTreasuryHasItems() private view {
-        if (commonWeight > 0 && treasury.getRarityCount(GachaTreasury.Rarity.Common) == 0) {
+        uint256[5] memory counts = treasury.getAllRarityCounts();
+        uint256 totalCount;
+        for (uint256 i = 0; i < 5; i++) {
+            totalCount += counts[i];
+        }
+        if (totalCount == 0) revert NoTreasuryInventory();
+
+        uint256[5] memory weights = _getCurrentRarityWeights(counts, totalCount);
+        if (weights[0] > 0 && counts[0] == 0) {
             revert NoNFTsAvailable(GachaTreasury.Rarity.Common);
         }
-        if (uncommonWeight > 0 && treasury.getRarityCount(GachaTreasury.Rarity.Uncommon) == 0) {
+        if (weights[1] > 0 && counts[1] == 0) {
             revert NoNFTsAvailable(GachaTreasury.Rarity.Uncommon);
         }
-        if (rareWeight > 0 && treasury.getRarityCount(GachaTreasury.Rarity.Rare) == 0) {
+        if (weights[2] > 0 && counts[2] == 0) {
             revert NoNFTsAvailable(GachaTreasury.Rarity.Rare);
         }
-        if (epicWeight > 0 && treasury.getRarityCount(GachaTreasury.Rarity.Epic) == 0) {
+        if (weights[3] > 0 && counts[3] == 0) {
             revert NoNFTsAvailable(GachaTreasury.Rarity.Epic);
         }
-        if (legendaryWeight > 0 && treasury.getRarityCount(GachaTreasury.Rarity.Legendary) == 0) {
+        if (weights[4] > 0 && counts[4] == 0) {
             revert NoNFTsAvailable(GachaTreasury.Rarity.Legendary);
         }
     }
@@ -268,15 +282,16 @@ contract Gacha is
     function fulfillRandomness(uint256 triggerId, bytes32 randomness) external onlyGachaServiceHandler {
         SpinRequest storage request = spinRequests[triggerId];
         if (request.requester == address(0)) revert InvalidTriggerId();
-        if (request.fulfilled) {
-            if (request.reclaimed) {
+        (bool isFulfilled, bool isReclaimed) = _getSpinRequestStatus(request);
+        if (isFulfilled) {
+            if (isReclaimed) {
                 revert SpinAlreadyReclaimed();
             } else {
                 revert AlreadyFulfilled();
             }
         }
 
-        request.fulfilled = true;
+        request.statusFlags = _setFulfilled(request.statusFlags);
 
         // Increment spin counters
         userSpinCount[request.requester]++;
@@ -327,32 +342,30 @@ contract Gacha is
     }
 
     function _selectRarity(bytes32 randomness) private view returns (GachaTreasury.Rarity) {
+        uint256[5] memory weights = getCurrentRarityWeights();
         uint256 roll = uint256(randomness) % TOTAL_WEIGHT;
 
         // Select rarity from most common to rarest (cumulative probabilities)
-        if (roll < commonWeight) {
+        if (roll < weights[0]) {
             return GachaTreasury.Rarity.Common;
-        } else if (roll < commonWeight + uncommonWeight) {
+        } else if (roll < weights[0] + weights[1]) {
             return GachaTreasury.Rarity.Uncommon;
-        } else if (roll < commonWeight + uncommonWeight + rareWeight) {
+        } else if (roll < weights[0] + weights[1] + weights[2]) {
             return GachaTreasury.Rarity.Rare;
-        } else if (roll < commonWeight + uncommonWeight + rareWeight + epicWeight) {
+        } else if (roll < weights[0] + weights[1] + weights[2] + weights[3]) {
             return GachaTreasury.Rarity.Epic;
         } else {
             return GachaTreasury.Rarity.Legendary;
         }
     }
 
-    /**
-     * @notice Updates the spin fee amount
-     * @param _newFee New fee amount in tokens
-     * @dev Only owner can call this function
-     */
-    function setSpinFee(uint256 _newFee) external onlyOwner {
-        if (_newFee == 0 && address(feeToken) != address(0)) revert InvalidFeeToken();
-        uint256 oldFee = spinFee;
-        spinFee = _newFee;
-        emit FeeUpdated(oldFee, _newFee);
+    function setFeeTokenDecimals(uint8 decimals) external onlyOwner {
+        if (address(feeToken) == address(0)) revert InvalidFeeToken();
+        if (decimals > 18) revert InvalidFeeTokenDecimals();
+        uint8 previous = feeTokenDecimals;
+        feeTokenDecimals = decimals;
+        feeTokenScalar = 10 ** uint256(decimals);
+        emit FeeTokenDecimalsUpdated(previous, decimals);
     }
 
     function getSpinRequest(uint256 triggerId)
@@ -361,7 +374,8 @@ contract Gacha is
         returns (address requester, bool fulfilled, bool reclaimed, uint256 feePaid, uint256 requestTime)
     {
         SpinRequest memory request = spinRequests[triggerId];
-        return (request.requester, request.fulfilled, request.reclaimed, request.feePaid, request.requestTime);
+        (bool isFulfilled, bool isReclaimed) = _getSpinRequestStatus(request);
+        return (request.requester, isFulfilled, isReclaimed, request.feePaid, request.requestTime);
     }
 
     /// @notice Gets the current next trigger ID that will be used for the next spin
@@ -384,30 +398,68 @@ contract Gacha is
         }
     }
 
-    /// @notice Updates rarity weights for gacha distribution
-    /// @dev All weights must sum to TOTAL_WEIGHT (10000)
-    function setRarityWeights(
-        uint256 _commonWeight,
-        uint256 _uncommonWeight,
-        uint256 _rareWeight,
-        uint256 _epicWeight,
-        uint256 _legendaryWeight
-    ) external onlyOwner {
-        if (_commonWeight + _uncommonWeight + _rareWeight + _epicWeight + _legendaryWeight != TOTAL_WEIGHT) {
-            revert WeightsMustSumToTotal();
-        }
+    function setPricingConfig(uint256 premiumBps, uint256 minFee, uint256 maxFee) external onlyOwner {
+        if (premiumBps > TOTAL_WEIGHT) revert InvalidPricingConfig();
+        if (address(feeToken) == address(0)) revert InvalidFeeToken();
+        if (feeTokenScalar == 0) revert InvalidFeeTokenDecimals();
+        if (maxFee > 0 && minFee > maxFee) revert InvalidPricingConfig();
 
-        commonWeight = _commonWeight;
-        uncommonWeight = _uncommonWeight;
-        rareWeight = _rareWeight;
-        epicWeight = _epicWeight;
-        legendaryWeight = _legendaryWeight;
+        pricingPremiumBps = premiumBps;
+        minSpinFee = minFee;
+        maxSpinFee = maxFee;
 
-        emit RarityWeightsUpdated(_commonWeight, _uncommonWeight, _rareWeight, _epicWeight, _legendaryWeight);
+        emit PricingConfigUpdated(premiumBps, minFee, maxFee);
     }
 
-    function getRarityWeights() external view returns (uint256, uint256, uint256, uint256, uint256) {
-        return (commonWeight, uncommonWeight, rareWeight, epicWeight, legendaryWeight);
+    function setDynamicWeightsConfig(uint256[5] calldata targetBps) external onlyOwner {
+        uint256 total;
+        for (uint256 i = 0; i < 5; i++) {
+            total += targetBps[i];
+        }
+        if (total != TOTAL_WEIGHT) revert WeightsMustSumToTotal();
+
+        for (uint256 i = 0; i < 5; i++) {
+            targetRarityBps[i] = targetBps[i];
+        }
+        emit DynamicWeightsUpdated(targetBps);
+    }
+
+    function getCurrentSpinFee() public view returns (uint256 fee) {
+        return _getSpinFeeToCharge();
+    }
+
+    function getCurrentRarityWeights() public view returns (uint256[5] memory weights) {
+        uint256[5] memory counts = treasury.getAllRarityCounts();
+        uint256 totalCount;
+        for (uint256 i = 0; i < 5; i++) {
+            totalCount += counts[i];
+        }
+        if (totalCount == 0) return weights;
+        return _getCurrentRarityWeights(counts, totalCount);
+    }
+
+    function getTargetRarityBps() external view returns (uint256[5] memory targetBps) {
+        for (uint256 i = 0; i < 5; i++) {
+            targetBps[i] = targetRarityBps[i];
+        }
+    }
+
+    function getExpectedValueUSD() public view returns (uint256 expectedValueUSD) {
+        uint256[5] memory counts = treasury.getAllRarityCounts();
+        uint256 totalCount;
+        for (uint256 i = 0; i < 5; i++) {
+            totalCount += counts[i];
+        }
+        if (totalCount == 0) return 0;
+
+        uint256[5] memory weights = _getCurrentRarityWeights(counts, totalCount);
+        uint256[5] memory totals = treasury.getAllRarityTotalValues();
+
+        for (uint256 i = 0; i < 5; i++) {
+            if (counts[i] == 0 || weights[i] == 0) continue;
+            uint256 averageValue = totals[i] / counts[i];
+            expectedValueUSD += Math.mulDiv(weights[i], averageValue, TOTAL_WEIGHT);
+        }
     }
 
     /// @notice Updates the gacha service handler address
@@ -512,7 +564,8 @@ contract Gacha is
         // Validate the request exists and caller is the original requester
         if (request.requester == address(0)) revert InvalidTriggerId();
         if (request.requester != msg.sender) revert NotSpinRequester();
-        if (request.fulfilled) revert CannotReclaimFulfilledSpin();
+        (bool fulfilled, ) = _getSpinRequestStatus(request);
+        if (fulfilled) revert CannotReclaimFulfilledSpin();
 
         // Check if the request has timed out
         if (block.timestamp <= request.requestTime + SPIN_TIMEOUT) {
@@ -520,8 +573,8 @@ contract Gacha is
         }
 
         // Mark as fulfilled and reclaimed to prevent any future fulfillment of this trigger
-        request.fulfilled = true;
-        request.reclaimed = true;
+        request.statusFlags = _setFulfilled(request.statusFlags);
+        request.statusFlags = _setReclaimed(request.statusFlags);
 
         // Track reclaim statistics
         userReclaimCount[request.requester]++;
@@ -571,21 +624,11 @@ contract Gacha is
      * @return averageValues Array of average USD values per rarity [Common, Uncommon, Rare, Epic, Legendary]
      */
     function getAverageRarityValues() external view returns (uint256[5] memory averageValues) {
+        uint256[5] memory counts = treasury.getAllRarityCounts();
+        uint256[5] memory totals = treasury.getAllRarityTotalValues();
         for (uint256 i = 0; i < 5; i++) {
-            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
-            GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(rarity);
-
-            if (items.length == 0) {
-                averageValues[i] = 0;
-                continue;
-            }
-
-            uint256 totalValue = 0;
-            for (uint256 j = 0; j < items.length; j++) {
-                totalValue += items[j].appraisedPrice;
-            }
-
-            averageValues[i] = totalValue / items.length;
+            if (counts[i] == 0) continue;
+            averageValues[i] = totals[i] / counts[i];
         }
     }
 
@@ -594,13 +637,9 @@ contract Gacha is
      * @return totalValueUSD Total USD value of all NFTs in treasury (scaled by 1e18)
      */
     function getTotalValueLocked() external view returns (uint256 totalValueUSD) {
+        uint256[5] memory totals = treasury.getAllRarityTotalValues();
         for (uint256 i = 0; i < 5; i++) {
-            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
-            GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(rarity);
-
-            for (uint256 j = 0; j < items.length; j++) {
-                totalValueUSD += items[j].appraisedPrice;
-            }
+            totalValueUSD += totals[i];
         }
     }
 
@@ -624,15 +663,11 @@ contract Gacha is
         )
     {
         feeTokenAddr = address(feeToken);
-        spinFeeAmount = spinFee;
+        spinFeeAmount = getCurrentSpinFee();
         isPaused = paused();
 
-        // Get rarity weights from storage
-        rarityWeights[0] = commonWeight;
-        rarityWeights[1] = uncommonWeight;
-        rarityWeights[2] = rareWeight;
-        rarityWeights[3] = epicWeight;
-        rarityWeights[4] = legendaryWeight;
+        // Get current rarity weights (dynamic)
+        rarityWeights = getCurrentRarityWeights();
         totalWeight = TOTAL_WEIGHT;
 
         isAvailable = treasury.isGachaAvailable();
@@ -668,4 +703,96 @@ contract Gacha is
 
         spinCount = totalSpins; // Same value for compatibility
     }
+
+    function _getSpinFeeToCharge() private view returns (uint256 fee) {
+        if (address(feeToken) == address(0)) revert InvalidFeeToken();
+
+        uint256 expectedValueUSD = getExpectedValueUSD();
+        if (expectedValueUSD == 0) return minSpinFee;
+
+        uint256 priceUSD = Math.mulDiv(expectedValueUSD, TOTAL_WEIGHT + pricingPremiumBps, TOTAL_WEIGHT);
+        uint256 converted = _usdToFeeToken(priceUSD);
+        if (minSpinFee > 0 && converted < minSpinFee) {
+            converted = minSpinFee;
+        }
+        if (maxSpinFee > 0 && converted > maxSpinFee) {
+            converted = maxSpinFee;
+        }
+        return converted;
+    }
+
+    function _usdToFeeToken(uint256 amountUSD) private view returns (uint256) {
+        if (feeTokenScalar == 0) return 0;
+        return Math.mulDiv(amountUSD, feeTokenScalar, 1e18);
+    }
+
+    function _getCurrentRarityWeights(uint256[5] memory counts, uint256 totalCount)
+        private
+        view
+        returns (uint256[5] memory weights)
+    {
+        uint256[5] memory raw;
+        uint256 rawSum;
+        for (uint256 i = 0; i < 5; i++) {
+            if (counts[i] == 0 || targetRarityBps[i] == 0) continue;
+            raw[i] = Math.mulDiv(targetRarityBps[i], totalCount, counts[i]);
+            rawSum += raw[i];
+        }
+
+        if (rawSum == 0) return weights;
+
+        uint256 assigned;
+        for (uint256 i = 0; i < 5; i++) {
+            if (raw[i] == 0) continue;
+            weights[i] = Math.mulDiv(raw[i], TOTAL_WEIGHT, rawSum);
+            assigned += weights[i];
+        }
+
+        if (assigned < TOTAL_WEIGHT) {
+            weights[0] += TOTAL_WEIGHT - assigned;
+        }
+    }
+
+    // ============ SpinRequest Status Helpers ============
+
+    /// @notice Sets the fulfilled flag in statusFlags
+    /// @param flags Current statusFlags value
+    /// @return newFlags Updated statusFlags with fulfilled flag set
+    function _setFulfilled(uint32 flags) private pure returns (uint32 newFlags) {
+        return flags | 1; // Set bit 0
+    }
+
+    /// @notice Sets the reclaimed flag in statusFlags
+    /// @param flags Current statusFlags value
+    /// @return newFlags Updated statusFlags with reclaimed flag set
+    function _setReclaimed(uint32 flags) private pure returns (uint32 newFlags) {
+        return flags | 2; // Set bit 1
+    }
+
+    /// @notice Checks if the fulfilled flag is set
+    /// @param flags StatusFlags to check
+    /// @return isFulfilled True if fulfilled flag is set
+    function _isFulfilled(uint32 flags) private pure returns (bool isFulfilled) {
+        return (flags & 1) != 0; // Check bit 0
+    }
+
+    /// @notice Checks if the reclaimed flag is set
+    /// @param flags StatusFlags to check
+    /// @return isReclaimed True if reclaimed flag is set
+    function _isReclaimed(uint32 flags) private pure returns (bool isReclaimed) {
+        return (flags & 2) != 0; // Check bit 1
+    }
+
+    /// @notice Gets the status of a spin request
+    /// @param request SpinRequest to check
+    /// @return fulfilled True if the spin has been completed
+    /// @return reclaimed True if the user has reclaimed their fee
+    function _getSpinRequestStatus(SpinRequest memory request)
+        private pure returns (bool fulfilled, bool reclaimed) {
+        fulfilled = _isFulfilled(request.statusFlags);
+        reclaimed = _isReclaimed(request.statusFlags);
+    }
+
+    /// @notice Custom gap for future storage variables (50 slots)
+    uint256[45] private __gap;
 }

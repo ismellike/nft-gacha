@@ -146,19 +146,19 @@ contract BasicEconomicsTest is Test {
      */
     function testRedemptionCalculation() public {
         uint256 appraisalPrice = RARE_PRICE; // $1,000 in 18 decimals
-        uint256 payoutPercentage = 8_500; // 85%
+        uint256 payoutPercentage = 8_000; // 80%
 
         // Convert appraisal price to USDC (18 decimals to 6 decimals)
         uint256 appraisalUSDc = appraisalPrice / 1e12;
 
-        // Calculate 85% payout
+        // Calculate 80% payout
         uint256 expectedPayout = Math.mulDiv(appraisalUSDc, payoutPercentage, 10000);
 
         console2.log("Appraisal Price (USD):", appraisalPrice);
         console2.log("Appraisal Price (USDC):", appraisalUSDc);
-        console2.log("Expected Payout (85%):", expectedPayout);
+        console2.log("Expected Payout (80%):", expectedPayout);
 
-        assertEq(expectedPayout, 850 * 1e6, "$1,000 at 85% should be $850 USDC");
+        assertEq(expectedPayout, 800 * 1e6, "$1,000 at 80% should be $800 USDC");
     }
 
     /**

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button, Chip } from "../ui";
 import {
@@ -38,9 +38,7 @@ import {
 	useReadGachaTreasuryOwner,
 	useReadGachaEconomyManagerOwner,
 	useReadGachaSpinFee,
-	useReadGachaGetRarityWeights,
 	useWriteGachaSetSpinFee,
-	useWriteGachaSetRarityWeights,
 	useWriteGachaEmergencyPause,
 	useWriteGachaEmergencyUnpause,
 	useReadGachaPaused,
@@ -250,18 +248,30 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 	const [weights, setWeights] = useState([7000, 2000, 600, 300, 100]);
 
-	const { data: currentWeights } = useReadGachaGetRarityWeights({
+	const { data: currentWeights } = useReadContract({
 		address: gacha.address as `0x${string}`,
+		abi: [
+			{
+				type: "function",
+				name: "getTargetRarityBps",
+				stateMutability: "view",
+				inputs: [],
+				outputs: [{ name: "targetBps", type: "uint256[5]" }],
+			},
+		],
+		functionName: "getTargetRarityBps",
 	});
+	const targetWeights = currentWeights as unknown as
+		| readonly bigint[]
+		| undefined;
 
-	const { writeContract: setRarityWeights, isPending } =
-		useWriteGachaSetRarityWeights();
+	const { writeContract: setRarityWeights, isPending } = useWriteContract();
 
 	useEffect(() => {
-		if (currentWeights) {
-			setWeights(currentWeights.map((w: bigint) => Number(w)));
+		if (targetWeights) {
+			setWeights(targetWeights.map((w: bigint) => Number(w)));
 		}
-	}, [currentWeights]);
+	}, [targetWeights]);
 
 	const handleWeightChange = (index: number, value: string) => {
 		const newWeights = [...weights];
@@ -277,13 +287,17 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 
 		setRarityWeights({
 			address: gacha.address as `0x${string}`,
-			args: weights.map((w: number) => BigInt(w)) as [
-				bigint,
-				bigint,
-				bigint,
-				bigint,
-				bigint,
+			abi: [
+				{
+					type: "function",
+					name: "setDynamicWeightsConfig",
+					stateMutability: "nonpayable",
+					inputs: [{ name: "targetBps", type: "uint256[5]" }],
+					outputs: [],
+				},
 			],
+			functionName: "setDynamicWeightsConfig",
+			args: [weights.map((w: number) => BigInt(w))],
 		});
 	};
 

@@ -6,6 +6,8 @@ import {
 	useWaitForTransactionReceipt,
 	useSignTypedData,
 	useChainId,
+	useReadContract,
+	useWriteContract,
 } from "wagmi";
 import { glassTypography, cn } from "../lib/theme-config";
 import { Card, Button } from "../ui";
@@ -14,10 +16,8 @@ import { formatTokenAmount, formatCurrency } from "../lib/utils";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import {
-	useReadGachaSpinFee,
 	useReadGachaPaused,
 	useReadGachaFeeToken,
-	useWriteGachaSpinWithPermit,
 	useReadErc20Decimals,
 	useReadErc20Symbol,
 	useReadErc20Name,
@@ -25,8 +25,6 @@ import {
 	useReadIerc20PermitNonces,
 	useReadGachaTreasuryIsGachaAvailable,
 	useWriteGachaReclaimFailedSpin,
-	useWriteGachaSpin,
-	gachaAbi,
 } from "../generated";
 import type { UseGachaSpinMachineReturn } from "../hooks/useGachaSpinMachine";
 
@@ -38,6 +36,7 @@ interface SpinControlsProps {
 // Constants for spin configuration
 const SPIN_TIMEOUT_SECONDS = 30;
 const PERMIT_DEADLINE_SECONDS = 3600; // 1 hour
+const MAX_FEE_SLIPPAGE_BPS = 200; // 2% max-fee buffer for UI
 
 export default function SpinControls({
 	gachaSpin,
@@ -62,8 +61,18 @@ export default function SpinControls({
 	const contracts = useGachaContracts(gachaId);
 
 	// Gacha contract data
-	const { data: spinFee } = useReadGachaSpinFee({
+	const { data: spinFee } = useReadContract({
 		address: contracts.gacha as `0x${string}` | undefined,
+		abi: [
+			{
+				type: "function",
+				name: "getCurrentSpinFee",
+				stateMutability: "view",
+				inputs: [],
+				outputs: [{ name: "fee", type: "uint256" }],
+			},
+		],
+		functionName: "getCurrentSpinFee",
 		query: { enabled: !!contracts.gacha },
 	});
 
@@ -121,7 +130,7 @@ export default function SpinControls({
 		writeContract: spin,
 		data: spinTxHash,
 		isPending: isSpinPending,
-	} = useWriteGachaSpin();
+	} = useWriteContract();
 
 	// Handle refund detection to refresh balances
 	useEffect(() => {
@@ -145,7 +154,7 @@ export default function SpinControls({
 		data: spinWithPermitTxHash,
 		isPending: isSpinWithPermitPending,
 		error: spinWithPermitError,
-	} = useWriteGachaSpinWithPermit();
+	} = useWriteContract();
 
 	const {
 		signTypedData,
@@ -188,11 +197,18 @@ export default function SpinControls({
 		isSpinWithPermitConfirming ||
 		isSpinPending ||
 		isSpinConfirming;
+
+	const maxFee =
+		spinFee !== undefined
+			? spinFee + (spinFee * BigInt(MAX_FEE_SLIPPAGE_BPS)) / 10_000n
+			: undefined;
+
 	const hasSufficientBalance =
-		spinFee && tokenBalance ? tokenBalance >= spinFee : false;
+		maxFee && tokenBalance ? tokenBalance >= maxFee : false;
 	const canSpin =
 		isConnected &&
 		spinFee &&
+		maxFee &&
 		hasSufficientBalance &&
 		!paused &&
 		isGachaAvailable &&
@@ -290,6 +306,7 @@ export default function SpinControls({
 			userAddress,
 			feeToken,
 			spinFee: spinFee?.toString(),
+			maxFee: maxFee?.toString(),
 			tokenNonce: tokenNonce?.toString(),
 			hasSufficientBalance,
 			paused,
@@ -320,8 +337,27 @@ export default function SpinControls({
 				"🔄 [SpinControls] Permit failed previously, trying direct spin (requires pre-approval)",
 			);
 			try {
+				if (!contracts.gacha || !maxFee) {
+					console.error(
+						"❌ [SpinControls] Missing max fee or contract for direct spin",
+					);
+					return;
+				}
 				gachaSpin.startSpin();
-				spin({ address: contracts.gacha as `0x${string}` });
+				spin({
+					address: contracts.gacha as `0x${string}`,
+					abi: [
+						{
+							type: "function",
+							name: "spin",
+							stateMutability: "nonpayable",
+							inputs: [{ name: "maxFee", type: "uint256" }],
+							outputs: [{ name: "triggerId", type: "uint256" }],
+						},
+					],
+					functionName: "spin",
+					args: [maxFee as bigint],
+				});
 			} catch (error) {
 				console.error("[SpinControls] Direct spin error:", error);
 				gachaSpin.reset();
@@ -337,6 +373,7 @@ export default function SpinControls({
 				userAddress: !!userAddress,
 				feeToken: !!feeToken,
 				spinFee: !!spinFee,
+				maxFee: !!maxFee,
 				tokenNonce: tokenNonce !== undefined,
 				hasPermitSupport,
 				individual_checks: {
@@ -345,6 +382,7 @@ export default function SpinControls({
 					no_user_address: !userAddress,
 					no_fee_token: !feeToken,
 					no_spin_fee: !spinFee,
+					no_max_fee: !maxFee,
 					no_token_nonce: hasPermitSupport && tokenNonce === undefined,
 				},
 			});
@@ -357,7 +395,20 @@ export default function SpinControls({
 
 			if (!hasPermitSupport) {
 				// Fallback: call spin() directly (requires pre-approval)
-				spin({ address: contracts.gacha as `0x${string}` });
+				spin({
+					address: contracts.gacha as `0x${string}`,
+					abi: [
+						{
+							type: "function",
+							name: "spin",
+							stateMutability: "nonpayable",
+							inputs: [{ name: "maxFee", type: "uint256" }],
+							outputs: [{ name: "triggerId", type: "uint256" }],
+						},
+					],
+					functionName: "spin",
+					args: [maxFee as bigint],
+				});
 				return;
 			}
 
@@ -366,6 +417,7 @@ export default function SpinControls({
 				!userAddress ||
 				!feeToken ||
 				!spinFee ||
+				!maxFee ||
 				tokenNonce === undefined ||
 				!contracts.gacha
 			) {
@@ -375,6 +427,7 @@ export default function SpinControls({
 						userAddress: !!userAddress,
 						feeToken: !!feeToken,
 						spinFee: !!spinFee,
+						maxFee: !!maxFee,
 						tokenNonce: tokenNonce !== undefined,
 						gachaContract: !!contracts.gacha,
 					},
@@ -399,7 +452,7 @@ export default function SpinControls({
 			const message = {
 				owner: userAddress,
 				spender: contracts.gacha as `0x${string}`,
-				value: spinFee,
+				value: maxFee,
 				nonce: tokenNonce as bigint,
 				deadline,
 			};
@@ -414,6 +467,7 @@ export default function SpinControls({
 						nonce: message.nonce.toString(),
 						deadline: message.deadline.toString(),
 					},
+					maxFee: maxFee?.toString(),
 				},
 			);
 
@@ -442,6 +496,7 @@ export default function SpinControls({
 		if (
 			signature &&
 			spinFee &&
+			maxFee &&
 			feeToken &&
 			permitDeadline &&
 			signature !== usedSignature
@@ -484,12 +539,29 @@ export default function SpinControls({
 
 				const txParams = {
 					address: contracts.gacha as `0x${string}`,
+					abi: [
+						{
+							type: "function",
+							name: "spinWithPermit",
+							stateMutability: "nonpayable",
+							inputs: [
+								{ name: "deadline", type: "uint256" },
+								{ name: "v", type: "uint8" },
+								{ name: "r", type: "bytes32" },
+								{ name: "s", type: "bytes32" },
+								{ name: "maxFee", type: "uint256" },
+							],
+							outputs: [{ name: "triggerId", type: "uint256" }],
+						},
+					],
 					args: [
 						BigInt(permitDeadline || 0),
 						Number(v),
 						r as `0x${string}`,
 						s as `0x${string}`,
+						maxFee as bigint,
 					] as const,
+					functionName: "spinWithPermit",
 				};
 
 				console.log(
@@ -500,9 +572,10 @@ export default function SpinControls({
 						v,
 						r,
 						s,
+						maxFee: maxFee?.toString(),
 						signature: `${signature.slice(0, 10)}...`,
 						rawSignature: signature,
-						expectedFunction: "spinWithPermit(uint256,uint8,bytes32,bytes32)",
+						expectedFunction: "spinWithPermit(uint256,uint8,bytes32,bytes32,uint256)",
 					},
 				);
 
@@ -518,6 +591,7 @@ export default function SpinControls({
 	}, [
 		signature,
 		spinFee,
+		maxFee,
 		feeToken,
 		permitDeadline,
 		usedSignature,
@@ -553,6 +627,7 @@ export default function SpinControls({
 						userAddress,
 						feeToken,
 						spinFee: spinFee?.toString(),
+						maxFee: maxFee?.toString(),
 						tokenNonce: tokenNonce?.toString(),
 						contracts: contracts.gacha,
 						chainId,
@@ -569,6 +644,7 @@ export default function SpinControls({
 		userAddress,
 		feeToken,
 		spinFee,
+		maxFee,
 		tokenNonce,
 		contracts.gacha,
 		chainId,
@@ -618,6 +694,7 @@ export default function SpinControls({
 						userAddress,
 						feeToken,
 						spinFee: spinFee?.toString(),
+						maxFee: maxFee?.toString(),
 						permitDeadline: permitDeadline?.toString(),
 						signatureUsed: !!usedSignature,
 						blockExplorer: `https://holesky.etherscan.io/address/${contracts.gacha}`,
@@ -663,6 +740,7 @@ export default function SpinControls({
 		userAddress,
 		feeToken,
 		spinFee,
+		maxFee,
 		permitDeadline,
 		usedSignature,
 		tokenName,
@@ -744,7 +822,19 @@ export default function SpinControls({
 			for (const log of receipt.logs) {
 				try {
 					const decoded = decodeEventLog({
-						abi: gachaAbi,
+						abi: [
+							{
+								type: "event",
+								name: "RandomnessRequested",
+								inputs: [
+									{
+										name: "triggerId",
+										type: "uint256",
+										indexed: true,
+									},
+								],
+							},
+						],
 						data: log.data,
 						topics: log.topics,
 					});

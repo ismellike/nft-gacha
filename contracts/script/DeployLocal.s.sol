@@ -343,7 +343,8 @@ contract DeployLocal is Script {
         Gacha(d.gachaProxy).setEconomyManager(d.economyManagerProxy);
 
         // Configure system with default values
-        Gacha(d.gachaProxy).setRarityWeights(7000, 2000, 600, 300, 100); // 70%, 20%, 6%, 3%, 1%
+        uint256[5] memory defaultTargets = [uint256(7000), 2000, 600, 300, 100];
+        Gacha(d.gachaProxy).setDynamicWeightsConfig(defaultTargets);
 
         // Price ranges are now set during initialization and immutable:
         // Common: $0-$15, Uncommon: $25-$60, Rare: $70-$250, Epic: $300-$1,200, Legendary: $1,500+

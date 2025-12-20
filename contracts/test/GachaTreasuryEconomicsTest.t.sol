@@ -61,12 +61,13 @@ contract GachaTreasuryEconomicsTest is Test {
 
         // Deploy treasury
         GachaTreasury treasuryImpl = new GachaTreasury();
+        uint256 PRICE_STEP = 1e16;
         uint256[5] memory minPrices = [
             uint256(0),
-            uint256(15 * 1e18) + 1,
-            uint256(60 * 1e18) + 1,
-            uint256(250 * 1e18) + 1,
-            uint256(1_200 * 1e18) + 1
+            uint256(15 * 1e18) + PRICE_STEP,
+            uint256(60 * 1e18) + PRICE_STEP,
+            uint256(250 * 1e18) + PRICE_STEP,
+            uint256(1_200 * 1e18) + PRICE_STEP
         ];
         uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
         bytes memory initData = abi.encodeWithSelector(

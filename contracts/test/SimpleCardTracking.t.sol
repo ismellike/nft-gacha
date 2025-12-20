@@ -33,12 +33,13 @@ contract SimpleCardTrackingTest is Test {
         // Deploy treasury implementation and proxy with a temporary address, then set the real gacha later
         GachaTreasury treasuryImpl = new GachaTreasury();
 
+        uint256 PRICE_STEP = 1e16;
         uint256[5] memory minPrices = [
             uint256(0),
-            uint256(15 * 1e18) + 1,
-            uint256(60 * 1e18) + 1,
-            uint256(250 * 1e18) + 1,
-            uint256(1_200 * 1e18) + 1
+            uint256(15 * 1e18) + PRICE_STEP,
+            uint256(60 * 1e18) + PRICE_STEP,
+            uint256(250 * 1e18) + PRICE_STEP,
+            uint256(1_200 * 1e18) + PRICE_STEP
         ];
         uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
         bytes memory initData = abi.encodeWithSelector(
@@ -89,20 +90,27 @@ contract SimpleCardTrackingTest is Test {
 
         console.log("\nAfter deposits:");
 
-        // Test: Check user card IDs list
-        bytes32[] memory userCardIds = treasury.getAllUserCardIds(user1);
+        // Test: Check user card IDs list (using paginated version)
+        (bytes32[] memory userCardIds, uint256 total, bool hasMore) = treasury.getUserCardIds(user1, 0, 50);
         console.log("User1 distinct card types:", userCardIds.length);
 
         // Should have exactly 1 distinct card type (CARD_A)
         assertEq(userCardIds.length, 1, "Should have 1 distinct card type");
         assertEq(userCardIds[0], CARD_A, "Should be CARD_A");
+        assertEq(total, 1, "Total should be 1");
+        assertEq(hasMore, false, "Should have no more");
 
-        // Test: Check user card deposit count
-        uint256 cardACount = treasury.getUserCardDeposits(user1, CARD_A);
-        console.log("User1 CARD_A deposit count:", cardACount);
+        // Test: Check user card deposit count (using paginated deposits version)
+        (GachaTreasury.UserCardDeposit[] memory deposits, uint256 totalDeposits, bool hasMoreDeposits) = treasury.getUserCardDepositsPage(user1, 0, 50);
+        console.log("User1 distinct card types:", deposits.length);
 
-        // Should have 2 deposits of CARD_A
-        assertEq(cardACount, 2, "Should have 2 CARD_A deposits");
+        // Should have exactly 1 distinct card type (CARD_A)
+        assertEq(deposits.length, 1, "Should have 1 card type");
+        assertEq(deposits[0].cardId, CARD_A, "Should be CARD_A");
+        assertEq(deposits[0].depositCount, 2, "Should have 2 CARD_A deposits");
+        assertEq(deposits[0].totalCardDeposits, 2, "Total CARD_A deposits should be 2");
+        assertEq(totalDeposits, 1, "Total should be 1");
+        assertEq(hasMoreDeposits, false, "Should have no more");
 
         // Test: Check total card deposits
         uint256 totalCardA = treasury.getCardTotalDeposits(CARD_A);
@@ -112,16 +120,16 @@ contract SimpleCardTrackingTest is Test {
         assertEq(totalCardA, 2, "Should have 2 total CARD_A deposits");
 
         // Test: Check paginated access
-        (bytes32[] memory page, uint256 total, bool hasMore) = treasury.getUserCardIds(user1, 0, 10);
+        (bytes32[] memory page2, uint256 total2, bool hasMore2) = treasury.getUserCardIds(user1, 0, 10);
         console.log("Paginated result:");
-        console.log("  Page size:", page.length);
-        console.log("  Total:", total);
-        console.log("  Has more:", hasMore);
+        console.log("  Page size:", page2.length);
+        console.log("  Total:", total2);
+        console.log("  Has more:", hasMore2);
 
-        assertEq(page.length, 1, "Page should have 1 card");
-        assertEq(total, 1, "Total should be 1");
-        assertEq(hasMore, false, "Should not have more");
-        assertEq(page[0], CARD_A, "Page should contain CARD_A");
+        assertEq(page2.length, 1, "Page should have 1 card");
+        assertEq(total2, 1, "Total should be 1");
+        assertEq(hasMore2, false, "Should not have more");
+        assertEq(page2[0], CARD_A, "Page should contain CARD_A");
 
         console.log("\nAll card tracking tests passed!");
     }
@@ -165,20 +173,38 @@ contract SimpleCardTrackingTest is Test {
         vm.stopPrank();
 
         // Test: Check both users have 2 distinct card types
-        bytes32[] memory user1Cards = treasury.getAllUserCardIds(user1);
-        bytes32[] memory user2Cards = treasury.getAllUserCardIds(user2);
+        (, uint256 user1Total,,,,) = treasury.getUserProfileBatch(user1);
+        (, uint256 user2Total,,,,) = treasury.getUserProfileBatch(user2);
 
-        console.log("User1 distinct cards:", user1Cards.length);
-        console.log("User2 distinct cards:", user2Cards.length);
+        // Using getAllUserCardDeposits for detailed card info
+        GachaTreasury.UserCardDeposit[] memory user1Deposits = treasury.getAllUserCardDeposits(user1);
+        GachaTreasury.UserCardDeposit[] memory user2Deposits = treasury.getAllUserCardDeposits(user2);
 
-        assertEq(user1Cards.length, 2, "User1 should have 2 distinct cards");
-        assertEq(user2Cards.length, 2, "User2 should have 2 distinct cards");
+        console.log("User1 distinct cards:", user1Deposits.length);
+        console.log("User2 distinct cards:", user2Deposits.length);
 
-        // Test: Check individual card counts
-        assertEq(treasury.getUserCardDeposits(user1, CARD_A), 1, "User1 should have 1 CARD_A");
-        assertEq(treasury.getUserCardDeposits(user1, CARD_B), 1, "User1 should have 1 CARD_B");
-        assertEq(treasury.getUserCardDeposits(user2, CARD_A), 1, "User2 should have 1 CARD_A");
-        assertEq(treasury.getUserCardDeposits(user2, CARD_B), 1, "User2 should have 1 CARD_B");
+        assertEq(user1Deposits.length, 2, "User1 should have 2 distinct cards");
+        assertEq(user2Deposits.length, 2, "User2 should have 2 distinct cards");
+
+        // Test: Check individual card counts using deposit info
+        uint256 user1ACount = 0;
+        uint256 user1BCount = 0;
+        for (uint256 i = 0; i < user1Deposits.length; i++) {
+            if (user1Deposits[i].cardId == CARD_A) user1ACount = user1Deposits[i].depositCount;
+            if (user1Deposits[i].cardId == CARD_B) user1BCount = user1Deposits[i].depositCount;
+        }
+
+        uint256 user2ACount = 0;
+        uint256 user2BCount = 0;
+        for (uint256 i = 0; i < user2Deposits.length; i++) {
+            if (user2Deposits[i].cardId == CARD_A) user2ACount = user2Deposits[i].depositCount;
+            if (user2Deposits[i].cardId == CARD_B) user2BCount = user2Deposits[i].depositCount;
+        }
+
+        assertEq(user1ACount, 1, "User1 should have 1 CARD_A");
+        assertEq(user1BCount, 1, "User1 should have 1 CARD_B");
+        assertEq(user2ACount, 1, "User2 should have 1 CARD_A");
+        assertEq(user2BCount, 1, "User2 should have 1 CARD_B");
 
         // Test: Check total card counts across all users
         assertEq(treasury.getCardTotalDeposits(CARD_A), 2, "Total CARD_A should be 2");

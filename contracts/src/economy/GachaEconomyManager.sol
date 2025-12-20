@@ -99,6 +99,7 @@ contract GachaEconomyManager is
 
         depositorShareBps = 9_500;
         protocolShareBps = 500;
+        emit RevenueSplitUpdated(depositorShareBps, protocolShareBps);
 
         _transferOwnership(owner);
     }

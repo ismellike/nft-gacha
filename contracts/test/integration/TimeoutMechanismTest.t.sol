@@ -46,15 +46,16 @@ contract TimeoutMechanismTest is Test {
         // Initialize contracts
         vm.startPrank(owner);
 
-        // Initialize treasury with minimal price ranges
+        // Initialize treasury with minimal price ranges (in USD 18 decimals)
+        uint256 PRICE_STEP = 1e16;
         uint256[5] memory minPrices = [
             uint256(0),
-            uint256(99e6) + 1,
-            uint256(499e6) + 1,
-            uint256(1_999e6) + 1,
-            uint256(9_999e6) + 1
+            uint256(15 * 1e18) + PRICE_STEP,
+            uint256(60 * 1e18) + PRICE_STEP,
+            uint256(250 * 1e18) + PRICE_STEP,
+            uint256(1_200 * 1e18) + PRICE_STEP
         ];
-        uint256[5] memory maxPrices = [uint256(99e6), 499e6, 1_999e6, 9_999e6, type(uint256).max];
+        uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
 
         treasury.initialize(
             owner,
@@ -102,7 +103,7 @@ contract TimeoutMechanismTest is Test {
     function test_timeoutMechanism_fulfillmentWorksAfterTimeout() public {
         // User starts a spin
         vm.startPrank(user);
-        uint256 triggerId = gacha.spin();
+        uint256 triggerId = gacha.spin(type(uint256).max);
         vm.stopPrank();
 
         // Verify spin request details
@@ -130,7 +131,7 @@ contract TimeoutMechanismTest is Test {
     function test_timeoutMechanism_allowsReclaimAfterTimeout() public {
         // User starts a spin
         vm.startPrank(user);
-        uint256 triggerId = gacha.spin();
+        uint256 triggerId = gacha.spin(type(uint256).max);
         uint256 balanceBefore = feeToken.balanceOf(user);
         vm.stopPrank();
 
@@ -167,7 +168,7 @@ contract TimeoutMechanismTest is Test {
     function test_timeoutMechanism_fulfillmentWorksBeforeTimeout() public {
         // User starts a spin
         vm.startPrank(user);
-        uint256 triggerId = gacha.spin();
+        uint256 triggerId = gacha.spin(type(uint256).max);
         vm.stopPrank();
 
         // Fulfillment should work before timeout
@@ -193,7 +194,7 @@ contract TimeoutMechanismTest is Test {
 
         // User starts multiple spins
         vm.startPrank(user);
-        uint256 triggerId1 = gacha.spin();
+        uint256 triggerId1 = gacha.spin(type(uint256).max);
         vm.stopPrank();
 
         // Fast forward partially (not past timeout)
@@ -201,7 +202,7 @@ contract TimeoutMechanismTest is Test {
 
         // Start second spin
         vm.startPrank(user);
-        uint256 triggerId2 = gacha.spin();
+        uint256 triggerId2 = gacha.spin(type(uint256).max);
         vm.stopPrank();
 
         // Fast forward past timeout for first spin but not second
@@ -231,7 +232,7 @@ contract TimeoutMechanismTest is Test {
     function test_timeoutMechanism_betterErrorMessages() public {
         // User starts a spin
         vm.startPrank(user);
-        uint256 triggerId = gacha.spin();
+        uint256 triggerId = gacha.spin(type(uint256).max);
         vm.stopPrank();
 
         // Fast forward past timeout and reclaim
@@ -249,7 +250,7 @@ contract TimeoutMechanismTest is Test {
 
         // Start another spin and fulfill it first
         vm.startPrank(user);
-        uint256 triggerId2 = gacha.spin();
+        uint256 triggerId2 = gacha.spin(type(uint256).max);
         vm.stopPrank();
 
         vm.startPrank(serviceHandler);
@@ -266,7 +267,7 @@ contract TimeoutMechanismTest is Test {
     function test_timeoutMechanism_noFeesHeldInContract() public {
         // User starts a spin
         vm.startPrank(user);
-        uint256 triggerId = gacha.spin();
+        uint256 triggerId = gacha.spin(type(uint256).max);
         vm.stopPrank();
 
         // Contract should only hold the spin fee, no escrow tracking
@@ -311,7 +312,8 @@ contract TimeoutMechanismTest is Test {
 
         // Set weights to 100% Common for simplicity
         vm.startPrank(owner);
-        gacha.setRarityWeights(10_000, 0, 0, 0, 0); // 100% Common, others 0
+        uint256[5] memory targetWeights = [uint256(10_000), 0, 0, 0, 0];
+        gacha.setDynamicWeightsConfig(targetWeights); // 100% Common, others 0
         vm.stopPrank();
     }
 }

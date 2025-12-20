@@ -9,10 +9,6 @@ import {GachaTreasury} from "../gacha/GachaTreasury.sol";
  * @notice Provides type-safe interface for Gacha contract interactions
  */
 interface IGacha {
-    /// @notice Get the current fee for spinning
-    /// @return The spin fee amount
-    function spinFee() external view returns (uint256);
-
     /// @notice Get the fee token contract
     /// @return The fee token address
     function feeToken() external view returns (IERC20);
@@ -21,25 +17,44 @@ interface IGacha {
     /// @param _serviceHandler Address of the service handler
     function setGachaServiceHandler(address _serviceHandler) external;
 
-    /// @notice Set the spin fee
-    /// @param _newFee New spin fee amount
-    function setSpinFee(uint256 _newFee) external;
+    /// @notice Set the fee token decimals for USD conversion
+    /// @param decimals Fee token decimals (<= 18)
+    function setFeeTokenDecimals(uint8 decimals) external;
 
-    /// @notice Set rarity weights
-    /// @param _common Weight for common rarity
-    /// @param _uncommon Weight for uncommon rarity
-    /// @param _rare Weight for rare rarity
-    /// @param _epic Weight for epic rarity
-    /// @param _legendary Weight for legendary rarity
-    function setRarityWeights(uint256 _common, uint256 _uncommon, uint256 _rare, uint256 _epic, uint256 _legendary)
-        external;
+    /// @notice Configure pricing (EV-based)
+    /// @param premiumBps Premium in bps over EV
+    /// @param minFee Minimum fee in fee token units (0 disables floor)
+    /// @param maxFee Maximum fee in fee token units (0 disables cap)
+    function setPricingConfig(uint256 premiumBps, uint256 minFee, uint256 maxFee) external;
 
-    /// @notice Spin the gacha
+    /// @notice Configure target rarity weights
+    /// @param targetBps Target rarity distribution in bps [Common..Legendary]
+    function setDynamicWeightsConfig(uint256[5] calldata targetBps) external;
+
+    /// @notice Get current spin fee (dynamic)
+    function getCurrentSpinFee() external view returns (uint256);
+
+    /// @notice Get current rarity weights (dynamic)
+    function getCurrentRarityWeights() external view returns (uint256[5] memory);
+
+    /// @notice Get target rarity weights in bps [Common..Legendary]
+    function getTargetRarityBps() external view returns (uint256[5] memory);
+
+    /// @notice Get expected value for a spin in USD (18 decimals)
+    function getExpectedValueUSD() external view returns (uint256);
+
+    /// @notice Spin the gacha with a max fee guard
+    /// @param maxFee Maximum fee the caller is willing to pay
     /// @return triggerId The trigger ID for randomness fulfillment
-    function spin() external returns (uint256);
+    function spin(uint256 maxFee) external returns (uint256);
 
     /// @notice Fulfill randomness for a spin
     /// @param triggerId The trigger ID to fulfill
     /// @param randomness The randomness value
     function fulfillRandomness(uint256 triggerId, bytes32 randomness) external;
+
+    /// @notice Spin with permit and max fee guard
+    function spinWithPermit(uint256 deadline, uint8 v, bytes32 r, bytes32 s, uint256 maxFee)
+        external
+        returns (uint256);
 }

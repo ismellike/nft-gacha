@@ -61,6 +61,8 @@ contract GachaTreasury is
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
     uint256 public constant MAX_BATCH_WITHDRAW = 20;
     uint256 public constant MAX_MIGRATION_BATCH = 50;
+    /// @notice Rarity price ranges must be continuous in 1-cent steps (1e16)
+    uint256 private constant PRICE_STEP = 1e16;
 
     /// @notice NFT rarity tiers for gacha distribution
     enum Rarity {
@@ -264,17 +266,16 @@ contract GachaTreasury is
 
         uint256 legendaryMin = minPrices[uint256(Rarity.Legendary)];
         uint256 legendaryMax = maxPrices[uint256(Rarity.Legendary)];
-        if (legendaryMax != legendaryMaxOverride || legendaryMin >= legendaryMax) {
-            revert InvalidPriceRange();
-        }
+        if (legendaryMax != legendaryMaxOverride) revert InvalidPriceRange();
+        if (legendaryMin >= legendaryMax) revert InvalidPriceRange();
         legendaryMinPrice = legendaryMin;
         legendaryMaxPrice = legendaryMax;
 
         // Ensure ranges are continuous and non-overlapping so every price fits exactly one bucket
-        if (commonMax + 1 != uncommonMin) revert InvalidPriceRange();
-        if (uncommonMax + 1 != rareMin) revert InvalidPriceRange();
-        if (rareMax + 1 != epicMin) revert InvalidPriceRange();
-        if (epicMax + 1 != legendaryMin) revert InvalidPriceRange();
+        if (commonMax + PRICE_STEP != uncommonMin) revert InvalidPriceRange();
+        if (uncommonMax + PRICE_STEP != rareMin) revert InvalidPriceRange();
+        if (rareMax + PRICE_STEP != epicMin) revert InvalidPriceRange();
+        if (epicMax + PRICE_STEP != legendaryMin) revert InvalidPriceRange();
 
         priceRangesSet = true;
     }
@@ -480,8 +481,9 @@ contract GachaTreasury is
         }
 
         // Update user deposit tracking (affects their rewards)
-        if (userDepositCounts[depositor][rarity] > 0) {
-            --userDepositCounts[depositor][rarity];
+        uint256 currentCount = userDepositCounts[depositor][rarity];
+        if (currentCount > 0) {
+            userDepositCounts[depositor][rarity] = currentCount - 1;
             --userTotalDeposits[depositor];
         }
 
@@ -501,11 +503,13 @@ contract GachaTreasury is
         // Update card tracking for withdrawal
         bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
         if (cardId != bytes32(0)) {
-            if (userCardDeposits[depositor][cardId] > 0) {
-                userCardDeposits[depositor][cardId]--;
+            uint256 cardCount = userCardDeposits[depositor][cardId];
+            if (cardCount > 0) {
+                uint256 newCount = cardCount - 1;
+                userCardDeposits[depositor][cardId] = newCount;
                 cardTotalDeposits[cardId]--;
                 // If user no longer holds this cardId, remove from list
-                if (userCardDeposits[depositor][cardId] == 0) {
+                if (newCount == 0) {
                     _removeUserGroupId(depositor, cardId);
                 }
             }
@@ -546,15 +550,17 @@ contract GachaTreasury is
             --rarityCount[rarity];
         }
 
-        if (item.depositor != address(0)) {
-            unchecked {
-                --userDepositCounts[item.depositor][rarity];
-                --userTotalDeposits[item.depositor];
+        address depositor = item.depositor;
+        if (depositor != address(0)) {
+            uint256 depositCount = userDepositCounts[depositor][rarity];
+            if (depositCount > 0) {
+                userDepositCounts[depositor][rarity] = depositCount - 1;
             }
+            --userTotalDeposits[depositor];
 
             // Update value tracking - subtract the NFT's value from user
-            userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
-            _decreaseActiveValue(item.depositor, item.appraisedPrice);
+            userDepositValues[depositor][rarity] -= item.appraisedPrice;
+            _decreaseActiveValue(depositor, item.appraisedPrice);
         }
 
         // Always remove the value from the pool total
@@ -572,14 +578,18 @@ contract GachaTreasury is
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
         // Update card tracking for won NFT
-        bytes32 wonCardId = appraisalContract.getTokenCardId(item.collection, item.tokenId);
-        if (wonCardId != bytes32(0)) {
-            if (userCardDeposits[item.depositor][wonCardId] > 0) {
-                userCardDeposits[item.depositor][wonCardId]--;
-                cardTotalDeposits[wonCardId]--;
-                // If user no longer holds this cardId, remove from list
-                if (userCardDeposits[item.depositor][wonCardId] == 0) {
-                    _removeUserGroupId(item.depositor, wonCardId);
+        if (depositor != address(0)) {
+            bytes32 wonCardId = appraisalContract.getTokenCardId(item.collection, item.tokenId);
+            if (wonCardId != bytes32(0)) {
+                uint256 wonCardCount = userCardDeposits[depositor][wonCardId];
+                if (wonCardCount > 0) {
+                    uint256 newWonCount = wonCardCount - 1;
+                    userCardDeposits[depositor][wonCardId] = newWonCount;
+                    cardTotalDeposits[wonCardId]--;
+                    // If user no longer holds this cardId, remove from list
+                    if (newWonCount == 0) {
+                        _removeUserGroupId(depositor, wonCardId);
+                    }
                 }
             }
         }
@@ -644,14 +654,7 @@ contract GachaTreasury is
         hasMore = end < total;
     }
 
-    /// @notice Returns all cardIds (keccak256 hashes) for a user
-    /// @dev DEPRECATED: Use getAllUserCardDeposits() for richer data, or getUserCardDepositsPage() for pagination
-    /// @param user The user address
-    /// @return cardIds Array of all cardIds the user has deposited
-    function getAllUserCardIds(address user) external view returns (bytes32[] memory cardIds) {
-        return userGroupIds[user];
-    }
-
+  
     /// @dev Internal: add a cardId (bytes32 hash) to user's list if absent, using cardId index
     function _addUserGroupId(address user, bytes32 cardId) internal {
         if (userCardIdIndex[user][cardId] == 0) {
@@ -1217,16 +1220,7 @@ contract GachaTreasury is
         return IERC721Receiver.onERC721Received.selector;
     }
 
-    /// @notice Gets user's deposit count for a specific card ID
-    /// @param user User address
-    /// @param cardId Card ID to check
-    /// @return count Number of deposits by user for the card
-    /// @dev DEPRECATED: Use getAllUserCardDeposits() or getUserCardDepositsPage() for batch queries
-    function getUserCardDeposits(address user, bytes32 cardId) external view returns (uint256 count) {
-        if (user == address(0) || cardId == bytes32(0)) return 0;
-        return userCardDeposits[user][cardId];
-    }
-
+    
     /// @notice Gets total deposit count for a specific card ID
     /// @param cardId Card ID to check
     /// @return totalCount Total number of deposits for the card

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useImperativeHandle, forwardRef } from "react";
+import { useReadContract } from "wagmi";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { Card } from "../ui";
 import {
 	useReadGachaTreasuryGetAllRarityCounts,
-	useReadGachaGetRarityWeights,
 	useReadGachaGetAverageRarityValues,
 } from "../generated";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -46,10 +46,20 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		| undefined;
 
 	// Rarity weights from gacha contract
-	const rarityWeightsQuery = useReadGachaGetRarityWeights({
+	const rarityWeightsQuery = useReadContract({
 		address: contracts.gacha as `0x${string}` | undefined,
+		abi: [
+			{
+				type: "function",
+				name: "getCurrentRarityWeights",
+				stateMutability: "view",
+				inputs: [],
+				outputs: [{ name: "weights", type: "uint256[5]" }],
+			},
+		],
+		functionName: "getCurrentRarityWeights",
 		query: { enabled: !!contracts.gacha },
-	} as Parameters<typeof useReadGachaGetRarityWeights>[0]);
+	});
 	const rarityWeights = rarityWeightsQuery.data as unknown as
 		| readonly bigint[]
 		| undefined;
