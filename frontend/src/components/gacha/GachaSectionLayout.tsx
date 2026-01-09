@@ -59,7 +59,7 @@ const TONE_STYLES: Record<
 		gradient:
 			"bg-[radial-gradient(circle_at_top,_rgba(208,191,255,0.2),_transparent_55%)]",
 		iconWrapper:
-			"text-rarity-legendary-300 border-rarity-legendary-400/60 bg-rarity-legendary-500/15 group-hover:border-rarity-legendary-300",
+			"text-rarity-legendary-300 border-rarity-legendary-400/60 bg-rarity-legendary-500/20 group-hover:border-rarity-legendary-300",
 		labelText: "text-rarity-legendary-400/70",
 		highlightIconWrapper:
 			"border-rarity-legendary-400/50 bg-rarity-legendary-500/10 text-rarity-legendary-200 group-hover:border-rarity-legendary-400",

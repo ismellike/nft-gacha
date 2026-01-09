@@ -13,7 +13,7 @@ import {
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
 
-import { Button, Card, CardSkeleton } from "../../ui";
+import { Button, Card, CardSkeleton, Chip } from "../../ui";
 import { InlineRetryMessage } from "../../components/InlineRetryMessage";
 import {
 	ContractStatusAnnouncer,
@@ -227,20 +227,20 @@ function GachaDetailPageContent() {
 					<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
 						<div className="flex items-start gap-4">
 							<Button
-								className="p-2 rounded-xl border border-white/15 bg-content1/20 text-foreground hover:bg-content1/30 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
+								className="p-2 rounded-xl border border-white/20 bg-content1/20 text-foreground hover:bg-content1/30 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
 								onPress={() => router.push("/discover")}
 								aria-label="Go back to discovery page"
 							>
 								<ArrowLeftIcon className="w-5 h-5" />
 							</Button>
 							<div className="space-y-1">
-								<span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-foreground/40">
+								<Chip color="success" size="sm">
 									<span
 										className="flex h-2 w-2 rounded-full bg-success"
 										aria-hidden="true"
 									/>
 									Live
-								</span>
+								</Chip>
 								<h1 className="text-xl font-semibold text-foreground md:text-3xl">
 									{gacha.title}
 								</h1>

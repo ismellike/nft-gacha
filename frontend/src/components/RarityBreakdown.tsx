@@ -132,14 +132,14 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-8 backdrop-blur-2xl">
 			{/* Enhanced background gradient matching spinner */}
 			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,200,87,0.15),_transparent_60%)]" />
-			<div className="pointer-events-none absolute -top-20 right-0 h-40 w-40 rounded-full bg-primary/15 blur-[140px]" />
-			<div className="pointer-events-none absolute -bottom-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-warning/15 blur-3xl" />
+			<div className="pointer-events-none absolute -top-20 right-0 h-40 w-40 rounded-full bg-primary/20 blur-[140px]" />
+			<div className="pointer-events-none absolute -bottom-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-warning/20 blur-3xl" />
 
 			<div className="relative z-10 space-y-6">
 				{/* Enhanced header matching spinner design */}
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 					<div className="space-y-2">
-						<span className="text-xs uppercase tracking-[0.3em] text-foreground/45">
+						<span className="text-xs uppercase tracking-[0.3em] text-foreground/50">
 							Treasury overview
 						</span>
 						<h3 className="text-xl font-semibold text-foreground">
@@ -186,7 +186,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 							key={rarity.name}
 							type="button"
 							onClick={() => handleRarityClick(rarity.rarity)}
-							className="group relative flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-gradient-to-r from-content1/40 via-content1/20 to-content1/30 px-4 py-4 text-left transition-transform duration-200 hover:-translate-y-0.5 hover:border-white/15"
+							className="group relative flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-gradient-to-r from-content1/40 via-content1/20 to-content1/30 px-4 py-4 text-left transition-transform duration-200 hover:-translate-y-0.5 hover:border-white/20"
 						>
 							<div className="flex items-center gap-4">
 								<div
@@ -198,7 +198,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 									<p className="text-sm font-semibold text-foreground">
 										{rarity.name}
 									</p>
-									<p className="text-xs text-foreground/55">
+									<p className="text-xs text-foreground/60">
 										{rarity.description}
 									</p>
 								</div>

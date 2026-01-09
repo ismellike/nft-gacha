@@ -54,9 +54,9 @@ const GachaSpinner = memo(() => {
 			)}
 
 			{/* Main Grid Layout - Mobile First, Single Column */}
-			<div className="space-y-16 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-16 lg:items-start">
+			<div className="space-y-8 md:space-y-12 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-8 xl:gap-12 lg:items-start">
 				{/* Top-pinned Actions on Mobile */}
-				<div className="lg:hidden sticky top-20 z-30 bg-background/80 backdrop-blur-md -mx-4 px-4 py-4 border-b border-white/10">
+				<div className="lg:hidden sticky top-20 z-30 bg-background/80 backdrop-blur-xl -mx-4 px-4 py-4 border-b border-white/10">
 					<output aria-live="polite" aria-atomic="true" className="sr-only">
 						{gachaSpin.isSpinning && "Starting spin..."}
 						{gachaSpin.isWaitingForFulfillment && "Awaiting randomness..."}

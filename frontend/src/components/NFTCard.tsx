@@ -65,11 +65,11 @@ export interface NFTCardProps {
 	style?: MotionStyle;
 }
 
-// Flexible size configuration
+// Flexible size configuration - responsive widths with max-w constraints
 const SIZE_CONFIG = {
 	xs: {
-		container: "w-32 h-36",
-		image: "w-32 h-32",
+		container: "w-full max-w-[8rem] aspect-[9/10]",
+		image: "w-full aspect-square",
 		text: "text-xs",
 		title: "text-sm",
 		padding: "p-2",
@@ -77,8 +77,8 @@ const SIZE_CONFIG = {
 		gap: "gap-2",
 	},
 	sm: {
-		container: "w-48 h-52",
-		image: "w-48 h-48",
+		container: "w-full max-w-[12rem] aspect-[9/10]",
+		image: "w-full aspect-square",
 		text: "text-sm",
 		title: "text-base",
 		padding: "p-3",
@@ -86,8 +86,8 @@ const SIZE_CONFIG = {
 		gap: "gap-3",
 	},
 	md: {
-		container: "w-64 h-72",
-		image: "w-64 h-64",
+		container: "w-full max-w-[16rem] aspect-[9/10]",
+		image: "w-full aspect-square",
 		text: "text-sm",
 		title: "text-base",
 		padding: "p-4",
@@ -95,17 +95,17 @@ const SIZE_CONFIG = {
 		gap: "gap-3",
 	},
 	lg: {
-		container: "w-80 h-88",
-		image: "w-80 h-80",
+		container: "w-full max-w-[20rem] aspect-[9/10]",
+		image: "w-full aspect-square",
 		text: "text-sm",
 		title: "text-base",
-		padding: "p-4.5",
+		padding: "p-4",
 		radius: "rounded-2xl",
-		gap: "gap-3.5",
+		gap: "gap-3",
 	},
 	xl: {
-		container: "w-96 h-[28rem]",
-		image: "w-96 h-96",
+		container: "w-full max-w-[24rem] aspect-[9/10]",
+		image: "w-full aspect-square",
 		text: "text-base",
 		title: "text-lg",
 		padding: "p-6",

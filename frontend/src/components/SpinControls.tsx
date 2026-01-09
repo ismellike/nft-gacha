@@ -10,7 +10,7 @@ import {
 	useWriteContract,
 } from "wagmi";
 import { glassTypography, cn } from "../lib/theme-config";
-import { Card, Button } from "../ui";
+import { Card, Button, Modal, ModalContent } from "../ui";
 import { formatUnits, decodeEventLog } from "viem";
 import { formatTokenAmount, formatCurrency } from "../lib/utils";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -1066,7 +1066,7 @@ export default function SpinControls({
 							)}
 						>
 							{/* Inner glass surface */}
-							<div className="w-full h-full rounded-full bg-gradient-to-br from-background/95 to-background/80 backdrop-blur-xl flex items-center justify-center border border-warning/30 relative overflow-hidden">
+							<div className="w-full h-full rounded-full bg-gradient-to-br from-background to-background/80 backdrop-blur-xl flex items-center justify-center border border-warning/30 relative overflow-hidden">
 								{/* Shimmer effect */}
 								<div className="absolute inset-0 bg-gradient-to-r from-transparent via-warning/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1500"></div>
 
@@ -1095,13 +1095,9 @@ export default function SpinControls({
 					</div>
 
 					{/* Timeout Display */}
-					{gachaSpin.isTimeout && (
-						<Card
-							className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl"
-							role="alert"
-							aria-live="assertive"
-						>
-							<div>
+					<Modal isOpen={gachaSpin.isTimeout} size="sm">
+						<ModalContent>
+							<div className="text-center">
 								<div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-3">
 									<svg
 										className="w-8 h-8 text-danger"
@@ -1122,115 +1118,112 @@ export default function SpinControls({
 								<p className="text-sm mb-2 font-semibold text-danger">
 									Randomness Timeout
 								</p>
-								<p className="text-xs opacity-60 mb-3">
+								<p className="text-xs text-foreground/60 mb-3">
 									The random number generation took longer than expected. This
 									may indicate a network issue or VRF coordinator problem.
 								</p>
 								<div className="flex flex-col gap-2">
-									<button
-										type="button"
-										onClick={handleReclaim}
-										disabled={isReclaimPending}
-										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
+									<Button
+										color="warning"
+										size="sm"
+										onPress={handleReclaim}
+										isDisabled={isReclaimPending}
 									>
 										{isReclaimPending ? "Reclaiming..." : "Reclaim Funds"}
-									</button>
-									<button
-										type="button"
-										onClick={gachaSpin.reset}
-										className="px-4 py-2 bg-content2 hover:bg-content3 text-foreground rounded-lg transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
+									</Button>
+									<Button
+										color="default"
+										size="sm"
+										onPress={gachaSpin.reset}
 									>
 										Try Again
-									</button>
-									<p className="text-xs opacity-50">
+									</Button>
+									<p className="text-xs text-foreground/50">
 										Reclaim refunds your spin fee and invalidates this request
 										to prevent late fulfillment.
 									</p>
 								</div>
 							</div>
-						</Card>
-					)}
+						</ModalContent>
+					</Modal>
 
 					{/* Refund Display */}
 					{gachaSpin.isRefunded && gachaSpin.refundResult && (
-						<Card
-							className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
-							role="status"
-							aria-live="polite"
-						>
-							<div>
-								<div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-3">
-									<svg
-										className="w-8 h-8 text-warning"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-										strokeWidth={2}
-										aria-hidden="true"
-									>
-										<title>Warning</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											d="M9 8h6m-5 0a3 3 0 110 6H9l3 3-3-3m1 0h6m-6 0a3 3 0 110-6m6 0a3 3 0 110 6M9 8a3 3 0 000 6m0-6a3 3 0 016 0 201 201 0 00.999 1M15 14a3 3 0 000-6m0 6a3 3 0 000-6M10 21l-3-3 3-3"
-										/>
-									</svg>
-								</div>
-								<p className="text-sm mb-2 font-semibold text-warning">
-									Spin Refunded
-								</p>
-								<p className="text-xs opacity-60 mb-3">
-									Your spin was automatically refunded because the selected
-									rarity ({gachaSpin.refundResult.selectedRarity}) had no
-									available NFTs.
-								</p>
-								<div className="space-y-2">
-									<div className="bg-content1/20 rounded-lg p-3">
-										<p className="text-xs font-medium mb-1">Refund Details:</p>
-										<p className="text-sm">
-											<span className="font-semibold">Rarity:</span>{" "}
-											{gachaSpin.refundResult.selectedRarity}
-										</p>
-										<p className="text-sm">
-											<span className="font-semibold">Amount:</span>{" "}
-											{formatUnits(
-												gachaSpin.refundResult.refundAmount,
-												tokenDecimals || 18,
-											)}{" "}
-											{tokenSymbol}
+						<Modal isOpen={gachaSpin.isRefunded} size="sm">
+							<ModalContent>
+								<div className="text-center">
+									<div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-3">
+										<svg
+											className="w-8 h-8 text-warning"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											strokeWidth={2}
+											aria-hidden="true"
+										>
+											<title>Warning</title>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M9 8h6m-5 0a3 3 0 110 6H9l3 3-3-3m1 0h6m-6 0a3 3 0 110-6m6 0a3 3 0 110 6M9 8a3 3 0 000 6m0-6a3 3 0 016 0 201 201 0 00.999 1M15 14a3 3 0 000-6m0 6a3 3 0 000-6M10 21l-3-3 3-3"
+											/>
+										</svg>
+									</div>
+									<p className="text-sm mb-2 font-semibold text-warning">
+										Spin Refunded
+									</p>
+									<p className="text-xs text-foreground/60 mb-3">
+										Your spin was automatically refunded because the selected
+										rarity ({gachaSpin.refundResult.selectedRarity}) had no
+										available NFTs.
+									</p>
+									<div className="space-y-2">
+										<div className="bg-content1/20 rounded-lg p-3">
+											<p className="text-xs font-medium mb-1">Refund Details:</p>
+											<p className="text-sm">
+												<span className="font-semibold">Rarity:</span>{" "}
+												{gachaSpin.refundResult.selectedRarity}
+											</p>
+											<p className="text-sm">
+												<span className="font-semibold">Amount:</span>{" "}
+												{formatUnits(
+													gachaSpin.refundResult.refundAmount,
+													tokenDecimals || 18,
+												)}{" "}
+												{tokenSymbol}
+											</p>
+										</div>
+										<Button
+											color="warning"
+											size="sm"
+											onPress={gachaSpin.reset}
+											className="w-full"
+										>
+											Try Another Spin
+										</Button>
+										<p className="text-xs text-foreground/50">
+											Your funds have been automatically returned to your wallet.
 										</p>
 									</div>
-									<button
-										type="button"
-										onClick={gachaSpin.reset}
-										className="px-4 py-2 bg-warning hover:bg-warning/90 text-white rounded-lg transition-colors text-sm w-full focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
-									>
-										Try Another Spin
-									</button>
-									<p className="text-xs opacity-50">
-										Your funds have been automatically returned to your wallet.
-									</p>
 								</div>
-							</div>
-						</Card>
+							</ModalContent>
+						</Modal>
 					)}
 
 					{/* Error Display Only */}
 					{gachaSpin.isError &&
 						!gachaSpin.isTimeout &&
 						!gachaSpin.isRefunded && (
-							<Card
-								className="text-center p-4 bg-danger/10 border border-danger/20 rounded-2xl"
-								role="alert"
-								aria-live="assertive"
-							>
-								<div>
-									<p className="text-sm mb-2">{gachaSpin.error}</p>
-									<p className="text-xs opacity-60">
-										Retry attempts: {gachaSpin.retryCount}/5
-									</p>
-								</div>
-							</Card>
+							<Modal isOpen={gachaSpin.isError} size="sm">
+								<ModalContent>
+									<div className="text-center">
+										<p className="text-sm mb-2">{gachaSpin.error}</p>
+										<p className="text-xs text-foreground/60">
+											Retry attempts: {gachaSpin.retryCount}/5
+										</p>
+									</div>
+								</ModalContent>
+							</Modal>
 						)}
 
 					{/* User Cancelled Message */}

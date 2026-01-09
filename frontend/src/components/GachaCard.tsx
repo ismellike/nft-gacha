@@ -149,23 +149,23 @@ export function GachaCard({ gacha }: GachaCardProps) {
                                     transition={{ duration: 2, repeat: 999 }}
                                     aria-hidden="true"
                                 ></motion.div>
-                                <span className="text-white/95 text-sm font-semibold drop-shadow-lg backdrop-blur-sm px-3 py-1.5 rounded-full bg-white/15 border border-white/25">
+                                <span className="text-white text-sm font-semibold drop-shadow-lg backdrop-blur-sm px-3 py-1.5 rounded-full bg-white/20 border border-white/30">
                                     {isAvailable ? "Live" : "Offline"}
                                 </span>
                             </div>
-                            <h3 className="text-2xl font-bold text-white mb-2 drop-shadow-lg leading-tight group-hover:text-warning transition-colors duration-300 font-orbitron">
+                            <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-white mb-2 drop-shadow-lg leading-tight group-hover:text-warning transition-colors duration-300 font-orbitron">
                                 {gacha.title}
                             </h3>
                         </div>
                         <div className="text-right ml-4">
                             <motion.div
-                                className="text-3xl font-bold text-white drop-shadow-lg mb-2"
+                                className="text-2xl md:text-3xl font-bold text-white drop-shadow-lg mb-2"
                                 whileHover={{ scale: 1.1 }}
                                 transition={{ type: "spring", stiffness: 400 }}
                             >
                                 {totalNFTs}
                             </motion.div>
-                            <div className="text-white/90 text-xs uppercase tracking-wider font-medium backdrop-blur-sm px-3 py-1.5 rounded-full bg-white/15 border border-white/20">
+                            <div className="text-white/90 text-xs uppercase tracking-wider font-medium backdrop-blur-sm px-3 py-1.5 rounded-full bg-white/20 border border-white/20">
                                 Cards
                             </div>
                         </div>

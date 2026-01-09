@@ -14,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { SimpleRarityShowcase } from "../components/RaritySystem";
 import { getRarityColorHex, Rarity } from "../lib/rarityConfig";
+import { glassBadge, glassCard } from "../lib/theme-config";
 
 // Helper function to create radial gradient with concrete hex values
 const createRarityGradient = (rarity: Rarity): string => {
@@ -75,7 +76,7 @@ export default function LandingPage() {
 			{/* Skip navigation link for accessibility */}
 			<a
 				href="#main-content"
-				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-warning text-black px-4 py-2 rounded-md z-50 focus:outline-none focus:ring-2 focus:ring-black"
+				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-warning text-black px-4 py-2 rounded-md z-50 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
 			>
 				Skip to main content
 			</a>
@@ -92,7 +93,7 @@ export default function LandingPage() {
 							return (
 								<div
 									key={rarity}
-									className="absolute w-[600px] h-[600px] rounded-full"
+									className="absolute w-full max-w-[600px] aspect-square rounded-full"
 									style={{
 										background: createRarityGradient(rarity),
 										left: `${25 + i * 20}%`,
@@ -110,7 +111,11 @@ export default function LandingPage() {
 								href="https://www.wavs.xyz"
 								target="_blank"
 								rel="noopener noreferrer"
-								className="inline-flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-warning/10 via-orange-400/5 to-warning/10 backdrop-blur-xl border border-warning/30 rounded-2xl hover:border-warning/50 transition-all duration-300"
+								className={glassBadge({
+									variant: "primary",
+									size: "lg",
+									className: "hover:border-warning/50 gap-3 px-5 py-2.5 rounded-2xl",
+								})}
 							>
 								<CpuChipIcon className="w-5 h-5 text-warning" />
 								<span className="text-warning font-semibold">
@@ -216,7 +221,10 @@ export default function LandingPage() {
 							].map((signal) => (
 								<li
 									key={signal.id}
-									className="flex items-center gap-2 px-4 py-2 bg-content1/10 backdrop-blur-sm rounded-full border border-white/20"
+									className={glassBadge({
+										variant: "secondary",
+										className: "rounded-full px-4 py-2 gap-2",
+									})}
 								>
 									<span className="text-warning">{signal.icon}</span>
 									<span className="text-sm font-medium text-foreground/80">
@@ -231,7 +239,7 @@ export default function LandingPage() {
 				{/* Technology Deep Dive */}
 				<section
 					id="technology"
-					className="py-32 px-4 relative bg-gradient-to-b from-content1/5 to-transparent"
+					className="py-16 md:py-24 lg:py-32 px-4 relative bg-gradient-to-b from-content1/5 to-transparent"
 					aria-labelledby="tech-heading"
 				>
 					<div className="max-w-7xl mx-auto">
@@ -253,7 +261,13 @@ export default function LandingPage() {
 						<div className="grid lg:grid-cols-3 gap-12">
 							{valueProps.map((prop) => (
 								<div key={prop.title}>
-									<Card className="h-full p-10 text-center bg-content1/10 backdrop-blur-xl border border-white/10 rounded-3xl hover:border-warning/30 transition-all duration-500 group">
+									<Card
+										className={glassCard({
+											variant: "base",
+											padding: "lg",
+											className: "h-full text-center rounded-3xl hover:border-warning/30 group",
+										})}
+									>
 										{/* Icon Container */}
 										<div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-br from-warning/20 via-orange-400/10 to-warning/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
 											<div className="text-warning">{prop.icon}</div>
@@ -267,7 +281,12 @@ export default function LandingPage() {
 											<p className="text-foreground/80 leading-relaxed text-lg mb-6">
 												{prop.description}
 											</p>
-											<div className="inline-flex px-4 py-2 bg-gradient-to-r from-warning/20 to-orange-400/20 rounded-xl border border-warning/30">
+											<div
+												className={glassBadge({
+													variant: "primary",
+													className: "rounded-xl px-4 py-2",
+												})}
+											>
 												<span className="text-warning font-semibold text-sm">
 													{prop.highlight}
 												</span>
@@ -283,7 +302,7 @@ export default function LandingPage() {
 				{/* User Journey */}
 				<section
 					id="how-it-works"
-					className="py-32 px-4 relative text-foreground"
+					className="py-16 md:py-24 lg:py-32 px-4 relative text-foreground"
 					aria-labelledby="journey-heading"
 				>
 					<div className="max-w-6xl mx-auto">
@@ -307,14 +326,25 @@ export default function LandingPage() {
 										{index + 1}
 									</div>
 
-									<Card className="h-full p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl hover:border-warning/30 transition-all duration-300">
+									<Card
+										className={glassCard({
+											variant: "base",
+											padding: "lg",
+											className: "h-full rounded-2xl hover:border-warning/30",
+										})}
+									>
 										<h3 className="text-xl font-bold text-foreground mb-4">
 											{step.title}
 										</h3>
 										<p className="text-foreground/80 leading-relaxed mb-4">
 											{step.description}
 										</p>
-										<div className="text-sm font-semibold text-warning bg-warning/10 px-3 py-1.5 rounded-lg">
+										<div
+											className={glassBadge({
+												variant: "warning",
+												className: "rounded-lg px-3 py-1.5",
+											})}
+										>
 											{step.benefit}
 										</div>
 									</Card>
@@ -346,11 +376,17 @@ export default function LandingPage() {
 				{/* Final CTA - Streamlined */}
 				<section
 					id="cta"
-					className="py-32 px-4 relative"
+					className="py-16 md:py-24 lg:py-32 px-4 relative"
 					aria-labelledby="cta-heading"
 				>
 					<div className="max-w-5xl mx-auto">
-						<Card className="p-16 text-center bg-gradient-to-br from-content1/20 via-content1/10 to-content1/20 backdrop-blur-xl border border-warning/30 rounded-3xl shadow-2xl shadow-warning/10">
+						<Card
+							className={glassCard({
+								variant: "base",
+								padding: "lg",
+								className: "text-center rounded-3xl border-warning/30 shadow-2xl shadow-warning/10 bg-gradient-to-br from-content1/20 via-content1/10 to-content1/20",
+							})}
+						>
 							<div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-r from-warning via-orange-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-warning/40">
 								<BoltIcon className="w-10 h-10 text-black" aria-hidden="true" />
 							</div>

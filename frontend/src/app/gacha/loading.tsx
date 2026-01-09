@@ -15,7 +15,7 @@ export default function GachaLoading() {
 			<header className="mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
 				<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
 					<div className="flex items-start gap-4">
-						<div className="p-2 rounded-xl border border-white/15 bg-content1/20 animate-pulse" />
+						<div className="p-2 rounded-xl border border-white/20 bg-content1/20 animate-pulse" />
 						<div className="space-y-3">
 							<div className="flex items-center gap-2">
 								<div className="h-2 w-2 rounded-full bg-success/50 animate-pulse" />
