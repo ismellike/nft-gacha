@@ -11,7 +11,8 @@ import {
 } from "../generated";
 import { formatCurrency } from "../lib/utils";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useGachaRefresh } from "../contexts/GachaRefreshContext";
 
 interface PricingBreakdownProps {
 	className?: string;
@@ -21,27 +22,54 @@ export function PricingBreakdown({ className = "" }: PricingBreakdownProps) {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const [showDetails, setShowDetails] = useState(false);
+	const { registerRefetch } = useGachaRefresh();
 
 	// Read pricing data from contract
-	const { data: expectedValueUSD } = useReadGachaGetExpectedValueUsd({
+	const expectedValueQuery = useReadGachaGetExpectedValueUsd({
 		address: contracts.gacha as `0x${string}` | undefined,
 		query: { enabled: !!contracts.gacha },
 	});
+	const expectedValueUSD = expectedValueQuery.data;
 
-	const { data: premiumBps } = useReadGachaPricingPremiumBps({
+	const premiumBpsQuery = useReadGachaPricingPremiumBps({
 		address: contracts.gacha as `0x${string}` | undefined,
 		query: { enabled: !!contracts.gacha },
 	});
+	const premiumBps = premiumBpsQuery.data;
 
-	const { data: minSpinFee } = useReadGachaMinSpinFee({
+	const minSpinFeeQuery = useReadGachaMinSpinFee({
 		address: contracts.gacha as `0x${string}` | undefined,
 		query: { enabled: !!contracts.gacha },
 	});
+	const minSpinFee = minSpinFeeQuery.data;
 
-	const { data: maxSpinFee } = useReadGachaMaxSpinFee({
+	const maxSpinFeeQuery = useReadGachaMaxSpinFee({
 		address: contracts.gacha as `0x${string}` | undefined,
 		query: { enabled: !!contracts.gacha },
 	});
+	const maxSpinFee = maxSpinFeeQuery.data;
+
+	// Register refetch functions with the refresh context
+	useEffect(() => {
+		const refetchAllPricing = async () => {
+			console.log("🔄 [PricingBreakdown] Refetching all pricing data");
+			await Promise.all([
+				expectedValueQuery.refetch(),
+				premiumBpsQuery.refetch(),
+				minSpinFeeQuery.refetch(),
+				maxSpinFeeQuery.refetch(),
+			]);
+		};
+
+		const cleanup = registerRefetch(refetchAllPricing);
+		return cleanup;
+	}, [
+		registerRefetch,
+		expectedValueQuery,
+		premiumBpsQuery,
+		minSpinFeeQuery,
+		maxSpinFeeQuery,
+	]);
 
 	// Calculate premium percentage
 	const premiumPercent = premiumBps ? Number(premiumBps) / 100 : 0;

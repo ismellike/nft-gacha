@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useImperativeHandle, forwardRef } from "react";
+import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
 import { useReadContract } from "wagmi";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { Card } from "../ui";
@@ -11,6 +11,7 @@ import {
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
 import RarityShowcaseModal from "./RarityShowcaseModal";
+import { useGachaRefresh } from "../contexts/GachaRefreshContext";
 
 interface RarityBreakdownRef {
 	refreshCounts: () => void;
@@ -23,6 +24,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	// Get gacha ID and contract addresses
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
+	const { registerRefetch } = useGachaRefresh();
 
 	const handleRarityClick = (rarity: Rarity) => {
 		setSelectedRarity(rarity);
@@ -81,6 +83,25 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 			rarityCountsQuery.refetch();
 		},
 	}));
+
+	// Register refetch functions with the refresh context
+	useEffect(() => {
+		// Create a combined refetch function
+		const refetchAll = async () => {
+			console.log("🔄 [RarityBreakdown] Refetching all rarity data");
+			await Promise.all([
+				rarityCountsQuery.refetch(),
+				rarityWeightsQuery.refetch(),
+				averageRarityValuesQuery.refetch(),
+			]);
+		};
+
+		// Register with the context
+		const cleanup = registerRefetch(refetchAll);
+
+		// Cleanup on unmount
+		return cleanup;
+	}, [registerRefetch, rarityCountsQuery, rarityWeightsQuery, averageRarityValuesQuery]);
 
 	// Convert rarity weights to percentages (weights are in basis points, total 10000)
 	const getRarityPercentage = (index: number): number => {

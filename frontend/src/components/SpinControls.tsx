@@ -27,6 +27,7 @@ import {
 	useWriteGachaReclaimFailedSpin,
 } from "../generated";
 import type { UseGachaSpinMachineReturn } from "../hooks/useGachaSpinMachine";
+import { useGachaRefresh } from "../contexts/GachaRefreshContext";
 
 interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
@@ -59,9 +60,10 @@ export default function SpinControls({
 	// Get gacha ID and contract addresses
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
+	const { registerRefetch } = useGachaRefresh();
 
 	// Gacha contract data
-	const { data: spinFee } = useReadContract({
+	const spinFeeQuery = useReadContract({
 		address: contracts.gacha as `0x${string}` | undefined,
 		abi: [
 			{
@@ -75,6 +77,7 @@ export default function SpinControls({
 		functionName: "getCurrentSpinFee",
 		query: { enabled: !!contracts.gacha },
 	});
+	const spinFee = spinFeeQuery.data;
 
 	const { data: paused } = useReadGachaPaused({
 		address: contracts.gacha as `0x${string}` | undefined,
@@ -147,6 +150,17 @@ export default function SpinControls({
 		refetchNonce,
 		onRefund,
 	]);
+
+	// Register spin fee refetch with the refresh context
+	useEffect(() => {
+		const refetchSpinFee = async () => {
+			console.log("🔄 [SpinControls] Refetching spin fee");
+			await spinFeeQuery.refetch();
+		};
+
+		const cleanup = registerRefetch(refetchSpinFee);
+		return cleanup;
+	}, [registerRefetch, spinFeeQuery]);
 
 	// Write operations
 	const {

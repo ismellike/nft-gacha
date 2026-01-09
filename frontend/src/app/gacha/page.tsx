@@ -37,6 +37,7 @@ import { useGachaId } from "../../hooks/useGachaId";
 import { useRewardsData } from "../../hooks/useRewardsData";
 import { useGachaSections } from "../../hooks/useGachaSections";
 import { BuybackNotificationProvider } from "../../components/BuybackNotificationProvider";
+import { GachaRefreshProvider } from "../../contexts/GachaRefreshContext";
 
 type FlowOption = {
 	id: "spin" | "vault" | "economy" | "admin";
@@ -218,7 +219,8 @@ function GachaDetailPageContent() {
 
 	return (
 		<BuybackNotificationProvider gachaId={gachaId}>
-			<div className="min-h-screen bg-transparent">
+			<GachaRefreshProvider>
+				<div className="min-h-screen bg-transparent">
 				{/* Global contract status announcer */}
 				<div className="fixed top-4 right-4 z-50 max-w-sm">
 					<ContractStatusAnnouncer status={contractStatus} compact />
@@ -323,6 +325,7 @@ function GachaDetailPageContent() {
 					</motion.div>
 				</div>
 			</div>
+			</GachaRefreshProvider>
 		</BuybackNotificationProvider>
 	);
 }

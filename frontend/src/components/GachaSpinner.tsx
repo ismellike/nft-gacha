@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, memo, useCallback } from "react";
+import { memo, useCallback } from "react";
 import SpinControls from "./SpinControls";
 import RarityBreakdown from "./RarityBreakdown";
 import { PricingBreakdown } from "./PricingBreakdown";
@@ -8,38 +8,33 @@ import NFTRevealModal from "./NFTRevealModal";
 import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
-
-// Constants for refresh tracking
-const REFRESH_TRIGGERS = {
-	SPIN_COMPLETE: "spin_complete",
-	REFUND: "refund",
-	REVEAL_CLOSE: "reveal_close",
-} as const;
+import { useGachaRefresh } from "../contexts/GachaRefreshContext";
 
 const GachaSpinner = memo(() => {
-	const [refreshTrigger, setRefreshTrigger] = useState<string | null>(null);
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
+	const { triggerRefresh } = useGachaRefresh();
 
 	// Use the new state machine hook
 	const gachaSpin = useGachaSpinMachine(
 		() => {
-			// onSpinComplete - trigger refresh for rarity counts
-			console.log("🎯 [GachaSpinner] Spin completed, refreshing rarity data");
-			setRefreshTrigger(REFRESH_TRIGGERS.SPIN_COMPLETE);
+			// onSpinComplete - trigger refresh for all data
+			console.log("🎯 [GachaSpinner] Spin completed, refreshing all data");
+			triggerRefresh();
 		},
 		() => {
-			// onRefund - trigger refresh for balance updates
-			console.log("💰 [GachaSpinner] Refund detected, refreshing UI");
-			setRefreshTrigger(REFRESH_TRIGGERS.REFUND);
+			// onRefund - trigger refresh for all data
+			console.log("💰 [GachaSpinner] Refund detected, refreshing all data");
+			triggerRefresh();
 		},
 	);
 
 	const handleCloseReveal = useCallback(() => {
 		gachaSpin.closeReveal();
-		// Refresh rarity counts after reveal closes
-		setRefreshTrigger(REFRESH_TRIGGERS.REVEAL_CLOSE);
-	}, [gachaSpin]);
+		// Refresh all data after reveal closes
+		console.log("🎉 [GachaSpinner] Reveal closed, refreshing all data");
+		triggerRefresh();
+	}, [gachaSpin, triggerRefresh]);
 
 	return (
 		<div className="space-y-16">
@@ -73,14 +68,14 @@ const GachaSpinner = memo(() => {
 							console.log(
 								"💰 [GachaSpinner] SpinControls refund callback triggered",
 							);
-							setRefreshTrigger(REFRESH_TRIGGERS.REFUND);
+							triggerRefresh();
 						}}
 					/>
 				</div>
 
 				{/* Left Column - Rarity Info & Pricing */}
 				<div className="space-y-8">
-					<RarityBreakdown key={`breakdown-${refreshTrigger}`} />
+					<RarityBreakdown />
 					<PricingBreakdown />
 				</div>
 
@@ -92,7 +87,7 @@ const GachaSpinner = memo(() => {
 							console.log(
 								"💰 [GachaSpinner] SpinControls refund callback triggered",
 							);
-							setRefreshTrigger(REFRESH_TRIGGERS.REFUND);
+							triggerRefresh();
 						}}
 					/>
 				</div>
