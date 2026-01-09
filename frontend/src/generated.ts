@@ -2308,13 +2308,6 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'commonWeight',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'economyManager',
     outputs: [
       {
@@ -2342,15 +2335,22 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'epicWeight',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'feeToken',
+    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'feeToken',
-    outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
+    name: 'feeTokenDecimals',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'feeTokenScalar',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -2391,13 +2391,37 @@ export const gachaAbi = [
         internalType: 'struct Gacha.SpinRequest[]',
         type: 'tuple[]',
         components: [
-          { name: 'requester', internalType: 'address', type: 'address' },
-          { name: 'fulfilled', internalType: 'bool', type: 'bool' },
-          { name: 'reclaimed', internalType: 'bool', type: 'bool' },
           { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
           { name: 'requestTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'requester', internalType: 'address', type: 'address' },
+          { name: 'statusFlags', internalType: 'uint32', type: 'uint32' },
         ],
       },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getCurrentRarityWeights',
+    outputs: [
+      { name: 'weights', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getCurrentSpinFee',
+    outputs: [{ name: 'fee', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getExpectedValueUSD',
+    outputs: [
+      { name: 'expectedValueUSD', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -2440,19 +2464,6 @@ export const gachaAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'getRarityWeights',
-    outputs: [
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-      { name: '', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'triggerId', internalType: 'uint256', type: 'uint256' }],
     name: 'getSpinRequest',
     outputs: [
@@ -2461,6 +2472,15 @@ export const gachaAbi = [
       { name: 'reclaimed', internalType: 'bool', type: 'bool' },
       { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
       { name: 'requestTime', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTargetRarityBps',
+    outputs: [
+      { name: 'targetBps', internalType: 'uint256[5]', type: 'uint256[5]' },
     ],
     stateMutability: 'view',
   },
@@ -2554,7 +2574,7 @@ export const gachaAbi = [
         type: 'address',
       },
       { name: '_feeToken', internalType: 'address', type: 'address' },
-      { name: '_spinFee', internalType: 'uint256', type: 'uint256' },
+      { name: '_minSpinFee', internalType: 'uint256', type: 'uint256' },
       { name: '_treasury', internalType: 'address', type: 'address' },
       { name: '_economyManager', internalType: 'address', type: 'address' },
     ],
@@ -2565,7 +2585,14 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'legendaryWeight',
+    name: 'maxSpinFee',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'minSpinFee',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -2586,15 +2613,15 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'proxiableUUID',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'pricingPremiumBps',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
-    name: 'rareWeight',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'proxiableUUID',
+    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
     stateMutability: 'view',
   },
   {
@@ -2614,9 +2641,25 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'targetBps', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    name: 'setDynamicWeightsConfig',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: '_economyManager', internalType: 'address', type: 'address' },
     ],
     name: 'setEconomyManager',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'decimals', internalType: 'uint8', type: 'uint8' }],
+    name: 'setFeeTokenDecimals',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -2636,47 +2679,30 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '_commonWeight', internalType: 'uint256', type: 'uint256' },
-      { name: '_uncommonWeight', internalType: 'uint256', type: 'uint256' },
-      { name: '_rareWeight', internalType: 'uint256', type: 'uint256' },
-      { name: '_epicWeight', internalType: 'uint256', type: 'uint256' },
-      { name: '_legendaryWeight', internalType: 'uint256', type: 'uint256' },
+      { name: 'premiumBps', internalType: 'uint256', type: 'uint256' },
+      { name: 'minFee', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxFee', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'setRarityWeights',
+    name: 'setPricingConfig',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: '_newFee', internalType: 'uint256', type: 'uint256' }],
-    name: 'setSpinFee',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
+    inputs: [{ name: 'maxFee', internalType: 'uint256', type: 'uint256' }],
     name: 'spin',
     outputs: [{ name: 'triggerId', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'spinFee',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     name: 'spinRequests',
     outputs: [
-      { name: 'requester', internalType: 'address', type: 'address' },
-      { name: 'fulfilled', internalType: 'bool', type: 'bool' },
-      { name: 'reclaimed', internalType: 'bool', type: 'bool' },
       { name: 'feePaid', internalType: 'uint256', type: 'uint256' },
       { name: 'requestTime', internalType: 'uint256', type: 'uint256' },
+      { name: 'requester', internalType: 'address', type: 'address' },
+      { name: 'statusFlags', internalType: 'uint32', type: 'uint32' },
     ],
     stateMutability: 'view',
   },
@@ -2687,10 +2713,18 @@ export const gachaAbi = [
       { name: 'v', internalType: 'uint8', type: 'uint8' },
       { name: 'r', internalType: 'bytes32', type: 'bytes32' },
       { name: 's', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'maxFee', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'spinWithPermit',
     outputs: [{ name: 'triggerId', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'targetRarityBps',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -2727,13 +2761,6 @@ export const gachaAbi = [
     outputs: [
       { name: '', internalType: 'contract GachaTreasury', type: 'address' },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'uncommonWeight',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -2776,6 +2803,19 @@ export const gachaAbi = [
     name: 'userSpinCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'targetBps',
+        internalType: 'uint256[5]',
+        type: 'uint256[5]',
+        indexed: false,
+      },
+    ],
+    name: 'DynamicWeightsUpdated',
   },
   {
     type: 'event',
@@ -2827,19 +2867,19 @@ export const gachaAbi = [
     anonymous: false,
     inputs: [
       {
-        name: 'oldFee',
-        internalType: 'uint256',
-        type: 'uint256',
+        name: 'previousDecimals',
+        internalType: 'uint8',
+        type: 'uint8',
         indexed: false,
       },
       {
-        name: 'newFee',
-        internalType: 'uint256',
-        type: 'uint256',
+        name: 'newDecimals',
+        internalType: 'uint8',
+        type: 'uint8',
         indexed: false,
       },
     ],
-    name: 'FeeUpdated',
+    name: 'FeeTokenDecimalsUpdated',
   },
   {
     type: 'event',
@@ -2910,6 +2950,31 @@ export const gachaAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'premiumBps',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'minFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'maxFee',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'PricingConfigUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'triggerId',
         internalType: 'uint256',
         type: 'uint256',
@@ -2917,43 +2982,6 @@ export const gachaAbi = [
       },
     ],
     name: 'RandomnessRequested',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'common',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'uncommon',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'rare',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'epic',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-      {
-        name: 'legendary',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'RarityWeightsUpdated',
   },
   {
     type: 'event',
@@ -3144,11 +3172,21 @@ export const gachaAbi = [
   { type: 'error', inputs: [], name: 'FailedCall' },
   { type: 'error', inputs: [], name: 'InvalidEconomyManager' },
   { type: 'error', inputs: [], name: 'InvalidFeeToken' },
+  { type: 'error', inputs: [], name: 'InvalidFeeTokenDecimals' },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  { type: 'error', inputs: [], name: 'InvalidPricingConfig' },
   { type: 'error', inputs: [], name: 'InvalidRecipient' },
   { type: 'error', inputs: [], name: 'InvalidServiceHandler' },
   { type: 'error', inputs: [], name: 'InvalidTreasuryContract' },
   { type: 'error', inputs: [], name: 'InvalidTriggerId' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'currentFee', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxFee', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'MaxFeeExceeded',
+  },
   {
     type: 'error',
     inputs: [
@@ -3160,6 +3198,7 @@ export const gachaAbi = [
     ],
     name: 'NoNFTsAvailable',
   },
+  { type: 'error', inputs: [], name: 'NoTreasuryInventory' },
   { type: 'error', inputs: [], name: 'NotInitializing' },
   { type: 'error', inputs: [], name: 'NotSpinRequester' },
   {
@@ -3957,15 +3996,6 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getAllUserCardIds',
-    outputs: [
-      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
     name: 'getCardTotalDeposits',
     outputs: [{ name: 'totalCount', internalType: 'uint256', type: 'uint256' }],
@@ -4162,16 +4192,6 @@ export const gachaTreasuryAbi = [
     outputs: [
       { name: 'values', internalType: 'uint256[5]', type: 'uint256[5]' },
     ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
-    ],
-    name: 'getUserCardDeposits',
-    outputs: [{ name: 'count', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -6503,6 +6523,50 @@ export const iGachaAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getCurrentRarityWeights',
+    outputs: [{ name: '', internalType: 'uint256[5]', type: 'uint256[5]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getCurrentSpinFee',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getExpectedValueUSD',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getTargetRarityBps',
+    outputs: [{ name: '', internalType: 'uint256[5]', type: 'uint256[5]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'targetBps', internalType: 'uint256[5]', type: 'uint256[5]' },
+    ],
+    name: 'setDynamicWeightsConfig',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'decimals', internalType: 'uint8', type: 'uint8' }],
+    name: 'setFeeTokenDecimals',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: '_serviceHandler', internalType: 'address', type: 'address' },
     ],
@@ -6513,36 +6577,33 @@ export const iGachaAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '_common', internalType: 'uint256', type: 'uint256' },
-      { name: '_uncommon', internalType: 'uint256', type: 'uint256' },
-      { name: '_rare', internalType: 'uint256', type: 'uint256' },
-      { name: '_epic', internalType: 'uint256', type: 'uint256' },
-      { name: '_legendary', internalType: 'uint256', type: 'uint256' },
+      { name: 'premiumBps', internalType: 'uint256', type: 'uint256' },
+      { name: 'minFee', internalType: 'uint256', type: 'uint256' },
+      { name: 'maxFee', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'setRarityWeights',
+    name: 'setPricingConfig',
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [{ name: '_newFee', internalType: 'uint256', type: 'uint256' }],
-    name: 'setSpinFee',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
+    inputs: [{ name: 'maxFee', internalType: 'uint256', type: 'uint256' }],
     name: 'spin',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'spinFee',
+    inputs: [
+      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
+      { name: 'v', internalType: 'uint8', type: 'uint8' },
+      { name: 'r', internalType: 'bytes32', type: 'bytes32' },
+      { name: 's', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'maxFee', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'spinWithPermit',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
+    stateMutability: 'nonpayable',
   },
 ] as const
 
@@ -9712,6 +9773,7 @@ export const protocolTreasuryAbi = [
     inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
     name: 'AddressEmptyCode',
   },
+  { type: 'error', inputs: [], name: 'AppraisalMissing' },
   {
     type: 'error',
     inputs: [
@@ -9723,6 +9785,9 @@ export const protocolTreasuryAbi = [
   { type: 'error', inputs: [], name: 'EnforcedPause' },
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'FailedCall' },
+  { type: 'error', inputs: [], name: 'InsufficientLiquidity' },
+  { type: 'error', inputs: [], name: 'InvalidAmount' },
+  { type: 'error', inputs: [], name: 'InvalidArrayLength' },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
   { type: 'error', inputs: [], name: 'NotInitializing' },
   {
@@ -9735,6 +9800,7 @@ export const protocolTreasuryAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
+  { type: 'error', inputs: [], name: 'RedemptionWindowExpired' },
   { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
   {
     type: 'error',
@@ -9746,6 +9812,12 @@ export const protocolTreasuryAbi = [
     type: 'error',
     inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
     name: 'UUPSUnsupportedProxiableUUID',
+  },
+  { type: 'error', inputs: [], name: 'UnauthorizedEconomyManager' },
+  {
+    type: 'error',
+    inputs: [{ name: 'context', internalType: 'string', type: 'string' }],
+    name: 'ZeroAddress',
   },
 ] as const
 
@@ -10422,6 +10494,44 @@ export const uupsUpgradeableAbi = [
     inputs: [{ name: 'slot', internalType: 'bytes32', type: 'bytes32' }],
     name: 'UUPSUnsupportedProxiableUUID',
   },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ValidationLib
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const validationLibAbi = [
+  { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
+  { type: 'error', inputs: [], name: 'EmptyArrays' },
+  {
+    type: 'error',
+    inputs: [{ name: 'addr', internalType: 'address', type: 'address' }],
+    name: 'InvalidAddress',
+  },
+  { type: 'error', inputs: [], name: 'InvalidArrayLength' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'index', internalType: 'uint256', type: 'uint256' },
+      { name: 'max', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'InvalidIndex',
+  },
+  { type: 'error', inputs: [], name: 'InvalidLength' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'provided', internalType: 'uint256', type: 'uint256' },
+      { name: 'max', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'TooManyItems',
+  },
+  {
+    type: 'error',
+    inputs: [{ name: 'context', internalType: 'string', type: 'string' }],
+    name: 'ZeroAddress',
+  },
+  { type: 'error', inputs: [], name: 'ZeroAmount' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -12424,14 +12534,6 @@ export const useReadGachaUpgradeInterfaceVersion =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"commonWeight"`
- */
-export const useReadGachaCommonWeight = /*#__PURE__*/ createUseReadContract({
-  abi: gachaAbi,
-  functionName: 'commonWeight',
-})
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"economyManager"`
  */
 export const useReadGachaEconomyManager = /*#__PURE__*/ createUseReadContract({
@@ -12440,19 +12542,26 @@ export const useReadGachaEconomyManager = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"epicWeight"`
- */
-export const useReadGachaEpicWeight = /*#__PURE__*/ createUseReadContract({
-  abi: gachaAbi,
-  functionName: 'epicWeight',
-})
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"feeToken"`
  */
 export const useReadGachaFeeToken = /*#__PURE__*/ createUseReadContract({
   abi: gachaAbi,
   functionName: 'feeToken',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"feeTokenDecimals"`
+ */
+export const useReadGachaFeeTokenDecimals = /*#__PURE__*/ createUseReadContract(
+  { abi: gachaAbi, functionName: 'feeTokenDecimals' },
+)
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"feeTokenScalar"`
+ */
+export const useReadGachaFeeTokenScalar = /*#__PURE__*/ createUseReadContract({
+  abi: gachaAbi,
+  functionName: 'feeTokenScalar',
 })
 
 /**
@@ -12483,6 +12592,33 @@ export const useReadGachaGetBatchSpinRequests =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getCurrentRarityWeights"`
+ */
+export const useReadGachaGetCurrentRarityWeights =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getCurrentRarityWeights',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getCurrentSpinFee"`
+ */
+export const useReadGachaGetCurrentSpinFee =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getCurrentSpinFee',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getExpectedValueUSD"`
+ */
+export const useReadGachaGetExpectedValueUsd =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getExpectedValueUSD',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getGachaConfigBatch"`
  */
 export const useReadGachaGetGachaConfigBatch =
@@ -12508,19 +12644,21 @@ export const useReadGachaGetNextTriggerId = /*#__PURE__*/ createUseReadContract(
 )
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getRarityWeights"`
- */
-export const useReadGachaGetRarityWeights = /*#__PURE__*/ createUseReadContract(
-  { abi: gachaAbi, functionName: 'getRarityWeights' },
-)
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getSpinRequest"`
  */
 export const useReadGachaGetSpinRequest = /*#__PURE__*/ createUseReadContract({
   abi: gachaAbi,
   functionName: 'getSpinRequest',
 })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getTargetRarityBps"`
+ */
+export const useReadGachaGetTargetRarityBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'getTargetRarityBps',
+  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getTotalValueLocked"`
@@ -12589,11 +12727,19 @@ export const useReadGachaGlobalRarityWins = /*#__PURE__*/ createUseReadContract(
 )
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"legendaryWeight"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"maxSpinFee"`
  */
-export const useReadGachaLegendaryWeight = /*#__PURE__*/ createUseReadContract({
+export const useReadGachaMaxSpinFee = /*#__PURE__*/ createUseReadContract({
   abi: gachaAbi,
-  functionName: 'legendaryWeight',
+  functionName: 'maxSpinFee',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"minSpinFee"`
+ */
+export const useReadGachaMinSpinFee = /*#__PURE__*/ createUseReadContract({
+  abi: gachaAbi,
+  functionName: 'minSpinFee',
 })
 
 /**
@@ -12613,6 +12759,15 @@ export const useReadGachaPaused = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"pricingPremiumBps"`
+ */
+export const useReadGachaPricingPremiumBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaAbi,
+    functionName: 'pricingPremiumBps',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"proxiableUUID"`
  */
 export const useReadGachaProxiableUuid = /*#__PURE__*/ createUseReadContract({
@@ -12621,27 +12776,19 @@ export const useReadGachaProxiableUuid = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"rareWeight"`
- */
-export const useReadGachaRareWeight = /*#__PURE__*/ createUseReadContract({
-  abi: gachaAbi,
-  functionName: 'rareWeight',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"spinFee"`
- */
-export const useReadGachaSpinFee = /*#__PURE__*/ createUseReadContract({
-  abi: gachaAbi,
-  functionName: 'spinFee',
-})
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"spinRequests"`
  */
 export const useReadGachaSpinRequests = /*#__PURE__*/ createUseReadContract({
   abi: gachaAbi,
   functionName: 'spinRequests',
+})
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"targetRarityBps"`
+ */
+export const useReadGachaTargetRarityBps = /*#__PURE__*/ createUseReadContract({
+  abi: gachaAbi,
+  functionName: 'targetRarityBps',
 })
 
 /**
@@ -12674,14 +12821,6 @@ export const useReadGachaTotalSpinCount = /*#__PURE__*/ createUseReadContract({
 export const useReadGachaTreasury = /*#__PURE__*/ createUseReadContract({
   abi: gachaAbi,
   functionName: 'treasury',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"uncommonWeight"`
- */
-export const useReadGachaUncommonWeight = /*#__PURE__*/ createUseReadContract({
-  abi: gachaAbi,
-  functionName: 'uncommonWeight',
 })
 
 /**
@@ -12774,12 +12913,30 @@ export const useWriteGachaRenounceOwnership =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setDynamicWeightsConfig"`
+ */
+export const useWriteGachaSetDynamicWeightsConfig =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaAbi,
+    functionName: 'setDynamicWeightsConfig',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setEconomyManager"`
  */
 export const useWriteGachaSetEconomyManager =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaAbi,
     functionName: 'setEconomyManager',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setFeeTokenDecimals"`
+ */
+export const useWriteGachaSetFeeTokenDecimals =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaAbi,
+    functionName: 'setFeeTokenDecimals',
   })
 
 /**
@@ -12792,21 +12949,13 @@ export const useWriteGachaSetGachaServiceHandler =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setRarityWeights"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setPricingConfig"`
  */
-export const useWriteGachaSetRarityWeights =
+export const useWriteGachaSetPricingConfig =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaAbi,
-    functionName: 'setRarityWeights',
+    functionName: 'setPricingConfig',
   })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setSpinFee"`
- */
-export const useWriteGachaSetSpinFee = /*#__PURE__*/ createUseWriteContract({
-  abi: gachaAbi,
-  functionName: 'setSpinFee',
-})
 
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"spin"`
@@ -12903,12 +13052,30 @@ export const useSimulateGachaRenounceOwnership =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setDynamicWeightsConfig"`
+ */
+export const useSimulateGachaSetDynamicWeightsConfig =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaAbi,
+    functionName: 'setDynamicWeightsConfig',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setEconomyManager"`
  */
 export const useSimulateGachaSetEconomyManager =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaAbi,
     functionName: 'setEconomyManager',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setFeeTokenDecimals"`
+ */
+export const useSimulateGachaSetFeeTokenDecimals =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaAbi,
+    functionName: 'setFeeTokenDecimals',
   })
 
 /**
@@ -12921,21 +13088,12 @@ export const useSimulateGachaSetGachaServiceHandler =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setRarityWeights"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setPricingConfig"`
  */
-export const useSimulateGachaSetRarityWeights =
+export const useSimulateGachaSetPricingConfig =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaAbi,
-    functionName: 'setRarityWeights',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setSpinFee"`
- */
-export const useSimulateGachaSetSpinFee =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaAbi,
-    functionName: 'setSpinFee',
+    functionName: 'setPricingConfig',
   })
 
 /**
@@ -12981,6 +13139,15 @@ export const useWatchGachaContract = /*#__PURE__*/ createUseWatchContractEvent({
 })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"DynamicWeightsUpdated"`
+ */
+export const useWatchGachaDynamicWeightsUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaAbi,
+    eventName: 'DynamicWeightsUpdated',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"EconomyManagerUpdated"`
  */
 export const useWatchGachaEconomyManagerUpdated =
@@ -13008,12 +13175,12 @@ export const useWatchGachaEmergencyUnpause =
   })
 
 /**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"FeeUpdated"`
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"FeeTokenDecimalsUpdated"`
  */
-export const useWatchGachaFeeUpdated =
+export const useWatchGachaFeeTokenDecimalsUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaAbi,
-    eventName: 'FeeUpdated',
+    eventName: 'FeeTokenDecimalsUpdated',
   })
 
 /**
@@ -13052,21 +13219,21 @@ export const useWatchGachaPaused = /*#__PURE__*/ createUseWatchContractEvent({
 })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"PricingConfigUpdated"`
+ */
+export const useWatchGachaPricingConfigUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaAbi,
+    eventName: 'PricingConfigUpdated',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"RandomnessRequested"`
  */
 export const useWatchGachaRandomnessRequested =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaAbi,
     eventName: 'RandomnessRequested',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"RarityWeightsUpdated"`
- */
-export const useWatchGachaRarityWeightsUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: gachaAbi,
-    eventName: 'RarityWeightsUpdated',
   })
 
 /**
@@ -13852,15 +14019,6 @@ export const useReadGachaTreasuryGetAllUserCardDeposits =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllUserCardIds"`
- */
-export const useReadGachaTreasuryGetAllUserCardIds =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getAllUserCardIds',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getCardTotalDeposits"`
  */
 export const useReadGachaTreasuryGetCardTotalDeposits =
@@ -13984,15 +14142,6 @@ export const useReadGachaTreasuryGetUserAllDepositValues =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getUserAllDepositValues',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardDeposits"`
- */
-export const useReadGachaTreasuryGetUserCardDeposits =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserCardDeposits',
   })
 
 /**
@@ -16144,12 +16293,40 @@ export const useReadIGachaFeeToken = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"spinFee"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"getCurrentRarityWeights"`
  */
-export const useReadIGachaSpinFee = /*#__PURE__*/ createUseReadContract({
-  abi: iGachaAbi,
-  functionName: 'spinFee',
-})
+export const useReadIGachaGetCurrentRarityWeights =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaAbi,
+    functionName: 'getCurrentRarityWeights',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"getCurrentSpinFee"`
+ */
+export const useReadIGachaGetCurrentSpinFee =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaAbi,
+    functionName: 'getCurrentSpinFee',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"getExpectedValueUSD"`
+ */
+export const useReadIGachaGetExpectedValueUsd =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaAbi,
+    functionName: 'getExpectedValueUSD',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"getTargetRarityBps"`
+ */
+export const useReadIGachaGetTargetRarityBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaAbi,
+    functionName: 'getTargetRarityBps',
+  })
 
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__
@@ -16168,6 +16345,24 @@ export const useWriteIGachaFulfillRandomness =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setDynamicWeightsConfig"`
+ */
+export const useWriteIGachaSetDynamicWeightsConfig =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: iGachaAbi,
+    functionName: 'setDynamicWeightsConfig',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setFeeTokenDecimals"`
+ */
+export const useWriteIGachaSetFeeTokenDecimals =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: iGachaAbi,
+    functionName: 'setFeeTokenDecimals',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setGachaServiceHandler"`
  */
 export const useWriteIGachaSetGachaServiceHandler =
@@ -16177,21 +16372,13 @@ export const useWriteIGachaSetGachaServiceHandler =
   })
 
 /**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setRarityWeights"`
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setPricingConfig"`
  */
-export const useWriteIGachaSetRarityWeights =
+export const useWriteIGachaSetPricingConfig =
   /*#__PURE__*/ createUseWriteContract({
     abi: iGachaAbi,
-    functionName: 'setRarityWeights',
+    functionName: 'setPricingConfig',
   })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setSpinFee"`
- */
-export const useWriteIGachaSetSpinFee = /*#__PURE__*/ createUseWriteContract({
-  abi: iGachaAbi,
-  functionName: 'setSpinFee',
-})
 
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"spin"`
@@ -16200,6 +16387,15 @@ export const useWriteIGachaSpin = /*#__PURE__*/ createUseWriteContract({
   abi: iGachaAbi,
   functionName: 'spin',
 })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"spinWithPermit"`
+ */
+export const useWriteIGachaSpinWithPermit =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: iGachaAbi,
+    functionName: 'spinWithPermit',
+  })
 
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__
@@ -16217,6 +16413,24 @@ export const useSimulateIGachaFulfillRandomness =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setDynamicWeightsConfig"`
+ */
+export const useSimulateIGachaSetDynamicWeightsConfig =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: iGachaAbi,
+    functionName: 'setDynamicWeightsConfig',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setFeeTokenDecimals"`
+ */
+export const useSimulateIGachaSetFeeTokenDecimals =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: iGachaAbi,
+    functionName: 'setFeeTokenDecimals',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setGachaServiceHandler"`
  */
 export const useSimulateIGachaSetGachaServiceHandler =
@@ -16226,21 +16440,12 @@ export const useSimulateIGachaSetGachaServiceHandler =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setRarityWeights"`
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setPricingConfig"`
  */
-export const useSimulateIGachaSetRarityWeights =
+export const useSimulateIGachaSetPricingConfig =
   /*#__PURE__*/ createUseSimulateContract({
     abi: iGachaAbi,
-    functionName: 'setRarityWeights',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"setSpinFee"`
- */
-export const useSimulateIGachaSetSpinFee =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: iGachaAbi,
-    functionName: 'setSpinFee',
+    functionName: 'setPricingConfig',
   })
 
 /**
@@ -16250,6 +16455,15 @@ export const useSimulateIGachaSpin = /*#__PURE__*/ createUseSimulateContract({
   abi: iGachaAbi,
   functionName: 'spin',
 })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link iGachaAbi}__ and `functionName` set to `"spinWithPermit"`
+ */
+export const useSimulateIGachaSpinWithPermit =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: iGachaAbi,
+    functionName: 'spinWithPermit',
+  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaEconomyManagerAbi}__

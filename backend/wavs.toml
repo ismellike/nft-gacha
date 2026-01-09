@@ -1,0 +1,51 @@
+[default]
+log_level = ["debug"]
+
+# Those configs are global and shared between wavs and aggregator
+jaeger = "http://localhost:4317"
+prometheus = "http://localhost:9090"
+
+
+# ----------------------------
+# Chain configurations
+# ----------------------------
+
+# == Ethereum chains ==
+
+[default.chains.evm.31337] # Local: anvil
+ws_endpoints = ["ws://localhost:8548"]
+http_endpoint = "http://localhost:8548"
+poll_interval_ms = 7000
+
+# ----------------------------
+# WAVS specific settings
+# ----------------------------
+[wavs]
+cors_allowed_origins = [
+    "https://lay3rlabs.github.io/*",
+    "http://localhost:*",
+    "http://127.0.0.1:*",
+]
+dev_endpoints_enabled = true
+
+# ----------------------------
+# CLI specific settings
+# ----------------------------
+[cli]
+# The directory to store the data.
+data = "~/wavs/cli"
+
+# ----------------------------
+# Aggregator specific settings
+# ----------------------------
+[aggregator]
+# The directory to store the data.
+data = "~/wavs/aggregator"
+
+dev_endpoints_enabled = true
+
+cors_allowed_origins = [
+    "https://lay3rlabs.github.io/*",
+    "http://localhost:*",
+    "http://127.0.0.1:*",
+]

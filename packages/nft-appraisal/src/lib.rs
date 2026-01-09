@@ -14,7 +14,7 @@ use core::AppraisalErrorCode;
 use core::AppraisalProcessor;
 
 wit_bindgen::generate!({
-    path: "../../../wit-definitions/operator/wit",
+    path: "../../wit-definitions/operator/wit",
     world: "wavs-world",
     generate_all,
     with: {
@@ -23,7 +23,7 @@ wit_bindgen::generate!({
     features: ["tls"]
 });
 
-alloy_sol_types::sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
+alloy_sol_types::sol!("../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 
 struct Component;
 

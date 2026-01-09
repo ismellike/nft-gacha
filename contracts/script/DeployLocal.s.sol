@@ -9,6 +9,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
+import {MockWavsServiceManager} from "../test/mocks/MockWavsServiceManager.sol";
+
 import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
 import {NFTAppraisalServiceHandler} from "../src/appraisal/NFTAppraisalServiceHandler.sol";
 import {Gacha} from "../src/gacha/Gacha.sol";
@@ -89,15 +91,16 @@ contract DeployLocal is Script {
     uint256 constant SPIN_FEE = 25_000_000; // 25 tUSDC in 6 decimals (~$25 USD)
 
     // Original price range constants (all in 18 decimals for USD values)
+    uint256 constant PRICE_STEP = 1e16; // $0.01 step to match treasury validation
     uint256 constant COMMON_MIN = 0; // $0 minimum for Common
     uint256 constant COMMON_MAX = 15 * 1e18; // $15 maximum for Common
-    uint256 constant UNCOMMON_MIN = COMMON_MAX + 1; // contiguous ranges
+    uint256 constant UNCOMMON_MIN = COMMON_MAX + PRICE_STEP; // contiguous ranges
     uint256 constant UNCOMMON_MAX = 60 * 1e18; // $60 maximum for Uncommon
-    uint256 constant RARE_MIN = UNCOMMON_MAX + 1; // contiguous ranges
+    uint256 constant RARE_MIN = UNCOMMON_MAX + PRICE_STEP; // contiguous ranges
     uint256 constant RARE_MAX = 250 * 1e18; // $250 maximum for Rare
-    uint256 constant EPIC_MIN = RARE_MAX + 1; // contiguous ranges
+    uint256 constant EPIC_MIN = RARE_MAX + PRICE_STEP; // contiguous ranges
     uint256 constant EPIC_MAX = 1200 * 1e18; // $1,200 maximum for Epic
-    uint256 constant LEGENDARY_MIN = EPIC_MAX + 1; // contiguous ranges
+    uint256 constant LEGENDARY_MIN = EPIC_MAX + PRICE_STEP; // contiguous ranges
     uint256 constant LEGENDARY_MAX = type(uint256).max; // No upper limit for Legendary
 
     function run() external {
@@ -106,12 +109,16 @@ contract DeployLocal is Script {
 
         console.log("Deploying local stack from:", deployer);
 
+        // Deploy MockWavsServiceManager if needed for LOCAL development
+        address wavsServiceManager = _resolveWavsServiceManager();
+
         vm.startBroadcast(deployerKey);
-        Deployments memory deployments = _deployStack(deployer);
+        Deployments memory deployments = _deployStack(deployer, wavsServiceManager);
         vm.stopBroadcast();
 
         // Write addresses to .env file for frontend integration
         _writeEnvFile(deployments);
+        _writeServiceManagerAddress(wavsServiceManager);
 
         console.log("\n=== Deployment Summary ===");
         console.log("USDC:                  ", deployments.usdc);
@@ -131,10 +138,9 @@ contract DeployLocal is Script {
         console.log("Legendary Tracker:     ", deployments.legendaryTracker);
     }
 
-    function _deployStack(address deployer) internal returns (Deployments memory d) {
-        // Deploy USDC and get service manager
+    function _deployStack(address deployer, address wavsServiceManager) internal returns (Deployments memory d) {
+        // Deploy USDC
         d.usdc = address(_deployUSDC(deployer));
-        address wavsServiceManager = _resolveWavsServiceManager();
 
         // Deploy all contracts
         _deployImplementations(d);
@@ -588,15 +594,39 @@ contract DeployLocal is Script {
         }
     }
 
-    function _resolveWavsServiceManager() internal view returns (address wavsServiceManager) {
+    function _resolveWavsServiceManager() internal returns (address wavsServiceManager) {
         try vm.envAddress("WAVS_SERVICE_MANAGER_ADDRESS") returns (address envAddress) {
             wavsServiceManager = envAddress;
             console.log("Using WAVS manager from env:", wavsServiceManager);
         } catch {
-            string memory deployJson = vm.readFile("../avs/.project-output/chain-1/avs/avs_deploy.json");
-            wavsServiceManager = vm.parseJsonAddress(deployJson, ".addresses.WavsServiceManager");
-            console.log("Using WAVS manager from JSON:", wavsServiceManager);
+            try vm.envString("DEPLOY_ENV") returns (string memory deployEnv) {
+                // For LOCAL development, deploy a MockWavsServiceManager
+                if (keccak256(bytes(deployEnv)) == keccak256(bytes("LOCAL"))) {
+                    console.log("LOCAL development: Deploying MockWavsServiceManager");
+                    uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+                    vm.startBroadcast(deployerKey);
+                    wavsServiceManager = address(new MockWavsServiceManager());
+                    vm.stopBroadcast();
+                    console.log("Deployed MockWavsServiceManager at:", wavsServiceManager);
+                } else {
+                    revert("DEPLOY_ENV is LOCAL but WAVS_SERVICE_MANAGER_ADDRESS not set");
+                }
+            } catch {
+                // Try to read from avs_deploy.json for TESTNET
+                string memory deployJson = vm.readFile("../avs/.project-output/chain-1/avs/avs_deploy.json");
+                wavsServiceManager = vm.parseJsonAddress(deployJson, ".addresses.WavsServiceManager");
+                console.log("Using WAVS manager from JSON:", wavsServiceManager);
+            }
         }
+    }
+
+    function _writeServiceManagerAddress(address serviceManager) internal {
+        // Write to a JSON file for task discovery
+        string memory jsonPath = "../.project-output/chain-1/avs/avs_deploy.json";
+        string memory serviceManagerStr = vm.toString(serviceManager);
+        string memory jsonContent = string(abi.encodePacked('{"lastUpdate":{"timestamp":"1766905622","block_number":"595"},"addresses":{"WavsServiceManager":"', serviceManagerStr, '"}}'));
+        vm.writeFile(jsonPath, jsonContent);
+        console.log("Wrote service manager address to avs_deploy.json");
     }
 
     function _generateCourtyardTokenURI(string memory id) internal pure returns (string memory) {
@@ -643,7 +673,8 @@ contract DeployLocal is Script {
         return string(
             abi.encodePacked(
                 // WAVS local anvil chain id
-                _envLine("CHAIN_ID", "17000"),
+                _envLine("CHAIN_ID", "31337"),
+                _envLine("RPC_URL", "http://localhost:8548"),
                 _envLine("USDC_ADDRESS", vm.toString(deployments.usdc)),
                 _envLine("NFT_APPRAISAL_ADDRESS", vm.toString(deployments.appraisalProxy)),
                 _envLine("GACHA_TREASURY_ADDRESS", vm.toString(deployments.treasuryProxy)),

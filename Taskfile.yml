@@ -1,66 +1,186 @@
+# NFT Gacha System - Main Taskfile
+# A Taskfile-based workflow for the NFT Gacha WAVS project
+#
+# Quick Start:
+#   task setup          - First-time setup (install deps, configure .env)
+#   task help           - Show all available tasks
+#   task bootstrap      - Full system deployment (backend + AVS + contracts + frontend)
+
 version: "3"
 
 silent: true
 
 dotenv: [".env", ".env.local"]
 
+#####################################################################
+# INCLUDES
+#####################################################################
+# Core taskfiles with flattened vars for easy access
 includes:
-  nft:
-    taskfile: ./taskfile/nft.yml
-  contracts:
-    taskfile: ./taskfile/contracts.yml
-  frontend:
-    taskfile: ./taskfile/frontend.yml
-  backend:
-    taskfile: ./taskfile/backend.yml
-  middleware:
-    taskfile: ./taskfile/middleware.yml
-  cli:
-    taskfile: ./taskfile/cli.yml
-  pricing:
-    taskfile: ./taskfile/pricing.yml
-  debug:
-    taskfile: ./taskfile/debug.yml
-  component:
-    taskfile: ./taskfile/component.yml
+    config:
+        taskfile: ./taskfile/config.yml
+        flatten: true
+    backend:
+        taskfile: ./taskfile/backend.yml
+    avs:
+        taskfile: ./taskfile/avs.yml
+    contracts:
+        taskfile: ./taskfile/contracts.yml
+    frontend:
+        taskfile: ./taskfile/frontend.yml
+    middleware:
+        taskfile: ./taskfile/middleware.yml
+    component:
+        taskfile: ./taskfile/component.yml
+    cli:
+        taskfile: ./taskfile/cli.yml
 
+#####################################################################
+# PROJECT VARIABLES
+#####################################################################
+vars:
+    MIDDLEWARE_MODE: POA
+    AVS_PROJECT: "avs"
+
+#####################################################################
+# ENTRYPOINT TASKS
+#####################################################################
 tasks:
-  clean-env:
-    desc: Clean .env.local file to ensure fresh addresses
-    cmds:
-      - |
-        if [ -f .env.local ]; then
-          rm .env.local
-        fi
+    default:
+        desc: "Show available tasks (run 'task help' for more details)"
+        cmds:
+            - task: help
 
-  pnpm-install:
-    dir: contracts
-    cmds:
-      - pnpm i
+    # =================================================================
+    # SETUP TASKS
+    # =================================================================
+    setup:
+        desc: "First-time setup: install dependencies and configure environment"
+        cmds:
+            - echo "Running first-time setup..."
+            - |
+                # Install contract dependencies
+                if [ -d "contracts" ]; then
+                  echo "Installing contract dependencies..."
+                  cd contracts && forge install
+                fi
+            - |
+                # Copy .env.example if .env doesn't exist
+                if [ ! -f ".env" ]; then
+                  echo "Creating .env from .env.example..."
+                  cp .env.example .env
+                  echo "Created .env file - please update with your values"
+                else
+                  echo ".env already exists"
+                fi
+            - echo "Setup complete! Review .env and run 'task bootstrap' to deploy"
 
-  init-submodules:
-    dir: contracts
-    cmds:
-      - git submodule update --init --recursive --remote --force
+    # =================================================================
+    # HELP TASK
+    # =================================================================
+    help:
+        desc: "Show all available tasks with descriptions"
+        cmds:
+            - |
+                echo "╔═══════════════════════════════════════════════════════════════╗"
+                echo "║           NFT Gacha System - Task Runner                      ║"
+                echo "╚═══════════════════════════════════════════════════════════════╝"
+                echo ""
+                echo "Quick Start:"
+                echo "   task setup          - First-time setup"
+                echo "   task bootstrap      - Full deployment (backend + AVS + contracts + frontend)"
+                echo "   task backend:start  - Start backend services"
+                echo "   task lint           - Run linting checks"
+                echo ""
+                echo "📦 Available Task Groups:"
+                echo "   task backend:*      - Backend infrastructure (chains, WAVS, telemetry)"
+                echo "   task avs:*          - AVS deployment and configuration"
+                echo "   task contracts:*    - Smart contract build/test/deploy"
+                echo "   task frontend:*     - Frontend development (type check, codegen)"
+                echo "   task middleware:*   - POA middleware operations"
+                echo "   task component:*    - WASI component build/upload"
+                echo "   task cli:*          - WAVS CLI commands"
+                echo ""
+                echo "🔍 Common Tasks:"
+                echo "   task backend:status        - Check backend service status"
+                echo "   task backend:stop          - Stop all backend services"
+                echo "   task contracts:test        - Run contract tests"
+                echo "   task contracts:deploy      - Deploy contracts"
+                echo "   task frontend:codegen      - Generate contract types"
+                echo "   task frontend:tsc          - Type check frontend"
+                echo "   task middleware:deploy     - Deploy POA middleware"
+                echo "   task middleware:register-operator - Register operator"
+                echo ""
+            - task --list-all
 
-  bootstrap:
-    deps: [clean-env, init-submodules, pnpm-install]
-    cmds:
-      - |
-        task backend:start 
-        task bootstrap-avs
-        task frontend:codegen
-        task frontend:sync-env
-        task frontend:dev
+    # =================================================================
+    # MAIN WORKFLOWS
+    # =================================================================
+    bootstrap:
+        desc: "Complete system deployment: backend + AVS + contracts + frontend"
+        cmds:
+            - echo "Starting full bootstrap..."
+            - task avs:bootstrap
+            - task frontend:sync-env
+            - task frontend:dev
+            - echo "Bootstrap complete!"
 
-  bootstrap-avs:
-    dir: "avs"
-    cmds:
-      - task bootstrap
+    # =================================================================
+    # DEVELOPMENT TASKS
+    # =================================================================
+    lint:
+        desc: "Run code formatting and linting checks (Rust)"
+        cmds:
+            - echo "Running Rust linting checks..."
+            - cargo fmt --all -- --check
+            - cargo fix --allow-dirty --allow-staged
+            - cargo clippy --all-targets -- -D warnings
 
-  lint:
-    desc: "Run code formatting and linting checks"
-    cmds:
-      - cargo fmt --all -- --check
-      - cargo fix --allow-dirty --allow-staged
-      - cargo clippy --all-targets -- -D warnings
+    fmt:
+        desc: "Format Rust code"
+        cmds:
+            - echo "Formatting Rust code..."
+            - cargo fmt --all
+
+    clean:
+        desc: "Clean all build artifacts and temporary data"
+        cmds:
+            - echo "Cleaning build artifacts..."
+            - rm -rf "{{.PROJECT_OUTPUT_DIR}}"
+            - rm -rf "{{.ARTIFACTS_PATH}}"
+            - task backend:clean-wavs-data
+            - echo "Clean complete"
+
+    # =================================================================
+    # VALIDATION
+    # =================================================================
+    validate:
+        desc: "Validate all taskfiles parse correctly"
+        cmds:
+            - echo "Validating taskfile syntax..."
+            - task --list > /dev/null
+            - echo "All taskfiles are valid"
+
+    # =================================================================
+    # QUICK STATUS
+    # =================================================================
+    status:
+        desc: "Show status of backend services"
+        cmds:
+            - echo "Backend Service Status:"
+            - echo ""
+            - |
+                # Check Docker containers
+                echo "Docker Containers:"
+                docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "anvil-|wavs-operator-|wavs-aggregator|jaeger|prometheus" || echo "  No running services"
+            - echo ""
+            - |
+                # Check ports
+                echo "Port Status:"
+                for port in 8548 8123 8200; do
+                  if nc -z 127.0.0.1 $port 2>/dev/null; then
+                    echo "  Port $port is in use"
+                  else
+                    echo "  Port $port is free"
+                  fi
+                done

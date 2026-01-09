@@ -59,7 +59,7 @@ git clone <repo-url> && cd nft-gacha
 cp .env.example .env
 # Edit .env with your wallet keys and settings
 
-# 3. Bootstrap everything
+# 3. Bootstrap everything (backend + AVS + frontend)
 task bootstrap
 ```
 

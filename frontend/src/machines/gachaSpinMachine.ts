@@ -69,6 +69,11 @@ export const pollForSpinFulfillment = async ({
 	publicClient: PublicClient;
 	gachaAddress: string;
 }): Promise<SpinResult> => {
+	console.log("🔄 [pollForSpinFulfillment] Starting poll for:", {
+		triggerId: triggerId.toString(),
+		userAddress,
+		gachaAddress,
+	});
 	return new Promise((resolve, reject) => {
 		const startTime = Date.now();
 		let timeoutId: NodeJS.Timeout | null = null;
@@ -121,6 +126,12 @@ export const pollForSpinFulfillment = async ({
 				const fromBlock =
 					currentBlock > BigInt(1000) ? currentBlock - BigInt(1000) : BigInt(0);
 
+				console.log(`🔍 [pollForSpinFulfillment] Polling attempt ${attempts}:`, {
+					currentBlock: currentBlock.toString(),
+					fromBlock: fromBlock.toString(),
+					triggerId: triggerId.toString(),
+				});
+
 				const completedLogs = await publicClient.getLogs({
 					address: gachaAddress as `0x${string}`,
 					event: {
@@ -143,9 +154,17 @@ export const pollForSpinFulfillment = async ({
 					toBlock: currentBlock,
 				});
 
+				console.log(`📋 [pollForSpinFulfillment] Found ${completedLogs.length} SpinCompleted logs`);
+
 				if (completedLogs.length > 0) {
 					const log = completedLogs[0];
 					const { rarity, collection, tokenId } = log.args;
+
+					console.log("📋 [pollForSpinFulfillment] Processing log:", {
+						rarity,
+						collection,
+						tokenId: tokenId?.toString(),
+					});
 
 					if (
 						rarity === undefined ||
@@ -163,7 +182,7 @@ export const pollForSpinFulfillment = async ({
 					};
 
 					console.log(
-						"🎉 [GachaSpinMachine] SpinCompleted event found:",
+						"🎉 [pollForSpinFulfillment] SpinCompleted event found, resolving:",
 						result,
 					);
 					cleanup();

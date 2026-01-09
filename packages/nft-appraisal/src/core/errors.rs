@@ -4,7 +4,7 @@ use alloy_sol_types::sol;
 use crate::wavs::types::events::TriggerDataEvmContractEvent;
 use crate::core::payload::AppraisalIdentity;
 
-sol!("../../../contracts/src/interfaces/NFTAppraisalTypes.sol");
+sol!("../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 
 /// Unified error handling for the appraisal component
 #[derive(Debug)]

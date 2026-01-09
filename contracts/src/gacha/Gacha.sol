@@ -231,8 +231,8 @@ contract Gacha is
         _validateTreasuryHasItems();
 
         if (feeToCharge > 0) {
-            // Use permit to approve the fee transfer
-            IERC20Permit(address(feeToken)).permit(msg.sender, address(this), feeToCharge, deadline, v, r, s);
+            // Use permit to approve the fee transfer (permit maxFee, transfer feeToCharge)
+            IERC20Permit(address(feeToken)).permit(msg.sender, address(this), maxFee, deadline, v, r, s);
             feeToken.safeTransferFrom(msg.sender, address(this), feeToCharge);
         }
 

@@ -1,425 +1,370 @@
 version: "3"
 
 includes:
-  config:
-    taskfile: ./config.yml
-    flatten: true
-  docker:
-    taskfile: ./docker.yml
-    flatten: true
+    config:
+        taskfile: ./config.yml
+        flatten: true
+    docker:
+        taskfile: ./docker.yml
+        flatten: true
 
 env:
-  # avoid namespace conflicts with other env vars
-  # see https://github.com/go-task/task/issues/1038
-  COMPOSE_FOUNDRY_DOCKER_IMAGE: "{{.FOUNDRY_DOCKER_IMAGE}}"
-  COMPOSE_WAVS_DOCKER_IMAGE: "{{.WAVS_DOCKER_IMAGE}}"
-  COMPOSE_JAEGER_DOCKER_IMAGE: "{{.JAEGER_DOCKER_IMAGE}}"
-  COMPOSE_PROMETHEUS_DOCKER_IMAGE: "{{.PROMETHEUS_DOCKER_IMAGE}}"
-  COMPOSE_WAVS_HOME: "{{.WAVS_HOME_DIR}}"
+    # avoid namespace conflicts with other env vars
+    # see https://github.com/go-task/task/issues/1038
+    COMPOSE_FOUNDRY_DOCKER_IMAGE: "{{.FOUNDRY_DOCKER_IMAGE}}"
+    COMPOSE_WAVS_DOCKER_IMAGE: "{{.WAVS_DOCKER_IMAGE}}"
+    COMPOSE_JAEGER_DOCKER_IMAGE: "{{.JAEGER_DOCKER_IMAGE}}"
+    COMPOSE_PROMETHEUS_DOCKER_IMAGE: "{{.PROMETHEUS_DOCKER_IMAGE}}"
+    COMPOSE_WAVS_HOME: "{{.WAVS_HOME_DIR}}"
 
 tasks:
-  start:
-    desc: "Starts all backend services"
-    deps:
-      - task: start-chains
+    start:
+        desc: "Starts all backend services"
+        deps:
+            - task: start-chains
+              vars:
+                  CHAINS: "{{.CHAINS}}"
+            - task: start-wavs
+              vars:
+                  OPERATORS: "{{.OPERATORS}}"
+            - task: start-telemetry
+
+    stop:
+        desc: "Stops all backend services"
+        deps:
+            - task: stop-chains
+            - task: stop-wavs
+            - task: stop-telemetry
+
+    ###################################################################
+    ######################## Chains ###################################
+    ###################################################################
+    start-chains:
+        desc: "Start Anvil blockchain instances for local development"
+        status:
+            - '[ "{{.DEPLOY_ENV}}" != "LOCAL" ]'
+        preconditions:
+            - test -f "{{.BACKEND_DIR}}/docker-compose-anvil.yml"
+            - sh: "command -v docker"
+              msg: "Docker is required but not installed"
+        # Pull the latest images before starting
+        deps: [docker-pull-chains]
+        cmds:
+            - task: start-chains-inner
+              # Optional - pass this in
+              vars:
+                  CHAINS: "{{.CHAINS | default 1}}"
+
+    start-chains-inner:
+        internal: true
         vars:
-          CHAINS: "{{.CHAINS}}"
-      - task: start-wavs
+            CHAIN_RANGE:
+                sh: seq 1 {{.CHAINS}}
+        requires:
+            vars: [CHAINS]
+        deps:
+            # All of these are started in parallel
+            - for: { var: CHAIN_RANGE }
+              task: start-chain-{{.ITEM}}
+
+    stop-chains:
+        desc: "Stop all running Anvil blockchain instances"
+        status:
+            - '[ "{{.DEPLOY_ENV}}" != "LOCAL" ]'
+        cmds:
+            - |
+                # Stop all anvil-* projects
+                for i in $(docker ps --format '{{"{{"}}.Names{{"}}"}}' | grep '^anvil-' | sort -u); do
+                    project_name="$i"
+                    cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --project-name "$project_name" --file docker-compose-anvil.yml down --remove-orphans --volumes
+                done
+
+    start-chain-*:
+        internal: true
         vars:
-          OPERATORS: "{{.OPERATORS}}"
-      - task: start-telemetry
+            CHAIN_NUMBER: "{{index .MATCH 0}}"
+            ANVIL_PORT:
+                sh: task backend:get-anvil-port-{{.CHAIN_NUMBER}}
+        deps:
+            - task: docker-start-chain-{{index .MATCH 0}}
+        cmds:
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if nc -z 127.0.0.1 {{.ANVIL_PORT}} 2>/dev/null; then
+                    echo "Anvil chain #{{.CHAIN_NUMBER}} is up!"
+                    exit 0
+                  fi
+                  echo "Waiting for Anvil chain #{{.CHAIN_NUMBER}} on port {{.ANVIL_PORT}}..."
+                  sleep 1
+                done
+                echo "Error: Anvil chain #{{.CHAIN_NUMBER}} did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
+                exit 1
 
-  stop:
-    desc: "Stops all backend services"
-    deps:
-      - task: stop-chains
-      - task: stop-wavs
-      - task: stop-telemetry
+    docker-pull-chains:
+        status:
+            - '[ "{{.DEPLOY_ENV}}" != "LOCAL" ]'
+        internal: true
+        cmds:
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-anvil.yml pull
 
-  ###################################################################
-  ######################## Chains ###################################
-  ###################################################################
-  start-chains:
-    desc: "Start Anvil blockchain instances for local development"
-    status:
-      - '[ "{{.DEPLOY_ENV}}" != "LOCAL" ]'
-    preconditions:
-      - test -f "{{.BACKEND_DIR}}/docker-compose-anvil.yml"
-      - sh: "command -v docker"
-        msg: "Docker is required but not installed"
-    # Pull the latest images before starting
-    deps: [docker-pull-chains]
-    cmds:
-      - task: start-chains-inner
-        # Optional - pass this in
+    docker-start-chain-*:
+        internal: true
         vars:
-          CHAINS: "{{.CHAINS | default 1}}"
+            CHAIN_NUMBER: "{{index .MATCH 0}}"
+        env:
+            COMPOSE_PROJECT_NAME: "anvil-{{.CHAIN_NUMBER}}"
+            COMPOSE_ANVIL_PORT:
+                sh: task backend:get-anvil-port-{{.CHAIN_NUMBER}}
+        cmds:
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-anvil.yml up --force-recreate -d
 
-  start-chains-inner:
-    internal: true
-    vars:
-      CHAIN_RANGE:
-        sh: seq 1 {{.CHAINS}}
-    requires:
-      vars: [CHAINS]
-    deps:
-      # All of these are started in parallel
-      - for: { var: CHAIN_RANGE }
-        task: start-chain-{{.ITEM}}
-
-  stop-chains:
-    desc: "Stop all running Anvil blockchain instances"
-    vars:
-      ACTIVE_CHAINS:
-        sh: seq 1 {{.ACTIVE_CHAIN_COUNT}}
-    deps:
-      - for: { var: ACTIVE_CHAINS }
-        task: stop-chain-{{.ITEM}}
-
-  stop-chain-*:
-    internal: true
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-    cmds:
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --project-name anvil-{{.CHAIN_NUMBER}} --file docker-compose-anvil.yml down --remove-orphans --volumes
-
-  start-chain-*:
-    internal: true
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-      ANVIL_PORT:
-        sh: task backend:get-anvil-port-{{.CHAIN_NUMBER}}
-    deps:
-      - task: docker-start-chain-{{index .MATCH 0}}
-    cmds:
-      # Wait for the Anvil chain to be up and running
-      # The deps here will ensure that the docker-start-chain-* task is run first
-      - |
-        for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-          if nc -z 127.0.0.1 {{.ANVIL_PORT}}; then
-            break
-          fi
-          echo "Waiting for Anvil chain #{{.CHAIN_NUMBER}} to start on port {{.ANVIL_PORT}}..."
-          sleep 1
-        done
-        if ! nc -z 127.0.0.1 {{.ANVIL_PORT}}; then
-          echo "Anvil did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds"
-          exit 1
-        fi
-      - |
-        echo "Anvil chain #{{.CHAIN_NUMBER}} is up!"
-
-  docker-pull-chains:
-    status:
-      - '[ "{{.DEPLOY_ENV}}" != "LOCAL" ]'
-    internal: true
-    cmds:
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-anvil.yml pull
-
-  docker-start-chain-*:
-    internal: true
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-    env:
-      COMPOSE_ANVIL_FORK_CMD:
-        # For right now, the setup is that chain #1 is the Holesky fork, and all others are local Anvil instances.
-        # We can add more fork URLs here as needed or move this to a map, json, or other structure in the future.
-        sh: |
-          case {{.CHAIN_NUMBER}} in
-            1) echo "--fork-url {{.ANVIL_HOLESKY_FORK_URL}}" ;;
-            *) echo "" ;;
-          esac
-      COMPOSE_PROJECT_NAME: "anvil-{{.CHAIN_NUMBER}}"
-      COMPOSE_ANVIL_PORT:
-        sh: task backend:get-anvil-port-{{.CHAIN_NUMBER}}
-    cmds:
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-anvil.yml up --force-recreate -d
-
-  # HELPERS
-  get-anvil-port-*:
-    desc: "Get the Anvil port for a chain number"
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-      # We use 1 as the CHAIN_NUMBER, so subtract 1 to keep the base port the same
-      ANVIL_PORT: "{{sub (add .ANVIL_BASE_PORT (atoi .CHAIN_NUMBER)) 1}}"
-    cmds:
-      - echo "{{.ANVIL_PORT}}"
-
-  get-evm-rpc-url-*:
-    desc: "Get the RPC URL for a chain number"
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-    cmds:
-      - |
-        case "{{.DEPLOY_ENV}}" in
-          "TESTNET")
-            task -s backend:get-testnet-evm-rpc-url-{{.CHAIN_NUMBER}}
-            ;;
-          *)
-            task -s backend:get-local-evm-rpc-url-{{.CHAIN_NUMBER}}
-            ;;
-        esac
-
-  get-testnet-evm-rpc-url-*:
-    desc: "Get the testnet RPC URL for a chain number with bounds checking"
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-      RPC_URL: "{{index .TESTNET_EVM_RPC_URLS (sub (atoi .CHAIN_NUMBER) 1)}}"
-    cmds:
-      - |
-        if [ -z "{{.RPC_URL}}" ]; then
-          echo "Error: TESTNET_EVM_RPC_URLS[{{.CHAIN_NUMBER}}] is empty or not configured" >&2
-          exit 1
-        fi
-        echo "{{.RPC_URL}}"
-
-  get-local-evm-rpc-url-*:
-    desc: "Get the local Anvil RPC URL for a chain number"
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-      ANVIL_PORT:
-        sh: task -s backend:get-anvil-port-{{.CHAIN_NUMBER}}
-    cmds:
-      - echo "http://localhost:{{.ANVIL_PORT}}"
-
-  get-chain-name-*:
-    desc: "Get the chain name for a chain number"
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-    cmds:
-      - |
-        case "{{.DEPLOY_ENV}}" in
-          "TESTNET")
-            task -s backend:get-testnet-chain-name-{{.CHAIN_NUMBER}}
-            ;;
-          *)
-            task -s backend:get-local-chain-name-{{.CHAIN_NUMBER}}
-            ;;
-        esac
-
-  get-testnet-chain-name-*:
-    desc: "Get the testnet chain name for a chain number with bounds checking"
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-      CHAIN_NAME: "{{index .TESTNET_EVM_CHAIN_NAMES (sub (atoi .CHAIN_NUMBER) 1)}}"
-    cmds:
-      - |
-        if [ -z "{{.CHAIN_NAME}}" ]; then
-          echo "Error: TESTNET_EVM_CHAIN_NAMES[{{.CHAIN_NUMBER}}] is empty or not configured" >&2
-          exit 1
-        fi
-        echo "{{.CHAIN_NAME}}"
-
-  get-local-chain-name-*:
-    desc: "Get the local chain name for a chain number"
-    vars:
-      CHAIN_NUMBER: "{{index .MATCH 0}}"
-    cmds:
-      - echo "evm:{{add .ANVIL_FORK_CHAIN_ID (sub (atoi .CHAIN_NUMBER) 1)}}"
-
-  get-wavs-endpoint-*:
-    desc: "Get the wavs endpoint for an instance"
-    vars:
-      WAVS_INSTANCE: "{{sub (index .MATCH 0) 1}}"
-    cmds:
-      - echo "http://localhost:{{add .WAVS_BASE_PORT .WAVS_INSTANCE}}"
-
-  ###################################################################
-  ######################## WAVS #####################################
-  ###################################################################
-  start-wavs:
-    desc: "Start WAVS operator instances and aggregator"
-    preconditions:
-      - test -f "{{.BACKEND_DIR}}/docker-compose-wavs-aggregator.yml"
-      - test -f "{{.BACKEND_DIR}}/docker-compose-wavs-instance.yml"
-      - sh: "command -v docker"
-        msg: "Docker is required but not installed"
-    # Pull the latest images before starting
-    deps: [docker-pull-wavs]
-    cmds:
-      - task: start-wavs-inner
-        # Optional - pass this in, or 1 by default
+    # HELPERS
+    get-anvil-port-*:
+        desc: "Get the Anvil port for a chain number"
         vars:
-          OPERATORS: '{{.OPERATORS | default "1"}}'
+            CHAIN_NUMBER: "{{index .MATCH 0}}"
+            ANVIL_PORT: "{{add .ANVIL_BASE_PORT (atoi .CHAIN_NUMBER)}}"
+        cmds:
+            - echo "{{.ANVIL_PORT}}"
 
-  docker-pull-wavs:
-    internal: true
-    cmds:
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml pull
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-instance.yml pull
+    get-evm-rpc-url-*:
+        desc: "Get the RPC URL for a chain number"
+        vars:
+            CHAIN_NUMBER: "{{index .MATCH 0}}"
+            LOCAL_URL: "http://localhost:$(task backend:get-anvil-port-{{.CHAIN_NUMBER}})"
+            TESTNET_URL: "{{index .TESTNET_EVM_RPC_URLS (sub (atoi .CHAIN_NUMBER) 1)}}"
+        cmds:
+            - |
+                case "{{.DEPLOY_ENV}}" in
+                  "TESTNET") echo "{{.TESTNET_URL}}" ;;
+                  *) echo "{{.LOCAL_URL}}" ;;
+                esac
 
-  start-wavs-inner:
-    internal: true
-    vars:
-      OPERATORS_RANGE:
-        sh: seq 1 {{.OPERATORS}}
-    requires:
-      vars: [OPERATORS]
-    deps:
-      - task: start-wavs-aggregator
-      - for: { var: OPERATORS_RANGE }
-        task: start-wavs-{{.ITEM}}
+    get-chain-name-*:
+        desc: "Get the chain name for a chain number"
+        vars:
+            CHAIN_NUMBER: "{{index .MATCH 0}}"
+            LOCAL_NAME: "evm:{{add .ANVIL_FORK_CHAIN_ID (sub (atoi .CHAIN_NUMBER) 1)}}"
+            TESTNET_NAME: "{{index .TESTNET_EVM_CHAIN_NAMES (sub (atoi .CHAIN_NUMBER) 1)}}"
+        cmds:
+            - |
+                case "{{.DEPLOY_ENV}}" in
+                  "TESTNET") echo "{{.TESTNET_NAME}}" ;;
+                  *) echo "{{.LOCAL_NAME}}" ;;
+                esac
 
-  start-wavs-aggregator:
-    internal: true
-    deps:
-      - task: docker-start-wavs-aggregator
-    cmds:
-      # Wait for WAVS Aggregator to be up and running
-      - |
-        for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-          if nc -z 127.0.0.1 {{.WAVS_AGGREGATOR_PORT}}; then
-            break
-          fi
-          echo "Waiting for Aggregator to start on port {{.WAVS_AGGREGATOR_PORT}}..."
-          sleep 1
-        done
-        if ! nc -z 127.0.0.1 {{.WAVS_AGGREGATOR_PORT}}; then
-          echo "Aggregator did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds"
-          exit 1
-        fi
-      - echo "Aggregator is up!"
+    get-wavs-endpoint-*:
+        desc: "Get the wavs endpoint for an instance"
+        vars:
+            WAVS_INSTANCE: "{{index .MATCH 0}}"
+        cmds:
+            - echo "http://localhost:{{add .WAVS_BASE_PORT (atoi .WAVS_INSTANCE)}}"
 
-  start-wavs-*:
-    internal: true
-    vars:
-      WAVS_INSTANCE: "{{index .MATCH 0}}"
-      WAVS_PORT:
-        sh: task backend:get-wavs-port-{{.WAVS_INSTANCE}}
-    deps:
-      - task: docker-start-wavs-{{.WAVS_INSTANCE}}
-    cmds:
-      # Wait for WAVS instance to be up and running
-      - |
-        for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-          if nc -z 127.0.0.1 {{.WAVS_PORT}}; then
-            break
-          fi
-          echo "Waiting for WAVS #{{.WAVS_INSTANCE}} to start on port {{.WAVS_PORT}}..."
-          sleep 1
-        done
-        if ! nc -z 127.0.0.1 {{.WAVS_PORT}}; then
-          echo "WAVS #{{.WAVS_INSTANCE}} did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds"
-          exit 1
-        fi
-      - |
-        echo "WAVS #{{.WAVS_INSTANCE}} is up!"
+    ###################################################################
+    ######################## WAVS #####################################
+    ###################################################################
+    start-wavs:
+        desc: "Start WAVS operator instances and aggregator"
+        preconditions:
+            - test -f "{{.BACKEND_DIR}}/docker-compose-wavs-aggregator.yml"
+            - test -f "{{.BACKEND_DIR}}/docker-compose-wavs-instance.yml"
+            - sh: "command -v docker"
+              msg: "Docker is required but not installed"
+        # Pull the latest images before starting
+        deps: [docker-pull-wavs]
+        cmds:
+            - task: start-wavs-inner
+              # Optional - pass this in, or 1 by default
+              vars:
+                  OPERATORS: '{{.OPERATORS | default "1"}}'
 
-  docker-start-wavs-aggregator:
-    internal: true
-    env:
-      COMPOSE_WAVS_AGGREGATOR_PORT: "{{.WAVS_AGGREGATOR_PORT}}"
-    cmds:
-      - echo "Starting WAVS Aggregator on port {{.WAVS_AGGREGATOR_PORT}}"
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml up --force-recreate -d
+    docker-pull-wavs:
+        internal: true
+        cmds:
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml pull
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-instance.yml pull
 
-  docker-start-wavs-*:
-    internal: true
-    vars:
-      WAVS_INSTANCE: "{{index .MATCH 0}}"
-    env:
-      COMPOSE_PROJECT_NAME: "wavs-operator-{{.WAVS_INSTANCE}}"
-      COMPOSE_WAVS_PORT:
-        sh: task backend:get-wavs-port-{{.WAVS_INSTANCE}}
-      WAVS_SUBMISSION_MNEMONIC:
-        sh: task backend:get-wavs-submission-mnemonic-{{.WAVS_INSTANCE}}
-      WAVS_ENV_SCRYDEX_API_KEY: "{{.WAVS_ENV_SCRYDEX_API_KEY}}"
-      WAVS_ENV_SCRYDEX_TEAM_ID: "{{.WAVS_ENV_SCRYDEX_TEAM_ID}}"
-    cmds:
-      - |
-        echo "Starting WAVS #{{.WAVS_INSTANCE}} on port $COMPOSE_WAVS_PORT"
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-instance.yml up --force-recreate -d
+    start-wavs-inner:
+        internal: true
+        vars:
+            OPERATORS_RANGE:
+                sh: seq 1 {{.OPERATORS}}
+        requires:
+            vars: [OPERATORS]
+        deps:
+            - task: start-wavs-aggregator
+            - for: { var: OPERATORS_RANGE }
+              task: start-wavs-{{.ITEM}}
 
-  stop-wavs:
-    desc: "Stop all WAVS instances and aggregator"
-    cmds:
-      - task: stop-wavs-instances
-      - task: stop-wavs-aggregator
+    start-wavs-aggregator:
+        internal: true
+        deps:
+            - task: docker-start-wavs-aggregator
+        cmds:
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if nc -z 127.0.0.1 {{.WAVS_AGGREGATOR_PORT}} 2>/dev/null; then
+                    echo "Aggregator is up!"
+                    exit 0
+                  fi
+                  echo "Waiting for Aggregator on port {{.WAVS_AGGREGATOR_PORT}}..."
+                  sleep 1
+                done
+                echo "Error: Aggregator did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
+                exit 1
 
-  stop-wavs-aggregator:
-    desc: "Stop WAVS aggregator service"
-    cmds:
-      - echo "Stopping WAVS Aggregator"
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml down --remove-orphans --volumes
+    start-wavs-*:
+        internal: true
+        vars:
+            WAVS_INSTANCE: "{{index .MATCH 0}}"
+            WAVS_PORT:
+                sh: task backend:get-wavs-port-{{.WAVS_INSTANCE}}
+        deps:
+            - task: docker-start-wavs-{{.WAVS_INSTANCE}}
+        cmds:
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if nc -z 127.0.0.1 {{.WAVS_PORT}} 2>/dev/null; then
+                    echo "WAVS #{{.WAVS_INSTANCE}} is up!"
+                    exit 0
+                  fi
+                  echo "Waiting for WAVS #{{.WAVS_INSTANCE}} on port {{.WAVS_PORT}}..."
+                  sleep 1
+                done
+                echo "Error: WAVS #{{.WAVS_INSTANCE}} did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
+                exit 1
 
-  stop-wavs-instances:
-    desc: "Stop all WAVS operator instances"
-    vars:
-      ACTIVE_WAVS:
-        sh: seq 1 {{.ACTIVE_WAVS_COUNT}}
-    deps:
-      - for: { var: ACTIVE_WAVS }
-        task: stop-wavs-{{.ITEM}}
+    docker-start-wavs-aggregator:
+        internal: true
+        env:
+            COMPOSE_WAVS_AGGREGATOR_PORT: "{{.WAVS_AGGREGATOR_PORT}}"
+        cmds:
+            - echo "Starting WAVS Aggregator on port {{.WAVS_AGGREGATOR_PORT}}"
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml up --force-recreate -d
 
-  stop-wavs-*:
-    internal: true
-    vars:
-      WAVS_INSTANCE: "{{index .MATCH 0}}"
-    cmds:
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --project-name wavs-operator-{{.WAVS_INSTANCE}} --file docker-compose-wavs-instance.yml down --remove-orphans --volumes
+    docker-start-wavs-*:
+        internal: true
+        vars:
+            WAVS_INSTANCE: "{{index .MATCH 0}}"
+            OPERATOR_MNEMONIC:
+                sh: task backend:get-wavs-submission-mnemonic-{{.WAVS_INSTANCE}}
+        env:
+            COMPOSE_PROJECT_NAME: "wavs-operator-{{.WAVS_INSTANCE}}"
+            COMPOSE_WAVS_PORT:
+                sh: task backend:get-wavs-port-{{.WAVS_INSTANCE}}
+            WAVS_OPERATOR_MNEMONIC: "{{.OPERATOR_MNEMONIC}}"
+            WAVS_ENV_SCRYDEX_API_KEY: "{{.WAVS_ENV_SCRYDEX_API_KEY}}"
+            WAVS_ENV_SCRYDEX_TEAM_ID: "{{.WAVS_ENV_SCRYDEX_TEAM_ID}}"
+        cmds:
+            - |
+                echo "Starting WAVS #{{.WAVS_INSTANCE}} on port $COMPOSE_WAVS_PORT"
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-instance.yml up --force-recreate -d
 
-  # HELPERS
-  get-wavs-port-*:
-    desc: "Get the WAVS port for a wavs number"
-    vars:
-      WAVS_INSTANCE: "{{index .MATCH 0}}"
-      # We use 1 as the WAVS_INSTANCE, so subtract 1 to keep the base port the same
-      WAVS_PORT: "{{sub (add .WAVS_BASE_PORT (atoi .WAVS_INSTANCE)) 1}}"
-    cmds:
-      - echo "{{.WAVS_PORT}}"
+    clean-wavs-data:
+        desc: "Delete WAVS data directory (operator + aggregator state)"
+        cmds:
+            - rm -rf "{{.WAVS_HOME_DIR}}"
 
-  get-wavs-submission-mnemonic-*:
-    desc: "Get the WAVS submission mnemonic for a wavs instance number"
-    vars:
-      WAVS_INSTANCE: "{{index .MATCH 0}}"
-      ENV_VAR_NAME: "WAVS_SUBMISSION_MNEMONIC_{{.WAVS_INSTANCE}}"
-    cmds:
-      - echo "${{.ENV_VAR_NAME}}"
+    seed-wavs-config:
+        desc: "Seed WAVS home config"
+        vars:
+            WAVS_CONFIG_TEMPLATE: "{{.BACKEND_DIR}}/wavs.toml"
+        cmds:
+            - mkdir -p "{{.WAVS_HOME_DIR}}"
+            - cp "{{.BACKEND_DIR}}/wavs.toml" "{{.WAVS_HOME_DIR}}/wavs.toml"
 
-  ###################################################################
-  ##################### TELEMETRY ###################################
-  ###################################################################
+    stop-wavs:
+        desc: "Stop all WAVS instances and aggregator"
+        cmds:
+            - task: stop-wavs-instances
+            - task: stop-wavs-aggregator
 
-  start-telemetry:
-    desc: "Start telemetry services (Jaeger and Prometheus)"
-    # Pull the latest images before starting
-    deps: [docker-pull-telemetry]
-    cmds:
-      - task: start-telemetry-inner
+    stop-wavs-aggregator:
+        desc: "Stop WAVS aggregator service"
+        cmds:
+            - echo "Stopping WAVS Aggregator"
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml down --remove-orphans --volumes
 
-  docker-pull-telemetry:
-    internal: true
-    cmds:
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-telemetry.yml pull
+    stop-wavs-instances:
+        desc: "Stop all WAVS operator instances"
+        cmds:
+            - |
+                # Stop all wavs-operator-* projects
+                for i in $(docker ps --format '{{"{{"}}.Names{{"}}"}}' | grep '^wavs-operator-' | sort -u); do
+                    project_name="$i"
+                    cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --project-name "$project_name" --file docker-compose-wavs-instance.yml down --remove-orphans --volumes
+                done
 
-  start-telemetry-inner:
-    internal: true
-    deps: [docker-start-telemetry]
-    cmds:
-      # Wait for Jaeger and Prometheus to be up and running
-      # the deps here will ensure that the docker-start-telemetry task is run first
-      - |
-        while ! nc -z localhost 16686; do
-          echo "Waiting for Jaeger to start on port 16686..."
-          sleep 1
-        done
-      - echo "Jaeger is up and running!"
-      - |
-        while ! nc -z localhost 9090; do
-          echo "Waiting for Prometheus to start on port 9090..."
-          sleep 1
-        done
-      - echo "Prometheus is up and running!"
+    # HELPERS
+    get-wavs-port-*:
+        desc: "Get the WAVS port for a wavs number"
+        vars:
+            WAVS_INSTANCE: "{{index .MATCH 0}}"
+            WAVS_PORT: "{{add .WAVS_BASE_PORT (atoi .WAVS_INSTANCE)}}"
+        cmds:
+            - echo "{{.WAVS_PORT}}"
 
-  docker-start-telemetry:
-    internal: true
-    cmds:
-      - echo "Starting Telemetry"
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-telemetry.yml up --force-recreate -d
+    get-wavs-submission-mnemonic-*:
+        desc: "Get the WAVS submission mnemonic for a wavs instance number"
+        vars:
+            WAVS_INSTANCE: "{{index .MATCH 0}}"
+            ENV_VAR_NAME: "WAVS_OPERATOR_MNEMONIC_{{.WAVS_INSTANCE}}"
+        cmds:
+            - echo "${{.ENV_VAR_NAME}}"
 
-  docker-stop-telemetry:
-    desc: "Stop telemetry services"
-    aliases: [stop-telemetry]
-    cmds:
-      - echo "Stopping Telemetry"
-      - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-telemetry.yml down --remove-orphans --volumes
+    ###################################################################
+    ##################### TELEMETRY ###################################
+    ###################################################################
+
+    start-telemetry:
+        desc: "Start telemetry services (Jaeger and Prometheus)"
+        # Pull the latest images before starting
+        deps: [docker-pull-telemetry]
+        cmds:
+            - task: start-telemetry-inner
+
+    docker-pull-telemetry:
+        internal: true
+        cmds:
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-telemetry.yml pull
+
+    start-telemetry-inner:
+        internal: true
+        deps: [docker-start-telemetry]
+        cmds:
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if nc -z 127.0.0.1 16686 2>/dev/null; then
+                    echo "Jaeger is up!"
+                    break
+                  fi
+                  echo "Waiting for Jaeger on port 16686..."
+                  sleep 1
+                done
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if nc -z 127.0.0.1 9090 2>/dev/null; then
+                    echo "Prometheus is up!"
+                    exit 0
+                  fi
+                  echo "Waiting for Prometheus on port 9090..."
+                  sleep 1
+                done
+
+    docker-start-telemetry:
+        internal: true
+        cmds:
+            - echo "Starting Telemetry"
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-telemetry.yml up --force-recreate -d
+
+    stop-telemetry:
+        desc: "Stop telemetry services (Jaeger and Prometheus)"
+        cmds:
+            - task: docker-stop-telemetry
+
+
+    docker-stop-telemetry:
+        internal: true
+        cmds:
+            - echo "Stopping Telemetry"
+            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-telemetry.yml down --remove-orphans --volumes

@@ -10,7 +10,7 @@ use crate::host::get_evm_chain_config;
 sol!(
     #[sol(rpc)]
     ERC721,
-    "../../../contracts/out/ERC721.sol/ERC721.json"
+    "../../contracts/out/ERC721.sol/ERC721.json"
 );
 
 #[derive(Debug)]

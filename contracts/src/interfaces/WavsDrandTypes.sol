@@ -7,4 +7,4 @@ struct WavsDrandPayload {
 }
 
 /// @notice Emitted whenever randomness is requested
-event RandomnessRequested(uint256 indexed triggerId);
+event RandomnessRequested(uint256 triggerId);

@@ -13,9 +13,9 @@ tasks:
     desc: "Build a WASI component from Rust source"
     vars:
       COMPONENT_OUTPUT_DIR:
-        sh: task component:get-output-dir PROJECT={{.PROJECT}}
+        sh: task component:get-output-dir
     requires:
-      vars: [PROJECT, COMPONENT_NAME, COMPONENT_SOURCE_DIR]
+      vars: [COMPONENT_NAME, COMPONENT_SOURCE_DIR]
     preconditions:
       - test -d "{{.COMPONENT_SOURCE_DIR}}"
       - test -f "{{.COMPONENT_SOURCE_DIR}}/Cargo.toml"
@@ -30,7 +30,7 @@ tasks:
       - "{{.COMPONENT_OUTPUT_DIR}}/{{.COMPONENT_NAME}}.wasm"
     cmds:
       - |
-        echo "Building component: {{.COMPONENT_NAME}} for {{.PROJECT}}"
+        echo "Building component: {{.COMPONENT_NAME}}"
         cd "{{.COMPONENT_SOURCE_DIR}}"
         cargo build --release --target wasm32-wasip2
         mkdir -p {{.COMPONENT_OUTPUT_DIR}}
@@ -40,9 +40,9 @@ tasks:
     desc: "Delete a specific WASI component binary"
     vars:
       COMPONENT_OUTPUT_DIR:
-        sh: task component:get-output-dir PROJECT={{.PROJECT}}
+        sh: task component:get-output-dir
     requires:
-      vars: [PROJECT, COMPONENT_NAME]
+      vars: [COMPONENT_NAME]
     cmds:
       - rm -f "{{.COMPONENT_OUTPUT_DIR}}/{{.COMPONENT_NAME}}.wasm"
 
@@ -50,22 +50,20 @@ tasks:
     desc: "Delete all WASI component binaries for a project"
     vars:
       COMPONENT_OUTPUT_DIR:
-        sh: task component:get-output-dir PROJECT={{.PROJECT}}
-    requires:
-      vars: [PROJECT]
+        sh: task component:get-output-dir
     cmds:
       - rm -rf "{{.COMPONENT_OUTPUT_DIR}}"
 
   upload:
     desc: "Upload a WASI component to the WAVS endpoint"
     requires:
-      vars: [PROJECT, COMPONENT_NAME, WAVS_ENDPOINT]
+      vars: [COMPONENT_NAME, WAVS_ENDPOINT]
     vars:
       # here it's relative to docker volume mount, where /nft-gacha is the root of this repo
-      COMPONENT_BINARY: "/nft-gacha/{{.PROJECT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}.wasm"
-      DATA_DIR: "/nft-gacha/{{.PROJECT}}/{{.PROJECT_OUTPUT_DIRNAME}}/.wavs-cli-data"
+      COMPONENT_BINARY: "/nft-gacha/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}.wasm"
+      DATA_DIR: "/nft-gacha/{{.PROJECT_OUTPUT_DIRNAME}}/.wavs-cli-data"
       COMPONENT_DIGEST_FILE:
-        sh: task component:get-digest-filepath PROJECT={{.PROJECT}} COMPONENT_NAME={{.COMPONENT_NAME}}
+        sh: task component:get-digest-filepath COMPONENT_NAME={{.COMPONENT_NAME}}
     cmds:
       # unfortunately, the wavs-cli upload-component command doesn't write to JSON
       # but, fortunately, the last line of the output is the digest
@@ -83,11 +81,11 @@ tasks:
   upload-aggregator:
     desc: "Upload a WASI component to the WAVS aggregator endpoint"
     requires:
-      vars: [PROJECT, COMPONENT_NAME, WAVS_AGGREGATOR_ENDPOINT]
+      vars: [COMPONENT_NAME, WAVS_AGGREGATOR_ENDPOINT]
     vars:
-      COMPONENT_BINARY: "{{.REPO_ROOT}}/{{.PROJECT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}.wasm"
+      COMPONENT_BINARY: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}.wasm"
       COMPONENT_DIGEST_FILE:
-        sh: task component:get-digest-filepath PROJECT={{.PROJECT}} COMPONENT_NAME={{.COMPONENT_NAME}}
+        sh: task component:get-digest-filepath COMPONENT_NAME={{.COMPONENT_NAME}}
     cmds:
       - |
         echo "Uploading component {{.COMPONENT_NAME}} to {{.WAVS_AGGREGATOR_ENDPOINT}}/dev/components"
@@ -127,9 +125,7 @@ tasks:
   get-output-dir:
     desc: "Get the path to the component output directory"
     vars:
-      OUTPUT_DIR: '{{joinPath .REPO_ROOT .PROJECT .PROJECT_OUTPUT_DIRNAME "components"}}'
-    requires:
-      vars: [PROJECT]
+      OUTPUT_DIR: '{{joinPath .REPO_ROOT .PROJECT_OUTPUT_DIRNAME "components"}}'
     cmds:
       - echo "{{.OUTPUT_DIR}}"
 
@@ -137,9 +133,9 @@ tasks:
     desc: "Get the path to the component digest file"
     vars:
       OUTPUT_DIR:
-        sh: task component:get-output-dir PROJECT={{.PROJECT}}
+        sh: task component:get-output-dir
     requires:
-      vars: [PROJECT, COMPONENT_NAME]
+      vars: [COMPONENT_NAME]
     cmds:
       - echo "{{.OUTPUT_DIR}}/{{.COMPONENT_NAME}}.digest"
 

@@ -52,14 +52,15 @@ forge test --match-test <test_name>  # Run specific test
 ## Architecture
 
 ### State Management
-- **Frontend State**: XState machines for complex async flows (gacha spinning, NFT reveals)
-- **Global State**: Zustand store for app-wide state (gacha store in `src/stores/`)
+- **Frontend State**: Zustand stores with localStorage persistence for global state
+- **Async Utilities**: Pure utility functions for complex async flows (gacha spinning, NFT reveals) in `src/machines/`
 - **Contract State**: Wagmi hooks with auto-generated TypeScript types
 
-### Key State Machine
-The gacha spinning flow is managed by `gachaSpinMachine.ts` with states:
+### Key Async Flow
+The gacha spinning flow uses utility functions in `gachaSpinMachine.ts` with states:
 - `idle` → `spinning` → `waitingForFulfillment` → `revealing` → `idle`
 - Handles timeout/retry logic and automatic refunds for empty rarity pools
+- No XState - uses Zustand for persistence and pure functions for async operations
 
 ### Contract Integration
 - **Type Generation**: `wagmi generate` creates TypeScript bindings from Foundry artifacts
@@ -89,5 +90,5 @@ The gacha spinner uses persistent state that survives page refreshes. Check brow
 
 ### Testing
 - Smart contracts use Foundry's testing framework
-- Frontend components integrate with XState for predictable state transitions
+- Frontend uses Zustand stores with persist middleware for state management
 - Mock contracts available in `contracts/test/mocks/` for isolated testing

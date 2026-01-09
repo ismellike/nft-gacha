@@ -37,8 +37,11 @@ import {
 	useReadGachaOwner,
 	useReadGachaTreasuryOwner,
 	useReadGachaEconomyManagerOwner,
-	useReadGachaSpinFee,
-	useWriteGachaSetSpinFee,
+	useReadGachaGetCurrentSpinFee,
+	useReadGachaMinSpinFee,
+	useReadGachaMaxSpinFee,
+	useReadGachaPricingPremiumBps,
+	useWriteGachaSetPricingConfig,
 	useWriteGachaEmergencyPause,
 	useWriteGachaEmergencyUnpause,
 	useReadGachaPaused,
@@ -386,25 +389,43 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 }
 
 function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
-	const [newFee, setNewFee] = useState("");
+	const [newMinFee, setNewMinFee] = useState("");
+	const [newMaxFee, setNewMaxFee] = useState("");
+	const [newPremiumBps, setNewPremiumBps] = useState("");
 
-	const { data: currentFee } = useReadGachaSpinFee({
+	const { data: currentFee } = useReadGachaGetCurrentSpinFee({
 		address: gacha.address as `0x${string}`,
 	});
 
-	const { writeContract: setSpinFee, isPending } = useWriteGachaSetSpinFee();
+	const { data: minSpinFee } = useReadGachaMinSpinFee({
+		address: gacha.address as `0x${string}`,
+	});
+
+	const { data: maxSpinFee } = useReadGachaMaxSpinFee({
+		address: gacha.address as `0x${string}`,
+	});
+
+	const { data: pricingPremiumBps } = useReadGachaPricingPremiumBps({
+		address: gacha.address as `0x${string}`,
+	});
+
+	const { writeContract: setPricingConfig, isPending } =
+		useWriteGachaSetPricingConfig();
 
 	const handleSave = () => {
-		if (!newFee) return;
+		if (!newMinFee || !newMaxFee || !newPremiumBps) return;
 
 		try {
-			const feeInWei = parseUnits(newFee, 18);
-			setSpinFee({
+			const minFeeInWei = parseUnits(newMinFee, 18);
+			const maxFeeInWei = parseUnits(newMaxFee, 18);
+			const premiumBps = BigInt(Number(newPremiumBps));
+
+			setPricingConfig({
 				address: gacha.address as `0x${string}`,
-				args: [feeInWei],
+				args: [premiumBps, minFeeInWei, maxFeeInWei],
 			});
 		} catch (error) {
-			console.error("Invalid fee amount:", error);
+			console.error("Invalid pricing config:", error);
 		}
 	};
 
@@ -433,36 +454,101 @@ function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 									})
 								: "0 TOKENS"}
 						</div>
+						<div className="mt-2 text-xs text-foreground/60">
+							Min:{" "}
+							{minSpinFee
+								? formatTokenAmount(minSpinFee, 18, {
+										maxDecimals: 4,
+										suffix: " TOKENS",
+									})
+								: "0 TOKENS"}{" "}
+							• Max:{" "}
+							{maxSpinFee
+								? formatTokenAmount(maxSpinFee, 18, {
+										maxDecimals: 4,
+										suffix: " TOKENS",
+									})
+								: "0 TOKENS"}{" "}
+							• Premium:{" "}
+							{pricingPremiumBps
+								? formatPercentage(Number(pricingPremiumBps) / 100, 2, true)
+								: "0%"}
+						</div>
 					</div>
 				</div>
 
 				<div>
 					<label
-						htmlFor="newSpinFee"
+						htmlFor="newMinSpinFee"
 						className="block text-sm font-medium text-foreground mb-2"
 					>
-						New Spin Fee (in TOKENS)
+						New Min Spin Fee (in TOKENS)
 					</label>
 					<input
-						id="newSpinFee"
+						id="newMinSpinFee"
 						type="number"
-						value={newFee}
-						onChange={(e) => setNewFee(e.target.value)}
+						value={newMinFee}
+						onChange={(e) => setNewMinFee(e.target.value)}
 						className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
-						placeholder="Enter fee amount (e.g., 10.5)"
+						placeholder="Enter min fee (e.g., 10.5)"
 						step="0.01"
 						min="0"
 					/>
 				</div>
 
+				<div>
+					<label
+						htmlFor="newMaxSpinFee"
+						className="block text-sm font-medium text-foreground mb-2"
+					>
+						New Max Spin Fee (in TOKENS)
+					</label>
+					<input
+						id="newMaxSpinFee"
+						type="number"
+						value={newMaxFee}
+						onChange={(e) => setNewMaxFee(e.target.value)}
+						className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
+						placeholder="Enter max fee (e.g., 10.5)"
+						step="0.01"
+						min="0"
+					/>
+				</div>
+
+				<div>
+					<label
+						htmlFor="newPremiumBps"
+						className="block text-sm font-medium text-foreground mb-2"
+					>
+						Pricing Premium (BPS)
+					</label>
+					<input
+						id="newPremiumBps"
+						type="number"
+						value={newPremiumBps}
+						onChange={(e) => setNewPremiumBps(e.target.value)}
+						className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
+						placeholder="Enter premium bps (e.g., 500)"
+						step="1"
+						min="0"
+					/>
+				</div>
+
 				<div className="flex justify-end gap-4">
-					<Button color="glass" onPress={() => setNewFee("")}>
+					<Button
+						color="glass"
+						onPress={() => {
+							setNewMinFee("");
+							setNewMaxFee("");
+							setNewPremiumBps("");
+						}}
+					>
 						Clear
 					</Button>
 					<Button
 						color="glassPrimary"
 						onPress={handleSave}
-						disabled={!newFee}
+						disabled={!newMinFee || !newMaxFee || !newPremiumBps}
 						isLoading={isPending}
 					>
 						Update Fee

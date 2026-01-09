@@ -125,26 +125,72 @@ export function useGachaSpinMachine(
 		eventName: "SpinCompleted",
 		args: userAddress ? { requester: userAddress } : undefined,
 		onLogs(logs) {
-			if (!state.matches("waitingForFulfillment")) return;
+			console.log("🔍 [useWatchContractEvent] SpinCompleted logs received:", {
+				logCount: logs.length,
+				currentState: state.value,
+				currentTriggerId: state.context.triggerId?.toString(),
+				userAddress,
+			});
 
+			// Process logs even if not strictly in waitingForFulfillment state
+			// This handles race conditions where the event fires before confirmTransaction is called
 			for (const log of logs) {
 				const { triggerId, rarity, collection, tokenId } = log.args;
 
-				// Check if this is the event we're waiting for
-				if (triggerId === state.context.triggerId) {
+				console.log("📋 [useWatchContractEvent] Processing log:", {
+					logTriggerId: triggerId?.toString(),
+					rarity,
+					collection,
+					tokenId: tokenId?.toString(),
+				});
+
+				// Accept the event if:
+				// 1. We have a triggerId in the log
+				// 2. We either have a matching triggerId in state OR we're in spinning/waiting state
+				// 3. We haven't already revealed or gone to idle
+				if (
+					triggerId &&
+					!state.matches("revealing") &&
+					!state.matches("idle") &&
+					(state.matches("spinning") ||
+						state.matches("waitingForFulfillment") ||
+						triggerId === state.context.triggerId)
+				) {
 					const result: SpinResult = {
 						rarity: rarityBigIntToName(rarity),
 						collection: collection || "",
 						tokenId: tokenId?.toString() || "",
 					};
 
+					console.log("✅ [useWatchContractEvent] Accepting SpinCompleted! Updating to revealing:", result);
 					updateState("revealing", {
 						spinResult: result,
 						refundResult: null,
 						error: null,
+						triggerId: triggerId, // Update triggerId in state too
 					});
 					onSpinComplete?.();
+
+					// Clean up pending spins if we have user info
+					if (state.context.userAddress && state.context.gachaAddress) {
+						useGachaStore
+							.getState()
+							.removePendingSpin(
+								state.context.userAddress,
+								state.context.gachaAddress,
+							);
+					}
 					break;
+				} else {
+					console.log("⏭️ [useWatchContractEvent] Skipping log - conditions not met:", {
+						hasTriggerId: !!triggerId,
+						hasContextTriggerId: !!state.context.triggerId,
+						triggerIdMatch: triggerId === state.context.triggerId,
+						isSpinning: state.matches("spinning"),
+						isWaiting: state.matches("waitingForFulfillment"),
+						isRevealing: state.matches("revealing"),
+						isIdle: state.matches("idle"),
+					});
 				}
 			}
 		},
@@ -221,17 +267,24 @@ export function useGachaSpinMachine(
 	};
 
 	const confirmTransaction = (triggerId: bigint) => {
+		console.log("📝 [confirmTransaction] Called with triggerId:", triggerId.toString());
 		if (state.context.userAddress && state.context.gachaAddress) {
 			useGachaStore.getState().addPendingSpin({
 				userAddress: state.context.userAddress,
 				gachaAddress: state.context.gachaAddress,
 				triggerId,
 			});
+			console.log("✅ [confirmTransaction] Added to pending spins", {
+				userAddress: state.context.userAddress,
+				gachaAddress: state.context.gachaAddress,
+				triggerId: triggerId.toString(),
+			});
 		}
 		updateState("waitingForFulfillment", {
 			triggerId,
 			retryCount: 0,
 		});
+		console.log("🔄 [confirmTransaction] State updated to waitingForFulfillment");
 	};
 
 	const fulfillSpin = (result: SpinResult) => {

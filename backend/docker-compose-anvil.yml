@@ -4,4 +4,4 @@ services:
     container_name: "${COMPOSE_PROJECT_NAME:-}"
     stop_signal: SIGKILL
     network_mode: "host"
-    command: ["anvil ${COMPOSE_ANVIL_FORK_CMD:-} --port ${COMPOSE_ANVIL_PORT:-}"]
+    command: ["anvil --port ${COMPOSE_ANVIL_PORT:-}"]

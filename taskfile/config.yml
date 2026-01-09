@@ -1,55 +1,53 @@
 version: "3"
 
 vars:
-  REPO_ROOT:
-    # find the root directory of the repository by looking for the `.git` directory.
-    sh: git rev-parse --show-toplevel
-  PROJECT_OUTPUT_DIRNAME: ".project-output"
-  BACKEND_DIR: '{{joinPath .REPO_ROOT "backend"}}'
-  ANVIL_FORK_CHAIN_ID: 31337
-  # Network Configuration
-  ANVIL_HOLESKY_FORK_URL: "https://eth-holesky.g.alchemy.com/v2/Hr83A86i2pYH_ABCxFveDMBmKvhIo_Gi"
-  ANVIL_BASE_PORT: 8548 # Base port for Anvil, subsequent ports will be incremented by 1 for each instance
-  WAVS_BASE_PORT: 8123 # Base port for WAVS, subsequent ports will be incremented by 1 for each instance
-  WAVS_AGGREGATOR_PORT: 8200
+    REPO_ROOT:
+        # find the root directory of the repository by looking for the `.git` directory.
+        sh: git rev-parse --show-toplevel
+    ARCH:
+        sh: uname -m
+    PROJECT_OUTPUT_DIRNAME: ".project-output"
+    BACKEND_DIR: '{{joinPath .REPO_ROOT "backend"}}'
+    ANVIL_FORK_CHAIN_ID: 31337
+    # Network Configuration
+    ANVIL_BASE_PORT: 8547 # First chain on 8548 (base + chain_number)
+    WAVS_BASE_PORT: 8122 # First instance on 8123 (base + instance_number)
+    WAVS_AGGREGATOR_PORT: 8200
 
-  # Timeout Configuration
-  HEALTH_CHECK_TIMEOUT: 5 # seconds to wait for service health checks
-  WAVS_HOME_DIR: '{{joinPath .BACKEND_DIR "wavs-home"}}'
-  WAVS_AGGREGATOR_ENDPOINT: "http://localhost:{{.WAVS_AGGREGATOR_PORT}}"
-  MIDDLEWARE_CHAIN_ID: 17000
-  MIDDLEWARE_METADATA_URI: "https://raw.githubusercontent.com/Lay3rLabs/wavs-foundry-template/refs/heads/main/metadata.json"
-  MIDDLEWARE_LST_CONTRACT_ADDRESS: "0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034"
-  MIDDLEWARE_LST_STRATEGY_ADDRESS: "0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3"
-  WIT_DEFINITIONS_DIR: '{{joinPath .REPO_ROOT "wit-definitions"}}'
-  COMPONENTS_CARGO_RELEASE_DIR: '{{joinPath .REPO_ROOT "target/wasm32-wasip2/release"}}'
-  ABI_EIGENLAYER_MIDDLEWARE_DIR: '{{joinPath .REPO_ROOT "abi/eigenlayer-middleware"}}'
-  ABI_WAVS_MIDDLEWARE_DIR: '{{joinPath .REPO_ROOT "abi/wavs-middleware"}}'
-  DOCKER_SUDO:
-    sh: |
-      if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then 
-        echo ""
-      else 
-        echo "sudo"
-      fi
-  # TESTNET
-  TESTNET_EVM_RPC_URLS: [
-      "https://ethereum-sepolia-rpc.publicnode.com", # NOTE: Do not use holesky for the source chain, because we use an anvil fork for local testing.
-      "https://ethereum-holesky-rpc.publicnode.com",
-      "${TESTNET_EVM_RPC_URL_3}", # Example using a paid endpoint
-    ]
-  TESTNET_EVM_CHAIN_NAMES: ["sepolia", "holesky", "holesky"]
-  TESTNET_CHAIN_COUNT: 3 # Count of testnet chains in TESTNET_EVM_RPC_URLS
-  ACTIVE_CHAIN_COUNT:
-    sh: |
-      docker ps --format '{{"{{"}}.Names{{"}}"}}' | grep 'anvil-' | wc -l | xargs
-  ACTIVE_WAVS_COUNT:
-    sh: |
-      docker ps --format '{{"{{"}}.Names{{"}}"}}' | grep 'wavs-operator-' | wc -l | xargs
-  SUBMIT_DELAY: '{{ternary 1 5 (eq .DEPLOY_ENV "LOCAL")}}'
-  # Transfer Ownership Config
-  AVS_OWNER: "0x1111111111111111111111111111111111111111"
-  PROXY_OWNER: "0x2222222222222222222222222222222222222222"
-  # Aggregator config
-  AGGREGATOR_PROJECT: "aggregator-simple"
-  AGGREGATOR_COMPONENT_NAME: "aggregator_simple"
+    # Timeout Configuration
+    HEALTH_CHECK_TIMEOUT: 30 # seconds to wait for service health checks
+    WAVS_HOME_DIR: '{{joinPath .BACKEND_DIR "wavs-home"}}'
+    WAVS_AGGREGATOR_ENDPOINT: "http://localhost:{{.WAVS_AGGREGATOR_PORT}}"
+    MIDDLEWARE_CHAIN_ID: 17000
+    MIDDLEWARE_METADATA_URI: "https://raw.githubusercontent.com/Lay3rLabs/wavs-foundry-template/refs/heads/main/metadata.json"
+    MIDDLEWARE_LST_CONTRACT_ADDRESS: "0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034"
+    MIDDLEWARE_LST_STRATEGY_ADDRESS: "0x7D704507b76571a51d9caE8AdDAbBFd0ba0e63d3"
+    WIT_DEFINITIONS_DIR: '{{joinPath .REPO_ROOT "wit-definitions"}}'
+    COMPONENTS_CARGO_RELEASE_DIR: '{{joinPath .REPO_ROOT "target/wasm32-wasip2/release"}}'
+    ABI_EIGENLAYER_MIDDLEWARE_DIR: '{{joinPath .REPO_ROOT "abi/eigenlayer-middleware"}}'
+    ABI_WAVS_MIDDLEWARE_DIR: '{{joinPath .REPO_ROOT "abi/wavs-middleware"}}'
+    DOCKER_SUDO:
+        sh: |
+            if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+              echo ""
+            else
+              echo "sudo"
+            fi
+    # TESTNET
+    TESTNET_EVM_RPC_URLS: [
+            "https://ethereum-sepolia-rpc.publicnode.com", # NOTE: Do not use holesky for the source chain, because we use an anvil fork for local testing.
+            "https://ethereum-holesky-rpc.publicnode.com",
+            "${TESTNET_EVM_RPC_URL_3}", # Example using a paid endpoint
+        ]
+    TESTNET_EVM_CHAIN_NAMES: ["sepolia", "holesky", "holesky"]
+    TESTNET_CHAIN_COUNT: 3 # Count of testnet chains in TESTNET_EVM_RPC_URLS
+    SUBMIT_DELAY: '{{ternary 1 5 (eq .DEPLOY_ENV "LOCAL")}}'
+    # Transfer Ownership Config
+    AVS_OWNER: "0x1111111111111111111111111111111111111111"
+    PROXY_OWNER: "0x2222222222222222222222222222222222222222"
+    # AVS Service Config
+    AVS_SERVICE_NAME: "spin_fi"
+    AVS_PROJECT: "avs"
+    # Aggregator config
+    AGGREGATOR_PROJECT: "aggregator-simple"
+    AGGREGATOR_COMPONENT_NAME: "aggregator_simple"

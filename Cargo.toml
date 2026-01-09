@@ -1,5 +1,5 @@
 [workspace]
-members = ["avs/components/*"]
+members = ["packages/*"]
 resolver = "2"
 
 [workspace.package]
