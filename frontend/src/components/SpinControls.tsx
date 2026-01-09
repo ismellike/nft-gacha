@@ -809,6 +809,19 @@ export default function SpinControls({
 				processedTxHash !== spinWithPermitTxHash) ||
 			(isSpinSuccess && spinTxHash && processedTxHash !== spinTxHash)
 		) {
+			// Don't process if already moved past the spinning state (race condition guard)
+			if (gachaSpin.isRevealing || gachaSpin.isIdle) {
+				console.log(
+					"⏭️ [SpinControls] Skipping receipt processing - state already moved to",
+					gachaSpin.state,
+				);
+				const txHash = isSpinWithPermitSuccess
+					? (spinWithPermitTxHash as string)
+					: (spinTxHash as string);
+				setProcessedTxHash(txHash); // Mark as processed to prevent re-checks
+				return;
+			}
+
 			console.log(
 				"📋 [SpinControls] Processing spin transaction receipt:",
 				spinWithPermitTxHash,
@@ -818,8 +831,17 @@ export default function SpinControls({
 			let triggerId: bigint | null = null;
 
 			const receipt = isSpinWithPermitSuccess ? spinReceiptData : spinReceipt;
-			if (!receipt) return;
-			for (const log of receipt.logs) {
+			if (!receipt) {
+				console.warn("⚠️ [SpinControls] No receipt available yet");
+				return;
+			}
+
+			console.log(
+				`🔍 [SpinControls] Searching through ${receipt.logs.length} logs for RandomnessRequested event`,
+			);
+
+			for (let i = 0; i < receipt.logs.length; i++) {
+				const log = receipt.logs[i];
 				try {
 					const decoded = decodeEventLog({
 						abi: [
@@ -841,23 +863,48 @@ export default function SpinControls({
 
 					if (decoded.eventName === "RandomnessRequested") {
 						triggerId = decoded.args.triggerId as bigint;
+						console.log(
+							`✅ [SpinControls] Found RandomnessRequested event at log index ${i}:`,
+							triggerId.toString(),
+						);
 						break;
 					}
-				} catch (_error) {}
+				} catch (error) {
+					// Log each decode error for debugging
+					console.debug(
+						`🔍 [SpinControls] Log ${i} not a RandomnessRequested event:`,
+						{
+							error: (error as Error).message,
+							topics: log.topics.length,
+							hasData: log.data !== "0x",
+						},
+					);
+				}
 			}
 
 			if (triggerId !== null) {
 				console.log(
-					"✅ [SpinControls] Found trigger ID in receipt:",
-					triggerId,
+					"✅ [SpinControls] Confirming transaction with trigger ID:",
+					triggerId.toString(),
 				);
 				gachaSpin.confirmTransaction(triggerId);
-				setProcessedTxHash(
-					isSpinWithPermitSuccess
-						? (spinWithPermitTxHash as string)
-						: (spinTxHash as string),
-				); // Mark as processed
+			} else {
+				console.error(
+					"❌ [SpinControls] RandomnessRequested event not found in receipt! This may indicate a contract issue.",
+					{
+						logCount: receipt.logs.length,
+						txHash: isSpinWithPermitSuccess
+							? spinWithPermitTxHash
+							: spinTxHash,
+					},
+				);
 			}
+
+			// Mark as processed regardless of outcome to prevent infinite loops
+			const txHash = isSpinWithPermitSuccess
+				? (spinWithPermitTxHash as string)
+				: (spinTxHash as string);
+			setProcessedTxHash(txHash);
 
 			// Refetch balance after successful spin
 			refetchBalance();
@@ -874,6 +921,9 @@ export default function SpinControls({
 		refetchBalance,
 		refetchNonce,
 		gachaSpin,
+		gachaSpin.state,
+		gachaSpin.isRevealing,
+		gachaSpin.isIdle,
 		isSpinSuccess,
 		spinTxHash,
 		spinReceipt,

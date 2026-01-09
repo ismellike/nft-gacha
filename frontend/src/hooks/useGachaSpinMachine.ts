@@ -162,6 +162,19 @@ export function useGachaSpinMachine(
 						tokenId: tokenId?.toString() || "",
 					};
 
+					// If we're in "spinning" state, it means confirmTransaction wasn't called yet
+					// We need to add the pending spin to ensure persistence
+					if (state.matches("spinning") && userAddress && contracts.gacha) {
+						console.log(
+							"💾 [useWatchContractEvent] Race condition detected: adding pending spin for persistence",
+						);
+						useGachaStore.getState().addPendingSpin({
+							userAddress,
+							gachaAddress: contracts.gacha,
+							triggerId,
+						});
+					}
+
 					console.log("✅ [useWatchContractEvent] Accepting SpinCompleted! Updating to revealing:", result);
 					updateState("revealing", {
 						spinResult: result,
