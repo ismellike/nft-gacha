@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Modal, ModalContent, ModalBody } from "../ui";
+import { Modal, ModalContent, ModalBody, DialogTitle } from "../ui";
 import { Rarity, getRarityConfig } from "../lib/rarityConfig";
 import { NFTCard } from "./NFTCard";
 import { useEnhancedSpinResult } from "../hooks/useNFTMetadata";
@@ -70,6 +70,10 @@ export default function NFTRevealModal({
 			placement="center"
 		>
 			<ModalContent>
+				{/* Hidden title for screen reader accessibility */}
+				<DialogTitle className="sr-only">
+					{resultRarity} {nftResult.rarity} NFT Revealed
+				</DialogTitle>
 				<ModalBody className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center pointer-events-auto">
 					{/* Close Button - Top Right of Modal */}
 					<motion.button

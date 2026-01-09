@@ -1,7 +1,14 @@
 export { Button, type ButtonProps } from "./Button";
 export { Card, type CardProps } from "./Card";
 export { Chip, type ChipProps } from "./Chip";
-export { Modal, type ModalProps, ModalContent, ModalBody } from "./Modal";
+export {
+	Modal,
+	type ModalProps,
+	ModalContent,
+	ModalBody,
+	DialogTitle,
+	DialogDescription,
+} from "./Modal";
 export {
 	Skeleton,
 	CardSkeleton,

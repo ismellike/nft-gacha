@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
 	useAccount,
 	useWaitForTransactionReceipt,
@@ -46,6 +46,13 @@ export default function SpinControls({
 	const { address: userAddress, isConnected } = useAccount();
 	const chainId = useChainId();
 
+	// Track if component is mounted to avoid hydration mismatch
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	// Local state for permit handling
 	const [permitDeadline, setPermitDeadline] = useState<bigint | null>(null);
 	const [usedSignature, setUsedSignature] = useState<string | null>(null);
@@ -57,12 +64,22 @@ export default function SpinControls({
 	const [countdown, setCountdown] = useState(SPIN_TIMEOUT_SECONDS);
 	const [timeoutStarted, setTimeoutStarted] = useState<number | null>(null);
 
+	// Track last spin fee update for stale data detection
+	const [lastFeeUpdate, setLastFeeUpdate] = useState<number>(Date.now());
+	const [feeStale, setFeeStale] = useState(false);
+	const [feeMismatchError, setFeeMismatchError] = useState(false);
+
+	// Track processed errors to prevent duplicate handling
+	const processedPermitErrorRef = useRef<string | null>(null);
+	const processedSpinErrorRef = useRef<string | null>(null);
+	const processedReceiptErrorRef = useRef<string | null>(null);
+
 	// Get gacha ID and contract addresses
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const { registerRefetch } = useGachaRefresh();
 
-	// Gacha contract data
+	// Gacha contract data with polling for dynamic spin fee
 	const spinFeeQuery = useReadContract({
 		address: contracts.gacha as `0x${string}` | undefined,
 		abi: [
@@ -75,9 +92,34 @@ export default function SpinControls({
 			},
 		],
 		functionName: "getCurrentSpinFee",
-		query: { enabled: !!contracts.gacha },
+		query: {
+			enabled: !!contracts.gacha,
+			refetchInterval: 10000, // Poll every 10 seconds
+		},
 	});
 	const spinFee = spinFeeQuery.data;
+
+	// Update last fee update time when data changes
+	useEffect(() => {
+		if (spinFeeQuery.data) {
+			setLastFeeUpdate(Date.now());
+			setFeeStale(false);
+		}
+	}, [spinFeeQuery.data]);
+
+	// Mark fee as stale after 15 seconds without updates, but clear it if actively fetching
+	useEffect(() => {
+		const interval = setInterval(() => {
+			if (Date.now() - lastFeeUpdate > 15000 && !spinFeeQuery.isFetching) {
+				setFeeStale(true);
+			} else if (spinFeeQuery.isFetching && feeStale) {
+				// Clear stale flag if we're actively fetching fresh data
+				setFeeStale(false);
+			}
+		}, 1000);
+
+		return () => clearInterval(interval);
+	}, [lastFeeUpdate, spinFeeQuery.isFetching, feeStale]);
 
 	const { data: paused } = useReadGachaPaused({
 		address: contracts.gacha as `0x${string}` | undefined,
@@ -254,6 +296,9 @@ export default function SpinControls({
 
 	// Enhanced button text logic using state machine states
 	const getButtonText = () => {
+		// Return consistent text during SSR to prevent hydration mismatch
+		if (!mounted) return "Connect Wallet";
+
 		if (!isConnected) return "Connect Wallet";
 		if (paused) return "Contract Paused";
 		if (isGachaAvailable === false) return "Gacha Unavailable";
@@ -278,6 +323,9 @@ export default function SpinControls({
 	};
 
 	const isButtonDisabled = () => {
+		// Disable button during SSR to prevent hydration mismatch
+		if (!mounted) return true;
+
 		return (
 			!isConnected ||
 			paused ||
@@ -617,6 +665,13 @@ export default function SpinControls({
 	// Handle signature errors (user canceled signing)
 	useEffect(() => {
 		if (signatureError) {
+			// Generate unique error ID to prevent duplicate processing
+			const errorId = `${signatureError.name}-${signatureError.message}`;
+			if (processedPermitErrorRef.current === errorId) {
+				return; // Already processed this error
+			}
+			processedPermitErrorRef.current = errorId;
+
 			// Check if user canceled the signature
 			const errorMessage = signatureError.message.toLowerCase();
 			if (
@@ -668,6 +723,13 @@ export default function SpinControls({
 	// Handle transaction submission errors
 	useEffect(() => {
 		if (spinWithPermitError) {
+			// Generate unique error ID to prevent duplicate processing
+			const errorId = `${spinWithPermitError.name}-${spinWithPermitError.message}`;
+			if (processedReceiptErrorRef.current === errorId) {
+				return; // Already processed this error
+			}
+			processedReceiptErrorRef.current = errorId;
+
 			// Check if user canceled the transaction
 			const errorMessage = String(
 				spinWithPermitError.message || "",
@@ -717,6 +779,21 @@ export default function SpinControls({
 						chainId,
 					},
 				});
+
+				// Check if error is related to fee changes
+				if (
+					errorMessage.includes("fee") ||
+					errorMessage.includes("maxFee") ||
+					errorMessage.includes("insufficient funds") ||
+					(errorMessage.includes("revert") && spinFee)
+				) {
+					console.warn(
+						"⚠️ [SpinControls] Possible fee mismatch - refetching current fee",
+					);
+					setFeeMismatchError(true);
+					spinFeeQuery.refetch();
+					setTimeout(() => setFeeMismatchError(false), 5000);
+				}
 
 				// Check if this might be a permit implementation issue
 				if (
@@ -791,6 +868,13 @@ export default function SpinControls({
 	useEffect(() => {
 		const spinError = spinWait.error;
 		if (spinError) {
+			// Generate unique error ID to prevent duplicate processing
+			const errorId = `${spinError.name}-${spinError.message}`;
+			if (processedSpinErrorRef.current === errorId) {
+				return; // Already processed this error
+			}
+			processedSpinErrorRef.current = errorId;
+
 			// Check if user canceled the transaction
 			const errorMessage = String(spinError.message || "").toLowerCase();
 			if (
@@ -809,11 +893,27 @@ export default function SpinControls({
 					"❌ [SpinControls] Direct spin transaction error:",
 					spinError,
 				);
+
+				// Check if error is related to fee changes
+				if (
+					errorMessage.includes("fee") ||
+					errorMessage.includes("maxFee") ||
+					errorMessage.includes("insufficient funds") ||
+					(errorMessage.includes("revert") && spinFee)
+				) {
+					console.warn(
+						"⚠️ [SpinControls] Possible fee mismatch - refetching current fee",
+					);
+					setFeeMismatchError(true);
+					spinFeeQuery.refetch();
+					setTimeout(() => setFeeMismatchError(false), 5000);
+				}
+
 				gachaSpin.timeout(); // Using timeout as a way to show error state
 				// TODO: Add proper error handling method to the hook
 			}
 		}
-	}, [spinWait.error, gachaSpin]);
+	}, [spinWait.error, gachaSpin, spinFeeQuery]);
 
 	// Handle transaction receipt
 	useEffect(() => {
@@ -866,7 +966,7 @@ export default function SpinControls({
 									{
 										name: "triggerId",
 										type: "uint256",
-										indexed: true,
+										indexed: false,
 									},
 								],
 							},
@@ -1053,7 +1153,16 @@ export default function SpinControls({
 				</div>
 
 				{/* Enhanced Entry Fee Display */}
-				<div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 shadow-inner">
+				<div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 shadow-inner relative">
+					{/* Stale data indicator */}
+					{feeStale && (
+						<div className="absolute -top-2 -right-2 flex items-center gap-1.5 px-2 py-1 bg-danger/20 border border-danger/40 rounded-full animate-pulse">
+							<div className="w-1.5 h-1.5 rounded-full bg-danger animate-ping" />
+							<span className="text-[10px] font-semibold text-danger uppercase">
+								Updating...
+							</span>
+						</div>
+					)}
 					<div className="flex items-center gap-3">
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/30 bg-warning/10">
 							<svg
@@ -1071,17 +1180,47 @@ export default function SpinControls({
 								/>
 							</svg>
 						</div>
-						<div>
-							<p className="text-xs uppercase tracking-wide text-warning/70 font-medium">
-								Entry Fee
-							</p>
+						<div className="flex-1">
+							<div className="flex items-center gap-2">
+								<p className="text-xs uppercase tracking-wide text-warning/70 font-medium">
+									Entry Fee
+								</p>
+								<button
+									type="button"
+									onClick={() => spinFeeQuery.refetch()}
+									disabled={spinFeeQuery.isFetching}
+									className="p-1 rounded hover:bg-warning/20 transition-colors disabled:opacity-50"
+									aria-label="Refresh spin fee"
+									title="Refresh spin fee"
+								>
+									<svg
+										className={`w-3.5 h-3.5 text-warning/70 hover:text-warning ${
+											spinFeeQuery.isFetching ? "animate-spin" : ""
+										}`}
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<title>Refresh</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+										/>
+									</svg>
+								</button>
+							</div>
 							<p className="text-xl font-bold text-warning">
 								{formatSpinFee()}
 							</p>
 						</div>
 					</div>
 					{tokenSymbol && (
-						<p className="text-xs text-warning/60">Per spin in {tokenSymbol}</p>
+						<p className="text-xs text-warning/60">
+							Per spin in {tokenSymbol}
+							{feeStale && " • Updating..."}
+						</p>
 					)}
 				</div>
 			</div>
@@ -1317,6 +1456,42 @@ export default function SpinControls({
 									{contracts.gacha?.slice(-6)}
 								</div>
 							</div>
+						</output>
+					)}
+
+					{/* Fee Mismatch Error Message */}
+					{feeMismatchError && (
+						<output
+							className="animate-fade-in text-center p-4 bg-warning/10 border border-warning/30 rounded-2xl"
+							aria-live="polite"
+						>
+							<div className="flex items-center justify-center gap-2 mb-2">
+								<svg
+									className="w-4 h-4 text-warning"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+									strokeWidth={2}
+								>
+									<title>Warning</title>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"
+									/>
+								</svg>
+								<p className="text-sm font-semibold text-warning">
+									Spin Fee Updated
+								</p>
+							</div>
+							<p className="text-xs text-foreground/70 mb-2">
+								The spin fee has changed. Please check the updated fee above
+								and try again.
+							</p>
+							<p className="text-[10px] text-foreground/50">
+								This happens when the treasury inventory changes from new
+								deposits.
+							</p>
 						</output>
 					)}
 

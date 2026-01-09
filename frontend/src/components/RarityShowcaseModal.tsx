@@ -1,6 +1,6 @@
 "use client";
 
-import { Modal, ModalContent, ModalBody } from "../ui";
+import { Modal, ModalContent, ModalBody, DialogTitle } from "../ui";
 import { motion } from "framer-motion";
 import { useGachaContracts } from "../hooks/useGachaContracts";
 import { useGachaId } from "../hooks/useGachaId";
@@ -61,6 +61,10 @@ export default function RarityShowcaseModal({
 			placement="center"
 		>
 			<ModalContent>
+				{/* Hidden title for screen reader accessibility */}
+				<DialogTitle className="sr-only">
+					{rarityConfig.name} NFT Collection - {normalizedItems?.length || 0} items
+				</DialogTitle>
 				<ModalBody className="relative overflow-hidden p-0 h-[95vh] flex flex-col">
 					{/* Floating Close Button - Top Right */}
 					<motion.button
