@@ -241,7 +241,6 @@ const NFTImage = memo<{
 }>(({ data, metadata, tokenURI, size }) => {
 	const [isLoaded, setIsLoaded] = useState(false);
 	const [hasError, setHasError] = useState(false);
-	const [imageLoadProgress, setImageLoadProgress] = useState(0);
 
 	const rarityConfig =
 		data.rarity !== undefined ? getRarityConfig(data.rarity) : null;
@@ -354,16 +353,13 @@ const NFTImage = memo<{
 						priority={true}
 						unoptimized={imageUrl.includes("courtyard.io")}
 						onLoad={() => {
-							setImageLoadProgress(100);
 							startTransition(() => setIsLoaded(true));
 						}}
 						onLoadingComplete={() => {
-							setImageLoadProgress(100);
 							setIsLoaded(true);
 						}}
 						onError={() => {
 							setHasError(true);
-							setImageLoadProgress(0);
 						}}
 						sizes="(max-width: 640px) 80vw, (max-width: 1024px) 60vw, 40vw"
 					/>
@@ -441,7 +437,7 @@ export const NFTCard = memo<NFTCardProps>(
 						}
 					>
 						<NFTLoadingPlaceholder
-							rarity={rarity}
+							{...(rarity !== undefined && { rarity })}
 							size={
 								size === "xs" || size === "sm"
 									? "sm"

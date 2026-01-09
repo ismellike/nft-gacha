@@ -18,7 +18,7 @@ import {
 	type InteractionMode,
 } from "../stores/nftInteractionStore";
 
-type MaybeFn<T extends (...args: unknown[]) => unknown> = T | undefined;
+type MaybeFn<T> = T | undefined;
 
 type StartInteractionConfig = Parameters<
 	ReturnType<typeof useNFTInteractionStore.getState>["startInteraction"]

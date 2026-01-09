@@ -300,7 +300,7 @@ function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 				},
 			],
 			functionName: "setDynamicWeightsConfig",
-			args: [weights.map((w: number) => BigInt(w))],
+			args: [weights.map((w: number) => BigInt(w)) as unknown as readonly [bigint, bigint, bigint, bigint, bigint]],
 		});
 	};
 

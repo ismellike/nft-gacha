@@ -60,14 +60,12 @@ export function NFTLoadingPlaceholder({
 			initial={{ opacity: 0, scale: 0.95 }}
 			animate={{ opacity: 1, scale: 1 }}
 			transition={{ duration: 0.3 }}
-			style={
-				rarityConfig
-					? {
-							boxShadow: `0 0 20px ${rarityConfig.hexColor}40, inset 0 0 30px ${rarityConfig.hexColor}10`,
-							borderColor: `${rarityConfig.hexColor}60`,
-						}
-					: undefined
-			}
+			{...(rarityConfig && {
+				style: {
+					boxShadow: `0 0 20px ${rarityConfig.hexColor}40, inset 0 0 30px ${rarityConfig.hexColor}10`,
+					borderColor: `${rarityConfig.hexColor}60`,
+				}
+			})}
 		>
 			{/* Glassmorphism layers */}
 			<div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent" />
@@ -237,7 +235,7 @@ export function NFTLoadingPlaceholder({
 										: {}
 								}
 							>
-								{rarityConfig.symbol}
+								{rarityConfig.emoji}
 							</motion.div>
 						)}
 					</div>

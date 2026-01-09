@@ -637,7 +637,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const withdrawSearch = "";
 	const deferredWithdrawSearch = withdrawSearch;
 	const collectionFilter = "all";
-	const sortMode: "rarity" | "value" | "recent" = "rarity";
+	const sortMode: "rarity" | "value" | "recent" = "rarity" as "rarity" | "value" | "recent";
 	const showSelectedOnly = false;
 
 	// Contract data
@@ -1091,8 +1091,12 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 					const bTime = Number(b.depositTimestamp ?? 0n);
 					return bTime - aTime;
 				}
-				default:
+				case "rarity":
 					return b.currentRarity - a.currentRarity;
+				default: {
+					const exhaustiveCheck: never = sortMode;
+					return exhaustiveCheck;
+				}
 			}
 		});
 

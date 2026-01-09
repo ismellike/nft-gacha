@@ -100,18 +100,10 @@ export const useGachaStore = create<GachaStore>()(
                             abi: gachaAbi,
                             functionName: "spinRequests",
                             args: [spin.triggerId],
-                        })) as readonly [
-                            string,
-                            boolean,
-                            boolean,
-                            bigint,
-                            bigint,
-                        ]; // [requester, fulfilled, exists, feePaid, timestamp]
+                        })) as readonly [bigint, bigint, string, number]; // [feePaid, requestTime, requester, statusFlags]
 
-                        const [requester, fulfilled] = [
-                            spinRequest[0],
-                            spinRequest[1],
-                        ];
+                        const [, , requester, statusFlags] = spinRequest;
+                        const fulfilled = (statusFlags & 1) === 1; // bit 0 = fulfilled
 
                         // Keep the spin if it exists and isn't fulfilled and belongs to the right user
                         const requesterLower =

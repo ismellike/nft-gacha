@@ -112,10 +112,14 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 						<div className="flex justify-between items-center">
 							<span className="text-gray-300">Total Revenue Processed</span>
 							<span className="text-xl font-bold text-white">
-								<TokenAmountDisplay
-									amount={economyData.totalRevenueProcessed}
-									showUsd={true}
-								/>
+								{economyData.totalRevenueProcessed !== undefined ? (
+									<TokenAmountDisplay
+										amount={economyData.totalRevenueProcessed}
+										showUsd={true}
+									/>
+								) : (
+									"—"
+								)}
 							</span>
 						</div>
 					</Card>

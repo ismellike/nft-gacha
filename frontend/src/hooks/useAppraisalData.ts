@@ -310,9 +310,9 @@ export const useAppraisalData = (
 	useWatchNftAppraisalServiceHandlerAppraisalProcessed({
 		address: contracts.appraisalServiceHandler as `0x${string}` | undefined,
 		enabled: !!contracts.appraisalServiceHandler && !!address,
-		listener: (logs) => {
-			const shouldRefetch = logs.some((log) => {
-				const { collection, tokenId } = (log.args || {}) as {
+		onLogs: (logs: unknown[]) => {
+			const shouldRefetch = logs.some((log: unknown) => {
+				const { collection, tokenId } = (((log as { args?: unknown }).args) || {}) as {
 					collection?: `0x${string}`;
 					tokenId?: bigint;
 				};
@@ -330,9 +330,9 @@ export const useAppraisalData = (
 	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived({
 		address: contracts.appraisalServiceHandler as `0x${string}` | undefined,
 		enabled: !!contracts.appraisalServiceHandler && !!address,
-		listener: (logs) => {
-			const shouldRefetch = logs.some((log) => {
-				const { contractAddress, tokenId } = (log.args || {}) as {
+		onLogs: (logs: unknown[]) => {
+			const shouldRefetch = logs.some((log: unknown) => {
+				const { contractAddress, tokenId } = (((log as { args?: unknown }).args) || {}) as {
 					contractAddress?: `0x${string}`;
 					tokenId?: bigint;
 				};
@@ -343,7 +343,9 @@ export const useAppraisalData = (
 
 			if (shouldRefetch) {
 				// Mark a user-visible error, then trigger a refresh so UI can drop optimistic entries
-				setError(address, "Appraisal failed to process");
+				if (address) {
+					setError(address, "Appraisal failed to process");
+				}
 				fetchUserAppraisals();
 			}
 		},

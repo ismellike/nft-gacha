@@ -379,7 +379,6 @@ export function NFTAppraisalForm({
 				],
 				functionName: "requestAppraisal",
 				args: [formData.collection as `0x${string}`, BigInt(formData.tokenId)],
-				value: 0n,
 			});
 			setSubmissionTxHash(submissionHash);
 			const submissionReceipt = await publicClient.waitForTransactionReceipt({
@@ -462,12 +461,12 @@ export function NFTAppraisalForm({
 	useWatchNftAppraisalServiceHandlerAppraisalProcessed({
 		address: contracts.appraisalServiceHandler as `0x${string}` | undefined,
 		enabled: !!contracts.appraisalServiceHandler && !!lastSubmittedRef.current,
-		listener: (logs) => {
+		onLogs: (logs: unknown[]) => {
 			const latest = lastSubmittedRef.current;
 			if (!latest) return;
 
 			for (const log of logs) {
-				const { collection, tokenId, priceUSD, success, timestamp } = (log.args ||
+				const { collection, tokenId, priceUSD, success, timestamp } = (((log as { args?: unknown }).args) ||
 					{}) as {
 					collection?: `0x${string}`;
 					tokenId?: bigint;
@@ -523,12 +522,12 @@ export function NFTAppraisalForm({
 	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived({
 		address: contracts.appraisalServiceHandler as `0x${string}` | undefined,
 		enabled: !!contracts.appraisalServiceHandler && !!lastSubmittedRef.current,
-		listener: (logs) => {
+		onLogs: (logs: unknown[]) => {
 			const latest = lastSubmittedRef.current;
 			if (!latest) return;
 
 			for (const log of logs) {
-				const { contractAddress, tokenId, error } = (log.args || {}) as {
+				const { contractAddress, tokenId, error } = (((log as { args?: unknown }).args) || {}) as {
 					contractAddress?: `0x${string}`;
 					tokenId?: bigint;
 					error?: string;
@@ -562,12 +561,12 @@ export function NFTAppraisalForm({
 	useWatchNftAppraisalAppraisalStatusChanged({
 		address: contracts.appraisal as `0x${string}` | undefined,
 		enabled: !!contracts.appraisal && !!lastSubmittedRef.current,
-		listener: (logs) => {
+		onLogs: (logs: unknown[]) => {
 			const latest = lastSubmittedRef.current;
 			if (!latest) return;
 
 			for (const log of logs) {
-				const { collection, tokenId, newStatus } = (log.args || {}) as {
+				const { collection, tokenId, newStatus } = (((log as { args?: unknown }).args) || {}) as {
 					collection?: `0x${string}`;
 					tokenId?: bigint;
 					newStatus?: bigint | number;
