@@ -241,6 +241,7 @@ const NFTImage = memo<{
 }>(({ data, metadata, tokenURI, size }) => {
 	const [isLoaded, setIsLoaded] = useState(false);
 	const [hasError, setHasError] = useState(false);
+	const [imageLoadProgress, setImageLoadProgress] = useState(0);
 
 	const rarityConfig =
 		data.rarity !== undefined ? getRarityConfig(data.rarity) : null;
@@ -300,15 +301,41 @@ const NFTImage = memo<{
 					}),
 				}}
 			>
-				{!isLoaded && (
-					<div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm">
-						<motion.div
-							className="w-6 h-6 border-2 border-t-transparent rounded-full"
-							animate={{ rotate: 360 }}
-							transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-						/>
-					</div>
-				)}
+				{/* Enhanced loading overlay with blur effect */}
+				<motion.div
+					className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-md"
+					initial={{ opacity: 1 }}
+					animate={{ opacity: isLoaded ? 0 : 1 }}
+					transition={{ duration: 0.5 }}
+				>
+					{!isLoaded && (
+						<>
+							{/* Rarity-themed loading spinner */}
+							<motion.div
+								className={cn(
+									"border-2 border-t-transparent rounded-full",
+									size === "xs" || size === "sm" ? "w-6 h-6" : "w-8 h-8",
+								)}
+								style={{
+									borderColor: rarityConfig
+										? `${rarityConfig.hexColor}40`
+										: "rgba(255,255,255,0.2)",
+									borderTopColor: rarityConfig
+										? rarityConfig.hexColor
+										: "#f59e0b",
+								}}
+								animate={{ rotate: 360 }}
+								transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+							/>
+
+							{/* Blur preview effect */}
+							<div
+								className="absolute inset-0 bg-cover bg-center opacity-30 blur-xl"
+								style={{ backgroundImage: `url(${imageUrl})` }}
+							/>
+						</>
+					)}
+				</motion.div>
 
 				<div
 					className={cn(
@@ -321,13 +348,23 @@ const NFTImage = memo<{
 						alt={metadata?.name || `NFT ${data.tokenId}`}
 						fill
 						className={cn(
-							"object-cover transition-opacity duration-300",
-							isLoaded ? "opacity-100" : "opacity-0",
+							"object-cover transition-all duration-500",
+							isLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-xl",
 						)}
 						priority={true}
 						unoptimized={imageUrl.includes("courtyard.io")}
-						onLoad={() => startTransition(() => setIsLoaded(true))}
-						onError={() => setHasError(true)}
+						onLoad={() => {
+							setImageLoadProgress(100);
+							startTransition(() => setIsLoaded(true));
+						}}
+						onLoadingComplete={() => {
+							setImageLoadProgress(100);
+							setIsLoaded(true);
+						}}
+						onError={() => {
+							setHasError(true);
+							setImageLoadProgress(0);
+						}}
 						sizes="(max-width: 640px) 80vw, (max-width: 1024px) 60vw, 40vw"
 					/>
 				</div>
@@ -386,7 +423,7 @@ export const NFTCard = memo<NFTCardProps>(
 		const themeStyles = GLASS_THEME;
 		const sizeStyles = SIZE_CONFIG[size];
 
-		// Loading state with better UX
+		// Loading state with better UX - pass rarity for themed loading
 		if (isLoading && !metadata?.tokenURI) {
 			return (
 				<div
@@ -399,9 +436,12 @@ export const NFTCard = memo<NFTCardProps>(
 					)}
 				>
 					<Suspense
-						fallback={<div className="animate-pulse bg-white/10 rounded-lg" />}
+						fallback={
+							<div className="animate-pulse bg-white/10 rounded-lg h-full w-full" />
+						}
 					>
 						<NFTLoadingPlaceholder
+							rarity={rarity}
 							size={
 								size === "xs" || size === "sm"
 									? "sm"
