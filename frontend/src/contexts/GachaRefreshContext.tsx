@@ -109,15 +109,18 @@ export function useGachaRefresh(): GachaRefreshContextValue {
 /**
  * Hook to automatically register a refetch function
  * Cleans up on unmount
+ *
+ * @param refetchFn - The refetch function to register
+ * @returns The refresh version for tracking refresh cycles
  */
-export function useGachaRefetch(refetchFn: RefetchFunction, deps: any[] = []) {
+export function useGachaRefetch(refetchFn: RefetchFunction) {
 	const { registerRefetch, refreshVersion } = useGachaRefresh();
 
 	// Register refetch function
 	useCallback(() => {
 		const cleanup = registerRefetch(refetchFn);
 		return cleanup;
-	}, deps);
+	}, [refetchFn, registerRefetch]);
 
 	return { refreshVersion };
 }

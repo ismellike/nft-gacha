@@ -101,7 +101,12 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 
 		// Cleanup on unmount
 		return cleanup;
-	}, [registerRefetch, rarityCountsQuery, rarityWeightsQuery, averageRarityValuesQuery]);
+	}, [
+		registerRefetch,
+		rarityCountsQuery,
+		rarityWeightsQuery,
+		averageRarityValuesQuery,
+	]);
 
 	// Convert rarity weights to percentages (weights are in basis points, total 10000)
 	const getRarityPercentage = (index: number): number => {

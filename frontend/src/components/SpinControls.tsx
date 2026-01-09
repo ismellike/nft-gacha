@@ -637,7 +637,8 @@ export default function SpinControls({
 						maxFee: maxFee?.toString(),
 						signature: `${signature.slice(0, 10)}...`,
 						rawSignature: signature,
-						expectedFunction: "spinWithPermit(uint256,uint8,bytes32,bytes32,uint256)",
+						expectedFunction:
+							"spinWithPermit(uint256,uint8,bytes32,bytes32,uint256)",
 					},
 				);
 
@@ -836,6 +837,7 @@ export default function SpinControls({
 		usedSignature,
 		tokenName,
 		chainId,
+		spinFeeQuery.refetch,
 	]);
 
 	// Handle transaction receipt errors
@@ -913,7 +915,7 @@ export default function SpinControls({
 				// TODO: Add proper error handling method to the hook
 			}
 		}
-	}, [spinWait.error, gachaSpin, spinFeeQuery]);
+	}, [spinWait.error, gachaSpin, spinFeeQuery, spinFee]);
 
 	// Handle transaction receipt
 	useEffect(() => {
@@ -1007,9 +1009,7 @@ export default function SpinControls({
 					"❌ [SpinControls] RandomnessRequested event not found in receipt! This may indicate a contract issue.",
 					{
 						logCount: receipt.logs.length,
-						txHash: isSpinWithPermitSuccess
-							? spinWithPermitTxHash
-							: spinTxHash,
+						txHash: isSpinWithPermitSuccess ? spinWithPermitTxHash : spinTxHash,
 					},
 				);
 			}
@@ -1334,11 +1334,7 @@ export default function SpinControls({
 									>
 										{isReclaimPending ? "Reclaiming..." : "Reclaim Funds"}
 									</Button>
-									<Button
-										color="default"
-										size="sm"
-										onPress={gachaSpin.reset}
-									>
+									<Button color="default" size="sm" onPress={gachaSpin.reset}>
 										Try Again
 									</Button>
 									<p className="text-xs text-foreground/50">
@@ -1382,7 +1378,9 @@ export default function SpinControls({
 									</p>
 									<div className="space-y-2">
 										<div className="bg-content1/20 rounded-lg p-3">
-											<p className="text-xs font-medium mb-1">Refund Details:</p>
+											<p className="text-xs font-medium mb-1">
+												Refund Details:
+											</p>
 											<p className="text-sm">
 												<span className="font-semibold">Rarity:</span>{" "}
 												{gachaSpin.refundResult.selectedRarity}
@@ -1405,7 +1403,8 @@ export default function SpinControls({
 											Try Another Spin
 										</Button>
 										<p className="text-xs text-foreground/50">
-											Your funds have been automatically returned to your wallet.
+											Your funds have been automatically returned to your
+											wallet.
 										</p>
 									</div>
 								</div>
@@ -1485,8 +1484,8 @@ export default function SpinControls({
 								</p>
 							</div>
 							<p className="text-xs text-foreground/70 mb-2">
-								The spin fee has changed. Please check the updated fee above
-								and try again.
+								The spin fee has changed. Please check the updated fee above and
+								try again.
 							</p>
 							<p className="text-[10px] text-foreground/50">
 								This happens when the treasury inventory changes from new

@@ -114,7 +114,8 @@ export default function LandingPage() {
 								className={glassBadge({
 									variant: "primary",
 									size: "lg",
-									className: "hover:border-warning/50 gap-3 px-5 py-2.5 rounded-2xl",
+									className:
+										"hover:border-warning/50 gap-3 px-5 py-2.5 rounded-2xl",
 								})}
 							>
 								<CpuChipIcon className="w-5 h-5 text-warning" />
@@ -265,7 +266,8 @@ export default function LandingPage() {
 										className={glassCard({
 											variant: "base",
 											padding: "lg",
-											className: "h-full text-center rounded-3xl hover:border-warning/30 group",
+											className:
+												"h-full text-center rounded-3xl hover:border-warning/30 group",
 										})}
 									>
 										{/* Icon Container */}
@@ -384,7 +386,8 @@ export default function LandingPage() {
 							className={glassCard({
 								variant: "base",
 								padding: "lg",
-								className: "text-center rounded-3xl border-warning/30 shadow-2xl shadow-warning/10 bg-gradient-to-br from-content1/20 via-content1/10 to-content1/20",
+								className:
+									"text-center rounded-3xl border-warning/30 shadow-2xl shadow-warning/10 bg-gradient-to-br from-content1/20 via-content1/10 to-content1/20",
 							})}
 						>
 							<div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-r from-warning via-orange-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-warning/40">

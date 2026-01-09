@@ -348,7 +348,9 @@ const NFTImage = memo<{
 						fill
 						className={cn(
 							"object-cover transition-all duration-500",
-							isLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-xl",
+							isLoaded
+								? "opacity-100 scale-100 blur-0"
+								: "opacity-0 scale-105 blur-xl",
 						)}
 						priority={true}
 						unoptimized={imageUrl.includes("courtyard.io")}

@@ -221,110 +221,110 @@ function GachaDetailPageContent() {
 		<BuybackNotificationProvider gachaId={gachaId}>
 			<GachaRefreshProvider>
 				<div className="min-h-screen bg-transparent">
-				{/* Global contract status announcer */}
-				<div className="fixed top-4 right-4 z-50 max-w-sm">
-					<ContractStatusAnnouncer status={contractStatus} compact />
-				</div>
-				<header className="mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
-					<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-						<div className="flex items-start gap-4">
-							<Button
-								className="p-2 rounded-xl border border-white/20 bg-content1/20 text-foreground hover:bg-content1/30 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
-								onPress={() => router.push("/discover")}
-								aria-label="Go back to discovery page"
-							>
-								<ArrowLeftIcon className="w-5 h-5" />
-							</Button>
-							<div className="space-y-1">
-								<Chip color="success" size="sm">
-									<span
-										className="flex h-2 w-2 rounded-full bg-success"
-										aria-hidden="true"
-									/>
-									Live
-								</Chip>
-								<h1 className="text-xl font-semibold text-foreground md:text-3xl">
-									{gacha.title}
-								</h1>
-								<p className="text-sm text-foreground/60 md:text-base max-w-2xl">
-									{gacha.description}
-								</p>
+					{/* Global contract status announcer */}
+					<div className="fixed top-4 right-4 z-50 max-w-sm">
+						<ContractStatusAnnouncer status={contractStatus} compact />
+					</div>
+					<header className="mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+						<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+							<div className="flex items-start gap-4">
+								<Button
+									className="p-2 rounded-xl border border-white/20 bg-content1/20 text-foreground hover:bg-content1/30 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
+									onPress={() => router.push("/discover")}
+									aria-label="Go back to discovery page"
+								>
+									<ArrowLeftIcon className="w-5 h-5" />
+								</Button>
+								<div className="space-y-1">
+									<Chip color="success" size="sm">
+										<span
+											className="flex h-2 w-2 rounded-full bg-success"
+											aria-hidden="true"
+										/>
+										Live
+									</Chip>
+									<h1 className="text-xl font-semibold text-foreground md:text-3xl">
+										{gacha.title}
+									</h1>
+									<p className="text-sm text-foreground/60 md:text-base max-w-2xl">
+										{gacha.description}
+									</p>
+								</div>
+							</div>
+							<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-content1/20 px-4 py-3 text-sm text-foreground/70">
+								<div className="flex flex-col">
+									<span className="text-xs uppercase tracking-wide text-foreground/50">
+										Status
+									</span>
+									<span className="font-medium text-success">Operational</span>
+								</div>
 							</div>
 						</div>
-						<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-content1/20 px-4 py-3 text-sm text-foreground/70">
-							<div className="flex flex-col">
-								<span className="text-xs uppercase tracking-wide text-foreground/50">
-									Status
-								</span>
-								<span className="font-medium text-success">Operational</span>
-							</div>
-						</div>
+
+						<FlowSwitcher
+							className="mt-8"
+							options={flowOptions}
+							activeId={activeSection}
+							onSelect={(section) => selectSection(section as FlowOption["id"])}
+						/>
+					</header>
+
+					{/* Error messages for contract reads */}
+					<div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+						{(isGachaOwnerError ||
+							isTreasuryOwnerError ||
+							isRewardsOwnerError) && (
+							<InlineRetryMessage
+								type="contract"
+								message="Failed to load owner permissions. Some admin features may be unavailable."
+								className="mb-4"
+							/>
+						)}
 					</div>
 
-					<FlowSwitcher
-						className="mt-8"
-						options={flowOptions}
-						activeId={activeSection}
-						onSelect={(section) => selectSection(section as FlowOption["id"])}
-					/>
-				</header>
+					<div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+						<motion.div
+							key={activeSection}
+							initial={{ opacity: 0, y: 24 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.35 }}
+						>
+							{activeSection === "spin" && (
+								<SpinSection
+									title="Spin & win provably fair NFT rewards"
+									description="Leverage WAVS randomness to reveal vaulted NFTs with real-time transaction feedback across every step of the spin."
+								/>
+							)}
 
-				{/* Error messages for contract reads */}
-				<div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-					{(isGachaOwnerError ||
-						isTreasuryOwnerError ||
-						isRewardsOwnerError) && (
-						<InlineRetryMessage
-							type="contract"
-							message="Failed to load owner permissions. Some admin features may be unavailable."
-							className="mb-4"
-						/>
-					)}
-				</div>
+							{activeSection === "vault" && (
+								<VaultSection
+									title="Manage vault and withdraw yield"
+									description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
+								/>
+							)}
 
-				<div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-					<motion.div
-						key={activeSection}
-						initial={{ opacity: 0, y: 24 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.35 }}
-					>
-						{activeSection === "spin" && (
-							<SpinSection
-								title="Spin & win provably fair NFT rewards"
-								description="Leverage WAVS randomness to reveal vaulted NFTs with real-time transaction feedback across every step of the spin."
-							/>
-						)}
+							{activeSection === "economy" && (
+								<EconomySection
+									title="Gacha Economy Overview"
+									description="Track protocol revenue, depositor yields, and treasury performance for this specific gacha."
+								/>
+							)}
 
-						{activeSection === "vault" && (
-							<VaultSection
-								title="Manage vault and withdraw yield"
-								description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
-							/>
-						)}
-
-						{activeSection === "economy" && (
-							<EconomySection
-								title="Gacha Economy Overview"
-								description="Track protocol revenue, depositor yields, and treasury performance for this specific gacha."
-							/>
-						)}
-
-						{activeSection === "admin" &&
-							(isLoadingOwnerData ? (
-								<div className="space-y-6">
-									<div className="grid gap-6 lg:grid-cols-3">
-										<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
-										<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
-										<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+							{activeSection === "admin" &&
+								(isLoadingOwnerData ? (
+									<div className="space-y-6">
+										<div className="grid gap-6 lg:grid-cols-3">
+											<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+											<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+											<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+										</div>
 									</div>
-								</div>
-							) : (
-								gacha && <AdminSection gacha={gacha} />
-							))}
-					</motion.div>
+								) : (
+									gacha && <AdminSection gacha={gacha} />
+								))}
+						</motion.div>
+					</div>
 				</div>
-			</div>
 			</GachaRefreshProvider>
 		</BuybackNotificationProvider>
 	);

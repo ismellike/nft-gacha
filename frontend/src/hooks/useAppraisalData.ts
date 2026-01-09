@@ -312,7 +312,8 @@ export const useAppraisalData = (
 		enabled: !!contracts.appraisalServiceHandler && !!address,
 		onLogs: (logs: unknown[]) => {
 			const shouldRefetch = logs.some((log: unknown) => {
-				const { collection, tokenId } = (((log as { args?: unknown }).args) || {}) as {
+				const { collection, tokenId } = ((log as { args?: unknown }).args ||
+					{}) as {
 					collection?: `0x${string}`;
 					tokenId?: bigint;
 				};
@@ -332,7 +333,8 @@ export const useAppraisalData = (
 		enabled: !!contracts.appraisalServiceHandler && !!address,
 		onLogs: (logs: unknown[]) => {
 			const shouldRefetch = logs.some((log: unknown) => {
-				const { contractAddress, tokenId } = (((log as { args?: unknown }).args) || {}) as {
+				const { contractAddress, tokenId } = ((log as { args?: unknown })
+					.args || {}) as {
 					contractAddress?: `0x${string}`;
 					tokenId?: bigint;
 				};

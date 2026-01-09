@@ -126,11 +126,14 @@ export const pollForSpinFulfillment = async ({
 				const fromBlock =
 					currentBlock > BigInt(1000) ? currentBlock - BigInt(1000) : BigInt(0);
 
-				console.log(`🔍 [pollForSpinFulfillment] Polling attempt ${attempts}:`, {
-					currentBlock: currentBlock.toString(),
-					fromBlock: fromBlock.toString(),
-					triggerId: triggerId.toString(),
-				});
+				console.log(
+					`🔍 [pollForSpinFulfillment] Polling attempt ${attempts}:`,
+					{
+						currentBlock: currentBlock.toString(),
+						fromBlock: fromBlock.toString(),
+						triggerId: triggerId.toString(),
+					},
+				);
 
 				const completedLogs = await publicClient.getLogs({
 					address: gachaAddress as `0x${string}`,
@@ -154,7 +157,9 @@ export const pollForSpinFulfillment = async ({
 					toBlock: currentBlock,
 				});
 
-				console.log(`📋 [pollForSpinFulfillment] Found ${completedLogs.length} SpinCompleted logs`);
+				console.log(
+					`📋 [pollForSpinFulfillment] Found ${completedLogs.length} SpinCompleted logs`,
+				);
 
 				if (completedLogs.length > 0) {
 					const log = completedLogs[0];

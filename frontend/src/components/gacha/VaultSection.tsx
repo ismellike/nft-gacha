@@ -637,7 +637,10 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const withdrawSearch = "";
 	const deferredWithdrawSearch = withdrawSearch;
 	const collectionFilter = "all";
-	const sortMode: "rarity" | "value" | "recent" = "rarity" as "rarity" | "value" | "recent";
+	const sortMode: "rarity" | "value" | "recent" = "rarity" as
+		| "rarity"
+		| "value"
+		| "recent";
 	const showSelectedOnly = false;
 
 	// Contract data

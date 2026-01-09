@@ -175,7 +175,10 @@ export function useGachaSpinMachine(
 						});
 					}
 
-					console.log("✅ [useWatchContractEvent] Accepting SpinCompleted! Updating to revealing:", result);
+					console.log(
+						"✅ [useWatchContractEvent] Accepting SpinCompleted! Updating to revealing:",
+						result,
+					);
 					updateState("revealing", {
 						spinResult: result,
 						refundResult: null,
@@ -195,15 +198,18 @@ export function useGachaSpinMachine(
 					}
 					break;
 				} else {
-					console.log("⏭️ [useWatchContractEvent] Skipping log - conditions not met:", {
-						hasTriggerId: !!triggerId,
-						hasContextTriggerId: !!state.context.triggerId,
-						triggerIdMatch: triggerId === state.context.triggerId,
-						isSpinning: state.matches("spinning"),
-						isWaiting: state.matches("waitingForFulfillment"),
-						isRevealing: state.matches("revealing"),
-						isIdle: state.matches("idle"),
-					});
+					console.log(
+						"⏭️ [useWatchContractEvent] Skipping log - conditions not met:",
+						{
+							hasTriggerId: !!triggerId,
+							hasContextTriggerId: !!state.context.triggerId,
+							triggerIdMatch: triggerId === state.context.triggerId,
+							isSpinning: state.matches("spinning"),
+							isWaiting: state.matches("waitingForFulfillment"),
+							isRevealing: state.matches("revealing"),
+							isIdle: state.matches("idle"),
+						},
+					);
 				}
 			}
 		},
@@ -280,7 +286,10 @@ export function useGachaSpinMachine(
 	};
 
 	const confirmTransaction = (triggerId: bigint) => {
-		console.log("📝 [confirmTransaction] Called with triggerId:", triggerId.toString());
+		console.log(
+			"📝 [confirmTransaction] Called with triggerId:",
+			triggerId.toString(),
+		);
 		if (state.context.userAddress && state.context.gachaAddress) {
 			useGachaStore.getState().addPendingSpin({
 				userAddress: state.context.userAddress,
@@ -297,7 +306,9 @@ export function useGachaSpinMachine(
 			triggerId,
 			retryCount: 0,
 		});
-		console.log("🔄 [confirmTransaction] State updated to waitingForFulfillment");
+		console.log(
+			"🔄 [confirmTransaction] State updated to waitingForFulfillment",
+		);
 	};
 
 	const fulfillSpin = (result: SpinResult) => {

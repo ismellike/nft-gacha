@@ -102,9 +102,10 @@ export function NFTAppraisalForm({
 	const [submissionOutcome, setSubmissionOutcome] = useState<
 		"pending" | "success" | "refunded" | "failed" | null
 	>(null);
-	const lastSubmittedRef = useRef<{ collection: string; tokenId: string } | null>(
-		null,
-	);
+	const lastSubmittedRef = useRef<{
+		collection: string;
+		tokenId: string;
+	} | null>(null);
 
 	const state = useMemo(
 		() => ({
@@ -246,7 +247,8 @@ export function NFTAppraisalForm({
 
 	const needsApproval = () => {
 		// Prefer on-chain allowance; if not yet loaded, we'll check at submission time
-		if (appraisalFee === undefined || currentAllowance === undefined) return false;
+		if (appraisalFee === undefined || currentAllowance === undefined)
+			return false;
 		return currentAllowance < appraisalFee;
 	};
 
@@ -308,13 +310,17 @@ export function NFTAppraisalForm({
 				// Track this submission optimistically so watcher hooks can react to handler events
 				useNFTAppraisalStore
 					.getState()
-					.addOptimisticSubmission(userAddress, formData.collection, formData.tokenId);
+					.addOptimisticSubmission(
+						userAddress,
+						formData.collection,
+						formData.tokenId,
+					);
 			}
 
 			// Fetch a fresh allowance to avoid unnecessary approvals for users already approved
 			let allowance = currentAllowance;
 			if (allowance === undefined) {
-				allowance = await publicClient.readContract({
+				allowance = (await publicClient.readContract({
 					address: feeToken as `0x${string}`,
 					abi: [
 						{
@@ -329,8 +335,11 @@ export function NFTAppraisalForm({
 						},
 					],
 					functionName: "allowance",
-					args: [userAddress as `0x${string}`, contracts.appraisal as `0x${string}`],
-				}) as bigint;
+					args: [
+						userAddress as `0x${string}`,
+						contracts.appraisal as `0x${string}`,
+					],
+				})) as bigint;
 			}
 
 			const approvalNeeded =
@@ -466,8 +475,9 @@ export function NFTAppraisalForm({
 			if (!latest) return;
 
 			for (const log of logs) {
-				const { collection, tokenId, priceUSD, success, timestamp } = (((log as { args?: unknown }).args) ||
-					{}) as {
+				const { collection, tokenId, priceUSD, success, timestamp } = ((
+					log as { args?: unknown }
+				).args || {}) as {
 					collection?: `0x${string}`;
 					tokenId?: bigint;
 					priceUSD?: bigint;
@@ -498,18 +508,14 @@ export function NFTAppraisalForm({
 						],
 					});
 					if (userAddress) {
-						useNFTAppraisalStore
-							.getState()
-							.refreshUserAppraisals(userAddress);
+						useNFTAppraisalStore.getState().refreshUserAppraisals(userAddress);
 					}
 				} else {
 					setSubmissionOutcome("failed");
 					setAppraisalError("Appraisal processing failed.");
 					setStatus("error");
 					if (userAddress) {
-						useNFTAppraisalStore
-							.getState()
-							.refreshUserAppraisals(userAddress);
+						useNFTAppraisalStore.getState().refreshUserAppraisals(userAddress);
 					}
 				}
 
@@ -527,7 +533,8 @@ export function NFTAppraisalForm({
 			if (!latest) return;
 
 			for (const log of logs) {
-				const { contractAddress, tokenId, error } = (((log as { args?: unknown }).args) || {}) as {
+				const { contractAddress, tokenId, error } = ((log as { args?: unknown })
+					.args || {}) as {
 					contractAddress?: `0x${string}`;
 					tokenId?: bigint;
 					error?: string;
@@ -547,9 +554,7 @@ export function NFTAppraisalForm({
 				);
 				setStatus("error");
 				if (userAddress) {
-					useNFTAppraisalStore
-						.getState()
-						.refreshUserAppraisals(userAddress);
+					useNFTAppraisalStore.getState().refreshUserAppraisals(userAddress);
 				}
 				lastSubmittedRef.current = null;
 				break;
@@ -566,7 +571,8 @@ export function NFTAppraisalForm({
 			if (!latest) return;
 
 			for (const log of logs) {
-				const { collection, tokenId, newStatus } = (((log as { args?: unknown }).args) || {}) as {
+				const { collection, tokenId, newStatus } = ((log as { args?: unknown })
+					.args || {}) as {
 					collection?: `0x${string}`;
 					tokenId?: bigint;
 					newStatus?: bigint | number;
@@ -590,7 +596,13 @@ export function NFTAppraisalForm({
 					setAppraisalResult({
 						collection: latest.collection,
 						tokenId: latest.tokenId,
-						appraisalData: [true, appraisalFee ?? BigInt(0), BigInt(0), "", BigInt(Date.now())],
+						appraisalData: [
+							true,
+							appraisalFee ?? BigInt(0),
+							BigInt(0),
+							"",
+							BigInt(Date.now()),
+						],
 					});
 				} else if (statusValue === 0) {
 					// Still pending; keep waiting
@@ -906,9 +918,9 @@ export function NFTAppraisalForm({
 											</span>
 										</p>
 										<p className="text-xs text-gray-500 mt-1">
-											If USDC isn’t approved yet, we’ll prompt an approval first,
-											then send the appraisal in the same flow—just confirm the
-											wallet prompts we show you.
+											If USDC isn’t approved yet, we’ll prompt an approval
+											first, then send the appraisal in the same flow—just
+											confirm the wallet prompts we show you.
 										</p>
 										{userBalance !== undefined && (
 											<p className="text-xs text-gray-600">
@@ -976,16 +988,21 @@ export function NFTAppraisalForm({
 							{approvalTxHash && (
 								<p className="text-xs text-foreground/50">
 									Approval tx submitted:{" "}
-									<span className="font-mono">{formatHash(approvalTxHash)}</span>
+									<span className="font-mono">
+										{formatHash(approvalTxHash)}
+									</span>
 									. Waiting for confirmation...
 								</p>
 							)}
 							{submissionTxHash && (
 								<p className="text-xs text-foreground/50">
 									Appraisal tx submitted:{" "}
-									<span className="font-mono">{formatHash(submissionTxHash)}</span>
+									<span className="font-mono">
+										{formatHash(submissionTxHash)}
+									</span>
 									.{" "}
-									{submissionOutcome === "pending" && "Waiting for confirmation..."}
+									{submissionOutcome === "pending" &&
+										"Waiting for confirmation..."}
 									{submissionOutcome === "success" && "Confirmed on-chain."}
 									{submissionOutcome === "refunded" &&
 										"Appraisal was refunded. You can retry anytime."}

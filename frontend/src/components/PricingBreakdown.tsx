@@ -112,6 +112,7 @@ export function PricingBreakdown({ className = "" }: PricingBreakdownProps) {
 					</h3>
 				</div>
 				<button
+					type="button"
 					onClick={() => setShowDetails(!showDetails)}
 					className="text-foreground/50 hover:text-foreground transition-colors"
 					aria-label={showDetails ? "Hide details" : "Show details"}
@@ -151,10 +152,10 @@ export function PricingBreakdown({ className = "" }: PricingBreakdownProps) {
 			{showDetails && (
 				<div className="p-4 border-t border-white/10 space-y-3 bg-content1/10">
 					<p className="text-xs text-foreground/70 leading-relaxed">
-						<strong className="text-foreground">How pricing works:</strong>{" "}
-						Spin fees are dynamically calculated based on the average value of
-						NFTs in the treasury. The expected value (EV) represents the fair
-						market value of a spin, and a premium is added for protocol revenue.
+						<strong className="text-foreground">How pricing works:</strong> Spin
+						fees are dynamically calculated based on the average value of NFTs
+						in the treasury. The expected value (EV) represents the fair market
+						value of a spin, and a premium is added for protocol revenue.
 					</p>
 
 					<div className="space-y-2 text-xs text-foreground/60">

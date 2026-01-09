@@ -28,7 +28,11 @@ export function NFTLoadingPlaceholder({
 		sm: { container: "w-32 h-32", icon: "w-10 h-10", textSize: "text-xs" },
 		md: { container: "w-80 h-80", icon: "w-20 h-20", textSize: "text-sm" },
 		lg: { container: "w-96 h-96", icon: "w-32 h-32", textSize: "text-base" },
-		xl: { container: "w-[480px] h-[480px]", icon: "w-40 h-40", textSize: "text-lg" },
+		xl: {
+			container: "w-[480px] h-[480px]",
+			icon: "w-40 h-40",
+			textSize: "text-lg",
+		},
 	};
 
 	const classes = sizeClasses[size];
@@ -64,7 +68,7 @@ export function NFTLoadingPlaceholder({
 				style: {
 					boxShadow: `0 0 20px ${rarityConfig.hexColor}40, inset 0 0 30px ${rarityConfig.hexColor}10`,
 					borderColor: `${rarityConfig.hexColor}60`,
-				}
+				},
 			})}
 		>
 			{/* Glassmorphism layers */}
@@ -274,11 +278,19 @@ export function NFTLoadingPlaceholder({
 							<motion.div
 								className={cn(
 									"rounded-2xl border-2 border-t-transparent mx-auto",
-									size === "sm" ? "w-8 h-8" : size === "md" ? "w-12 h-12" : "w-16 h-16",
+									size === "sm"
+										? "w-8 h-8"
+										: size === "md"
+											? "w-12 h-12"
+											: "w-16 h-16",
 								)}
 								style={{
-									borderColor: rarityConfig ? `${rarityConfig.hexColor}40` : "rgba(255,255,255,0.2)",
-									borderTopColor: rarityConfig ? rarityConfig.hexColor : "#f59e0b",
+									borderColor: rarityConfig
+										? `${rarityConfig.hexColor}40`
+										: "rgba(255,255,255,0.2)",
+									borderTopColor: rarityConfig
+										? rarityConfig.hexColor
+										: "#f59e0b",
 								}}
 								animate={{ rotate: 360 }}
 								transition={{
@@ -308,35 +320,33 @@ export function NFTLoadingPlaceholder({
 			)}
 
 			{/* Animated corner accents */}
-			{animate && !error && (
-				<>
-					{[
-						"top-2 left-2",
-						"top-2 right-2",
-						"bottom-2 left-2",
-						"bottom-2 right-2",
-					].map((position, i) => (
-						<motion.div
-							key={position}
-							className={cn(
-								"absolute w-2 h-2 rounded-full",
-								rarityConfig ? "bg-white/40" : "bg-white/30",
-								position,
-							)}
-							animate={{
-								opacity: [0.3, 0.8, 0.3],
-								scale: [1, 1.5, 1],
-							}}
-							transition={{
-								duration: 2,
-								repeat: Infinity,
-								delay: i * 0.2,
-								ease: "easeInOut",
-							}}
-						/>
-					))}
-				</>
-			)}
+			{animate &&
+				!error &&
+				[
+					"top-2 left-2",
+					"top-2 right-2",
+					"bottom-2 left-2",
+					"bottom-2 right-2",
+				].map((position, i) => (
+					<motion.div
+						key={position}
+						className={cn(
+							"absolute w-2 h-2 rounded-full",
+							rarityConfig ? "bg-white/40" : "bg-white/30",
+							position,
+						)}
+						animate={{
+							opacity: [0.3, 0.8, 0.3],
+							scale: [1, 1.5, 1],
+						}}
+						transition={{
+							duration: 2,
+							repeat: Infinity,
+							delay: i * 0.2,
+							ease: "easeInOut",
+						}}
+					/>
+				))}
 		</motion.div>
 	);
 }
