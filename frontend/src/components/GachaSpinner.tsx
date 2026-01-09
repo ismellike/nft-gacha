@@ -3,6 +3,7 @@
 import { useState, memo, useCallback } from "react";
 import SpinControls from "./SpinControls";
 import RarityBreakdown from "./RarityBreakdown";
+import { PricingBreakdown } from "./PricingBreakdown";
 import NFTRevealModal from "./NFTRevealModal";
 import { useGachaSpinMachine } from "../hooks/useGachaSpinMachine";
 import { useGachaContracts } from "../hooks/useGachaContracts";
@@ -77,9 +78,10 @@ const GachaSpinner = memo(() => {
 					/>
 				</div>
 
-				{/* Rarity Information - Mobile First */}
+				{/* Left Column - Rarity Info & Pricing */}
 				<div className="space-y-8">
 					<RarityBreakdown key={`breakdown-${refreshTrigger}`} />
+					<PricingBreakdown />
 				</div>
 
 				{/* Desktop Left Column - Spin Controls */}
