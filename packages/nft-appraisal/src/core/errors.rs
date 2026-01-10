@@ -1,8 +1,8 @@
 use alloy_primitives::{Address, U256};
 use alloy_sol_types::sol;
 
-use crate::wavs::types::events::TriggerDataEvmContractEvent;
 use crate::core::payload::AppraisalIdentity;
+use crate::wavs::types::events::TriggerDataEvmContractEvent;
 
 sol!("../../contracts/src/interfaces/NFTAppraisalTypes.sol");
 

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 
 use crate::core::cache::AppraisalCache;
-use crate::resolvers::ScrydexPokemonResolver;
+use crate::resolvers::scrydex::ScrydexPokemonResolver;
 use crate::traits::pricing::{PriceResolver, ResolverQuote};
 use crate::types::{ResolverKind, ResolverRoute};
 

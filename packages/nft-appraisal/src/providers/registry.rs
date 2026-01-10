@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 
-use crate::providers::CourtyardProvider;
+use crate::providers::courtyard::CourtyardProvider;
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
 use crate::types::ProviderType;
 

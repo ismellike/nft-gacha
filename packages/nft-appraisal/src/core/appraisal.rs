@@ -55,10 +55,7 @@ impl AppraisalProcessor {
             &evm_event.log.tx_hash,
         );
 
-        Ok(AppraisalResponse {
-            identity,
-            price,
-        })
+        Ok(AppraisalResponse { identity, price })
     }
 
     fn describe_token(&self, request: &AppraisalRequest) -> Result<TokenDescriptor> {
@@ -102,7 +99,6 @@ impl AppraisalProcessor {
             .resolve_with_cache(&route, &self.context.cache)
             .await
     }
-
 }
 
 #[derive(Debug)]
@@ -144,7 +140,7 @@ fn scale_to_usdc6(p: f64) -> Option<U256> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::resolver_registry::ResolverRegistry;
+    use crate::resolvers::ResolverRegistry;
     use crate::types::ResolverRoute;
 
     #[test]

@@ -1,5 +1,6 @@
 //! Provider implementations for NFT metadata and pricing
 
 pub mod courtyard;
+pub mod registry;
 
-pub use courtyard::CourtyardProvider;
+pub use registry::{ProviderRegistry, RegisteredProvider};

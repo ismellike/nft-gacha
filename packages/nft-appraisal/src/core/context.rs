@@ -4,10 +4,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 
 use crate::core::cache::AppraisalCache;
-use crate::core::provider_registry::{ProviderRegistry, RegisteredProvider};
-use crate::core::resolver_registry::{RegisteredResolver, ResolverRegistry};
-use crate::providers::CourtyardProvider;
-use crate::resolvers::ScrydexPokemonResolver;
+use crate::providers::courtyard::CourtyardProvider;
+use crate::providers::{ProviderRegistry, RegisteredProvider};
+use crate::resolvers::scrydex::ScrydexPokemonResolver;
+use crate::resolvers::{RegisteredResolver, ResolverRegistry};
 use crate::utils::ERC721Client;
 
 /// Boundary trait so the processor can fetch token URIs without depending on a concrete client.
@@ -60,9 +60,10 @@ impl AppraisalContext {
     /// Construct context from environment configuration. Fails fast if required config is missing.
     pub fn from_env() -> Result<Self> {
         let cache = Arc::new(AppraisalCache::default());
-        let providers = ProviderRegistry::new(vec![RegisteredProvider::Courtyard(
-            CourtyardProvider::new(),
-        )]);
+        let providers =
+            ProviderRegistry::new(vec![
+                RegisteredProvider::Courtyard(CourtyardProvider::new()),
+            ]);
         let scrydex = ScrydexPokemonResolver::from_env()?;
         let resolvers = ResolverRegistry::new(vec![RegisteredResolver::Scrydex(scrydex)]);
         Ok(Self::new(

@@ -1,3 +1,5 @@
+pub mod registry;
+pub mod scrydex;
 pub mod scrydex_resolver;
 
-pub use scrydex_resolver::ScrydexPokemonResolver;
+pub use registry::{RegisteredResolver, ResolverRegistry};
