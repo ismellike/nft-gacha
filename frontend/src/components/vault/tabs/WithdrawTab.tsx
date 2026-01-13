@@ -91,10 +91,10 @@ export function WithdrawTab({
 			id="withdraw-panel"
 			role="tabpanel"
 			aria-labelledby="withdraw-tab"
-			className="space-y-4 sm:space-y-6"
+			className="space-y-6 sm:space-y-8"
 		>
 			{/* Header */}
-			<header className="space-y-2">
+			<header className="space-y-3">
 				<h2 className="text-xl sm:text-2xl font-semibold text-foreground">
 					Withdraw NFTs
 				</h2>
@@ -115,9 +115,9 @@ export function WithdrawTab({
 						initial={{ opacity: 0, y: 10 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -10 }}
-						className="rounded-xl border border-dashed border-white/10 bg-content1/20 p-6 sm:p-8 text-center"
+						className="rounded-xl border border-dashed border-white/10 bg-content1/20 p-8 sm:p-10 text-center"
 					>
-						<p className="mb-2 text-base sm:text-lg font-medium text-foreground">
+						<p className="mb-3 text-base sm:text-lg font-medium text-foreground">
 							No NFTs ready to withdraw
 						</p>
 						<p className="text-sm text-foreground/60">
@@ -126,7 +126,7 @@ export function WithdrawTab({
 						</p>
 					</motion.div>
 				) : (
-					<div className="space-y-4">
+					<div className="space-y-6">
 						<h3 className="text-lg font-semibold text-foreground">
 							Your Vault NFTs
 						</h3>

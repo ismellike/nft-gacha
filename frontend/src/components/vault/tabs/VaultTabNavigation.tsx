@@ -40,7 +40,7 @@ export function VaultTabNavigation({
 			role="tablist"
 			aria-label="Vault management tabs"
 			className={cn(
-				"flex flex-wrap gap-2 p-1 bg-content1/20 rounded-xl",
+				"flex flex-wrap gap-3 sm:gap-4 p-1 bg-content1/20 rounded-xl mb-6 sm:mb-8",
 				className,
 			)}
 		>

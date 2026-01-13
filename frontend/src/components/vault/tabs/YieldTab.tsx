@@ -43,10 +43,10 @@ export function YieldTab({
 			id="yield-panel"
 			role="tabpanel"
 			aria-labelledby="yield-tab"
-			className="space-y-4 sm:space-y-6"
+			className="space-y-6 sm:space-y-8"
 		>
 			{/* Header */}
-			<header className="space-y-2">
+			<header className="space-y-3">
 				<h2 className="text-xl sm:text-2xl font-semibold text-foreground">
 					Yield Information
 				</h2>
@@ -55,15 +55,15 @@ export function YieldTab({
 				</p>
 			</header>
 
-			<div className="space-y-4">
+			<div className="space-y-6">
 				{/* Yield Summary Card */}
 				<motion.article
-					className="bg-content1/30 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-white/10"
+					className="bg-content1/30 backdrop-blur-xl rounded-xl p-6 sm:p-8 border border-white/10"
 					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.1 }}
 				>
-					<div className="flex items-center justify-between mb-4">
+					<div className="flex items-center justify-between mb-6">
 						<h3 className="text-base sm:text-lg font-medium text-foreground">
 							Yield Summary
 						</h3>
@@ -82,8 +82,8 @@ export function YieldTab({
 						)}
 					</div>
 
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						<div className="space-y-1">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+						<div className="space-y-2">
 							<h4 className="text-xs sm:text-sm font-medium text-foreground/60">
 								Pending Yield
 							</h4>
@@ -94,7 +94,7 @@ export function YieldTab({
 								USDC
 							</p>
 						</div>
-						<div className="space-y-1">
+						<div className="space-y-2">
 							<h4 className="text-xs sm:text-sm font-medium text-foreground/60">
 								Total Earned
 							</h4>
@@ -110,16 +110,16 @@ export function YieldTab({
 
 				{/* Your Position Card */}
 				<motion.article
-					className="bg-content1/30 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-white/10"
+					className="bg-content1/30 backdrop-blur-xl rounded-xl p-6 sm:p-8 border border-white/10"
 					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.2 }}
 				>
-					<h3 className="text-base sm:text-lg font-medium text-foreground mb-4">
+					<h3 className="text-base sm:text-lg font-medium text-foreground mb-6">
 						Your Position
 					</h3>
-					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-						<div className="space-y-1">
+					<div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+						<div className="space-y-2">
 							<h4 className="text-xs sm:text-sm font-medium text-foreground/60">
 								Your Shares
 							</h4>
@@ -127,7 +127,7 @@ export function YieldTab({
 								{depositorUserData?.shares?.toString() || "0"}
 							</p>
 						</div>
-						<div className="space-y-1">
+						<div className="space-y-2">
 							<h4 className="text-xs sm:text-sm font-medium text-foreground/60">
 								Total Vault Shares
 							</h4>
@@ -135,7 +135,7 @@ export function YieldTab({
 								{depositorData?.totalShares?.toString() || "0"}
 							</p>
 						</div>
-						<div className="space-y-1">
+						<div className="space-y-2">
 							<h4 className="text-xs sm:text-sm font-medium text-foreground/60">
 								Share Ownership
 							</h4>

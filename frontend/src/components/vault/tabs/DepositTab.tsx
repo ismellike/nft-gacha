@@ -55,10 +55,10 @@ export function DepositTab({
 			id="deposit-panel"
 			role="tabpanel"
 			aria-labelledby="deposit-tab"
-			className="space-y-4 sm:space-y-6"
+			className="space-y-6 sm:space-y-8"
 		>
 			{/* Header */}
-			<header className="space-y-2">
+			<header className="space-y-3">
 				<h2 className="text-xl sm:text-2xl font-semibold text-foreground">
 					Deposit NFTs
 				</h2>

@@ -320,7 +320,7 @@ export function useGachaSpinMachine(
 		onSpinComplete?.();
 	};
 
-	const closeReveal = () => updateState("idle", { spinResult: null });
+	const closeReveal = () => updateState("idle", { spinResult: null, triggerId: null });
 	const retry = () => {
 		if (state.context.retryCount < MAX_RETRIES) {
 			updateState("waitingForFulfillment", {
