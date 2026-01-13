@@ -41,9 +41,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	const publicClient = usePublicClient();
 
 	// Store selectors/actions
+	const store = useNFTInteractionStore();
+	const activeState = store.getActiveInteraction();
+	const status = activeState?.status ?? "idle";
+	const context = activeState?.context ?? null;
 	const {
-		status,
-		context,
 		startInteraction: storeStart,
 		setStatus,
 		markApprovalSubmitted,
@@ -51,7 +53,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		markInteractionSubmitted,
 		markInteractionSuccess,
 		setError,
-		reset,
+		resetInteraction: reset,
 	} = useNFTInteractionStore();
 
 	// Wagmi writes
@@ -59,7 +61,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		writeContractAsync: approveCollection,
 		reset: resetNFTApproval,
 		data: nftApprovalTxHash,
-		isSuccess: isNFTApprovalSuccess,
 	} = useWriteErc721SetApprovalForAll();
 
 	const {
@@ -86,6 +87,9 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	const { data: redemptionReceipt } = useWaitForTransactionReceipt({
 		hash: redemptionTxHash,
 	});
+	const { data: nftApprovalReceipt } = useWaitForTransactionReceipt({
+		hash: nftApprovalTxHash,
+	});
 
 	const startInteraction = useCallback(
 		(
@@ -108,7 +112,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			}
 
 			// Prevent overlapping interactions for the same NFT unless completed
-			const currentKey = `${context.collection ?? ""}-${context.tokenId ?? ""}`;
+			const currentKey = `${context?.collection ?? ""}-${context?.tokenId ?? ""}`;
 			const nextKey = `${collection}-${tokenId}`;
 			if (
 				status !== "idle" &&
@@ -144,8 +148,8 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			storeStart(startConfig);
 		},
 		[
-			context.collection,
-			context.tokenId,
+			context?.collection,
+			context?.tokenId,
 			publicClient,
 			setError,
 			status,
@@ -156,7 +160,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 
 	// Kick off approval automatically when entering checkingApprovals
 	const maybeStartApproval = useCallback(async () => {
-		if (status !== "checkingApprovals") return;
+		if (status !== "checkingApprovals" || !context) return;
 
 		const { collection, treasuryAddress, protocolTreasuryAddress, mode } =
 			context;
@@ -220,7 +224,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 
 	// Deposit action for deposits or redemption for buybacks when awaitingInteractionSignature
 	const maybeExecuteAction = useCallback(async () => {
-		if (status !== "awaitingInteractionSignature") return;
+		if (status !== "awaitingInteractionSignature" || !context) return;
 		const {
 			collection,
 			tokenId,
@@ -289,11 +293,15 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	]);
 
 	// --- Wagmi event reactions ---
+	// Wait for NFT approval receipt before transitioning
 	useEffect(() => {
-		if (isNFTApprovalSuccess && nftApprovalTxHash) {
+		if (nftApprovalReceipt?.status === "success" && nftApprovalTxHash) {
 			markApprovalReceipt(nftApprovalTxHash);
 		}
-	}, [isNFTApprovalSuccess, markApprovalReceipt, nftApprovalTxHash]);
+		if (nftApprovalReceipt?.status === "reverted") {
+			setError("NFT approval transaction reverted. Please try again.");
+		}
+	}, [nftApprovalReceipt, markApprovalReceipt, nftApprovalTxHash, setError]);
 
 	useEffect(() => {
 		if (isDepositSuccess && depositTxHash) {
@@ -354,7 +362,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				setError("Transaction reverted on-chain. Please try again.");
 				return;
 			}
-			if (receipt?.status === "success" && context.interactionTxHash) {
+			if (receipt?.status === "success" && context?.interactionTxHash) {
 				markInteractionSuccess(context.interactionTxHash);
 				if (params.onSuccess) params.onSuccess(context.interactionTxHash);
 				if (
@@ -370,9 +378,9 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			}
 		}
 	}, [
-		context.interactionTxHash,
-		context.mode,
-		context.payoutAmount,
+		context?.interactionTxHash,
+		context?.mode,
+		context?.payoutAmount,
 		depositReceipt,
 		markInteractionSuccess,
 		params,
@@ -408,10 +416,10 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			return { type: "completed", label: "Completed" } as const;
 		}
 		if (status === "error") {
-			return { type: "error", label: context.error || "Error" } as const;
+			return { type: "error", label: context?.error || "Error" } as const;
 		}
 		return { type: "idle", label: "" } as const;
-	}, [context.error, status]);
+	}, [context?.error, status]);
 
 	const isProcessing = useMemo(() => {
 		return (
@@ -426,10 +434,10 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		// state
 		currentState: status,
 		context,
-		error: context.error,
+		error: context?.error,
 		isLoading: isProcessing,
 		isCompleted: status === "completed",
-		successData: context.success,
+		successData: context?.success,
 
 		// actions
 		startInteraction,

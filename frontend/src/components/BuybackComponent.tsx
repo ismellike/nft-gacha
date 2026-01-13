@@ -314,7 +314,7 @@ export default function BuybackComponent({
 	const handleAction = useCallback(async () => {
 		console.log("🎯 BuybackComponent handleAction called", {
 			currentState,
-			contextMode: (context as { mode?: string }).mode,
+			contextMode: context?.mode,
 			isSuccessState,
 			isProcessing,
 			error,

@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../../ui";
 import NFTGrid from "../cards/NFTGrid";
 import WithdrawNFTCard from "../cards/WithdrawNFTCard";
@@ -18,7 +17,6 @@ interface NFTWithCollection {
 interface WithdrawTabProps {
 	filteredWithdrawableNFTs: NFTWithCollection[];
 	totalDepositedNFTs: number;
-	isLoadingWithdrawals: boolean;
 	withdrawingNFT: { collection: `0x${string}`; tokenId: bigint } | null;
 	onWithdrawNFT: (collection: `0x${string}`, tokenId: bigint) => void;
 	onSwitchToDeposit?: () => void;
@@ -30,35 +28,11 @@ const createNFTKey = (collection: string, tokenId: string | bigint): string =>
 export function WithdrawTab({
 	filteredWithdrawableNFTs,
 	totalDepositedNFTs,
-	isLoadingWithdrawals,
 	withdrawingNFT,
 	onWithdrawNFT,
 	onSwitchToDeposit,
 }: WithdrawTabProps) {
 	const hasDeposits = totalDepositedNFTs > 0;
-
-	// Loading state
-	if (isLoadingWithdrawals) {
-		return (
-			<section
-				id="withdraw-panel"
-				role="tabpanel"
-				aria-labelledby="withdraw-tab"
-				className="py-12"
-			>
-				<motion.div
-					className="text-center"
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-				>
-					<ArrowPathIcon className="mx-auto mb-4 h-12 w-12 sm:h-16 sm:w-16 animate-spin text-foreground/30" />
-					<p className="text-sm sm:text-base text-foreground/60">
-						Loading your deposited NFTs...
-					</p>
-				</motion.div>
-			</section>
-		);
-	}
 
 	// Empty state - no deposits at all
 	if (!hasDeposits) {

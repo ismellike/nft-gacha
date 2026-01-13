@@ -18,17 +18,17 @@ type InteractionSuccess = {
 	txHash: string;
 	payoutAmount: bigint;
 	completedAt: number;
-	collection: string | null;
-	tokenId: string | null;
+	collection: string;
+	tokenId: string;
 };
 
 type InteractionContext = {
-	collection: string | null;
-	tokenId: string | null;
-	treasuryAddress: string | null;
+	collection: string;
+	tokenId: string;
+	treasuryAddress: string;
 	protocolTreasuryAddress: string | null;
-	userAddress: string | null;
-	publicClient: PublicClient | null;
+	userAddress: string;
+	publicClient: PublicClient;
 	nftApprovalNeeded: boolean;
 	hasAppraisal: boolean;
 	appraisalPrice: bigint | null;
@@ -39,6 +39,13 @@ type InteractionContext = {
 	success: InteractionSuccess | null;
 	mode: InteractionMode;
 };
+
+type InteractionState = {
+	status: InteractionStatus;
+	context: InteractionContext | null;
+};
+
+type InteractionKey = `${InteractionMode}:${string}:${string}`;
 
 type StartConfig = {
 	collection: string;
@@ -54,8 +61,8 @@ type StartConfig = {
 };
 
 type InteractionStore = {
-	status: InteractionStatus;
-	context: InteractionContext;
+	interactions: Map<InteractionKey, InteractionState>;
+	activeInteraction: InteractionKey | null;
 	startInteraction: (config: StartConfig) => void;
 	setStatus: (status: InteractionStatus) => void;
 	markApprovalSubmitted: (txHash: string) => void;
@@ -63,96 +70,192 @@ type InteractionStore = {
 	markInteractionSubmitted: (txHash: string) => void;
 	markInteractionSuccess: (txHash: string) => void;
 	setError: (message: string) => void;
-	reset: () => void;
+	resetInteraction: () => void;
+	resetAll: () => void;
+	getActiveInteraction: () => InteractionState | null;
 };
 
-const initialContext: InteractionContext = {
-	collection: null,
-	tokenId: null,
-	treasuryAddress: null,
-	protocolTreasuryAddress: null,
-	userAddress: null,
-	publicClient: null,
-	nftApprovalNeeded: true,
-	hasAppraisal: false,
-	appraisalPrice: null,
-	payoutAmount: null,
-	interactionTxHash: null,
-	nftApprovalTxHash: null,
-	error: null,
-	success: null,
-	mode: "deposit",
-};
+const createInteractionKey = (
+	mode: InteractionMode,
+	collection: string,
+	tokenId: string,
+): InteractionKey => `${mode}:${collection}:${tokenId}`;
 
-export const useNFTInteractionStore = create<InteractionStore>((set) => ({
-	status: "idle",
-	context: initialContext,
+export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
+	interactions: new Map(),
+	activeInteraction: null,
 
-	startInteraction: (config) =>
-		set(() => ({
-			status: "checkingApprovals",
-			context: {
-				...initialContext,
-				collection: config.collection,
-				tokenId: config.tokenId,
-				mode: config.mode,
-				treasuryAddress: config.treasuryAddress,
-				protocolTreasuryAddress: config.protocolTreasuryAddress || null,
-				userAddress: config.userAddress,
-				publicClient: config.publicClient,
-				hasAppraisal: config.hasAppraisal ?? false,
-				appraisalPrice: config.appraisalPrice ?? null,
-				payoutAmount: config.payoutAmount ?? null,
-				nftApprovalNeeded: true,
-			},
-		})),
+	startInteraction: (config) => {
+		const key = createInteractionKey(
+			config.mode,
+			config.collection,
+			config.tokenId,
+		);
 
-	setStatus: (status) => set(() => ({ status })),
+		const newContext: InteractionContext = {
+			collection: config.collection,
+			tokenId: config.tokenId,
+			mode: config.mode,
+			treasuryAddress: config.treasuryAddress,
+			protocolTreasuryAddress: config.protocolTreasuryAddress || null,
+			userAddress: config.userAddress,
+			publicClient: config.publicClient,
+			hasAppraisal: config.hasAppraisal ?? false,
+			appraisalPrice: config.appraisalPrice ?? null,
+			payoutAmount: config.payoutAmount ?? null,
+			nftApprovalNeeded: true,
+			nftApprovalTxHash: null,
+			interactionTxHash: null,
+			error: null,
+			success: null,
+		};
+
+		set((state) => {
+			const newInteractions = new Map(state.interactions);
+			newInteractions.set(key, {
+				status: "checkingApprovals",
+				context: newContext,
+			});
+			return {
+				interactions: newInteractions,
+				activeInteraction: key,
+			};
+		});
+	},
+
+	setStatus: (status) =>
+		set((state) => {
+			if (!state.activeInteraction) return state;
+			const newInteractions = new Map(state.interactions);
+			const current = newInteractions.get(state.activeInteraction);
+			if (current) {
+				newInteractions.set(state.activeInteraction, {
+					...current,
+					status,
+				});
+			}
+			return { interactions: newInteractions };
+		}),
 
 	markApprovalSubmitted: (txHash) =>
-		set((state) => ({
-			status: "awaitingNFTApprovalReceipt",
-			context: { ...state.context, nftApprovalTxHash: txHash },
-		})),
+		set((state) => {
+			if (!state.activeInteraction) return state;
+			const newInteractions = new Map(state.interactions);
+			const current = newInteractions.get(state.activeInteraction);
+			if (current?.context) {
+				newInteractions.set(state.activeInteraction, {
+					status: "awaitingNFTApprovalReceipt",
+					context: {
+						...current.context,
+						nftApprovalTxHash: txHash,
+					},
+				});
+			}
+			return { interactions: newInteractions };
+		}),
 
 	markApprovalReceipt: (txHash) =>
-		set((state) => ({
-			status: "awaitingInteractionSignature",
-			context: { ...state.context, nftApprovalTxHash: txHash },
-		})),
+		set((state) => {
+			if (!state.activeInteraction) return state;
+			const newInteractions = new Map(state.interactions);
+			const current = newInteractions.get(state.activeInteraction);
+			if (current?.context) {
+				newInteractions.set(state.activeInteraction, {
+					status: "awaitingInteractionSignature",
+					context: {
+						...current.context,
+						nftApprovalTxHash: txHash,
+					},
+				});
+			}
+			return { interactions: newInteractions };
+		}),
 
 	markInteractionSubmitted: (txHash) =>
-		set((state) => ({
-			status: "awaitingInteractionReceipt",
-			context: { ...state.context, interactionTxHash: txHash },
-		})),
+		set((state) => {
+			if (!state.activeInteraction) return state;
+			const newInteractions = new Map(state.interactions);
+			const current = newInteractions.get(state.activeInteraction);
+			if (current?.context) {
+				newInteractions.set(state.activeInteraction, {
+					status: "awaitingInteractionReceipt",
+					context: {
+						...current.context,
+						interactionTxHash: txHash,
+					},
+				});
+			}
+			return { interactions: newInteractions };
+		}),
 
 	markInteractionSuccess: (txHash) =>
-		set((state) => ({
-			status: "completed",
-			context: {
-				...state.context,
-				interactionTxHash: txHash,
-				success:
-					state.context.payoutAmount !== null
+		set((state) => {
+			if (!state.activeInteraction) return state;
+			const newInteractions = new Map(state.interactions);
+			const current = newInteractions.get(state.activeInteraction);
+			if (current?.context) {
+				const success =
+					current.context.payoutAmount !== null
 						? {
-								mode: state.context.mode,
+								mode: current.context.mode,
 								txHash,
-								payoutAmount: state.context.payoutAmount,
+								payoutAmount: current.context.payoutAmount,
 								completedAt: Date.now(),
-								collection: state.context.collection,
-								tokenId: state.context.tokenId,
+								collection: current.context.collection,
+								tokenId: current.context.tokenId,
 							}
-						: null,
-				error: null,
-			},
-		})),
+						: null;
+
+				newInteractions.set(state.activeInteraction, {
+					status: "completed",
+					context: {
+						...current.context,
+						interactionTxHash: txHash,
+						success,
+						error: null,
+					},
+				});
+			}
+			return { interactions: newInteractions };
+		}),
 
 	setError: (message) =>
-		set((state) => ({
-			status: "error",
-			context: { ...state.context, error: message, success: null },
-		})),
+		set((state) => {
+			if (!state.activeInteraction) return state;
+			const newInteractions = new Map(state.interactions);
+			const current = newInteractions.get(state.activeInteraction);
+			if (current?.context) {
+				newInteractions.set(state.activeInteraction, {
+					status: "error",
+					context: {
+						...current.context,
+						error: message,
+						success: null,
+					},
+				});
+			}
+			return { interactions: newInteractions };
+		}),
 
-	reset: () => set({ status: "idle", context: initialContext }),
+	resetInteraction: () =>
+		set((state) => {
+			if (!state.activeInteraction) return state;
+			const newInteractions = new Map(state.interactions);
+			newInteractions.delete(state.activeInteraction);
+			return {
+				interactions: newInteractions,
+				activeInteraction: null,
+			};
+		}),
+
+	resetAll: () => ({
+		interactions: new Map(),
+		activeInteraction: null,
+	}),
+
+	getActiveInteraction: () => {
+		const state = get();
+		if (!state.activeInteraction) return null;
+		return state.interactions.get(state.activeInteraction) ?? null;
+	},
 }));

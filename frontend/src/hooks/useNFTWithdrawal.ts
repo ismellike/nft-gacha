@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { useAccount, useWriteContract } from "wagmi";
 import type { Address } from "viem";
-import { toast } from "react-hot-toast";
 
 // Contract interface for Treasury withdrawal
 const treasuryAbi = [
@@ -29,56 +28,41 @@ export interface WithdrawalRequest {
  */
 export function useNFTWithdrawal(treasury?: Address) {
 	const { address: user } = useAccount();
-	const { writeContract, isPending } = useWriteContract();
+	const { writeContractAsync, isPending } = useWriteContract();
 
 	const withdrawNFT = useCallback(
 		async (collection: Address, tokenId: bigint) => {
 			if (!treasury || !user) {
-				toast.error("Missing treasury address or user wallet");
-				return;
+				throw new Error("Missing treasury address or user wallet");
 			}
 
-			try {
-				await writeContract({
-					address: treasury,
-					abi: treasuryAbi,
-					functionName: "withdrawMyNFT",
-					args: [collection, tokenId],
-				});
-
-				toast.success("NFT withdrawal transaction submitted!");
-			} catch (error) {
-				console.error("Failed to withdraw NFT:", error);
-				toast.error("Failed to withdraw NFT");
-				throw error;
-			}
+			return writeContractAsync({
+				address: treasury,
+				abi: treasuryAbi,
+				functionName: "withdrawMyNFT",
+				args: [collection, tokenId],
+			});
 		},
-		[treasury, user, writeContract],
+		[treasury, user, writeContractAsync],
 	);
 
 	const withdrawMultipleNFTs = useCallback(
 		async (withdrawals: WithdrawalRequest[]) => {
 			if (!treasury || !user || withdrawals.length === 0) {
-				toast.error(
+				throw new Error(
 					"Missing treasury address, user wallet, or withdrawal requests",
 				);
-				return;
 			}
 
-			try {
-				// Process withdrawals sequentially to avoid gas issues
-				for (const withdrawal of withdrawals) {
-					await withdrawNFT(withdrawal.collection, withdrawal.tokenId);
-				}
-
-				toast.success(
-					`Successfully initiated ${withdrawals.length} NFT withdrawals!`,
+			const hashes = [];
+			// Process withdrawals sequentially to avoid gas issues
+			for (const withdrawal of withdrawals) {
+				hashes.push(
+					await withdrawNFT(withdrawal.collection, withdrawal.tokenId),
 				);
-			} catch (error) {
-				console.error("Failed to withdraw multiple NFTs:", error);
-				toast.error("Failed to process NFT withdrawals");
-				throw error;
 			}
+
+			return hashes;
 		},
 		[treasury, user, withdrawNFT],
 	);

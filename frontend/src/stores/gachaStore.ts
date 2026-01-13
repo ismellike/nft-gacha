@@ -104,12 +104,7 @@ export const useGachaStore = create<GachaStore>()(
 						const fulfilled = (statusFlags & 1) === 1; // bit 0 = fulfilled
 
 						// Keep the spin if it exists and isn't fulfilled and belongs to the right user
-						const requesterLower =
-							typeof requester === "string"
-								? requester.toLowerCase()
-								: typeof requester?.toLowerCase === "function"
-									? (requester as { toLowerCase(): string }).toLowerCase()
-									: String(requester).toLowerCase();
+						const requesterLower = String(requester).toLowerCase();
 
 						if (
 							requesterLower === spin.userAddress.toLowerCase() &&

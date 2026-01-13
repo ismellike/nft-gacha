@@ -65,7 +65,6 @@ interface VaultState {
 	appraisedNFTs: Set<string>;
 	appraisalData: Map<string, AppraisalInfo>;
 	depositedNFTs: NFTWithCollection[];
-	isLoadingWithdrawals: boolean;
 	withdrawingNFT: { collection: Address; tokenId: bigint } | null;
 	selectedForWithdrawal: Set<string>; // Multi-select for batch withdrawal
 	isBatchWithdrawing: boolean;
@@ -87,7 +86,6 @@ function useVaultState(initialState: Partial<VaultState> = {}) {
 		appraisedNFTs: new Set(),
 		appraisalData: new Map(),
 		depositedNFTs: [],
-		isLoadingWithdrawals: false,
 		withdrawingNFT: null,
 		selectedForWithdrawal: new Set(),
 		isBatchWithdrawing: false,
@@ -114,7 +112,8 @@ function useVaultState(initialState: Partial<VaultState> = {}) {
 				const newAppraised = new Set(prev.appraisedNFTs);
 				const newAppraisalData = new Map(prev.appraisalData);
 
-				if (hasValidAppraisal && priceUSD) {
+				// Use explicit undefined check instead of truthy check to handle 0n values
+				if (hasValidAppraisal && priceUSD !== undefined) {
 					newAppraised.add(key);
 					newAppraisalData.set(key, { hasAppraisal: true, priceUSD });
 				} else {
@@ -175,88 +174,183 @@ function useAppraisalChecker(
 	React.useEffect(() => {
 		if (!userOwnedNFTs.length || !appraisal || !publicClient) return;
 
+		const appraisalABI = [
+			{
+				name: "hasAppraisal",
+				type: "function",
+				stateMutability: "view",
+				inputs: [
+					{ name: "collection", type: "address" },
+					{ name: "tokenId", type: "uint256" },
+				],
+				outputs: [{ name: "", type: "bool" }],
+			},
+			{
+				name: "getAppraisedPrice",
+				type: "function",
+				stateMutability: "view",
+				inputs: [
+					{ name: "collection", type: "address" },
+					{ name: "tokenId", type: "uint256" },
+				],
+				outputs: [
+					{ name: "priceUSD", type: "uint256" },
+					{ name: "status", type: "uint8" },
+				],
+			},
+		] as const;
+
 		const checkAppraisals = async () => {
-			const appraisalABI = [
-				{
-					name: "hasAppraisal",
-					type: "function",
-					stateMutability: "view",
-					inputs: [
-						{ name: "collection", type: "address" },
-						{ name: "tokenId", type: "uint256" },
-					],
-					outputs: [{ name: "", type: "bool" }],
-				},
-				{
-					name: "getAppraisedPrice",
-					type: "function",
-					stateMutability: "view",
-					inputs: [
-						{ name: "collection", type: "address" },
-						{ name: "tokenId", type: "uint256" },
-					],
-					outputs: [
-						{ name: "priceUSD", type: "uint256" },
-						{ name: "status", type: "uint8" },
-					],
-				},
-			];
+			const abortController = new AbortController();
+			const signal = abortController.signal;
 
-			const checkPromises = userOwnedNFTs.map(async (nft) => {
-				const key = createNFTKey(nft.collection, nft.tokenId);
-
-				try {
-					const hasAppraisalResult = (await publicClient.readContract({
+			try {
+				// Try batch multicall first
+				const contracts = userOwnedNFTs.flatMap((nft) => [
+					{
 						address: appraisal as `0x${string}`,
 						abi: appraisalABI,
-						functionName: "hasAppraisal",
+						functionName: "hasAppraisal" as const,
 						args: [nft.collection as `0x${string}`, nft.tokenId],
-					})) as boolean;
+					},
+					{
+						address: appraisal as `0x${string}`,
+						abi: appraisalABI,
+						functionName: "getAppraisedPrice" as const,
+						args: [nft.collection as `0x${string}`, nft.tokenId],
+					},
+				]);
 
-					let hasValidAppraisal = hasAppraisalResult;
-					let priceUSD: bigint = 0n;
+				let results:
+					| Array<{
+							status: "success" | "failure";
+							result?: unknown;
+						}>
+					| undefined;
 
-					if (hasAppraisalResult) {
+				try {
+					results = await publicClient.multicall({
+						contracts,
+						allowFailure: true,
+					});
+				} catch (multicallError) {
+					// Fallback to sequential calls if multicall isn't supported (e.g., local Anvil chain)
+					console.warn(
+						"Multicall not supported, falling back to sequential calls:",
+						multicallError,
+					);
+
+					// Sequential fallback
+					const sequentialPromises = userOwnedNFTs.map(async (nft) => {
+						if (signal.aborted) return null;
+
 						try {
-							const appraisalData = (await publicClient.readContract({
+							const hasAppraisalResult = (await publicClient.readContract({
 								address: appraisal as `0x${string}`,
 								abi: appraisalABI,
-								functionName: "getAppraisedPrice",
+								functionName: "hasAppraisal",
 								args: [nft.collection as `0x${string}`, nft.tokenId],
-							})) as readonly [bigint, number];
+							})) as boolean;
 
-							const [appraisedPrice, status] = appraisalData;
-							const statusAsNumber = Number(status);
-							hasValidAppraisal =
-								appraisedPrice > 0n &&
-								(statusAsNumber === 1 || statusAsNumber === 2);
-							priceUSD = appraisedPrice;
+							let hasValidAppraisal = hasAppraisalResult;
+							let priceUSD: bigint = 0n;
+
+							if (hasAppraisalResult) {
+								try {
+									const appraisalData = (await publicClient.readContract({
+										address: appraisal as `0x${string}`,
+										abi: appraisalABI,
+										functionName: "getAppraisedPrice",
+										args: [nft.collection as `0x${string}`, nft.tokenId],
+									})) as readonly [bigint, number];
+
+									const [appraisedPrice, status] = appraisalData;
+									const statusAsNumber = Number(status);
+									hasValidAppraisal =
+										appraisedPrice > 0n &&
+										(statusAsNumber === 1 || statusAsNumber === 2);
+									priceUSD = appraisedPrice;
+								} catch (priceError) {
+									console.warn(
+										`Failed to fetch appraisal details for ${createNFTKey(nft.collection, nft.tokenId)}:`,
+										priceError,
+									);
+								}
+							}
+
+							updateAppraisedStatus(
+								nft.collection,
+								nft.tokenId.toString(),
+								hasValidAppraisal,
+								priceUSD,
+							);
+							return null;
 						} catch (error) {
-							console.warn(
-								`Failed to fetch appraisal details for ${key}:`,
+							console.error(
+								`Error checking appraisal for ${createNFTKey(nft.collection, nft.tokenId)}:`,
 								error,
 							);
+							updateAppraisedStatus(
+								nft.collection,
+								nft.tokenId.toString(),
+								false,
+								0n,
+							);
+							return null;
 						}
-					}
+					});
 
-					updateAppraisedStatus(
-						nft.collection,
-						nft.tokenId.toString(),
-						hasValidAppraisal,
-						priceUSD,
-					);
-				} catch (error) {
-					console.error(`Error checking appraisal for ${key}:`, error);
-					updateAppraisedStatus(
-						nft.collection,
-						nft.tokenId.toString(),
-						false,
-						0n,
-					);
+					await Promise.allSettled(sequentialPromises);
+					return;
 				}
-			});
 
-			await Promise.allSettled(checkPromises);
+				// Process multicall results in pairs (hasAppraisal + getAppraisedPrice)
+				if (results) {
+					for (let i = 0; i < userOwnedNFTs.length; i++) {
+						if (signal.aborted) return;
+
+						const nft = userOwnedNFTs[i];
+						const hasAppraisalResult = results[i * 2];
+						const appraisalPriceResult = results[i * 2 + 1];
+
+						let hasValidAppraisal = false;
+						let priceUSD: bigint = 0n;
+
+						if (
+							hasAppraisalResult.status === "success" &&
+							hasAppraisalResult.result === true
+						) {
+							if (
+								appraisalPriceResult.status === "success" &&
+								appraisalPriceResult.result
+							) {
+								const [appraisedPrice, status] = appraisalPriceResult.result as [
+									bigint,
+									number,
+								];
+								const statusAsNumber = Number(status);
+								hasValidAppraisal =
+									appraisedPrice > 0n &&
+									(statusAsNumber === 1 || statusAsNumber === 2);
+								priceUSD = appraisedPrice;
+							}
+						}
+
+						updateAppraisedStatus(
+							nft.collection,
+							nft.tokenId.toString(),
+							hasValidAppraisal,
+							priceUSD,
+						);
+					}
+				}
+			} catch (error) {
+				if (!signal.aborted) {
+					console.error("Error in batch appraisal check:", error);
+				}
+			}
+
+			return () => abortController.abort();
 		};
 
 		checkAppraisals();
@@ -418,44 +512,79 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		(whitelistedCollectionsQuery.data as `0x${string}`[]) || [];
 
 	// Local cache for optimistic updates
-	const [optimisticUserNFTs, setOptimisticUserNFTs] = useState<
+	const [optimisticUserNFTAdds, setOptimisticUserNFTAdds] = useState<
 		UserOwnedNFTMultiCollection[]
 	>([]);
+	const [optimisticUserNFTRemovals, setOptimisticUserNFTRemovals] = useState<
+		Set<string>
+	>(new Set());
 	const [optimisticDepositedNFTs, setOptimisticDepositedNFTs] = useState<
 		NFTWithCollection[]
 	>([]);
+	const [optimisticWithdrawals, setOptimisticWithdrawals] = useState<
+		Set<string>
+	>(new Set());
 
 	const { nfts: userOwnedNFTs, refetch: refetchUserNFTs } =
 		useUserOwnedNFTsMultipleCollections(whitelistedCollections);
 
 	// Merge actual and optimistic data
 	const displayUserNFTs = useMemo(() => {
-		if (optimisticUserNFTs.length > 0) {
-			return optimisticUserNFTs;
+		const filteredBase = userOwnedNFTs.filter((nft) => {
+			const key = createNFTKey(nft.collection, nft.tokenId);
+			return !optimisticUserNFTRemovals.has(key);
+		});
+
+		if (optimisticUserNFTAdds.length === 0) {
+			return filteredBase;
 		}
-		return userOwnedNFTs;
-	}, [userOwnedNFTs, optimisticUserNFTs]);
+
+		const merged = [...filteredBase];
+		for (const nft of optimisticUserNFTAdds) {
+			const key = createNFTKey(nft.collection, nft.tokenId);
+			if (
+				!merged.some(
+					(existing) =>
+						createNFTKey(existing.collection, existing.tokenId) === key,
+				)
+			) {
+				merged.push(nft);
+			}
+		}
+		return merged;
+	}, [userOwnedNFTs, optimisticUserNFTAdds, optimisticUserNFTRemovals]);
 
 	const displayDepositedNFTs = useMemo(() => {
-		return [...optimisticDepositedNFTs, ...state.depositedNFTs].reduce(
-			(acc, nft) => {
+		return [...optimisticDepositedNFTs, ...state.depositedNFTs]
+			.filter((nft) => {
+				// Exclude NFTs being optimistically withdrawn
 				const key = createNFTKey(nft.collection, nft.tokenId);
-				if (
-					!acc.some(
-						(existing) =>
-							createNFTKey(existing.collection, existing.tokenId) === key,
-					)
-				) {
-					acc.push(nft);
-				}
-				return acc;
-			},
-			[] as NFTWithCollection[],
-		);
-	}, [state.depositedNFTs, optimisticDepositedNFTs]);
+				return !optimisticWithdrawals.has(key);
+			})
+			.reduce(
+				(acc, nft) => {
+					const key = createNFTKey(nft.collection, nft.tokenId);
+					if (
+						!acc.some(
+							(existing) =>
+								createNFTKey(existing.collection, existing.tokenId) === key,
+						)
+					) {
+						acc.push(nft);
+					}
+					return acc;
+				},
+				[] as NFTWithCollection[],
+			);
+	}, [state.depositedNFTs, optimisticDepositedNFTs, optimisticWithdrawals]);
 
 	// NFT deposit hooks
-	const { depositNFT, getNFTDepositState } = useNFTDeposit({
+	const {
+		depositNFT,
+		getNFTDepositState,
+		interactionState,
+		interactionContext,
+	} = useNFTDeposit({
 		onSuccess: () => {
 			toast.success("NFT deposited successfully!", TOAST_CONFIG);
 
@@ -466,6 +595,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		onAction: updateAppraisedStatus,
 		onAppraisalStatusChange: updateAppraisedStatus,
 	});
+	const [pendingDepositKey, setPendingDepositKey] = useState<string | null>(
+		null,
+	);
 
 	// No local state monitoring needed - XState machine is our single source of truth
 
@@ -525,11 +657,8 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const loadDepositedNFTs = useCallback(async () => {
 		if (!treasury || !address) {
 			updateState("depositedNFTs", []);
-			updateState("isLoadingWithdrawals", false);
 			return;
 		}
-
-		updateState("isLoadingWithdrawals", true);
 
 		try {
 			const nfts = await getUserDepositedNFTs();
@@ -570,7 +699,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			toast.error("Failed to load deposited NFTs", TOAST_CONFIG);
 			updateState("depositedNFTs", []);
 		} finally {
-			updateState("isLoadingWithdrawals", false);
+			// No full-grid loading state needed.
 		}
 	}, [
 		treasury,
@@ -591,17 +720,147 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			updateState("selectedForWithdrawal", new Set());
 			updateState("isBatchWithdrawing", false);
 		}
-		// Clear optimistic state when switching tabs
-		setOptimisticUserNFTs([]);
-		setOptimisticDepositedNFTs([]);
 	}, [activeTab, updateState]);
 
-	// Clear optimistic state when user NFTs change (real data loaded)
+	// Reconcile optimistic user-owned state when real data changes
 	React.useEffect(() => {
-		if (userOwnedNFTs.length > 0) {
-			setOptimisticUserNFTs([]);
+		if (
+			optimisticUserNFTAdds.length === 0 &&
+			optimisticUserNFTRemovals.size === 0
+		) {
+			return;
 		}
-	}, [userOwnedNFTs]);
+
+		const ownedKeys = new Set(
+			userOwnedNFTs.map((nft) => createNFTKey(nft.collection, nft.tokenId)),
+		);
+
+		setOptimisticUserNFTAdds((prev) =>
+			prev.filter(
+				(nft) =>
+					!ownedKeys.has(createNFTKey(nft.collection, nft.tokenId)),
+			),
+		);
+
+		setOptimisticUserNFTRemovals((prev) => {
+			const next = new Set(
+				[...prev].filter((key) => ownedKeys.has(key)),
+			);
+			return next.size === prev.size ? prev : next;
+		});
+	}, [
+		userOwnedNFTs,
+		optimisticUserNFTAdds.length,
+		optimisticUserNFTRemovals.size,
+	]);
+
+	React.useEffect(() => {
+		if (optimisticWithdrawals.size === 0) return;
+
+		const depositedKeys = new Set(
+			state.depositedNFTs.map((nft) =>
+				createNFTKey(nft.collection, nft.tokenId),
+			),
+		);
+
+		setOptimisticWithdrawals((prev) => {
+			const next = new Set([...prev].filter((key) => depositedKeys.has(key)));
+			return next.size === prev.size ? prev : next;
+		});
+	}, [state.depositedNFTs, optimisticWithdrawals.size]);
+
+	React.useEffect(() => {
+		if (!pendingDepositKey) return;
+		if (
+			!interactionContext ||
+			!interactionContext.collection ||
+			!interactionContext.tokenId
+		) {
+			if (interactionState === "idle") {
+				setPendingDepositKey(null);
+			}
+			return;
+		}
+
+		const key = createNFTKey(
+			interactionContext.collection,
+			interactionContext.tokenId,
+		);
+		if (key !== pendingDepositKey) {
+			if (interactionState === "idle") {
+				setPendingDepositKey(null);
+			}
+			return;
+		}
+
+		if (
+			interactionState === "awaitingInteractionReceipt" ||
+			interactionState === "completed"
+		) {
+			if (!optimisticUserNFTRemovals.has(key)) {
+				setOptimisticUserNFTRemovals((prev) => {
+					const next = new Set(prev);
+					next.add(key);
+					return next;
+				});
+			}
+
+			if (
+				!optimisticDepositedNFTs.some(
+					(nft) => createNFTKey(nft.collection, nft.tokenId) === key,
+				)
+			) {
+				const appraiseInfo = state.appraisalData.get(key);
+				if (appraiseInfo && address) {
+					const sourceNFT = displayUserNFTs.find(
+						(nft) => createNFTKey(nft.collection, nft.tokenId) === key,
+					);
+					setOptimisticDepositedNFTs((prev) => [
+						...prev,
+						{
+							collection: interactionContext?.collection as Address,
+							tokenId: BigInt(interactionContext?.tokenId ?? "0"),
+							depositor: address as Address,
+							currentRarity: 0,
+							appraisedPrice: appraiseInfo.priceUSD,
+							...(sourceNFT?.collectionName && {
+								collectionName: sourceNFT.collectionName,
+							}),
+						},
+					]);
+				}
+			}
+		}
+
+		if (interactionState === "completed") {
+			setPendingDepositKey(null);
+			return;
+		}
+
+		if (interactionState === "error" || interactionState === "idle") {
+			setOptimisticUserNFTRemovals((prev) => {
+				const next = new Set(prev);
+				next.delete(key);
+				return next;
+			});
+			setOptimisticDepositedNFTs((prev) =>
+				prev.filter(
+					(nft) => createNFTKey(nft.collection, nft.tokenId) !== key,
+				),
+			);
+			setPendingDepositKey(null);
+		}
+	}, [
+		pendingDepositKey, 
+		interactionContext?.collection, 
+		interactionContext?.tokenId, 
+		interactionState, 
+		optimisticUserNFTRemovals, 
+		optimisticDepositedNFTs, 
+		state.appraisalData, 
+		displayUserNFTs, 
+		address, interactionContext
+	]);
 
 	// Event handlers
 	const handleClaimYield = useCallback(async () => {
@@ -613,20 +872,21 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			return;
 
 		try {
-			await claimYield({
+			const receipt = await claimYield({
 				address: gachaConfig?.depositorVaultAddress as `0x${string}`,
 				args: [address as `0x${string}`],
 			});
 
-			toast.success("Yield claimed successfully!", TOAST_CONFIG);
-			refetchDepositorVault();
-
-			setTimeout(() => {
+			if (receipt?.status === "success") {
+				toast.success("Yield claimed successfully!", TOAST_CONFIG);
 				refetchDepositorVault();
-			}, 2000);
+			}
 		} catch (error) {
 			console.error("Error claiming yield:", error);
-			toast.error("Failed to claim yield", TOAST_CONFIG);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to claim yield",
+				TOAST_CONFIG,
+			);
 		}
 	}, [
 		address,
@@ -643,130 +903,136 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				return;
 			}
 
-			if (
-				state.withdrawingNFT?.collection === collection &&
-				state.withdrawingNFT?.tokenId === tokenId
-			) {
+			const nftKey = createNFTKey(collection, tokenId);
+
+			if (optimisticWithdrawals.has(nftKey)) {
 				return;
 			}
 
 			updateState("withdrawingNFT", { collection, tokenId });
 
+			let receiptConfirmed = false;
+			let optimisticApplied = false;
+
 			try {
-				const nftKey = createNFTKey(collection, tokenId);
+				// Submit the transaction (user confirms in wallet here)
+				const hash = await withdrawNFT(collection, tokenId);
+				toast.success("NFT withdrawal submitted!", TOAST_CONFIG);
 
-				// Optimistic updates before the actual withdrawal
-				const nftToWithdraw = displayDepositedNFTs.find(
-					(nft) => createNFTKey(nft.collection, nft.tokenId) === nftKey,
-				);
+				setOptimisticWithdrawals((prev) => new Set([...prev, nftKey]));
+				setOptimisticUserNFTAdds((prev) => {
+					if (
+						prev.some(
+							(existing) =>
+								createNFTKey(existing.collection, existing.tokenId) === nftKey,
+						)
+					) {
+						return prev;
+					}
+					return [...prev, { collection, tokenId }];
+				});
+				optimisticApplied = true;
 
-				if (nftToWithdraw) {
-					// Remove from deposited NFTs optimistically
-					setOptimisticDepositedNFTs((prev) =>
-						prev.filter(
-							(nft) => createNFTKey(nft.collection, nft.tokenId) !== nftKey,
-						),
-					);
-
-					// Add to user-owned NFTs optimistically
-					const userNFT: UserOwnedNFTMultiCollection = {
-						collection: collection,
-						tokenId: tokenId,
-						...(nftToWithdraw.collectionName && {
-							collectionName: nftToWithdraw.collectionName,
-						}),
-					};
-					setOptimisticUserNFTs((prev) => [...prev, userNFT]);
+				if (publicClient && hash) {
+					const receipt = await publicClient.waitForTransactionReceipt({
+						hash,
+					});
+					if (receipt.status !== "success") {
+						throw new Error("Withdrawal transaction failed");
+					}
+					receiptConfirmed = true;
 				}
 
-				await withdrawNFT(collection, tokenId);
-				toast.success("NFT withdrawal submitted successfully!", TOAST_CONFIG);
-
-				// Quick refetch of vault data (cheaper than full NFT refresh)
-				refetchDepositorVault();
-
-				// Delayed background refresh to ensure data consistency
-				setTimeout(() => {
-					loadDepositedNFTs();
-					refetchUserNFTs();
-					// Clear optimistic state after real data loads
-					setOptimisticUserNFTs([]);
-					setOptimisticDepositedNFTs([]);
-				}, 2000);
+				// Refetch to get updated data from chain
+				await Promise.all([
+					refetchDepositorVault(),
+					refetchUserNFTs(),
+					loadDepositedNFTs(),
+				]);
 			} catch (error) {
 				console.error("Error withdrawing NFT:", error);
 				const errorMessage =
 					error instanceof Error ? error.message : "Unknown error occurred";
 				toast.error(`Failed to withdraw NFT: ${errorMessage}`, TOAST_CONFIG);
-				// Revert optimistic updates on error
-				setOptimisticUserNFTs([]);
-				setOptimisticDepositedNFTs([]);
+				// Clear optimistic state on error (if applied)
+				if (optimisticApplied) {
+					setOptimisticUserNFTAdds((prev) =>
+						prev.filter(
+							(nft) =>
+								createNFTKey(nft.collection, nft.tokenId) !== nftKey,
+						),
+					);
+					setOptimisticWithdrawals((prev) => {
+						const next = new Set(prev);
+						next.delete(nftKey);
+						return next;
+					});
+				}
 			} finally {
-				// Clear withdrawing state with a small delay for UX
-				setTimeout(() => {
-					updateState("withdrawingNFT", null);
-				}, 1000);
+				updateState("withdrawingNFT", null);
+				if (optimisticApplied && receiptConfirmed) {
+					setOptimisticUserNFTAdds((prev) =>
+						prev.filter(
+							(nft) =>
+								createNFTKey(nft.collection, nft.tokenId) !== nftKey,
+						),
+					);
+					setOptimisticWithdrawals((prev) => {
+						const next = new Set(prev);
+						next.delete(nftKey);
+						return next;
+					});
+				}
 			}
 		},
 		[
 			treasury,
-			state.withdrawingNFT,
+			optimisticWithdrawals,
 			withdrawNFT,
 			loadDepositedNFTs,
+			publicClient,
 			refetchDepositorVault,
 			refetchUserNFTs,
 			updateState,
-			displayDepositedNFTs,
 		],
 	);
 
 	const handleDepositNFT = useCallback(
 		async (collection: string, tokenId: string, hasAppraisal = false) => {
 			const nftKey = createNFTKey(collection, tokenId);
-
-			try {
-				// Optimistic updates before the actual deposit
-				const nftToRemove = displayUserNFTs.find(
-					(nft) => createNFTKey(nft.collection, nft.tokenId) === nftKey,
+			if (
+				interactionState !== "idle" &&
+				interactionState !== "completed" &&
+				interactionContext?.collection &&
+				interactionContext?.tokenId
+			) {
+				const activeKey = createNFTKey(
+					interactionContext.collection,
+					interactionContext.tokenId,
 				);
-
-				if (nftToRemove) {
-					// Remove from user-owned NFTs optimistically
-					setOptimisticUserNFTs((prev) =>
-						prev.filter(
-							(nft) => createNFTKey(nft.collection, nft.tokenId) !== nftKey,
-						),
-					);
-
-					// Add to deposited NFTs optimistically if we have appraisal info
-					const appraiseInfo = state.appraisalData.get(nftKey);
-					if (appraiseInfo) {
-						const depositedNFT: NFTWithCollection = {
-							collection: collection as Address,
-							tokenId: BigInt(tokenId),
-							depositor: address as Address,
-							currentRarity: 0, // Will be updated when actual data loads
-							appraisedPrice: appraiseInfo.priceUSD,
-							...(nftToRemove.collectionName && {
-								collectionName: nftToRemove.collectionName,
-							}),
-						};
-						setOptimisticDepositedNFTs((prev) => [...prev, depositedNFT]);
-					}
+				if (activeKey !== nftKey) {
+					toast.error("Another deposit is already in progress", TOAST_CONFIG);
+					return;
 				}
+			}
 
+			setPendingDepositKey(nftKey);
+			try {
 				await depositNFT(collection as `0x${string}`, BigInt(tokenId), {
 					hasAppraisal,
 				});
 			} catch (error) {
 				console.error("Error depositing NFT:", error);
 				toast.error("Failed to deposit NFT", TOAST_CONFIG);
-				// Revert optimistic updates on error
-				setOptimisticUserNFTs([]);
-				setOptimisticDepositedNFTs([]);
+				setPendingDepositKey(null);
 			}
 		},
-		[depositNFT, state.appraisalData, displayUserNFTs, address],
+		[
+			depositNFT,
+			interactionContext?.collection,
+			interactionContext?.tokenId,
+			interactionState,
+		],
 	);
 
 	const handleNFTAction = useCallback(
@@ -908,7 +1174,6 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 					<WithdrawTab
 						filteredWithdrawableNFTs={filteredWithdrawableNFTs}
 						totalDepositedNFTs={totalDepositedNFTs}
-						isLoadingWithdrawals={state.isLoadingWithdrawals}
 						withdrawingNFT={state.withdrawingNFT}
 						onWithdrawNFT={handleWithdrawNFT}
 						onSwitchToDeposit={() => setActiveTab("deposit")}

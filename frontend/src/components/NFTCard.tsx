@@ -264,12 +264,11 @@ const NFTImage = memo<{
 				className={cn(
 					sizeStyles.container,
 					sizeStyles.radius,
-					"flex items-center justify-center border-2 border-dashed",
-					themeStyles.border,
-					themeStyles.background,
+					"flex items-center justify-center border-2 border-dashed bg-content1/25",
+					"border-white/15 text-foreground/60",
 				)}
 			>
-				<span className={cn(sizeStyles.text, themeStyles.textSecondary)}>
+				<span className={cn(sizeStyles.text)}>
 					No Image
 				</span>
 			</div>
@@ -460,15 +459,14 @@ export const NFTCard = memo<NFTCardProps>(
 					className={cn(
 						sizeStyles.container,
 						sizeStyles.radius,
-						"flex items-center justify-center border-2 border-dashed",
-						themeStyles.border,
-						themeStyles.background,
+						"flex items-center justify-center border-2 border-dashed bg-content1/25 text-foreground/70",
+						"border-white/15",
 						className,
 					)}
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 				>
-					<span className={cn(sizeStyles.text, themeStyles.textSecondary)}>
+					<span className={cn(sizeStyles.text)}>
 						Error loading NFT
 					</span>
 				</motion.div>

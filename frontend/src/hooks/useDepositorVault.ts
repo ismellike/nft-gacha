@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback } from "react";
+import { usePublicClient } from "wagmi";
 import {
 	useReadDepositorVaultAccYieldPerShare,
 	useReadDepositorVaultAsset,
@@ -232,11 +234,36 @@ export function formatTokenAmount(
 
 // Hook for claiming yield
 export function useClaimYield() {
+	const publicClient = usePublicClient();
 	const {
-		writeContract: claimYield,
+		writeContractAsync: claimYieldAsync,
 		isPending: isClaiming,
 		error: claimError,
 	} = useWriteDepositorVaultClaimYield();
+
+	const claimYield = useCallback(
+		async (
+			args: Parameters<typeof claimYieldAsync>[0],
+		): Promise<import("viem").TransactionReceipt | undefined> => {
+			if (!publicClient) {
+				throw new Error("Public client not available");
+			}
+
+			const hash = await claimYieldAsync(args);
+
+			// Wait for receipt to confirm success
+			const receipt = await publicClient.waitForTransactionReceipt({
+				hash,
+			});
+
+			if (receipt.status === "reverted") {
+				throw new Error("Transaction reverted on-chain");
+			}
+
+			return receipt;
+		},
+		[claimYieldAsync, publicClient],
+	);
 
 	return {
 		claimYield,

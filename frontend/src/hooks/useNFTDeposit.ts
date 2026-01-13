@@ -34,8 +34,8 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 
 	const getNFTDepositState = useCallback(
 		(collection: string, tokenId: string) => {
-			if (interaction.context.collection !== collection) return null;
-			if (interaction.context.tokenId !== tokenId) return null;
+			if (interaction.context?.collection !== collection) return null;
+			if (interaction.context?.tokenId !== tokenId) return null;
 
 			switch (interaction.currentState) {
 				case "checkingApprovals":
@@ -74,8 +74,8 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 			}
 		},
 		[
-			interaction.context.collection,
-			interaction.context.tokenId,
+			interaction.context?.collection,
+			interaction.context?.tokenId,
 			interaction.currentState,
 		],
 	);
@@ -93,8 +93,9 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 			options?: { hasAppraisal?: boolean },
 		) => {
 			if (!contracts.treasury || !userAddress || !publicClient) {
-				console.error("Missing required deposit parameters");
-				return;
+				throw new Error(
+					"Missing required deposit parameters: treasury, user address, or public client",
+				);
 			}
 
 			interaction.startInteraction(collection, tokenId.toString(), "deposit", {
@@ -122,6 +123,7 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 		isNFTDepositing,
 		getNFTDepositState,
 		error: interaction.error,
-		interactionState: null,
+		interactionState: interaction.currentState,
+		interactionContext: interaction.context,
 	};
 };
