@@ -16,6 +16,7 @@ import {
 import {
 	useNFTInteractionStore,
 	type InteractionMode,
+	type InteractionKey,
 } from "../stores/nftInteractionStore";
 
 type MaybeFn<T> = T | undefined;
@@ -25,6 +26,10 @@ type StartInteractionConfig = Parameters<
 >[0];
 
 export interface UseNFTInteractionParams {
+	collection?: string;
+	tokenId?: string;
+	mode?: InteractionMode;
+	uniqueId?: string | undefined; // Unique identifier to distinguish duplicates
 	onSuccess?: MaybeFn<(txHash: string) => void>;
 	onAction?: MaybeFn<
 		(collection: string, tokenId: string, hasValidAppraisal?: boolean) => void
@@ -40,11 +45,39 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	const { address: userAddress } = useAccount();
 	const publicClient = usePublicClient();
 
-	// Store selectors/actions
-	const store = useNFTInteractionStore();
-	const activeState = store.getActiveInteraction();
-	const status = activeState?.status ?? "idle";
-	const context = activeState?.context ?? null;
+	// Create interaction key for selector
+	const interactionKey = useMemo(() => {
+		if (params.collection && params.tokenId && params.mode) {
+			return `${params.mode}:${params.collection}:${params.tokenId}:${params.uniqueId ?? "default"}`;
+		}
+		return null;
+	}, [params.collection, params.tokenId, params.mode, params.uniqueId]);
+
+	// Use selector to subscribe to specific interaction state (reactive)
+	const specificState = useNFTInteractionStore((state) => {
+		if (interactionKey) {
+			return state.interactions.get(interactionKey as InteractionKey) ?? null;
+		}
+		return null;
+	});
+
+	// Active interaction for non-specific usage
+	const activeState = useNFTInteractionStore((state) => {
+		if (state.activeInteraction) {
+			return state.interactions.get(state.activeInteraction) ?? null;
+		}
+		return null;
+	});
+
+	// If we have a specific NFT, use ONLY its state. Otherwise use global active state.
+	const status =
+		params.collection && params.tokenId && params.mode
+			? specificState?.status ?? "idle"
+			: (specificState?.status ?? activeState?.status ?? "idle");
+	const context =
+		params.collection && params.tokenId && params.mode
+			? specificState?.context ?? null
+			: (specificState?.context ?? activeState?.context ?? null);
 	const {
 		startInteraction: storeStart,
 		setStatus,
@@ -144,6 +177,9 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			if (config.payoutAmount !== undefined) {
 				startConfig.payoutAmount = config.payoutAmount;
 			}
+			if (params.uniqueId !== undefined) {
+				startConfig.uniqueId = params.uniqueId;
+			}
 
 			storeStart(startConfig);
 		},
@@ -155,6 +191,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			status,
 			storeStart,
 			userAddress,
+			params.uniqueId,
 		],
 	);
 
@@ -432,7 +469,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 
 	return {
 		// state
-		currentState: status,
+		status,
 		context,
 		error: context?.error,
 		isLoading: isProcessing,

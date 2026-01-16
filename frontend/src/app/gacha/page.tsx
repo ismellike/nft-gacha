@@ -11,6 +11,7 @@ import {
 	CogIcon,
 	XCircleIcon,
 	ChartBarIcon,
+	ClockIcon,
 } from "@heroicons/react/24/outline";
 
 import { Button, Card, CardSkeleton, Chip } from "../../ui";
@@ -24,6 +25,7 @@ import { SpinSection } from "../../components/gacha/SpinSection";
 import { VaultSection } from "../../components/gacha/VaultSection";
 import { AdminSection } from "../../components/gacha/AdminSection";
 import { EconomySection } from "../../components/gacha/EconomySection";
+import { SpinHistorySection } from "../../components/spin-history";
 import { getGachaConfig } from "../../lib/gacha-config";
 import {
 	useReadGachaFeeToken,
@@ -40,7 +42,7 @@ import { BuybackNotificationProvider } from "../../components/BuybackNotificatio
 import { GachaRefreshProvider } from "../../contexts/GachaRefreshContext";
 
 type FlowOption = {
-	id: "spin" | "vault" | "economy" | "admin";
+	id: "spin" | "vault" | "economy" | "history" | "admin";
 	label: string;
 	icon: typeof BoltIcon;
 	description: string;
@@ -160,6 +162,12 @@ function GachaDetailPageContent() {
 				label: "Economy",
 				icon: ChartBarIcon,
 				description: "Protocol economics",
+			},
+			{
+				id: "history",
+				label: "History",
+				icon: ClockIcon,
+				description: "Your spin history",
 			},
 		];
 
@@ -307,6 +315,19 @@ function GachaDetailPageContent() {
 								<EconomySection
 									title="Gacha Economy Overview"
 									description="Track protocol revenue, depositor yields, and treasury performance for this specific gacha."
+								/>
+							)}
+
+							{activeSection === "history" && (
+								<SpinHistorySection
+									gachaAddress={gacha?.address ?? ""}
+									gachaId={gachaId}
+									appraisalContractAddress={
+										contracts.appraisal ?? undefined
+									}
+									protocolTreasuryAddress={
+										contracts.protocolTreasury ?? undefined
+									}
 								/>
 							)}
 

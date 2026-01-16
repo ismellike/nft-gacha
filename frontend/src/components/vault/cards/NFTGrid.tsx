@@ -94,14 +94,26 @@ function NFTGrid<T>({
 	const content = nfts.map((nft, index) => {
 		const itemContent = renderItem(nft, index);
 
+		// Generate key: prefer triggerId (spin history), then collection-tokenId, then index
+		const getItemKey = () => {
+			if (typeof nft === "object" && nft !== null) {
+				// Check for triggerId first (for spin history entries)
+				if ("triggerId" in nft && typeof (nft as any).triggerId === "bigint") {
+					return `spin-${(nft as any).triggerId.toString()}`;
+				}
+				// Fall back to collection-tokenId for regular NFTs
+				if ("collection" in nft && "tokenId" in nft) {
+					return `${(nft as any).collection}-${(nft as any).tokenId}`;
+				}
+			}
+			// Final fallback to index
+			return `item-${index}`;
+		};
+
 		if (enableAnimation) {
 			return (
 				<motion.div
-					key={`${
-						typeof nft === "object" && nft !== null && "collection" in nft
-							? `${(nft as any).collection}-${(nft as any).tokenId}`
-							: `item-${index}`
-					}`}
+					key={getItemKey()}
 					variants={itemVariants}
 					className="h-full"
 				>

@@ -38,6 +38,7 @@ type InteractionContext = {
 	error: string | null;
 	success: InteractionSuccess | null;
 	mode: InteractionMode;
+	uniqueId: string | null; // Unique identifier to distinguish duplicates
 };
 
 type InteractionState = {
@@ -45,12 +46,13 @@ type InteractionState = {
 	context: InteractionContext | null;
 };
 
-type InteractionKey = `${InteractionMode}:${string}:${string}`;
+export type InteractionKey = `${InteractionMode}:${string}:${string}:${string}`;
 
 type StartConfig = {
 	collection: string;
 	tokenId: string;
 	mode: InteractionMode;
+	uniqueId?: string; // Unique identifier (e.g., triggerId for spin history)
 	treasuryAddress: string;
 	protocolTreasuryAddress?: string;
 	userAddress: string;
@@ -73,13 +75,15 @@ type InteractionStore = {
 	resetInteraction: () => void;
 	resetAll: () => void;
 	getActiveInteraction: () => InteractionState | null;
+	getInteraction: (mode: InteractionMode, collection: string, tokenId: string, uniqueId?: string) => InteractionState | null;
 };
 
 const createInteractionKey = (
 	mode: InteractionMode,
 	collection: string,
 	tokenId: string,
-): InteractionKey => `${mode}:${collection}:${tokenId}`;
+	uniqueId?: string,
+): InteractionKey => `${mode}:${collection}:${tokenId}:${uniqueId ?? 'default'}`;
 
 export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 	interactions: new Map(),
@@ -90,6 +94,7 @@ export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 			config.mode,
 			config.collection,
 			config.tokenId,
+			config.uniqueId,
 		);
 
 		const newContext: InteractionContext = {
@@ -108,6 +113,7 @@ export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 			interactionTxHash: null,
 			error: null,
 			success: null,
+			uniqueId: config.uniqueId ?? null, // Store the uniqueId in context
 		};
 
 		set((state) => {
@@ -257,5 +263,11 @@ export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 		const state = get();
 		if (!state.activeInteraction) return null;
 		return state.interactions.get(state.activeInteraction) ?? null;
+	},
+
+	getInteraction: (mode, collection, tokenId, uniqueId) => {
+		const state = get();
+		const key = createInteractionKey(mode, collection, tokenId, uniqueId);
+		return state.interactions.get(key) ?? null;
 	},
 }));

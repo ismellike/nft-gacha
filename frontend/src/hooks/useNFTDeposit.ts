@@ -37,7 +37,7 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 			if (interaction.context?.collection !== collection) return null;
 			if (interaction.context?.tokenId !== tokenId) return null;
 
-			switch (interaction.currentState) {
+			switch (interaction.status) {
 				case "checkingApprovals":
 					return {
 						isDepositing: true,
@@ -76,7 +76,7 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 		[
 			interaction.context?.collection,
 			interaction.context?.tokenId,
-			interaction.currentState,
+			interaction.status,
 		],
 	);
 
@@ -123,7 +123,7 @@ export const useNFTDeposit = (params?: UseNFTDepositParams) => {
 		isNFTDepositing,
 		getNFTDepositState,
 		error: interaction.error,
-		interactionState: interaction.currentState,
+		interactionState: interaction.status,
 		interactionContext: interaction.context,
 	};
 };

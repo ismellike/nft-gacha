@@ -28,6 +28,8 @@ interface BuybackComponentProps {
 	protocolTreasuryAddress: string;
 	gachaTreasuryAddress?: string;
 	rarity?: string;
+	historicalAppraisedPrice?: bigint | undefined; // Historical price from spin history
+	uniqueId?: string; // Unique identifier (e.g., triggerId) to distinguish duplicates
 	onSuccess?: (txHash: string) => void;
 	onBuybackSuccess?: (txHash: string, payoutAmount: bigint) => void;
 	size?: "sm" | "md" | "lg";
@@ -41,6 +43,8 @@ export default function BuybackComponent({
 	appraisalContractAddress,
 	protocolTreasuryAddress,
 	rarity,
+	historicalAppraisedPrice,
+	uniqueId,
 	onSuccess,
 	onBuybackSuccess,
 	size = "md",
@@ -53,6 +57,10 @@ export default function BuybackComponent({
 	// Build interaction params for NFT interaction hook
 	const interactionParams = useMemo<UseNFTInteractionParams>(
 		() => ({
+			collection,
+			tokenId,
+			mode: "buyback" as const,
+			uniqueId,
 			onAction: (
 				_collection: string,
 				tokenId: string,
@@ -76,12 +84,12 @@ export default function BuybackComponent({
 			onSuccess,
 			onBuybackSuccess,
 		}),
-		[onSuccess, onBuybackSuccess, showNotification],
+		[collection, tokenId, uniqueId, onSuccess, onBuybackSuccess, showNotification],
 	);
 
 	// Use the unified NFT interaction hook
 	const {
-		currentState,
+		status,
 		context,
 		error,
 		isLoading,
@@ -109,7 +117,7 @@ export default function BuybackComponent({
 		!!successData.txHash &&
 		successData.collection === collection &&
 		successData.tokenId === tokenId;
-	const isCompletedOtherNFT = currentState === "completed" && !isSuccessState;
+	const isCompletedOtherNFT = status === "completed" && !isSuccessState;
 
 	// If we previously completed a different NFT, reset to avoid showing stale "Completed" state
 	useEffect(() => {
@@ -147,7 +155,8 @@ export default function BuybackComponent({
 		address: appraisalContractAddress as `0x${string}`,
 		args: [collection as `0x${string}`, BigInt(tokenId)],
 		query: {
-			enabled: !!hasAppraisal,
+			enabled: true, // Always fetch to get current appraisal price
+			refetchOnMount: true,
 		},
 	});
 
@@ -181,29 +190,43 @@ export default function BuybackComponent({
 	const hasEnoughLiquidity = !isPaused;
 	const needsApproval = !isApprovedForAll;
 	const hasAppraisalData = hasAppraisal === true;
+	const isNotOwned = !isOwner;
 
-	// Calculate payout amount
+	// Calculate payout amount FIRST (before other derived state that depends on it)
 	const payoutAmount = useMemo(() => {
-		if (!appraisalPrice || !payoutBps) return BigInt(0);
+		if (!payoutBps) return null; // Return null instead of 0 to indicate "no payout"
 
-		// Handle both tuple and single value cases for appraisalPrice
-		let priceValue: bigint;
-		if (Array.isArray(appraisalPrice)) {
-			priceValue = appraisalPrice[0] as unknown as bigint;
-		} else {
-			priceValue = appraisalPrice as unknown as bigint;
+		// Try to use current appraisal price first, fall back to historical price
+		let priceValue: bigint | undefined;
+
+		if (appraisalPrice) {
+			// Handle both tuple and single value cases for appraisalPrice
+			if (Array.isArray(appraisalPrice)) {
+				priceValue = appraisalPrice[0] as unknown as bigint;
+			} else {
+				priceValue = appraisalPrice as unknown as bigint;
+			}
 		}
 
-		if (!priceValue) return BigInt(0);
+		// Fall back to historical appraised price if current appraisal is not available
+		if (!priceValue && historicalAppraisedPrice) {
+			priceValue = historicalAppraisedPrice;
+		}
+
+		if (!priceValue || priceValue === 0n) return null;
 
 		// Convert USD (18 decimals) to USDC (6 decimals) and apply payout percentage
 		const payoutUSD = (priceValue * BigInt(payoutBps)) / BigInt(10000);
-		return payoutUSD / BigInt(1000000000000); // Divide by 1e12 to convert 18 decimals to 6 decimals
-	}, [appraisalPrice, payoutBps]);
+		const result = payoutUSD / BigInt(1000000000000); // Divide by 1e12 to convert 18 decimals to 6 decimals
+
+		return result === 0n ? null : result;
+	}, [appraisalPrice, historicalAppraisedPrice, payoutBps]);
+
+	const hasValidPayout = payoutAmount !== null && payoutAmount > 0n;
 
 	// Formatted values
 	const formattedPayoutAmount = useMemo(
-		() => formatCurrency(payoutAmount?.toString() || "0", 6, "USDC"),
+		() => (payoutAmount ? formatCurrency(payoutAmount.toString(), 6, "USDC") : null),
 		[payoutAmount],
 	);
 
@@ -215,10 +238,11 @@ export default function BuybackComponent({
 	const isActionDisabled =
 		!hasEnoughLiquidity ||
 		isPaused ||
+		isNotOwned || // Disable if user no longer owns the NFT (already bought back)
 		actionInfo.type === "checking" ||
 		(isLoading &&
-			currentState !== "awaitingInteractionSignature" &&
-			currentState !== "awaitingNFTApprovalSignature" &&
+			status !== "awaitingInteractionSignature" &&
+			status !== "awaitingNFTApprovalSignature" &&
 			!error) ||
 		isSuccessState; // Disable if already completed successfully
 
@@ -231,11 +255,16 @@ export default function BuybackComponent({
 			return "Retry Buyback";
 		}
 
-		if (currentState === "idle") {
+		// If user no longer owns the NFT, it was bought back
+		if (isNotOwned) {
+			return "Sold";
+		}
+
+		if (status === "idle") {
 			return needsApproval ? "Approve NFT" : "Accept Buyback";
 		}
 
-		if (currentState === "awaitingInteractionSignature") {
+		if (status === "awaitingInteractionSignature") {
 			return "Awaiting Approval...";
 		}
 
@@ -257,7 +286,7 @@ export default function BuybackComponent({
 	// Handle starting the buyback interaction
 	const handleStartBuyback = useCallback(async () => {
 		console.log("BuybackComponent handleStartBuyback invoked", {
-			currentState,
+			status,
 			actionType: actionInfo.type,
 			hasAppraisal,
 			needsApproval,
@@ -305,7 +334,7 @@ export default function BuybackComponent({
 		payoutAmount,
 		startInteraction,
 		actionInfo.type,
-		currentState,
+		status,
 		needsApproval,
 		hasEnoughLiquidity,
 	]);
@@ -313,7 +342,7 @@ export default function BuybackComponent({
 	// Handle button clicks and state machine actions
 	const handleAction = useCallback(async () => {
 		console.log("🎯 BuybackComponent handleAction called", {
-			currentState,
+			status,
 			contextMode: context?.mode,
 			isSuccessState,
 			isProcessing,
@@ -329,7 +358,7 @@ export default function BuybackComponent({
 
 		// Special handling for stuck awaitingInteractionSignature state
 		// Only start buyback if we're idle
-		if (currentState === "idle") {
+		if (status === "idle") {
 			await handleStartBuyback();
 			return;
 		}
@@ -343,13 +372,13 @@ export default function BuybackComponent({
 		}
 
 		// If we're stuck in an in-flight state, allow reset then retry
-		if (currentState !== "completed") {
+		if (status !== "completed") {
 			reset();
 			await new Promise((resolve) => setTimeout(resolve, 150));
 			await handleStartBuyback();
 		}
 	}, [
-		currentState,
+		status,
 		context,
 		isSuccessState,
 		isProcessing,
@@ -404,11 +433,6 @@ export default function BuybackComponent({
 
 	const treasuryStatus = getTreasuryStatus();
 
-	// Early return if user doesn't own the NFT
-	if (!isOwner && connectedAddress) {
-		return null;
-	}
-
 	// Size configurations
 	const sizeClasses = {
 		sm: { button: "", chip: "text-xs", text: "text-xs" },
@@ -417,6 +441,15 @@ export default function BuybackComponent({
 	};
 
 	const classes = sizeClasses[size];
+
+	// Return null if conditions aren't met (after all hooks have been called)
+	if (!hasValidPayout && !isSuccessState) {
+		return null;
+	}
+
+	if (!isOwner && connectedAddress) {
+		return null;
+	}
 
 	// Full variant - comprehensive buyback interface
 	if (variant === "full") {
@@ -622,7 +655,7 @@ export default function BuybackComponent({
 							)}
 
 							{/* Wallet Confirmation Message */}
-							{currentState === "awaitingInteractionSignature" && !error && (
+							{status === "awaitingInteractionSignature" && !error && (
 								<div className="text-info-300 text-sm bg-info-500/10 rounded-lg p-3">
 									💡 Waiting for wallet confirmation... Please check your wallet
 									popup. If you missed it, click the button above to retry.
@@ -785,7 +818,16 @@ export default function BuybackComponent({
 					</div>
 				) : (
 					<>
-						{hasAppraisal === false && (
+						{isNotOwned ? (
+							<Chip
+								color="glass"
+								variant="flat"
+								size="sm"
+								className={classes.chip}
+							>
+								Sold
+							</Chip>
+						) : hasAppraisal === false ? (
 							<Chip
 								color="warning"
 								variant="flat"
@@ -794,8 +836,7 @@ export default function BuybackComponent({
 							>
 								Requires appraisal
 							</Chip>
-						)}
-						{isPaused ? (
+						) : isPaused ? (
 							<Chip
 								color="danger"
 								variant="flat"

@@ -229,6 +229,14 @@ function formatRelativeTime(date: Date): string {
 	});
 }
 
+/**
+ * Get relative time string for a timestamp
+ */
+export function getRelativeTime(timestamp: number): string {
+	const date = new Date(timestamp * 1000);
+	return formatRelativeTime(date);
+}
+
 // ============================================================================
 // TEXT FORMATTING
 // ============================================================================
