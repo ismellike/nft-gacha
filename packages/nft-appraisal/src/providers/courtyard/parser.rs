@@ -12,17 +12,34 @@ impl AttributeParser {
     /// Construct variant string in the format expected by Scrydex
     /// e.g., ["1st Edition", "Shadowless"] → "firstEditionShadowless"
     /// e.g., ["1st Edition", "Shadowless", "Holo"] → "firstEditionShadowlessHolofoil"
+    /// e.g., ["Special Illustration Rare"] → "SpecialIllustrationRare"
+    ///
+    /// Variants discovered from Courtyard API and Scrydex:
+    /// - Courtyard metadata: "Holo", "Full Art", "Special Illustration Rare", "1st Edition", "Shadowless"
+    /// - Scrydex variants array: "unlimitedHolofoil", "firstEditionShadowlessHolofoil", "unlimitedShadowlessHolofoil"
+    /// - Scrydex price object keys: "normal", "reverseHolofoil"
     pub fn construct_variant_string(variant_parts: &[String]) -> String {
         let mut result = String::new();
 
         for part in variant_parts {
             let part_lower = part.to_lowercase();
             let mapped = match part_lower.as_str() {
+                // Edition variants (found in Courtyard and Scrydex)
                 "1st edition" => "firstEdition",
                 "shadowless" => "Shadowless",
                 "unlimited" => "unlimited",
+
+                // Foil/Holo variants (found in both Courtyard and Scrydex)
                 "holo" | "holofoil" => "Holofoil",
                 "reverse holo" | "reverse holofoil" => "ReverseHolofoil",
+
+                // Base variant
+                "normal" => "Normal",
+
+                // Art/Rarity variants (found in Courtyard metadata)
+                "full art" => "FullArt",
+                "special illustration rare" => "SpecialIllustrationRare",
+
                 _ => part, // Keep original if no mapping
             };
             result.push_str(mapped);
@@ -188,17 +205,19 @@ impl TryInto<ScrydexCardInfo> for &NFTMetadata {
                 }
             } else {
                 // Handle variant attributes that don't have a trait_type (like "1st Edition", "Shadowless", "Holo")
+                // Only variants discovered from Courtyard API and Scrydex tests
                 if let Some(value_str) = AttributeParser::attribute_value_as_string(&attr.value) {
                     let value_lower = value_str.to_lowercase();
                     if matches!(
                         value_lower.as_str(),
-                        "1st edition"
-                            | "shadowless"
-                            | "unlimited"
-                            | "holo"
-                            | "holofoil"
-                            | "reverse holofoil"
-                            | "reverse holo"
+                        // Edition variants (found in Courtyard and Scrydex)
+                        "1st edition" | "shadowless" | "unlimited" |
+                        // Foil/Holo variants (found in both Courtyard and Scrydex)
+                        "holo" | "holofoil" | "reverse holo" | "reverse holofoil" |
+                        // Base variant (found in Scrydex price objects)
+                        "normal" |
+                        // Art/Rarity variants (found in Courtyard metadata)
+                        "full art" | "special illustration rare"
                     ) {
                         variant_parts.push(value_str.trim().to_string());
                     }
