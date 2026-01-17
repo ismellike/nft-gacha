@@ -5,6 +5,7 @@ import { usePublicClient } from "wagmi";
 import { parseAbiItem } from "viem";
 import { useSpinHistoryStore } from "../stores/spinHistoryStore";
 import type { SpinHistoryEntry } from "../types/spin-history";
+import { logger } from "../lib/logger";
 
 // Event ABIs for parsing logs
 const SPIN_COMPLETED_EVENT = parseAbiItem(
@@ -53,7 +54,7 @@ export function useSpinHistoryFetcher() {
 						const block = await publicClient.getBlock({ blockNumber });
 						return [blockNumber.toString(), Number(block.timestamp)];
 					} catch (error) {
-						console.error(
+						logger.network.error(
 							`Failed to fetch timestamp for block ${blockNumber}:`,
 							error,
 						);
@@ -189,7 +190,6 @@ export function useSpinHistoryFetcher() {
 						tokenId: tokenId.toString(),
 						appraisedPrice,
 						gachaAddress,
-						gachaId: gachaAddress, // Can be enhanced to fetch actual gacha ID
 					});
 				}
 
@@ -216,7 +216,6 @@ export function useSpinHistoryFetcher() {
 						selectedRarity: Number(selectedRarity),
 						refundAmount,
 						gachaAddress,
-						gachaId: gachaAddress,
 					});
 				}
 
@@ -237,7 +236,6 @@ export function useSpinHistoryFetcher() {
 						requester,
 						refundAmount,
 						gachaAddress,
-						gachaId: gachaAddress,
 					});
 				}
 
@@ -264,7 +262,7 @@ export function useSpinHistoryFetcher() {
 				setLoading(userAddress, gachaAddress, false);
 				return entries;
 			} catch (error) {
-				console.error("Failed to fetch spin history:", error);
+				logger.network.error("Failed to fetch spin history:", error);
 				const errorMessage =
 					error instanceof Error ? error.message : "Unknown error occurred";
 				setError(userAddress, gachaAddress, errorMessage);

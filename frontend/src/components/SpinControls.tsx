@@ -28,6 +28,7 @@ import {
 } from "../generated";
 import type { UseGachaSpinMachineReturn } from "../hooks/useGachaSpinMachine";
 import { useGachaRefresh } from "../contexts/GachaRefreshContext";
+import { logger } from "../lib/logger";
 
 interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
@@ -180,7 +181,7 @@ export default function SpinControls({
 	// Handle refund detection to refresh balances
 	useEffect(() => {
 		if (gachaSpin.isRefunded && gachaSpin.refundResult) {
-			console.log("💰 [SpinControls] Refund detected, refreshing balances");
+			logger.gachaSpin.log("Refund detected, refreshing balances");
 			refetchBalance();
 			refetchNonce();
 			onRefund?.();
@@ -196,7 +197,7 @@ export default function SpinControls({
 	// Register spin fee refetch with the refresh context
 	useEffect(() => {
 		const refetchSpinFee = async () => {
-			console.log("🔄 [SpinControls] Refetching spin fee");
+			logger.gachaSpin.debug("Refetching spin fee");
 			await spinFeeQuery.refetch();
 		};
 
@@ -341,27 +342,24 @@ export default function SpinControls({
 	// Reclaim handler
 	const handleReclaim = async () => {
 		if (!gachaSpin.triggerId || !contracts.gacha) {
-			console.error("Missing trigger ID or gacha contract for reclaim");
+			logger.gachaSpin.error("Missing trigger ID or gacha contract for reclaim");
 			return;
 		}
 
 		try {
-			console.log(
-				"🔄 [SpinControls] Reclaiming failed spin:",
-				gachaSpin.triggerId,
-			);
+			logger.gachaSpin.log("Reclaiming failed spin:", gachaSpin.triggerId);
 			reclaimFailedSpin({
 				address: contracts.gacha as `0x${string}`,
 				args: [gachaSpin.triggerId],
 			});
 		} catch (error) {
-			console.error("Error reclaiming failed spin:", error);
+			logger.gachaSpin.error("Error reclaiming failed spin:", error);
 		}
 	};
 
 	// Enhanced button click handler
 	const onSpinClick = async () => {
-		console.log("🎯 [SpinControls] Spin button clicked", {
+		logger.gachaSpin.log("Spin button clicked", {
 			state: gachaSpin.state,
 			isConnected,
 			canSpin,
@@ -395,13 +393,13 @@ export default function SpinControls({
 
 		// If permit failed before, try direct spin
 		if (permitFailed) {
-			console.log(
-				"🔄 [SpinControls] Permit failed previously, trying direct spin (requires pre-approval)",
+			logger.gachaSpin.log(
+				"Permit failed previously, trying direct spin (requires pre-approval)",
 			);
 			try {
 				if (!contracts.gacha || !maxFee) {
-					console.error(
-						"❌ [SpinControls] Missing max fee or contract for direct spin",
+					logger.gachaSpin.error(
+						"Missing max fee or contract for direct spin",
 					);
 					return;
 				}
@@ -421,7 +419,7 @@ export default function SpinControls({
 					args: [maxFee as bigint],
 				});
 			} catch (error) {
-				console.error("[SpinControls] Direct spin error:", error);
+				logger.gachaSpin.error("Direct spin error:", error);
 				gachaSpin.reset();
 			}
 			return;
@@ -429,7 +427,7 @@ export default function SpinControls({
 
 		// Validate spin conditions
 		if (!isSpinDataReady) {
-			console.log("❌ [SpinControls] Spin conditions not met:", {
+			logger.gachaSpin.log("Spin conditions not met:", {
 				isConnected,
 				canSpin,
 				userAddress: !!userAddress,
@@ -483,8 +481,8 @@ export default function SpinControls({
 				tokenNonce === undefined ||
 				!contracts.gacha
 			) {
-				console.error(
-					"❌ [SpinControls] Missing required parameters for permit signing:",
+				logger.gachaSpin.error(
+					"Missing required parameters for permit signing:",
 					{
 						userAddress: !!userAddress,
 						feeToken: !!feeToken,
@@ -519,8 +517,8 @@ export default function SpinControls({
 				deadline,
 			};
 
-			console.log(
-				"📝 [SpinControls] Requesting permit signature with params:",
+			logger.gachaSpin.log(
+				"Requesting permit signature with params:",
 				{
 					domain,
 					message: {
@@ -548,7 +546,7 @@ export default function SpinControls({
 				message,
 			});
 		} catch (error) {
-			console.error("[SpinControls] Error in spin click handler:", error);
+			logger.gachaSpin.error("Error in spin click handler:", error);
 			gachaSpin.reset();
 		}
 	};
@@ -564,12 +562,10 @@ export default function SpinControls({
 			signature !== usedSignature
 		) {
 			try {
-				console.log(
-					"✅ [SpinControls] Permit signature received, submitting transaction...",
-				);
+				logger.gachaSpin.log("Permit signature received, submitting transaction");
 
 				// Parse signature hex string into r, s, v components
-				console.log("🔍 [SpinControls] Parsing signature:", {
+				logger.gachaSpin.debug("Parsing signature:", {
 					signatureLength: signature.length,
 					signature: `${signature.slice(0, 20)}...`,
 				});
@@ -586,7 +582,7 @@ export default function SpinControls({
 				const s = `0x${sig.slice(64, 128)}` as `0x${string}`;
 				let v = parseInt(sig.slice(128, 130), 16);
 
-				console.log("🔧 [SpinControls] Parsed signature components:", {
+				logger.gachaSpin.debug("Parsed signature components:", {
 					r: `${r.slice(0, 20)}...`,
 					s: `${s.slice(0, 20)}...`,
 					vOriginal: sig.slice(128, 130),
@@ -596,7 +592,7 @@ export default function SpinControls({
 				// Ensure v is 27 or 28 for Ethereum
 				if (v < 27) {
 					v += 27;
-					console.log("🔧 [SpinControls] Adjusted v value to:", v);
+					logger.gachaSpin.debug("Adjusted v value to:", v);
 				}
 
 				const txParams = {
@@ -626,28 +622,25 @@ export default function SpinControls({
 					functionName: "spinWithPermit",
 				};
 
-				console.log(
-					"📤 [SpinControls] Submitting spinWithPermit transaction:",
-					{
-						contract: txParams.address,
-						deadline: permitDeadline?.toString(),
-						v,
-						r,
-						s,
-						maxFee: maxFee?.toString(),
-						signature: `${signature.slice(0, 10)}...`,
-						rawSignature: signature,
-						expectedFunction:
-							"spinWithPermit(uint256,uint8,bytes32,bytes32,uint256)",
-					},
-				);
+				logger.gachaSpin.log("Submitting spinWithPermit transaction:", {
+					contract: txParams.address,
+					deadline: permitDeadline?.toString(),
+					v,
+					r,
+					s,
+					maxFee: maxFee?.toString(),
+					signature: `${signature.slice(0, 10)}...`,
+					rawSignature: signature,
+					expectedFunction:
+						"spinWithPermit(uint256,uint8,bytes32,bytes32,uint256)",
+				});
 
 				// Mark signature as used to prevent reuse
 				setUsedSignature(signature);
 
 				spinWithPermit(txParams);
 			} catch (error) {
-				console.error("[SpinControls] Error calling spinWithPermit:", error);
+				logger.gachaSpin.error("Error calling spinWithPermit:", error);
 				gachaSpin.reset();
 			}
 		}
@@ -682,13 +675,13 @@ export default function SpinControls({
 				errorMessage.includes("canceled")
 			) {
 				// User canceled - silently reset to idle state and show subtle feedback
-				console.log("🚫 [SpinControls] User cancelled signature request");
+				logger.gachaSpin.log("User cancelled signature request");
 				gachaSpin.reset();
 				setUserCancelledMessage(true);
 				setTimeout(() => setUserCancelledMessage(false), 2000);
 			} else {
 				// Real signature error - log detailed debugging info and go to error state
-				console.error("❌ [SpinControls] Signature error occurred:", {
+				logger.gachaSpin.error("Signature error occurred:", {
 					error: signatureError,
 					message: signatureError.message,
 					name: signatureError.name,
@@ -735,7 +728,7 @@ export default function SpinControls({
 			const errorMessage = String(
 				spinWithPermitError.message || "",
 			).toLowerCase();
-			console.log("🔍 [SpinControls] Analyzing transaction error:", {
+			logger.gachaSpin.debug("Analyzing transaction error:", {
 				errorMessage: spinWithPermitError.message,
 				errorName: spinWithPermitError.name,
 				errorCode: (spinWithPermitError as { code?: string }).code,
@@ -753,13 +746,13 @@ export default function SpinControls({
 				errorMessage.includes("canceled")
 			) {
 				// User canceled - silently reset to idle state and show subtle feedback
-				console.log("🚫 [SpinControls] User cancelled transaction");
+				logger.gachaSpin.log("User cancelled transaction");
 				gachaSpin.reset();
 				setUserCancelledMessage(true);
 				setTimeout(() => setUserCancelledMessage(false), 2000);
 			} else {
 				// Real transaction error - log detailed debugging info
-				console.error("❌ [SpinControls] Transaction submission error:", {
+				logger.gachaSpin.error("Transaction submission error:", {
 					error: spinWithPermitError,
 					message: spinWithPermitError.message,
 					name: spinWithPermitError.name,
@@ -788,8 +781,8 @@ export default function SpinControls({
 					errorMessage.includes("insufficient funds") ||
 					(errorMessage.includes("revert") && spinFee)
 				) {
-					console.warn(
-						"⚠️ [SpinControls] Possible fee mismatch - refetching current fee",
+					logger.gachaSpin.warn(
+						"Possible fee mismatch - refetching current fee",
 					);
 					setFeeMismatchError(true);
 					spinFeeQuery.refetch();
@@ -804,20 +797,20 @@ export default function SpinControls({
 					errorMessage.includes("execution reverted") ||
 					errorMessage.includes("revert")
 				) {
-					console.warn(
-						"⚠️ [SpinControls] Permit signature rejected by contract, this might indicate:",
+					logger.gachaSpin.warn(
+						"Permit signature rejected by contract, this might indicate:",
 					);
-					console.warn("  1. Token contract doesn't support EIP-712 permits");
-					console.warn("  2. Domain separator mismatch (name/version/chainId)");
-					console.warn("  3. Permit implementation differs from standard");
-					console.warn("  4. Contract expects different signature format");
-					console.warn("  5. Permit expired or already used");
-					console.warn("  6. Insufficient allowance despite permit");
+					logger.gachaSpin.warn("  1. Token contract doesn't support EIP-712 permits");
+					logger.gachaSpin.warn("  2. Domain separator mismatch (name/version/chainId)");
+					logger.gachaSpin.warn("  3. Permit implementation differs from standard");
+					logger.gachaSpin.warn("  4. Contract expects different signature format");
+					logger.gachaSpin.warn("  5. Permit expired or already used");
+					logger.gachaSpin.warn("  6. Insufficient allowance despite permit");
 
 					// Mark permit as failed and enable fallback
 					setPermitFailed(true);
-					console.warn(
-						"💡 [SpinControls] Trying direct spin as fallback. Make sure you've approved the gacha contract to spend your tokens.",
+					logger.gachaSpin.warn(
+						"Trying direct spin as fallback. Make sure you've approved the gacha contract to spend your tokens.",
 					);
 				}
 
@@ -843,8 +836,8 @@ export default function SpinControls({
 	// Handle transaction receipt errors
 	useEffect(() => {
 		if (spinWithPermitReceiptError) {
-			console.error(
-				"❌ [SpinControls] Transaction receipt error:",
+			logger.gachaSpin.error(
+				"Transaction receipt error:",
 				spinWithPermitReceiptError,
 			);
 
@@ -891,8 +884,8 @@ export default function SpinControls({
 				setTimeout(() => setUserCancelledMessage(false), 2000);
 			} else {
 				// Real transaction error - log and go to error state
-				console.error(
-					"❌ [SpinControls] Direct spin transaction error:",
+				logger.gachaSpin.error(
+					"Direct spin transaction error:",
 					spinError,
 				);
 
@@ -903,8 +896,8 @@ export default function SpinControls({
 					errorMessage.includes("insufficient funds") ||
 					(errorMessage.includes("revert") && spinFee)
 				) {
-					console.warn(
-						"⚠️ [SpinControls] Possible fee mismatch - refetching current fee",
+					logger.gachaSpin.warn(
+						"Possible fee mismatch - refetching current fee",
 					);
 					setFeeMismatchError(true);
 					spinFeeQuery.refetch();
@@ -927,8 +920,8 @@ export default function SpinControls({
 		) {
 			// Don't process if already moved past the spinning state (race condition guard)
 			if (gachaSpin.isRevealing || gachaSpin.isIdle) {
-				console.log(
-					"⏭️ [SpinControls] Skipping receipt processing - state already moved to",
+				logger.gachaSpin.log(
+					"Skipping receipt processing - state already moved to",
 					gachaSpin.state,
 				);
 				const txHash = isSpinWithPermitSuccess
@@ -938,8 +931,8 @@ export default function SpinControls({
 				return;
 			}
 
-			console.log(
-				"📋 [SpinControls] Processing spin transaction receipt:",
+			logger.gachaSpin.log(
+				"Processing spin transaction receipt:",
 				spinWithPermitTxHash,
 			);
 
@@ -948,12 +941,12 @@ export default function SpinControls({
 
 			const receipt = isSpinWithPermitSuccess ? spinReceiptData : spinReceipt;
 			if (!receipt) {
-				console.warn("⚠️ [SpinControls] No receipt available yet");
+				logger.gachaSpin.warn("No receipt available yet");
 				return;
 			}
 
-			console.log(
-				`🔍 [SpinControls] Searching through ${receipt.logs.length} logs for RandomnessRequested event`,
+			logger.gachaSpin.debug(
+				`Searching through ${receipt.logs.length} logs for RandomnessRequested event`,
 			);
 
 			for (let i = 0; i < receipt.logs.length; i++) {
@@ -979,16 +972,16 @@ export default function SpinControls({
 
 					if (decoded.eventName === "RandomnessRequested") {
 						triggerId = decoded.args.triggerId as bigint;
-						console.log(
-							`✅ [SpinControls] Found RandomnessRequested event at log index ${i}:`,
+						logger.gachaSpin.log(
+							`Found RandomnessRequested event at log index ${i}:`,
 							triggerId.toString(),
 						);
 						break;
 					}
 				} catch (error) {
 					// Log each decode error for debugging
-					console.debug(
-						`🔍 [SpinControls] Log ${i} not a RandomnessRequested event:`,
+					logger.gachaSpin.debug(
+						`Log ${i} not a RandomnessRequested event:`,
 						{
 							error: (error as Error).message,
 							topics: log.topics.length,
@@ -999,14 +992,14 @@ export default function SpinControls({
 			}
 
 			if (triggerId !== null) {
-				console.log(
-					"✅ [SpinControls] Confirming transaction with trigger ID:",
+				logger.gachaSpin.log(
+					"Confirming transaction with trigger ID:",
 					triggerId.toString(),
 				);
 				gachaSpin.confirmTransaction(triggerId);
 			} else {
-				console.error(
-					"❌ [SpinControls] RandomnessRequested event not found in receipt! This may indicate a contract issue.",
+				logger.gachaSpin.error(
+					"RandomnessRequested event not found in receipt! This may indicate a contract issue.",
 					{
 						logCount: receipt.logs.length,
 						txHash: isSpinWithPermitSuccess ? spinWithPermitTxHash : spinTxHash,
@@ -1074,8 +1067,8 @@ export default function SpinControls({
 	// Handle reclaim success
 	useEffect(() => {
 		if (isReclaimReceiptSuccess) {
-			console.log(
-				"✅ [SpinControls] Reclaim transaction confirmed, resetting state machine",
+			logger.gachaSpin.log(
+				"Reclaim transaction confirmed, resetting state machine",
 			);
 			gachaSpin.reset();
 			refetchBalance();
@@ -1090,7 +1083,7 @@ export default function SpinControls({
 			const errorCode = (reclaimError as { code?: number }).code;
 			const errorName = (reclaimError as { name?: string }).name;
 
-			console.log("🔍 [SpinControls] Analyzing reclaim error:", {
+			logger.gachaSpin.debug("Analyzing reclaim error:", {
 				errorMessage: reclaimError.message,
 				errorName: reclaimError.name,
 				errorCode: errorCode,
@@ -1111,14 +1104,14 @@ export default function SpinControls({
 
 			if (isUserRejected) {
 				// User canceled - show subtle feedback and keep them in timeout state
-				console.log("🚫 [SpinControls] User cancelled reclaim transaction");
+				logger.gachaSpin.log("User cancelled reclaim transaction");
 				setUserCancelledMessage(true);
 				setTimeout(() => {
 					setUserCancelledMessage(false);
 				}, 2000);
 			} else {
 				// Real reclaim error - log detailed debugging info
-				console.error("❌ [SpinControls] Reclaim transaction error:", {
+				logger.gachaSpin.error("Reclaim transaction error:", {
 					error: reclaimError,
 					message: reclaimError.message,
 					name: reclaimError.name,

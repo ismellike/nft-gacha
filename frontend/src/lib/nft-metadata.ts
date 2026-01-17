@@ -69,7 +69,7 @@ export async function fetchNFTMetadata(
 						return metadata;
 					}
 				} catch (error) {
-					console.warn(`IPFS gateway ${gateway} failed:`, error);
+					logger.nftMetadata.warn(`IPFS gateway ${gateway} failed:`, error);
 				}
 			}
 			throw new Error("All IPFS gateways failed");
@@ -103,7 +103,7 @@ export async function fetchNFTMetadata(
 			metadataCache.set(tokenURI, { data: metadata, timestamp: Date.now() });
 
 			// Log successful fetch for debugging
-			console.log("Successfully fetched metadata:", {
+			logger.nftMetadata.debug("Successfully fetched metadata:", {
 				tokenURI: url,
 				name: metadata.name,
 				hasImage: !!metadata.image,
@@ -114,7 +114,7 @@ export async function fetchNFTMetadata(
 
 		return metadata;
 	} catch (error) {
-		console.error("Failed to fetch NFT metadata from", tokenURI, error);
+		logger.nftMetadata.error("Failed to fetch NFT metadata from", tokenURI, error);
 		throw error;
 	}
 }
@@ -217,7 +217,7 @@ export function processImageUrl(
 		metadata && JSON.stringify(metadata).includes("courtyard");
 
 	if (isCourtyard) {
-		console.log("Processing Courtyard NFT image URL:", {
+		logger.nftMetadata.debug("Processing Courtyard NFT image URL:", {
 			providedImageUrl: imageUrl,
 			metadataImage: metadata?.image,
 			metadataKeys: metadata ? Object.keys(metadata) : [],
@@ -230,31 +230,31 @@ export function processImageUrl(
 		// Handle IPFS URLs
 		if (imageUrl.startsWith("ipfs://")) {
 			const processedUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-			console.log(`Processed IPFS URL: ${imageUrl} -> ${processedUrl}`);
+			logger.nftMetadata.debug(`Processed IPFS URL: ${imageUrl} -> ${processedUrl}`);
 			return processedUrl;
 		}
 
 		// Return HTTP(S) URLs as-is (including Courtyard images)
 		if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-			console.log("Using direct HTTP(S) image URL:", imageUrl);
+			logger.nftMetadata.debug("Using direct HTTP(S) image URL:", imageUrl);
 			return imageUrl;
 		}
 
 		// Handle relative URLs by assuming they're relative to IPFS
 		if (imageUrl.startsWith("/")) {
 			const processedUrl = `https://ipfs.io/ipfs${imageUrl}`;
-			console.log(`Processed relative URL: ${imageUrl} -> ${processedUrl}`);
+			logger.nftMetadata.debug(`Processed relative URL: ${imageUrl} -> ${processedUrl}`);
 			return processedUrl;
 		}
 
 		// Return as-is for other formats
-		console.log("Using image URL as-is:", imageUrl);
+		logger.nftMetadata.debug("Using image URL as-is:", imageUrl);
 		return imageUrl;
 	}
 
 	// If no direct imageUrl provided, try to extract from metadata
 	if (metadata) {
-		console.log(
+		logger.nftMetadata.debug(
 			"No direct imageUrl provided, searching metadata for image sources...",
 		);
 
@@ -267,7 +267,7 @@ export function processImageUrl(
 					(attr.value.startsWith("http://") ||
 						attr.value.startsWith("https://"))
 				) {
-					console.log("Found image URL in attributes:", attr.value);
+					logger.nftMetadata.debug("Found image URL in attributes:", attr.value);
 					return attr.value;
 				}
 			}
@@ -282,7 +282,7 @@ export function processImageUrl(
 				metadata.external_url.includes(".gif") ||
 				metadata.external_url.includes(".webp"))
 		) {
-			console.log(
+			logger.nftMetadata.debug(
 				"Using external_url as image fallback:",
 				metadata.external_url,
 			);
@@ -290,7 +290,7 @@ export function processImageUrl(
 		}
 
 		if (isCourtyard) {
-			console.warn("No valid image URL found in Courtyard metadata:", {
+			logger.nftMetadata.warn("No valid image URL found in Courtyard metadata:", {
 				metadataKeys: Object.keys(metadata),
 				hasImage: !!metadata.image,
 				hasExternalUrl: !!metadata.external_url,
@@ -299,7 +299,7 @@ export function processImageUrl(
 		}
 	}
 
-	console.log("No image URL found in provided parameters or metadata");
+	logger.nftMetadata.debug("No image URL found in provided parameters or metadata");
 	return null;
 }
 
@@ -356,3 +356,4 @@ export function useNFTMetadata(
 
 // Import React for the hook
 import React from "react";
+import { logger } from "./logger";

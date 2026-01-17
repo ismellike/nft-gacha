@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is an NFT Gacha system built on WAVS-DRAND infrastructure providing provably fair randomness for NFT distribution. The project consists of:
 
 - **Smart Contracts** (Foundry): Gacha mechanics, NFT appraisal system, treasury management
-- **Frontend** (Next.js): Game-Fi interface with glassmorphism design using React + XState state machines
+- **Frontend** (Next.js): Game-Fi interface with glassmorphism design using React + Zustand state management
 - **Backend Infrastructure**: WAVS aggregator/instance services for cryptographic randomness
 - **Task Automation**: Comprehensive Task runner for all development workflows
 
@@ -53,11 +53,11 @@ forge test --match-test <test_name>  # Run specific test
 
 ### State Management
 - **Frontend State**: Zustand stores with localStorage persistence for global state
-- **Async Utilities**: Pure utility functions for complex async flows (gacha spinning, NFT reveals) in `src/machines/`
+- **Async Utilities**: Pure utility functions for complex async flows (gacha spinning, NFT reveals) in `src/async-utils/`
 - **Contract State**: Wagmi hooks with auto-generated TypeScript types
 
 ### Key Async Flow
-The gacha spinning flow uses utility functions in `gachaSpinMachine.ts` with states:
+The gacha spinning flow uses utility functions in `async-utils/gachaSpinMachine.ts` with states:
 - `idle` → `spinning` → `waitingForFulfillment` → `revealing` → `idle`
 - Handles timeout/retry logic and automatic refunds for empty rarity pools
 - No XState - uses Zustand for persistence and pure functions for async operations
@@ -68,9 +68,9 @@ The gacha spinning flow uses utility functions in `gachaSpinMachine.ts` with sta
 - **Contract Hooks**: Auto-generated hooks like `useReadGachaGetRarityWeights()` 
 
 ### Component Architecture
-- **Glass UI System**: Reusable glassmorphism components in `src/components/ui/`
-- **Gacha Components**: Modular spin controls, history, reveal modals
-- **State Integration**: Components consume XState actors and Zustand stores
+- **Glass UI System**: Reusable glassmorphism components in `frontend/src/ui/`
+- **Gacha Components**: Modular spin controls, history, reveal modals in `frontend/src/components/`
+- **State Integration**: Components consume async utilities and Zustand stores
 
 ### Configuration System
 - **Environment-Aware**: `src/lib/gacha-config.ts` provides different contract addresses per environment

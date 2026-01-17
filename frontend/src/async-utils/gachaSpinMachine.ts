@@ -3,6 +3,7 @@
 import type { PublicClient } from "viem";
 import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
+import { createDebugLogger, DEBUG_FLAGS } from "../lib/logger";
 // Gacha contract address is now passed as context rather than imported
 
 export interface SpinResult {
@@ -47,8 +48,10 @@ export type GachaSpinEvent =
 
 export const MAX_RETRIES = 5;
 const POLLING_INTERVAL = 3000; // 3 seconds
-const BASE_TIMEOUT = 10000; // 10 minutes
-const MAX_POLLING_TIME = BASE_TIMEOUT * 6; // 10 minutes at 3-second intervals
+const BASE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_POLLING_TIME = BASE_TIMEOUT_MS; // 10 minutes at 3-second intervals
+
+const debugLog = createDebugLogger(DEBUG_FLAGS.GACHA_SPIN);
 
 // Utility function for exponential backoff with jitter
 const getPollingDelay = (attempt: number, baseInterval: number): number => {
@@ -69,7 +72,7 @@ export const pollForSpinFulfillment = async ({
 	publicClient: PublicClient;
 	gachaAddress: string;
 }): Promise<SpinResult> => {
-	console.log("🔄 [pollForSpinFulfillment] Starting poll for:", {
+	debugLog("🔄 [pollForSpinFulfillment] Starting poll for:", {
 		triggerId: triggerId.toString(),
 		userAddress,
 		gachaAddress,
@@ -126,7 +129,7 @@ export const pollForSpinFulfillment = async ({
 				const fromBlock =
 					currentBlock > BigInt(1000) ? currentBlock - BigInt(1000) : BigInt(0);
 
-				console.log(
+				debugLog(
 					`🔍 [pollForSpinFulfillment] Polling attempt ${attempts}:`,
 					{
 						currentBlock: currentBlock.toString(),
@@ -157,7 +160,7 @@ export const pollForSpinFulfillment = async ({
 					toBlock: currentBlock,
 				});
 
-				console.log(
+				debugLog(
 					`📋 [pollForSpinFulfillment] Found ${completedLogs.length} SpinCompleted logs`,
 				);
 
@@ -165,7 +168,7 @@ export const pollForSpinFulfillment = async ({
 					const log = completedLogs[0];
 					const { rarity, collection, tokenId } = log.args;
 
-					console.log("📋 [pollForSpinFulfillment] Processing log:", {
+					debugLog("📋 [pollForSpinFulfillment] Processing log:", {
 						rarity,
 						collection,
 						tokenId: tokenId?.toString(),
@@ -186,7 +189,7 @@ export const pollForSpinFulfillment = async ({
 						tokenId: tokenId?.toString() || "",
 					};
 
-					console.log(
+					debugLog(
 						"🎉 [pollForSpinFulfillment] SpinCompleted event found, resolving:",
 						result,
 					);
@@ -220,13 +223,13 @@ export const pollForSpinFulfillment = async ({
 						const log = refundedLogs[0];
 						const { selectedRarity, refundAmount } = log.args;
 
-						if (!selectedRarity || refundAmount === undefined) {
+						if (selectedRarity === undefined || refundAmount === undefined) {
 							throw new Error("Invalid SpinRefunded event data");
 						}
 
 						const rarityName = rarityBigIntToName(selectedRarity);
 
-						console.log("💰 [GachaSpinMachine] SpinRefunded event found:", {
+						debugLog("💰 [GachaSpinMachine] SpinRefunded event found:", {
 							selectedRarity: rarityName,
 							refundAmount,
 						});

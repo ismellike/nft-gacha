@@ -38,12 +38,18 @@ class SearchParamsStore {
 	}
 
 	private handlePopState = () => {
+		this.syncFromWindow();
+	};
+
+	syncFromWindow() {
+		if (typeof window === "undefined") return;
+
 		const newParams = new URLSearchParams(window.location.search);
 		if (newParams.toString() !== this.params.toString()) {
 			this.params = newParams;
 			this.notifyListeners();
 		}
-	};
+	}
 
 	private notifyListeners() {
 		this.listeners.forEach((listener) => {
@@ -116,7 +122,13 @@ const searchParamsStore = SearchParamsStore.getInstance();
  */
 function useClientSearchParams(): URLSearchParams {
 	return useSyncExternalStore(
-		searchParamsStore.subscribe.bind(searchParamsStore),
+		(callback) => {
+			const unsubscribe = searchParamsStore.subscribe.bind(searchParamsStore)(callback);
+			// Sync with current URL on mount to handle cases where router.push/replace
+			// was called outside useUpdateSearchParams
+			searchParamsStore.syncFromWindow();
+			return unsubscribe;
+		},
 		searchParamsStore.getSnapshot.bind(searchParamsStore),
 		searchParamsStore.getServerSnapshot.bind(searchParamsStore),
 	);

@@ -7,13 +7,14 @@ import {
 	pollForSpinFulfillment,
 	validatePendingSpins,
 	MAX_RETRIES,
-} from "../machines/gachaSpinMachine";
+} from "../async-utils/gachaSpinMachine";
 import { useGachaStore } from "../stores/gachaStore";
-import type { SpinResult, RefundResult } from "../machines/gachaSpinMachine";
+import type { SpinResult, RefundResult } from "../async-utils/gachaSpinMachine";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 import { gachaAbi } from "../generated";
 import { rarityBigIntToName } from "../lib/rarity-utils";
+import { createDebugLogger, DEBUG_FLAGS } from "../lib/logger";
 
 export interface UseGachaSpinMachineReturn {
 	// State
@@ -78,10 +79,27 @@ const buildState = (
 	matches: (status: GachaSpinStatus) => status === value,
 });
 
+const buildSpinResult = (args: {
+	rarity?: bigint | number;
+	collection?: string;
+	tokenId?: bigint;
+}): SpinResult | null => {
+	if (args.rarity === undefined || !args.collection || args.tokenId === undefined) {
+		return null;
+	}
+
+	return {
+		rarity: rarityBigIntToName(args.rarity),
+		collection: args.collection,
+		tokenId: args.tokenId.toString(),
+	};
+};
+
 export function useGachaSpinMachine(
 	onSpinComplete?: () => void,
 	onRefund?: () => void,
 ): UseGachaSpinMachineReturn {
+	const debugLog = createDebugLogger(DEBUG_FLAGS.GACHA_SPIN);
 	const { address: userAddress } = useAccount();
 	const publicClient = usePublicClient();
 	const gachaId = useGachaId();
@@ -116,6 +134,31 @@ export function useGachaSpinMachine(
 		[],
 	);
 
+	const shouldAcceptSpinCompletedLog = useCallback(
+		(triggerId?: bigint) => {
+			// Never accept if we're already done with this flow
+			if (state.matches("revealing") || state.matches("idle")) {
+				return false;
+			}
+
+			// Must have a triggerId in the log
+			if (!triggerId) {
+				return false;
+			}
+
+			// Only accept logs if we're in "waitingForFulfillment" state with a matching triggerId
+			// This prevents accepting logs for other pending spins or old sessions
+			if (state.matches("waitingForFulfillment")) {
+				return triggerId === state.context.triggerId;
+			}
+
+			// Don't accept logs while "spinning" - wait for confirmTransaction to set the triggerId
+			// The polling mechanism will handle fulfillment once we have the triggerId
+			return false;
+		},
+		[state.matches, state.context.triggerId],
+	);
+
 	// Watch for SpinCompleted events from the contract
 	useWatchContractEvent({
 		address: contracts.gacha as `0x${string}` | undefined,
@@ -125,57 +168,46 @@ export function useGachaSpinMachine(
 		eventName: "SpinCompleted",
 		args: userAddress ? { requester: userAddress } : undefined,
 		onLogs(logs) {
-			console.log("🔍 [useWatchContractEvent] SpinCompleted logs received:", {
+			debugLog("🔍 [useWatchContractEvent] SpinCompleted logs received:", {
 				logCount: logs.length,
 				currentState: state.value,
 				currentTriggerId: state.context.triggerId?.toString(),
 				userAddress,
 			});
 
-			// Process logs even if not strictly in waitingForFulfillment state
-			// This handles race conditions where the event fires before confirmTransaction is called
+			// Process logs - only accept if they match the active triggerId
 			for (const log of logs) {
 				const { triggerId, rarity, collection, tokenId } = log.args;
 
-				console.log("📋 [useWatchContractEvent] Processing log:", {
+				debugLog("📋 [useWatchContractEvent] Processing log:", {
 					logTriggerId: triggerId?.toString(),
 					rarity,
 					collection,
 					tokenId: tokenId?.toString(),
 				});
 
-				// Accept the event if:
-				// 1. We have a triggerId in the log
-				// 2. We either have a matching triggerId in state OR we're in spinning/waiting state
-				// 3. We haven't already revealed or gone to idle
-				if (
-					triggerId &&
-					!state.matches("revealing") &&
-					!state.matches("idle") &&
-					(state.matches("spinning") ||
-						state.matches("waitingForFulfillment") ||
-						triggerId === state.context.triggerId)
-				) {
-					const result: SpinResult = {
-						rarity: rarityBigIntToName(rarity),
-						collection: collection || "",
-						tokenId: tokenId?.toString() || "",
-					};
+				// Only accept the event if it matches our active triggerId
+				if (shouldAcceptSpinCompletedLog(triggerId)) {
+					// Build result object with only defined values to avoid exactOptionalPropertyTypes issues
+					const resultArgs: {
+						rarity?: number | bigint;
+						collection?: string;
+						tokenId?: bigint;
+					} = {};
+					if (rarity !== undefined) resultArgs.rarity = rarity;
+					if (collection !== undefined) resultArgs.collection = collection;
+					if (tokenId !== undefined) resultArgs.tokenId = tokenId;
 
-					// If we're in "spinning" state, it means confirmTransaction wasn't called yet
-					// We need to add the pending spin to ensure persistence
-					if (state.matches("spinning") && userAddress && contracts.gacha) {
-						console.log(
-							"💾 [useWatchContractEvent] Race condition detected: adding pending spin for persistence",
+					const result = buildSpinResult(resultArgs);
+
+					if (!result) {
+						console.warn(
+							"[useWatchContractEvent] SpinCompleted log missing fields",
 						);
-						useGachaStore.getState().addPendingSpin({
-							userAddress,
-							gachaAddress: contracts.gacha,
-							triggerId,
-						});
+						continue;
 					}
 
-					console.log(
+					debugLog(
 						"✅ [useWatchContractEvent] Accepting SpinCompleted! Updating to revealing:",
 						result,
 					);
@@ -183,7 +215,6 @@ export function useGachaSpinMachine(
 						spinResult: result,
 						refundResult: null,
 						error: null,
-						triggerId: triggerId, // Update triggerId in state too
 					});
 					onSpinComplete?.();
 
@@ -198,7 +229,7 @@ export function useGachaSpinMachine(
 					}
 					break;
 				} else {
-					console.log(
+					debugLog(
 						"⏭️ [useWatchContractEvent] Skipping log - conditions not met:",
 						{
 							hasTriggerId: !!triggerId,
@@ -233,10 +264,10 @@ export function useGachaSpinMachine(
 					: null;
 				if (storedTriggerId) {
 					// Only restore if we have a valid stored trigger ID
-					console.log(
-						"🔄 [useGachaSpinMachine] Restoring pending spin:",
-						storedTriggerId,
-					);
+						debugLog(
+							"🔄 [useGachaSpinMachine] Restoring pending spin:",
+							storedTriggerId,
+						);
 					if (contracts.gacha) {
 						updateState("waitingForFulfillment", {
 							userAddress,
@@ -254,10 +285,10 @@ export function useGachaSpinMachine(
 					? loadFromStorage(userAddress, contracts.gacha)
 					: null;
 				if (storedTriggerId) {
-					console.log(
-						"🔄 [useGachaSpinMachine] Restoring pending spin (validation failed):",
-						storedTriggerId,
-					);
+						debugLog(
+							"🔄 [useGachaSpinMachine] Restoring pending spin (validation failed):",
+							storedTriggerId,
+						);
 					if (contracts.gacha) {
 						updateState("waitingForFulfillment", {
 							userAddress,
@@ -286,7 +317,7 @@ export function useGachaSpinMachine(
 	};
 
 	const confirmTransaction = (triggerId: bigint) => {
-		console.log(
+		debugLog(
 			"📝 [confirmTransaction] Called with triggerId:",
 			triggerId.toString(),
 		);
@@ -296,7 +327,7 @@ export function useGachaSpinMachine(
 				gachaAddress: state.context.gachaAddress,
 				triggerId,
 			});
-			console.log("✅ [confirmTransaction] Added to pending spins", {
+			debugLog("✅ [confirmTransaction] Added to pending spins", {
 				userAddress: state.context.userAddress,
 				gachaAddress: state.context.gachaAddress,
 				triggerId: triggerId.toString(),
@@ -306,7 +337,7 @@ export function useGachaSpinMachine(
 			triggerId,
 			retryCount: 0,
 		});
-		console.log(
+		debugLog(
 			"🔄 [confirmTransaction] State updated to waitingForFulfillment",
 		);
 	};
@@ -446,7 +477,7 @@ export function useGachaSpinMachine(
 	// Handle refund completion
 	useEffect(() => {
 		if (isRefunded && state.context.refundResult) {
-			console.log(
+			debugLog(
 				"💰 [useGachaSpinMachine] Refund completed, triggering balance refresh",
 			);
 			onRefund?.();

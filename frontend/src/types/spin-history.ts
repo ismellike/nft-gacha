@@ -4,7 +4,7 @@
 
 export type SpinStatus = "completed" | "refunded" | "reclaimed";
 
-export type SpinStatusFilter = "all" | "completed" | "refunded";
+export type SpinStatusFilter = "all" | "completed" | "refunded" | "reclaimed";
 
 /**
  * Represents a single spin history entry fetched from contract events
@@ -32,7 +32,6 @@ export interface SpinHistoryEntry {
 
 	// Metadata
 	gachaAddress: string;
-	gachaId: string;
 }
 
 /**

@@ -1,29 +1,35 @@
-This is a [RainbowKit](https://rainbowkit.com) + [wagmi](https://wagmi.sh) + [Next.js](https://nextjs.org/) project bootstrapped with [`create-rainbowkit`](/packages/create-rainbowkit).
+# Frontend (Next.js)
 
-## Getting Started
+This app is the UI for the NFT Gacha system. It uses Next.js, React, TypeScript, Wagmi, and RainbowKit with a glassmorphism UI system.
 
-First, run the development server:
+## Setup
 
 ```bash
-npm run dev
+# From repo root
+cd frontend
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Environment variables live in the repo root `.env`. See `frontend/src/env.ts` for validation rules and `frontend/src/lib/gacha-config.ts` for environment-specific contract addresses.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Code Quality
 
-## Learn More
+```bash
+pnpm tsc      # Type checking (primary validation command)
+pnpm lint     # Biome linting (auto-fix)
+pnpm format   # Biome formatting
+```
 
-To learn more about this stack, take a look at the following resources:
+## Contract Integration
 
-- [RainbowKit Documentation](https://rainbowkit.com) - Learn how to customize your wallet connection flow.
-- [wagmi Documentation](https://wagmi.sh) - Learn how to interact with Ethereum.
-- [Next.js Documentation](https://nextjs.org/docs) - Learn how to build a Next.js application.
+```bash
+pnpm codegen  # Generate TypeScript types from Foundry artifacts
+```
 
-You can check out [the RainbowKit GitHub repository](https://github.com/rainbow-me/rainbowkit) - your feedback and contributions are welcome!
+Run `pnpm codegen` after contract changes to keep `frontend/src/generated.ts` current.
 
-## Deploy on Vercel
+## Notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out the [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- Do not run `pnpm dev` or `pnpm build` here. Use `pnpm tsc` for validation.
+- UI and interaction guidelines live in `DESIGN.md`.
+- For agent-focused instructions, see `frontend/CLAUDE.md`.

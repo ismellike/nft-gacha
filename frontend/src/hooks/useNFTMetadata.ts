@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from "react";
 import { useReadErc721TokenUri } from "../generated";
+import { usePublicClient } from "wagmi";
 import { fetchNFTMetadata, processImageUrl } from "../lib/nft-metadata";
 import {
 	isCourtyardTokenURI,
@@ -15,6 +16,18 @@ import {
 } from "../lib/courtyard-utils";
 import { CACHE_DURATIONS } from "../lib/constants";
 import type { NFTWithMetadata, NFTMetadata } from "../types/hooks";
+import { logger } from "../lib/logger";
+
+// ERC721 tokenURI ABI
+const ERC721_ABI = [
+	{
+		inputs: [{ name: "tokenId", type: "uint256" }],
+		name: "tokenURI",
+		outputs: [{ name: "", type: "string" }],
+		stateMutability: "view",
+		type: "function",
+	},
+] as const;
 
 interface ImportedMetadata {
 	name?: string;
@@ -127,7 +140,7 @@ const fetchMetadataFromURI = async (
 
 		return { metadata, imageUrl };
 	} catch (error) {
-		console.warn(`Failed to fetch metadata from ${tokenURI}:`, error);
+		logger.nftMetadata.warn(`Failed to fetch metadata from ${tokenURI}:`, error);
 		return { metadata: null, imageUrl: null };
 	}
 };
@@ -188,6 +201,11 @@ export function useNFTMetadata(
 
 	// Handle tokenURI loading and errors
 	useEffect(() => {
+		// Skip effect if hook is disabled or inputs are invalid
+		if (!enabled || !collection || !tokenId) {
+			return;
+		}
+
 		if (isTokenURILoading) {
 			setState((prev) => ({ ...prev, isLoading: true, error: null }));
 			return;
@@ -212,7 +230,7 @@ export function useNFTMetadata(
 		}
 
 		setState((prev) => ({ ...prev, tokenURI, isLoading: true, error: null }));
-	}, [tokenURI, isTokenURILoading, tokenURIError]);
+	}, [tokenURI, isTokenURILoading, tokenURIError, enabled, collection, tokenId]);
 
 	// Fetch metadata when tokenURI is available (unless skipFetch is true)
 	useEffect(() => {
@@ -280,9 +298,10 @@ export function useBatchNFTMetadata(
 	}>,
 ): Record<string, NFTWithMetadata> {
 	const [results, setResults] = useState<Record<string, NFTWithMetadata>>({});
+	const publicClient = usePublicClient();
 
 	useEffect(() => {
-		if (requests.length === 0) return;
+		if (requests.length === 0 || !publicClient) return;
 
 		const loadBatch = async () => {
 			const newResults: Record<string, NFTWithMetadata> = {};
@@ -292,8 +311,9 @@ export function useBatchNFTMetadata(
 			for (let i = 0; i < requests.length; i += batchSize) {
 				const batch = requests.slice(i, i + batchSize);
 
-				const batchPromises = batch.map(async ({ collection, tokenId }) => {
+				const batchPromises = batch.map(async ({ collection, tokenId, options = {} }) => {
 					const cacheKey = CACHE_KEY(collection, tokenId);
+					const { enabled = true, skipFetch = false } = options;
 
 					// Check cache first
 					const cached = METADATA_CACHE.get(cacheKey);
@@ -312,7 +332,62 @@ export function useBatchNFTMetadata(
 						error: null,
 					};
 
-					return { key: cacheKey, data: loadingState };
+					// Skip fetch if disabled or skipFetch is true
+					if (!enabled || skipFetch) {
+						return { key: cacheKey, data: { ...loadingState, isLoading: false } };
+					}
+
+					// Fetch tokenURI and metadata
+					try {
+						// Fetch tokenURI using contract read
+						const tokenURI = await publicClient.readContract({
+							address: collection as `0x${string}`,
+							abi: ERC721_ABI,
+							functionName: "tokenURI",
+							args: [BigInt(tokenId)],
+						});
+
+						if (!tokenURI) {
+							return {
+								key: cacheKey,
+								data: {
+									...loadingState,
+									isLoading: false,
+									error: "No tokenURI available",
+								},
+							};
+						}
+
+						// Fetch metadata from tokenURI
+						const { metadata, imageUrl } = await fetchMetadataFromURI(tokenURI);
+
+						const result: NFTWithMetadata = {
+							collection,
+							tokenId,
+							tokenURI,
+							metadata,
+							imageUrl,
+							isLoading: false,
+							error: null,
+						};
+
+						// Cache the result
+						METADATA_CACHE.set(cacheKey, {
+							data: result,
+							timestamp: Date.now(),
+						});
+
+						return { key: cacheKey, data: result };
+					} catch (error) {
+						return {
+							key: cacheKey,
+							data: {
+								...loadingState,
+								isLoading: false,
+								error: error instanceof Error ? error.message : "Failed to fetch metadata",
+							},
+						};
+					}
 				});
 
 				const batchResults = await Promise.allSettled(batchPromises);
@@ -325,10 +400,13 @@ export function useBatchNFTMetadata(
 
 				setResults((prev) => ({ ...prev, ...newResults }));
 			}
+
+			// Cleanup expired cache entries
+			cleanupExpiredCache();
 		};
 
 		loadBatch();
-	}, [requests]);
+	}, [requests, publicClient]);
 
 	return results;
 }
@@ -366,7 +444,7 @@ export const NFTMetadataUtils = {
 		}
 
 		// This would trigger a fetch - in practice, you'd call the hook with prefetch: true
-		console.log(`Prefetching NFT metadata for ${collection}-${tokenId}`);
+		logger.nftMetadata.debug(`Prefetching NFT metadata for ${collection}-${tokenId}`);
 		return null;
 	},
 } as const;

@@ -31,7 +31,7 @@ import {
 	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived,
 } from "../generated";
 import { formatTokenAmount } from "../lib/utils";
-import type { AppraisalResult } from "../machines/nftAppraisalMachine";
+import type { AppraisalResult } from "../async-utils/nftAppraisalMachine";
 import { useNFTAppraisalStore } from "../stores/nftAppraisalStore";
 import { useRewardsData } from "../hooks/useRewardsData";
 

@@ -9,6 +9,7 @@ import { HistoryGrid } from "./HistoryGrid";
 import { useSpinHistoryStore } from "@/stores/spinHistoryStore";
 import { useSpinHistoryFetcher } from "@/hooks/useSpinHistoryFetcher";
 import { InlineRetryMessage } from "@/components/InlineRetryMessage";
+import { logger } from "@/lib/logger";
 
 interface SpinHistorySectionProps {
 	gachaAddress: string;
@@ -34,6 +35,7 @@ const SpinHistorySection = ({
 	} = useSpinHistoryStore();
 
 	const [isInitialLoad, setIsInitialLoad] = useState(true);
+	const [previousAddress, setPreviousAddress] = useState<string | undefined>(address);
 
 	const isLoading = address ? getIsLoading(address, gachaAddress) : false;
 	const error = address ? getError(address, gachaAddress) : null;
@@ -53,16 +55,20 @@ const SpinHistorySection = ({
 				.finally(() => {
 					setIsInitialLoad(false);
 				});
+			// Update previous address when we have a connected address
+			setPreviousAddress(address);
 		} else {
-			// Clear history when wallet disconnects
-			clearHistory(address || "", gachaAddress);
+			// Clear history for the previous address when wallet disconnects
+			if (previousAddress) {
+				clearHistory(previousAddress, gachaAddress);
+			}
 		}
-	}, [address, gachaAddress, fetchHistory, clearHistory]);
+	}, [address, gachaAddress, fetchHistory, clearHistory, previousAddress]);
 
 	// Handle buyback success
 	const handleBuybackSuccess = useCallback(
 		(txHash: string, payoutAmount: bigint) => {
-			console.log(
+			logger.general.log(
 				`Buyback successful: ${txHash}, payout: ${payoutAmount.toString()}`,
 			);
 			// Optionally refresh history to show updated state

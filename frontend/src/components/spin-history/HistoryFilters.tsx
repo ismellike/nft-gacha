@@ -14,6 +14,7 @@ const FILTER_OPTIONS: { value: SpinStatusFilter; label: string }[] = [
 	{ value: "all", label: "All" },
 	{ value: "completed", label: "Completed" },
 	{ value: "refunded", label: "Refunded" },
+	{ value: "reclaimed", label: "Reclaimed" },
 ];
 
 const HistoryFilters = memo(({ userAddress, gachaAddress }: HistoryFiltersProps) => {
