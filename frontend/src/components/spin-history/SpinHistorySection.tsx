@@ -8,7 +8,7 @@ import { HistoryStats } from "./HistoryStats";
 import { HistoryGrid } from "./HistoryGrid";
 import { useSpinHistoryStore } from "@/stores/spinHistoryStore";
 import { useSpinHistoryFetcher } from "@/hooks/useSpinHistoryFetcher";
-import { InlineRetryMessage } from "@/components/InlineRetryMessage";
+import { InlineRetryMessage } from "@/components/shared/feedback";
 import { logger } from "@/lib/logger";
 
 interface SpinHistorySectionProps {

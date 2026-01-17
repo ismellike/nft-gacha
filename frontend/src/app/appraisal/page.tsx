@@ -9,13 +9,13 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAccount } from "wagmi";
 
-import { NFTAppraisalDashboard } from "../../components/NFTAppraisalDashboard";
+import { NFTAppraisalDashboard } from "../../components/nft";
 import { Card, Button, Skeleton } from "../../ui";
-import { InlineRetryMessage } from "../../components/InlineRetryMessage";
+import { InlineRetryMessage } from "../../components/shared/feedback";
 import {
 	ContractStatusAnnouncer,
 	useContractStatusAnnouncer,
-} from "../../components/ContractStatusAnnouncer";
+} from "../../components/shared/feedback";
 import { useAppraisalData } from "../../hooks/useAppraisalData";
 import { formatCurrency } from "../../lib/utils";
 

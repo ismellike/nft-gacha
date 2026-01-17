@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
 	useClientSearchParam,
 	useUpdateSearchParams,
@@ -27,7 +27,7 @@ interface UseGachaSectionsOptions {
 
 /**
  * Centralized controller for the gacha page sections.
- * Keeps URL, document title, and access restrictions in sync with local state.
+ * Derives state from URL params to avoid sync issues.
  */
 export function useGachaSections({
 	isOwner,
@@ -38,39 +38,20 @@ export function useGachaSections({
 	const sectionParam = useClientSearchParam("section");
 	const updateSearchParams = useUpdateSearchParams();
 
-	const sectionFromParam = useMemo<GachaSection>(() => {
+	// Derive active section from URL param with validation
+	const rawSection = useMemo<GachaSection>(() => {
 		if (sectionParam && VALID_SECTIONS.includes(sectionParam as GachaSection)) {
 			return sectionParam as GachaSection;
 		}
 		return defaultSection;
 	}, [sectionParam, defaultSection]);
 
-	const [activeSection, setActiveSection] =
-		useState<GachaSection>(sectionFromParam);
-
-	// Keep internal state in sync with the URL (e.g. browser back button)
-	useEffect(() => {
-		if (activeSection !== sectionFromParam) {
-			setActiveSection(sectionFromParam);
-		}
-	}, [activeSection, sectionFromParam]);
-
-	// Enforce access control and push sanitized section to the URL
-	useEffect(() => {
+	// Enforce access control - derive the actual section to display
+	const activeSection = useMemo<GachaSection>(() => {
 		const shouldRedirectFromAdmin =
-			activeSection === "admin" && shouldGateAdmin && !isOwner;
-		const next = shouldRedirectFromAdmin ? defaultSection : activeSection;
-		updateSearchParams({ section: next });
-		if (next !== activeSection) {
-			setActiveSection(next);
-		}
-	}, [
-		activeSection,
-		defaultSection,
-		isOwner,
-		shouldGateAdmin,
-		updateSearchParams,
-	]);
+			rawSection === "admin" && shouldGateAdmin && !isOwner;
+		return shouldRedirectFromAdmin ? defaultSection : rawSection;
+	}, [rawSection, isOwner, defaultSection, shouldGateAdmin]);
 
 	// Keep document title aligned with the current section for better UX/SEO
 	useEffect(() => {
@@ -79,17 +60,11 @@ export function useGachaSections({
 		document.title = `${gachaTitle} - ${sectionLabel} | Spin-Fi`;
 	}, [activeSection, gachaTitle]);
 
-	const selectSection = useCallback(
-		(next: GachaSection) => {
-			const allowed =
-				next === "admin" && shouldGateAdmin && !isOwner
-					? (defaultSection as GachaSection)
-					: next;
-			setActiveSection(allowed);
-			updateSearchParams({ section: allowed });
-		},
-		[defaultSection, isOwner, shouldGateAdmin, updateSearchParams],
-	);
+	// Update URL when user selects a section
+	const selectSection = (next: GachaSection) => {
+		// Just update the URL - state will be derived from it
+		updateSearchParams({ section: next });
+	};
 
 	return {
 		activeSection,

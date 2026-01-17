@@ -15,16 +15,12 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { Button, Card, CardSkeleton, Chip } from "../../ui";
-import { InlineRetryMessage } from "../../components/InlineRetryMessage";
+import { InlineRetryMessage } from "../../components/shared/feedback";
 import {
 	ContractStatusAnnouncer,
 	useContractStatusAnnouncer,
-} from "../../components/ContractStatusAnnouncer";
-import { FlowSwitcher } from "../../components/gacha/FlowSwitcher";
-import { SpinSection } from "../../components/gacha/SpinSection";
-import { VaultSection } from "../../components/gacha/VaultSection";
-import { AdminSection } from "../../components/gacha/AdminSection";
-import { EconomySection } from "../../components/gacha/EconomySection";
+} from "../../components/shared/feedback";
+import { FlowSwitcher, SpinSection, VaultSection, AdminSection, EconomySection } from "../../components/gacha";
 import { SpinHistorySection } from "../../components/spin-history";
 import { getGachaConfig } from "../../lib/gacha-config";
 import {
@@ -38,7 +34,7 @@ import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useRewardsData } from "../../hooks/useRewardsData";
 import { useGachaSections } from "../../hooks/useGachaSections";
-import { BuybackNotificationProvider } from "../../components/BuybackNotificationProvider";
+import { BuybackNotificationProvider } from "../../components/economy";
 import { GachaRefreshProvider } from "../../contexts/GachaRefreshContext";
 
 type FlowOption = {

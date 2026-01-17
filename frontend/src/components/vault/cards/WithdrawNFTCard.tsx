@@ -4,7 +4,7 @@ import { memo } from "react";
 import { motion } from "framer-motion";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../../ui";
-import { NFTCard } from "../../NFTCard";
+import { NFTCard } from "../../nft";
 import { cn } from "../../../lib/theme-config";
 import { formatCurrency } from "../../../lib/utils";
 import type { Address } from "viem";

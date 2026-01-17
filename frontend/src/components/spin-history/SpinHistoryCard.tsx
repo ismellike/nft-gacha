@@ -4,8 +4,8 @@ import { memo } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/ui/Card";
 import { Chip } from "@/ui/Chip";
-import { NFTCard, type NFTCardData } from "@/components/NFTCard";
-import BuybackComponent from "@/components/BuybackComponent";
+import { NFTCard, type NFTCardData } from "@/components/nft";
+import BuybackComponent from "@/components/economy/BuybackComponent";
 import { getRarityConfig, type Rarity } from "@/lib/rarityConfig";
 import {
 	formatAddress,

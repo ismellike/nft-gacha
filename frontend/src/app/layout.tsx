@@ -3,9 +3,9 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { Inter, JetBrains_Mono, Orbitron } from "next/font/google";
 
 import { Providers } from "./providers";
-import { Header } from "../components/Header";
-import { Footer } from "../components/Footer";
-import { ClientAnimatedBackground } from "../components/ClientAnimatedBackground";
+import { Header } from "../components/shared/layout";
+import { Footer } from "../components/shared/layout";
+import { ClientAnimatedBackground } from "../components/shared/background";
 
 // Optimize font loading
 const inter = Inter({

@@ -10,6 +10,7 @@ export { YieldTab } from "./tabs/YieldTab";
 export { default as NFTGrid } from "./cards/NFTGrid";
 export { default as DepositNFTCard } from "./cards/DepositNFTCard";
 export { default as WithdrawNFTCard } from "./cards/WithdrawNFTCard";
+export { DepositableNFTCard } from "./DepositableNFTCard";
 
 // Loading components
 export { default as NFTGridSkeleton } from "./loading/NFTGridSkeleton";

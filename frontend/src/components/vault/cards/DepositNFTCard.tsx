@@ -4,7 +4,7 @@ import { memo } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpTrayIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../../ui";
-import { NFTCard } from "../../NFTCard";
+import { NFTCard } from "../../nft";
 import { cn } from "../../../lib/theme-config";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
 

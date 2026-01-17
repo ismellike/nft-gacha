@@ -12,7 +12,7 @@ import {
 	FingerPrintIcon,
 	ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { SimpleRarityShowcase } from "../components/RaritySystem";
+import { SimpleRarityShowcase } from "../components/rarity";
 import { getRarityColorHex, Rarity } from "../lib/rarityConfig";
 import { glassBadge, glassCard } from "../lib/theme-config";
 
