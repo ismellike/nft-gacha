@@ -366,7 +366,7 @@ contract GachaTreasury is
 
     /// @dev Internal function to migrate NFT rarity
     function _migrateNFTRarity(address collection, uint256 tokenId) internal {
-        if (!depositedNFTs[collection][tokenId]) revert NFTAlreadyDeposited();
+        if (!depositedNFTs[collection][tokenId]) revert NFTNotDeposited();
 
         // Get current and new appraised price
         (uint256 newPriceUSD, NFTAppraisal.AppraisalStatus status) =

@@ -140,7 +140,7 @@ contract ProtocolTreasury is
             revert AppraisalMissing();
         }
 
-        payout = Math.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000) / USD_TO_USDC_CONVERSION;
+        payout = Math.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
         if (payout == 0) revert InvalidAmount();
 
         // Check redemption window (user must redeem within configured time of winning)

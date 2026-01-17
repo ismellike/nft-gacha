@@ -98,7 +98,6 @@ contract NFTAppraisal is
         address indexed owner
     );
 
-    event PriceUpdated(address indexed collection, uint256 indexed tokenId, uint256 oldPriceUSD, uint256 newPriceUSD);
     event CardPriceUpdated(bytes32 indexed cardId, uint256 oldPriceUSD, uint256 newPriceUSD);
     event CardAppraisalCompleted(bytes32 indexed cardId, uint256 priceUSD, address indexed oracle, uint256 timestamp);
     event TokenLinkedToCard(address indexed collection, uint256 indexed tokenId, bytes32 indexed cardId);
@@ -299,7 +298,6 @@ contract NFTAppraisal is
         emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.Completed, block.timestamp);
         if (oldPrice != priceUSD) {
             emit CardPriceUpdated(cardId, oldPrice, priceUSD);
-            emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
             _triggerAutoMigration(collection, tokenId);
         }
     }
@@ -393,7 +391,6 @@ contract NFTAppraisal is
         emit AppraisalStatusChanged(collection, tokenId, oldStatus, tr.status, block.timestamp);
         if (oldPrice != priceUSD) {
             emit CardPriceUpdated(cardId, oldPrice, priceUSD);
-            emit PriceUpdated(collection, tokenId, oldPrice, priceUSD);
             _triggerAutoMigration(collection, tokenId);
         }
     }
@@ -696,17 +693,30 @@ contract NFTAppraisal is
      */
     function _triggerAutoMigration(address collection, uint256 tokenId) internal {
         // Check if the NFT owner is a whitelisted treasury
-        address nftOwner = IERC721(collection).ownerOf(tokenId);
+        address nftOwner;
+
+        try IERC721(collection).ownerOf(tokenId) returns (address owner) {
+            nftOwner = owner;
+        } catch {
+            // If we can't get the owner, skip migration
+            return;
+        }
 
         if (whitelistedTreasuries[nftOwner]) {
             // Call the treasury's migration function
             // Use low-level call to prevent revert from failing this transaction
-            (bool success,) = nftOwner.call{gas: 100_000}(
+            (bool success, bytes memory data) = nftOwner.call{gas: 100_000}(
                 abi.encodeWithSignature("migrateNFTRarity(address,uint256)", collection, tokenId)
             );
 
             if (success) {
                 emit AutoMigrationTriggered(nftOwner, collection, tokenId);
+            } else {
+                // Emit event for monitoring even if migration fails
+                // Decode revert reason if available
+                if (data.length > 0) {
+                    emit AutoMigrationTriggered(nftOwner, collection, tokenId);
+                }
             }
             // If migration fails, we don't revert - the price update still happened
         }
