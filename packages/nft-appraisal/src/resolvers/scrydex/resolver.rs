@@ -64,6 +64,17 @@ impl PriceResolver for ScrydexPokemonResolver {
         );
 
         if let Some(price) = matching_price {
+            // Validate that price is in USD
+            if price.currency != "USD" {
+                return Err(anyhow!(
+                    "Price for card {} is in {} but only USD is supported. Grade: {}, Company: {}",
+                    card_identifier,
+                    price.currency,
+                    info.grade,
+                    info.company
+                ));
+            }
+
             let quote = ResolverQuote {
                 price: AppraisalPrice {
                     value: price.market,
