@@ -7,7 +7,7 @@
 //! - Conversion to unified metadata format
 
 mod client;
-mod parser;
+pub mod parser;
 mod provider;
 mod tests;
 mod types;

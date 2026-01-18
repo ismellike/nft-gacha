@@ -30,50 +30,6 @@ fn card_identifier_formats_correctly() {
 }
 
 #[test]
-fn variant_extraction_from_attributes() {
-    // Test variant extraction from Courtyard metadata attributes
-    let attributes = vec![
-        serde_json::json!({"trait_type": "Grader", "value": "PSA"}),
-        serde_json::json!({"trait_type": "Grade", "value": "9"}),
-        serde_json::json!({"value": "1st Edition"}),
-        serde_json::json!({"value": "Shadowless"}),
-        serde_json::json!({"trait_type": "Set", "value": "Base Set"}),
-    ];
-
-    let info = ScrydexCardInfo::from_courtyard_metadata(
-        "53".to_string(),
-        "9".to_string(),
-        "PSA".to_string(),
-        false,
-        "base1".to_string(),
-        &attributes,
-    );
-
-    assert_eq!(info.variant, Some("firstEditionShadowless".to_string()));
-}
-
-#[test]
-fn no_variant_extraction_when_none_present() {
-    // Test that no variant is extracted when no variant attributes exist
-    let attributes = vec![
-        serde_json::json!({"trait_type": "Grader", "value": "PSA"}),
-        serde_json::json!({"trait_type": "Grade", "value": "9"}),
-        serde_json::json!({"trait_type": "Set", "value": "Base Set"}),
-    ];
-
-    let info = ScrydexCardInfo::from_courtyard_metadata(
-        "53".to_string(),
-        "9".to_string(),
-        "PSA".to_string(),
-        false,
-        "base1".to_string(),
-        &attributes,
-    );
-
-    assert_eq!(info.variant, None);
-}
-
-#[test]
 fn test_find_matching_price_no_variant_single_variant_allowed() {
     use super::types::*;
     let card = ScrydexCard {

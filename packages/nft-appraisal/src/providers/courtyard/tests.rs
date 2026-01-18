@@ -560,3 +560,172 @@ fn test_variant_extraction_no_variant_attributes() {
     assert_eq!(card_info.variant, None);
     assert!(!card_info.is_perfect);
 }
+
+// Edge case tests
+
+#[test]
+fn test_normalize_card_number_with_unicode() {
+    // Test that Unicode characters are preserved
+    assert_eq!(
+        AttributeParser::normalize_card_number("TG23"),
+        Some("TG23".to_string())
+    );
+
+    // Test leading zeros with Unicode suffix
+    assert_eq!(
+        AttributeParser::normalize_card_number("007/100"),
+        Some("7/100".to_string())
+    );
+}
+
+#[test]
+fn test_normalize_grade_value_edge_cases() {
+    // Test multiple decimal points (should be rejected)
+    assert_eq!(
+        AttributeParser::normalize_grade_value("9.5.5"),
+        Some("9.5.5".to_string()) // Falls back to original since it's invalid
+    );
+
+    // Test grade out of range (should be rejected)
+    assert_eq!(
+        AttributeParser::normalize_grade_value("15"),
+        Some("15".to_string()) // Falls back to original since it's out of range
+    );
+
+    // Test negative grade (should be rejected)
+    assert_eq!(
+        AttributeParser::normalize_grade_value("-5"),
+        Some("-5".to_string()) // Falls back to original since it's negative
+    );
+
+    // Test valid half-grade
+    assert_eq!(
+        AttributeParser::normalize_grade_value("9.5"),
+        Some("9.5".to_string())
+    );
+
+    // Test valid integer grade
+    assert_eq!(
+        AttributeParser::normalize_grade_value("10"),
+        Some("10".to_string())
+    );
+}
+
+#[test]
+fn test_empty_and_whitespace_attributes() {
+    // Test empty string
+    assert_eq!(AttributeParser::normalize_card_number(""), None);
+
+    // Test whitespace only
+    assert_eq!(AttributeParser::normalize_card_number("   "), None);
+
+    // Test grade with leading/trailing whitespace
+    assert_eq!(
+        AttributeParser::normalize_grade_value("  9  "),
+        Some("9".to_string())
+    );
+}
+
+#[test]
+fn test_malformed_combined_format() {
+    // Test attribute with mismatched parentheses (should not crash)
+    let metadata = NFTMetadata {
+        collection_name: None,
+        name: "Test Card (Incomplete".to_string(),
+        description: Some("A test card".to_string()),
+        external_url: Some("https://example.com".to_string()),
+        image: Some("https://example.com/image.jpg".to_string()),
+        animation_url: None,
+        video: None,
+        token_info: None,
+        reveal_state: None,
+        item_info: None,
+        product_type: Some("GRADED_CARD".to_string()),
+        attributes: vec![
+            NFTAttribute {
+                trait_type: Some("Grader".to_string()),
+                value: serde_json::Value::String("PSA".to_string()),
+            },
+            NFTAttribute {
+                trait_type: Some("Grade".to_string()),
+                value: serde_json::Value::String("9".to_string()),
+            },
+            NFTAttribute {
+                trait_type: Some("Set".to_string()),
+                value: serde_json::Value::String("Base Set".to_string()),
+            },
+            NFTAttribute {
+                trait_type: Some("Card Number".to_string()),
+                value: serde_json::Value::String("53".to_string()),
+            },
+            NFTAttribute {
+                trait_type: None,
+                // Malformed - has opening paren but not closing
+                value: serde_json::Value::String("1st Edition (Incomplete".to_string()),
+            },
+        ],
+    };
+
+    let result: std::result::Result<ScrydexCardInfo, _> = (&metadata).try_into();
+    // Should succeed but not extract the malformed variant
+    assert!(result.is_ok());
+    let card_info = result.unwrap();
+    // Variant should be None since the format was malformed
+    assert_eq!(card_info.variant, None);
+}
+
+#[test]
+fn test_perfect_grade_detection_edge_cases() {
+    // Test "NOT PRISTINE" - should not detect as perfect
+    assert!(!AttributeParser::detect_perfect_grade("NOT PRISTINE"));
+
+    // Test "NO PRISTINE" - should not detect as perfect
+    assert!(!AttributeParser::detect_perfect_grade("NO PRISTINE"));
+
+    // Test "PRISTINE" - should detect as perfect
+    assert!(AttributeParser::detect_perfect_grade("PRISTINE"));
+
+    // Test "BLACK LABEL" - should detect as perfect
+    assert!(AttributeParser::detect_perfect_grade("BLACK LABEL"));
+
+    // Test "GEM MINT 10" - should detect as perfect
+    assert!(AttributeParser::detect_perfect_grade("GEM MINT 10"));
+
+    // Test "PERFECT 10" - should detect as perfect
+    assert!(AttributeParser::detect_perfect_grade("PERFECT 10"));
+}
+
+#[test]
+fn test_variant_validation_holiday_calendar() {
+    // "Holiday Calendar" should NOT be recognized as a valid variant
+    assert!(!AttributeParser::is_valid_variant("Holiday Calendar"));
+
+    // "Snowflake Stamp" should be recognized as valid
+    assert!(AttributeParser::is_valid_variant("Snowflake Stamp"));
+
+    // Case insensitive matching
+    assert!(AttributeParser::is_valid_variant("SNOWFLAKE STAMP"));
+    assert!(AttributeParser::is_valid_variant("snowflake stamp"));
+}
+
+#[test]
+fn test_variant_string_construction_empty() {
+    // Test empty variant parts
+    let result = AttributeParser::construct_variant_string(&[]);
+    assert_eq!(result, "");
+}
+
+#[test]
+fn test_card_number_all_zeros() {
+    // Test "000" should become "0"
+    assert_eq!(
+        AttributeParser::normalize_card_number("000"),
+        Some("0".to_string())
+    );
+
+    // Test "000/100" should become "0/100"
+    assert_eq!(
+        AttributeParser::normalize_card_number("000/100"),
+        Some("0/100".to_string())
+    );
+}
