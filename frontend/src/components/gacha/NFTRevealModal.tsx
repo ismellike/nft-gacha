@@ -82,16 +82,13 @@ export default function NFTRevealModal({
 			placement="center"
 		>
 			<ModalContent>
-				{/* Hidden title for screen reader accessibility */}
-				<DialogTitle id="nft-reveal-title" className="sr-only">
+				{/* Hidden title for screen reader accessibility - must be direct child of ModalContent */}
+				<DialogTitle className="sr-only">
 					{resultRarity} {nftResult.rarity} NFT Revealed
 				</DialogTitle>
 				<ModalBody
 					className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center pointer-events-auto"
 					onKeyDown={handleKeyDown}
-					role="dialog"
-					aria-modal="true"
-					aria-labelledby="nft-reveal-title"
 				>
 					{/* Close Button - Top Right of Modal */}
 					<motion.button
