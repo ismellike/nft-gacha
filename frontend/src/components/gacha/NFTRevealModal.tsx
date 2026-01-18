@@ -158,12 +158,13 @@ export default function NFTRevealModal({
 									className="relative"
 									style={{ perspective: 1000 }}
 								>
-									{/* NFT Card - Simplified for modal use */}
+									{/* NFT Card - lg size for dramatic reveal effect */}
 									<div className="flex flex-col items-center space-y-8">
 										<NFTCard
 											data={{
 												collection: nftResult.collection,
 												tokenId: nftResult.tokenId,
+												// Performance optimization: imageUrl override since already fetched
 												imageUrl:
 													enhancedResult?.imageUrl || nftResult.imageUrl,
 												rarity: resultRarity,
@@ -175,9 +176,6 @@ export default function NFTRevealModal({
 												protocolTreasuryAddress,
 											})}
 											{...(gachaId && { gachaId })}
-											onBuybackSuccess={(txHash) => {
-												console.log("NFT sold successfully:", txHash);
-											}}
 										/>
 										{protocolTreasuryAddress && (
 											<motion.div

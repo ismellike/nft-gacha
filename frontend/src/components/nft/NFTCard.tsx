@@ -1,5 +1,47 @@
 "use client";
 
+/**
+ * NFTCard - Unified NFT display component with glassmorphism design
+ *
+ * ## Size Selection Guidelines
+ * Choose the appropriate size based on display context:
+ *
+ * - `xs` (8rem): Dense lists/tables (future use)
+ * - `sm` (12rem): Compact previews, grid layouts, history cards, wallet picker
+ * - `md` (16rem): Default general use, single-card displays, standalone cards
+ * - `lg` (20rem): Special reveals, hero displays, modal content, featured NFTs
+ * - `xl` (24rem): Featured displays, hero sections (future use)
+ *
+ * ## Metadata Handling Strategy
+ * - **Default**: Component fetches metadata internally via useNFTMetadata hook
+ * - **imageUrl override**: Only pass when image URL is already known/fetched (performance optimization)
+ *
+ * ## Appraisal Data Flow
+ * - **Default**: Component fetches from contract when appraisalContractAddress provided
+ * - **appraisalOverride**: Use when appraisal data already fetched (prevents redundant calls)
+ * - **appraisedValue**: Alternative override pattern (legacy, prefer appraisalOverride)
+ *
+ * @example
+ * // Standard usage - let component fetch everything
+ * <NFTCard
+ *   data={{ collection, tokenId, rarity }}
+ *   size="md"
+ *   appraisalContractAddress={appraisalContract}
+ * />
+ *
+ * @example
+ * // Performance optimized - override when data already fetched
+ * <NFTCard
+ *   data={{
+ *     collection,
+ *     tokenId,
+ *     imageUrl: alreadyFetchedUrl,
+ *     appraisalOverride: { hasAppraisal: true, priceUSD: alreadyFetchedPrice }
+ *   }}
+ *   size="lg"
+ * />
+ */
+
 import {
 	useState,
 	memo,

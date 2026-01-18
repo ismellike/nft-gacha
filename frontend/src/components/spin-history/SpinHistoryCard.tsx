@@ -57,6 +57,7 @@ const SpinHistoryCard = memo(
 					: "Reclaimed";
 
 		// NFT card data (only for completed spins with NFT data)
+		// Note: Let NFTCard handle appraisal fetching internally via appraisalContractAddress
 		const nftCardData: NFTCardData | null =
 			entry.status === "completed" &&
 			entry.collection &&
@@ -66,7 +67,6 @@ const SpinHistoryCard = memo(
 						collection: entry.collection,
 						tokenId: entry.tokenId,
 						rarity: entry.rarity as Rarity,
-						appraisedValue: entry.appraisedPrice,
 					}
 				: null;
 

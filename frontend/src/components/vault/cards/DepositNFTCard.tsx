@@ -67,6 +67,7 @@ function DepositNFTCard({
 					data={{
 						collection: nft.collection,
 						tokenId: nft.tokenId.toString(),
+						// Performance optimization: Override appraisal when already fetched
 						appraisalOverride:
 							hasAppraisal && appraisalValue
 								? {
@@ -75,7 +76,7 @@ function DepositNFTCard({
 									}
 								: undefined,
 					}}
-					size="md"
+					size="sm"
 					onClick={() =>
 						console.log(`Vault NFT ${nft.collection}:${nft.tokenId} clicked`)
 					}

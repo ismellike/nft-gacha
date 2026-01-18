@@ -133,7 +133,7 @@ export function WalletNFTPicker({
 									/>
 								</div>
 
-								{/* Preview */}
+								{/* Preview - sm size for preview context */}
 								{collection &&
 									tokenId &&
 									contracts.appraisal && (

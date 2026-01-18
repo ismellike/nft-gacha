@@ -22,6 +22,7 @@ interface WithdrawNFTCardProps {
 	nft: NFTWithCollection;
 	isWithdrawing: boolean;
 	onWithdraw: (collection: Address, tokenId: bigint) => void;
+	appraisalContractAddress?: `0x${string}` | undefined;
 	className?: string;
 	index?: number;
 }
@@ -30,6 +31,7 @@ function WithdrawNFTCard({
 	nft,
 	isWithdrawing,
 	onWithdraw,
+	appraisalContractAddress,
 	className = "",
 	index = 0,
 }: WithdrawNFTCardProps) {
@@ -59,7 +61,7 @@ function WithdrawNFTCard({
 				</span>
 			</div>
 
-			{/* NFT Display */}
+			{/* NFT Display - sm size for compact list layout */}
 			<div className="flex justify-center mb-3">
 				<NFTCard
 					data={{
@@ -69,8 +71,12 @@ function WithdrawNFTCard({
 							typeof nft.currentRarity === "number"
 								? (nft.currentRarity as Rarity)
 								: undefined,
+						appraisedValue: nft.appraisedPrice,
 					}}
 					size="sm"
+					{...(appraisalContractAddress && {
+						appraisalContractAddress,
+					})}
 				/>
 			</div>
 
