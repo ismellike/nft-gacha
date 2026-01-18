@@ -6,7 +6,7 @@ import { Card } from "@/ui/Card";
 import { Chip } from "@/ui/Chip";
 import { NFTCard, type NFTCardData } from "@/components/nft";
 import BuybackComponent from "@/components/economy/BuybackComponent";
-import { getRarityConfig, type Rarity } from "@/lib/rarityConfig";
+import { getRarityConfig, rarityFromNumber } from "@/lib/rarityConfig";
 import {
 	formatAddress,
 	formatTokenId,
@@ -24,6 +24,26 @@ interface SpinHistoryCardProps {
 	uniqueId?: string; // Unique identifier (triggerId) to distinguish duplicate NFTs
 }
 
+/**
+ * Validate Ethereum address format
+ */
+function isValidEthAddress(address: string): address is `0x${string}` {
+	return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+/**
+ * Validate and convert appraisal contract address
+ */
+function validateAppraisalAddress(address?: string): `0x${string}` | undefined {
+	if (!address) return undefined;
+	if (isValidEthAddress(address)) {
+		return address;
+	}
+	// Log warning but don't crash
+	console.warn("[SpinHistoryCard] Invalid appraisal contract address:", address);
+	return undefined;
+}
+
 const SpinHistoryCard = memo(
 	({
 		entry,
@@ -33,9 +53,10 @@ const SpinHistoryCard = memo(
 		onBuybackSuccess,
 		uniqueId,
 	}: SpinHistoryCardProps) => {
+		// Safely validate rarity using rarityFromNumber utility
 		const rarityConfig =
 			entry.rarity !== undefined
-				? getRarityConfig(entry.rarity as Rarity)
+				? getRarityConfig(rarityFromNumber(entry.rarity))
 				: null;
 
 		// Map "default" rarity color to "glass" for Chip compatibility
@@ -56,6 +77,9 @@ const SpinHistoryCard = memo(
 					? "Refunded"
 					: "Reclaimed";
 
+		// Validate appraisal contract address
+		const validatedAppraisalAddress = validateAppraisalAddress(appraisalContractAddress);
+
 		// NFT card data (only for completed spins with NFT data)
 		// Note: Let NFTCard handle appraisal fetching internally via appraisalContractAddress
 		const nftCardData: NFTCardData | null =
@@ -66,7 +90,7 @@ const SpinHistoryCard = memo(
 				? {
 						collection: entry.collection,
 						tokenId: entry.tokenId,
-						rarity: entry.rarity as Rarity,
+						rarity: rarityFromNumber(entry.rarity),
 					}
 				: null;
 
@@ -104,14 +128,12 @@ const SpinHistoryCard = memo(
 					</div>
 
 					{/* NFT Preview (completed spins only) */}
-					{nftCardData && appraisalContractAddress ? (
+					{nftCardData && validatedAppraisalAddress ? (
 						<div className="flex-1">
 							<NFTCard
 								data={nftCardData}
 								size="sm"
-								appraisalContractAddress={
-									appraisalContractAddress as `0x${string}`
-								}
+								appraisalContractAddress={validatedAppraisalAddress}
 								{...(protocolTreasuryAddress && {
 									protocolTreasuryAddress,
 								})}
@@ -178,14 +200,14 @@ const SpinHistoryCard = memo(
 
 					{/* Buyback Action (completed spins with NFT and treasury) */}
 					{nftCardData &&
-						appraisalContractAddress &&
+						validatedAppraisalAddress &&
 						protocolTreasuryAddress &&
 						rarityConfig &&
 						onBuybackSuccess && (
 							<BuybackComponent
 								collection={nftCardData.collection}
 								tokenId={nftCardData.tokenId}
-								appraisalContractAddress={appraisalContractAddress}
+								appraisalContractAddress={validatedAppraisalAddress}
 								protocolTreasuryAddress={protocolTreasuryAddress}
 								rarity={rarityConfig.name}
 								historicalAppraisedPrice={entry.appraisedPrice}

@@ -7,6 +7,37 @@ import type {
 } from "../types/spin-history";
 
 /**
+ * Mutex for preventing race conditions in concurrent updates
+ */
+class Mutex {
+	private locked = false;
+	private waitQueue: Array<() => void> = [];
+
+	async acquire(): Promise<void> {
+		if (!this.locked) {
+			this.locked = true;
+			return;
+		}
+
+		return new Promise((resolve) => {
+			this.waitQueue.push(resolve);
+		});
+	}
+
+	release(): void {
+		if (this.waitQueue.length > 0) {
+			const resolve = this.waitQueue.shift()!;
+			resolve();
+		} else {
+			this.locked = false;
+		}
+	}
+}
+
+// Create a mutex instance for spin history updates
+const appendMutex = new Mutex();
+
+/**
  * Generate a unique key for user + gacha contract combination
  */
 const getSpinKey = (userAddress: string, gachaAddress: string) =>
@@ -125,7 +156,7 @@ export interface SpinHistoryStore {
 		userAddress: string,
 		gachaAddress: string,
 		entries: SpinHistoryEntry[],
-	) => void;
+	) => Promise<void>;
 	setPagination: (
 		userAddress: string,
 		gachaAddress: string,
@@ -200,26 +231,35 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 		}));
 	},
 
-	appendEntries: (userAddress, gachaAddress, newEntries) => {
+	appendEntries: async (userAddress, gachaAddress, newEntries) => {
 		const key = getSpinKey(userAddress, gachaAddress);
-		set((state) => {
-			const existing = state.entries[key] || [];
-			// Merge entries, avoiding duplicates by triggerId
-			const merged = [...existing];
-			for (const entry of newEntries) {
-				if (!merged.some((e) => e.triggerId === entry.triggerId)) {
-					merged.push(entry);
+
+		// Acquire mutex lock to prevent concurrent updates
+		await appendMutex.acquire();
+
+		try {
+			set((state) => {
+				const existing = state.entries[key] || [];
+				// Merge entries, avoiding duplicates by triggerId
+				const merged = [...existing];
+				for (const entry of newEntries) {
+					if (!merged.some((e) => e.triggerId === entry.triggerId)) {
+						merged.push(entry);
+					}
 				}
-			}
-			// Sort by timestamp descending
-			merged.sort((a, b) => b.timestamp - a.timestamp);
-			return {
-				entries: {
-					...state.entries,
-					[key]: merged,
-				},
-			};
-		});
+				// Sort by timestamp descending
+				merged.sort((a, b) => b.timestamp - a.timestamp);
+				return {
+					entries: {
+						...state.entries,
+						[key]: merged,
+					},
+				};
+			});
+		} finally {
+			// Always release the mutex
+			appendMutex.release();
+		}
 	},
 
 	setPagination: (userAddress, gachaAddress, partialPagination) => {

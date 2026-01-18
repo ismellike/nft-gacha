@@ -10,7 +10,7 @@ export interface ServiceWorkerRegisterResult {
 	error?: string;
 }
 
-export function registerSW(): ServiceWorkerRegisterResult {
+export async function registerSW(): Promise<ServiceWorkerRegisterResult> {
 	if (typeof window === "undefined") {
 		return { success: false, error: "Not in browser environment" };
 	}
@@ -30,40 +30,36 @@ export function registerSW(): ServiceWorkerRegisterResult {
 		return { success: false, error: "Requires HTTPS or localhost" };
 	}
 
-	navigator.serviceWorker
-		.register(SW_URL)
-		.then((registration) => {
-			console.log("[SW] Registered successfully:", registration.scope);
+	try {
+		const registration = await navigator.serviceWorker.register(SW_URL);
+		console.log("[SW] Registered successfully:", registration.scope);
 
-			// Check for updates
-			registration.addEventListener("updatefound", () => {
-				const newWorker = registration.installing;
-				if (newWorker) {
-					newWorker.addEventListener("statechange", () => {
-						if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-							// New service worker is available
-							console.log("[SW] New content is available; please refresh.");
-							// You could show a notification to the user here
-							window.dispatchEvent(new CustomEvent("swUpdateAvailable"));
-						}
-					});
-				}
-			});
-
-			// Handle controller change (new SW took control)
-			navigator.serviceWorker.addEventListener("controllerchange", () => {
-				console.log("[SW] Controller changed, reloading page");
-				window.location.reload();
-			});
-
-			return { success: true };
-		})
-		.catch((error) => {
-			console.error("[SW] Registration failed:", error);
-			return { success: false, error: error.message };
+		// Check for updates
+		registration.addEventListener("updatefound", () => {
+			const newWorker = registration.installing;
+			if (newWorker) {
+				newWorker.addEventListener("statechange", () => {
+					if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+						// New service worker is available
+						console.log("[SW] New content is available; please refresh.");
+						// You could show a notification to the user here
+						window.dispatchEvent(new CustomEvent("swUpdateAvailable"));
+					}
+				});
+			}
 		});
 
-	return { success: true };
+		// Handle controller change (new SW took control)
+		navigator.serviceWorker.addEventListener("controllerchange", () => {
+			console.log("[SW] Controller changed, reloading page");
+			window.location.reload();
+		});
+
+		return { success: true };
+	} catch (error) {
+		console.error("[SW] Registration failed:", error);
+		return { success: false, error: error instanceof Error ? error.message : String(error) };
+	}
 }
 
 export function unregisterSW(): Promise<boolean> {

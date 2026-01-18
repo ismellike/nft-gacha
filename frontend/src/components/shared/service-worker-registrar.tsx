@@ -6,20 +6,30 @@ import { registerSW } from "../../lib/swRegistration";
 
 export function ServiceWorkerRegistrar() {
 	useEffect(() => {
-		// Register service worker
-		const result = registerSW();
-		if (!result.success) {
-			console.warn("[SW] Service worker registration failed:", result.error);
-		}
+		// Track if component is mounted
+		let isMounted = true;
 
-		// Handle service worker updates
+		// Register service worker
 		const handleSWUpdate = () => {
-			console.log("[SW] New version available");
-			// You could show a toast notification here
+			if (isMounted) {
+				console.log("[SW] New version available");
+				// You could show a toast notification here
+			}
 		};
 
+		// Add event listener before registration
 		window.addEventListener("swUpdateAvailable", handleSWUpdate);
+
+		// Register service worker
+		registerSW().then((result) => {
+			if (isMounted && !result.success) {
+				console.warn("[SW] Service worker registration failed:", result.error);
+			}
+		});
+
+		// Cleanup function
 		return () => {
+			isMounted = false;
 			window.removeEventListener("swUpdateAvailable", handleSWUpdate);
 		};
 	}, []);

@@ -49,8 +49,9 @@ const SpinHistorySection = ({
 		if (address) {
 			setIsInitialLoad(true);
 			fetchHistory(address, gachaAddress, 1)
-				.catch(() => {
-					// Error is handled by the store
+				.catch((error) => {
+					// Error is handled by the store, but log for debugging
+					logger.network.error("[SpinHistorySection] Failed to fetch history:", error);
 				})
 				.finally(() => {
 					setIsInitialLoad(false);
@@ -79,8 +80,9 @@ const SpinHistorySection = ({
 	// Handle load more
 	const handleLoadMore = useCallback(() => {
 		if (address && pagination.hasMore && !isLoading) {
-			loadMore(address, gachaAddress).catch(() => {
-				// Error is handled by the store
+			loadMore(address, gachaAddress).catch((error) => {
+				// Error is handled by the store, but log for debugging
+				logger.network.error("[SpinHistorySection] Failed to load more:", error);
 			});
 		}
 	}, [address, gachaAddress, pagination.hasMore, isLoading, loadMore]);
@@ -90,8 +92,9 @@ const SpinHistorySection = ({
 		if (address) {
 			setIsInitialLoad(true);
 			fetchHistory(address, gachaAddress, 1)
-				.catch(() => {
-					// Error is handled by the store
+				.catch((error) => {
+					// Error is handled by the store, but log for debugging
+					logger.network.error("[SpinHistorySection] Failed to retry fetch:", error);
 				})
 				.finally(() => {
 					setIsInitialLoad(false);

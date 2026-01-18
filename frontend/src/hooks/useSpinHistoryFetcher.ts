@@ -25,6 +25,48 @@ const INITIAL_BLOCK_LIMIT = 1000n; // Initial: last 1000 blocks
 const MAX_BLOCK_RANGE = 10000n; // Max: 10000 blocks per query
 const PAGE_SIZE = 20; // Entries per page
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000; // Base delay between retries
+
+/**
+ * Sleep utility for retry delays
+ */
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Retry wrapper with exponential backoff
+ */
+async function retryWithBackoff<T>(
+	fn: () => Promise<T>,
+	maxRetries: number = MAX_RETRIES,
+): Promise<T> {
+	let lastError: Error | undefined;
+
+	for (let attempt = 0; attempt <= maxRetries; attempt++) {
+		try {
+			return await fn();
+		} catch (error) {
+			lastError = error instanceof Error ? error : new Error(String(error));
+
+			// Don't retry if this is the last attempt
+			if (attempt >= maxRetries) {
+				break;
+			}
+
+			// Exponential backoff: wait longer with each attempt
+			const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+			logger.network.warn(
+				`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
+				lastError.message,
+			);
+			await sleep(delay);
+		}
+	}
+
+	throw lastError;
+}
+
 /**
  * Custom hook for fetching spin history from contract events
  * Handles pagination, filtering, and error management
@@ -82,16 +124,21 @@ export function useSpinHistoryFetcher() {
 			gachaAddress: string,
 			page = 1,
 		): Promise<SpinHistoryEntry[]> => {
+			// Handle missing public client gracefully
 			if (!publicClient) {
-				throw new Error("Public client not available");
+				logger.network.warn("Public client not available for fetchHistory");
+				setError(userAddress, gachaAddress, "Public client not available");
+				return [];
 			}
 
 			setLoading(userAddress, gachaAddress, true);
 			setError(userAddress, gachaAddress, null);
 
 			try {
-				// Get current block number
-				const currentBlock = await publicClient.getBlockNumber();
+				// Get current block number with retry
+				const currentBlock = await retryWithBackoff(() =>
+					publicClient.getBlockNumber()
+				);
 
 				// Determine block range based on page
 				const pagination = getPagination(userAddress, gachaAddress);
@@ -116,37 +163,62 @@ export function useSpinHistoryFetcher() {
 					fromBlock = fromBlock < 0n ? 0n : fromBlock;
 				}
 
-				// Fetch events in parallel
-				const [completedLogs, refundedLogs, reclaimedLogs] =
-					await Promise.all([
-						publicClient.getLogs({
-							address: gachaAddress as `0x${string}`,
-							event: SPIN_COMPLETED_EVENT,
-							args: {
-								requester: userAddress as `0x${string}`,
-							},
-							fromBlock,
-							toBlock,
-						}),
-						publicClient.getLogs({
-							address: gachaAddress as `0x${string}`,
-							event: SPIN_REFUNDED_EVENT,
-							args: {
-								requester: userAddress as `0x${string}`,
-							},
-							fromBlock,
-							toBlock,
-						}),
-						publicClient.getLogs({
-							address: gachaAddress as `0x${string}`,
-							event: SPIN_RECLAIMED_EVENT,
-							args: {
-								requester: userAddress as `0x${string}`,
-							},
-							fromBlock,
-							toBlock,
-						}),
+				// Fetch events in parallel with individual retry and error handling
+				const [completedResult, refundedResult, reclaimedResult] =
+					await Promise.allSettled([
+						retryWithBackoff(() =>
+							publicClient.getLogs({
+								address: gachaAddress as `0x${string}`,
+								event: SPIN_COMPLETED_EVENT,
+								args: {
+									requester: userAddress as `0x${string}`,
+								},
+								fromBlock,
+								toBlock,
+							})
+						),
+						retryWithBackoff(() =>
+							publicClient.getLogs({
+								address: gachaAddress as `0x${string}`,
+								event: SPIN_REFUNDED_EVENT,
+								args: {
+									requester: userAddress as `0x${string}`,
+								},
+								fromBlock,
+								toBlock,
+							})
+						),
+						retryWithBackoff(() =>
+							publicClient.getLogs({
+								address: gachaAddress as `0x${string}`,
+								event: SPIN_RECLAIMED_EVENT,
+								args: {
+									requester: userAddress as `0x${string}`,
+								},
+								fromBlock,
+								toBlock,
+							})
+						),
 					]);
+
+				// Extract results or use empty arrays on failure
+				const completedLogs =
+					completedResult.status === "fulfilled" ? completedResult.value : [];
+				const refundedLogs =
+					refundedResult.status === "fulfilled" ? refundedResult.value : [];
+				const reclaimedLogs =
+					reclaimedResult.status === "fulfilled" ? reclaimedResult.value : [];
+
+				// Log any errors but continue processing
+				if (completedResult.status === "rejected") {
+					logger.network.error("Failed to fetch completed logs:", completedResult.reason);
+				}
+				if (refundedResult.status === "rejected") {
+					logger.network.error("Failed to fetch refunded logs:", refundedResult.reason);
+				}
+				if (reclaimedResult.status === "rejected") {
+					logger.network.error("Failed to fetch reclaimed logs:", reclaimedResult.reason);
+				}
 
 				// Collect all unique block numbers
 				const blockNumbers = new Set<bigint>();
@@ -246,7 +318,7 @@ export function useSpinHistoryFetcher() {
 				if (page === 1) {
 					setEntries(userAddress, gachaAddress, entries);
 				} else {
-					appendEntries(userAddress, gachaAddress, entries);
+					await appendEntries(userAddress, gachaAddress, entries);
 				}
 
 				// Update pagination
@@ -267,7 +339,8 @@ export function useSpinHistoryFetcher() {
 					error instanceof Error ? error.message : "Unknown error occurred";
 				setError(userAddress, gachaAddress, errorMessage);
 				setLoading(userAddress, gachaAddress, false);
-				throw error;
+				// Return empty array instead of throwing to allow graceful degradation
+				return [];
 			}
 		},
 		[

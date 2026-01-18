@@ -119,6 +119,8 @@ export function useGachaSpinMachine(
 	);
 	const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const isPollingRef = useRef(false);
+	const isMountedRef = useRef(true);
+	const pollingAbortRef = useRef<AbortController | null>(null);
 
 	const updateState = useCallback(
 		(
@@ -393,66 +395,94 @@ export function useGachaSpinMachine(
 			return;
 		}
 
+		// Use atomic check with immediate set to prevent race conditions
 		if (isPollingRef.current) return;
 		isPollingRef.current = true;
 
-		pollForSpinFulfillment({
+		// Create abort controller for this polling session
+		const abortController = new AbortController();
+		pollingAbortRef.current = abortController;
+		const signal = abortController.signal;
+
+		// Capture current context to avoid closure issues
+		const currentContext = {
 			triggerId: state.context.triggerId,
 			userAddress: state.context.userAddress,
 			publicClient: state.context.publicClient,
 			gachaAddress: state.context.gachaAddress,
+		};
+
+		pollForSpinFulfillment({
+			triggerId: currentContext.triggerId,
+			userAddress: currentContext.userAddress,
+			publicClient: currentContext.publicClient,
+			gachaAddress: currentContext.gachaAddress,
 		})
 			.then((result) => {
-				updateState("revealing", {
-					spinResult: result,
-					refundResult: null,
-					error: null,
-				});
-				onSpinComplete?.();
-				if (state.context.userAddress && state.context.gachaAddress) {
-					useGachaStore
-						.getState()
-						.removePendingSpin(
-							state.context.userAddress,
-							state.context.gachaAddress,
-						);
+				// Only update if not aborted and component is still mounted
+				if (!signal.aborted && isMountedRef.current) {
+					updateState("revealing", {
+						spinResult: result,
+						refundResult: null,
+						error: null,
+					});
+					onSpinComplete?.();
+					if (currentContext.userAddress && currentContext.gachaAddress) {
+						useGachaStore
+							.getState()
+							.removePendingSpin(
+								currentContext.userAddress,
+								currentContext.gachaAddress,
+							);
+					}
 				}
 			})
 			.catch((error) => {
-				const errorMessage = (error as Error)?.message || "";
-				if (errorMessage.startsWith("REFUND:")) {
-					try {
-						const payload = JSON.parse(errorMessage.slice("REFUND:".length));
-						updateState("refunded", {
-							refundResult: {
-								selectedRarity: payload.selectedRarity,
-								refundAmount: BigInt(payload.refundAmount),
-							},
-							error: null,
-						});
-						if (state.context.userAddress && state.context.gachaAddress) {
-							useGachaStore
-								.getState()
-								.removePendingSpin(
-									state.context.userAddress,
-									state.context.gachaAddress,
-								);
+				// Only update if not aborted and component is still mounted
+				if (!signal.aborted && isMountedRef.current) {
+					const errorMessage = (error as Error)?.message || "";
+					if (errorMessage.startsWith("REFUND:")) {
+						try {
+							const payload = JSON.parse(errorMessage.slice("REFUND:".length));
+							updateState("refunded", {
+								refundResult: {
+									selectedRarity: payload.selectedRarity,
+									refundAmount: BigInt(payload.refundAmount),
+								},
+								error: null,
+							});
+							if (currentContext.userAddress && currentContext.gachaAddress) {
+								useGachaStore
+									.getState()
+									.removePendingSpin(
+										currentContext.userAddress,
+										currentContext.gachaAddress,
+									);
+							}
+						} catch (parseError) {
+							console.error("Failed to parse refund payload", parseError);
+							updateState("error", { error: errorMessage });
 						}
-					} catch (parseError) {
-						console.error("Failed to parse refund payload", parseError);
-						updateState("error", { error: errorMessage });
+					} else {
+						updateState("error", { error: errorMessage || "Polling failed" });
 					}
-				} else {
-					updateState("error", { error: errorMessage || "Polling failed" });
 				}
 			})
 			.finally(() => {
-				isPollingRef.current = false;
+				// Only clear polling ref if this is still the active polling session
+				if (pollingAbortRef.current === abortController) {
+					isPollingRef.current = false;
+				}
 			});
 
+		// Cleanup function - abort any ongoing polling
 		return () => {
 			if (pollingRef.current) clearTimeout(pollingRef.current);
-			isPollingRef.current = false;
+			if (pollingAbortRef.current === abortController) {
+				abortController.abort();
+				pollingAbortRef.current = null;
+				isPollingRef.current = false;
+			}
 		};
 	}, [
 		state.matches,
@@ -483,6 +513,13 @@ export function useGachaSpinMachine(
 			onRefund?.();
 		}
 	}, [isRefunded, state.context.refundResult, onRefund]);
+
+	// Cleanup on unmount
+	useEffect(() => {
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
 
 	return {
 		// State
