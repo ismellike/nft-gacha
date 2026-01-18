@@ -15,6 +15,9 @@ env:
     COMPOSE_WAVS_DOCKER_IMAGE: "{{.WAVS_DOCKER_IMAGE}}"
     COMPOSE_JAEGER_DOCKER_IMAGE: "{{.JAEGER_DOCKER_IMAGE}}"
     COMPOSE_PROMETHEUS_DOCKER_IMAGE: "{{.PROMETHEUS_DOCKER_IMAGE}}"
+    COMPOSE_IPFS_DOCKER_IMAGE: "{{.IPFS_DOCKER_IMAGE}}"
+    COMPOSE_IPFS_API_PORT: "{{.IPFS_API_PORT}}"
+    COMPOSE_IPFS_GATEWAY_PORT: "{{.IPFS_GATEWAY_PORT}}"
     COMPOSE_WAVS_HOME: "{{.WAVS_HOME_DIR}}"
 
 tasks:
@@ -24,6 +27,7 @@ tasks:
             - task: start-chains
               vars:
                   CHAINS: "{{.CHAINS}}"
+            - task: start-ipfs
             - task: start-wavs
               vars:
                   OPERATORS: "{{.OPERATORS}}"
@@ -33,6 +37,7 @@ tasks:
         desc: "Stops all backend services"
         deps:
             - task: stop-chains
+            - task: stop-ipfs
             - task: stop-wavs
             - task: stop-telemetry
 
@@ -171,7 +176,7 @@ tasks:
             - sh: "command -v docker"
               msg: "Docker is required but not installed"
         # Pull the latest images before starting
-        deps: [docker-pull-wavs]
+        deps: [docker-pull-wavs, seed-wavs-config]
         cmds:
             - task: start-wavs-inner
               # Optional - pass this in, or 1 by default
@@ -311,6 +316,78 @@ tasks:
             ENV_VAR_NAME: "WAVS_OPERATOR_MNEMONIC_{{.WAVS_INSTANCE}}"
         cmds:
             - echo "${{.ENV_VAR_NAME}}"
+
+    ###################################################################
+    ######################## IPFS ######################################
+    ###################################################################
+
+    start-ipfs:
+        desc: "Start IPFS Kubo node for local development"
+        status:
+            - '[ "{{.DEPLOY_ENV}}" != "LOCAL" ]'
+        preconditions:
+            - test -f "{{.BACKEND_DIR}}/docker-compose-ipfs.yml"
+            - sh: "command -v docker"
+        cmds:
+            - echo "Starting IPFS Kubo node..."
+            - >
+                {{.DOCKER_SUDO}} docker compose -f {{.BACKEND_DIR}}/docker-compose-ipfs.yml
+                -p ipfs up -d
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null; then
+                    echo "IPFS API is ready!"
+                    break
+                  fi
+                  echo "Waiting for IPFS API..."
+                  sleep 1
+                done
+            - task: configure-ipfs-gateway
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if nc -z 127.0.0.1 {{.IPFS_GATEWAY_PORT}} 2>/dev/null; then
+                    echo "IPFS gateway is ready!"
+                    exit 0
+                  fi
+                  echo "Waiting for IPFS gateway..."
+                  sleep 1
+                done
+                echo "Error: IPFS gateway did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
+                exit 1
+
+    stop-ipfs:
+        desc: "Stop IPFS Kubo node"
+        status:
+            - '[ "{{.DEPLOY_ENV}}" != "LOCAL" ]'
+        cmds:
+            - echo "Stopping IPFS Kubo node..."
+            - >
+                {{.DOCKER_SUDO}} docker compose -f {{.BACKEND_DIR}}/docker-compose-ipfs.yml
+                -p ipfs down
+
+    configure-ipfs-gateway:
+        desc: "Configure IPFS gateway to use path-based URLs (no subdomains)"
+        cmds:
+            - echo "Configuring IPFS gateway to use path-based URLs..."
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if {{.DOCKER_SUDO}} docker compose -f {{.BACKEND_DIR}}/docker-compose-ipfs.yml -p ipfs exec ipfs ipfs id >/dev/null 2>&1; then
+                    echo "IPFS is responding to config commands."
+                    break
+                  fi
+                  echo "Waiting for IPFS to accept config commands..."
+                  sleep 1
+                done
+            - >
+                {{.DOCKER_SUDO}} docker compose -f {{.BACKEND_DIR}}/docker-compose-ipfs.yml -p ipfs exec ipfs ipfs config --json Gateway.PublicGateways '{"localhost":{"Paths":["/ipfs","/ipns"]}}'
+            - >
+                {{.DOCKER_SUDO}} docker compose -f {{.BACKEND_DIR}}/docker-compose-ipfs.yml -p ipfs exec ipfs ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
+            - >
+                {{.DOCKER_SUDO}} docker compose -f {{.BACKEND_DIR}}/docker-compose-ipfs.yml -p ipfs exec ipfs ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+            - echo "Restarting IPFS to apply config..."
+            - >
+                {{.DOCKER_SUDO}} docker restart ipfs-ipfs-1
+            - sleep 5
 
     ###################################################################
     ##################### TELEMETRY ###################################

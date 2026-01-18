@@ -54,7 +54,7 @@ const MAX_POLLING_TIME = BASE_TIMEOUT_MS; // 10 minutes at 3-second intervals
 const debugLog = createDebugLogger(DEBUG_FLAGS.GACHA_SPIN);
 
 // Utility function for exponential backoff with jitter
-const getPollingDelay = (attempt: number, baseInterval: number): number => {
+export const getPollingDelay = (attempt: number, baseInterval: number): number => {
 	const exponentialDelay = baseInterval * 2 ** Math.min(attempt / 10, 5);
 	const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
 	return Math.min(exponentialDelay + jitter, 30000); // Max 30 seconds

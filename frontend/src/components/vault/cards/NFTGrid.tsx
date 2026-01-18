@@ -5,6 +5,37 @@ import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../../lib/theme-config";
 
+// Type guards for different NFT types
+interface HasTriggerId {
+	triggerId: bigint;
+}
+
+interface HasCollectionAndTokenId {
+	collection: string;
+	tokenId: string | bigint;
+}
+
+function isSpinHistoryEntry(nft: unknown): nft is HasTriggerId {
+	return (
+		typeof nft === "object" &&
+		nft !== null &&
+		"triggerId" in nft &&
+		typeof (nft as HasTriggerId).triggerId === "bigint"
+	);
+}
+
+function hasCollectionAndTokenId(nft: unknown): nft is HasCollectionAndTokenId {
+	return (
+		typeof nft === "object" &&
+		nft !== null &&
+		"collection" in nft &&
+		"tokenId" in nft &&
+		typeof (nft as HasCollectionAndTokenId).collection === "string" &&
+		(typeof (nft as HasCollectionAndTokenId).tokenId === "string" ||
+			typeof (nft as HasCollectionAndTokenId).tokenId === "bigint")
+	);
+}
+
 export interface NFTGridProps<T> {
 	nfts: T[];
 	renderItem: (nft: T, index: number) => React.ReactNode;
@@ -96,15 +127,17 @@ function NFTGrid<T>({
 
 		// Generate key: prefer triggerId (spin history), then collection-tokenId, then index
 		const getItemKey = () => {
-			if (typeof nft === "object" && nft !== null) {
-				// Check for triggerId first (for spin history entries)
-				if ("triggerId" in nft && typeof (nft as any).triggerId === "bigint") {
-					return `spin-${(nft as any).triggerId.toString()}`;
-				}
-				// Fall back to collection-tokenId for regular NFTs
-				if ("collection" in nft && "tokenId" in nft) {
-					return `${(nft as any).collection}-${(nft as any).tokenId}`;
-				}
+			// Check for triggerId first (for spin history entries)
+			if (isSpinHistoryEntry(nft)) {
+				return `spin-${nft.triggerId.toString()}`;
+			}
+			// Fall back to collection-tokenId for regular NFTs
+			if (hasCollectionAndTokenId(nft)) {
+				const tokenIdStr =
+					typeof nft.tokenId === "bigint"
+						? nft.tokenId.toString()
+						: nft.tokenId;
+				return `${nft.collection}-${tokenIdStr}`;
 			}
 			// Final fallback to index
 			return `item-${index}`;

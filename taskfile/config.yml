@@ -51,3 +51,8 @@ vars:
     # Aggregator config
     AGGREGATOR_PROJECT: "aggregator-simple"
     AGGREGATOR_COMPONENT_NAME: "aggregator_simple"
+    # IPFS config
+    IPFS_API_PORT: 8300
+    IPFS_GATEWAY_PORT: 8301
+    IPFS_DOCKER_IMAGE: "ipfs/kubo:v0.38.1"
+    IPFS_API_URL: "http://localhost:{{.IPFS_API_PORT}}"

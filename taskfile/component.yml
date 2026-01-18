@@ -54,8 +54,63 @@ tasks:
     cmds:
       - rm -rf "{{.COMPONENT_OUTPUT_DIR}}"
 
-  upload:
-    desc: "Upload a WASI component to the WAVS endpoint"
+  upload-to-ipfs:
+    desc: "Upload a WASI component to IPFS"
+    requires:
+      vars: [COMPONENT_NAME]
+    vars:
+      COMPONENT_WASM: "{{.COMPONENTS_CARGO_RELEASE_DIR}}/{{.COMPONENT_NAME}}.wasm"
+      OUTPUT_DIR: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components"
+      OUTPUT_FILE: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}-cid.json"
+    preconditions:
+      - test -f "{{.COMPONENT_WASM}}"
+      - sh: "nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null"
+        msg: "IPFS node is not running. Start it with: task backend:start-ipfs"
+    cmds:
+      - echo "📤 Uploading {{.COMPONENT_NAME}} to IPFS..."
+      - mkdir -p "{{.OUTPUT_DIR}}"
+      - |
+          CID=$(curl -s -X POST "{{.IPFS_API_URL}}/api/v0/add?pin=true" \
+            -F file=@{{.COMPONENT_WASM}} | jq -r '.Hash')
+
+          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+            echo "❌ Failed to upload component to IPFS"
+            exit 1
+          fi
+
+          echo "✅ Component CID: $CID"
+          echo "{\"cid\":\"$CID\",\"ipfs_url\":\"ipfs://$CID\",\"gateway_url\":\"http://localhost:{{.IPFS_GATEWAY_PORT}}/ipfs/$CID\"}" > "{{.OUTPUT_FILE}}"
+      - echo "✅ CID saved to {{.OUTPUT_FILE}}"
+
+  upload-to-aggregator-ipfs:
+    desc: "Upload a WASI component to IPFS for aggregator"
+    requires:
+      vars: [COMPONENT_NAME]
+    vars:
+      COMPONENT_WASM: "{{.COMPONENTS_CARGO_RELEASE_DIR}}/{{.COMPONENT_NAME}}.wasm"
+      OUTPUT_DIR: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components"
+      OUTPUT_FILE: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}-cid.json"
+    preconditions:
+      - test -f "{{.COMPONENT_WASM}}"
+      - sh: "nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null"
+        msg: "IPFS node is not running. Start it with: task backend:start-ipfs"
+    cmds:
+      - echo "📤 Uploading {{.COMPONENT_NAME}} to IPFS (aggregator)..."
+      - mkdir -p "{{.OUTPUT_DIR}}"
+      - |
+          CID=$(curl -s -X POST "{{.IPFS_API_URL}}/api/v0/add?pin=true" \
+            -F file=@{{.COMPONENT_WASM}} | jq -r '.Hash')
+
+          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+            echo "❌ Failed to upload component to IPFS"
+            exit 1
+          fi
+
+          echo "✅ Component CID: $CID"
+          echo "{\"cid\":\"$CID\",\"ipfs_url\":\"ipfs://$CID\",\"gateway_url\":\"http://localhost:{{.IPFS_GATEWAY_PORT}}/ipfs/$CID\"}" > "{{.OUTPUT_FILE}}"
+
+  upload-to-wavs:
+    desc: "[DEPRECATED] Upload a WASI component to the WAVS endpoint"
     requires:
       vars: [COMPONENT_NAME, WAVS_ENDPOINT]
     vars:
@@ -78,8 +133,8 @@ tasks:
           exit 1
         fi
 
-  upload-aggregator:
-    desc: "Upload a WASI component to the WAVS aggregator endpoint"
+  upload-to-aggregator-wavs:
+    desc: "[DEPRECATED] Upload a WASI component to the WAVS aggregator endpoint"
     requires:
       vars: [COMPONENT_NAME, WAVS_AGGREGATOR_ENDPOINT]
     vars:
@@ -169,3 +224,44 @@ tasks:
       - git -C "{{.TEMP_CLONE_PATH}}" clone --depth=1 --branch {{.BRANCH}} --single-branch https://github.com/Lay3rLabs/wavs-wasi.git
       - cp -R "{{.TEMP_CLONE_PATH}}"/wavs-wasi/wit-definitions/* "{{.WIT_DEFINITIONS_DIR}}/"
       - rm -rf "{{.TEMP_CLONE_PATH}}"
+
+  ###################################################################
+  ######################## IPFS #####################################
+  ###################################################################
+
+  get-cid:
+    desc: "Get component CID from build artifacts"
+    requires:
+      vars: [COMPONENT_NAME]
+    vars:
+      CID_FILE: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}-cid.json"
+    preconditions:
+      - sh: "[ -f '{{.CID_FILE}}' ]"
+        msg: "CID file not found. Upload component to IPFS first."
+    cmds:
+      - jq -r '.cid' "{{.CID_FILE}}"
+
+  get-ipfs-url:
+    desc: "Get component IPFS URL from build artifacts"
+    requires:
+      vars: [COMPONENT_NAME]
+    vars:
+      CID_FILE: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}-cid.json"
+    preconditions:
+      - sh: "[ -f '{{.CID_FILE}}' ]"
+        msg: "CID file not found. Upload component to IPFS first."
+    cmds:
+      - jq -r '.ipfs_url' "{{.CID_FILE}}"
+
+  verify-ipfs:
+    desc: "Verify IPFS node is running and accessible"
+    cmds:
+      - |
+          if nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null; then
+            echo "✅ IPFS node is running on port {{.IPFS_API_PORT}}"
+            echo "Gateway available at: http://localhost:{{.IPFS_GATEWAY_PORT}}/ipfs/<CID>"
+          else
+            echo "❌ IPFS node is not accessible"
+            echo "Start it with: task backend:start-ipfs"
+            exit 1
+          fi

@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import { Header } from "../components/shared/layout";
 import { Footer } from "../components/shared/layout";
 import { ClientAnimatedBackground } from "../components/shared/background";
+import { ServiceWorkerRegistrar } from "../components/shared/service-worker-registrar";
 
 // Optimize font loading
 const inter = Inter({
@@ -43,6 +44,9 @@ export default function RootLayout({
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
 				<meta name="theme-color" content="#f59e0b" />
 				<meta name="msapplication-TileColor" content="#f59e0b" />
+				<meta name="apple-mobile-web-app-capable" content="yes" />
+				<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+				<meta name="apple-mobile-web-app-title" content="SPINFI" />
 
 				{/* Favicon */}
 				<link rel="icon" href="/favicon.ico" sizes="any" />
@@ -81,6 +85,7 @@ export default function RootLayout({
 			<body
 				className={`${inter.variable} ${jetbrainsMono.variable} ${orbitron.variable} font-spin`}
 			>
+				<ServiceWorkerRegistrar />
 				<Providers>
 					<ClientAnimatedBackground />
 					<div className="relative z-10 bg-transparent">

@@ -27,6 +27,7 @@ cors_allowed_origins = [
     "http://127.0.0.1:*",
 ]
 dev_endpoints_enabled = true
+ipfs_gateway = "http://localhost:8301/ipfs/"
 
 # ----------------------------
 # CLI specific settings
@@ -34,6 +35,7 @@ dev_endpoints_enabled = true
 [cli]
 # The directory to store the data.
 data = "~/wavs/cli"
+ipfs_gateway = "http://localhost:8301/ipfs/"
 
 # ----------------------------
 # Aggregator specific settings
@@ -43,6 +45,7 @@ data = "~/wavs/cli"
 data = "~/wavs/aggregator"
 
 dev_endpoints_enabled = true
+ipfs_gateway = "http://localhost:8301/ipfs/"
 
 cors_allowed_origins = [
     "https://lay3rlabs.github.io/*",

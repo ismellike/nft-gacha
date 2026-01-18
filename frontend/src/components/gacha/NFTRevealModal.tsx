@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, ModalContent, ModalBody, DialogTitle } from "../../ui";
 import { Rarity, getRarityConfig } from "../../lib/rarityConfig";
@@ -33,6 +33,7 @@ export default function NFTRevealModal({
 	gachaId,
 }: NFTRevealModalProps) {
 	const [showCard, setShowCard] = useState(false);
+	const closeButtonRef = useRef<HTMLButtonElement>(null);
 
 	// Get enhanced spin result with metadata
 	const enhancedResult = useEnhancedSpinResult(nftResult);
@@ -50,12 +51,23 @@ export default function NFTRevealModal({
 			// Add dramatic delay before showing the NFT card
 			const timer = setTimeout(() => {
 				setShowCard(true);
+				// Focus the close button when card is revealed for keyboard accessibility
+				if (closeButtonRef.current) {
+					closeButtonRef.current.focus();
+				}
 			}, 1500);
 			return () => clearTimeout(timer);
 		} else {
 			setShowCard(false);
 		}
 	}, [isVisible]);
+
+	// Handle keyboard events
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Escape") {
+			onClose();
+		}
+	};
 
 	const resultRarity =
 		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
@@ -71,19 +83,27 @@ export default function NFTRevealModal({
 		>
 			<ModalContent>
 				{/* Hidden title for screen reader accessibility */}
-				<DialogTitle className="sr-only">
+				<DialogTitle id="nft-reveal-title" className="sr-only">
 					{resultRarity} {nftResult.rarity} NFT Revealed
 				</DialogTitle>
-				<ModalBody className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center pointer-events-auto">
+				<ModalBody
+					className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center pointer-events-auto"
+					onKeyDown={handleKeyDown}
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="nft-reveal-title"
+				>
 					{/* Close Button - Top Right of Modal */}
 					<motion.button
+						ref={closeButtonRef}
 						onClick={onClose}
-						className="absolute top-8 right-8 z-50 w-12 h-12 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors"
+						className="absolute top-8 right-8 z-50 w-12 h-12 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
 						initial={{ opacity: 0, scale: 0 }}
 						animate={{ opacity: 1, scale: 1 }}
 						transition={{ delay: showCard ? 1 : 0, duration: 0.5 }}
 						whileHover={{ scale: 1.1 }}
 						whileTap={{ scale: 0.95 }}
+						aria-label="Close NFT reveal modal"
 					>
 						<svg
 							className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors"
@@ -91,8 +111,8 @@ export default function NFTRevealModal({
 							stroke="currentColor"
 							viewBox="0 0 24 24"
 							strokeWidth={2.5}
+							aria-hidden="true"
 						>
-							<title>Close</title>
 							<path
 								strokeLinecap="round"
 								strokeLinejoin="round"
