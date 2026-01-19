@@ -37,7 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 	return (
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
-				<RainbowKitProvider theme={customDarkTheme} modalSize="compact">
+				<RainbowKitProvider theme={customDarkTheme} modalSize="compact" showBalance={false}>
 					<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
 				</RainbowKitProvider>
 			</QueryClientProvider>
