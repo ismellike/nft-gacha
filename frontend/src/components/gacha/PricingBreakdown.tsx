@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card } from "../../ui";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
@@ -18,7 +19,9 @@ interface PricingBreakdownProps {
 	className?: string;
 }
 
-export function PricingBreakdown({ className = "" }: PricingBreakdownProps) {
+const PricingBreakdown = memo(function PricingBreakdown({
+	className = "",
+}: PricingBreakdownProps) {
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const [showDetails, setShowDetails] = useState(false);
@@ -194,4 +197,8 @@ export function PricingBreakdown({ className = "" }: PricingBreakdownProps) {
 			)}
 		</Card>
 	);
-}
+});
+
+PricingBreakdown.displayName = "PricingBreakdown";
+
+export { PricingBreakdown };

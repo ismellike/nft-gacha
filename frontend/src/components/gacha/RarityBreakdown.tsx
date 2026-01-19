@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
+import { useState, useImperativeHandle, forwardRef, useEffect, memo } from "react";
 import { useReadContract } from "wagmi";
 import { Rarity, getRarityConfig } from "../../lib/rarityConfig";
 import { Card } from "../../ui";
@@ -262,6 +262,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	);
 });
 
-RarityBreakdown.displayName = "RarityBreakdown";
+const MemoizedRarityBreakdown = memo(RarityBreakdown);
+MemoizedRarityBreakdown.displayName = "RarityBreakdown";
 
-export default RarityBreakdown;
+export default MemoizedRarityBreakdown;

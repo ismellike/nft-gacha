@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import {
 	useAccount,
 	useWaitForTransactionReceipt,
@@ -40,7 +40,7 @@ const SPIN_TIMEOUT_SECONDS = 30;
 const PERMIT_DEADLINE_SECONDS = 3600; // 1 hour
 const MAX_FEE_SLIPPAGE_BPS = 200; // 2% max-fee buffer for UI
 
-export default function SpinControls({
+const SpinControls = memo(function SpinControls({
 	gachaSpin,
 	onRefund,
 }: SpinControlsProps) {
@@ -1640,4 +1640,8 @@ export default function SpinControls({
 			</div>
 		</Card>
 	);
-}
+});
+
+SpinControls.displayName = "SpinControls";
+
+export default SpinControls;

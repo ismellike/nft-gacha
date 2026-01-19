@@ -5,7 +5,8 @@ import {
 	useContext,
 	useCallback,
 	useRef,
-	useState,
+	useMemo,
+	useEffect,
 	type ReactNode,
 } from "react";
 
@@ -28,11 +29,6 @@ interface GachaRefreshContextValue {
 	 * Trigger all registered refetch functions
 	 */
 	triggerRefresh: () => Promise<void>;
-	/**
-	 * Current refresh version (increments on each refresh)
-	 * Components can use this to force re-renders if needed
-	 */
-	refreshVersion: number;
 }
 
 const GachaRefreshContext = createContext<GachaRefreshContextValue | null>(
@@ -45,7 +41,6 @@ interface GachaRefreshProviderProps {
 
 export function GachaRefreshProvider({ children }: GachaRefreshProviderProps) {
 	const refetchFunctionsRef = useRef<Set<RefetchFunction>>(new Set());
-	const [refreshVersion, setRefreshVersion] = useState(0);
 
 	const registerRefetch = useCallback((refetchFn: RefetchFunction) => {
 		refetchFunctionsRef.current.add(refetchFn);
@@ -60,9 +55,6 @@ export function GachaRefreshProvider({ children }: GachaRefreshProviderProps) {
 		console.log(
 			`🔄 [GachaRefresh] Triggering refresh for ${refetchFunctionsRef.current.size} registered functions`,
 		);
-
-		// Increment version to trigger re-renders
-		setRefreshVersion((prev) => prev + 1);
 
 		// Execute all registered refetch functions
 		const refetchPromises = Array.from(refetchFunctionsRef.current).map(
@@ -79,11 +71,14 @@ export function GachaRefreshProvider({ children }: GachaRefreshProviderProps) {
 		console.log("✅ [GachaRefresh] All refetch functions completed");
 	}, []);
 
-	const value: GachaRefreshContextValue = {
-		registerRefetch,
-		triggerRefresh,
-		refreshVersion,
-	};
+	// Memoize context value to prevent unnecessary rerenders
+	const value: GachaRefreshContextValue = useMemo(
+		() => ({
+			registerRefetch,
+			triggerRefresh,
+		}),
+		[registerRefetch, triggerRefresh],
+	);
 
 	return (
 		<GachaRefreshContext.Provider value={value}>
@@ -111,16 +106,13 @@ export function useGachaRefresh(): GachaRefreshContextValue {
  * Cleans up on unmount
  *
  * @param refetchFn - The refetch function to register
- * @returns The refresh version for tracking refresh cycles
  */
 export function useGachaRefetch(refetchFn: RefetchFunction) {
-	const { registerRefetch, refreshVersion } = useGachaRefresh();
+	const { registerRefetch } = useGachaRefresh();
 
-	// Register refetch function
-	useCallback(() => {
+	// Register refetch function on mount, cleanup on unmount
+	useEffect(() => {
 		const cleanup = registerRefetch(refetchFn);
 		return cleanup;
 	}, [refetchFn, registerRefetch]);
-
-	return { refreshVersion };
 }

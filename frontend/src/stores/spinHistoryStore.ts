@@ -38,6 +38,60 @@ class Mutex {
 const appendMutex = new Mutex();
 
 /**
+ * Simple memoization cache for computed values per key
+ */
+interface CacheEntry<T> {
+	entries: SpinHistoryEntry[];
+	filters: SpinHistoryFilters;
+	result: T;
+}
+
+class MemoizedCache<T> {
+	private cache: Map<string, CacheEntry<T>> = new Map();
+
+	get(
+		key: string,
+		entries: SpinHistoryEntry[],
+		filters: SpinHistoryFilters,
+	): T | null {
+		const cached = this.cache.get(key);
+		if (cached && cached.entries === entries && cached.filters === filters) {
+			return cached.result;
+		}
+		return null;
+	}
+
+	set(
+		key: string,
+		entries: SpinHistoryEntry[],
+		filters: SpinHistoryFilters,
+		result: T,
+	): void {
+		this.cache.set(key, { entries, filters, result });
+	}
+
+	delete(key: string): void {
+		this.cache.delete(key);
+	}
+
+	clear(): void {
+		this.cache.clear();
+	}
+}
+
+// Create memoized caches for each key
+const filteredEntriesCache = new MemoizedCache<SpinHistoryEntry[]>();
+const statsCache = new MemoizedCache<SpinHistoryStats>();
+
+/**
+ * Invalidate cache for a specific key
+ */
+function invalidateCache(key: string): void {
+	filteredEntriesCache.delete(key);
+	statsCache.delete(key);
+}
+
+/**
  * Generate a unique key for user + gacha contract combination
  */
 const getSpinKey = (userAddress: string, gachaAddress: string) =>
@@ -223,6 +277,7 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 	// Actions
 	setEntries: (userAddress, gachaAddress, newEntries) => {
 		const key = getSpinKey(userAddress, gachaAddress);
+		invalidateCache(key);
 		set((state) => ({
 			entries: {
 				...state.entries,
@@ -238,6 +293,8 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 		await appendMutex.acquire();
 
 		try {
+			// Invalidate cache before updating entries
+			invalidateCache(key);
 			set((state) => {
 				const existing = state.entries[key] || [];
 				// Merge entries, avoiding duplicates by triggerId
@@ -315,15 +372,37 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 	},
 
 	getFilteredEntries: (userAddress, gachaAddress) => {
+		const key = getSpinKey(userAddress, gachaAddress);
 		const entries = get().getEntries(userAddress, gachaAddress);
 		const filters = get().getFilters(userAddress, gachaAddress);
-		return filterEntries(entries, filters);
+
+		// Check cache first
+		const cached = filteredEntriesCache.get(key, entries, filters);
+		if (cached !== null) {
+			return cached;
+		}
+
+		// Compute and cache result
+		const result = filterEntries(entries, filters);
+		filteredEntriesCache.set(key, entries, filters, result);
+		return result;
 	},
 
 	getStats: (userAddress, gachaAddress) => {
+		const key = getSpinKey(userAddress, gachaAddress);
 		const entries = get().getEntries(userAddress, gachaAddress);
 		const filters = get().getFilters(userAddress, gachaAddress);
-		return computeStats(entries, filters);
+
+		// Check cache first
+		const cached = statsCache.get(key, entries, filters);
+		if (cached !== null) {
+			return cached;
+		}
+
+		// Compute and cache result
+		const result = computeStats(entries, filters);
+		statsCache.set(key, entries, filters, result);
+		return result;
 	},
 
 	getFilters: (userAddress, gachaAddress) => {
@@ -349,6 +428,7 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 	// Clear
 	clearHistory: (userAddress, gachaAddress) => {
 		const key = getSpinKey(userAddress, gachaAddress);
+		invalidateCache(key);
 		set((state) => {
 			const { [key]: _removed, ...remainingEntries } = state.entries;
 			const { [key]: _removedFilters, ...remainingFilters } = state.filters;

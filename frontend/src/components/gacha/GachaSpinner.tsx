@@ -36,6 +36,11 @@ const GachaSpinner = memo(() => {
 		triggerRefresh();
 	}, [gachaSpin, triggerRefresh]);
 
+	const handleRefund = useCallback(() => {
+		console.log("💰 [GachaSpinner] SpinControls refund callback triggered");
+		triggerRefresh();
+	}, [triggerRefresh]);
+
 	return (
 		<div className="space-y-16">
 			{/* NFT Reveal Modal */}
@@ -64,12 +69,7 @@ const GachaSpinner = memo(() => {
 					</output>
 					<SpinControls
 						gachaSpin={gachaSpin}
-						onRefund={() => {
-							console.log(
-								"💰 [GachaSpinner] SpinControls refund callback triggered",
-							);
-							triggerRefresh();
-						}}
+						onRefund={handleRefund}
 					/>
 				</div>
 
@@ -83,12 +83,7 @@ const GachaSpinner = memo(() => {
 				<div className="hidden lg:block space-y-8">
 					<SpinControls
 						gachaSpin={gachaSpin}
-						onRefund={() => {
-							console.log(
-								"💰 [GachaSpinner] SpinControls refund callback triggered",
-							);
-							triggerRefresh();
-						}}
+						onRefund={handleRefund}
 					/>
 				</div>
 			</div>
