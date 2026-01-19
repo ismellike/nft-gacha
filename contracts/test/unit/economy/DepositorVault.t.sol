@@ -2,18 +2,18 @@
 pragma solidity ^0.8.27;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {DepositorVault} from "../../src/economy/DepositorVault.sol";
-import {BaseERC20} from "../../src/tokens/BaseERC20.sol";
+import {DepositorVault} from "../../../src/economy/DepositorVault.sol";
+import {BaseERC20} from "../../../src/tokens/BaseERC20.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
- * @title Depositor Vault Unit Test Suite
+ * @title Depositor Vault Test Suite
  * @notice Comprehensive unit tests for DepositorVault contract
  * @dev Tests reward distribution, share management, and vault operations in isolation
  * @author NFT Gacha Team
  */
-contract DepositorVaultUnitTest is Test {
+contract DepositorVaultTest is Test {
     // ========================================================================
     // TEST STATE VARIABLES
     // ========================================================================

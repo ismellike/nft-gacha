@@ -7,10 +7,10 @@ import {BaseERC721} from "../../src/tokens/BaseERC721.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
- * @title Basic Economics Test
+ * @title Basic Economics
  * @notice Simple tests to verify economic logic without complex dependencies
  */
-contract BasicEconomicsTest is Test {
+contract BasicEconomics is Test {
     BaseERC20 public usdc;
     BaseERC721 public nft;
 

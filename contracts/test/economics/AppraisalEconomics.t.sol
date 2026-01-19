@@ -1,20 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
-import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
-import {BaseERC20} from "../src/tokens/BaseERC20.sol";
-import {BaseERC721} from "../src/tokens/BaseERC721.sol";
+import {Test} from "forge-std/Test.sol";
+import {NFTAppraisal} from "../../src/appraisal/NFTAppraisal.sol";
+import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
+import {BaseERC20} from "../../src/tokens/BaseERC20.sol";
+import {BaseERC721} from "../../src/tokens/BaseERC721.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title NFT Appraisal Economics Tests
  * @notice Tests the economic impact of NFT appraisals on the gacha system
  * @dev Focuses on price discovery, rarity assignment, and economic flows
+ *
+ * Migrated from: test/NFTAppraisalEconomicsTest.t.sol
+ *
+ * @author NFT Gacha Team
  */
-contract NFTAppraisalEconomicsTest is Test {
+contract AppraisalEconomicsTest is Test {
     NFTAppraisal public appraisal;
     GachaTreasury public treasury;
     BaseERC20 public usdc;
@@ -26,10 +29,10 @@ contract NFTAppraisalEconomicsTest is Test {
     address public protocol = address(0x4);
 
     // Economic constants
-    uint256 public constant APPRAISAL_FEE = 10e18; // 10 tokens
+    uint256 public constant APPRAISAL_FEE = 10e18;
     uint256 public constant INITIAL_BALANCE = 1000e18;
 
-    // Price tiers (USD values in 18 decimals) - updated to match new price ranges
+    // Price tiers (USD values in 18 decimals)
     uint256 public constant COMMON_PRICE = 10e18; // $10 (within $0-$15 range)
     uint256 public constant UNCOMMON_PRICE = 50e18; // $50 (within $25-$60 range)
     uint256 public constant RARE_PRICE = 100e18; // $100 (within $70-$250 range)
@@ -42,18 +45,6 @@ contract NFTAppraisalEconomicsTest is Test {
     bytes32 public constant CARD_RARE = keccak256("CARD_RARE");
     bytes32 public constant CARD_EPIC = keccak256("CARD_EPIC");
     bytes32 public constant CARD_LEGENDARY = keccak256("CARD_LEGENDARY");
-
-    event AppraisalRequested(address indexed nftContract, uint256 indexed tokenId);
-    event AppraisalCompleted(
-        address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed oracle, uint256 timestamp
-    );
-    event AppraisalOverridden(
-        address indexed collection,
-        uint256 indexed tokenId,
-        uint256 oldPriceUSD,
-        uint256 newPriceUSD,
-        address indexed owner
-    );
 
     function setUp() public {
         // Deploy tokens
@@ -110,12 +101,7 @@ contract NFTAppraisalEconomicsTest is Test {
         uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
 
         bytes memory initData = abi.encodeWithSelector(
-            GachaTreasury.initialize.selector,
-            owner,
-            address(this), // Mock gacha
-            address(appraisal),
-            minPrices,
-            maxPrices
+            GachaTreasury.initialize.selector, owner, address(this), address(appraisal), minPrices, maxPrices
         );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
@@ -125,6 +111,10 @@ contract NFTAppraisalEconomicsTest is Test {
         treasury.addToWhitelist(address(collection));
         vm.stopPrank();
     }
+
+    // ========================================================================
+    // FEE ECONOMICS TESTS
+    // ========================================================================
 
     /**
      * @notice Test appraisal fee collection and protocol revenue
@@ -148,6 +138,31 @@ contract NFTAppraisalEconomicsTest is Test {
         assertEq(appraisalInfo.requester, user, "Should track requester");
         assertEq(uint256(appraisalInfo.status), uint256(NFTAppraisal.AppraisalStatus.Pending), "Should be pending");
     }
+
+    /**
+     * @notice Test appraisal fee economics with different fee structures
+     */
+    function testVariableAppraisalFees() public {
+        uint256 newFee = APPRAISAL_FEE * 2; // Double the fee
+        uint256 protocolBalanceBefore = usdc.balanceOf(protocol);
+        uint256 userBalanceBefore = usdc.balanceOf(user);
+
+        // Update fee
+        vm.prank(owner);
+        appraisal.setAppraisalFee(newFee);
+
+        // Request appraisal with new fee
+        vm.prank(user);
+        appraisal.requestAppraisal(address(collection), 0);
+
+        // Check new fee collection
+        assertEq(usdc.balanceOf(protocol), protocolBalanceBefore + newFee, "Protocol should receive increased fee");
+        assertEq(usdc.balanceOf(user), userBalanceBefore - newFee, "User should pay increased fee");
+    }
+
+    // ========================================================================
+    // PRICE DISCOVERY TESTS
+    // ========================================================================
 
     /**
      * @notice Test price discovery and rarity assignment
@@ -184,28 +199,28 @@ contract NFTAppraisalEconomicsTest is Test {
      * @notice Test price-based rarity boundary conditions
      */
     function testRarityBoundaryConditions() public {
-        // Test exact boundary prices based on new price ranges
+        // Test exact boundary prices
         uint256[] memory boundaryPrices = new uint256[](5);
         GachaTreasury.Rarity[] memory expectedRarities = new GachaTreasury.Rarity[](5);
 
         // Common: $0-$15
-        boundaryPrices[0] = 10e18; // Edge case: $10 (within Common range)
+        boundaryPrices[0] = 10e18;
         expectedRarities[0] = GachaTreasury.Rarity.Common;
 
         // Uncommon: $25-$60
-        boundaryPrices[1] = 25e18; // Exact boundary
+        boundaryPrices[1] = 25e18;
         expectedRarities[1] = GachaTreasury.Rarity.Uncommon;
 
         // Rare: $70-$250
-        boundaryPrices[2] = 70e18; // Exact boundary
+        boundaryPrices[2] = 70e18;
         expectedRarities[2] = GachaTreasury.Rarity.Rare;
 
         // Epic: $300-$1200
-        boundaryPrices[3] = 300e18; // Exact boundary
+        boundaryPrices[3] = 300e18;
         expectedRarities[3] = GachaTreasury.Rarity.Epic;
 
         // Legendary: $1500+
-        boundaryPrices[4] = 1500e18; // Exact boundary
+        boundaryPrices[4] = 1500e18;
         expectedRarities[4] = GachaTreasury.Rarity.Legendary;
 
         for (uint256 i = 0; i < 5; i++) {
@@ -261,6 +276,10 @@ contract NFTAppraisalEconomicsTest is Test {
         }
     }
 
+    // ========================================================================
+    // PRICE UPDATE TESTS
+    // ========================================================================
+
     /**
      * @notice Test price updates and economic impact
      */
@@ -268,7 +287,7 @@ contract NFTAppraisalEconomicsTest is Test {
         uint256 tokenId = 0;
         bytes32 cardId = CARD_EPIC;
         uint256 initialPrice = EPIC_PRICE;
-        uint256 updatedPrice = LEGENDARY_PRICE; // Price increase
+        uint256 updatedPrice = LEGENDARY_PRICE;
 
         // Initial appraisal
         vm.prank(user);
@@ -312,7 +331,7 @@ contract NFTAppraisalEconomicsTest is Test {
         uint256 tokenId = 0;
         bytes32 cardId = CARD_COMMON;
         uint256 oraclePrice = COMMON_PRICE;
-        uint256 ownerPrice = LEGENDARY_PRICE; // Significant price difference
+        uint256 ownerPrice = LEGENDARY_PRICE;
 
         // Oracle appraisal
         vm.prank(user);
@@ -334,9 +353,7 @@ contract NFTAppraisalEconomicsTest is Test {
         price = appraisalInfo.priceUSD;
         NFTAppraisal.AppraisalStatus status = appraisalInfo.status;
         assertEq(price, ownerPrice, "Should have owner override price");
-        assertEq(
-            uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Should be owner override status"
-        );
+        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Should be owner override status");
 
         // Test economic impact in treasury
         vm.startPrank(user);
@@ -350,6 +367,10 @@ contract NFTAppraisalEconomicsTest is Test {
             "Should be Legendary based on owner override price"
         );
     }
+
+    // ========================================================================
+    // BATCH ECONOMICS TESTS
+    // ========================================================================
 
     /**
      * @notice Test batch appraisal economics
@@ -403,26 +424,9 @@ contract NFTAppraisalEconomicsTest is Test {
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 1, "Should have 1 Legendary");
     }
 
-    /**
-     * @notice Test appraisal fee economics with different fee structures
-     */
-    function testVariableAppraisalFees() public {
-        uint256 newFee = APPRAISAL_FEE * 2; // Double the fee
-        uint256 protocolBalanceBefore = usdc.balanceOf(protocol);
-        uint256 userBalanceBefore = usdc.balanceOf(user);
-
-        // Update fee
-        vm.prank(owner);
-        appraisal.setAppraisalFee(newFee);
-
-        // Request appraisal with new fee
-        vm.prank(user);
-        appraisal.requestAppraisal(address(collection), 0);
-
-        // Check new fee collection
-        assertEq(usdc.balanceOf(protocol), protocolBalanceBefore + newFee, "Protocol should receive increased fee");
-        assertEq(usdc.balanceOf(user), userBalanceBefore - newFee, "User should pay increased fee");
-    }
+    // ========================================================================
+    // SPECIAL SCENARIOS
+    // ========================================================================
 
     /**
      * @notice Test incomplete appraisal economic impact

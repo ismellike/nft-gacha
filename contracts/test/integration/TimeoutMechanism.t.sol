@@ -11,7 +11,7 @@ import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
 import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 
-contract TimeoutMechanismTest is Test {
+contract TimeoutMechanism is Test {
     Gacha internal gacha;
     GachaTreasury internal treasury;
     GachaEconomyManager internal economyManager;

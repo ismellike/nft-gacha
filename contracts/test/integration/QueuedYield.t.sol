@@ -13,7 +13,7 @@ import {BaseERC721} from "../../src/tokens/BaseERC721.sol";
 import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 
-contract QueuedYieldTest is Test, IERC721Receiver {
+contract QueuedYield is Test, IERC721Receiver {
     MockERC20 internal usdc;
     MockNFTAppraisal internal appraisal;
     GachaTreasury internal treasury;
