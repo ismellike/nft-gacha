@@ -55,7 +55,7 @@ async function retryWithBackoff<T>(
 			}
 
 			// Exponential backoff: wait longer with each attempt
-			const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+			const delay = RETRY_DELAY_MS * 2 ** attempt;
 			logger.network.warn(
 				`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
 				lastError.message,

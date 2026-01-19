@@ -1,6 +1,6 @@
 import "../styles/globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
-import { Inter, JetBrains_Mono, Orbitron } from "next/font/google";
+import { DM_Serif_Display, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 
 import { Providers } from "./providers";
 import { Header } from "../components/shared/layout";
@@ -8,23 +8,24 @@ import { Footer } from "../components/shared/layout";
 import { ClientAnimatedBackground } from "../components/shared/background";
 import { ServiceWorkerRegistrar } from "../components/shared/service-worker-registrar";
 
-// Optimize font loading
-const inter = Inter({
+// Distinctive font trio: elegant serif + geometric sans + technical mono
+const dmSerif = DM_Serif_Display({
 	subsets: ["latin"],
-	weight: ["400", "600", "700"], // trim unused weights to cut font bytes
-	variable: "--font-inter",
+	weight: ["400"],
+	variable: "--font-dm-serif",
+	style: "normal",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const spaceGrotesk = Space_Grotesk({
 	subsets: ["latin"],
-	weight: ["400", "600"], // keep light + semi-bold for code snippets
-	variable: "--font-jetbrains-mono",
+	weight: ["300", "400", "500", "600", "700"],
+	variable: "--font-space-grotesk",
 });
 
-const orbitron = Orbitron({
+const ibmPlexMono = IBM_Plex_Mono({
 	subsets: ["latin"],
-	weight: ["400", "700", "800"], // keep display weights, drop the rest
-	variable: "--font-orbitron",
+	weight: ["400", "500", "600"],
+	variable: "--font-ibm-plex-mono",
 });
 
 export default function RootLayout({
@@ -83,7 +84,7 @@ export default function RootLayout({
 				<meta name="author" content="SPINFI Team" />
 			</head>
 			<body
-				className={`${inter.variable} ${jetbrainsMono.variable} ${orbitron.variable} font-spin`}
+				className={`${dmSerif.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} font-spin`}
 			>
 				<ServiceWorkerRegistrar />
 				<Providers>
