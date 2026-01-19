@@ -37,10 +37,10 @@ export default function RootLayout({
 		<html lang="en" className="dark">
 			<head>
 				{/* Basic Meta Tags */}
-				<title>SPINFI - Provably Fair NFT Gacha</title>
+				<title>SPINFI - Fair Spins. Real Yield.</title>
 				<meta
 					name="description"
-					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS"
+					content="Fair Spins. Real Yield. Provably fair NFT gacha with cryptographically guaranteed randomness powered by WAVS"
 				/>
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
 				<meta name="theme-color" content="#f59e0b" />
@@ -59,20 +59,20 @@ export default function RootLayout({
 
 				{/* Open Graph / Social Media */}
 				<meta property="og:type" content="website" />
-				<meta property="og:title" content="SPINFI - Provably Fair NFT Gacha" />
+				<meta property="og:title" content="SPINFI - Fair Spins. Real Yield." />
 				<meta
 					property="og:description"
-					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS"
+					content="Fair Spins. Real Yield. Provably fair NFT gacha with cryptographically guaranteed randomness powered by WAVS"
 				/>
 				<meta property="og:image" content="/logo.webp" />
 				<meta property="og:url" content="https://spinfi.xyz" />
 
 				{/* Twitter Card */}
 				<meta name="twitter:card" content="summary_large_image" />
-				<meta name="twitter:title" content="SPINFI - Provably Fair NFT Gacha" />
+				<meta name="twitter:title" content="SPINFI - Fair Spins. Real Yield." />
 				<meta
 					name="twitter:description"
-					content="Experience the future of fair NFT gaming with cryptographically guaranteed randomness powered by WAVS"
+					content="Fair Spins. Real Yield. Provably fair NFT gacha with cryptographically guaranteed randomness powered by WAVS"
 				/>
 				<meta name="twitter:image" content="/logo.webp" />
 

@@ -74,11 +74,11 @@ export default function LandingPage() {
 									className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight font-orbitron"
 								>
 									<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent drop-shadow-2xl">
-										Play Fair.
+										Fair Spins.
 									</span>
 									<br />
 									<span className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground/90">
-										Earn Yield.
+										Real Yield.
 									</span>
 								</h1>
 							</div>

@@ -47,7 +47,6 @@ import {
 	memo,
 	useMemo,
 	lazy,
-	Suspense,
 	startTransition,
 } from "react";
 import NextImage from "next/image";
@@ -463,6 +462,8 @@ export const NFTCard = memo<NFTCardProps>(
 		const sizeStyles = SIZE_CONFIG[size];
 
 		// Loading state with better UX - pass rarity for themed loading
+		// Fixed: Removed Suspense wrapper that could cause blank fallback
+		// Added explicit min-height to ensure placeholder is always visible
 		if (isLoading && !metadata?.tokenURI) {
 			return (
 				<div
@@ -473,23 +474,21 @@ export const NFTCard = memo<NFTCardProps>(
 						themeStyles.border,
 						className,
 					)}
+					style={{
+						minHeight:
+							size === "sm" ? "200px" : size === "xs" ? "150px" : "250px",
+					}}
 				>
-					<Suspense
-						fallback={
-							<div className="animate-pulse bg-white/10 rounded-lg h-full w-full" />
+					<NFTLoadingPlaceholder
+						{...(rarity !== undefined && { rarity })}
+						size={
+							size === "xs" || size === "sm"
+								? "sm"
+								: size === "xl"
+									? "lg"
+									: "md"
 						}
-					>
-						<NFTLoadingPlaceholder
-							{...(rarity !== undefined && { rarity })}
-							size={
-								size === "xs" || size === "sm"
-									? "sm"
-									: size === "xl"
-										? "lg"
-										: "md"
-							}
-						/>
-					</Suspense>
+					/>
 				</div>
 			);
 		}
