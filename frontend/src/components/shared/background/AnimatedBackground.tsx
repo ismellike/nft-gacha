@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { useState, useEffect, memo, useCallback } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 
 interface FloatingElement {
 	id: string;

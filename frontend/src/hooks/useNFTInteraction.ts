@@ -1,22 +1,22 @@
 "use client";
 
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { UserRejectedRequestError } from "viem";
 import {
 	useAccount,
 	usePublicClient,
 	useWaitForTransactionReceipt,
 } from "wagmi";
-import { UserRejectedRequestError } from "viem";
 import {
+	erc721Abi,
 	useWriteErc721SetApprovalForAll,
 	useWriteGachaTreasuryDepositNft,
 	useWriteProtocolTreasuryExecuteRedemption,
-	erc721Abi,
 } from "../generated";
 import {
-	useNFTInteractionStore,
-	type InteractionMode,
 	type InteractionKey,
+	type InteractionMode,
+	useNFTInteractionStore,
 } from "../stores/nftInteractionStore";
 
 type MaybeFn<T> = T | undefined;
@@ -72,11 +72,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	// If we have a specific NFT, use ONLY its state. Otherwise use global active state.
 	const status =
 		params.collection && params.tokenId && params.mode
-			? specificState?.status ?? "idle"
+			? (specificState?.status ?? "idle")
 			: (specificState?.status ?? activeState?.status ?? "idle");
 	const context =
 		params.collection && params.tokenId && params.mode
-			? specificState?.context ?? null
+			? (specificState?.context ?? null)
 			: (specificState?.context ?? activeState?.context ?? null);
 	const {
 		startInteraction: storeStart,
@@ -196,11 +196,17 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	);
 
 	// Kick off approval automatically when entering checkingApprovals
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Individual context properties used for clarity
 	const maybeStartApproval = useCallback(async () => {
 		if (status !== "checkingApprovals" || !context) return;
 
-		const { collection, treasuryAddress, protocolTreasuryAddress, mode } =
-			context;
+		const {
+			collection,
+			treasuryAddress,
+			protocolTreasuryAddress,
+			mode,
+			publicClient,
+		} = context;
 		const operatorAddress =
 			mode === "buyback" ? protocolTreasuryAddress : treasuryAddress;
 
@@ -210,7 +216,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		}
 
 		try {
-			const alreadyApproved = await context.publicClient?.readContract({
+			const alreadyApproved = await publicClient?.readContract({
 				address: collection as `0x${string}`,
 				abi: erc721Abi,
 				functionName: "isApprovedForAll",
@@ -250,7 +256,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		}
 	}, [
 		approveCollection,
-		context,
+		context?.collection,
+		context?.treasuryAddress,
+		context?.protocolTreasuryAddress,
+		context?.mode,
+		context?.publicClient,
 		markApprovalSubmitted,
 		resetNFTApproval,
 		setError,
@@ -260,6 +270,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	]);
 
 	// Deposit action for deposits or redemption for buybacks when awaitingInteractionSignature
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Individual context properties used for clarity
 	const maybeExecuteAction = useCallback(async () => {
 		if (status !== "awaitingInteractionSignature" || !context) return;
 		const {
@@ -317,7 +328,11 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			}
 		}
 	}, [
-		context,
+		context?.collection,
+		context?.tokenId,
+		context?.mode,
+		context?.treasuryAddress,
+		context?.protocolTreasuryAddress,
 		depositNFT,
 		executeRedemption,
 		markInteractionSubmitted,

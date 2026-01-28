@@ -1,25 +1,24 @@
 "use client";
 
-import { Card, Button } from "../ui";
-import Link from "next/link";
 import {
-	BoltIcon,
-	SparklesIcon,
-	ShieldCheckIcon,
-	GiftIcon,
 	ArrowRightIcon,
+	BoltIcon,
+	GiftIcon,
+	ShieldCheckIcon,
+	SparklesIcon,
 } from "@heroicons/react/24/outline";
-import { SimpleRarityShowcase } from "../components/rarity";
-import { glassCard, glassBadge } from "../lib/theme-config";
-
+import Link from "next/link";
 // Import streamlined landing components
 import {
-	SubtleHeroBackground,
-	UserTypeCards,
-	ScrollReveal,
-	TheWhySection,
 	HowItWorks,
+	ScrollReveal,
+	SubtleHeroBackground,
+	TheWhySection,
+	UserTypeCards,
 } from "../components/landing";
+import { SimpleRarityShowcase } from "../components/rarity";
+import { glassBadge, glassCard } from "../lib/theme-config";
+import { Button, Card } from "../ui";
 
 export default function LandingPage() {
 	return (
@@ -153,7 +152,10 @@ export default function LandingPage() {
 							>
 								{/* Icon */}
 								<div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-r from-warning via-orange-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-warning/40">
-									<BoltIcon className="w-10 h-10 text-black" aria-hidden="true" />
+									<BoltIcon
+										className="w-10 h-10 text-black"
+										aria-hidden="true"
+									/>
 								</div>
 
 								<h2
@@ -166,8 +168,8 @@ export default function LandingPage() {
 								</h2>
 
 								<p className="text-xl text-foreground/80 mb-12 max-w-3xl mx-auto leading-relaxed">
-									Experience the future of provably fair gaming. Join us in pioneering
-									cryptographic transparency in NFT gacha systems.
+									Experience the future of provably fair gaming. Join us in
+									pioneering cryptographic transparency in NFT gacha systems.
 								</p>
 
 								{/* CTAs */}
@@ -215,7 +217,10 @@ export default function LandingPage() {
 										<span className="text-sm font-medium">WAVS Secured</span>
 									</li>
 									<li className="flex items-center gap-2">
-										<BoltIcon className="w-5 h-5 text-warning" aria-hidden="true" />
+										<BoltIcon
+											className="w-5 h-5 text-warning"
+											aria-hidden="true"
+										/>
 										<span className="text-sm font-medium">
 											Cryptographically Verifiable
 										</span>

@@ -111,8 +111,10 @@ export const logger = {
 
 // Export the DEBUG_FLAGS for external use
 export { DEBUG_FLAGS };
-export const createDebugLogger = (enabled: boolean) => (...args: unknown[]) => {
-	if (isProd) return; // Never log in production
-	if (!enabled) return;
-	console.log(...args);
-};
+export const createDebugLogger =
+	(enabled: boolean) =>
+	(...args: unknown[]) => {
+		if (isProd) return; // Never log in production
+		if (!enabled) return;
+		console.log(...args);
+	};

@@ -39,7 +39,10 @@ export async function registerSW(): Promise<ServiceWorkerRegisterResult> {
 			const newWorker = registration.installing;
 			if (newWorker) {
 				newWorker.addEventListener("statechange", () => {
-					if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+					if (
+						newWorker.state === "installed" &&
+						navigator.serviceWorker.controller
+					) {
 						// New service worker is available
 						console.log("[SW] New content is available; please refresh.");
 						// You could show a notification to the user here
@@ -58,7 +61,10 @@ export async function registerSW(): Promise<ServiceWorkerRegisterResult> {
 		return { success: true };
 	} catch (error) {
 		console.error("[SW] Registration failed:", error);
-		return { success: false, error: error instanceof Error ? error.message : String(error) };
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : String(error),
+		};
 	}
 }
 
@@ -90,9 +96,7 @@ export function unregisterSW(): Promise<boolean> {
 		});
 }
 
-export async function getSWRegistration(): Promise<
-	ServiceWorkerRegistration | null
-> {
+export async function getSWRegistration(): Promise<ServiceWorkerRegistration | null> {
 	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
 		return null;
 	}
@@ -108,7 +112,7 @@ export async function getSWRegistration(): Promise<
 
 export async function requestSWUpdate(): Promise<void> {
 	const registration = await getSWRegistration();
-	if (registration && registration.waiting) {
+	if (registration?.waiting) {
 		// Tell the waiting service worker to skip waiting
 		registration.waiting.postMessage({ type: "SKIP_WAITING" });
 	}
@@ -116,7 +120,7 @@ export async function requestSWUpdate(): Promise<void> {
 
 export async function clearSWCache(): Promise<void> {
 	const registration = await getSWRegistration();
-	if (registration && registration.active) {
+	if (registration?.active) {
 		registration.active.postMessage({ type: "CLEAR_CACHE" });
 	}
 }

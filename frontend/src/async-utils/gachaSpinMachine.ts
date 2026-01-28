@@ -1,9 +1,9 @@
 "use client";
 
 import type { PublicClient } from "viem";
+import { createDebugLogger, DEBUG_FLAGS } from "../lib/logger";
 import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
-import { createDebugLogger, DEBUG_FLAGS } from "../lib/logger";
 // Gacha contract address is now passed as context rather than imported
 
 export interface SpinResult {
@@ -54,7 +54,10 @@ const MAX_POLLING_TIME = BASE_TIMEOUT_MS; // 10 minutes at 3-second intervals
 const debugLog = createDebugLogger(DEBUG_FLAGS.GACHA_SPIN);
 
 // Utility function for exponential backoff with jitter
-export const getPollingDelay = (attempt: number, baseInterval: number): number => {
+export const getPollingDelay = (
+	attempt: number,
+	baseInterval: number,
+): number => {
 	const exponentialDelay = baseInterval * 2 ** Math.min(attempt / 10, 5);
 	const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
 	return Math.min(exponentialDelay + jitter, 30000); // Max 30 seconds
@@ -129,14 +132,11 @@ export const pollForSpinFulfillment = async ({
 				const fromBlock =
 					currentBlock > BigInt(1000) ? currentBlock - BigInt(1000) : BigInt(0);
 
-				debugLog(
-					`🔍 [pollForSpinFulfillment] Polling attempt ${attempts}:`,
-					{
-						currentBlock: currentBlock.toString(),
-						fromBlock: fromBlock.toString(),
-						triggerId: triggerId.toString(),
-					},
-				);
+				debugLog(`🔍 [pollForSpinFulfillment] Polling attempt ${attempts}:`, {
+					currentBlock: currentBlock.toString(),
+					fromBlock: fromBlock.toString(),
+					triggerId: triggerId.toString(),
+				});
 
 				const completedLogs = await publicClient.getLogs({
 					address: gachaAddress as `0x${string}`,

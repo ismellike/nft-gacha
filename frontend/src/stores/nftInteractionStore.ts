@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import type { PublicClient } from "viem";
+import { create } from "zustand";
 
 export type InteractionMode = "deposit" | "buyback";
 
@@ -75,7 +75,12 @@ type InteractionStore = {
 	resetInteraction: () => void;
 	resetAll: () => void;
 	getActiveInteraction: () => InteractionState | null;
-	getInteraction: (mode: InteractionMode, collection: string, tokenId: string, uniqueId?: string) => InteractionState | null;
+	getInteraction: (
+		mode: InteractionMode,
+		collection: string,
+		tokenId: string,
+		uniqueId?: string,
+	) => InteractionState | null;
 };
 
 const createInteractionKey = (
@@ -83,7 +88,8 @@ const createInteractionKey = (
 	collection: string,
 	tokenId: string,
 	uniqueId?: string,
-): InteractionKey => `${mode}:${collection}:${tokenId}:${uniqueId ?? 'default'}`;
+): InteractionKey =>
+	`${mode}:${collection}:${tokenId}:${uniqueId ?? "default"}`;
 
 export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 	interactions: new Map(),

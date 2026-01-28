@@ -3,8 +3,8 @@
  * Provides consistent loading indicators with glassmorphism styling
  */
 
-import { motion } from "framer-motion";
 import { ArrowPathIcon as Loader2 } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import { cn } from "../../../lib/theme-config";
 
 interface LoadingStateProps {

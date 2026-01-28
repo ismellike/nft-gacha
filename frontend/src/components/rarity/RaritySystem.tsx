@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Rarity } from "../../lib/rarityConfig";
-import { getRarityConfig } from "../../lib/rarityConfig";
+import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
 import { Chip } from "../../ui";
 
 interface RarityBadgeProps {

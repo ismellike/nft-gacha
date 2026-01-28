@@ -1,39 +1,38 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useFormUrlSync } from "../../hooks/useFormUrlSync";
-import { useAccount, useWriteContract, usePublicClient } from "wagmi";
-import { isAddress } from "viem";
 import {
 	CheckBadgeIcon,
-	ExclamationTriangleIcon,
-	CurrencyDollarIcon,
-	MagnifyingGlassIcon,
-	XCircleIcon,
-	SparklesIcon,
 	CpuChipIcon,
+	CurrencyDollarIcon,
+	ExclamationTriangleIcon,
+	MagnifyingGlassIcon,
+	SparklesIcon,
+	XCircleIcon,
 } from "@heroicons/react/24/outline";
-
-import { Card, Button } from "../../ui";
-import { NFTCard } from "./NFTCard";
-import { useGachaContracts } from "../../hooks/useGachaContracts";
-import { useGachaId } from "../../hooks/useGachaId";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { isAddress } from "viem";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import type { AppraisalResult } from "../../async-utils/nftAppraisalMachine";
 import {
+	useReadErc20Allowance,
+	useReadErc20BalanceOf,
+	useReadErc20Decimals,
+	useReadErc20Symbol,
 	useReadNftAppraisalAppraisalFee,
 	useReadNftAppraisalFeeToken,
-	useReadErc20Symbol,
-	useReadErc20Decimals,
-	useReadErc20BalanceOf,
-	useReadErc20Allowance,
 	useWatchNftAppraisalAppraisalStatusChanged,
-	useWatchNftAppraisalServiceHandlerAppraisalProcessed,
 	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived,
+	useWatchNftAppraisalServiceHandlerAppraisalProcessed,
 } from "../../generated";
-import { formatTokenAmount } from "../../lib/utils";
-import type { AppraisalResult } from "../../async-utils/nftAppraisalMachine";
-import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
+import { useFormUrlSync } from "../../hooks/useFormUrlSync";
+import { useGachaContracts } from "../../hooks/useGachaContracts";
+import { useGachaId } from "../../hooks/useGachaId";
 import { useRewardsData } from "../../hooks/useRewardsData";
+import { formatTokenAmount } from "../../lib/utils";
+import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
+import { Button, Card } from "../../ui";
+import { NFTCard } from "./NFTCard";
 
 interface NFTAppraisalFormProps {
 	onSubmissionSuccess?: (collection: string, tokenId: string) => void;

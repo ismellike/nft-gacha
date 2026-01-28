@@ -1,7 +1,7 @@
 "use client";
 
-import { useClientSearchParam } from "./useClientSearchParams";
 import { DEFAULT_GACHA_ID } from "../lib/gacha-config/contracts";
+import { useClientSearchParam } from "./useClientSearchParams";
 
 /**
  * Hook to get the current gacha ID from URL query parameters

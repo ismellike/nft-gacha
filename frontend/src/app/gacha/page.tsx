@@ -1,41 +1,46 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { useAccount } from "wagmi";
 import {
 	ArrowLeftIcon,
 	BoltIcon,
-	UserCircleIcon,
-	CogIcon,
-	XCircleIcon,
 	ChartBarIcon,
 	ClockIcon,
+	CogIcon,
+	UserCircleIcon,
+	XCircleIcon,
 } from "@heroicons/react/24/outline";
-
-import { Button, Card, CardSkeleton, Chip } from "../../ui";
-import { InlineRetryMessage } from "../../components/shared/feedback";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef } from "react";
+import { useAccount } from "wagmi";
+import { BuybackNotificationProvider } from "../../components/economy";
+import {
+	AdminSection,
+	EconomySection,
+	FlowSwitcher,
+	SpinSection,
+	VaultSection,
+} from "../../components/gacha";
 import {
 	ContractStatusAnnouncer,
+	InlineRetryMessage,
 	useContractStatusAnnouncer,
 } from "../../components/shared/feedback";
-import { FlowSwitcher, SpinSection, VaultSection, AdminSection, EconomySection } from "../../components/gacha";
 import { SpinHistorySection } from "../../components/spin-history";
-import { getGachaConfig } from "../../lib/gacha-config";
+import { GachaRefreshProvider } from "../../contexts/GachaRefreshContext";
 import {
+	useReadGachaEconomyManagerOwner,
+	useReadGachaEconomyManagerPaused,
 	useReadGachaFeeToken,
 	useReadGachaOwner,
 	useReadGachaTreasuryOwner,
-	useReadGachaEconomyManagerOwner,
-	useReadGachaEconomyManagerPaused,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { useRewardsData } from "../../hooks/useRewardsData";
 import { useGachaSections } from "../../hooks/useGachaSections";
-import { BuybackNotificationProvider } from "../../components/economy";
-import { GachaRefreshProvider } from "../../contexts/GachaRefreshContext";
+import { useRewardsData } from "../../hooks/useRewardsData";
+import { getGachaConfig } from "../../lib/gacha-config";
+import { Button, Card, CardSkeleton, Chip } from "../../ui";
 
 type FlowOption = {
 	id: "spin" | "vault" | "economy" | "history" | "admin";
@@ -125,11 +130,15 @@ function GachaDetailPageContent() {
 	} as Parameters<typeof useReadGachaEconomyManagerPaused>[0]);
 
 	// When users land on Vault ensure balances are fresh
+	// Use a ref for rewardsData to avoid dependency issues
+	const rewardsDataRef = useRef(rewardsData);
+	rewardsDataRef.current = rewardsData;
+
 	useEffect(() => {
 		if (activeSection === "vault" && userAddress) {
 			const refetchAllRewardsData = async () => {
 				try {
-					await rewardsData.refetchAllRewardsData();
+					await rewardsDataRef.current.refetchAllRewardsData();
 				} catch (error) {
 					console.warn("Some rewards data failed to refetch:", error);
 				}
@@ -137,7 +146,7 @@ function GachaDetailPageContent() {
 
 			refetchAllRewardsData();
 		}
-	}, [activeSection, userAddress, rewardsData]);
+	}, [activeSection, userAddress]);
 
 	const flowOptions = useMemo(() => {
 		const base: FlowOption[] = [
@@ -318,9 +327,7 @@ function GachaDetailPageContent() {
 								<SpinHistorySection
 									gachaAddress={gacha?.address ?? ""}
 									gachaId={gachaId}
-									appraisalContractAddress={
-										contracts.appraisal ?? undefined
-									}
+									appraisalContractAddress={contracts.appraisal ?? undefined}
 									protocolTreasuryAddress={
 										contracts.protocolTreasury ?? undefined
 									}

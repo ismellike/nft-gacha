@@ -27,13 +27,14 @@ export function ScrollReveal({
 		amount: 0.3,
 	});
 
-	// Check for reduced motion preference
-	const prefersReducedMotion =
-		typeof window !== "undefined" &&
-		window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 	const getInitialPosition = () => {
-		// Respect reduced motion preference
+		// Check for reduced motion preference (SPA - always client-side)
+		if (typeof window === "undefined") return { opacity: 0 };
+
+		const prefersReducedMotion = window.matchMedia(
+			"(prefers-reduced-motion: reduce)",
+		).matches;
+
 		if (prefersReducedMotion) {
 			return { opacity: 0 };
 		}
@@ -53,21 +54,25 @@ export function ScrollReveal({
 	};
 
 	useEffect(() => {
-		if (isInView) {
-			controls.start({
-				x: 0,
-				y: 0,
-				opacity: 1,
-				transition: prefersReducedMotion
-					? { duration: 0.01 }
-					: {
-							duration: 0.6,
-							delay,
-							ease: [0.25, 0.4, 0.25, 1],
-						},
-			});
-		}
-	}, [controls, isInView, delay, prefersReducedMotion]);
+		if (!isInView) return;
+
+		const prefersReducedMotion = window.matchMedia(
+			"(prefers-reduced-motion: reduce)",
+		).matches;
+
+		controls.start({
+			x: 0,
+			y: 0,
+			opacity: 1,
+			transition: prefersReducedMotion
+				? { duration: 0.01 }
+				: {
+						duration: 0.6,
+						delay,
+						ease: [0.25, 0.4, 0.25, 1],
+					},
+		});
+	}, [controls, isInView, delay]);
 
 	return (
 		<motion.div
@@ -75,6 +80,7 @@ export function ScrollReveal({
 			initial={getInitialPosition()}
 			animate={controls}
 			className={className}
+			suppressHydrationWarning
 		>
 			{children}
 		</motion.div>

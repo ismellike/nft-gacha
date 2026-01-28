@@ -1,17 +1,23 @@
 "use client";
 
-import { useState, useImperativeHandle, forwardRef, useEffect, memo } from "react";
-import { useReadContract } from "wagmi";
-import { Rarity, getRarityConfig } from "../../lib/rarityConfig";
-import { Card } from "../../ui";
 import {
-	useReadGachaTreasuryGetAllRarityCounts,
+	forwardRef,
+	memo,
+	useEffect,
+	useImperativeHandle,
+	useState,
+} from "react";
+import { useReadContract } from "wagmi";
+import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
+import {
 	useReadGachaGetAverageRarityValues,
+	useReadGachaTreasuryGetAllRarityCounts,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
+import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
+import { Card } from "../../ui";
 import RarityShowcaseModal from "./RarityShowcaseModal";
-import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 
 interface RarityBreakdownRef {
 	refreshCounts: () => void;

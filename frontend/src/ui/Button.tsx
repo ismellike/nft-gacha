@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
+import * as React from "react";
 import type { VariantProps } from "tailwind-variants";
-import { glassButton, cn } from "../lib/theme-config";
+import { cn, glassButton } from "../lib/theme-config";
 
 export interface ButtonProps
 	extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color">,

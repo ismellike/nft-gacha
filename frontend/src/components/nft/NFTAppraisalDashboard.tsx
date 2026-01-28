@@ -1,26 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAccount } from "wagmi";
-import { useClientSearchParam } from "../../hooks/useClientSearchParams";
 import {
-	MagnifyingGlassIcon,
 	CheckBadgeIcon,
-	InformationCircleIcon,
 	ClockIcon,
 	DocumentTextIcon,
-	TrophyIcon,
+	InformationCircleIcon,
+	MagnifyingGlassIcon,
 	SparklesIcon,
+	TrophyIcon,
 } from "@heroicons/react/24/outline";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-
-import { Card, Button } from "../../ui";
-import { NFTAppraisalForm } from "./NFTAppraisalForm";
-import { AppraisedNFTsList } from "./AppraisedNFTsList";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 import { useAppraisalData } from "../../hooks/useAppraisalData";
-import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
+import { useClientSearchParam } from "../../hooks/useClientSearchParams";
 import { formatCurrency } from "../../lib/utils";
+import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
+import { Button, Card } from "../../ui";
+import { AppraisedNFTsList } from "./AppraisedNFTsList";
+import { NFTAppraisalForm } from "./NFTAppraisalForm";
 
 interface NFTAppraisalDashboardProps {
 	className?: string;

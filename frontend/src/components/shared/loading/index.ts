@@ -1,1 +1,1 @@
-export { Skeleton, GachaCardSkeleton } from "./SkeletonLoader";
+export { GachaCardSkeleton, Skeleton } from "./SkeletonLoader";

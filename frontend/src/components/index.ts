@@ -1,11 +1,10 @@
 // Gacha components
-export * from "./gacha";
-
-// NFT components
-export * from "./nft";
 
 // Economy components
 export * from "./economy";
+export * from "./gacha";
+// NFT components
+export * from "./nft";
 
 // Rarity components
 export * from "./rarity";

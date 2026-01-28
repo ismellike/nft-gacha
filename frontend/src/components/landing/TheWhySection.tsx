@@ -1,9 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Card } from "../../ui";
-import { glassCard } from "../../lib/theme-config";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
+import { glassCard } from "../../lib/theme-config";
+import { Card } from "../../ui";
 import { ScrollReveal } from "./ScrollReveal";
 
 interface DifferentiatorCardProps {
@@ -13,7 +13,12 @@ interface DifferentiatorCardProps {
 	delay: number;
 }
 
-function DifferentiatorCard({ icon, title, description, delay }: DifferentiatorCardProps) {
+function DifferentiatorCard({
+	icon,
+	title,
+	description,
+	delay,
+}: DifferentiatorCardProps) {
 	return (
 		<ScrollReveal delay={delay}>
 			<motion.div
@@ -109,8 +114,8 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 							</span>
 						</h2>
 						<p className="text-xl text-foreground/80 max-w-3xl mx-auto">
-							Traditional gacha systems operate in black boxes. We bring everything
-							on-chain with cryptographic proof.
+							Traditional gacha systems operate in black boxes. We bring
+							everything on-chain with cryptographic proof.
 						</p>
 					</ScrollReveal>
 				</div>
@@ -124,7 +129,9 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
+								aria-label="Shield icon"
 							>
+								<title>Security shield</title>
 								<path
 									strokeLinecap="round"
 									strokeLinejoin="round"
@@ -144,7 +151,9 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
+								aria-label="Currency coin icon"
 							>
+								<title>Yield coin</title>
 								<path
 									strokeLinecap="round"
 									strokeLinejoin="round"
@@ -164,7 +173,9 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
+								aria-label="Eye icon"
 							>
+								<title>Transparent visibility</title>
 								<path
 									strokeLinecap="round"
 									strokeLinejoin="round"
@@ -288,7 +299,9 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 							{/* Footer Note */}
 							<div className="mt-6 pt-6 border-t border-white/10 text-center">
 								<p className="text-sm text-foreground/60">
-									<span className="text-warning font-semibold">Zero trust required</span>
+									<span className="text-warning font-semibold">
+										Zero trust required
+									</span>
 									{" - "}Verify everything on-chain
 								</p>
 							</div>

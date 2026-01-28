@@ -1,14 +1,14 @@
 "use client";
 
-import type React from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-	ArrowUpTrayIcon,
 	ArrowDownTrayIcon,
+	ArrowUpTrayIcon,
 	BanknotesIcon,
 } from "@heroicons/react/24/outline";
-import { Button } from "../../../ui";
+import { AnimatePresence, motion } from "framer-motion";
+import type React from "react";
 import { cn } from "../../../lib/theme-config";
+import { Button } from "../../../ui";
 
 type VaultTab = "deposit" | "withdraw" | "yield";
 

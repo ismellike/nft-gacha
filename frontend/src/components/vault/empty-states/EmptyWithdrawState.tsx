@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 
 interface EmptyWithdrawStateProps {
 	message?: string;

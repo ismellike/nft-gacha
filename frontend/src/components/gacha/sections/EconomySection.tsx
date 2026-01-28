@@ -1,10 +1,10 @@
 "use client";
 
-import { ChartBarIcon, BanknotesIcon } from "@heroicons/react/24/outline";
-import { EconomyDashboard } from "../../economy";
+import { BanknotesIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 import { useGachaId } from "../../../hooks/useGachaId";
 import { getGachaConfig } from "../../../lib/gacha-config";
 import { Card } from "../../../ui";
+import { EconomyDashboard } from "../../economy";
 import { GachaSectionLayout } from "./GachaSectionLayout";
 
 interface EconomySectionProps {

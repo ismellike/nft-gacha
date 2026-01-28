@@ -1,9 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Card } from "../../ui";
 import { glassCard } from "../../lib/theme-config";
-import { Chip } from "../../ui";
+import { Card, Chip } from "../../ui";
 
 interface RevenueSplitVisualizationProps {
 	className?: string;
@@ -37,7 +36,13 @@ export function RevenueSplitVisualization({
 				{/* Donut Chart Visualization */}
 				<div className="flex justify-center mb-8">
 					<div className="relative w-64 h-64">
-						<svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+						<svg
+							className="w-full h-full transform -rotate-90"
+							viewBox="0 0 100 100"
+							role="img"
+							aria-label="Revenue split donut chart"
+						>
+							<title>Revenue distribution chart</title>
 							{/* Background circle */}
 							<circle
 								cx="50"
@@ -71,9 +76,14 @@ export function RevenueSplitVisualization({
 								stroke="url(#contributorGradient)"
 								strokeWidth="20"
 								strokeDasharray={`${2 * Math.PI * 40 * (contributorPercentage / 100)} ${2 * Math.PI * 40}`}
-								strokeDashoffset={-2 * Math.PI * 40 * (protocolPercentage / 100)}
+								strokeDashoffset={
+									-2 * Math.PI * 40 * (protocolPercentage / 100)
+								}
 								initial={{ strokeDashoffset: -2 * Math.PI * 40 }}
-								animate={{ strokeDashoffset: -2 * Math.PI * 40 * (protocolPercentage / 100) }}
+								animate={{
+									strokeDashoffset:
+										-2 * Math.PI * 40 * (protocolPercentage / 100),
+								}}
 								transition={{ duration: 1.5, ease: "easeOut" }}
 							/>
 
@@ -86,8 +96,16 @@ export function RevenueSplitVisualization({
 									x2="100%"
 									y2="100%"
 								>
-									<stop offset="0%" stopColor="rgb(251, 191, 36)" stopOpacity={0.8} />
-									<stop offset="100%" stopColor="rgb(251, 146, 60)" stopOpacity={0.9} />
+									<stop
+										offset="0%"
+										stopColor="rgb(251, 191, 36)"
+										stopOpacity={0.8}
+									/>
+									<stop
+										offset="100%"
+										stopColor="rgb(251, 146, 60)"
+										stopOpacity={0.9}
+									/>
 								</linearGradient>
 								<linearGradient
 									id="protocolGradient"
@@ -96,8 +114,16 @@ export function RevenueSplitVisualization({
 									x2="100%"
 									y2="100%"
 								>
-									<stop offset="0%" stopColor="rgb(148, 163, 184)" stopOpacity={0.6} />
-									<stop offset="100%" stopColor="rgb(100, 116, 139)" stopOpacity={0.8} />
+									<stop
+										offset="0%"
+										stopColor="rgb(148, 163, 184)"
+										stopOpacity={0.6}
+									/>
+									<stop
+										offset="100%"
+										stopColor="rgb(100, 116, 139)"
+										stopOpacity={0.8}
+									/>
 								</linearGradient>
 							</defs>
 						</svg>
@@ -176,9 +202,11 @@ export function RevenueSplitVisualization({
 				{/* Explanation */}
 				<div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-success/10 to-transparent border border-success/20">
 					<p className="text-sm text-foreground/80 text-center">
-						<span className="font-semibold text-success">Contributor-friendly:</span>{" "}
-						This incentive structure aligns the protocol with NFT depositors, ensuring
-						the majority of value flows back to the community.
+						<span className="font-semibold text-success">
+							Contributor-friendly:
+						</span>{" "}
+						This incentive structure aligns the protocol with NFT depositors,
+						ensuring the majority of value flows back to the community.
 					</p>
 				</div>
 			</Card>

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
 import {
-	ExclamationTriangleIcon,
 	ArrowPathIcon,
+	ExclamationTriangleIcon,
 	HomeIcon,
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Button, Card } from "../../ui";
 
 interface ErrorProps {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { getGachaContracts } from "../lib/gacha-config/contracts";
 import { isValidContractAddress } from "../lib/contract-utils";
+import { getGachaContracts } from "../lib/gacha-config/contracts";
 
 export interface GachaContracts {
 	gacha: string | undefined;

@@ -1,8 +1,8 @@
 "use client";
 
 import { CogIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
-import { AdminControls } from "../../economy";
 import type { GachaConfig } from "../../../lib/gacha-config/types";
+import { AdminControls } from "../../economy";
 import { GachaSectionLayout } from "./GachaSectionLayout";
 
 interface AdminSectionProps {

@@ -2,9 +2,14 @@
  * Unit tests for gachaSpinMachine utility
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { pollForSpinFulfillment, getPollingDelay, clearAllPendingSpins } from "@/async-utils/gachaSpinMachine";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	clearAllPendingSpins,
+	getPollingDelay,
+	pollForSpinFulfillment,
+} from "@/async-utils/gachaSpinMachine";
 import { useGachaStore } from "@/stores/gachaStore";
+import type { PublicClient } from "viem";
 
 // Mock the dependencies
 vi.mock("@/stores/gachaStore", () => ({
@@ -58,7 +63,9 @@ describe("gachaSpinMachine", () => {
 
 		it("should add jitter to prevent thundering herd", () => {
 			const baseInterval = 3000;
-			const delays = Array.from({ length: 10 }, () => getPollingDelay(5, baseInterval));
+			const delays = Array.from({ length: 10 }, () =>
+				getPollingDelay(5, baseInterval),
+			);
 			const uniqueDelays = new Set(delays);
 			// Not all delays should be the same due to jitter
 			expect(uniqueDelays.size).toBeGreaterThan(1);
@@ -70,7 +77,7 @@ describe("gachaSpinMachine", () => {
 		const mockUserAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb";
 		const mockGachaAddress = "0xce59c4705b86d3E1c28a07A8bcB803A4CCf3a292";
 
-		let mockPublicClient: any;
+		let mockPublicClient: PublicClient;
 		let mockGetLogs: ReturnType<typeof vi.fn>;
 
 		beforeEach(() => {
@@ -81,7 +88,7 @@ describe("gachaSpinMachine", () => {
 			mockPublicClient = {
 				getLogs: mockGetLogs,
 				getBlockNumber: vi.fn().mockResolvedValue(BigInt(10000)),
-			};
+			} as unknown as PublicClient;
 		});
 
 		afterEach(() => {
@@ -169,7 +176,7 @@ describe("gachaSpinMachine", () => {
 				pollForSpinFulfillment({
 					triggerId: BigInt(0),
 					userAddress: "",
-					publicClient: null as any,
+					publicClient: null as unknown as PublicClient,
 					gachaAddress: "",
 				}),
 			).rejects.toThrow(/Invalid polling parameters/);

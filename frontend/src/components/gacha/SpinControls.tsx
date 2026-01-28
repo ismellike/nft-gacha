@@ -1,34 +1,34 @@
 "use client";
 
-import { useState, useEffect, useRef, memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+import { decodeEventLog, formatUnits } from "viem";
 import {
 	useAccount,
-	useWaitForTransactionReceipt,
-	useSignTypedData,
 	useChainId,
 	useReadContract,
+	useSignTypedData,
+	useWaitForTransactionReceipt,
 	useWriteContract,
 } from "wagmi";
-import { glassTypography, cn } from "../../lib/theme-config";
-import { Card, Button, Modal, ModalContent } from "../../ui";
-import { formatUnits, decodeEventLog } from "viem";
-import { formatTokenAmount, formatCurrency } from "../../lib/utils";
-import { useGachaContracts } from "../../hooks/useGachaContracts";
-import { useGachaId } from "../../hooks/useGachaId";
+import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import {
-	useReadGachaPaused,
-	useReadGachaFeeToken,
-	useReadErc20Decimals,
-	useReadErc20Symbol,
-	useReadErc20Name,
 	useReadErc20BalanceOf,
-	useReadIerc20PermitNonces,
+	useReadErc20Decimals,
+	useReadErc20Name,
+	useReadErc20Symbol,
+	useReadGachaFeeToken,
+	useReadGachaPaused,
 	useReadGachaTreasuryIsGachaAvailable,
+	useReadIerc20PermitNonces,
 	useWriteGachaReclaimFailedSpin,
 } from "../../generated";
+import { useGachaContracts } from "../../hooks/useGachaContracts";
+import { useGachaId } from "../../hooks/useGachaId";
 import type { UseGachaSpinMachineReturn } from "../../hooks/useGachaSpinMachine";
-import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { logger } from "../../lib/logger";
+import { cn, glassTypography } from "../../lib/theme-config";
+import { formatCurrency, formatTokenAmount } from "../../lib/utils";
+import { Button, Card, Modal, ModalContent } from "../../ui";
 
 interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
@@ -342,7 +342,9 @@ const SpinControls = memo(function SpinControls({
 	// Reclaim handler
 	const handleReclaim = async () => {
 		if (!gachaSpin.triggerId || !contracts.gacha) {
-			logger.gachaSpin.error("Missing trigger ID or gacha contract for reclaim");
+			logger.gachaSpin.error(
+				"Missing trigger ID or gacha contract for reclaim",
+			);
 			return;
 		}
 
@@ -398,9 +400,7 @@ const SpinControls = memo(function SpinControls({
 			);
 			try {
 				if (!contracts.gacha || !maxFee) {
-					logger.gachaSpin.error(
-						"Missing max fee or contract for direct spin",
-					);
+					logger.gachaSpin.error("Missing max fee or contract for direct spin");
 					return;
 				}
 				gachaSpin.startSpin();
@@ -517,19 +517,16 @@ const SpinControls = memo(function SpinControls({
 				deadline,
 			};
 
-			logger.gachaSpin.log(
-				"Requesting permit signature with params:",
-				{
-					domain,
-					message: {
-						...message,
-						value: message.value.toString(),
-						nonce: message.nonce.toString(),
-						deadline: message.deadline.toString(),
-					},
-					maxFee: maxFee?.toString(),
+			logger.gachaSpin.log("Requesting permit signature with params:", {
+				domain,
+				message: {
+					...message,
+					value: message.value.toString(),
+					nonce: message.nonce.toString(),
+					deadline: message.deadline.toString(),
 				},
-			);
+				maxFee: maxFee?.toString(),
+			});
 
 			signTypedData({
 				domain,
@@ -562,7 +559,9 @@ const SpinControls = memo(function SpinControls({
 			signature !== usedSignature
 		) {
 			try {
-				logger.gachaSpin.log("Permit signature received, submitting transaction");
+				logger.gachaSpin.log(
+					"Permit signature received, submitting transaction",
+				);
 
 				// Parse signature hex string into r, s, v components
 				logger.gachaSpin.debug("Parsing signature:", {
@@ -800,10 +799,18 @@ const SpinControls = memo(function SpinControls({
 					logger.gachaSpin.warn(
 						"Permit signature rejected by contract, this might indicate:",
 					);
-					logger.gachaSpin.warn("  1. Token contract doesn't support EIP-712 permits");
-					logger.gachaSpin.warn("  2. Domain separator mismatch (name/version/chainId)");
-					logger.gachaSpin.warn("  3. Permit implementation differs from standard");
-					logger.gachaSpin.warn("  4. Contract expects different signature format");
+					logger.gachaSpin.warn(
+						"  1. Token contract doesn't support EIP-712 permits",
+					);
+					logger.gachaSpin.warn(
+						"  2. Domain separator mismatch (name/version/chainId)",
+					);
+					logger.gachaSpin.warn(
+						"  3. Permit implementation differs from standard",
+					);
+					logger.gachaSpin.warn(
+						"  4. Contract expects different signature format",
+					);
 					logger.gachaSpin.warn("  5. Permit expired or already used");
 					logger.gachaSpin.warn("  6. Insufficient allowance despite permit");
 
@@ -884,10 +891,7 @@ const SpinControls = memo(function SpinControls({
 				setTimeout(() => setUserCancelledMessage(false), 2000);
 			} else {
 				// Real transaction error - log and go to error state
-				logger.gachaSpin.error(
-					"Direct spin transaction error:",
-					spinError,
-				);
+				logger.gachaSpin.error("Direct spin transaction error:", spinError);
 
 				// Check if error is related to fee changes
 				if (
@@ -980,14 +984,11 @@ const SpinControls = memo(function SpinControls({
 					}
 				} catch (error) {
 					// Log each decode error for debugging
-					logger.gachaSpin.debug(
-						`Log ${i} not a RandomnessRequested event:`,
-						{
-							error: (error as Error).message,
-							topics: log.topics.length,
-							hasData: log.data !== "0x",
-						},
-					);
+					logger.gachaSpin.debug(`Log ${i} not a RandomnessRequested event:`, {
+						error: (error as Error).message,
+						topics: log.topics.length,
+						hasData: log.data !== "0x",
+					});
 				}
 			}
 
@@ -1619,7 +1620,7 @@ const SpinControls = memo(function SpinControls({
 					</div>
 
 					{/* Balance Display - Under Button */}
-					{isConnected && !gachaSpin.isWaitingForFulfillment && (
+					{mounted && isConnected && !gachaSpin.isWaitingForFulfillment && (
 						<div className="text-center">
 							<p className="text-sm text-success/80">
 								Balance: {formattedBalance} {tokenSymbol || "TOKENS"}

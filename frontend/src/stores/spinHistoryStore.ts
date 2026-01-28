@@ -26,6 +26,7 @@ class Mutex {
 
 	release(): void {
 		if (this.waitQueue.length > 0) {
+			// biome-ignore lint/style/noNonNullAssertion: waitQueue.length > 0 is checked above
 			const resolve = this.waitQueue.shift()!;
 			resolve();
 		} else {
@@ -134,8 +135,7 @@ function computeStats(
 		(e) => e.status === "reclaimed",
 	).length;
 
-	const winRate =
-		totalSpins > 0 ? (completedSpins / totalSpins) * 100 : 0;
+	const winRate = totalSpins > 0 ? (completedSpins / totalSpins) * 100 : 0;
 
 	const totalValueWon = filteredEntries.reduce(
 		(acc, entry) => acc + (entry.appraisedPrice || 0n),
@@ -233,34 +233,19 @@ export interface SpinHistoryStore {
 	) => void;
 
 	// Getters
-	getEntries: (
-		userAddress: string,
-		gachaAddress: string,
-	) => SpinHistoryEntry[];
+	getEntries: (userAddress: string, gachaAddress: string) => SpinHistoryEntry[];
 	getFilteredEntries: (
 		userAddress: string,
 		gachaAddress: string,
 	) => SpinHistoryEntry[];
-	getStats: (
-		userAddress: string,
-		gachaAddress: string,
-	) => SpinHistoryStats;
-	getFilters: (
-		userAddress: string,
-		gachaAddress: string,
-	) => SpinHistoryFilters;
+	getStats: (userAddress: string, gachaAddress: string) => SpinHistoryStats;
+	getFilters: (userAddress: string, gachaAddress: string) => SpinHistoryFilters;
 	getPagination: (
 		userAddress: string,
 		gachaAddress: string,
 	) => SpinHistoryPagination;
-	getIsLoading: (
-		userAddress: string,
-		gachaAddress: string,
-	) => boolean;
-	getError: (
-		userAddress: string,
-		gachaAddress: string,
-	) => string | null;
+	getIsLoading: (userAddress: string, gachaAddress: string) => boolean;
+	getError: (userAddress: string, gachaAddress: string) => string | null;
 
 	// Clear
 	clearHistory: (userAddress: string, gachaAddress: string) => void;
@@ -434,8 +419,7 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 			const { [key]: _removedFilters, ...remainingFilters } = state.filters;
 			const { [key]: _removedPagination, ...remainingPagination } =
 				state.pagination;
-			const { [key]: _removedLoading, ...remainingLoading } =
-				state.isLoading;
+			const { [key]: _removedLoading, ...remainingLoading } = state.isLoading;
 			const { [key]: _removedError, ...remainingError } = state.error;
 			return {
 				entries: remainingEntries,

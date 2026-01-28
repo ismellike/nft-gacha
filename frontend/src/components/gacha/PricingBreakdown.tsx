@@ -1,19 +1,18 @@
 "use client";
 
-import { memo } from "react";
-import { Card } from "../../ui";
-import { useGachaContracts } from "../../hooks/useGachaContracts";
-import { useGachaId } from "../../hooks/useGachaId";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
+import { memo, useEffect, useState } from "react";
+import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import {
 	useReadGachaGetExpectedValueUsd,
-	useReadGachaPricingPremiumBps,
-	useReadGachaMinSpinFee,
 	useReadGachaMaxSpinFee,
+	useReadGachaMinSpinFee,
+	useReadGachaPricingPremiumBps,
 } from "../../generated";
+import { useGachaContracts } from "../../hooks/useGachaContracts";
+import { useGachaId } from "../../hooks/useGachaId";
 import { formatCurrency } from "../../lib/utils";
-import { InformationCircleIcon } from "@heroicons/react/24/outline";
-import { useState, useEffect } from "react";
-import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
+import { Card } from "../../ui";
 
 interface PricingBreakdownProps {
 	className?: string;

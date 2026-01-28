@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
+import { InlineRetryMessage } from "@/components/shared/feedback";
+import { useSpinHistoryFetcher } from "@/hooks/useSpinHistoryFetcher";
+import { logger } from "@/lib/logger";
+import { useSpinHistoryStore } from "@/stores/spinHistoryStore";
 import { Card } from "@/ui/Card";
 import { HistoryFilters } from "./HistoryFilters";
-import { HistoryStats } from "./HistoryStats";
 import { HistoryGrid } from "./HistoryGrid";
-import { useSpinHistoryStore } from "@/stores/spinHistoryStore";
-import { useSpinHistoryFetcher } from "@/hooks/useSpinHistoryFetcher";
-import { InlineRetryMessage } from "@/components/shared/feedback";
-import { logger } from "@/lib/logger";
+import { HistoryStats } from "./HistoryStats";
 
 interface SpinHistorySectionProps {
 	gachaAddress: string;
@@ -35,7 +35,9 @@ const SpinHistorySection = ({
 	} = useSpinHistoryStore();
 
 	const [isInitialLoad, setIsInitialLoad] = useState(true);
-	const [previousAddress, setPreviousAddress] = useState<string | undefined>(address);
+	const [previousAddress, setPreviousAddress] = useState<string | undefined>(
+		address,
+	);
 
 	const isLoading = address ? getIsLoading(address, gachaAddress) : false;
 	const error = address ? getError(address, gachaAddress) : null;
@@ -51,7 +53,10 @@ const SpinHistorySection = ({
 			fetchHistory(address, gachaAddress, 1)
 				.catch((error) => {
 					// Error is handled by the store, but log for debugging
-					logger.network.error("[SpinHistorySection] Failed to fetch history:", error);
+					logger.network.error(
+						"[SpinHistorySection] Failed to fetch history:",
+						error,
+					);
 				})
 				.finally(() => {
 					setIsInitialLoad(false);
@@ -82,7 +87,10 @@ const SpinHistorySection = ({
 		if (address && pagination.hasMore && !isLoading) {
 			loadMore(address, gachaAddress).catch((error) => {
 				// Error is handled by the store, but log for debugging
-				logger.network.error("[SpinHistorySection] Failed to load more:", error);
+				logger.network.error(
+					"[SpinHistorySection] Failed to load more:",
+					error,
+				);
 			});
 		}
 	}, [address, gachaAddress, pagination.hasMore, isLoading, loadMore]);
@@ -94,7 +102,10 @@ const SpinHistorySection = ({
 			fetchHistory(address, gachaAddress, 1)
 				.catch((error) => {
 					// Error is handled by the store, but log for debugging
-					logger.network.error("[SpinHistorySection] Failed to retry fetch:", error);
+					logger.network.error(
+						"[SpinHistorySection] Failed to retry fetch:",
+						error,
+					);
 				})
 				.finally(() => {
 					setIsInitialLoad(false);
@@ -106,7 +117,9 @@ const SpinHistorySection = ({
 	if (!address) {
 		return (
 			<Card variant="base" padding="lg" className="text-center">
-				<p className="text-foreground/60">Connect your wallet to view spin history</p>
+				<p className="text-foreground/60">
+					Connect your wallet to view spin history
+				</p>
 			</Card>
 		);
 	}
@@ -156,6 +169,7 @@ const SpinHistorySection = ({
 			{!isEmpty && pagination.hasMore && (
 				<div className="flex justify-center">
 					<button
+						type="button"
 						onClick={handleLoadMore}
 						disabled={isLoading}
 						className="rounded-lg bg-content1/20 px-6 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-content1/30 disabled:cursor-not-allowed disabled:opacity-50"

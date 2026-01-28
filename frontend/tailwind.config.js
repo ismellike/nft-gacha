@@ -266,8 +266,10 @@ export default {
 			boxShadow: {
 				glass: "0 8px 32px rgba(26, 20, 16, 0.5)",
 				glow: "0 0 20px rgba(201, 168, 108, 0.12)",
-				"gold-glow": "0 0 30px rgba(201, 168, 108, 0.15), 0 0 60px rgba(201, 168, 108, 0.08)",
-				"bronze-glow": "0 0 30px rgba(184, 144, 106, 0.15), 0 0 60px rgba(184, 144, 106, 0.08)",
+				"gold-glow":
+					"0 0 30px rgba(201, 168, 108, 0.15), 0 0 60px rgba(201, 168, 108, 0.08)",
+				"bronze-glow":
+					"0 0 30px rgba(184, 144, 106, 0.15), 0 0 60px rgba(184, 144, 106, 0.08)",
 			},
 		},
 	},

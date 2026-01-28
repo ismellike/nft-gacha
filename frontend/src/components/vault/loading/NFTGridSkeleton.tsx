@@ -1,7 +1,7 @@
 "use client";
 
-import { memo } from "react";
 import { motion } from "framer-motion";
+import { memo } from "react";
 import { cn } from "../../../lib/theme-config";
 
 interface NFTGridSkeletonProps {
@@ -71,8 +71,8 @@ function NFTGridSkeleton({
 
 	return (
 		<div className={gridClasses}>
-			{Array.from({ length: count }).map((_, i) => (
-				<NFTCardSkeleton key={`skeleton-${i}`} index={i} />
+			{Array.from({ length: count }, (_, i) => i).map((index) => (
+				<NFTCardSkeleton key={`skeleton-${index}`} index={index} />
 			))}
 		</div>
 	);

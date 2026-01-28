@@ -1,19 +1,19 @@
-import { useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAccount } from "wagmi";
 import {
+	useReadNftAppraisalAppraisalFee,
 	useReadNftAppraisalGetAppraisal,
 	useReadNftAppraisalGetBatchAppraisals,
 	useReadNftAppraisalHasBatchAppraisals,
-	useReadNftAppraisalAppraisalFee,
-	useWatchNftAppraisalServiceHandlerAppraisalProcessed,
 	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived,
+	useWatchNftAppraisalServiceHandlerAppraisalProcessed,
 } from "../generated";
 import {
-	useNFTAppraisalStore,
 	type AppraisedNFT,
+	useNFTAppraisalStore,
 } from "../stores/nftAppraisalStore";
-import { useGachaId } from "./useGachaId";
 import { useGachaContracts } from "./useGachaContracts";
+import { useGachaId } from "./useGachaId";
 
 export type AppraisalFilter =
 	| "all"
@@ -291,20 +291,19 @@ export const useAppraisalData = (
 	}, [address, batchError, setError]);
 
 	// Auto-refresh effect
+	// Use a ref to avoid dependency on the callback
+	const fetchRef = useRef(fetchUserAppraisals);
+	fetchRef.current = fetchUserAppraisals;
+
 	useEffect(() => {
 		if (!options.autoRefresh || !address) return;
 
 		const interval = setInterval(() => {
-			fetchUserAppraisals();
+			fetchRef.current();
 		}, options.refreshInterval);
 
 		return () => clearInterval(interval);
-	}, [
-		address,
-		options.autoRefresh,
-		options.refreshInterval,
-		fetchUserAppraisals,
-	]);
+	}, [address, options.autoRefresh, options.refreshInterval]);
 
 	// React to service handler events for the user's known NFTs
 	useWatchNftAppraisalServiceHandlerAppraisalProcessed({

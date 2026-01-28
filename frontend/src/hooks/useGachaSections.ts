@@ -8,7 +8,13 @@ import {
 
 export type GachaSection = "spin" | "vault" | "economy" | "history" | "admin";
 
-const VALID_SECTIONS: GachaSection[] = ["spin", "vault", "economy", "history", "admin"];
+const VALID_SECTIONS: GachaSection[] = [
+	"spin",
+	"vault",
+	"economy",
+	"history",
+	"admin",
+];
 
 const SECTION_TITLES: Record<GachaSection, string> = {
 	spin: "Spin & Play",

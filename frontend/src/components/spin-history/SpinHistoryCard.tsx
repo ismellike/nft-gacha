@@ -1,19 +1,19 @@
 "use client";
 
-import { memo } from "react";
 import { motion } from "framer-motion";
-import { Card } from "@/ui/Card";
-import { Chip } from "@/ui/Chip";
-import { NFTCard, type NFTCardData } from "@/components/nft";
+import { memo } from "react";
 import BuybackComponent from "@/components/economy/BuybackComponent";
+import { NFTCard, type NFTCardData } from "@/components/nft";
 import { getRarityConfig, rarityFromNumber } from "@/lib/rarityConfig";
 import {
 	formatAddress,
-	formatTokenId,
 	formatCurrency,
+	formatTokenId,
 	getRelativeTime,
 } from "@/lib/utils";
 import type { SpinHistoryEntry } from "@/types/spin-history";
+import { Card } from "@/ui/Card";
+import { Chip } from "@/ui/Chip";
 
 interface SpinHistoryCardProps {
 	entry: SpinHistoryEntry;
@@ -40,7 +40,10 @@ function validateAppraisalAddress(address?: string): `0x${string}` | undefined {
 		return address;
 	}
 	// Log warning but don't crash
-	console.warn("[SpinHistoryCard] Invalid appraisal contract address:", address);
+	console.warn(
+		"[SpinHistoryCard] Invalid appraisal contract address:",
+		address,
+	);
 	return undefined;
 }
 
@@ -61,7 +64,9 @@ const SpinHistoryCard = memo(
 
 		// Map "default" rarity color to "glass" for Chip compatibility
 		const rarityColor =
-			rarityConfig?.chipColor === "default" ? "glass" : (rarityConfig?.chipColor ?? "glass");
+			rarityConfig?.chipColor === "default"
+				? "glass"
+				: (rarityConfig?.chipColor ?? "glass");
 
 		const statusVariant =
 			entry.status === "completed"
@@ -78,7 +83,9 @@ const SpinHistoryCard = memo(
 					: "Reclaimed";
 
 		// Validate appraisal contract address
-		const validatedAppraisalAddress = validateAppraisalAddress(appraisalContractAddress);
+		const validatedAppraisalAddress = validateAppraisalAddress(
+			appraisalContractAddress,
+		);
 
 		// NFT card data (only for completed spins with NFT data)
 		// Note: Let NFTCard handle appraisal fetching internally via appraisalContractAddress
@@ -156,9 +163,7 @@ const SpinHistoryCard = memo(
 									</p>
 									{entry.refundAmount && (
 										<p className="mt-2 text-lg font-semibold text-foreground">
-											{formatCurrency(entry.refundAmount, 6)}
-											{" "}
-											Refunded
+											{formatCurrency(entry.refundAmount, 6)} Refunded
 										</p>
 									)}
 								</div>
@@ -169,7 +174,9 @@ const SpinHistoryCard = memo(
 					{/* Appraised Value (completed spins) */}
 					{entry.status === "completed" && entry.appraisedPrice && (
 						<div className="flex items-center justify-between rounded-lg bg-content1/10 px-3 py-2">
-							<span className="text-xs text-foreground/60">Appraised Value</span>
+							<span className="text-xs text-foreground/60">
+								Appraised Value
+							</span>
 							<span className="text-sm font-semibold text-foreground">
 								{formatCurrency(entry.appraisedPrice, 18, "USD")}
 							</span>
@@ -184,7 +191,8 @@ const SpinHistoryCard = memo(
 							</span>
 							{nftCardData && (
 								<span className="text-[11px] text-foreground/40">
-									{formatAddress(nftCardData.collection)} • {formatTokenId(nftCardData.tokenId)}
+									{formatAddress(nftCardData.collection)} •{" "}
+									{formatTokenId(nftCardData.tokenId)}
 								</span>
 							)}
 						</div>

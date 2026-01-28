@@ -1,11 +1,11 @@
 "use client";
 
 import { memo } from "react";
+import { useAccount } from "wagmi";
 import NFTGrid from "@/components/vault/cards/NFTGrid";
-import { SpinHistoryCard } from "./SpinHistoryCard";
 import type { SpinHistoryEntry } from "@/types/spin-history";
 import { Card } from "@/ui/Card";
-import { useAccount } from "wagmi";
+import { SpinHistoryCard } from "./SpinHistoryCard";
 
 interface HistoryGridProps {
 	entries: SpinHistoryEntry[];
@@ -31,7 +31,11 @@ const HistoryGrid = memo(
 
 		// Empty state component
 		const emptyState = isEmpty ? (
-			<Card variant="base" padding="lg" className="mx-auto max-w-md text-center">
+			<Card
+				variant="base"
+				padding="lg"
+				className="mx-auto max-w-md text-center"
+			>
 				<div className="flex flex-col items-center gap-4">
 					<div className="text-6xl">🎰</div>
 					<div>

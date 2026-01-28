@@ -1,9 +1,9 @@
 "use client";
 
-import NFTGrid from "../cards/NFTGrid";
-import DepositNFTCard from "../cards/DepositNFTCard";
-import { EmptyDepositState } from "../empty-states/EmptyDepositState";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
+import DepositNFTCard from "../cards/DepositNFTCard";
+import NFTGrid from "../cards/NFTGrid";
+import { EmptyDepositState } from "../empty-states/EmptyDepositState";
 
 interface AppraisalInfo {
 	hasAppraisal: boolean;

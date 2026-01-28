@@ -1,14 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Button } from "../../../ui";
 import {
-	formatTokenAmount,
 	calculateUserSharePercentage,
-	useClaimYield,
-	type UserDepositorData,
 	type DepositorVaultData,
+	formatTokenAmount,
+	type UserDepositorData,
+	useClaimYield,
 } from "../../../hooks/useDepositorVault";
+import { Button } from "../../../ui";
 
 interface YieldTabProps {
 	depositorUserData: UserDepositorData;

@@ -1,7 +1,7 @@
 "use client";
 
-import type { ElementType, ReactNode } from "react";
 import { motion } from "framer-motion";
+import type { ElementType, ReactNode } from "react";
 import { cn } from "../../../lib/theme-config";
 import { Card } from "../../../ui";
 

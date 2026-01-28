@@ -42,35 +42,29 @@
  * />
  */
 
-import {
-	useState,
-	memo,
-	useMemo,
-	lazy,
-	startTransition,
-} from "react";
+import { type MotionStyle, motion } from "framer-motion";
 import NextImage from "next/image";
-import { motion, type MotionStyle } from "framer-motion";
-import { cn } from "../../lib/theme-config";
+import { lazy, memo, startTransition, useMemo, useState } from "react";
 import {
-	formatAddress,
-	formatTokenId,
-	formatCurrency,
-	isValidAddress,
-} from "../../lib/utils";
-import {
+	useReadErc721Name,
 	useReadNftAppraisalGetAppraisedPrice,
 	useReadNftAppraisalHasAppraisal,
-	useReadErc721Name,
 } from "../../generated";
-import { type Rarity, getRarityConfig } from "../../lib/rarityConfig";
 import { useNFTMetadata } from "../../hooks/useNFTMetadata";
 import {
-	isCourtyardTokenURI,
 	type CourtyardMetadata,
+	isCourtyardTokenURI,
 	processCourtyardImageUrl,
 } from "../../lib/courtyard-utils";
 import { processImageUrl } from "../../lib/nft-metadata";
+import { getRarityConfig, type Rarity } from "../../lib/rarityConfig";
+import { cn } from "../../lib/theme-config";
+import {
+	formatAddress,
+	formatCurrency,
+	formatTokenId,
+	isValidAddress,
+} from "../../lib/utils";
 import type { NFTMetadata } from "../../types/hooks";
 
 // Lazy load heavy components
@@ -88,6 +82,9 @@ export interface NFTCardData {
 	rarity?: Rarity | undefined;
 	appraisalOverride?: { hasAppraisal: boolean; priceUSD: bigint } | undefined;
 	appraisedValue?: bigint | undefined;
+	// Pre-fetched metadata to avoid re-fetching
+	metadata?: NFTMetadata | null;
+	tokenURI?: string | null;
 }
 
 export interface NFTCardProps {
@@ -309,9 +306,7 @@ const NFTImage = memo<{
 					"border-white/15 text-foreground/60",
 				)}
 			>
-				<span className={cn(sizeStyles.text)}>
-					No Image
-				</span>
+				<span className={cn(sizeStyles.text)}>No Image</span>
 			</div>
 		);
 	}
@@ -422,6 +417,8 @@ export const NFTCard = memo<NFTCardProps>(
 			rarity,
 			appraisalOverride,
 			appraisedValue,
+			metadata: prefetchedMetadata,
+			tokenURI: prefetchedTokenURI,
 		},
 		size = "md",
 		showCollectionName = true,
@@ -430,14 +427,29 @@ export const NFTCard = memo<NFTCardProps>(
 		className,
 		style,
 	}) => {
-		// Enhanced metadata fetching with better error handling
+		// Use prefetched metadata if available, otherwise fetch
+		const shouldSkipFetch = !!prefetchedMetadata;
+
 		const nftData = useNFTMetadata(collection, tokenId, {
-			enabled: true,
-			skipFetch: false,
+			enabled: !shouldSkipFetch,
+			skipFetch: shouldSkipFetch,
 		});
-		const metadata = nftData.metadata;
-		const isLoading = nftData.isLoading;
+
+		// Use prefetched data or fetched data
+		const metadata = prefetchedMetadata || nftData.metadata;
+		const isLoading = shouldSkipFetch ? false : nftData.isLoading;
 		const error = nftData.error;
+		const tokenURI = prefetchedTokenURI || nftData.tokenURI;
+
+		// Debug logging to help diagnose the stuck animation
+		if (prefetchedMetadata) {
+			console.log("[NFTCard] Using prefetched metadata:", {
+				hasMetadata: !!metadata,
+				hasTokenURI: !!metadata?.tokenURI || !!tokenURI,
+				shouldSkipFetch,
+				isLoading,
+			});
+		}
 
 		// Collection name fetching with caching
 		const { data: collectionName } = useReadErc721Name({
@@ -507,9 +519,7 @@ export const NFTCard = memo<NFTCardProps>(
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 				>
-					<span className={cn(sizeStyles.text)}>
-						Error loading NFT
-					</span>
+					<span className={cn(sizeStyles.text)}>Error loading NFT</span>
 				</motion.div>
 			);
 		}
@@ -585,7 +595,7 @@ export const NFTCard = memo<NFTCardProps>(
 						<NFTImage
 							data={{ collection, tokenId, imageUrl, rarity }}
 							metadata={metadata}
-							tokenURI={nftData.tokenURI || null}
+							tokenURI={tokenURI || null}
 							size={size}
 						/>
 					</div>

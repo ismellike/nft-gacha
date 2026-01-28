@@ -1,12 +1,14 @@
 import "../styles/globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
-import { DM_Serif_Display, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
-
-import { Providers } from "./providers";
-import { Header } from "../components/shared/layout";
-import { Footer } from "../components/shared/layout";
+import {
+	DM_Serif_Display,
+	IBM_Plex_Mono,
+	Space_Grotesk,
+} from "next/font/google";
 import { ClientAnimatedBackground } from "../components/shared/background";
+import { Footer, Header } from "../components/shared/layout";
 import { ServiceWorkerRegistrar } from "../components/shared/service-worker-registrar";
+import { Providers } from "./providers";
 
 // Distinctive font trio: elegant serif + geometric sans + technical mono
 const dmSerif = DM_Serif_Display({
@@ -46,7 +48,10 @@ export default function RootLayout({
 				<meta name="theme-color" content="#f59e0b" />
 				<meta name="msapplication-TileColor" content="#f59e0b" />
 				<meta name="apple-mobile-web-app-capable" content="yes" />
-				<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+				<meta
+					name="apple-mobile-web-app-status-bar-style"
+					content="black-translucent"
+				/>
 				<meta name="apple-mobile-web-app-title" content="SPINFI" />
 
 				{/* Favicon */}

@@ -1,14 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
 import {
-	PlusIcon,
 	ChartBarIcon,
+	PlusIcon,
 	ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
-import { Card, Chip } from "../../ui";
+import { motion } from "framer-motion";
 import { GachaCard } from "../../components/gacha";
 import { getAllActiveGachas } from "../../lib/gacha-config";
+import { Card, Chip } from "../../ui";
 
 export default function DiscoverPage() {
 	const gachas = getAllActiveGachas();

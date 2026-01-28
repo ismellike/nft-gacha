@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback } from "react";
-import { usePublicClient } from "wagmi";
 import { parseAbiItem } from "viem";
+import { usePublicClient } from "wagmi";
+import { logger } from "../lib/logger";
 import { useSpinHistoryStore } from "../stores/spinHistoryStore";
 import type { SpinHistoryEntry } from "../types/spin-history";
-import { logger } from "../lib/logger";
 
 // Event ABIs for parsing logs
 const SPIN_COMPLETED_EVENT = parseAbiItem(
@@ -104,10 +104,13 @@ export function useSpinHistoryFetcher() {
 					}
 				}),
 			).then((results) =>
-				results.reduce((acc, [key, value]) => {
-					acc[key] = value as number;
-					return acc;
-				}, {} as Record<string, number>),
+				results.reduce(
+					(acc, [key, value]) => {
+						acc[key] = value as number;
+						return acc;
+					},
+					{} as Record<string, number>,
+				),
 			);
 
 			return timestamps;
@@ -137,7 +140,7 @@ export function useSpinHistoryFetcher() {
 			try {
 				// Get current block number with retry
 				const currentBlock = await retryWithBackoff(() =>
-					publicClient.getBlockNumber()
+					publicClient.getBlockNumber(),
 				);
 
 				// Determine block range based on page
@@ -175,7 +178,7 @@ export function useSpinHistoryFetcher() {
 								},
 								fromBlock,
 								toBlock,
-							})
+							}),
 						),
 						retryWithBackoff(() =>
 							publicClient.getLogs({
@@ -186,7 +189,7 @@ export function useSpinHistoryFetcher() {
 								},
 								fromBlock,
 								toBlock,
-							})
+							}),
 						),
 						retryWithBackoff(() =>
 							publicClient.getLogs({
@@ -197,7 +200,7 @@ export function useSpinHistoryFetcher() {
 								},
 								fromBlock,
 								toBlock,
-							})
+							}),
 						),
 					]);
 
@@ -211,33 +214,52 @@ export function useSpinHistoryFetcher() {
 
 				// Log any errors but continue processing
 				if (completedResult.status === "rejected") {
-					logger.network.error("Failed to fetch completed logs:", completedResult.reason);
+					logger.network.error(
+						"Failed to fetch completed logs:",
+						completedResult.reason,
+					);
 				}
 				if (refundedResult.status === "rejected") {
-					logger.network.error("Failed to fetch refunded logs:", refundedResult.reason);
+					logger.network.error(
+						"Failed to fetch refunded logs:",
+						refundedResult.reason,
+					);
 				}
 				if (reclaimedResult.status === "rejected") {
-					logger.network.error("Failed to fetch reclaimed logs:", reclaimedResult.reason);
+					logger.network.error(
+						"Failed to fetch reclaimed logs:",
+						reclaimedResult.reason,
+					);
 				}
 
 				// Collect all unique block numbers
 				const blockNumbers = new Set<bigint>();
-				completedLogs.forEach((log) => blockNumbers.add(log.blockNumber));
-				refundedLogs.forEach((log) => blockNumbers.add(log.blockNumber));
-				reclaimedLogs.forEach((log) => blockNumbers.add(log.blockNumber));
+				completedLogs.forEach((log) => {
+					blockNumbers.add(log.blockNumber);
+				});
+				refundedLogs.forEach((log) => {
+					blockNumbers.add(log.blockNumber);
+				});
+				reclaimedLogs.forEach((log) => {
+					blockNumbers.add(log.blockNumber);
+				});
 
 				// Fetch timestamps in batch
-				const timestamps = await fetchBlockTimestamps(
-					Array.from(blockNumbers),
-				);
+				const timestamps = await fetchBlockTimestamps(Array.from(blockNumbers));
 
 				// Process logs into entries
 				const entries: SpinHistoryEntry[] = [];
 
 				// Process SpinCompleted events
 				for (const log of completedLogs) {
-					const { triggerId, requester, rarity, collection, tokenId, appraisedPrice } =
-						log.args;
+					const {
+						triggerId,
+						requester,
+						rarity,
+						collection,
+						tokenId,
+						appraisedPrice,
+					} = log.args;
 					if (
 						triggerId === undefined ||
 						requester === undefined ||
@@ -267,7 +289,8 @@ export function useSpinHistoryFetcher() {
 
 				// Process SpinRefunded events
 				for (const log of refundedLogs) {
-					const { triggerId, requester, selectedRarity, refundAmount } = log.args;
+					const { triggerId, requester, selectedRarity, refundAmount } =
+						log.args;
 					if (
 						triggerId === undefined ||
 						requester === undefined ||
@@ -294,7 +317,11 @@ export function useSpinHistoryFetcher() {
 				// Process SpinReclaimed events
 				for (const log of reclaimedLogs) {
 					const { triggerId, requester, refundAmount } = log.args;
-					if (triggerId === undefined || requester === undefined || refundAmount === undefined) {
+					if (
+						triggerId === undefined ||
+						requester === undefined ||
+						refundAmount === undefined
+					) {
 						continue;
 					}
 

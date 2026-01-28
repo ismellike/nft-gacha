@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import * as React from "react";
 import type { VariantProps } from "tailwind-variants";
-import { glassModal, cn } from "../lib/theme-config";
+import { cn, glassModal } from "../lib/theme-config";
 
 type ModalVariants = VariantProps<typeof glassModal>;
 

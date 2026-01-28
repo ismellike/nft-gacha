@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { useAccount, useWriteContract } from "wagmi";
 import type { Address } from "viem";
+import { useAccount, useWriteContract } from "wagmi";
 
 // Contract interface for Treasury withdrawal
 const treasuryAbi = [

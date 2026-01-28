@@ -1,12 +1,12 @@
 "use client";
 
-import { motion } from "framer-motion";
 import {
-	MagnifyingGlassIcon,
-	ClockIcon,
 	CheckBadgeIcon,
+	ClockIcon,
 	GiftIcon,
+	MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import { Card } from "../../ui";
 
 interface WorkflowStep {
@@ -20,7 +20,8 @@ const workflowSteps: WorkflowStep[] = [
 	{
 		number: 1,
 		title: "Select an NFT",
-		description: "Choose one from your wallet or paste contract address + token ID",
+		description:
+			"Choose one from your wallet or paste contract address + token ID",
 		icon: MagnifyingGlassIcon,
 	},
 	{

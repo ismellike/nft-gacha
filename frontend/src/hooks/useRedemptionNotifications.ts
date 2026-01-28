@@ -1,7 +1,7 @@
 "use client";
 
-import { useWatchProtocolTreasuryRedemptionExecuted } from "../generated";
 import { toast } from "react-hot-toast";
+import { useWatchProtocolTreasuryRedemptionExecuted } from "../generated";
 
 export function useRedemptionNotifications(
 	protocolTreasuryAddress: `0x${string}`,

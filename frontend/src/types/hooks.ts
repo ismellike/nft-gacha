@@ -34,6 +34,8 @@ export interface NFTMetadata {
 	cert_number?: string;
 	set_number?: string;
 	card_number?: string;
+	year?: string | number;
+	title?: string; // Title/Subject for cards (e.g., "Gengar Vmax")
 	artist?: string;
 	// Allow additional properties for future extensions
 	[key: string]: unknown;

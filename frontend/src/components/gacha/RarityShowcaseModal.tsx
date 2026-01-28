@@ -1,16 +1,16 @@
 "use client";
 
-import { Modal, ModalContent, ModalBody, DialogTitle } from "../../ui";
+import {
+	ArchiveBoxIcon,
+	ExclamationTriangleIcon,
+} from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
+import { useReadGachaTreasuryGetTreasuryItems } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { type Rarity, getRarityConfig } from "../../lib/rarityConfig";
-import { useReadGachaTreasuryGetTreasuryItems } from "../../generated";
+import { getRarityConfig, type Rarity } from "../../lib/rarityConfig";
+import { DialogTitle, Modal, ModalBody, ModalContent } from "../../ui";
 import { NFTCard } from "../nft";
-import {
-	ExclamationTriangleIcon,
-	ArchiveBoxIcon,
-} from "@heroicons/react/24/outline";
 
 interface RarityShowcaseModalProps {
 	isOpen: boolean;

@@ -1,10 +1,10 @@
 import { ENV_MODE } from "./config";
 import { LOCAL_GACHA_CONFIGS } from "./gacha-config/local";
-import { TESTNET_GACHA_CONFIGS } from "./gacha-config/testnet";
 import { MAINNET_GACHA_CONFIGS } from "./gacha-config/mainnet";
+import { TESTNET_GACHA_CONFIGS } from "./gacha-config/testnet";
 import {
-	getGachaConfig as getGachaConfigUtil,
 	getAllActiveGachas as getAllActiveGachasUtil,
+	getGachaConfig as getGachaConfigUtil,
 } from "./gacha-config/utils";
 
 // Re-export types

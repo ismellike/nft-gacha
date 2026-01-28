@@ -1,16 +1,14 @@
 // Animation Primitives
-export { ScrollReveal } from "./ScrollReveal";
 
 // Animation Variants (reusable framer-motion presets)
 export * from "./animation-variants";
-
-// Hero Section Components
-export { SubtleHeroBackground } from "./SubtleHeroBackground";
-export { UserTypeCards } from "./UserTypeCards";
-
+export { HowItWorks } from "./HowItWorks";
 // Economic Model Components (used in HowItWorks)
 export { RevenueSplitVisualization } from "./RevenueSplitVisualization";
+export { ScrollReveal } from "./ScrollReveal";
+// Hero Section Components
+export { SubtleHeroBackground } from "./SubtleHeroBackground";
 
 // New Streamlined Section Components
 export { TheWhySection } from "./TheWhySection";
-export { HowItWorks } from "./HowItWorks";
+export { UserTypeCards } from "./UserTypeCards";

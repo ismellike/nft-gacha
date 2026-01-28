@@ -114,7 +114,11 @@ export async function fetchNFTMetadata(
 
 		return metadata;
 	} catch (error) {
-		logger.nftMetadata.error("Failed to fetch NFT metadata from", tokenURI, error);
+		logger.nftMetadata.error(
+			"Failed to fetch NFT metadata from",
+			tokenURI,
+			error,
+		);
 		throw error;
 	}
 }
@@ -230,7 +234,9 @@ export function processImageUrl(
 		// Handle IPFS URLs
 		if (imageUrl.startsWith("ipfs://")) {
 			const processedUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-			logger.nftMetadata.debug(`Processed IPFS URL: ${imageUrl} -> ${processedUrl}`);
+			logger.nftMetadata.debug(
+				`Processed IPFS URL: ${imageUrl} -> ${processedUrl}`,
+			);
 			return processedUrl;
 		}
 
@@ -243,7 +249,9 @@ export function processImageUrl(
 		// Handle relative URLs by assuming they're relative to IPFS
 		if (imageUrl.startsWith("/")) {
 			const processedUrl = `https://ipfs.io/ipfs${imageUrl}`;
-			logger.nftMetadata.debug(`Processed relative URL: ${imageUrl} -> ${processedUrl}`);
+			logger.nftMetadata.debug(
+				`Processed relative URL: ${imageUrl} -> ${processedUrl}`,
+			);
 			return processedUrl;
 		}
 
@@ -267,7 +275,10 @@ export function processImageUrl(
 					(attr.value.startsWith("http://") ||
 						attr.value.startsWith("https://"))
 				) {
-					logger.nftMetadata.debug("Found image URL in attributes:", attr.value);
+					logger.nftMetadata.debug(
+						"Found image URL in attributes:",
+						attr.value,
+					);
 					return attr.value;
 				}
 			}
@@ -290,16 +301,21 @@ export function processImageUrl(
 		}
 
 		if (isCourtyard) {
-			logger.nftMetadata.warn("No valid image URL found in Courtyard metadata:", {
-				metadataKeys: Object.keys(metadata),
-				hasImage: !!metadata.image,
-				hasExternalUrl: !!metadata.external_url,
-				attributeCount: metadata.attributes?.length || 0,
-			});
+			logger.nftMetadata.warn(
+				"No valid image URL found in Courtyard metadata:",
+				{
+					metadataKeys: Object.keys(metadata),
+					hasImage: !!metadata.image,
+					hasExternalUrl: !!metadata.external_url,
+					attributeCount: metadata.attributes?.length || 0,
+				},
+			);
 		}
 	}
 
-	logger.nftMetadata.debug("No image URL found in provided parameters or metadata");
+	logger.nftMetadata.debug(
+		"No image URL found in provided parameters or metadata",
+	);
 	return null;
 }
 

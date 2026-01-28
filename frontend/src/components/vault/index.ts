@@ -1,21 +1,18 @@
 // Vault components - Export barrel
 
-// Tab components
-export { VaultTabNavigation } from "./tabs/VaultTabNavigation";
-export { DepositTab } from "./tabs/DepositTab";
-export { WithdrawTab } from "./tabs/WithdrawTab";
-export { YieldTab } from "./tabs/YieldTab";
-
+export { default as DepositNFTCard } from "./cards/DepositNFTCard";
 // Card components
 export { default as NFTGrid } from "./cards/NFTGrid";
-export { default as DepositNFTCard } from "./cards/DepositNFTCard";
 export { default as WithdrawNFTCard } from "./cards/WithdrawNFTCard";
 export { DepositableNFTCard } from "./DepositableNFTCard";
-
-// Loading components
-export { default as NFTGridSkeleton } from "./loading/NFTGridSkeleton";
-export { AppraisalCheckingIndicator } from "./loading/AppraisalCheckingIndicator";
-
 // Empty state components
 export { EmptyDepositState } from "./empty-states/EmptyDepositState";
 export { EmptyWithdrawState } from "./empty-states/EmptyWithdrawState";
+export { AppraisalCheckingIndicator } from "./loading/AppraisalCheckingIndicator";
+// Loading components
+export { default as NFTGridSkeleton } from "./loading/NFTGridSkeleton";
+export { DepositTab } from "./tabs/DepositTab";
+// Tab components
+export { VaultTabNavigation } from "./tabs/VaultTabNavigation";
+export { WithdrawTab } from "./tabs/WithdrawTab";
+export { YieldTab } from "./tabs/YieldTab";

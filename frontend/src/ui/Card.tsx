@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { VariantProps } from "tailwind-variants";
-import { glassCard, cn } from "../lib/theme-config";
+import { cn, glassCard } from "../lib/theme-config";
 
 export interface CardProps
 	extends React.HTMLAttributes<HTMLDivElement>,

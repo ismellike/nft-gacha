@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "../../../ui";
 import NFTGrid from "../cards/NFTGrid";
 import WithdrawNFTCard from "../cards/WithdrawNFTCard";

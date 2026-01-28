@@ -1,20 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAccount, useWatchContractEvent, usePublicClient } from "wagmi";
+import { useAccount, usePublicClient, useWatchContractEvent } from "wagmi";
+import type { RefundResult, SpinResult } from "../async-utils/gachaSpinMachine";
 import {
 	loadFromStorage,
+	MAX_RETRIES,
 	pollForSpinFulfillment,
 	validatePendingSpins,
-	MAX_RETRIES,
 } from "../async-utils/gachaSpinMachine";
+import { gachaAbi } from "../generated";
+import { createDebugLogger, DEBUG_FLAGS } from "../lib/logger";
+import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
-import type { SpinResult, RefundResult } from "../async-utils/gachaSpinMachine";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
-import { gachaAbi } from "../generated";
-import { rarityBigIntToName } from "../lib/rarity-utils";
-import { createDebugLogger, DEBUG_FLAGS } from "../lib/logger";
 
 export interface UseGachaSpinMachineReturn {
 	// State
@@ -84,7 +84,11 @@ const buildSpinResult = (args: {
 	collection?: string;
 	tokenId?: bigint;
 }): SpinResult | null => {
-	if (args.rarity === undefined || !args.collection || args.tokenId === undefined) {
+	if (
+		args.rarity === undefined ||
+		!args.collection ||
+		args.tokenId === undefined
+	) {
 		return null;
 	}
 
@@ -249,59 +253,65 @@ export function useGachaSpinMachine(
 	});
 
 	// Restore state from localStorage on mount/account change
+	// Extract gachaAddress to avoid unstable dependency on contracts object
+	const gachaAddress = contracts.gacha;
+
 	useEffect(() => {
 		if (
 			!userAddress ||
 			!publicClient ||
 			!state.matches("idle") ||
-			!contracts.gacha
+			!gachaAddress
 		)
 			return;
 
 		// First, validate and clean expired/invalid pending spins
 		validatePendingSpins(publicClient)
 			.then(() => {
-				const storedTriggerId = contracts.gacha
-					? loadFromStorage(userAddress, contracts.gacha)
+				const storedTriggerId = gachaAddress
+					? loadFromStorage(userAddress, gachaAddress)
 					: null;
 				if (storedTriggerId) {
 					// Only restore if we have a valid stored trigger ID
-						debugLog(
-							"🔄 [useGachaSpinMachine] Restoring pending spin:",
-							storedTriggerId,
-						);
-					if (contracts.gacha) {
-						updateState("waitingForFulfillment", {
-							userAddress,
-							publicClient,
-							gachaAddress: contracts.gacha,
-							triggerId: storedTriggerId,
-						});
-					}
+					debugLog(
+						"🔄 [useGachaSpinMachine] Restoring pending spin:",
+						storedTriggerId,
+					);
+					updateState("waitingForFulfillment", {
+						userAddress,
+						publicClient,
+						gachaAddress,
+						triggerId: storedTriggerId,
+					});
 				}
 			})
 			.catch((error) => {
 				console.warn("Failed to validate pending spins:", error);
 				// Continue with normal operation even if validation fails
-				const storedTriggerId = contracts.gacha
-					? loadFromStorage(userAddress, contracts.gacha)
+				const storedTriggerId = gachaAddress
+					? loadFromStorage(userAddress, gachaAddress)
 					: null;
 				if (storedTriggerId) {
-						debugLog(
-							"🔄 [useGachaSpinMachine] Restoring pending spin (validation failed):",
-							storedTriggerId,
-						);
-					if (contracts.gacha) {
-						updateState("waitingForFulfillment", {
-							userAddress,
-							publicClient,
-							gachaAddress: contracts.gacha,
-							triggerId: storedTriggerId,
-						});
-					}
+					debugLog(
+						"🔄 [useGachaSpinMachine] Restoring pending spin (validation failed):",
+						storedTriggerId,
+					);
+					updateState("waitingForFulfillment", {
+						userAddress,
+						publicClient,
+						gachaAddress,
+						triggerId: storedTriggerId,
+					});
 				}
 			});
-	}, [userAddress, publicClient, contracts.gacha, state.matches, updateState]);
+	}, [
+		userAddress,
+		publicClient,
+		gachaAddress,
+		state.matches,
+		updateState,
+		debugLog,
+	]);
 
 	// Actions
 	const startSpin = () => {
@@ -339,9 +349,7 @@ export function useGachaSpinMachine(
 			triggerId,
 			retryCount: 0,
 		});
-		debugLog(
-			"🔄 [confirmTransaction] State updated to waitingForFulfillment",
-		);
+		debugLog("🔄 [confirmTransaction] State updated to waitingForFulfillment");
 	};
 
 	const fulfillSpin = (result: SpinResult) => {
@@ -353,7 +361,8 @@ export function useGachaSpinMachine(
 		onSpinComplete?.();
 	};
 
-	const closeReveal = () => updateState("idle", { spinResult: null, triggerId: null });
+	const closeReveal = () =>
+		updateState("idle", { spinResult: null, triggerId: null });
 	const retry = () => {
 		if (state.context.retryCount < MAX_RETRIES) {
 			updateState("waitingForFulfillment", {
@@ -512,7 +521,7 @@ export function useGachaSpinMachine(
 			);
 			onRefund?.();
 		}
-	}, [isRefunded, state.context.refundResult, onRefund]);
+	}, [isRefunded, state.context.refundResult, onRefund, debugLog]);
 
 	// Cleanup on unmount
 	useEffect(() => {

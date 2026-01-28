@@ -1,25 +1,25 @@
 "use client";
 
-import { useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useCallback, useEffect, useMemo } from "react";
 import { useAccount, useReadContract } from "wagmi";
-import { Button } from "../../ui/Button";
-import { Card } from "../../ui/Card";
-import { Chip } from "../../ui/Chip";
 import {
-	useReadProtocolTreasuryRedemptionPayoutBps,
-	useReadProtocolTreasuryPaused,
 	useReadErc721IsApprovedForAll,
 	useReadNftAppraisalGetAppraisedPrice,
 	useReadNftAppraisalHasAppraisal,
+	useReadProtocolTreasuryPaused,
+	useReadProtocolTreasuryRedemptionPayoutBps,
 } from "@/generated";
-import { formatCurrency } from "@/lib/utils";
-import { useBuybackNotificationsContext } from "./BuybackNotificationProvider";
-import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
 import {
-	useNFTInteraction,
 	type UseNFTInteractionParams,
+	useNFTInteraction,
 } from "@/hooks/useNFTInteraction";
+import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
+import { formatCurrency } from "@/lib/utils";
+import { Button } from "../../ui/Button";
+import { Card } from "../../ui/Card";
+import { Chip } from "../../ui/Chip";
+import { useBuybackNotificationsContext } from "./BuybackNotificationProvider";
 
 interface BuybackComponentProps {
 	collection: string;
@@ -54,37 +54,51 @@ export default function BuybackComponent({
 	const { address: connectedAddress } = useAccount();
 	const { showNotification } = useBuybackNotificationsContext();
 
-	// Build interaction params for NFT interaction hook
+	// Build stable callbacks first to avoid recreating on every render
+	const handleInteractionAction = useCallback(
+		(_collection: string, _tokenId: string, _hasValidAppraisal?: boolean) => {
+			showNotification(`🔄 NFT action initiated for ${tokenId}`, "info");
+		},
+		[tokenId, showNotification],
+	);
+
+	const handleAppraisalStatusChange = useCallback(
+		(_collection: string, _tokenId: string, hasValidAppraisal: boolean) => {
+			showNotification(
+				hasValidAppraisal
+					? `✅ NFT ${tokenId} appraisal confirmed`
+					: `❌ NFT ${tokenId} appraisal missing`,
+				hasValidAppraisal ? "success" : "error",
+			);
+		},
+		[tokenId, showNotification],
+	);
+
+	const refetchTreasuryCards = useCallback(async () => {}, []);
+
+	// Build interaction params for NFT interaction hook with stable callbacks
 	const interactionParams = useMemo<UseNFTInteractionParams>(
 		() => ({
 			collection,
 			tokenId,
 			mode: "buyback" as const,
 			uniqueId,
-			onAction: (
-				_collection: string,
-				tokenId: string,
-				_hasValidAppraisal?: boolean,
-			) => {
-				showNotification(`🔄 NFT action initiated for ${tokenId}`, "info");
-			},
-			onAppraisalStatusChange: (
-				_collection: string,
-				tokenId: string,
-				hasValidAppraisal: boolean,
-			) => {
-				showNotification(
-					hasValidAppraisal
-						? `✅ NFT ${tokenId} appraisal confirmed`
-						: `❌ NFT ${tokenId} appraisal missing`,
-					hasValidAppraisal ? "success" : "error",
-				);
-			},
-			refetchTreasuryCards: async () => {},
+			onAction: handleInteractionAction,
+			onAppraisalStatusChange: handleAppraisalStatusChange,
+			refetchTreasuryCards,
 			onSuccess,
 			onBuybackSuccess,
 		}),
-		[collection, tokenId, uniqueId, onSuccess, onBuybackSuccess, showNotification],
+		[
+			collection,
+			tokenId,
+			uniqueId,
+			onSuccess,
+			onBuybackSuccess,
+			handleInteractionAction,
+			handleAppraisalStatusChange,
+			refetchTreasuryCards,
+		],
 	);
 
 	// Use the unified NFT interaction hook
@@ -226,7 +240,8 @@ export default function BuybackComponent({
 
 	// Formatted values
 	const formattedPayoutAmount = useMemo(
-		() => (payoutAmount ? formatCurrency(payoutAmount.toString(), 6, "USDC") : null),
+		() =>
+			payoutAmount ? formatCurrency(payoutAmount.toString(), 6, "USDC") : null,
 		[payoutAmount],
 	);
 
@@ -399,7 +414,8 @@ export default function BuybackComponent({
 			}
 			return;
 		}
-		await handleAction();
+		// Call the actual handleAction function
+		handleAction();
 	}, [actionInfo, handleAction]);
 
 	const handleInteractionButtonClick = useCallback(() => {

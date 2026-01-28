@@ -1,7 +1,7 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useSyncExternalStore } from "react";
-import { useRouter, usePathname } from "next/navigation";
 
 interface AppRouterInstance {
 	push: (href: string, options?: { scroll?: boolean }) => void;
@@ -123,7 +123,8 @@ const searchParamsStore = SearchParamsStore.getInstance();
 function useClientSearchParams(): URLSearchParams {
 	return useSyncExternalStore(
 		(callback) => {
-			const unsubscribe = searchParamsStore.subscribe.bind(searchParamsStore)(callback);
+			const unsubscribe =
+				searchParamsStore.subscribe.bind(searchParamsStore)(callback);
 			// Sync with current URL on mount to handle cases where router.push/replace
 			// was called outside useUpdateSearchParams
 			searchParamsStore.syncFromWindow();

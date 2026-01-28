@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useAccount } from "wagmi";
 import { WalletIcon } from "@heroicons/react/24/outline";
-import { Card, Button } from "../../ui";
-import { NFTCard } from "./NFTCard";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
+import { useClientSearchParam } from "../../hooks/useClientSearchParams";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { useClientSearchParam } from "../../hooks/useClientSearchParams";
+import { Button, Card } from "../../ui";
+import { NFTCard } from "./NFTCard";
 
 export interface SelectedNFT {
 	collection: string;
@@ -70,7 +70,9 @@ export function WalletNFTPicker({
 
 	if (!isConnected) {
 		return (
-			<Card className={`${className} p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl`}>
+			<Card
+				className={`${className} p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl`}
+			>
 				<div className="text-center space-y-4">
 					<div className="w-16 h-16 bg-gradient-to-br from-content1/30 to-content1/10 rounded-full flex items-center justify-center mx-auto">
 						<WalletIcon className="w-8 h-8 text-foreground/60" />
@@ -108,77 +110,83 @@ export function WalletNFTPicker({
 
 					{/* Entry form */}
 					<div className="space-y-4">
-								<div>
-									<label className="block text-sm font-medium text-foreground mb-2">
-										Collection Address
-									</label>
-									<input
-										type="text"
-										placeholder="0x..."
-										value={collection}
-										onChange={(e) => setCollection(e.target.value)}
-										className="w-full rounded-lg border border-white/10 bg-content1/50 px-4 py-3 text-foreground placeholder:text-foreground/40 focus:border-warning focus:ring-2 focus:ring-warning/30 focus:outline-none transition-all"
-									/>
-								</div>
-								<div>
-									<label className="block text-sm font-medium text-foreground mb-2">
-										Token ID
-									</label>
-									<input
-										type="text"
-										placeholder="123"
-										value={tokenId}
-										onChange={(e) => setTokenId(e.target.value)}
-										className="w-full rounded-lg border border-white/10 bg-content1/50 px-4 py-3 text-foreground placeholder:text-foreground/40 focus:border-warning focus:ring-2 focus:ring-warning/30 focus:outline-none transition-all"
-									/>
-								</div>
+						<div>
+							<label
+								htmlFor="collection-address"
+								className="block text-sm font-medium text-foreground mb-2"
+							>
+								Collection Address
+							</label>
+							<input
+								id="collection-address"
+								type="text"
+								placeholder="0x..."
+								value={collection}
+								onChange={(e) => setCollection(e.target.value)}
+								className="w-full rounded-lg border border-white/10 bg-content1/50 px-4 py-3 text-foreground placeholder:text-foreground/40 focus:border-warning focus:ring-2 focus:ring-warning/30 focus:outline-none transition-all"
+							/>
+						</div>
+						<div>
+							<label
+								htmlFor="token-id"
+								className="block text-sm font-medium text-foreground mb-2"
+							>
+								Token ID
+							</label>
+							<input
+								id="token-id"
+								type="text"
+								placeholder="123"
+								value={tokenId}
+								onChange={(e) => setTokenId(e.target.value)}
+								className="w-full rounded-lg border border-white/10 bg-content1/50 px-4 py-3 text-foreground placeholder:text-foreground/40 focus:border-warning focus:ring-2 focus:ring-warning/30 focus:outline-none transition-all"
+							/>
+						</div>
 
-								{/* Preview - sm size for preview context */}
-								{collection &&
-									tokenId &&
-									contracts.appraisal && (
-										<div className="bg-success/10 border border-success/20 rounded-xl p-4">
-											<p className="text-xs text-success font-medium mb-3 text-center">
-												NFT Preview
-											</p>
-											<div className="flex justify-center">
-												<div className="w-48">
-													<NFTCard
-														data={{
-															collection: collection as `0x${string}`,
-															tokenId,
-														}}
-														size="sm"
-														showCollectionName={false}
-														appraisalContractAddress={
-															contracts.appraisal as `0x${string}`
-														}
-													/>
-												</div>
-											</div>
-										</div>
-									)}
-
-								{/* Action buttons */}
-								<div className="pt-2">
-									<Button
-										color="glassPrimary"
-										className="w-full"
-										isDisabled={!collection || !tokenId}
-										onPress={handleSubmit}
-									>
-										Continue to Appraisal
-									</Button>
-								</div>
-
-								{/* Info text */}
-								<div className="bg-info/10 border border-info/20 rounded-lg p-3">
-									<p className="text-xs text-foreground/70 text-center">
-										💡 Enter the contract address and token ID of any ERC-721 NFT
-										you own to get it appraised
-									</p>
+						{/* Preview - sm size for preview context */}
+						{collection && tokenId && contracts.appraisal && (
+							<div className="bg-success/10 border border-success/20 rounded-xl p-4">
+								<p className="text-xs text-success font-medium mb-3 text-center">
+									NFT Preview
+								</p>
+								<div className="flex justify-center">
+									<div className="w-48">
+										<NFTCard
+											data={{
+												collection: collection as `0x${string}`,
+												tokenId,
+											}}
+											size="sm"
+											showCollectionName={false}
+											appraisalContractAddress={
+												contracts.appraisal as `0x${string}`
+											}
+										/>
+									</div>
 								</div>
 							</div>
+						)}
+
+						{/* Action buttons */}
+						<div className="pt-2">
+							<Button
+								color="glassPrimary"
+								className="w-full"
+								isDisabled={!collection || !tokenId}
+								onPress={handleSubmit}
+							>
+								Continue to Appraisal
+							</Button>
+						</div>
+
+						{/* Info text */}
+						<div className="bg-info/10 border border-info/20 rounded-lg p-3">
+							<p className="text-xs text-foreground/70 text-center">
+								💡 Enter the contract address and token ID of any ERC-721 NFT
+								you own to get it appraised
+							</p>
+						</div>
+					</div>
 				</Card>
 			</motion.div>
 		</div>

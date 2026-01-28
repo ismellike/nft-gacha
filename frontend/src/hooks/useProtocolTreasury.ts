@@ -1,9 +1,9 @@
 "use client";
 
 import {
+	useReadProtocolTreasuryAsset,
 	useReadProtocolTreasuryOwner,
 	useReadProtocolTreasuryPaused,
-	useReadProtocolTreasuryAsset,
 } from "@/generated";
 
 export interface ProtocolTreasuryData {

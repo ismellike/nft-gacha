@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ScrollReveal } from "./ScrollReveal";
 import { RevenueSplitVisualization } from "./RevenueSplitVisualization";
+import { ScrollReveal } from "./ScrollReveal";
 
 interface StepProps {
 	stepNumber: number;
@@ -83,7 +83,9 @@ export function HowItWorks({ className = "" }: HowItWorksProps) {
 										fill="none"
 										viewBox="0 0 24 24"
 										stroke="currentColor"
+										aria-label="Happy face icon"
 									>
+										<title>Happy player</title>
 										<path
 											strokeLinecap="round"
 											strokeLinejoin="round"
@@ -92,7 +94,9 @@ export function HowItWorks({ className = "" }: HowItWorksProps) {
 										/>
 									</svg>
 								</div>
-								<h3 className="text-2xl font-bold text-foreground">For Players</h3>
+								<h3 className="text-2xl font-bold text-foreground">
+									For Players
+								</h3>
 							</div>
 						</ScrollReveal>
 
@@ -128,7 +132,9 @@ export function HowItWorks({ className = "" }: HowItWorksProps) {
 										fill="none"
 										viewBox="0 0 24 24"
 										stroke="currentColor"
+										aria-label="Currency coin icon"
 									>
+										<title>Money earnings</title>
 										<path
 											strokeLinecap="round"
 											strokeLinejoin="round"
@@ -137,7 +143,9 @@ export function HowItWorks({ className = "" }: HowItWorksProps) {
 										/>
 									</svg>
 								</div>
-								<h3 className="text-2xl font-bold text-foreground">For Contributors</h3>
+								<h3 className="text-2xl font-bold text-foreground">
+									For Contributors
+								</h3>
 							</div>
 						</ScrollReveal>
 

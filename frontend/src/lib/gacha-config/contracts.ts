@@ -1,5 +1,5 @@
-import type { GachaConfig } from "./types";
 import { getAllActiveGachas, getGachaConfig } from "../gacha-config";
+import type { GachaConfig } from "./types";
 
 const FALLBACK_GACHA_ID = "graded-pokemon";
 const defaultGacha =

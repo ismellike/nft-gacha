@@ -1,13 +1,13 @@
 "use client";
 
 import {
-	useReadGachaEconomyManagerFeeToken,
 	useReadGachaEconomyManagerDepositorShareBps,
+	useReadGachaEconomyManagerFeeToken,
 	useReadGachaEconomyManagerProtocolShareBps,
+	useReadGachaEconomyManagerRevenueByRarity,
 	useReadGachaEconomyManagerTotalRevenueProcessed,
 	useReadGachaEconomyManagerTotalToDepositors,
 	useReadGachaEconomyManagerTotalToProtocol,
-	useReadGachaEconomyManagerRevenueByRarity,
 } from "@/generated";
 
 export interface EconomyManagerData {

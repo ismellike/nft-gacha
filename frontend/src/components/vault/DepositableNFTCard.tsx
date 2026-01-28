@@ -1,23 +1,22 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
-import { useAccount, usePublicClient } from "wagmi";
-
-import { NFTCard } from "../nft/NFTCard";
-import type { Rarity } from "../../lib/rarityConfig";
-import { Button } from "../../ui";
 import {
+	ArrowPathIcon,
+	CheckIcon,
 	GiftIcon,
 	ShieldCheckIcon,
-	CheckIcon,
-	ArrowPathIcon,
 	SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
+import { useCallback, useEffect, useRef } from "react";
+import { useAccount, usePublicClient } from "wagmi";
+import { useReadNftAppraisalGetAppraisal } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { useReadNftAppraisalGetAppraisal } from "../../generated";
 import { useNFTInteraction } from "../../hooks/useNFTInteraction";
+import type { Rarity } from "../../lib/rarityConfig";
+import { Button } from "../../ui";
+import { NFTCard } from "../nft/NFTCard";
 
 interface DepositableNFTCardProps {
 	collection: string;

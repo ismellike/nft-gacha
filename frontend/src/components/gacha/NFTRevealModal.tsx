@@ -1,14 +1,29 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Modal, ModalContent, ModalBody, DialogTitle } from "../../ui";
-import { Rarity, getRarityConfig } from "../../lib/rarityConfig";
-import { NFTCard } from "../nft";
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEnhancedSpinResult } from "../../hooks/useNFTMetadata";
 import { getGachaConfig } from "../../lib/gacha-config";
-import { useMemo } from "react";
+import {
+	getCardName,
+	getGradingInfo,
+	getSafeMetadataForReveal,
+	getSetName,
+	getYear,
+} from "../../lib/metadataValidation";
+import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
+import {
+	getGlowConfig,
+	getPhaseTiming,
+	type RevealPhase,
+	STAGGER_DELAY_PER_TRAIT,
+	CARD_FADE_OUT_DURATION,
+} from "../../lib/revealAnimationConfig";
+import { DialogTitle, Modal, ModalBody, ModalContent } from "../../ui";
+import { NFTCard } from "../nft";
 import SellToTreasury from "../nft/SellToTreasury";
+import { RevealErrorBoundary } from "./RevealErrorBoundary";
+import RevealStep, { RevealStepGroup } from "./RevealStep";
 
 interface SpinResult {
 	rarity: string;
@@ -25,6 +40,55 @@ interface NFTRevealModalProps {
 	gachaId?: string;
 }
 
+// Get all possible phases in their correct order
+const ALL_PHASES: RevealPhase[] = [
+	"year",
+	"setName",
+	"name",
+	"grading",
+	"rarity",
+	"card",
+];
+
+// Helper to determine if an item should be shown based on current phase and available phases
+const shouldShowItemInAvailable = (
+	itemPhase: RevealPhase,
+	currentPhase: RevealPhase,
+	availablePhases: RevealPhase[],
+): boolean => {
+	// Use the full phase order for index calculation, not just available phases
+	const currentIndex = ALL_PHASES.indexOf(currentPhase);
+	const itemIndex = ALL_PHASES.indexOf(itemPhase);
+
+	// Item must be in available phases AND at or before current phase
+	const isItemAvailable = availablePhases.includes(itemPhase);
+	return isItemAvailable && itemIndex >= 0 && itemIndex <= currentIndex;
+};
+
+// Determine which metadata fields are available for reveal
+// New order: year → setName → name (title/subject) → grading → rarity → card
+const getAvailableRevealPhases = (): RevealPhase[] => {
+	// ALWAYS include all phases - let the display components handle missing data gracefully
+	// This ensures the animation always progresses through all phases consistently
+	const phases: RevealPhase[] = [
+		"year",
+		"setName",
+		"name",
+		"grading",
+		"rarity",
+		"card",
+	];
+
+	return phases;
+};
+
+// Calculate staggered delay for each trait to prevent simultaneous animations
+const getTraitStaggerDelay = (traitPhase: RevealPhase): number => {
+	// Use the full phase order for index calculation
+	const traitIndex = ALL_PHASES.indexOf(traitPhase);
+	return traitIndex * STAGGER_DELAY_PER_TRAIT;
+};
+
 export default function NFTRevealModal({
 	isVisible,
 	nftResult,
@@ -32,11 +96,61 @@ export default function NFTRevealModal({
 	appraisalContractAddress,
 	gachaId,
 }: NFTRevealModalProps) {
-	const [showCard, setShowCard] = useState(false);
+	const [currentPhase, setCurrentPhase] = useState<RevealPhase | null>(null);
+	const [isSkipped, setIsSkipped] = useState(false);
+	const [showMonetary, setShowMonetary] = useState(false);
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
+	const isSkippedRef = useRef(false);
+	// Store timers in a ref to persist across effect re-runs
+	const animationTimersRef = useRef<NodeJS.Timeout[]>([]);
 
 	// Get enhanced spin result with metadata
 	const enhancedResult = useEnhancedSpinResult(nftResult);
+
+	// Extract loading state
+	const isMetadataLoading = enhancedResult?.isLoading ?? false;
+
+	// Debug: Log raw metadata when it arrives
+	useEffect(() => {
+		if (enhancedResult && !enhancedResult.isLoading) {
+			console.log("[NFTRevealModal] Raw NFT metadata received:", {
+				originalResult: nftResult,
+				enhancedResult: {
+					isLoading: enhancedResult.isLoading,
+					imageUrl: enhancedResult.imageUrl,
+					tokenURI: enhancedResult.tokenURI,
+					metadata: enhancedResult.metadata,
+				},
+				parsedMetadataFields: {
+					rawMetadata: enhancedResult.metadata,
+					year: enhancedResult.metadata?.year,
+					set_number: enhancedResult.metadata?.set_number,
+					card_number: enhancedResult.metadata?.card_number,
+					title: enhancedResult.metadata?.title,
+					name: enhancedResult.metadata?.name,
+					grading_company: enhancedResult.metadata?.grading_company,
+					grade: enhancedResult.metadata?.grade,
+				},
+			});
+		}
+	}, [enhancedResult, nftResult]);
+
+	// Validate and safely extract metadata
+	const metadataValidation = useMemo(
+		() => getSafeMetadataForReveal(enhancedResult?.metadata ?? null),
+		[enhancedResult?.metadata],
+	);
+
+	const metadata = metadataValidation.metadata;
+
+	// Use safe accessor utilities for metadata fields
+	const year = getYear(metadata);
+	const setName = getSetName(metadata);
+	const cardName = getCardName(metadata);
+	const gradingInfo = getGradingInfo(metadata);
+
+	// Get available phases based on actual metadata
+	const availablePhases = useMemo(() => getAvailableRevealPhases(), []);
 
 	// Get gacha config for protocol treasury address
 	const gachaConfig = useMemo(
@@ -46,32 +160,244 @@ export default function NFTRevealModal({
 	const protocolTreasuryAddress = gachaConfig?.protocolTreasuryAddress;
 	const gachaTreasuryAddress = gachaConfig?.treasuryAddress || "";
 
-	useEffect(() => {
-		if (isVisible) {
-			// Add dramatic delay before showing the NFT card
-			const timer = setTimeout(() => {
-				setShowCard(true);
-				// Focus the close button when card is revealed for keyboard accessibility
-				if (closeButtonRef.current) {
-					closeButtonRef.current.focus();
-				}
-			}, 1500);
-			return () => clearTimeout(timer);
-		} else {
-			setShowCard(false);
-		}
-	}, [isVisible]);
-
-	// Handle keyboard events
-	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Escape") {
-			onClose();
-		}
-	};
-
+	// Get rarity config
 	const resultRarity =
 		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
 	const rarityConfig = getRarityConfig(resultRarity);
+	const allPhaseTimings = useMemo(() => getPhaseTiming(), []);
+	const glowConfig = useMemo(() => getGlowConfig(resultRarity), [resultRarity]);
+
+	// Get the card phase timing safely
+	const cardPhaseTiming = useMemo(
+		() =>
+			allPhaseTimings.find((pt) => pt.phase === "card") || {
+				duration: 1.2,
+				animationDuration: 1.2,
+			},
+		[allPhaseTimings],
+	);
+
+	// Skip animation handler
+	const skipAnimation = useCallback(() => {
+		if (isSkippedRef.current) return; // Early exit, prevent re-entry
+
+		isSkippedRef.current = true;
+		setIsSkipped(true);
+		setCurrentPhase("monetary");
+		setShowMonetary(true);
+
+		// Focus close button
+		setTimeout(() => {
+			closeButtonRef.current?.focus();
+		}, 100);
+	}, []); // Remove isSkipped from deps to avoid race conditions
+
+	// Handle keyboard events
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (e.key === "Escape") {
+				onClose();
+			}
+			if (e.key === " " || e.key === "Enter") {
+				e.preventDefault();
+				skipAnimation();
+			}
+		},
+		[onClose, skipAnimation],
+	);
+
+	// Add ref to track initialization
+	const hasInitializedAnimation = useRef(false);
+	const hasCompletedAnimation = useRef(false);
+
+	// Debug: Log currentPhase changes
+	useEffect(() => {
+		console.log("[NFTRevealModal] currentPhase changed to:", currentPhase);
+	}, [currentPhase]);
+
+	// Debug: Log what should be displayed
+	useEffect(() => {
+		if (currentPhase !== null && !isMetadataLoading) {
+			console.log("[NFTRevealModal] Should display:", {
+				currentPhase,
+				year:
+					shouldShowItemInAvailable("year", currentPhase, availablePhases) &&
+					year,
+				setName:
+					shouldShowItemInAvailable("setName", currentPhase, availablePhases) &&
+					setName,
+				name:
+					shouldShowItemInAvailable("name", currentPhase, availablePhases) &&
+					cardName,
+				grading:
+					shouldShowItemInAvailable("grading", currentPhase, availablePhases) &&
+					gradingInfo,
+				rarity:
+					shouldShowItemInAvailable("rarity", currentPhase, availablePhases) &&
+					nftResult.rarity,
+			});
+		}
+	}, [
+		currentPhase,
+		isMetadataLoading,
+		availablePhases,
+		year,
+		setName,
+		cardName,
+		gradingInfo,
+		nftResult.rarity,
+	]);
+
+	// Reset state when modal opens/closes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Intentional - currentPhase used for guard check, metadata fields only for logging
+	useEffect(() => {
+		console.log("[NFTRevealModal] useEffect triggered", {
+			isVisible,
+			isMetadataLoading,
+			currentPhase,
+		});
+
+		// Reset flag and state when modal closes
+		if (!isVisible) {
+			console.log("[NFTRevealModal] Modal closed, resetting state");
+			hasInitializedAnimation.current = false;
+			hasCompletedAnimation.current = false;
+			setCurrentPhase(null);
+			setIsSkipped(false);
+			setShowMonetary(false);
+			return;
+		}
+
+		// Wait for metadata to be loaded before starting
+		if (isMetadataLoading) {
+			console.log("[NFTRevealModal] Metadata still loading, waiting...");
+			return;
+		}
+
+		// If animation is already in progress (currentPhase not null), don't restart
+		if (currentPhase !== null) {
+			console.log(
+				"[NFTRevealModal] Animation already in progress, currentPhase:",
+				currentPhase,
+			);
+			return;
+		}
+
+		console.log("[NFTRevealModal] Starting animation initialization");
+		hasInitializedAnimation.current = true;
+
+		// Get the current available phases (don't use from dependency array)
+		const currentAvailablePhases = getAvailableRevealPhases();
+
+		// Use new phase timing system - filter to only include available phases
+		const allPhaseTimingsLocal = getPhaseTiming();
+		const phaseTimings = allPhaseTimingsLocal.filter((phaseConfig) =>
+			currentAvailablePhases.includes(phaseConfig.phase),
+		);
+
+		console.log("[NFTRevealModal] Animation starting:", {
+			availablePhases: currentAvailablePhases,
+			filteredPhaseTimings: phaseTimings.map((p) => p.phase),
+			metadataFields: {
+				hasYear: !!metadata?.year,
+				hasSetNumber: !!metadata?.set_number,
+				hasName: !!metadata?.name,
+				hasTitle: !!metadata?.title,
+				hasGradingCompany: !!metadata?.grading_company,
+				hasGrade: !!metadata?.grade,
+			},
+		});
+
+		// Reset animation state
+		setIsSkipped(false);
+		setShowMonetary(false);
+		isSkippedRef.current = false;
+
+		// Start the animation sequence
+		let phaseIndex = 0;
+
+		const runNextPhase = () => {
+			console.log("[NFTRevealModal] runNextPhase called", {
+				phaseIndex,
+				totalPhases: phaseTimings.length,
+				isSkipped: isSkippedRef.current,
+				currentPhase: currentPhase,
+			});
+
+			if (isSkippedRef.current || phaseIndex >= phaseTimings.length) {
+				console.log("[NFTRevealModal] Animation ended or skipped", {
+					phaseIndex,
+					totalPhases: phaseTimings.length,
+					isSkipped: isSkippedRef.current,
+				});
+				return;
+			}
+
+			const phase = phaseTimings[phaseIndex];
+			console.log("[NFTRevealModal] Phase transition:", {
+				from: currentPhase,
+				to: phase.phase,
+				phaseIndex: phaseIndex + 1,
+				totalPhases: phaseTimings.length,
+			});
+			setCurrentPhase(phase.phase as RevealPhase);
+
+			phaseIndex++;
+
+			// Schedule next phase
+			if (phaseIndex < phaseTimings.length) {
+				const nextPhase = phaseTimings[phaseIndex];
+				console.log("[NFTRevealModal] Scheduling next phase:", {
+					nextPhase: nextPhase.phase,
+					delay: nextPhase.duration * 1000,
+					phaseIndexAfterIncrement: phaseIndex,
+				});
+				const timer = setTimeout(() => {
+					console.log(
+						"[NFTRevealModal] Timer fired for phase:",
+						nextPhase.phase,
+					);
+					runNextPhase();
+				}, nextPhase.duration * 1000);
+
+				// Store timer for cleanup
+				animationTimersRef.current.push(timer);
+			} else {
+				// All phases done, schedule monetary reveal
+				hasCompletedAnimation.current = true;
+				console.log(
+					"[NFTRevealModal] All phases complete, scheduling monetary reveal",
+				);
+				const monetaryTimer = setTimeout(() => {
+					if (!isSkippedRef.current) {
+						console.log("[NFTRevealModal] Showing monetary phase");
+						setCurrentPhase("monetary");
+						setShowMonetary(true);
+						closeButtonRef.current?.focus();
+					}
+				}, 1000);
+
+				animationTimersRef.current.push(monetaryTimer);
+			}
+		};
+
+		// Start first phase immediately
+		console.log("[NFTRevealModal] About to call runNextPhase for first time");
+		runNextPhase();
+
+		return () => {
+			// Only clear timers when modal closes, not on effect re-runs
+			if (!isVisible) {
+				console.log(
+					"[NFTRevealModal] Modal closing, clearing",
+					animationTimersRef.current.length,
+					"timers",
+				);
+				animationTimersRef.current.forEach(clearTimeout);
+				animationTimersRef.current = [];
+			}
+		};
+	}, [isVisible, isMetadataLoading]);
 
 	return (
 		<Modal
@@ -82,7 +408,6 @@ export default function NFTRevealModal({
 			placement="center"
 		>
 			<ModalContent>
-				{/* Hidden title for screen reader accessibility - must be direct child of ModalContent */}
 				<DialogTitle className="sr-only">
 					{resultRarity} {nftResult.rarity} NFT Revealed
 				</DialogTitle>
@@ -90,133 +415,350 @@ export default function NFTRevealModal({
 					className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center pointer-events-auto"
 					onKeyDown={handleKeyDown}
 				>
-					{/* Close Button - Top Right of Modal */}
-					<motion.button
-						ref={closeButtonRef}
-						onClick={onClose}
-						className="absolute top-8 right-8 z-50 w-12 h-12 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-						initial={{ opacity: 0, scale: 0 }}
-						animate={{ opacity: 1, scale: 1 }}
-						transition={{ delay: showCard ? 1 : 0, duration: 0.5 }}
-						whileHover={{ scale: 1.1 }}
-						whileTap={{ scale: 0.95 }}
-						aria-label="Close NFT reveal modal"
+					<RevealErrorBoundary
+						onError={(error) => {
+							console.error("NFT Reveal Error:", error);
+						}}
 					>
-						<svg
-							className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-							strokeWidth={2.5}
-							aria-hidden="true"
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M6 18L18 6M6 6l12 12"
-							/>
-						</svg>
-					</motion.button>
-
-					{/* Dramatic Background Glow */}
-					<motion.div
-						className="absolute inset-0 overflow-hidden pointer-events-none"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: showCard ? 1 : 0 }}
-						transition={{ duration: 2 }}
-					>
-						<motion.div
-							className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-							initial={{ scale: 0 }}
-							animate={{ scale: showCard ? 1 : 0 }}
-							transition={{ duration: 1.5, ease: "easeOut" }}
-						>
-							<motion.div
-								className={`w-96 h-96 ${rarityConfig.bgGradient} rounded-full blur-3xl`}
-								animate={{
-									scale: [1, 1.1, 1],
-									opacity: [0.3, 0.5, 0.3],
-								}}
-								transition={{
-									duration: 4,
-									repeat: Infinity,
-									ease: "easeInOut",
-								}}
-							/>
-						</motion.div>
-					</motion.div>
-
-					{/* NFT Card */}
-					<div className="relative z-10 flex items-center justify-center min-h-screen">
+						{/* Close Button - Top Right of Modal */}
 						<AnimatePresence>
-							{showCard && (
-								<motion.div
-									initial={{
-										opacity: 0,
-										scale: 0.3,
-										rotateY: -180,
-									}}
-									animate={{
-										opacity: 1,
-										scale: 1,
-										rotateY: 0,
-									}}
-									exit={{
-										opacity: 0,
-										scale: 0.8,
-									}}
-									transition={{
-										duration: 1.2,
-										ease: "easeOut",
-										type: "spring",
-										damping: 20,
-										stiffness: 100,
-									}}
-									className="relative"
-									style={{ perspective: 1000 }}
+							{showMonetary && (
+								<motion.button
+									ref={closeButtonRef}
+									onClick={onClose}
+									className="absolute top-8 right-8 z-50 w-12 h-12 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+									initial={{ opacity: 0, scale: 0 }}
+									animate={{ opacity: 1, scale: 1 }}
+									transition={{ duration: 0.3 }}
+									whileHover={{ scale: 1.1 }}
+									whileTap={{ scale: 0.95 }}
+									aria-label="Close NFT reveal modal"
 								>
-									{/* NFT Card - lg size for dramatic reveal effect */}
-									<div className="flex flex-col items-center space-y-8">
-										<NFTCard
-											data={{
-												collection: nftResult.collection,
-												tokenId: nftResult.tokenId,
-												// Performance optimization: imageUrl override since already fetched
-												imageUrl:
-													enhancedResult?.imageUrl || nftResult.imageUrl,
-												rarity: resultRarity,
-											}}
-											size="lg"
-											showCollectionName={true}
-											appraisalContractAddress={appraisalContractAddress}
-											{...(protocolTreasuryAddress && {
-												protocolTreasuryAddress,
-											})}
-											{...(gachaId && { gachaId })}
+									<svg
+										className="w-6 h-6 text-foreground/70 group-hover:text-foreground transition-colors"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2.5}
+										aria-hidden="true"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M6 18L18 6M6 6l12 12"
 										/>
-										{protocolTreasuryAddress && (
+									</svg>
+								</motion.button>
+							)}
+						</AnimatePresence>
+
+						{/* Skip Button - Bottom Right */}
+						{!isSkipped && !showMonetary && currentPhase !== "monetary" && (
+							<motion.button
+								onClick={skipAnimation}
+								className="absolute bottom-12 right-12 z-50 px-6 py-3 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-foreground/80 font-medium"
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 0.5, duration: 0.5 }}
+								whileHover={{ scale: 1.05 }}
+								whileTap={{ scale: 0.95 }}
+								aria-label="Skip animation"
+							>
+								Skip Animation
+							</motion.button>
+						)}
+
+						{/* Dramatic Background Glow - Only during final card reveal */}
+						{(currentPhase === "card" || currentPhase === "monetary") && (
+							<motion.div
+								className="absolute inset-0 overflow-hidden pointer-events-none"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								transition={{ duration: 0.8 }}
+							>
+								<motion.div
+									className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+									initial={{ scale: 0 }}
+									animate={{ scale: 1 }}
+									transition={{ duration: 1.5, ease: "easeOut" }}
+								>
+									<motion.div
+										className={`w-96 h-96 ${rarityConfig.bgGradient} rounded-full blur-3xl`}
+										animate={{
+											scale: glowConfig.scale,
+											opacity: glowConfig.opacity,
+										}}
+										transition={{
+											duration: glowConfig.pulseDuration,
+											repeat: Infinity,
+											ease: "easeInOut",
+										}}
+									/>
+								</motion.div>
+							</motion.div>
+						)}
+
+						{/* Progressive Reveal Content */}
+						<div className="relative z-10 flex items-center justify-center min-h-screen w-full max-w-4xl mx-auto px-4">
+							<div className="flex flex-col items-center gap-8 w-full">
+								{/* Loading State */}
+								{isMetadataLoading && (
+									<AnimatePresence>
+										<motion.div
+											key="loading"
+											initial={{ opacity: 0, scale: 0.8 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, scale: 0.8 }}
+											className="flex flex-col items-center gap-6"
+										>
 											<motion.div
-												className="z-50 w-full flex justify-center pointer-events-auto"
-												initial={{ opacity: 0, y: 20 }}
-												animate={{ opacity: 1, y: 0 }}
-												transition={{ delay: 0.5, duration: 0.5 }}
+												className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full"
+												animate={{ rotate: 360 }}
+												transition={{
+													duration: 1,
+													repeat: Infinity,
+													ease: "linear",
+												}}
+											/>
+											<motion.p
+												className={`text-lg font-medium ${rarityConfig.textColor}`}
+												animate={{ opacity: [0.5, 1, 0.5] }}
+												transition={{ duration: 1.5, repeat: Infinity }}
 											>
-												<SellToTreasury
-													collection={nftResult.collection}
-													tokenId={nftResult.tokenId}
-													appraisalContractAddress={appraisalContractAddress}
-													protocolTreasuryAddress={protocolTreasuryAddress}
-													gachaTreasuryAddress={gachaTreasuryAddress}
+												Loading NFT details...
+											</motion.p>
+										</motion.div>
+									</AnimatePresence>
+								)}
+
+								{/* Progressive Metadata Reveal - Conditional Accumulation */}
+								{!isMetadataLoading && currentPhase !== null && (
+									<>
+										{/* Traits Phase */}
+										{availablePhases.includes(currentPhase) &&
+											currentPhase !== "card" &&
+											currentPhase !== "monetary" && (
+												<motion.div
+													exit={{
+														opacity: 0,
+														scale: 0.95,
+														filter: "blur(8px)",
+														transition: { duration: CARD_FADE_OUT_DURATION },
+													}}
+												>
+													<RevealStepGroup className="gap-6">
+														{/* Year - shows from year phase onwards */}
+														{shouldShowItemInAvailable(
+															"year",
+															currentPhase,
+															availablePhases,
+														) &&
+															year && (
+																<RevealStep
+																	label="Year"
+																	value={year}
+																	delay={getTraitStaggerDelay("year")}
+																	duration={0.8}
+																	rarity={resultRarity}
+																	icon="📅"
+																/>
+															)}
+
+														{/* Set Name - shows from setName phase onwards */}
+														{shouldShowItemInAvailable(
+															"setName",
+															currentPhase,
+															availablePhases,
+														) &&
+															setName && (
+																<RevealStep
+																	label="Set"
+																	value={setName}
+																	delay={getTraitStaggerDelay("setName")}
+																	duration={0.8}
+																	rarity={resultRarity}
+																	icon="📦"
+																/>
+															)}
+
+														{/* Card Name - shows from name phase onwards */}
+														{shouldShowItemInAvailable(
+															"name",
+															currentPhase,
+															availablePhases,
+														) && (
+															<RevealStep
+																label="Title"
+																value={cardName}
+																delay={getTraitStaggerDelay("name")}
+																duration={0.8}
+																rarity={resultRarity}
+																icon="✨"
+															/>
+														)}
+
+														{/* Grading - shows from grading phase onwards */}
+														{shouldShowItemInAvailable(
+															"grading",
+															currentPhase,
+															availablePhases,
+														) &&
+															gradingInfo && (
+																<RevealStep
+																	label="Grading"
+																	value={gradingInfo.displayString}
+																	delay={getTraitStaggerDelay("grading")}
+																	duration={0.8}
+																	rarity={resultRarity}
+																	icon="📊"
+																/>
+															)}
+
+														{/* Rarity - shows from rarity phase onwards */}
+														{shouldShowItemInAvailable(
+															"rarity",
+															currentPhase,
+															availablePhases,
+														) && (
+															<RevealStep
+																label="Rarity"
+																value={nftResult.rarity}
+																delay={getTraitStaggerDelay("rarity")}
+																duration={0.8}
+																rarity={resultRarity}
+																icon="💎"
+															/>
+														)}
+													</RevealStepGroup>
+												</motion.div>
+											)}
+
+										{/* Full Card Reveal */}
+										{(currentPhase === "card" ||
+											currentPhase === "monetary") && (
+											<motion.div
+												initial={{
+													opacity: 0,
+													scale: 0.3,
+													rotateY: -180,
+												}}
+												animate={{
+													opacity: 1,
+													scale: 1,
+													rotateY: 0,
+												}}
+												transition={{
+													duration: cardPhaseTiming.animationDuration,
+													ease: "easeOut",
+													type: "spring",
+													damping: 20,
+													stiffness: 100,
+												}}
+												className="relative"
+												style={{ perspective: 1000 }}
+											>
+												<NFTCard
+													data={{
+														collection: nftResult.collection,
+														tokenId: nftResult.tokenId,
+														imageUrl:
+															enhancedResult?.imageUrl || nftResult.imageUrl,
+														rarity: resultRarity,
+														metadata: enhancedResult?.metadata ?? null,
+														tokenURI: enhancedResult?.tokenURI ?? null,
+													}}
 													size="lg"
-													variant="button"
+													showCollectionName={true}
+													appraisalContractAddress={appraisalContractAddress}
+													{...(protocolTreasuryAddress && {
+														protocolTreasuryAddress,
+													})}
+													{...(gachaId && { gachaId })}
 												/>
 											</motion.div>
 										)}
-									</div>
-								</motion.div>
-							)}
-						</AnimatePresence>
-					</div>
+									</>
+								)}
+
+								{/* Monetary Reveal - THE BANG! */}
+								{!isMetadataLoading &&
+									currentPhase === "monetary" &&
+									protocolTreasuryAddress && (
+										<AnimatePresence>
+											<motion.div
+												key="monetary-reveal"
+												initial={{ opacity: 0, scale: 0.5, y: 50 }}
+												animate={{ opacity: 1, scale: 1, y: 0 }}
+												exit={{ opacity: 0, scale: 0.8, y: 20 }}
+												transition={{
+													duration: 0.8,
+													type: "spring",
+													stiffness: 200,
+													damping: 15,
+												}}
+												className="flex flex-col items-center gap-6 mt-8"
+											>
+												{/* Dramatic "Value Revealed" Label */}
+												<motion.div
+													initial={{ opacity: 0, y: -20 }}
+													animate={{ opacity: 1, y: 0 }}
+													transition={{ delay: 0.2, duration: 0.5 }}
+													className="text-center"
+												>
+													<motion.p
+														className={`text-sm uppercase tracking-[0.3em] ${rarityConfig.textColor} font-bold mb-2`}
+														animate={{ opacity: [0.5, 1, 0.5] }}
+														transition={{ duration: 2, repeat: Infinity }}
+													>
+														Appraisal Value
+													</motion.p>
+												</motion.div>
+
+												{/* Sell Button with Dramatic Entrance */}
+												<motion.div
+													className="z-50 w-full flex justify-center pointer-events-auto"
+													initial={{ opacity: 0, scale: 0.8, y: 30 }}
+													animate={{ opacity: 1, scale: 1, y: 0 }}
+													transition={{
+														delay: 0.4,
+														duration: 0.6,
+														type: "spring",
+														stiffness: 150,
+														damping: 12,
+													}}
+													whileHover={{ scale: 1.05 }}
+												>
+													<SellToTreasury
+														collection={nftResult.collection}
+														tokenId={nftResult.tokenId}
+														appraisalContractAddress={appraisalContractAddress}
+														protocolTreasuryAddress={protocolTreasuryAddress}
+														gachaTreasuryAddress={gachaTreasuryAddress}
+														size="lg"
+														variant="button"
+													/>
+												</motion.div>
+
+												{/* Sparkle Effects for Value Reveal */}
+												{resultRarity >= Rarity.Rare && (
+													<motion.div
+														className="absolute inset-0 pointer-events-none -z-10"
+														initial={{ opacity: 0 }}
+														animate={{ opacity: [0, 0.6, 0.3] }}
+														transition={{ duration: 1.5, times: [0, 0.5, 1] }}
+													>
+														<div
+															className={`absolute inset-0 rounded-3xl bg-gradient-to-r ${rarityConfig.bgGradient} opacity-30 blur-2xl`}
+														/>
+													</motion.div>
+												)}
+											</motion.div>
+										</AnimatePresence>
+									)}
+							</div>
+						</div>
+					</RevealErrorBoundary>
 				</ModalBody>
 			</ModalContent>
 		</Modal>

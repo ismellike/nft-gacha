@@ -2,47 +2,45 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useState, useCallback, useMemo } from "react";
-import { useAccount, usePublicClient } from "wagmi";
-import { motion } from "framer-motion";
 import {
 	BanknotesIcon,
-	GiftIcon,
-	WalletIcon,
 	ChartBarIcon,
-	TrophyIcon,
+	GiftIcon,
 	ShieldCheckIcon,
+	TrophyIcon,
+	WalletIcon,
 } from "@heroicons/react/24/outline";
-
-import { Button } from "../../../ui";
-import { Card } from "../../../ui";
-import { GachaSectionLayout } from "./GachaSectionLayout";
+import { motion } from "framer-motion";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
+import type { Address, PublicClient } from "viem";
+import { useAccount, usePublicClient } from "wagmi";
+import { useReadGachaTreasuryGetWhitelistedCollections } from "../../../generated";
 import {
-	VaultTabNavigation,
+	formatTokenAmount,
+	type UserDepositorData,
+	useClaimYield,
+	useDepositorVaultData,
+} from "../../../hooks/useDepositorVault";
+import { useGachaContracts } from "../../../hooks/useGachaContracts";
+import { useGachaId } from "../../../hooks/useGachaId";
+import { useNFTDeposit } from "../../../hooks/useNFTDeposit";
+import { useNFTWithdrawal } from "../../../hooks/useNFTWithdrawal";
+import {
+	type DepositedNFT,
+	useUserDepositedNFTs,
+} from "../../../hooks/useUserDepositedNFTs";
+import { useUserOwnedNFTsMultipleCollections } from "../../../hooks/useUserOwnedNFTs";
+import { getGachaConfig } from "../../../lib/gacha-config";
+import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
+import { Button, Card } from "../../../ui";
+import {
 	DepositTab,
+	VaultTabNavigation,
 	WithdrawTab,
 	YieldTab,
 } from "../../vault";
-import {
-	useDepositorVaultData,
-	formatTokenAmount,
-	useClaimYield,
-	type UserDepositorData,
-} from "../../../hooks/useDepositorVault";
-import { useNFTWithdrawal } from "../../../hooks/useNFTWithdrawal";
-import {
-	useUserDepositedNFTs,
-	type DepositedNFT,
-} from "../../../hooks/useUserDepositedNFTs";
-import { useNFTDeposit } from "../../../hooks/useNFTDeposit";
-import { useUserOwnedNFTsMultipleCollections } from "../../../hooks/useUserOwnedNFTs";
-import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
-import { useGachaContracts } from "../../../hooks/useGachaContracts";
-import { useGachaId } from "../../../hooks/useGachaId";
-import { getGachaConfig } from "../../../lib/gacha-config";
-import { useReadGachaTreasuryGetWhitelistedCollections } from "../../../generated";
-import { toast } from "react-hot-toast";
-import type { Address, PublicClient } from "viem";
+import { GachaSectionLayout } from "./GachaSectionLayout";
 
 // Types
 interface VaultSectionProps {
@@ -225,7 +223,7 @@ function useAppraisalChecker(
 					| Array<{
 							status: "success" | "failure";
 							result?: unknown;
-						}>
+					  }>
 					| undefined;
 
 				try {
@@ -324,10 +322,8 @@ function useAppraisalChecker(
 								appraisalPriceResult.status === "success" &&
 								appraisalPriceResult.result
 							) {
-								const [appraisedPrice, status] = appraisalPriceResult.result as [
-									bigint,
-									number,
-								];
+								const [appraisedPrice, status] =
+									appraisalPriceResult.result as [bigint, number];
 								const statusAsNumber = Number(status);
 								hasValidAppraisal =
 									appraisedPrice > 0n &&
@@ -507,7 +503,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		useReadGachaTreasuryGetWhitelistedCollections({
 			address: treasury,
 			query: { enabled: !!treasury },
-		} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
+		});
 	const whitelistedCollections: `0x${string}`[] =
 		(whitelistedCollectionsQuery.data as `0x${string}`[]) || [];
 
@@ -561,21 +557,18 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				const key = createNFTKey(nft.collection, nft.tokenId);
 				return !optimisticWithdrawals.has(key);
 			})
-			.reduce(
-				(acc, nft) => {
-					const key = createNFTKey(nft.collection, nft.tokenId);
-					if (
-						!acc.some(
-							(existing) =>
-								createNFTKey(existing.collection, existing.tokenId) === key,
-						)
-					) {
-						acc.push(nft);
-					}
-					return acc;
-				},
-				[] as NFTWithCollection[],
-			);
+			.reduce((acc, nft) => {
+				const key = createNFTKey(nft.collection, nft.tokenId);
+				if (
+					!acc.some(
+						(existing) =>
+							createNFTKey(existing.collection, existing.tokenId) === key,
+					)
+				) {
+					acc.push(nft);
+				}
+				return acc;
+			}, [] as NFTWithCollection[]);
 	}, [state.depositedNFTs, optimisticDepositedNFTs, optimisticWithdrawals]);
 
 	// NFT deposit hooks
@@ -654,9 +647,13 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	]);
 
 	// Manual refresh function for external calls
+	// Use ref for updateState to avoid dependency issues
+	const updateStateRef = useRef(updateState);
+	updateStateRef.current = updateState;
+
 	const loadDepositedNFTs = useCallback(async () => {
 		if (!treasury || !address) {
-			updateState("depositedNFTs", []);
+			updateStateRef.current("depositedNFTs", []);
 			return;
 		}
 
@@ -664,7 +661,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			const nfts = await getUserDepositedNFTs();
 
 			if (nfts.length === 0) {
-				updateState("depositedNFTs", []);
+				updateStateRef.current("depositedNFTs", []);
 				setOptimisticDepositedNFTs([]);
 				return;
 			}
@@ -692,23 +689,16 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 			const nftsWithCollections: NFTWithCollection[] =
 				nftsWithCanonicalData.map((nft) => ({ ...nft }));
-			updateState("depositedNFTs", nftsWithCollections);
+			updateStateRef.current("depositedNFTs", nftsWithCollections);
 			setOptimisticDepositedNFTs([]);
 		} catch (error) {
 			console.error("Error loading deposited NFTs:", error);
 			toast.error("Failed to load deposited NFTs", TOAST_CONFIG);
-			updateState("depositedNFTs", []);
+			updateStateRef.current("depositedNFTs", []);
 		} finally {
 			// No full-grid loading state needed.
 		}
-	}, [
-		treasury,
-		address,
-		getUserDepositedNFTs,
-		appraisal,
-		getCanonicalNFTData,
-		updateState,
-	]);
+	}, [treasury, address, getUserDepositedNFTs, appraisal, getCanonicalNFTData]);
 
 	React.useEffect(() => {
 		loadDepositedNFTs();
@@ -737,15 +727,12 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 		setOptimisticUserNFTAdds((prev) =>
 			prev.filter(
-				(nft) =>
-					!ownedKeys.has(createNFTKey(nft.collection, nft.tokenId)),
+				(nft) => !ownedKeys.has(createNFTKey(nft.collection, nft.tokenId)),
 			),
 		);
 
 		setOptimisticUserNFTRemovals((prev) => {
-			const next = new Set(
-				[...prev].filter((key) => ownedKeys.has(key)),
-			);
+			const next = new Set([...prev].filter((key) => ownedKeys.has(key)));
 			return next.size === prev.size ? prev : next;
 		});
 	}, [
@@ -844,22 +831,21 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				return next;
 			});
 			setOptimisticDepositedNFTs((prev) =>
-				prev.filter(
-					(nft) => createNFTKey(nft.collection, nft.tokenId) !== key,
-				),
+				prev.filter((nft) => createNFTKey(nft.collection, nft.tokenId) !== key),
 			);
 			setPendingDepositKey(null);
 		}
 	}, [
-		pendingDepositKey, 
-		interactionContext?.collection, 
-		interactionContext?.tokenId, 
-		interactionState, 
-		optimisticUserNFTRemovals, 
-		optimisticDepositedNFTs, 
-		state.appraisalData, 
-		displayUserNFTs, 
-		address, interactionContext
+		pendingDepositKey,
+		interactionContext?.collection,
+		interactionContext?.tokenId,
+		interactionState,
+		optimisticUserNFTRemovals,
+		optimisticDepositedNFTs,
+		state.appraisalData,
+		displayUserNFTs,
+		address,
+		interactionContext,
 	]);
 
 	// Event handlers
@@ -958,8 +944,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				if (optimisticApplied) {
 					setOptimisticUserNFTAdds((prev) =>
 						prev.filter(
-							(nft) =>
-								createNFTKey(nft.collection, nft.tokenId) !== nftKey,
+							(nft) => createNFTKey(nft.collection, nft.tokenId) !== nftKey,
 						),
 					);
 					setOptimisticWithdrawals((prev) => {
@@ -973,8 +958,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				if (optimisticApplied && receiptConfirmed) {
 					setOptimisticUserNFTAdds((prev) =>
 						prev.filter(
-							(nft) =>
-								createNFTKey(nft.collection, nft.tokenId) !== nftKey,
+							(nft) => createNFTKey(nft.collection, nft.tokenId) !== nftKey,
 						),
 					);
 					setOptimisticWithdrawals((prev) => {

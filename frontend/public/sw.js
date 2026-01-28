@@ -100,7 +100,10 @@ self.addEventListener("fetch", (event) => {
 	if (url.origin !== self.location.origin) {
 		// Handle third-party requests with runtime cache
 		for (const route of RUNTIME_CACHE_ROUTES) {
-			if (route.urlPattern instanceof RegExp && route.urlPattern.test(url.href)) {
+			if (
+				route.urlPattern instanceof RegExp &&
+				route.urlPattern.test(url.href)
+			) {
 				event.respondWith(
 					handleCacheStrategy(request, route.handler, route.options),
 				);
@@ -116,7 +119,7 @@ self.addEventListener("fetch", (event) => {
 
 // Handle same-origin requests
 async function handleSameOriginRequest(request) {
-	const url = new URL(request.url);
+	const _url = new URL(request.url);
 
 	// Try to serve from cache first, fall back to network
 	const cachedResponse = await caches.match(request, {
@@ -194,7 +197,10 @@ async function handleCacheStrategy(request, strategy, options = {}) {
 						(options.networkTimeoutSeconds || 10) * 1000,
 					),
 				);
-				const networkResponse = await Promise.race([networkPromise, timeoutPromise]);
+				const networkResponse = await Promise.race([
+					networkPromise,
+					timeoutPromise,
+				]);
 				if (networkResponse instanceof Response) {
 					cache.put(request, networkResponse.clone());
 					return networkResponse;
@@ -256,10 +262,7 @@ self.addEventListener("push", (event) => {
 // Notification click handler
 self.addEventListener("notificationclick", (event) => {
 	event.notification.close();
-	event.waitUntil(
-		self.clients.openWindow &&
-			self.clients.openWindow(event.notification.data || "/"),
-	);
+	event.waitUntil(self.clients.openWindow?.(event.notification.data || "/"));
 });
 
 console.log("[SW] Service Worker loaded");

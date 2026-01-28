@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import {
-	ExclamationTriangleIcon,
 	ArrowPathIcon,
-	WifiIcon,
+	ExclamationTriangleIcon,
 	WalletIcon,
+	WifiIcon,
 } from "@heroicons/react/24/outline";
-import { Button } from "../../../ui";
+import { useState } from "react";
 import { cn } from "../../../lib/theme-config";
+import { Button } from "../../../ui";
 
 export type RetryMessageType = "wallet" | "network" | "contract" | "general";
 

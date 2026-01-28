@@ -1,14 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Card } from "../../ui";
-import { glassCard } from "../../lib/theme-config";
 import {
+	ArrowRightIcon,
 	SparklesIcon,
 	TrophyIcon,
-	ArrowRightIcon,
 } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import Link from "next/link";
+import { glassCard } from "../../lib/theme-config";
+import { Card } from "../../ui";
 
 interface UserTypeCardProps {
 	title: string;
@@ -43,7 +43,8 @@ function UserTypeCard({
 						variant: "base",
 						padding: "lg",
 						className:
-							"h-full rounded-3xl hover:border-warning/40 transition-all duration-300 bg-gradient-to-br " + gradient,
+							"h-full rounded-3xl hover:border-warning/40 transition-all duration-300 bg-gradient-to-br " +
+							gradient,
 					})}
 				>
 					{/* Icon */}
@@ -55,12 +56,15 @@ function UserTypeCard({
 					<h3 className="text-2xl font-bold mb-3 text-foreground">{title}</h3>
 
 					{/* Description */}
-					<p className="text-foreground/70 mb-6 leading-relaxed">{description}</p>
+					<p className="text-foreground/70 mb-6 leading-relaxed">
+						{description}
+					</p>
 
 					{/* Features List */}
 					<ul className="space-y-3 mb-6">
 						{features.map((feature, index) => (
 							<motion.li
+								// biome-ignore lint/suspicious/noArrayIndexKey: Feature list is stable and order doesn't change
 								key={index}
 								initial={{ opacity: 0, x: -10 }}
 								animate={{ opacity: 1, x: 0 }}
@@ -117,8 +121,7 @@ export function UserTypeCards({ className = "" }: UserTypeCardsProps) {
 		},
 		{
 			title: "For Contributors",
-			description:
-				"Deposit NFTs to earn yield from every spin on the protocol",
+			description: "Deposit NFTs to earn yield from every spin on the protocol",
 			features: [
 				"Earn 95% of spin fees",
 				"Passive income stream",

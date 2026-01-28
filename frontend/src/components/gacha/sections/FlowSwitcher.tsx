@@ -1,7 +1,7 @@
 "use client";
 
-import type { ElementType } from "react";
 import { motion } from "framer-motion";
+import type { ElementType } from "react";
 import { cn } from "../../../lib/theme-config";
 
 interface FlowOption {

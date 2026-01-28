@@ -3,10 +3,10 @@
  */
 
 import { useCallback } from "react";
-import { usePublicClient } from "wagmi";
 import type { Address, Hex } from "viem";
-import { TIMEOUTS, RETRY_COUNTS } from "./constants";
+import { usePublicClient } from "wagmi";
 import type { ContractInteractionOptions } from "../types/hooks";
+import { RETRY_COUNTS, TIMEOUTS } from "./constants";
 
 /**
  * Hook for safe contract interactions with error handling and timeouts

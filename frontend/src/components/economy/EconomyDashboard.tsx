@@ -1,22 +1,22 @@
 "use client";
-import { Card } from "../../ui";
-import { TokenAmountDisplay, RevenueDisplay } from "../gacha";
-import { Skeleton } from "../shared";
 import {
-	useGachaEconomyManagerData,
+	useReadErc20BalanceOf,
+	useReadErc20Decimals,
+	useReadErc20Symbol,
+} from "@/generated";
+import {
 	calculateRevenueShares,
+	useGachaEconomyManagerData,
 } from "@/hooks/useGachaEconomyManager";
 import {
-	useProtocolTreasuryData,
 	getTreasuryStatus,
+	useProtocolTreasuryData,
 } from "@/hooks/useProtocolTreasury";
 import { useRegisterRewardsRefetch } from "@/hooks/useRewardsData";
 import type { GachaConfig } from "@/lib/gacha-config/types";
-import {
-	useReadErc20Decimals,
-	useReadErc20Symbol,
-	useReadErc20BalanceOf,
-} from "@/generated";
+import { Card } from "../../ui";
+import { RevenueDisplay, TokenAmountDisplay } from "../gacha";
+import { Skeleton } from "../shared";
 
 interface EconomyDashboardProps {
 	gachaConfig: GachaConfig;

@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { ArrowUpTrayIcon } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import { Button } from "../../../ui";
 
 interface EmptyDepositStateProps {

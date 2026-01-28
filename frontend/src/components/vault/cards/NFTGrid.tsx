@@ -1,8 +1,8 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import type React from "react";
 import { memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../../lib/theme-config";
 
 // Type guards for different NFT types
@@ -101,9 +101,9 @@ function NFTGrid<T>({
 	if (loading) {
 		return (
 			<div className={gridClasses}>
-				{Array.from({ length: 6 }).map((_, i) => (
+				{Array.from({ length: 6 }, (_, i) => `skeleton-${i}`).map((key) => (
 					<div
-						key={`skeleton-${i}`}
+						key={key}
 						className="bg-content1/20 backdrop-blur-xl rounded-xl border border-white/10 p-4 animate-pulse"
 					>
 						<div className="w-full aspect-square rounded-lg bg-content1/30 mb-3" />
@@ -156,7 +156,7 @@ function NFTGrid<T>({
 		}
 
 		return (
-			<div key={`item-${index}`} className="h-full">
+			<div key={getItemKey()} className="h-full">
 				{itemContent}
 			</div>
 		);

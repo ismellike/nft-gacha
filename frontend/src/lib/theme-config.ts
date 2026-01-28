@@ -3,7 +3,7 @@
  * Defines glassmorphism variants and component customizations
  */
 
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { tv } from "tailwind-variants";
 

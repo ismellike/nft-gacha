@@ -2,12 +2,12 @@
 
 import {
 	createContext,
-	useContext,
-	useCallback,
-	useRef,
-	useMemo,
-	useEffect,
 	type ReactNode,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
 } from "react";
 
 /**
@@ -110,9 +110,13 @@ export function useGachaRefresh(): GachaRefreshContextValue {
 export function useGachaRefetch(refetchFn: RefetchFunction) {
 	const { registerRefetch } = useGachaRefresh();
 
+	// Store latest refetchFn in ref to avoid dependency issues
+	const latestRefetchFn = useRef(refetchFn);
+	latestRefetchFn.current = refetchFn;
+
 	// Register refetch function on mount, cleanup on unmount
 	useEffect(() => {
-		const cleanup = registerRefetch(refetchFn);
+		const cleanup = registerRefetch(latestRefetchFn.current);
 		return cleanup;
-	}, [refetchFn, registerRefetch]);
+	}, [registerRefetch]);
 }

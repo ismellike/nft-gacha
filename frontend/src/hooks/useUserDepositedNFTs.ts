@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { useAccount, usePublicClient } from "wagmi";
 import type { Address, Hex } from "viem";
+import { useAccount, usePublicClient } from "wagmi";
 
 export interface DepositedNFT {
 	collection: Address;

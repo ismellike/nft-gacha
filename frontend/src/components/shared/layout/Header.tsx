@@ -1,16 +1,16 @@
 "use client";
 
-import { memo, useMemo } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { motion, useReducedMotion } from "framer-motion";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname } from "next/navigation";
 import {
-	HomeIcon,
 	CubeIcon,
+	HomeIcon,
 	MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { motion, useReducedMotion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { memo, useMemo } from "react";
 import { Card } from "../../../ui";
 
 // Helper function to get icon component

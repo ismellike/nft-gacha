@@ -1,28 +1,27 @@
 "use client";
 
+import {
+	ArrowRightIcon,
+	BoltIcon,
+	ChartBarIcon,
+	GiftIcon,
+	XCircleIcon,
+} from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import type { Address } from "viem";
-import { formatTokenAmount } from "../../lib/utils";
 import {
-	useReadGachaTreasuryGetPlatformOverviewBatch,
-	useReadGachaGetGachaConfigBatch,
-	useReadErc20Symbol,
 	useReadErc20Decimals,
+	useReadErc20Symbol,
+	useReadGachaGetGachaConfigBatch,
+	useReadGachaTreasuryGetPlatformOverviewBatch,
 } from "../../generated";
-import {
-	GiftIcon,
-	BoltIcon,
-	ArrowRightIcon,
-	XCircleIcon,
-	ChartBarIcon,
-} from "@heroicons/react/24/outline";
+import type { GachaConfig } from "../../lib/gacha-config";
+import { getAllRarities, getRarityEmoji } from "../../lib/rarityConfig";
+import { formatTokenAmount } from "../../lib/utils";
 import { Card, Chip } from "../../ui";
 import { GachaCardSkeleton } from "../shared/loading/SkeletonLoader";
 import { GachaCardHeader } from "./GachaCardHeader";
-import { getAllRarities, getRarityEmoji } from "../../lib/rarityConfig";
-import type { GachaConfig } from "../../lib/gacha-config";
 
 interface GachaCardProps {
 	gacha: GachaConfig;
@@ -34,48 +33,28 @@ export function GachaCard({ gacha }: GachaCardProps) {
 	// 🚀 BATCH OPTIMIZED: Get all data in 2 calls instead of 5!
 	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
 
-	// Types based on contract return values
-	type PlatformOverviewBatch = readonly [
-		rarityCounts: readonly bigint[], // [5]
-		totalItems: bigint,
-		gachaAvailable: boolean,
-		totalDeposited: bigint,
-		totalClaimed: bigint,
-	];
+	// Use inferred types to avoid infinite type instantiation with complex generated types
+	const platformResult = useReadGachaTreasuryGetPlatformOverviewBatch({
+		address: treasuryAddress,
+	});
 
-	type GachaConfigBatch = readonly [
-		feeTokenAddr: Address,
-		spinFeeAmount: bigint,
-		isPaused: boolean,
-		rarityWeights: readonly bigint[], // [5]
-		totalWeight: bigint,
-		isAvailable: boolean,
-	];
+	const gachaConfigResult = useReadGachaGetGachaConfigBatch({
+		address: gacha.address as `0x${string}`,
+	});
 
-	const { data: platformData, isLoading: isPlatformLoading } =
-		useReadGachaTreasuryGetPlatformOverviewBatch({
-			address: treasuryAddress,
-		} as Parameters<typeof useReadGachaTreasuryGetPlatformOverviewBatch>[0]);
+	const platformData = platformResult?.data;
+	const gachaConfig = gachaConfigResult?.data;
+	const isPlatformLoading = platformResult?.isLoading;
+	const isGachaConfigLoading = gachaConfigResult?.isLoading;
 
-	const { data: gachaConfig, isLoading: isGachaConfigLoading } =
-		useReadGachaGetGachaConfigBatch({
-			address: gacha.address as `0x${string}`,
-		} as Parameters<typeof useReadGachaGetGachaConfigBatch>[0]);
+	// Extract platform data with simple type assertions
+	const rarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
+	const totalItemsCount = platformData?.[1] || 0n;
+	const isAvailable = platformData?.[2] || false;
 
-	// Extract platform data: [rarityCounts[5], totalItems, isGachaAvailable, totalDeposited, totalClaimed]
-	const rarityCounts = (platformData as PlatformOverviewBatch)?.[0] || [
-		0n,
-		0n,
-		0n,
-		0n,
-		0n,
-	];
-	const totalItemsCount = (platformData as PlatformOverviewBatch)?.[1] || 0n;
-	const isAvailable = (platformData as PlatformOverviewBatch)?.[2] || false;
-
-	// Extract gacha config: [feeTokenAddr, spinFeeAmount, isPaused, rarityWeights[5], totalWeight, isAvailable]
-	const feeToken = (gachaConfig as GachaConfigBatch)?.[0];
-	const spinFee = (gachaConfig as GachaConfigBatch)?.[1] || 0n;
+	// Extract gacha config
+	const feeToken = gachaConfig?.[0];
+	const spinFee = gachaConfig?.[1] || 0n;
 
 	const { data: feeTokenSymbol } = useReadErc20Symbol({
 		address: feeToken,

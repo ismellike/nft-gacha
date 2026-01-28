@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn } from "../../lib/theme-config";
 import type { Rarity } from "../../lib/rarityConfig";
 import { getRarityConfig } from "../../lib/rarityConfig";
+import { cn } from "../../lib/theme-config";
 
 interface NFTLoadingPlaceholderProps {
 	size?: "sm" | "md" | "lg" | "xl";

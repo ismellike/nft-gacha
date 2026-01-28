@@ -18,7 +18,10 @@ interface ErrorBoundaryState {
  * Error Boundary component to catch JavaScript errors anywhere in the component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+	ErrorBoundaryProps,
+	ErrorBoundaryState
+> {
 	constructor(props: ErrorBoundaryProps) {
 		super(props);
 		this.state = { hasError: false, error: null };
@@ -60,7 +63,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
+								aria-label="Error warning icon"
 							>
+								<title>Error warning</title>
 								<path
 									strokeLinecap="round"
 									strokeLinejoin="round"
@@ -77,12 +82,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 						</p>
 						<div className="flex gap-3 justify-center">
 							<button
+								type="button"
 								onClick={this.handleReset}
 								className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
 							>
 								Try Again
 							</button>
 							<button
+								type="button"
 								onClick={() => window.location.reload()}
 								className="px-4 py-2 rounded-lg bg-content2 text-foreground font-medium hover:bg-content3 transition-colors"
 							>

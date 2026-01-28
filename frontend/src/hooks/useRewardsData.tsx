@@ -1,14 +1,14 @@
 "use client";
 
-import { useAccount } from "wagmi";
 import {
-	useCallback,
-	useRef,
 	createContext,
+	type ReactNode,
+	useCallback,
 	useContext,
 	useEffect,
-	type ReactNode,
+	useRef,
 } from "react";
+import { useAccount } from "wagmi";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 
@@ -162,11 +162,20 @@ export function useRegisterRewardsRefetch(
 ) {
 	const { registerRefetch, unregisterRefetch } = useRewardsRefetchContext();
 
+	// Store latest refetchFn in ref
+	const latestRefetchFn = useRef(refetchFn);
+	latestRefetchFn.current = refetchFn;
+
+	// Create stable callback wrapper
+	const stableRefetchFn = useCallback(() => {
+		latestRefetchFn.current?.();
+	}, []);
+
 	// Register refetch function when component mounts or dependencies change
 	useEffect(() => {
-		registerRefetch(key, refetchFn);
+		registerRefetch(key, stableRefetchFn);
 		return () => unregisterRefetch(key);
-	}, [key, refetchFn, registerRefetch, unregisterRefetch]);
+	}, [key, registerRefetch, unregisterRefetch, stableRefetchFn]);
 
 	// Return cleanup function for manual unregistration
 	return useCallback(() => {

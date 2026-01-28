@@ -1,34 +1,33 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAccount } from "wagmi";
 import {
-	ClockIcon,
-	CheckBadgeIcon,
-	ExclamationTriangleIcon,
-	MagnifyingGlassIcon,
 	ArrowPathIcon,
-	GiftIcon,
-	FunnelIcon,
 	ArrowsUpDownIcon,
+	CheckBadgeIcon,
+	ClockIcon,
 	DocumentTextIcon,
+	ExclamationTriangleIcon,
+	FunnelIcon,
+	GiftIcon,
+	MagnifyingGlassIcon,
 	SparklesIcon,
 } from "@heroicons/react/24/outline";
-
-import { Card, Button } from "../../ui";
-import { LoadingState } from "../shared/feedback";
-import { NFTCard } from "./NFTCard";
-import { DepositableNFTCard } from "../vault";
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAccount } from "wagmi";
+import {
+	type AppraisalFilter,
+	type AppraisalSort,
+	useAppraisalData,
+} from "../../hooks/useAppraisalData";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { formatCurrency } from "../../lib/utils";
-import {
-	useAppraisalData,
-	type AppraisalFilter,
-	type AppraisalSort,
-} from "../../hooks/useAppraisalData";
 import type { OptimisticAppraisal } from "../../stores/nftAppraisalStore";
+import { Button, Card } from "../../ui";
+import { LoadingState } from "../shared/feedback";
+import { DepositableNFTCard } from "../vault";
+import { NFTCard } from "./NFTCard";
 
 interface AppraisedNFT {
 	collection: string;

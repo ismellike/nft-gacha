@@ -1,12 +1,12 @@
 "use client";
 
-import { memo } from "react";
-import { motion } from "framer-motion";
 import { ArrowUpTrayIcon, SparklesIcon } from "@heroicons/react/24/outline";
-import { Button } from "../../../ui";
-import { NFTCard } from "../../nft";
+import { motion } from "framer-motion";
+import { memo } from "react";
 import { cn } from "../../../lib/theme-config";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
+import { Button } from "../../../ui";
+import { NFTCard } from "../../nft";
 
 interface DepositNFTCardProps {
 	nft: UserOwnedNFTMultiCollection;

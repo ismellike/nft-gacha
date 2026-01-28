@@ -1,22 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAccount } from "wagmi";
 import {
-	CheckBadgeIcon,
 	ArrowPathIcon,
-	SparklesIcon,
+	CheckBadgeIcon,
 	GiftIcon,
 	InformationCircleIcon,
+	SparklesIcon,
 } from "@heroicons/react/24/outline";
-
-import { Card, Button, Skeleton } from "../../ui";
+import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
+import { useAccount } from "wagmi";
 import { AppraisalWorkflowGuide } from "../../components/nft/AppraisalWorkflowGuide";
-import { WalletNFTPicker, type SelectedNFT } from "../../components/nft/WalletNFTPicker";
 import { NFTAppraisalForm } from "../../components/nft/NFTAppraisalForm";
+import {
+	type SelectedNFT,
+	WalletNFTPicker,
+} from "../../components/nft/WalletNFTPicker";
 import { useAppraisalData } from "../../hooks/useAppraisalData";
 import { formatCurrency } from "../../lib/utils";
+import { Button, Card, Skeleton } from "../../ui";
 
 type AppraisalStage = "select" | "appraise" | "complete";
 
@@ -26,14 +28,11 @@ export default function StreamlinedAppraisalPage() {
 	const [selectedNFT, setSelectedNFT] = useState<SelectedNFT | null>(null);
 	const [appraisedNFT, setAppraisedNFT] = useState<SelectedNFT | null>(null);
 
-	const { appraisalFee, loading, error, refetch } = useAppraisalData(
-		address,
-		{
-			autoRefresh: true,
-			filter: "all",
-			sort: "newest",
-		},
-	);
+	const { appraisalFee, loading, error, refetch } = useAppraisalData(address, {
+		autoRefresh: true,
+		filter: "all",
+		sort: "newest",
+	});
 
 	const handleNFTSelect = (nft: SelectedNFT) => {
 		setSelectedNFT(nft);
@@ -82,8 +81,8 @@ export default function StreamlinedAppraisalPage() {
 							<span className="text-warning">~1 Minute</span>
 						</h1>
 						<p className="text-base sm:text-lg text-foreground/70 max-w-2xl mx-auto">
-							Select an NFT from your wallet, pay a small fee, and get an on-chain
-							appraisal ready for gacha deposits
+							Select an NFT from your wallet, pay a small fee, and get an
+							on-chain appraisal ready for gacha deposits
 						</p>
 
 						{/* Quick stats */}
@@ -96,7 +95,9 @@ export default function StreamlinedAppraisalPage() {
 							) : appraisalFee ? (
 								<div className="flex items-center gap-2 rounded-full border border-white/10 bg-content1/30 px-4 py-2 text-sm text-foreground/70">
 									<SparklesIcon className="w-4 h-4 text-warning" />
-									<span>Fee: {formatCurrency(appraisalFee.toString(), 6, "USDC")}</span>
+									<span>
+										Fee: {formatCurrency(appraisalFee.toString(), 6, "USDC")}
+									</span>
 								</div>
 							) : null}
 						</div>
@@ -160,11 +161,7 @@ export default function StreamlinedAppraisalPage() {
 													Pay the fee and wait for the on-chain appraisal
 												</p>
 											</div>
-											<Button
-												color="glass"
-												size="sm"
-												onPress={handleStartOver}
-											>
+											<Button color="glass" size="sm" onPress={handleStartOver}>
 												Back
 											</Button>
 										</div>
@@ -219,7 +216,9 @@ export default function StreamlinedAppraisalPage() {
 											<Card className="max-w-md mx-auto p-4 bg-content1/20 border border-white/10">
 												<div className="space-y-3">
 													<div className="flex items-center justify-between text-sm">
-														<span className="text-foreground/60">Collection</span>
+														<span className="text-foreground/60">
+															Collection
+														</span>
 														<span className="font-mono">
 															{appraisedNFT.collection.slice(0, 8)}...
 															{appraisedNFT.collection.slice(-6)}
@@ -274,11 +273,11 @@ export default function StreamlinedAppraisalPage() {
 										How Appraisal Works
 									</p>
 									<p>
-										Our AVS (Active Validated Service) decodes your NFT metadata,
-										queries external APIs for market data and comparable sales,
-										then posts the appraisal on-chain. This typically completes
-										within 1 minute. Once appraised, your NFT can be deposited
-										into the gacha system.
+										Our AVS (Active Validated Service) decodes your NFT
+										metadata, queries external APIs for market data and
+										comparable sales, then posts the appraisal on-chain. This
+										typically completes within 1 minute. Once appraised, your
+										NFT can be deposited into the gacha system.
 									</p>
 								</div>
 							</div>

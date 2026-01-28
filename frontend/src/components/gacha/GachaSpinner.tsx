@@ -1,14 +1,14 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import SpinControls from "./SpinControls";
-import RarityBreakdown from "./RarityBreakdown";
-import { PricingBreakdown } from "./PricingBreakdown";
-import NFTRevealModal from "./NFTRevealModal";
-import { useGachaSpinMachine } from "../../hooks/useGachaSpinMachine";
+import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
+import { useGachaSpinMachine } from "../../hooks/useGachaSpinMachine";
+import NFTRevealModal from "./NFTRevealModal";
+import { PricingBreakdown } from "./PricingBreakdown";
+import RarityBreakdown from "./RarityBreakdown";
+import SpinControls from "./SpinControls";
 
 const GachaSpinner = memo(() => {
 	const gachaId = useGachaId();
@@ -67,10 +67,7 @@ const GachaSpinner = memo(() => {
 						{gachaSpin.isTimeout &&
 							"Randomness timeout - you can reclaim your funds"}
 					</output>
-					<SpinControls
-						gachaSpin={gachaSpin}
-						onRefund={handleRefund}
-					/>
+					<SpinControls gachaSpin={gachaSpin} onRefund={handleRefund} />
 				</div>
 
 				{/* Left Column - Rarity Info & Pricing */}
@@ -81,10 +78,7 @@ const GachaSpinner = memo(() => {
 
 				{/* Desktop Left Column - Spin Controls */}
 				<div className="hidden lg:block space-y-8">
-					<SpinControls
-						gachaSpin={gachaSpin}
-						onRefund={handleRefund}
-					/>
+					<SpinControls gachaSpin={gachaSpin} onRefund={handleRefund} />
 				</div>
 			</div>
 		</div>

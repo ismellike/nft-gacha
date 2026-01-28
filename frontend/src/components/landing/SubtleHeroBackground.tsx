@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Rarity } from "../../lib/rarityConfig";
-import { getRarityColorHex } from "../../lib/rarityConfig";
+import { getRarityColorHex, Rarity } from "../../lib/rarityConfig";
 
 interface SubtleHeroBackgroundProps {
 	className?: string;
@@ -12,7 +11,9 @@ interface SubtleHeroBackgroundProps {
  * SubtleHeroBackground - Dynamic animated background matching the rarity theme.
  * Uses the rarity color palette (Common → Legendary) with smooth, flowing animations.
  */
-export function SubtleHeroBackground({ className = "" }: SubtleHeroBackgroundProps) {
+export function SubtleHeroBackground({
+	className = "",
+}: SubtleHeroBackgroundProps) {
 	const rarities = [
 		Rarity.Common,
 		Rarity.Uncommon,
@@ -34,7 +35,8 @@ export function SubtleHeroBackground({ className = "" }: SubtleHeroBackgroundPro
 					height: "800px",
 					left: "20%",
 					top: "10%",
-					background: "radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, transparent 70%)",
+					background:
+						"radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, transparent 70%)",
 				}}
 				animate={{
 					scale: [1, 1.2, 1],
@@ -87,7 +89,8 @@ export function SubtleHeroBackground({ className = "" }: SubtleHeroBackgroundPro
 					height: "600px",
 					right: "10%",
 					bottom: "10%",
-					background: "radial-gradient(circle, rgba(251, 146, 60, 0.1) 0%, transparent 70%)",
+					background:
+						"radial-gradient(circle, rgba(251, 146, 60, 0.1) 0%, transparent 70%)",
 				}}
 				animate={{
 					y: [0, -35, 0],
@@ -111,7 +114,8 @@ export function SubtleHeroBackground({ className = "" }: SubtleHeroBackgroundPro
 					height: "450px",
 					left: "40%",
 					bottom: "20%",
-					background: "radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 65%)",
+					background:
+						"radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 65%)",
 				}}
 				animate={{
 					y: [0, -25, 0],
@@ -132,13 +136,13 @@ export function SubtleHeroBackground({ className = "" }: SubtleHeroBackgroundPro
 				{ rarity: Rarity.Epic, x: "75%", y: "30%", size: 200, delay: 1.5 },
 				{ rarity: Rarity.Legendary, x: "50%", y: "75%", size: 160, delay: 2.5 },
 				{ rarity: Rarity.Uncommon, x: "85%", y: "65%", size: 140, delay: 3 },
-			].map((orb, i) => {
+			].map((orb) => {
 				const colorHex = getRarityColorHex(orb.rarity, 500);
 				const colorWithAlpha = `${colorHex}18`;
 
 				return (
 					<motion.div
-						key={`accent-${i}`}
+						key={`accent-${orb.rarity}`}
 						className="absolute rounded-full blur-2xl"
 						style={{
 							width: orb.size,
@@ -167,7 +171,8 @@ export function SubtleHeroBackground({ className = "" }: SubtleHeroBackgroundPro
 			<motion.div
 				className="absolute inset-0 opacity-[0.02]"
 				style={{
-					background: "linear-gradient(135deg, transparent 40%, rgba(251, 191, 36, 0.3) 50%, transparent 60%)",
+					background:
+						"linear-gradient(135deg, transparent 40%, rgba(251, 191, 36, 0.3) 50%, transparent 60%)",
 				}}
 				animate={{
 					x: ["-100%", "100%"],
