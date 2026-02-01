@@ -28,6 +28,8 @@ import {
 import { useFormUrlSync } from "../../hooks/useFormUrlSync";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
+import { useFormValidation } from "../../hooks/useFormValidation";
+import { validationRules } from "../../lib/formValidation";
 import { useRewardsData } from "../../hooks/useRewardsData";
 import { formatTokenAmount } from "../../lib/utils";
 import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
@@ -91,6 +93,33 @@ export function NFTAppraisalForm({
 	});
 
 	const [errors, setErrors] = useState<FormErrors>({});
+
+	// Form validation with real-time feedback
+	const formConfig = {
+		collection: {
+			rules: [
+				validationRules.required("Collection address is required"),
+				validationRules.ethAddress(),
+			],
+			validateOnChange: true,
+		},
+		tokenId: {
+			rules: [
+				validationRules.required("Token ID is required"),
+				validationRules.tokenId(),
+			],
+			validateOnChange: true,
+		},
+	};
+
+	const {
+		fields,
+		validateField,
+		touchField,
+		validateAll,
+		reset: resetValidation,
+		isFormValid,
+	} = useFormValidation(formConfig);
 
 	const [status, setStatus] = useState<AppraisalStatus>("idle");
 	const [appraisalResult, setAppraisalResult] =
@@ -334,23 +363,18 @@ export function NFTAppraisalForm({
 		return currentAllowance < appraisalFee;
 	};
 
-	// Form validation
+	// Form validation using the validation hook
 	const validateForm = (): boolean => {
 		const newErrors: FormErrors = {};
 
-		if (!formData.collection.trim()) {
-			newErrors.collection = "Please enter a collection address";
-		} else if (!isAddress(formData.collection)) {
-			newErrors.collection = "Please enter a valid address";
-		}
+		// Use the validation hook for field-level validation
+		const isFieldsValid = validateAll({
+			collection: formData.collection,
+			tokenId: formData.tokenId,
+		});
 
-		if (!formData.tokenId.trim()) {
-			newErrors.tokenId = "Please enter a token ID";
-		} else if (
-			Number.isNaN(Number(formData.tokenId)) ||
-			Number(formData.tokenId) < 0
-		) {
-			newErrors.tokenId = "Please enter a valid ID";
+		if (!isFieldsValid) {
+			return false;
 		}
 
 		if (!isConnected) {
@@ -513,10 +537,15 @@ export function NFTAppraisalForm({
 		// Update URL params when form fields change
 		updateUrlFromFormData(newFormData);
 
-		// Clear errors when user types
-		if (errors[field]) {
-			setErrors((prev) => ({ ...prev, [field]: undefined }));
+		// Touch and validate the field
+		touchField(field);
+
+		const fieldConfig = formConfig[field as keyof typeof formConfig];
+		if (fieldConfig?.validateOnChange) {
+			validateField(field, value);
 		}
+
+		// Clear general errors when user types
 		if (errors.general) {
 			setErrors((prev) => {
 				const newErrors = { ...prev };
@@ -535,6 +564,7 @@ export function NFTAppraisalForm({
 		setSubmissionOutcome(null);
 		lastSubmittedRef.current = null;
 		setErrors({});
+		resetValidation();
 		const emptyFormData = { collection: "", tokenId: "" };
 		setFormData(emptyFormData);
 		updateUrlFromFormData(emptyFormData);
@@ -1008,23 +1038,42 @@ export function NFTAppraisalForm({
 									onChange={(e) =>
 										handleInputChange("collection", e.target.value)
 									}
+									onBlur={() => touchField("collection")}
 									disabled={isPending}
 									className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
-										errors.collection
-											? "border-red-400 focus:border-red-400 focus:ring-red-400/30"
-											: "border-white/10 focus:border-warning focus:ring-warning/30"
+										fields.collection?.isTouched && !fields.collection?.isValid
+											? "border-danger bg-danger/10 focus:border-danger focus:ring-danger/30"
+											: fields.collection?.isValid
+												? "border-success bg-success/10 focus:border-success focus:ring-success/30"
+												: "border-white/10 focus:border-warning focus:ring-warning/30"
 									} focus:outline-none focus:ring-2 disabled:bg-content1/30 disabled:text-foreground/40 disabled:cursor-not-allowed`}
+									aria-invalid={
+										fields.collection?.isTouched && !fields.collection?.isValid
+									}
+									aria-describedby={
+										fields.collection?.error ? "collection-error" : undefined
+									}
 								/>
-								{errors.collection && (
+								{fields.collection?.error ? (
 									<motion.p
 										initial={{ opacity: 0 }}
 										animate={{ opacity: 1 }}
-										className="text-red-600 text-sm mt-1 flex items-center gap-1"
+										id="collection-error"
+										className="text-danger text-sm mt-1 flex items-center gap-1"
+									>
+										<ExclamationTriangleIcon className="w-4 h-4" />
+										{fields.collection.error}
+									</motion.p>
+								) : errors.collection ? (
+									<motion.p
+										initial={{ opacity: 0 }}
+										animate={{ opacity: 1 }}
+										className="text-danger text-sm mt-1 flex items-center gap-1"
 									>
 										<ExclamationTriangleIcon className="w-4 h-4" />
 										{errors.collection}
 									</motion.p>
-								)}
+								) : null}
 							</div>
 						</div>
 
@@ -1043,23 +1092,42 @@ export function NFTAppraisalForm({
 									placeholder="123"
 									value={formData.tokenId}
 									onChange={(e) => handleInputChange("tokenId", e.target.value)}
+									onBlur={() => touchField("tokenId")}
 									disabled={isPending}
 									className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
-										errors.tokenId
-											? "border-red-400 focus:border-red-400 focus:ring-red-400/30"
-											: "border-white/10 focus:border-warning focus:ring-warning/30"
+										fields.tokenId?.isTouched && !fields.tokenId?.isValid
+											? "border-danger bg-danger/10 focus:border-danger focus:ring-danger/30"
+											: fields.tokenId?.isValid
+												? "border-success bg-success/10 focus:border-success focus:ring-success/30"
+												: "border-white/10 focus:border-warning focus:ring-warning/30"
 									} focus:outline-none focus:ring-2 disabled:bg-content1/30 disabled:text-foreground/40 disabled:cursor-not-allowed`}
+									aria-invalid={
+										fields.tokenId?.isTouched && !fields.tokenId?.isValid
+									}
+									aria-describedby={
+										fields.tokenId?.error ? "tokenId-error" : undefined
+									}
 								/>
-								{errors.tokenId && (
+								{fields.tokenId?.error ? (
 									<motion.p
 										initial={{ opacity: 0 }}
 										animate={{ opacity: 1 }}
-										className="text-red-600 text-sm mt-1 flex items-center gap-1"
+										id="tokenId-error"
+										className="text-danger text-sm mt-1 flex items-center gap-1"
+									>
+										<ExclamationTriangleIcon className="w-4 h-4" />
+										{fields.tokenId.error}
+									</motion.p>
+								) : errors.tokenId ? (
+									<motion.p
+										initial={{ opacity: 0 }}
+										animate={{ opacity: 1 }}
+										className="text-danger text-sm mt-1 flex items-center gap-1"
 									>
 										<ExclamationTriangleIcon className="w-4 h-4" />
 										{errors.tokenId}
 									</motion.p>
-								)}
+								) : null}
 							</div>
 						</div>
 
@@ -1126,6 +1194,7 @@ export function NFTAppraisalForm({
 									className="w-full bg-gradient-to-r from-orange-400 to-yellow-400 hover:from-orange-500 hover:to-yellow-500 text-white font-medium"
 									isLoading={isPending}
 									isDisabled={
+										!isFormValid ||
 										!formData.collection.trim() ||
 										!formData.tokenId.trim() ||
 										hasInsufficientBalance()

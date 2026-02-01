@@ -12,7 +12,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import type { Address, PublicClient } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../../../generated";
@@ -31,6 +30,7 @@ import {
 	useUserDepositedNFTs,
 } from "../../../hooks/useUserDepositedNFTs";
 import { useUserOwnedNFTsMultipleCollections } from "../../../hooks/useUserOwnedNFTs";
+import { toastSuccess, toastError } from "../../../lib/toast";
 import { getGachaConfig } from "../../../lib/gacha-config";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
 import { Button } from "../../../ui";
@@ -68,12 +68,6 @@ interface VaultState {
 	selectedForWithdrawal: Set<string>; // Multi-select for batch withdrawal
 	isBatchWithdrawing: boolean;
 }
-
-// Constants
-const TOAST_CONFIG = {
-	duration: 4000,
-	position: "bottom-right" as const,
-};
 
 // Helper functions
 const createNFTKey = (collection: string, tokenId: string | bigint): string =>
@@ -573,7 +567,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		interactionContext,
 	} = useNFTDeposit({
 		onSuccess: () => {
-			toast.success("NFT deposited successfully!", TOAST_CONFIG);
+			toastSuccess("NFT deposited successfully!");
 
 			refetchDepositorVault();
 			refetchUserNFTs();
@@ -687,7 +681,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			setOptimisticDepositedNFTs([]);
 		} catch (error) {
 			console.error("Error loading deposited NFTs:", error);
-			toast.error("Failed to load deposited NFTs", TOAST_CONFIG);
+			toastError("Failed to load deposited NFTs");
 			updateStateRef.current("depositedNFTs", []);
 		} finally {
 			// No full-grid loading state needed.
@@ -858,15 +852,12 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			});
 
 			if (receipt?.status === "success") {
-				toast.success("Yield claimed successfully!", TOAST_CONFIG);
+				toastSuccess("Yield claimed successfully!");
 				refetchDepositorVault();
 			}
 		} catch (error) {
 			console.error("Error claiming yield:", error);
-			toast.error(
-				error instanceof Error ? error.message : "Failed to claim yield",
-				TOAST_CONFIG,
-			);
+			toastError(error instanceof Error ? error.message : "Failed to claim yield");
 		}
 	}, [
 		address,
@@ -879,7 +870,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const handleWithdrawNFT = useCallback(
 		async (collection: Address, tokenId: bigint) => {
 			if (!treasury) {
-				toast.error("Treasury contract not available", TOAST_CONFIG);
+				toastError("Treasury contract not available");
 				return;
 			}
 
@@ -897,7 +888,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			try {
 				// Submit the transaction (user confirms in wallet here)
 				const hash = await withdrawNFT(collection, tokenId);
-				toast.success("NFT withdrawal submitted!", TOAST_CONFIG);
+				toastSuccess("NFT withdrawal submitted!");
 
 				setOptimisticWithdrawals((prev) => new Set([...prev, nftKey]));
 				setOptimisticUserNFTAdds((prev) => {
@@ -933,7 +924,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				console.error("Error withdrawing NFT:", error);
 				const errorMessage =
 					error instanceof Error ? error.message : "Unknown error occurred";
-				toast.error(`Failed to withdraw NFT: ${errorMessage}`, TOAST_CONFIG);
+				toastError(`Failed to withdraw NFT: ${errorMessage}`);
 				// Clear optimistic state on error (if applied)
 				if (optimisticApplied) {
 					setOptimisticUserNFTAdds((prev) =>
@@ -989,7 +980,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 					interactionContext.tokenId,
 				);
 				if (activeKey !== nftKey) {
-					toast.error("Another deposit is already in progress", TOAST_CONFIG);
+					toastError("Another deposit is already in progress");
 					return;
 				}
 			}
@@ -1001,7 +992,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				});
 			} catch (error) {
 				console.error("Error depositing NFT:", error);
-				toast.error("Failed to deposit NFT", TOAST_CONFIG);
+				toastError("Failed to deposit NFT");
 				setPendingDepositKey(null);
 			}
 		},

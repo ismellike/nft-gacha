@@ -6,6 +6,8 @@ import { useState } from "react";
 import { WagmiProvider } from "wagmi";
 import { RewardsRefetchProvider } from "../hooks/useRewardsData";
 import { config } from "../wagmi";
+import { ErrorBoundary } from "../components/shared/ErrorBoundary";
+import { Toaster } from "../components/shared/Toaster";
 
 const customDarkTheme = darkTheme({
 	accentColor: "#eab308",
@@ -37,13 +39,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 	return (
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
-				<RainbowKitProvider
-					theme={customDarkTheme}
-					modalSize="compact"
-					showBalance={false}
-				>
-					<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
-				</RainbowKitProvider>
+				<ErrorBoundary>
+					<RainbowKitProvider
+						theme={customDarkTheme}
+						modalSize="compact"
+					>
+						<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
+					</RainbowKitProvider>
+					<Toaster />
+				</ErrorBoundary>
 			</QueryClientProvider>
 		</WagmiProvider>
 	);

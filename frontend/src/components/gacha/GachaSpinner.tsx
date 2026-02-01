@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import {
 	ClockIcon,
@@ -10,11 +10,15 @@ import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useGachaSpinMachine } from "../../hooks/useGachaSpinMachine";
-import NFTRevealModal from "./NFTRevealModal";
 import { PricingBreakdown } from "./PricingBreakdown";
 import RarityBreakdown from "./RarityBreakdown";
 import SpinControls from "./SpinControls";
 import { Button } from "../../ui";
+
+// Lazy load the heavy NFTRevealModal component
+const NFTRevealModal = lazy(() =>
+	import("./NFTRevealModal")
+);
 
 const GachaSpinner = memo(() => {
 	const gachaId = useGachaId();
@@ -88,13 +92,21 @@ const GachaSpinner = memo(() => {
 
 			{/* NFT Reveal Modal */}
 			{gachaSpin.isRevealing && gachaSpin.spinResult && contracts.appraisal && (
-				<NFTRevealModal
-					isVisible={true}
-					nftResult={gachaSpin.spinResult}
-					onClose={handleCloseReveal}
-					appraisalContractAddress={contracts.appraisal as `0x${string}`}
-					gachaId={gachaId}
-				/>
+				<Suspense
+					fallback={
+						<div className="flex items-center justify-center p-8">
+							<div className="w-8 h-8 border-4 border-warning/30 border-t-warning rounded-full animate-spin" />
+						</div>
+					}
+				>
+					<NFTRevealModal
+						isVisible={true}
+						nftResult={gachaSpin.spinResult}
+						onClose={handleCloseReveal}
+						appraisalContractAddress={contracts.appraisal as `0x${string}`}
+						gachaId={gachaId}
+					/>
+				</Suspense>
 			)}
 
 			{/* Main Grid Layout - Mobile First, Single Column */}

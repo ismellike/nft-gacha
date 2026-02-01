@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "react-hot-toast";
+import { toastSuccess, toastError, toastInfo } from "../lib/toast";
 import { useWatchProtocolTreasuryRedemptionExecuted } from "../generated";
 
 export function useRedemptionNotifications(
@@ -18,20 +18,9 @@ export function useRedemptionNotifications(
 				const tokenIdStr = tokenId?.toString() ?? "";
 
 				// Success notification for NFT redemption
-				toast.success(
-					`🎯 NFT Sold Successfully!\nCollection: ${collectionShort}\nToken ID: ${tokenIdStr}\nReceived: ${(Number(payout) / 1_000_000).toFixed(2)} USDC`,
-					{
-						duration: 5000,
-						position: "top-right",
-						icon: "💰",
-						style: {
-							background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-							color: "white",
-							border: "1px solid #065f46",
-							borderRadius: "12px",
-							fontWeight: "500",
-						},
-					},
+				toastSuccess(
+					`🎯 Collection: ${collectionShort} | Token ID: ${tokenIdStr} | Received: ${(Number(payout) / 1_000_000).toFixed(2)} USDC`,
+					"NFT Sold Successfully!",
 				);
 
 				// Optional: Play a sound effect
@@ -59,10 +48,7 @@ export function useRedemptionNotifications(
 		},
 		onError: (error) => {
 			console.error("Redemption event subscription error:", error);
-			toast.error("Failed to track redemption events", {
-				duration: 3000,
-				position: "top-right",
-			});
+			toastError("Failed to track redemption events");
 		},
 	});
 
@@ -71,41 +57,13 @@ export function useRedemptionNotifications(
 		message: string,
 		type: "success" | "error" | "info" = "info",
 	) => {
-		const toastFn =
-			type === "success"
-				? toast.success
-				: type === "error"
-					? toast.error
-					: toast;
-
-		toastFn(message, {
-			duration: 4000,
-			position: "top-right",
-			style:
-				type === "success"
-					? {
-							background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-							color: "white",
-							border: "1px solid #065f46",
-							borderRadius: "12px",
-							fontWeight: "500",
-						}
-					: type === "error"
-						? {
-								background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-								color: "white",
-								border: "1px solid #991b1b",
-								borderRadius: "12px",
-								fontWeight: "500",
-							}
-						: {
-								background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-								color: "white",
-								border: "1px solid #1e40af",
-								borderRadius: "12px",
-								fontWeight: "500",
-							},
-		});
+		if (type === "success") {
+			toastSuccess(message);
+		} else if (type === "error") {
+			toastError(message);
+		} else {
+			toastInfo(message);
+		}
 	};
 
 	return { showCustomNotification };

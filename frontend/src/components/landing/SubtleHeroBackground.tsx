@@ -136,7 +136,7 @@ export function SubtleHeroBackground({
 				{ rarity: Rarity.Epic, x: "75%", y: "30%", size: 200, delay: 1.5 },
 				{ rarity: Rarity.Legendary, x: "50%", y: "75%", size: 160, delay: 2.5 },
 				{ rarity: Rarity.Uncommon, x: "85%", y: "65%", size: 140, delay: 3 },
-			].map((orb) => {
+			].map((orb, i) => {
 				const colorHex = getRarityColorHex(orb.rarity, 500);
 				const colorWithAlpha = `${colorHex}18`;
 
