@@ -6,6 +6,7 @@ import {
 	ChartBarIcon,
 	GiftIcon,
 	XCircleIcon,
+	ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -19,7 +20,7 @@ import {
 import type { GachaConfig } from "../../lib/gacha-config";
 import { getAllRarities, getRarityEmoji } from "../../lib/rarityConfig";
 import { formatTokenAmount } from "../../lib/utils";
-import { Card, Chip } from "../../ui";
+import { Card, Button } from "../../ui";
 import { GachaCardSkeleton } from "../shared/loading/SkeletonLoader";
 import { GachaCardHeader } from "./GachaCardHeader";
 
@@ -237,14 +238,29 @@ export function GachaCard({ gacha }: GachaCardProps) {
 								initial={{ opacity: 0, scale: 0.95 }}
 								animate={{ opacity: 1, scale: 1 }}
 								transition={{ delay: 0.2 }}
-								className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center"
+								className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center p-6"
 							>
-								<Chip
-									startContent={<XCircleIcon className="w-3 h-3" />}
-									className="px-3 py-1 bg-danger/20 border-danger/30 text-danger text-sm"
-								>
-									Offline
-								</Chip>
+								<div className="text-center">
+									<XCircleIcon className="w-12 h-12 text-danger mx-auto mb-3" />
+									<p className="font-semibold text-white mb-2">
+										Currently Offline
+									</p>
+									<p className="text-sm text-white/80 mb-4 max-w-xs mx-auto">
+										This gacha is temporarily unavailable. Check back soon for
+										new NFT drops!
+									</p>
+									<Button
+										color="glass"
+										size="sm"
+										onPress={() => {
+											// Refetch data on button press
+											router.refresh();
+										}}
+									>
+										<ArrowPathIcon className="w-4 h-4 mr-2" />
+										Check Again
+									</Button>
+								</div>
 							</motion.div>
 						)}
 					</div>

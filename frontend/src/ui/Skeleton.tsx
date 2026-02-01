@@ -239,4 +239,16 @@ export const FormSkeleton: React.FC<{ className?: string }> = ({
 	</div>
 );
 
+// Spinner button skeleton for gacha spin button
+export const SpinnerButtonSkeleton: React.FC<{ className?: string }> = ({
+	className,
+}) => (
+	<div
+		className={cn(
+			"h-14 bg-content1/30 rounded-xl animate-pulse w-full max-w-xs mx-auto",
+			className,
+		)}
+	/>
+);
+
 export { Skeleton };

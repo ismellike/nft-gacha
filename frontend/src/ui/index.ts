@@ -14,5 +14,6 @@ export {
 	FormSkeleton,
 	ListSkeleton,
 	Skeleton,
+	SpinnerButtonSkeleton,
 	StatsSkeleton,
 } from "./Skeleton";

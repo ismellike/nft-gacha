@@ -12,6 +12,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { memo, useMemo } from "react";
 import { Card } from "../../../ui";
+import { MobileMenu } from "./MobileMenu";
 
 // Helper function to get icon component
 function getNavIcon(iconName: string, className: string) {
@@ -71,7 +72,7 @@ export const Header = memo(() => {
 							</h1>
 						</Link>
 
-						{/* Navigation Items */}
+						{/* Desktop Navigation */}
 						<nav
 							className="hidden md:flex items-center space-x-6"
 							aria-label="Main navigation"
@@ -117,8 +118,16 @@ export const Header = memo(() => {
 							})}
 						</nav>
 
-						{/* Connect Button */}
-						<ConnectButton />
+						{/* Mobile Menu & Desktop Connect */}
+						<div className="flex items-center gap-4">
+							{/* Mobile menu */}
+							<MobileMenu navItems={navItems} />
+
+							{/* Desktop connect button */}
+							<div className="hidden md:block">
+								<ConnectButton />
+							</div>
+						</div>
 					</div>
 				</Card>
 			</div>

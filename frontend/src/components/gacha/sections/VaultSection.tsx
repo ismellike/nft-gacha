@@ -33,7 +33,8 @@ import {
 import { useUserOwnedNFTsMultipleCollections } from "../../../hooks/useUserOwnedNFTs";
 import { getGachaConfig } from "../../../lib/gacha-config";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
-import { Button, Card } from "../../../ui";
+import { Button } from "../../../ui";
+import { EmptyState } from "../../shared/EmptyState";
 import {
 	DepositTab,
 	VaultTabNavigation,
@@ -356,18 +357,11 @@ function useAppraisalChecker(
 // Components
 const WalletConnectPrompt: React.FC = () => (
 	<section role="alert" aria-live="polite">
-		<Card className="text-center p-8">
-			<WalletIcon
-				className="w-16 h-16 mx-auto mb-4 text-foreground/50"
-				aria-hidden="true"
-			/>
-			<h2 className="text-xl font-medium text-foreground mb-2">
-				Connect Your Wallet
-			</h2>
-			<p className="text-foreground/70">
-				Please connect your wallet to view your vault.
-			</p>
-		</Card>
+		<EmptyState
+			icon={WalletIcon}
+			title="Connect Your Wallet"
+			description="Connect your wallet to view your vault, deposit NFTs, and earn yield on your assets."
+		/>
 	</section>
 );
 

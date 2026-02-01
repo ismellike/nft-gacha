@@ -6,10 +6,12 @@ import { InlineRetryMessage } from "@/components/shared/feedback";
 import { useSpinHistoryFetcher } from "@/hooks/useSpinHistoryFetcher";
 import { logger } from "@/lib/logger";
 import { useSpinHistoryStore } from "@/stores/spinHistoryStore";
-import { Card } from "@/ui/Card";
+import { CardSkeleton } from "@/ui";
 import { HistoryFilters } from "./HistoryFilters";
 import { HistoryGrid } from "./HistoryGrid";
 import { HistoryStats } from "./HistoryStats";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ClockIcon } from "@heroicons/react/24/outline";
 
 interface SpinHistorySectionProps {
 	gachaAddress: string;
@@ -116,20 +118,22 @@ const SpinHistorySection = ({
 	// Don't render if no wallet connected
 	if (!address) {
 		return (
-			<Card variant="base" padding="lg" className="text-center">
-				<p className="text-foreground/60">
-					Connect your wallet to view spin history
-				</p>
-			</Card>
+			<EmptyState
+				icon={ClockIcon}
+				title="Connect Wallet to View History"
+				description="Connect your wallet to see your spin history, rarity breakdown, and NFT reveals."
+			/>
 		);
 	}
 
-	// Show loading state on initial load
+	// Show loading state on initial load with skeleton
 	if (isInitialLoad && isLoading) {
 		return (
-			<Card variant="base" padding="lg" className="text-center">
-				<p className="text-foreground/60">Loading spin history...</p>
-			</Card>
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+				<CardSkeleton />
+				<CardSkeleton />
+				<CardSkeleton />
+			</div>
 		);
 	}
 

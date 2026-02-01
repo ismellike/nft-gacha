@@ -101,6 +101,23 @@ export function NFTAppraisalForm({
 	const [submissionOutcome, setSubmissionOutcome] = useState<
 		"pending" | "success" | "refunded" | "failed" | null
 	>(null);
+
+	// Appraisal timeout and progress tracking
+	const APPRAISAL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+	const [appraisalStartTime, setAppraisalStartTime] = useState<number | null>(
+		null,
+	);
+	const [appraisalElapsed, setAppraisalElapsed] = useState(0);
+
+	type AppraisalStage =
+		| "validating"
+		| "decoding"
+		| "fetching"
+		| "appraising"
+		| "complete";
+	const [currentStage, setCurrentStage] =
+		useState<AppraisalStage>("validating");
+
 	const lastSubmittedRef = useRef<{
 		collection: string;
 		tokenId: string;
@@ -224,6 +241,72 @@ export function NFTAppraisalForm({
 			setErrors({});
 		}
 	}, [appraisalError]);
+
+	// Appraisal timeout timer
+	useEffect(() => {
+		if (status === "waitingForCompletion" && !appraisalStartTime) {
+			setAppraisalStartTime(Date.now());
+		}
+
+		if (status !== "waitingForCompletion") {
+			setAppraisalStartTime(null);
+			setAppraisalElapsed(0);
+			setCurrentStage("validating");
+		}
+	}, [status, appraisalStartTime]);
+
+	// Update elapsed time every second
+	useEffect(() => {
+		if (!appraisalStartTime || status !== "waitingForCompletion") return;
+
+		const interval = setInterval(() => {
+			const elapsed = Date.now() - appraisalStartTime;
+			setAppraisalElapsed(elapsed);
+
+			// Check for timeout
+			if (elapsed > APPRAISAL_TIMEOUT_MS) {
+				setAppraisalError(
+					"Appraisal is taking longer than expected. This may indicate an issue with the AVS service. You can wait longer or contact support.",
+				);
+				setStatus("error");
+				clearInterval(interval);
+			}
+		}, 1000);
+
+		return () => clearInterval(interval);
+	}, [appraisalStartTime, status]);
+
+	// Auto-advance progress stages for UX
+	useEffect(() => {
+		if (status !== "waitingForCompletion") {
+			setCurrentStage("validating");
+			return;
+		}
+
+		const stages: AppraisalStage[] = [
+			"validating",
+			"decoding",
+			"fetching",
+			"appraising",
+		];
+		const timeline = [2000, 8000, 15000, 30000]; // ms per stage
+		let stageIndex = 0;
+
+		const advanceStage = () => {
+			if (stageIndex < stages.length) {
+				setCurrentStage(stages[stageIndex] as AppraisalStage);
+				stageIndex++;
+			}
+		};
+
+		advanceStage(); // Start first stage immediately
+
+		const timeouts = timeline.map((delay, i) =>
+			setTimeout(() => advanceStage(), delay + (timeline[i - 1] || 0)),
+		);
+
+		return () => timeouts.forEach(clearTimeout);
+	}, [status]);
 
 	// Helper functions
 	const formatFeeAmount = (amount: bigint | undefined) => {
@@ -679,7 +762,7 @@ export function NFTAppraisalForm({
 								key="processing"
 								initial={{ scale: 0.8, opacity: 0 }}
 								animate={{ scale: 1, opacity: 1 }}
-								className="space-y-4"
+								className="space-y-6"
 							>
 								<div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center mx-auto">
 									<motion.div
@@ -699,33 +782,110 @@ export function NFTAppraisalForm({
 								<p className="text-foreground/70">
 									Decoding metadata and querying external APIs for market data
 								</p>
-								<div className="flex justify-center">
-									<div className="flex space-x-2">
-										<motion.div
-											className="w-3 h-3 bg-blue-400 rounded-full"
-											animate={{ scale: [1, 1.5, 1] }}
-											transition={{ duration: 1.4, repeat: Infinity }}
-										/>
-										<motion.div
-											className="w-3 h-3 bg-purple-400 rounded-full"
-											animate={{ scale: [1, 1.5, 1] }}
-											transition={{
-												duration: 1.4,
-												repeat: Infinity,
-												delay: 0.2,
-											}}
-										/>
-										<motion.div
-											className="w-3 h-3 bg-pink-400 rounded-full"
-											animate={{ scale: [1, 1.5, 1] }}
-											transition={{
-												duration: 1.4,
-												repeat: Infinity,
-												delay: 0.4,
-											}}
-										/>
-									</div>
+
+								{/* Timer Display */}
+								<div className="bg-content1/20 rounded-xl p-4 text-center">
+									<p className="text-sm text-foreground/60 mb-1">
+										Time Elapsed
+									</p>
+									<p className="text-2xl font-mono font-bold text-warning">
+										{Math.floor(appraisalElapsed / 60000)}:
+										{Math.floor((appraisalElapsed % 60000) / 1000)
+											.toString()
+											.padStart(2, "0")}
+									</p>
+									<p className="text-xs text-foreground/50 mt-2">
+										Expected: 1-3 minutes
+									</p>
 								</div>
+
+								{/* Progress Stages */}
+								<div className="space-y-3">
+									{[
+										{
+											key: "validating",
+											label: "Validating NFT",
+											icon: CheckBadgeIcon,
+										},
+										{
+											key: "decoding",
+											label: "Decoding Metadata",
+											icon: CpuChipIcon,
+										},
+										{
+											key: "fetching",
+											label: "Fetching Market Data",
+											icon: MagnifyingGlassIcon,
+										},
+										{
+											key: "appraising",
+											label: "Calculating Appraisal",
+											icon: CurrencyDollarIcon,
+										},
+									].map((stage, index) => {
+										const stages: AppraisalStage[] = [
+											"validating",
+											"decoding",
+											"fetching",
+											"appraising",
+										];
+										const stageIndex = stages.indexOf(currentStage);
+										const isComplete = stageIndex > index;
+										const isCurrent = stage.key === currentStage;
+										const StageIcon = stage.icon;
+
+										return (
+											<div
+												key={stage.key}
+												className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+													isCurrent
+														? "bg-info/10 border border-info/30"
+														: isComplete
+															? "bg-success/10"
+															: "bg-content1/10"
+												}`}
+											>
+												<div
+													className={`w-8 h-8 rounded-full flex items-center justify-center ${
+														isComplete
+															? "bg-success text-white"
+															: isCurrent
+																? "bg-info text-white animate-pulse"
+																: "bg-content1/30 text-foreground/50"
+													}`}
+												>
+													{isComplete ? (
+														<span className="text-sm">✓</span>
+													) : (
+														<StageIcon className="w-4 h-4" />
+													)}
+												</div>
+												<span
+													className={`text-sm font-medium ${
+														isCurrent ? "text-foreground" : "text-foreground/60"
+													}`}
+												>
+													{stage.label}
+												</span>
+											</div>
+										);
+									})}
+								</div>
+
+								{/* Timeout Warning (appears after 3 minutes) */}
+								{appraisalElapsed > 3 * 60 * 1000 && (
+									<motion.div
+										initial={{ opacity: 0, y: -10 }}
+										animate={{ opacity: 1, y: 0 }}
+										className="bg-warning/10 border border-warning/30 rounded-lg p-3 text-center"
+									>
+										<p className="text-sm text-warning">
+											This is taking longer than usual. The AVS service may be
+											experiencing high load. Your appraisal is still being
+											processed.
+										</p>
+									</motion.div>
+								)}
 							</motion.div>
 						) : (
 							<motion.div key="default" className="space-y-4">
