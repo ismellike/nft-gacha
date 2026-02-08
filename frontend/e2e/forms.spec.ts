@@ -22,7 +22,10 @@ test.describe("NFT Appraisal Form Validation", () => {
 		const collectionInput = page.locator("#collection");
 		const submitButton = page.locator('button[type="submit"]').first();
 
-		if ((await collectionInput.count()) > 0 && (await submitButton.count()) > 0) {
+		if (
+			(await collectionInput.count()) > 0 &&
+			(await submitButton.count()) > 0
+		) {
 			// Enter invalid address
 			await collectionInput.fill("invalid-address");
 			await collectionInput.blur();
@@ -38,9 +41,7 @@ test.describe("NFT Appraisal Form Validation", () => {
 			);
 
 			// Enter valid address
-			await collectionInput.fill(
-				"0x1234567890123456789012345678901234567890",
-			);
+			await collectionInput.fill("0x1234567890123456789012345678901234567890");
 			await collectionInput.blur();
 			await page.waitForTimeout(500);
 
@@ -95,7 +96,10 @@ test.describe("NFT Appraisal Form Validation", () => {
 			const collectionInput = page.locator("#collection");
 			const tokenIdInput = page.locator("#tokenId");
 
-			if ((await collectionInput.count()) > 0 && (await tokenIdInput.count()) > 0) {
+			if (
+				(await collectionInput.count()) > 0 &&
+				(await tokenIdInput.count()) > 0
+			) {
 				await collectionInput.fill(
 					"0x1234567890123456789012345678901234567890",
 				);

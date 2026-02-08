@@ -1,6 +1,5 @@
-import { useState, useCallback } from "react";
-import type { ValidationRule } from "../lib/formValidation";
-import type { FieldValidation } from "../lib/formValidation";
+import { useCallback, useState } from "react";
+import type { FieldValidation, ValidationRule } from "../lib/formValidation";
 
 interface FieldConfig {
 	rules: ValidationRule[];

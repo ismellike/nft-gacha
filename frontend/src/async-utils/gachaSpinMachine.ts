@@ -18,6 +18,10 @@ export interface RefundResult {
 	refundAmount: bigint;
 }
 
+export type PollingResult =
+	| { type: "completed"; result: SpinResult }
+	| { type: "refunded"; refundResult: RefundResult };
+
 export interface GachaSpinContext {
 	triggerId: bigint | null;
 	spinResult: SpinResult | null;
@@ -69,12 +73,14 @@ export const pollForSpinFulfillment = async ({
 	userAddress,
 	publicClient,
 	gachaAddress,
+	signal,
 }: {
 	triggerId: bigint;
 	userAddress: string;
 	publicClient: PublicClient;
 	gachaAddress: string;
-}): Promise<SpinResult> => {
+	signal?: AbortSignal;
+}): Promise<PollingResult> => {
 	debugLog("🔄 [pollForSpinFulfillment] Starting poll for:", {
 		triggerId: triggerId.toString(),
 		userAddress,
@@ -108,7 +114,7 @@ export const pollForSpinFulfillment = async ({
 		}, MAX_POLLING_TIME);
 
 		const poll = async () => {
-			if (isDestroyed) return;
+			if (isDestroyed || signal?.aborted) return;
 
 			attempts++;
 			const elapsed = Date.now() - startTime;
@@ -194,7 +200,7 @@ export const pollForSpinFulfillment = async ({
 						result,
 					);
 					cleanup();
-					resolve(result);
+					resolve({ type: "completed", result });
 					return;
 				}
 
@@ -234,18 +240,19 @@ export const pollForSpinFulfillment = async ({
 							refundAmount,
 						});
 
-						const refundData = {
-							selectedRarity: rarityName,
-							refundAmount: refundAmount?.toString() || "0",
-						};
-
 						cleanup();
-						reject(new Error(`REFUND:${JSON.stringify(refundData)}`));
+						resolve({
+							type: "refunded",
+							refundResult: {
+								selectedRarity: rarityName,
+								refundAmount: refundAmount,
+							},
+						});
 						return;
 					}
 				}
 
-				if (!isDestroyed) {
+				if (!isDestroyed && !signal?.aborted) {
 					const delay = getPollingDelay(attempts, POLLING_INTERVAL);
 					timeoutId = setTimeout(poll, delay);
 				}
@@ -255,7 +262,7 @@ export const pollForSpinFulfillment = async ({
 					error,
 				);
 
-				if (attempts < maxAttempts && !isDestroyed) {
+				if (attempts < maxAttempts && !isDestroyed && !signal?.aborted) {
 					const delay = getPollingDelay(attempts, POLLING_INTERVAL);
 					timeoutId = setTimeout(poll, delay);
 				} else {

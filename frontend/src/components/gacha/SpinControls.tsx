@@ -27,8 +27,8 @@ import { useGachaId } from "../../hooks/useGachaId";
 import type { UseGachaSpinMachineReturn } from "../../hooks/useGachaSpinMachine";
 import { logger } from "../../lib/logger";
 import { cn, glassTypography } from "../../lib/theme-config";
-import { formatCurrency, formatTokenAmount } from "../../lib/utils";
 import { mapTransactionError } from "../../lib/transactionErrors";
+import { formatCurrency, formatTokenAmount } from "../../lib/utils";
 import { Button, Card, Modal, ModalContent } from "../../ui";
 
 interface SpinControlsProps {
@@ -705,8 +705,9 @@ const SpinControls = memo(function SpinControls({
 						tokenName,
 					},
 				});
-				gachaSpin.timeout(); // Using timeout as a way to show error state
-				// TODO: Add proper error handling method to the hook
+				gachaSpin.setError(
+					signatureError.message || "Signature failed",
+				);
 			}
 		}
 	}, [
@@ -830,8 +831,9 @@ const SpinControls = memo(function SpinControls({
 					);
 				}
 
-				gachaSpin.timeout(); // Using timeout as a way to show error state
-				// TODO: Add proper error handling method to the hook
+				gachaSpin.setError(
+					spinWithPermitError.message || "Transaction failed",
+				);
 			}
 		}
 	}, [
@@ -857,21 +859,9 @@ const SpinControls = memo(function SpinControls({
 				spinWithPermitReceiptError,
 			);
 
-			const errorMessage =
-				String(spinWithPermitReceiptError?.message || "").toLowerCase() || "";
-			if (
-				errorMessage.includes("reverted") ||
-				errorMessage.includes("failed") ||
-				errorMessage.includes("out of gas")
-			) {
-				// Real transaction error that failed on-chain
-				gachaSpin.timeout(); // Using timeout as a way to show error state
-				// TODO: Add proper error handling method to the hook
-			} else {
-				// Other receipt errors
-				gachaSpin.timeout(); // Using timeout as a way to show error state
-				// TODO: Add proper error handling method to the hook
-			}
+			gachaSpin.setError(
+				spinWithPermitReceiptError.message || "Transaction receipt error",
+			);
 		}
 	}, [spinWithPermitReceiptError, gachaSpin]);
 
@@ -917,8 +907,7 @@ const SpinControls = memo(function SpinControls({
 					setTimeout(() => setFeeMismatchError(false), 5000);
 				}
 
-				gachaSpin.timeout(); // Using timeout as a way to show error state
-				// TODO: Add proper error handling method to the hook
+				gachaSpin.setError(spinError.message || "Transaction failed");
 			}
 		}
 	}, [spinWait.error, gachaSpin, spinFeeQuery, spinFee]);
@@ -1475,9 +1464,7 @@ const SpinControls = memo(function SpinControls({
 														)}
 													</>
 												) : (
-													<>
-														<p className="text-sm mb-2">{gachaSpin.error}</p>
-													</>
+													<p className="text-sm mb-2">{gachaSpin.error}</p>
 												)}
 												<p className="text-xs text-foreground/60">
 													Retry attempts: {gachaSpin.retryCount}/5

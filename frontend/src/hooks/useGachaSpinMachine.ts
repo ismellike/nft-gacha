@@ -43,6 +43,7 @@ export interface UseGachaSpinMachineReturn {
 	retry: () => void;
 	reset: () => void;
 	timeout: () => void;
+	setError: (error: string) => void;
 	clearPendingSpins: () => void;
 }
 
@@ -125,6 +126,7 @@ export function useGachaSpinMachine(
 	const isPollingRef = useRef(false);
 	const isMountedRef = useRef(true);
 	const pollingAbortRef = useRef<AbortController | null>(null);
+	const hasTransitionedToRevealRef = useRef(false);
 
 	const updateState = useCallback(
 		(
@@ -213,6 +215,8 @@ export function useGachaSpinMachine(
 						continue;
 					}
 
+					if (hasTransitionedToRevealRef.current) break;
+					hasTransitionedToRevealRef.current = true;
 					debugLog(
 						"✅ [useWatchContractEvent] Accepting SpinCompleted! Updating to revealing:",
 						result,
@@ -316,6 +320,7 @@ export function useGachaSpinMachine(
 	// Actions
 	const startSpin = () => {
 		if (userAddress && publicClient && contracts.gacha) {
+			hasTransitionedToRevealRef.current = false;
 			updateState("spinning", {
 				userAddress,
 				publicClient,
@@ -361,8 +366,10 @@ export function useGachaSpinMachine(
 		onSpinComplete?.();
 	};
 
-	const closeReveal = () =>
+	const closeReveal = () => {
+		hasTransitionedToRevealRef.current = false;
 		updateState("idle", { spinResult: null, triggerId: null });
+	};
 	const retry = () => {
 		if (state.context.retryCount < MAX_RETRIES) {
 			updateState("waitingForFulfillment", {
@@ -371,7 +378,8 @@ export function useGachaSpinMachine(
 			});
 		}
 	};
-	const reset = () =>
+	const reset = () => {
+		hasTransitionedToRevealRef.current = false;
 		updateState("idle", {
 			triggerId: null,
 			spinResult: null,
@@ -379,11 +387,14 @@ export function useGachaSpinMachine(
 			error: null,
 			retryCount: 0,
 		});
+	};
 	const timeout = () =>
 		updateState("timeout", {
 			error:
 				"Randomness generation timed out. You can reclaim your funds or try again.",
 		});
+	const setError = (errorMessage: string) =>
+		updateState("error", { error: errorMessage });
 	const clearPendingSpins = () => {
 		// Clear just this gacha's pending spins, not all
 		if (userAddress && contracts.gacha) {
@@ -426,16 +437,25 @@ export function useGachaSpinMachine(
 			userAddress: currentContext.userAddress,
 			publicClient: currentContext.publicClient,
 			gachaAddress: currentContext.gachaAddress,
+			signal,
 		})
-			.then((result) => {
-				// Only update if not aborted and component is still mounted
+			.then((pollingResult) => {
 				if (!signal.aborted && isMountedRef.current) {
-					updateState("revealing", {
-						spinResult: result,
-						refundResult: null,
-						error: null,
-					});
-					onSpinComplete?.();
+					if (pollingResult.type === "completed") {
+						if (hasTransitionedToRevealRef.current) return;
+						hasTransitionedToRevealRef.current = true;
+						updateState("revealing", {
+							spinResult: pollingResult.result,
+							refundResult: null,
+							error: null,
+						});
+						onSpinComplete?.();
+					} else {
+						updateState("refunded", {
+							refundResult: pollingResult.refundResult,
+							error: null,
+						});
+					}
 					if (currentContext.userAddress && currentContext.gachaAddress) {
 						useGachaStore
 							.getState()
@@ -447,34 +467,10 @@ export function useGachaSpinMachine(
 				}
 			})
 			.catch((error) => {
-				// Only update if not aborted and component is still mounted
 				if (!signal.aborted && isMountedRef.current) {
-					const errorMessage = (error as Error)?.message || "";
-					if (errorMessage.startsWith("REFUND:")) {
-						try {
-							const payload = JSON.parse(errorMessage.slice("REFUND:".length));
-							updateState("refunded", {
-								refundResult: {
-									selectedRarity: payload.selectedRarity,
-									refundAmount: BigInt(payload.refundAmount),
-								},
-								error: null,
-							});
-							if (currentContext.userAddress && currentContext.gachaAddress) {
-								useGachaStore
-									.getState()
-									.removePendingSpin(
-										currentContext.userAddress,
-										currentContext.gachaAddress,
-									);
-							}
-						} catch (parseError) {
-							console.error("Failed to parse refund payload", parseError);
-							updateState("error", { error: errorMessage });
-						}
-					} else {
-						updateState("error", { error: errorMessage || "Polling failed" });
-					}
+					const errorMessage =
+						(error as Error)?.message || "Polling failed";
+					updateState("error", { error: errorMessage });
 				}
 			})
 			.finally(() => {
@@ -557,6 +553,7 @@ export function useGachaSpinMachine(
 		retry,
 		reset,
 		timeout,
+		setError,
 		clearPendingSpins,
 	};
 }

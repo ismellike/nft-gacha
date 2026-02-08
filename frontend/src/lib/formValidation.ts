@@ -25,7 +25,9 @@ export const validationRules = {
 		message,
 	}),
 
-	ethAddress: (message = "Please enter a valid Ethereum address"): ValidationRule => ({
+	ethAddress: (
+		message = "Please enter a valid Ethereum address",
+	): ValidationRule => ({
 		validate: (value) => /^0x[a-fA-F0-9]{40}$/.test(value),
 		message,
 	}),

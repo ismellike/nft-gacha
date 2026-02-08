@@ -2,6 +2,7 @@
  * Unit tests for gachaSpinMachine utility
  */
 
+import type { PublicClient } from "viem";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	clearAllPendingSpins,
@@ -9,7 +10,6 @@ import {
 	pollForSpinFulfillment,
 } from "@/async-utils/gachaSpinMachine";
 import { useGachaStore } from "@/stores/gachaStore";
-import type { PublicClient } from "viem";
 
 // Mock the dependencies
 vi.mock("@/stores/gachaStore", () => ({
@@ -118,19 +118,32 @@ describe("gachaSpinMachine", () => {
 
 			const result = await promise;
 
-			expect(result).toEqual({
-				rarity: "Rare",
-				collection: mockResult.collection,
-				tokenId: "1",
-			});
+			expect(result.type).toBe("completed");
+			if (result.type === "completed") {
+				expect(result.result).toEqual({
+					rarity: "Rare",
+					collection: mockResult.collection,
+					tokenId: "1",
+				});
+			}
 			expect(mockGetLogs).toHaveBeenCalledTimes(1);
 		});
 
-		it("should reject with refund error when SpinRefunded event is found", async () => {
-			// First call returns no completed logs
+		it("should resolve with refund result when SpinRefunded event is found", async () => {
+			// First 10 attempts (0-9) check for SpinCompleted events only (10 calls)
+			// Attempt 10 checks for SpinCompleted first, then SpinRefunded (2 calls)
+			// Total: 12 calls for attempts 0-10 to complete
+			// Call 13+: empty arrays to prevent further polling
+
+			// Calls 1-11: SpinCompleted checks return empty
+			for (let i = 0; i < 11; i++) {
+				mockGetLogs.mockResolvedValueOnce([]);
+			}
+
+			// Call 12: SpinCompleted check in attempt 10 returns empty
 			mockGetLogs.mockResolvedValueOnce([]);
 
-			// Second call (after refund check delay) returns refunded logs
+			// Call 13: SpinRefunded check in attempt 10 returns refund data
 			const mockRefundData = {
 				selectedRarity: BigInt(1), // Uncommon
 				refundAmount: BigInt("1000000000"),
@@ -149,11 +162,20 @@ describe("gachaSpinMachine", () => {
 				gachaAddress: mockGachaAddress,
 			});
 
-			// Fast-forward past refund check delay
-			vi.advanceTimersByTime(30000);
+			// Advance timers in increments to trigger all polling attempts
+			// Each polling attempt has a delay that starts at 3000ms
+			// We need enough time for at least 11 attempts
+			for (let i = 0; i < 15; i++) {
+				await vi.advanceTimersByTimeAsync(5000);
+			}
 
-			await expect(promise).rejects.toThrow(/REFUND:/);
-		});
+			const result = await promise;
+			expect(result.type).toBe("refunded");
+			if (result.type === "refunded") {
+				expect(result.refundResult.selectedRarity).toBe("Uncommon");
+				expect(result.refundResult.refundAmount).toBe(BigInt("1000000000"));
+			}
+		}, 20000);
 
 		it("should timeout after MAX_POLLING_TIME if no event found", async () => {
 			mockGetLogs.mockResolvedValue([]);
@@ -165,10 +187,13 @@ describe("gachaSpinMachine", () => {
 				gachaAddress: mockGachaAddress,
 			});
 
-			// Fast-forward past max polling time
-			vi.advanceTimersByTime(10 * 60 * 1000 + 1000);
+			// Attach handler before advancing timers to prevent unhandled rejection warning
+			const assertion = expect(promise).rejects.toThrow(/Polling timeout/);
 
-			await expect(promise).rejects.toThrow(/Polling timeout/);
+			// Advance timers past the max polling time (10 minutes)
+			await vi.advanceTimersByTimeAsync(10 * 60 * 1000 + 1000);
+
+			await assertion;
 		});
 
 		it("should handle invalid parameters", async () => {
@@ -208,10 +233,15 @@ describe("gachaSpinMachine", () => {
 			});
 
 			// Fast-forward through retries
-			vi.advanceTimersByTime(10000);
+			for (let i = 0; i < 5; i++) {
+				await vi.advanceTimersByTimeAsync(5000);
+			}
 
 			const result = await promise;
-			expect(result.rarity).toBe("Uncommon");
+			expect(result.type).toBe("completed");
+			if (result.type === "completed") {
+				expect(result.result.rarity).toBe("Uncommon");
+			}
 		});
 	});
 

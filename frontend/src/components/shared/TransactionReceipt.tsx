@@ -1,13 +1,13 @@
 "use client";
 
 import {
+	ArrowTopRightOnSquareIcon,
 	CheckCircleIcon,
 	DocumentTextIcon,
 	XCircleIcon,
-	ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import { Modal, ModalContent, Button, Card } from "../../ui";
+import { Button, Card, Modal, ModalContent } from "../../ui";
 
 interface TransactionReceiptProps {
 	isOpen: boolean;
@@ -43,7 +43,7 @@ export function TransactionReceipt({
 		`${hash.slice(0, 10)}...${hash.slice(-8)}`;
 
 	const formatGas = (gas?: bigint) =>
-		gas ? (Number(gas) / 1_000_000).toFixed(2) + " M" : "N/A";
+		gas ? `${(Number(gas) / 1_000_000).toFixed(2)} M` : "N/A";
 
 	const formatTimestamp = (ts?: number) =>
 		ts ? new Date(ts * 1000).toLocaleString() : "Just now";

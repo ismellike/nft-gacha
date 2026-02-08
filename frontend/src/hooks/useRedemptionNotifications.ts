@@ -1,7 +1,7 @@
 "use client";
 
-import { toastSuccess, toastError, toastInfo } from "../lib/toast";
 import { useWatchProtocolTreasuryRedemptionExecuted } from "../generated";
+import { toastError, toastInfo, toastSuccess } from "../lib/toast";
 
 export function useRedemptionNotifications(
 	protocolTreasuryAddress: `0x${string}`,

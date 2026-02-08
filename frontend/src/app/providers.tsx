@@ -4,10 +4,10 @@ import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { WagmiProvider } from "wagmi";
-import { RewardsRefetchProvider } from "../hooks/useRewardsData";
-import { config } from "../wagmi";
 import { ErrorBoundary } from "../components/shared/ErrorBoundary";
 import { Toaster } from "../components/shared/Toaster";
+import { RewardsRefetchProvider } from "../hooks/useRewardsData";
+import { config } from "../wagmi";
 
 const customDarkTheme = darkTheme({
 	accentColor: "#eab308",
@@ -40,10 +40,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
 				<ErrorBoundary>
-					<RainbowKitProvider
-						theme={customDarkTheme}
-						modalSize="compact"
-					>
+					<RainbowKitProvider theme={customDarkTheme} modalSize="compact">
 						<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
 					</RainbowKitProvider>
 					<Toaster />

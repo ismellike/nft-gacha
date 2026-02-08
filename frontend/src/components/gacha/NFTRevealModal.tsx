@@ -4,26 +4,30 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEnhancedSpinResult } from "../../hooks/useNFTMetadata";
 import { getGachaConfig } from "../../lib/gacha-config";
+import { createDebugLogger, DEBUG_FLAGS, logger } from "../../lib/logger";
 import {
 	getCardName,
 	getGradingInfo,
 	getSafeMetadataForReveal,
 	getSetName,
 	getYear,
+	type NFTMetadata,
 } from "../../lib/metadataValidation";
 import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
 import {
+	CARD_FADE_OUT_DURATION,
 	getGlowConfig,
 	getPhaseTiming,
 	type RevealPhase,
 	STAGGER_DELAY_PER_TRAIT,
-	CARD_FADE_OUT_DURATION,
 } from "../../lib/revealAnimationConfig";
 import { DialogTitle, Modal, ModalBody, ModalContent } from "../../ui";
 import { NFTCard } from "../nft";
 import SellToTreasury from "../nft/SellToTreasury";
 import { RevealErrorBoundary } from "./RevealErrorBoundary";
 import RevealStep, { RevealStepGroup } from "./RevealStep";
+
+const debugLog = createDebugLogger(DEBUG_FLAGS.NFT_METADATA);
 
 interface SpinResult {
 	rarity: string;
@@ -66,19 +70,18 @@ const shouldShowItemInAvailable = (
 };
 
 // Determine which metadata fields are available for reveal
-// New order: year → setName → name (title/subject) → grading → rarity → card
-const getAvailableRevealPhases = (): RevealPhase[] => {
-	// ALWAYS include all phases - let the display components handle missing data gracefully
-	// This ensures the animation always progresses through all phases consistently
-	const phases: RevealPhase[] = [
-		"year",
-		"setName",
-		"name",
-		"grading",
-		"rarity",
-		"card",
-	];
-
+// Only include phases that have corresponding data to avoid empty waits
+// Order: year → setName → name (title/subject) → grading → rarity → card
+const getAvailableRevealPhases = (
+	metadata: NFTMetadata | null,
+): RevealPhase[] => {
+	const phases: RevealPhase[] = [];
+	if (metadata?.year) phases.push("year");
+	if (metadata?.set_number) phases.push("setName");
+	phases.push("name"); // Always included - has "Unknown Card" fallback
+	if (metadata?.grading_company || metadata?.grade) phases.push("grading");
+	phases.push("rarity"); // Always included - comes from spin result
+	phases.push("card"); // Always included
 	return phases;
 };
 
@@ -108,12 +111,12 @@ export default function NFTRevealModal({
 	const enhancedResult = useEnhancedSpinResult(nftResult);
 
 	// Extract loading state
-	const isMetadataLoading = enhancedResult?.isLoading ?? false;
+	const isMetadataLoading = enhancedResult?.isLoading ?? true;
 
 	// Debug: Log raw metadata when it arrives
 	useEffect(() => {
 		if (enhancedResult && !enhancedResult.isLoading) {
-			console.log("[NFTRevealModal] Raw NFT metadata received:", {
+			debugLog("[NFTRevealModal] Raw NFT metadata received:", {
 				originalResult: nftResult,
 				enhancedResult: {
 					isLoading: enhancedResult.isLoading,
@@ -150,7 +153,10 @@ export default function NFTRevealModal({
 	const gradingInfo = getGradingInfo(metadata);
 
 	// Get available phases based on actual metadata
-	const availablePhases = useMemo(() => getAvailableRevealPhases(), []);
+	const availablePhases = useMemo(
+		() => getAvailableRevealPhases(metadata),
+		[metadata],
+	);
 
 	// Get gacha config for protocol treasury address
 	const gachaConfig = useMemo(
@@ -212,13 +218,13 @@ export default function NFTRevealModal({
 
 	// Debug: Log currentPhase changes
 	useEffect(() => {
-		console.log("[NFTRevealModal] currentPhase changed to:", currentPhase);
+		debugLog("[NFTRevealModal] currentPhase changed to:", currentPhase);
 	}, [currentPhase]);
 
 	// Debug: Log what should be displayed
 	useEffect(() => {
 		if (currentPhase !== null && !isMetadataLoading) {
-			console.log("[NFTRevealModal] Should display:", {
+			debugLog("[NFTRevealModal] Should display:", {
 				currentPhase,
 				year:
 					shouldShowItemInAvailable("year", currentPhase, availablePhases) &&
@@ -251,7 +257,7 @@ export default function NFTRevealModal({
 	// Reset state when modal opens/closes
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Intentional - currentPhase used for guard check, metadata fields only for logging
 	useEffect(() => {
-		console.log("[NFTRevealModal] useEffect triggered", {
+		debugLog("[NFTRevealModal] useEffect triggered", {
 			isVisible,
 			isMetadataLoading,
 			currentPhase,
@@ -259,7 +265,7 @@ export default function NFTRevealModal({
 
 		// Reset flag and state when modal closes
 		if (!isVisible) {
-			console.log("[NFTRevealModal] Modal closed, resetting state");
+			debugLog("[NFTRevealModal] Modal closed, resetting state");
 			hasInitializedAnimation.current = false;
 			hasCompletedAnimation.current = false;
 			setCurrentPhase(null);
@@ -270,24 +276,24 @@ export default function NFTRevealModal({
 
 		// Wait for metadata to be loaded before starting
 		if (isMetadataLoading) {
-			console.log("[NFTRevealModal] Metadata still loading, waiting...");
+			debugLog("[NFTRevealModal] Metadata still loading, waiting...");
 			return;
 		}
 
 		// If animation is already in progress (currentPhase not null), don't restart
 		if (currentPhase !== null) {
-			console.log(
+			debugLog(
 				"[NFTRevealModal] Animation already in progress, currentPhase:",
 				currentPhase,
 			);
 			return;
 		}
 
-		console.log("[NFTRevealModal] Starting animation initialization");
+		debugLog("[NFTRevealModal] Starting animation initialization");
 		hasInitializedAnimation.current = true;
 
-		// Get the current available phases (don't use from dependency array)
-		const currentAvailablePhases = getAvailableRevealPhases();
+		// Get the current available phases based on loaded metadata
+		const currentAvailablePhases = getAvailableRevealPhases(metadata);
 
 		// Use new phase timing system - filter to only include available phases
 		const allPhaseTimingsLocal = getPhaseTiming();
@@ -295,7 +301,7 @@ export default function NFTRevealModal({
 			currentAvailablePhases.includes(phaseConfig.phase),
 		);
 
-		console.log("[NFTRevealModal] Animation starting:", {
+		debugLog("[NFTRevealModal] Animation starting:", {
 			availablePhases: currentAvailablePhases,
 			filteredPhaseTimings: phaseTimings.map((p) => p.phase),
 			metadataFields: {
@@ -317,7 +323,7 @@ export default function NFTRevealModal({
 		let phaseIndex = 0;
 
 		const runNextPhase = () => {
-			console.log("[NFTRevealModal] runNextPhase called", {
+			debugLog("[NFTRevealModal] runNextPhase called", {
 				phaseIndex,
 				totalPhases: phaseTimings.length,
 				isSkipped: isSkippedRef.current,
@@ -325,7 +331,7 @@ export default function NFTRevealModal({
 			});
 
 			if (isSkippedRef.current || phaseIndex >= phaseTimings.length) {
-				console.log("[NFTRevealModal] Animation ended or skipped", {
+				debugLog("[NFTRevealModal] Animation ended or skipped", {
 					phaseIndex,
 					totalPhases: phaseTimings.length,
 					isSkipped: isSkippedRef.current,
@@ -334,7 +340,7 @@ export default function NFTRevealModal({
 			}
 
 			const phase = phaseTimings[phaseIndex];
-			console.log("[NFTRevealModal] Phase transition:", {
+			debugLog("[NFTRevealModal] Phase transition:", {
 				from: currentPhase,
 				to: phase.phase,
 				phaseIndex: phaseIndex + 1,
@@ -347,13 +353,13 @@ export default function NFTRevealModal({
 			// Schedule next phase
 			if (phaseIndex < phaseTimings.length) {
 				const nextPhase = phaseTimings[phaseIndex];
-				console.log("[NFTRevealModal] Scheduling next phase:", {
+				debugLog("[NFTRevealModal] Scheduling next phase:", {
 					nextPhase: nextPhase.phase,
 					delay: nextPhase.duration * 1000,
 					phaseIndexAfterIncrement: phaseIndex,
 				});
 				const timer = setTimeout(() => {
-					console.log(
+					debugLog(
 						"[NFTRevealModal] Timer fired for phase:",
 						nextPhase.phase,
 					);
@@ -365,12 +371,12 @@ export default function NFTRevealModal({
 			} else {
 				// All phases done, schedule monetary reveal
 				hasCompletedAnimation.current = true;
-				console.log(
+				debugLog(
 					"[NFTRevealModal] All phases complete, scheduling monetary reveal",
 				);
 				const monetaryTimer = setTimeout(() => {
 					if (!isSkippedRef.current) {
-						console.log("[NFTRevealModal] Showing monetary phase");
+						debugLog("[NFTRevealModal] Showing monetary phase");
 						setCurrentPhase("monetary");
 						setShowMonetary(true);
 						closeButtonRef.current?.focus();
@@ -382,20 +388,17 @@ export default function NFTRevealModal({
 		};
 
 		// Start first phase immediately
-		console.log("[NFTRevealModal] About to call runNextPhase for first time");
+		debugLog("[NFTRevealModal] About to call runNextPhase for first time");
 		runNextPhase();
 
 		return () => {
-			// Only clear timers when modal closes, not on effect re-runs
-			if (!isVisible) {
-				console.log(
-					"[NFTRevealModal] Modal closing, clearing",
-					animationTimersRef.current.length,
-					"timers",
-				);
-				animationTimersRef.current.forEach(clearTimeout);
-				animationTimersRef.current = [];
-			}
+			debugLog(
+				"[NFTRevealModal] Cleanup: clearing",
+				animationTimersRef.current.length,
+				"timers",
+			);
+			animationTimersRef.current.forEach(clearTimeout);
+			animationTimersRef.current = [];
 		};
 	}, [isVisible, isMetadataLoading]);
 
@@ -417,7 +420,7 @@ export default function NFTRevealModal({
 				>
 					<RevealErrorBoundary
 						onError={(error) => {
-							console.error("NFT Reveal Error:", error);
+							logger.nftMetadata.error("NFT Reveal Error:", error);
 						}}
 					>
 						{/* Close Button - Top Right of Modal */}

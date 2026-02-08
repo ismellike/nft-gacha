@@ -1,10 +1,10 @@
 "use client";
 
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
-import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 interface NavItem {
 	href: string;
@@ -45,6 +45,7 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
 		<>
 			{/* Hamburger Button */}
 			<button
+				type="button"
 				onClick={() => setIsOpen(true)}
 				className="md:hidden p-2 rounded-lg hover:bg-content1/20 transition-colors"
 				aria-label="Open menu"
@@ -83,6 +84,7 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
 						<div className="flex items-center justify-between p-4 border-b border-white/10">
 							<span className="font-orbitron font-bold text-lg">Menu</span>
 							<button
+								type="button"
 								onClick={() => setIsOpen(false)}
 								className="p-2 rounded-lg hover:bg-content1/20 transition-colors"
 								aria-label="Close menu"

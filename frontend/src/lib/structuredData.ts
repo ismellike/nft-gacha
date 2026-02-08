@@ -38,7 +38,8 @@ export function generateWebsiteStructuredData() {
 		"@type": "WebSite",
 		name: "SPINFI",
 		url: "https://spinfi.com",
-		description: "Provably fair NFT gacha platform with cryptographically guaranteed randomness",
+		description:
+			"Provably fair NFT gacha platform with cryptographically guaranteed randomness",
 		potentialAction: {
 			"@type": "SearchAction",
 			target: {

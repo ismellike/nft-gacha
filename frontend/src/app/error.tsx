@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
 import { ExclamationTriangleIcon, HomeIcon } from "@heroicons/react/24/outline";
-import { Card, Button } from "../ui";
+import { useEffect } from "react";
+import { Button, Card } from "../ui";
 
-export default function Error({
+interface WindowWithSentry extends Window {
+	Sentry?: {
+		captureException: (error: Error) => void;
+	};
+}
+
+export default function ErrorPage({
 	error,
 	reset,
 }: {
@@ -16,8 +22,11 @@ export default function Error({
 		console.error("Error boundary caught:", error);
 
 		// Optional: Log to external service like Sentry
-		if (typeof window !== "undefined" && (window as any).Sentry) {
-			(window as any).Sentry.captureException(error);
+		if (typeof window !== "undefined") {
+			const windowWithSentry = window as unknown as WindowWithSentry;
+			if (windowWithSentry.Sentry) {
+				windowWithSentry.Sentry.captureException(error);
+			}
 		}
 	}, [error]);
 
@@ -57,7 +66,9 @@ export default function Error({
 					<Button
 						color="glass"
 						className="flex-1"
-						onPress={() => (window.location.href = "/")}
+						onPress={() => {
+							window.location.href = "/";
+						}}
 					>
 						<HomeIcon className="w-4 h-4 mr-2" />
 						Go Home

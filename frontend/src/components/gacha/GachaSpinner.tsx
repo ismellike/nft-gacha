@@ -1,24 +1,22 @@
 "use client";
 
-import { memo, useCallback, lazy, Suspense } from "react";
-import { motion } from "framer-motion";
 import {
-	ClockIcon,
 	ArrowTopRightOnSquareIcon,
+	ClockIcon,
 } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
+import { lazy, memo, Suspense, useCallback } from "react";
 import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useGachaSpinMachine } from "../../hooks/useGachaSpinMachine";
+import { Button } from "../../ui";
 import { PricingBreakdown } from "./PricingBreakdown";
 import RarityBreakdown from "./RarityBreakdown";
 import SpinControls from "./SpinControls";
-import { Button } from "../../ui";
 
 // Lazy load the heavy NFTRevealModal component
-const NFTRevealModal = lazy(() =>
-	import("./NFTRevealModal")
-);
+const NFTRevealModal = lazy(() => import("./NFTRevealModal"));
 
 const GachaSpinner = memo(() => {
 	const gachaId = useGachaId();

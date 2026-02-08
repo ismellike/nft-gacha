@@ -9,7 +9,10 @@ import { ClientAnimatedBackground } from "../components/shared/background";
 import { Footer, Header } from "../components/shared/layout";
 import { SkipToContent } from "../components/shared/SkipToContent";
 import { ServiceWorkerRegistrar } from "../components/shared/service-worker-registrar";
-import { generateWebsiteStructuredData, generateOrganizationStructuredData } from "../lib/structuredData";
+import {
+	generateOrganizationStructuredData,
+	generateWebsiteStructuredData,
+} from "../lib/structuredData";
 import { Providers } from "./providers";
 
 // Distinctive font trio: elegant serif + geometric sans + technical mono
@@ -127,12 +130,14 @@ export default function RootLayout({
 				{/* Structured Data */}
 				<script
 					type="application/ld+json"
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe
 					dangerouslySetInnerHTML={{
 						__html: JSON.stringify(generateWebsiteStructuredData()),
 					}}
 				/>
 				<script
 					type="application/ld+json"
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe
 					dangerouslySetInnerHTML={{
 						__html: JSON.stringify(generateOrganizationStructuredData()),
 					}}

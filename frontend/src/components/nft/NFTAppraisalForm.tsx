@@ -26,11 +26,11 @@ import {
 	useWatchNftAppraisalServiceHandlerAppraisalProcessed,
 } from "../../generated";
 import { useFormUrlSync } from "../../hooks/useFormUrlSync";
+import { useFormValidation } from "../../hooks/useFormValidation";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { useFormValidation } from "../../hooks/useFormValidation";
-import { validationRules } from "../../lib/formValidation";
 import { useRewardsData } from "../../hooks/useRewardsData";
+import { validationRules } from "../../lib/formValidation";
 import { formatTokenAmount } from "../../lib/utils";
 import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
 import { Button, Card } from "../../ui";

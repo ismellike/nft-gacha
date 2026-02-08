@@ -1,11 +1,11 @@
 "use client";
 
 import {
-	GiftIcon,
-	WalletIcon,
-	ClockIcon,
-	SparklesIcon,
 	ChartBarIcon,
+	ClockIcon,
+	GiftIcon,
+	SparklesIcon,
+	WalletIcon,
 } from "@heroicons/react/24/outline";
 import { Button, Card } from "../../ui";
 

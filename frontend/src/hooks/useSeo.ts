@@ -29,10 +29,10 @@ export function useSeo() {
 	const pathname = usePathname();
 
 	// Match the most specific route
-	const seo =
-		pageSEO[pathname] ||
-		Object.entries(pageSEO).find(([route]) => pathname.startsWith(route))?.[1] ||
-		{
+	const seo = pageSEO[pathname] ||
+		Object.entries(pageSEO).find(([route]) =>
+			pathname.startsWith(route),
+		)?.[1] || {
 			title: "SPINFI",
 			description:
 				"Spin for NFT rewards with provably fair randomness powered by WAVS-DRAND.",

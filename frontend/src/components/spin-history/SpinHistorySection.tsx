@@ -1,7 +1,9 @@
 "use client";
 
+import { ClockIcon } from "@heroicons/react/24/outline";
 import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { InlineRetryMessage } from "@/components/shared/feedback";
 import { useSpinHistoryFetcher } from "@/hooks/useSpinHistoryFetcher";
 import { logger } from "@/lib/logger";
@@ -10,8 +12,6 @@ import { CardSkeleton } from "@/ui";
 import { HistoryFilters } from "./HistoryFilters";
 import { HistoryGrid } from "./HistoryGrid";
 import { HistoryStats } from "./HistoryStats";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { ClockIcon } from "@heroicons/react/24/outline";
 
 interface SpinHistorySectionProps {
 	gachaAddress: string;

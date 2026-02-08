@@ -235,7 +235,7 @@ export function useNFTMetadata(
 			tokenURI: null,
 			metadata: null,
 			imageUrl: null,
-			isLoading: false,
+			isLoading: enabled !== false,
 			error: null,
 		};
 	});

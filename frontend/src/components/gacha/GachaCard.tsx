@@ -1,12 +1,12 @@
 "use client";
 
 import {
+	ArrowPathIcon,
 	ArrowRightIcon,
 	BoltIcon,
 	ChartBarIcon,
 	GiftIcon,
 	XCircleIcon,
-	ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -20,7 +20,7 @@ import {
 import type { GachaConfig } from "../../lib/gacha-config";
 import { getAllRarities, getRarityEmoji } from "../../lib/rarityConfig";
 import { formatTokenAmount } from "../../lib/utils";
-import { Card, Button } from "../../ui";
+import { Button, Card } from "../../ui";
 import { GachaCardSkeleton } from "../shared/loading/SkeletonLoader";
 import { GachaCardHeader } from "./GachaCardHeader";
 

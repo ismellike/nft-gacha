@@ -30,8 +30,8 @@ import {
 	useUserDepositedNFTs,
 } from "../../../hooks/useUserDepositedNFTs";
 import { useUserOwnedNFTsMultipleCollections } from "../../../hooks/useUserOwnedNFTs";
-import { toastSuccess, toastError } from "../../../lib/toast";
 import { getGachaConfig } from "../../../lib/gacha-config";
+import { toastError, toastSuccess } from "../../../lib/toast";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
 import { Button } from "../../../ui";
 import { EmptyState } from "../../shared/EmptyState";
@@ -857,7 +857,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			}
 		} catch (error) {
 			console.error("Error claiming yield:", error);
-			toastError(error instanceof Error ? error.message : "Failed to claim yield");
+			toastError(
+				error instanceof Error ? error.message : "Failed to claim yield",
+			);
 		}
 	}, [
 		address,
@@ -1079,11 +1081,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		});
 
 		return filtered;
-	}, [
-		displayDepositedNFTs,
-		deferredWithdrawSearch,
-		state.selectedForWithdrawal,
-	]);
+	}, [displayDepositedNFTs, state.selectedForWithdrawal]);
 
 	// Early return if not connected
 	if (!address) {

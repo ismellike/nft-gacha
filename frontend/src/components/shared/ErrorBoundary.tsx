@@ -1,16 +1,18 @@
 "use client";
 
 import {
-	Component,
-	type ReactNode,
-	type ErrorInfo,
-} from "react";
-import {
-	ExclamationTriangleIcon,
 	ArrowPathIcon,
+	ExclamationTriangleIcon,
 	HomeIcon,
 } from "@heroicons/react/24/outline";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button, Card } from "../../ui";
+
+interface WindowWithSentry extends Window {
+	Sentry?: {
+		captureException: (error: Error, options: Record<string, unknown>) => void;
+	};
+}
 
 interface Props {
 	children: ReactNode;
@@ -37,10 +39,13 @@ export class ErrorBoundary extends Component<Props, State> {
 		console.error("ErrorBoundary caught an error:", error, errorInfo);
 
 		// Log to error reporting service (e.g., Sentry)
-		if (typeof window !== "undefined" && (window as any).Sentry) {
-			(window as any).Sentry.captureException(error, {
-				contexts: { react: { componentStack: errorInfo.componentStack } },
-			});
+		if (typeof window !== "undefined") {
+			const windowWithSentry = window as unknown as WindowWithSentry;
+			if (windowWithSentry.Sentry) {
+				windowWithSentry.Sentry.captureException(error, {
+					contexts: { react: { componentStack: errorInfo.componentStack } },
+				});
+			}
 		}
 
 		this.props.onError?.(error, errorInfo);
@@ -92,7 +97,9 @@ export class ErrorBoundary extends Component<Props, State> {
 							<Button
 								color="glass"
 								className="flex-1"
-								onPress={() => (window.location.href = "/")}
+								onPress={() => {
+									window.location.href = "/";
+								}}
 							>
 								<HomeIcon className="w-4 h-4 mr-2" />
 								Go Home

@@ -16,16 +16,12 @@ const defaultSEO = {
 };
 
 export function generateMetadata(props: SEOProps = {}) {
-	const title = props.title
-		? `${props.title} | SPINFI`
-		: defaultSEO.title;
+	const title = props.title ? `${props.title} | SPINFI` : defaultSEO.title;
 	const description = props.description || defaultSEO.description;
 	const image = props.image
 		? `https://spinfi.com${props.image}`
 		: defaultSEO.image;
-	const url = props.url
-		? `https://spinfi.com${props.url}`
-		: defaultSEO.url;
+	const url = props.url ? `https://spinfi.com${props.url}` : defaultSEO.url;
 
 	return {
 		title,
