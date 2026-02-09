@@ -181,3 +181,67 @@ fn test_find_matching_price_with_specific_variant() {
     assert!(price.is_some());
     assert_eq!(price.unwrap().market, 210.0); // Should get the Holofoil price
 }
+
+#[test]
+fn card_identifier_with_slash_is_preserved() {
+    // Card numbers like "58/102" produce identifiers like "base-58/102"
+    // The identifier itself should contain the slash; URL encoding happens at the client layer
+    let info = ScrydexCardInfo {
+        card_number: "58/102".to_string(),
+        grade: "9".to_string(),
+        company: "PSA".to_string(),
+        is_perfect: false,
+        set_id: "base".to_string(),
+        variant: None,
+    };
+    assert_eq!(info.card_identifier(), "base-58/102");
+
+    // Verify URL encoding would handle the slash
+    use urlencoding::encode;
+    let id = info.card_identifier();
+    let encoded = encode(&id);
+    assert_eq!(encoded, "base-58%2F102");
+}
+
+#[test]
+fn test_case_insensitive_variant_matching() {
+    // Scrydex returns PascalCase variant names (e.g., "FirstEditionShadowlessHolofoil")
+    // Our constructed variant is camelCase (e.g., "firstEditionShadowlessHolofoil")
+    // The matcher should match them case-insensitively
+    use super::types::*;
+    let card = ScrydexCard {
+        id: "test".to_string(),
+        name: "Test Card".to_string(),
+        number: Some("4".to_string()),
+        rarity: Some("Rare Holo".to_string()),
+        expansion: Some(ScrydexCardExpansion {
+            id: "base1".to_string(),
+            name: "Base Set".to_string(),
+            code: Some("BS".to_string()),
+        }),
+        variants: vec![ScrydexCardVariant {
+            name: "FirstEditionShadowlessHolofoil".to_string(),
+            prices: vec![ScrydexGradedPrice {
+                grade: "10".to_string(),
+                company: "PSA".to_string(),
+                is_perfect: true,
+                is_signed: false,
+                is_error: false,
+                r#type: "graded".to_string(),
+                low: 50000.0,
+                mid: 75000.0,
+                high: 100000.0,
+                market: 80000.0,
+                currency: "USD".to_string(),
+                trends: None,
+            }],
+        }],
+    };
+
+    // Our constructed variant uses camelCase
+    let our_variant = Some("firstEditionShadowlessHolofoil".to_string());
+    let price = PriceMatcher::find_matching_price(&card, "10", "PSA", true, &our_variant);
+
+    assert!(price.is_some());
+    assert_eq!(price.unwrap().market, 80000.0);
+}

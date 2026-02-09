@@ -1,5 +1,7 @@
 //! Attribute parsing utilities for Courtyard metadata
 
+use std::collections::HashSet;
+
 use crate::resolvers::scrydex_resolver::ScrydexCardInfo;
 use anyhow::{anyhow, Result};
 
@@ -368,7 +370,12 @@ impl TryInto<ScrydexCardInfo> for &NFTMetadata {
         let company =
             company.ok_or_else(|| anyhow!("Missing required grading company attribute"))?;
 
-        let set_id = set_name.ok_or_else(|| anyhow!("Missing required set name attribute"))?;
+        let set_raw = set_name.ok_or_else(|| anyhow!("Missing required set name attribute"))?;
+        let set_id = AttributeParser::extract_set_id(&set_raw).unwrap_or_else(|| set_raw);
+
+        // Deduplicate variant parts (case-insensitive) while preserving order
+        let mut seen = HashSet::new();
+        variant_parts.retain(|part| seen.insert(part.to_ascii_lowercase()));
 
         let variant = if variant_parts.is_empty() {
             None

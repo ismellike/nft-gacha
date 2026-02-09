@@ -7,6 +7,8 @@ use wstd::{
     io::AsyncRead,
 };
 
+use urlencoding::encode;
+
 use super::types::ScrydexCardResponse;
 
 const SCRYDEX_CARDS_ENDPOINT: &str = "https://api.scrydex.com/pokemon/v1/cards";
@@ -30,7 +32,8 @@ impl ScrydexClient {
     pub async fn get_card(&self, card_identifier: &str) -> Result<ScrydexCardResponse> {
         let url = format!(
             "{}/{}?include=prices",
-            SCRYDEX_CARDS_ENDPOINT, card_identifier
+            SCRYDEX_CARDS_ENDPOINT,
+            encode(card_identifier)
         );
 
         let mut builder = Request::get(&url);
@@ -50,10 +53,15 @@ impl ScrydexClient {
 
         let status = response.status();
         if !status.is_success() {
+            let mut err_body = Vec::new();
+            let _ = response.body_mut().read_to_end(&mut err_body).await;
+            let err_text = String::from_utf8_lossy(&err_body);
+            let truncated: String = err_text.chars().take(500).collect();
             return Err(anyhow!(
-                "Scrydex card request returned status {} for card {}",
+                "Scrydex card request returned status {} for card {}: {}",
                 status,
-                card_identifier
+                card_identifier,
+                truncated
             ));
         }
 

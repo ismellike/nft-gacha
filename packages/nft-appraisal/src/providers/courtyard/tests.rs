@@ -162,7 +162,7 @@ fn test_into_card_info_from_attributes() {
     assert_eq!(card_info.grade, "8");
     assert_eq!(card_info.company, "PSA");
     assert!(!card_info.is_perfect);
-    assert_eq!(card_info.set_id, "Fossil");
+    assert_eq!(card_info.set_id, "fossil");
 }
 
 #[test]
@@ -197,7 +197,7 @@ fn test_into_card_info_perfect_grade() {
     assert_eq!(card_info.grade, "10");
     assert_eq!(card_info.company, "BGS");
     assert!(card_info.is_perfect);
-    assert_eq!(card_info.set_id, "Pokémon sv5a-Crimson Haze");
+    assert_eq!(card_info.set_id, "sv5a");
 }
 
 #[test]
@@ -449,7 +449,7 @@ fn test_variant_extraction_from_courtyard_metadata() {
     assert_eq!(card_info.card_number, "53");
     assert_eq!(card_info.grade, "9");
     assert_eq!(card_info.company, "PSA");
-    assert_eq!(card_info.set_id, "Base Set");
+    assert_eq!(card_info.set_id, "base");
     assert_eq!(
         card_info.variant,
         Some("firstEditionShadowless".to_string())
@@ -508,7 +508,7 @@ fn test_variant_extraction_with_holo() {
     assert_eq!(card_info.card_number, "4");
     assert_eq!(card_info.grade, "10");
     assert_eq!(card_info.company, "PSA");
-    assert_eq!(card_info.set_id, "Base Set");
+    assert_eq!(card_info.set_id, "base");
     assert_eq!(
         card_info.variant,
         Some("firstEditionShadowlessHolofoil".to_string())
@@ -556,7 +556,7 @@ fn test_variant_extraction_no_variant_attributes() {
     assert_eq!(card_info.card_number, "53");
     assert_eq!(card_info.grade, "9");
     assert_eq!(card_info.company, "PSA");
-    assert_eq!(card_info.set_id, "Base Set");
+    assert_eq!(card_info.set_id, "base");
     assert_eq!(card_info.variant, None);
     assert!(!card_info.is_perfect);
 }
@@ -728,4 +728,38 @@ fn test_card_number_all_zeros() {
         AttributeParser::normalize_card_number("000/100"),
         Some("0/100".to_string())
     );
+}
+
+#[test]
+fn test_duplicate_variant_deduplication() {
+    // "Holo (Holo)" should produce "Holofoil", not "HolofoilHolofoil"
+    let metadata = NFTMetadata {
+        product_type: Some("GRADED_CARD".to_string()),
+        attributes: vec![
+            NFTAttribute {
+                trait_type: Some("Grader".to_string()),
+                value: serde_json::Value::String("PSA".to_string()),
+            },
+            NFTAttribute {
+                trait_type: Some("Grade".to_string()),
+                value: serde_json::Value::String("9".to_string()),
+            },
+            NFTAttribute {
+                trait_type: Some("Set".to_string()),
+                value: serde_json::Value::String("Base Set".to_string()),
+            },
+            NFTAttribute {
+                trait_type: Some("Card Number".to_string()),
+                value: serde_json::Value::String("4".to_string()),
+            },
+            NFTAttribute {
+                trait_type: None,
+                value: serde_json::Value::String("Holo (Holo)".to_string()),
+            },
+        ],
+        ..Default::default()
+    };
+
+    let card_info: ScrydexCardInfo = (&metadata).try_into().expect("Failed to convert metadata");
+    assert_eq!(card_info.variant, Some("Holofoil".to_string()));
 }

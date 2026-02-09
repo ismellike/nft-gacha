@@ -103,13 +103,7 @@ impl PriceResolver for ScrydexPokemonResolver {
             };
             Ok(Some(quote))
         } else {
-            Err(anyhow!(
-                "No price found for card {} with grade {} from company {} (perfect: {})",
-                card_identifier,
-                info.grade,
-                info.company,
-                info.is_perfect
-            ))
+            Ok(None)
         }
     }
 }

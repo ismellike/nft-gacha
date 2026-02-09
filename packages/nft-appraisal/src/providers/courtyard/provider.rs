@@ -48,20 +48,17 @@ impl CourtyardProvider {
                 Err(_) => return None, // Silently fail if required attributes are missing
             };
 
-            let set_id = AttributeParser::extract_set_id(&card_info.set_id)
-                .unwrap_or_else(|| card_info.set_id.clone());
-
             if !card_info.card_number.is_empty()
                 && !card_info.grade.is_empty()
                 && !card_info.company.is_empty()
-                && !set_id.is_empty()
+                && !card_info.set_id.is_empty()
             {
                 return Some(ResolverRoute::pokemon_card_info(
                     card_info.card_number,
                     card_info.grade,
                     card_info.company,
                     card_info.is_perfect,
-                    set_id,
+                    card_info.set_id,
                     card_info.variant,
                 ));
             }
