@@ -31,7 +31,6 @@ import { GachaRefreshProvider } from "../../contexts/GachaRefreshContext";
 import {
 	useReadGachaEconomyManagerOwner,
 	useReadGachaEconomyManagerPaused,
-	useReadGachaFeeToken,
 	useReadGachaOwner,
 	useReadGachaTreasuryOwner,
 } from "../../generated";
@@ -102,12 +101,6 @@ function GachaDetailPageContent() {
 	const shouldGateAdmin = Boolean(
 		isConnected && gachaOwner && treasuryOwner && rewardsOwner,
 	);
-
-	// Contract reads for rewards functionality
-	useReadGachaFeeToken({
-		address: contracts.gacha as `0x${string}` | undefined,
-		query: { enabled: !!contracts.gacha },
-	} as Parameters<typeof useReadGachaFeeToken>[0]);
 
 	const rewardsData = useRewardsData();
 

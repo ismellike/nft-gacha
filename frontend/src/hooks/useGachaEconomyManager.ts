@@ -1,14 +1,7 @@
 "use client";
 
-import {
-	useReadGachaEconomyManagerDepositorShareBps,
-	useReadGachaEconomyManagerFeeToken,
-	useReadGachaEconomyManagerProtocolShareBps,
-	useReadGachaEconomyManagerRevenueByRarity,
-	useReadGachaEconomyManagerTotalRevenueProcessed,
-	useReadGachaEconomyManagerTotalToDepositors,
-	useReadGachaEconomyManagerTotalToProtocol,
-} from "@/generated";
+import { gachaEconomyManagerAbi } from "@/generated";
+import { useReadContracts } from "wagmi";
 
 export interface EconomyManagerData {
 	feeToken: string | undefined;
@@ -21,7 +14,7 @@ export interface EconomyManagerData {
 }
 
 export interface UseGachaEconomyManagerProps {
-	contractAddress?: string;
+	contractAddress?: `0x${string}`;
 	enabled?: boolean;
 }
 
@@ -29,130 +22,107 @@ export function useGachaEconomyManagerData({
 	contractAddress,
 	enabled = true,
 }: UseGachaEconomyManagerProps = {}) {
-	const feeToken = useReadGachaEconomyManagerFeeToken({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
+	const isEnabled = enabled && !!contractAddress;
+	const addr = contractAddress as `0x${string}`;
 
-	const depositorShareBps = useReadGachaEconomyManagerDepositorShareBps({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const protocolShareBps = useReadGachaEconomyManagerProtocolShareBps({
-		address: contractAddress as `0x${string}`,
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const totalRevenueProcessed = useReadGachaEconomyManagerTotalRevenueProcessed(
-		{
-			address: contractAddress as `0x${string}`,
-			query: {
-				enabled: enabled && !!contractAddress,
+	// Static config — rarely changes
+	const staticQuery = useReadContracts({
+		contracts: [
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "feeToken",
 			},
-		},
-	);
-
-	const totalToDepositors = useReadGachaEconomyManagerTotalToDepositors({
-		address: contractAddress as `0x${string}`,
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "depositorShareBps",
+			},
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "protocolShareBps",
+			},
+		] as const,
 		query: {
-			enabled: enabled && !!contractAddress,
+			enabled: isEnabled,
+			staleTime: 5 * 60_000,
 		},
 	});
 
-	const totalToProtocol = useReadGachaEconomyManagerTotalToProtocol({
-		address: contractAddress as `0x${string}`,
+	// Dynamic revenue data — refreshes at default interval
+	const dynamicQuery = useReadContracts({
+		contracts: [
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "totalRevenueProcessed",
+			},
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "totalToDepositors",
+			},
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "totalToProtocol",
+			},
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "revenueByRarity",
+				args: [0],
+			},
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "revenueByRarity",
+				args: [1],
+			},
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "revenueByRarity",
+				args: [2],
+			},
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "revenueByRarity",
+				args: [3],
+			},
+			{
+				address: addr,
+				abi: gachaEconomyManagerAbi,
+				functionName: "revenueByRarity",
+				args: [4],
+			},
+		] as const,
 		query: {
-			enabled: enabled && !!contractAddress,
+			enabled: isEnabled,
 		},
 	});
 
-	// Fetch revenue for each rarity level
-	const revenueCommon = useReadGachaEconomyManagerRevenueByRarity({
-		address: contractAddress as `0x${string}`,
-		args: [0], // Common
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
+	const isLoading = staticQuery.isLoading || dynamicQuery.isLoading;
+	const isError = staticQuery.isError || dynamicQuery.isError;
 
-	const revenueUncommon = useReadGachaEconomyManagerRevenueByRarity({
-		address: contractAddress as `0x${string}`,
-		args: [1], // Uncommon
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const revenueRare = useReadGachaEconomyManagerRevenueByRarity({
-		address: contractAddress as `0x${string}`,
-		args: [2], // Rare
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const revenueEpic = useReadGachaEconomyManagerRevenueByRarity({
-		address: contractAddress as `0x${string}`,
-		args: [3], // Epic
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const revenueLegendary = useReadGachaEconomyManagerRevenueByRarity({
-		address: contractAddress as `0x${string}`,
-		args: [4], // Legendary
-		query: {
-			enabled: enabled && !!contractAddress,
-		},
-	});
-
-	const isLoading =
-		feeToken.isLoading ||
-		depositorShareBps.isLoading ||
-		protocolShareBps.isLoading ||
-		totalRevenueProcessed.isLoading ||
-		totalToDepositors.isLoading ||
-		totalToProtocol.isLoading ||
-		revenueCommon.isLoading ||
-		revenueUncommon.isLoading ||
-		revenueRare.isLoading ||
-		revenueEpic.isLoading ||
-		revenueLegendary.isLoading;
-
-	const isError =
-		feeToken.isError ||
-		depositorShareBps.isError ||
-		protocolShareBps.isError ||
-		totalRevenueProcessed.isError ||
-		totalToDepositors.isError ||
-		totalToProtocol.isError ||
-		revenueCommon.isError ||
-		revenueUncommon.isError ||
-		revenueRare.isError ||
-		revenueEpic.isError ||
-		revenueLegendary.isError;
+	const s = staticQuery.data;
+	const d = dynamicQuery.data;
 
 	const data: EconomyManagerData = {
-		feeToken: feeToken.data,
-		depositorShareBps: depositorShareBps.data,
-		protocolShareBps: protocolShareBps.data,
-		totalRevenueProcessed: totalRevenueProcessed.data,
-		totalToDepositors: totalToDepositors.data,
-		totalToProtocol: totalToProtocol.data,
+		feeToken: s?.[0]?.result as string | undefined,
+		depositorShareBps: s?.[1]?.result as bigint | undefined,
+		protocolShareBps: s?.[2]?.result as bigint | undefined,
+		totalRevenueProcessed: d?.[0]?.result as bigint | undefined,
+		totalToDepositors: d?.[1]?.result as bigint | undefined,
+		totalToProtocol: d?.[2]?.result as bigint | undefined,
 		revenueByRarity: [
-			revenueCommon.data || BigInt(0),
-			revenueUncommon.data || BigInt(0),
-			revenueRare.data || BigInt(0),
-			revenueEpic.data || BigInt(0),
-			revenueLegendary.data || BigInt(0),
+			(d?.[3]?.result as bigint | undefined) || 0n,
+			(d?.[4]?.result as bigint | undefined) || 0n,
+			(d?.[5]?.result as bigint | undefined) || 0n,
+			(d?.[6]?.result as bigint | undefined) || 0n,
+			(d?.[7]?.result as bigint | undefined) || 0n,
 		],
 	};
 
@@ -160,18 +130,8 @@ export function useGachaEconomyManagerData({
 		data,
 		isLoading,
 		isError,
-		refetch: () => {
-			feeToken.refetch();
-			depositorShareBps.refetch();
-			protocolShareBps.refetch();
-			totalRevenueProcessed.refetch();
-			totalToDepositors.refetch();
-			totalToProtocol.refetch();
-			revenueCommon.refetch();
-			revenueUncommon.refetch();
-			revenueRare.refetch();
-			revenueEpic.refetch();
-			revenueLegendary.refetch();
+		refetch: async () => {
+			await Promise.all([staticQuery.refetch(), dynamicQuery.refetch()]);
 		},
 	};
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
-import { memo, useEffect, useState } from "react";
-import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
+import { memo, useState } from "react";
+import { useGachaRefetch } from "../../contexts/GachaRefreshContext";
 import {
 	useReadGachaGetExpectedValueUsd,
 	useReadGachaMaxSpinFee,
@@ -24,7 +24,6 @@ const PricingBreakdown = memo(function PricingBreakdown({
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 	const [showDetails, setShowDetails] = useState(false);
-	const { registerRefetch } = useGachaRefresh();
 
 	// Read pricing data from contract
 	const expectedValueQuery = useReadGachaGetExpectedValueUsd({
@@ -52,26 +51,14 @@ const PricingBreakdown = memo(function PricingBreakdown({
 	const maxSpinFee = maxSpinFeeQuery.data;
 
 	// Register refetch functions with the refresh context
-	useEffect(() => {
-		const refetchAllPricing = async () => {
-			console.log("🔄 [PricingBreakdown] Refetching all pricing data");
-			await Promise.all([
-				expectedValueQuery.refetch(),
-				premiumBpsQuery.refetch(),
-				minSpinFeeQuery.refetch(),
-				maxSpinFeeQuery.refetch(),
-			]);
-		};
-
-		const cleanup = registerRefetch(refetchAllPricing);
-		return cleanup;
-	}, [
-		registerRefetch,
-		expectedValueQuery,
-		premiumBpsQuery,
-		minSpinFeeQuery,
-		maxSpinFeeQuery,
-	]);
+	useGachaRefetch(async () => {
+		await Promise.all([
+			expectedValueQuery.refetch(),
+			premiumBpsQuery.refetch(),
+			minSpinFeeQuery.refetch(),
+			maxSpinFeeQuery.refetch(),
+		]);
+	});
 
 	// Calculate premium percentage
 	const premiumPercent = premiumBps ? Number(premiumBps) / 100 : 0;

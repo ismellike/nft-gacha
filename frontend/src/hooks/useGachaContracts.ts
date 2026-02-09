@@ -4,23 +4,25 @@ import { useMemo } from "react";
 import { isValidContractAddress } from "../lib/contract-utils";
 import { getGachaContracts } from "../lib/gacha-config/contracts";
 
+type Address = `0x${string}`;
+
 export interface GachaContracts {
-	gacha: string | undefined;
-	treasury: string | undefined;
-	appraisal: string | undefined;
-	economyManager: string | undefined;
-	gachaServiceHandler: string | undefined;
-	appraisalServiceHandler: string | undefined;
-	depositorVault: string | undefined;
-	buybackVault: string | undefined;
-	protocolTreasury: string | undefined;
+	gacha: Address | undefined;
+	treasury: Address | undefined;
+	appraisal: Address | undefined;
+	economyManager: Address | undefined;
+	gachaServiceHandler: Address | undefined;
+	appraisalServiceHandler: Address | undefined;
+	depositorVault: Address | undefined;
+	buybackVault: Address | undefined;
+	protocolTreasury: Address | undefined;
 	trackers:
 		| {
-				common: string | undefined;
-				uncommon: string | undefined;
-				rare: string | undefined;
-				epic: string | undefined;
-				legendary: string | undefined;
+				common: Address | undefined;
+				uncommon: Address | undefined;
+				rare: Address | undefined;
+				epic: Address | undefined;
+				legendary: Address | undefined;
 		  }
 		| undefined;
 }

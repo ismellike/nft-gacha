@@ -1,23 +1,49 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { localhost } from "wagmi/chains";
+import type { Chain } from "viem";
+import { holesky, localhost, mainnet } from "wagmi/chains";
+import { ENV_MODE } from "./lib/config";
 
-const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 17000);
-const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8548";
+const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
 
-// Extend localhost chain with custom RPC
-const localChain = {
-	...localhost,
-	id: chainId,
-	name: `Local ${chainId}`,
-	rpcUrls: {
-		default: { http: [rpcUrl] },
-		public: { http: [rpcUrl] },
-	},
-};
+function getChain(): Chain {
+	switch (ENV_MODE) {
+		case "TESTNET": {
+			if (!rpcUrl) return holesky;
+			return {
+				...holesky,
+				rpcUrls: {
+					default: { http: [rpcUrl] },
+				},
+			};
+		}
+		case "MAINNET": {
+			if (!rpcUrl) return mainnet;
+			return {
+				...mainnet,
+				rpcUrls: {
+					default: { http: [rpcUrl] },
+				},
+			};
+		}
+		default: {
+			// LOCAL
+			const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 17000);
+			const localRpc = rpcUrl || "http://localhost:8548";
+			return {
+				...localhost,
+				id: chainId,
+				name: `Local ${chainId}`,
+				rpcUrls: {
+					default: { http: [localRpc] },
+				},
+			};
+		}
+	}
+}
 
 export const config = getDefaultConfig({
 	appName: "Spin-Fi",
 	projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "placeholder",
-	chains: [localChain],
+	chains: [getChain()],
 	ssr: false,
 });
