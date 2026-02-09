@@ -12,12 +12,14 @@ import { CardSkeleton } from "@/ui";
 import { HistoryFilters } from "./HistoryFilters";
 import { HistoryGrid } from "./HistoryGrid";
 import { HistoryStats } from "./HistoryStats";
+import { OnChainStats } from "./OnChainStats";
 
 interface SpinHistorySectionProps {
 	gachaAddress: string;
 	gachaId?: string;
 	appraisalContractAddress?: string | undefined;
 	protocolTreasuryAddress?: string | undefined;
+	treasuryAddress?: string | undefined;
 }
 
 const SpinHistorySection = ({
@@ -25,6 +27,7 @@ const SpinHistorySection = ({
 	gachaId,
 	appraisalContractAddress,
 	protocolTreasuryAddress,
+	treasuryAddress,
 }: SpinHistorySectionProps) => {
 	const { address } = useAccount();
 	const { fetchHistory, loadMore } = useSpinHistoryFetcher();
@@ -158,6 +161,12 @@ const SpinHistorySection = ({
 				<HistoryStats userAddress={address} gachaAddress={gachaAddress} />
 			</div>
 
+			{/* On-Chain Analytics */}
+			<OnChainStats
+				gachaAddress={gachaAddress}
+				treasuryAddress={treasuryAddress}
+			/>
+
 			{/* History Grid */}
 			<HistoryGrid
 				entries={entries}
@@ -165,6 +174,7 @@ const SpinHistorySection = ({
 				isEmpty={isEmpty}
 				appraisalContractAddress={appraisalContractAddress}
 				protocolTreasuryAddress={protocolTreasuryAddress}
+				gachaTreasuryAddress={treasuryAddress}
 				gachaId={gachaId}
 				onBuybackSuccess={handleBuybackSuccess}
 			/>

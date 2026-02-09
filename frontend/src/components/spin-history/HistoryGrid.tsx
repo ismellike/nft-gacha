@@ -13,6 +13,7 @@ interface HistoryGridProps {
 	isEmpty: boolean;
 	appraisalContractAddress?: string | undefined;
 	protocolTreasuryAddress?: string | undefined;
+	gachaTreasuryAddress?: string | undefined;
 	gachaId?: string | undefined;
 	onBuybackSuccess?: (txHash: string, payoutAmount: bigint) => void;
 }
@@ -24,6 +25,7 @@ const HistoryGrid = memo(
 		isEmpty,
 		appraisalContractAddress,
 		protocolTreasuryAddress,
+		gachaTreasuryAddress,
 		gachaId,
 		onBuybackSuccess,
 	}: HistoryGridProps) => {
@@ -68,6 +70,9 @@ const HistoryGrid = memo(
 						})}
 						{...(protocolTreasuryAddress && {
 							protocolTreasuryAddress,
+						})}
+						{...(gachaTreasuryAddress && {
+							gachaTreasuryAddress,
 						})}
 						{...(gachaId && { gachaId })}
 						{...(onBuybackSuccess && { onBuybackSuccess })}

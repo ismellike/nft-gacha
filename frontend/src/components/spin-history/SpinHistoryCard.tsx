@@ -19,6 +19,7 @@ interface SpinHistoryCardProps {
 	entry: SpinHistoryEntry;
 	appraisalContractAddress?: string | undefined;
 	protocolTreasuryAddress?: string | undefined;
+	gachaTreasuryAddress?: string | undefined;
 	gachaId?: string | undefined;
 	onBuybackSuccess?: (txHash: string, payoutAmount: bigint) => void;
 	uniqueId?: string; // Unique identifier (triggerId) to distinguish duplicate NFTs
@@ -52,6 +53,7 @@ const SpinHistoryCard = memo(
 		entry,
 		appraisalContractAddress,
 		protocolTreasuryAddress,
+		gachaTreasuryAddress,
 		gachaId,
 		onBuybackSuccess,
 		uniqueId,
@@ -217,6 +219,7 @@ const SpinHistoryCard = memo(
 								tokenId={nftCardData.tokenId}
 								appraisalContractAddress={validatedAppraisalAddress}
 								protocolTreasuryAddress={protocolTreasuryAddress}
+								gachaTreasuryAddress={gachaTreasuryAddress}
 								rarity={rarityConfig.name}
 								historicalAppraisedPrice={entry.appraisedPrice}
 								uniqueId={uniqueId || entry.triggerId.toString()}

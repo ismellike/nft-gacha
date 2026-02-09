@@ -1,16 +1,10 @@
 "use client";
 
-import {
-	ArrowTopRightOnSquareIcon,
-	ClockIcon,
-} from "@heroicons/react/24/outline";
-import { motion } from "framer-motion";
 import { lazy, memo, Suspense, useCallback } from "react";
 import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useGachaSpinMachine } from "../../hooks/useGachaSpinMachine";
-import { Button } from "../../ui";
 import { PricingBreakdown } from "./PricingBreakdown";
 import RarityBreakdown from "./RarityBreakdown";
 import SpinControls from "./SpinControls";
@@ -51,43 +45,6 @@ const GachaSpinner = memo(() => {
 
 	return (
 		<div className="space-y-16">
-			{/* Pending Spin Restoration Banner */}
-			{gachaSpin.isWaitingForFulfillment && (
-				<motion.div
-					initial={{ opacity: 0, y: -20 }}
-					animate={{ opacity: 1, y: 0 }}
-					className="mb-6 bg-info/10 border border-info/30 rounded-xl p-4"
-				>
-					<div className="flex items-center gap-3">
-						<div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center">
-							<ClockIcon className="w-5 h-5 text-info animate-pulse" />
-						</div>
-						<div className="flex-1">
-							<p className="font-semibold text-info">Restoring Your Spin</p>
-							<p className="text-sm text-foreground/70">
-								We found a pending spin from before. Continuing to wait for
-								randomness...
-							</p>
-						</div>
-						<Button
-							color="glass"
-							size="sm"
-							onPress={() => {
-								if (gachaSpin.triggerId) {
-									window.open(
-										`https://holesky.etherscan.io/tx/${gachaSpin.triggerId.toString()}`,
-										"_blank",
-									);
-								}
-							}}
-						>
-							<ArrowTopRightOnSquareIcon className="w-4 h-4 mr-2" />
-							View Transaction
-						</Button>
-					</div>
-				</motion.div>
-			)}
-
 			{/* NFT Reveal Modal */}
 			{gachaSpin.isRevealing && gachaSpin.spinResult && contracts.appraisal && (
 				<Suspense

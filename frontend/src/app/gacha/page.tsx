@@ -331,6 +331,7 @@ function GachaDetailPageContent() {
 									protocolTreasuryAddress={
 										contracts.protocolTreasury ?? undefined
 									}
+									treasuryAddress={contracts.treasury ?? undefined}
 								/>
 							)}
 

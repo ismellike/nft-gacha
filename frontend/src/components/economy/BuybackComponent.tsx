@@ -14,8 +14,10 @@ import {
 	type UseNFTInteractionParams,
 	useNFTInteraction,
 } from "@/hooks/useNFTInteraction";
+import { useRedemptionWindow } from "@/hooks/useRedemptionWindow";
 import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
 import { formatCurrency } from "@/lib/utils";
+import { RedemptionCountdown } from "./RedemptionCountdown";
 import { Button } from "../../ui/Button";
 import { Card } from "../../ui/Card";
 import { Chip } from "../../ui/Chip";
@@ -26,7 +28,7 @@ interface BuybackComponentProps {
 	tokenId: string;
 	appraisalContractAddress: string;
 	protocolTreasuryAddress: string;
-	gachaTreasuryAddress?: string;
+	gachaTreasuryAddress?: string | undefined;
 	rarity?: string;
 	historicalAppraisedPrice?: bigint | undefined; // Historical price from spin history
 	uniqueId?: string; // Unique identifier (e.g., triggerId) to distinguish duplicates
@@ -42,6 +44,7 @@ export default function BuybackComponent({
 	tokenId,
 	appraisalContractAddress,
 	protocolTreasuryAddress,
+	gachaTreasuryAddress,
 	rarity,
 	historicalAppraisedPrice,
 	uniqueId,
@@ -196,6 +199,15 @@ export default function BuybackComponent({
 		},
 	});
 
+	// Redemption window countdown
+	const redemptionWindow = useRedemptionWindow({
+		protocolTreasuryAddress,
+		gachaTreasuryAddress,
+		collection,
+		tokenId,
+		enabled: !!connectedAddress,
+	});
+
 	// Derived state
 	const isOwner =
 		ownerOf && connectedAddress
@@ -254,6 +266,7 @@ export default function BuybackComponent({
 		!hasEnoughLiquidity ||
 		isPaused ||
 		isNotOwned || // Disable if user no longer owns the NFT (already bought back)
+		redemptionWindow.isExpired || // Disable if redemption window has expired
 		actionInfo.type === "checking" ||
 		(isLoading &&
 			status !== "awaitingInteractionSignature" &&
@@ -265,6 +278,11 @@ export default function BuybackComponent({
 
 	// Determine button label based on current state
 	const getButtonLabel = () => {
+		// If redemption window expired, show that first
+		if (redemptionWindow.isExpired) {
+			return "Window Expired";
+		}
+
 		// If there's an error, show retry button
 		if (error) {
 			return "Retry Buyback";
@@ -624,6 +642,12 @@ export default function BuybackComponent({
 								</div>
 							)}
 
+							{/* Redemption Countdown */}
+							<RedemptionCountdown
+								state={redemptionWindow}
+								variant="full"
+							/>
+
 							{/* Status Messages */}
 							{treasuryStatus.type !== "success" && (
 								<div
@@ -770,6 +794,11 @@ export default function BuybackComponent({
 								</div>
 							)}
 
+							<RedemptionCountdown
+								state={redemptionWindow}
+								variant="card"
+							/>
+
 							<Button
 								data-buyback-area="true"
 								onPress={handleInteractionButtonClick}
@@ -871,6 +900,10 @@ export default function BuybackComponent({
 								Unavailable
 							</Chip>
 						) : null}
+						<RedemptionCountdown
+							state={redemptionWindow}
+							variant="button"
+						/>
 						<Button
 							data-buyback-area="true"
 							onPress={handleInteractionButtonClick}
