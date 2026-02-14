@@ -77,6 +77,76 @@ The gacha spinning flow uses utility functions in `async-utils/gachaSpinMachine.
 - **Type Safety**: Zod schemas validate environment variables and configurations
 - **Build Integration**: Task runner syncs environment variables with NEXT_PUBLIC_ prefixes
 
+## Architecture Diagrams
+
+### Gacha Spin Flow
+```
+User clicks spin
+    ↓
+Frontend: writeContract({ spinGacha })
+    ↓
+Gacha contract: RandomnessRequested event
+    ↓
+WAVS Operator detects trigger
+    ↓
+wavs_drand component: Fetch DRAND + derive VRF
+    ↓
+Aggregator: Batch submissions
+    ↓
+Gacha contract: SpinCompleted event
+    ↓
+Frontend: Polls for event, reveals NFT
+```
+
+### Contract Architecture
+```
+Gacha.sol (Main game logic)
+    ├─→ Calls NFTAppraisal for prices
+    ├─→ Uses WAVS for randomness
+    └─→ Emits SpinCompleted
+
+GachaTreasury.sol (NFT storage)
+    ├─→ Assigns rarity by price
+    ├─→ Stores NFTs by rarity pool
+    └─→ Mints to winners
+
+GachaEconomyManager.sol (Fees & yield)
+    ├─→ Collects spin fees
+    ├─→ Distributes to treasury
+    └─→ Manages yield
+```
+
+### Frontend State Flow
+```
+User action
+    ↓
+Zustand store (persisted in localStorage)
+    ↓
+Contract interaction (wagmi hooks)
+    ↓
+Wait for events (polling utilities)
+    ↓
+Update store → React re-renders
+```
+
+## TypeScript & Linting Gotchas
+
+- **`exactOptionalPropertyTypes: true`**: Optional props must explicitly include `| undefined` (e.g., `prop?: string | undefined`)
+- **Wagmi generated hook deep instantiation**: Some hooks (e.g., `useReadGachaTreasuryGetUserProfileBatch`) cause "Type instantiation is excessively deep" with `as Parameters<typeof hook>[0]`. Workaround: use `useReadContract` directly with the ABI import instead.
+- **Biome exhaustive deps**: No disable comments work. For interval tickers, use a ref pattern: store value in ref, read ref inside setInterval, use empty dependency array.
+- **Chip color mapping**: `RarityConfigItem.chipColor` can be `"default"` but `Chip` component only accepts `"primary" | "secondary" | "danger" | "ghost" | "warning" | "success" | "glass"`. Map `"default"` to `"glass"`.
+
+## Commit Conventions
+
+Use conventional commits:
+```
+<type>(<scope>): <subject>
+```
+
+**Types**: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
+
+**Scopes**: `contracts`, `frontend`, `packages`, `backend`, `tasks`, `deps`
+
 ## Important Development Notes
 
 ### Environment Setup
@@ -85,7 +155,7 @@ Always update `.env` file before running `task bootstrap`. The system requires p
 ### Contract Development
 Run `task contracts:build` before `task frontend:codegen` to ensure TypeScript types are current.
 
-### State Machine Debugging  
+### State Machine Debugging
 The gacha spinner uses persistent state that survives page refreshes. Check browser localStorage for pending spins during debugging.
 
 ### Testing
