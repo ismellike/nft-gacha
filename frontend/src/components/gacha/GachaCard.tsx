@@ -34,11 +34,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 	// 🚀 BATCH OPTIMIZED: Get all data in 2 calls instead of 5!
 	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
 
-	// Use @ts-expect-error to avoid infinite type instantiation with complex generated types
-	// The return type of useReadGachaTreasuryGetPlatformOverviewBatch is too complex for TypeScript
-	// We use type assertions below to safely extract the data
-	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-	// @ts-expect-error - Complex type from wagmi generation causes infinite type instantiation
+	// @ts-expect-error wagmi codegen deep type instantiation
 	const platformResult = useReadGachaTreasuryGetPlatformOverviewBatch({
 		address: treasuryAddress,
 	});
