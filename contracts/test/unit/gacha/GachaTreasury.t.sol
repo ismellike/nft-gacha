@@ -438,7 +438,7 @@ contract GachaTreasuryTest is StandardTest {
 
         // Gacha sends NFT to winner
         vm.prank(gachaContract);
-        GachaTreasury.NFTItem memory item = treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, winner);
+        GachaTreasury.NFTItem memory item = treasury.sendRandomNFTToWinner(GachaTreasury.Rarity.Epic, 0, winner);
 
         assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0, "Should have 0 Epic NFTs after distribution");
         assertEq(nft.ownerOf(tokenId), winner, "Winner should own the NFT");
@@ -470,7 +470,7 @@ contract GachaTreasuryTest is StandardTest {
         // Non-gacha address cannot send NFT
         vm.prank(user);
         vm.expectRevert(abi.encodeWithSelector(GachaTreasury.UnauthorizedGachaContract.selector));
-        treasury.sendNFTToWinner(GachaTreasury.Rarity.Epic, 0, user);
+        treasury.sendRandomNFTToWinner(GachaTreasury.Rarity.Epic, 0, user);
     }
 
     /**

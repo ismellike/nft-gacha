@@ -88,7 +88,7 @@ contract TimeoutMechanism is Test {
         );
 
         vm.stopPrank();
-        spinTimeout = gacha.SPIN_TIMEOUT();
+        spinTimeout = gacha.spinTimeout();
 
         // Mint and approve tokens
         feeToken.mint(user, 1000 * SPIN_FEE);

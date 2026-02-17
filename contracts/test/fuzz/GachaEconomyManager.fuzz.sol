@@ -89,17 +89,13 @@ contract GachaEconomyManagerFuzz is Test {
      * @notice Fuzz test: Update share basis points within valid range
      */
     function testFuzz_UpdateShareBps(
-        uint256 newDepositorBps,
-        uint256 newProtocolBps
+        uint256 newDepositorBps
     ) public {
-        // Constrain to valid ranges
-        vm.assume(newDepositorBps > 0 && newDepositorBps <= 10000);
-        vm.assume(newProtocolBps > 0 && newProtocolBps <= 10000);
+        // Bound depositor share to valid range (1 to 9999), derive protocol share
+        newDepositorBps = bound(newDepositorBps, 1, 9999);
+        uint256 newProtocolBps = 10000 - newDepositorBps;
 
-        // Ensure sum doesn't exceed 10000
-        vm.assume(newDepositorBps + newProtocolBps <= 10000);
-
-        // Update shares
+        // Update shares — must sum to exactly 10000
         economy.setRevenueSplit(newDepositorBps, newProtocolBps);
 
         assertEq(economy.depositorShareBps(), newDepositorBps);

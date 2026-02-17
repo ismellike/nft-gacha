@@ -94,7 +94,6 @@ contract DepositorVault is
         asset = IERC20(asset_);
         treasury = treasury_;
         economyManager = economyManager_;
-        _transferOwnership(owner);
     }
 
     /// @inheritdoc IDepositorVault
@@ -158,6 +157,21 @@ contract DepositorVault is
         uint256 currentShares = _shares[account];
         require(currentShares > 0, "DepositorVault: no shares");
 
+        // Auto-transfer any unclaimed yield to the user before clearing
+        uint256 unclaimed = _unclaimed[account];
+        if (unclaimed > 0) {
+            _unclaimed[account] = 0;
+            totalYieldClaimed += unclaimed;
+
+            // Record analytics in GachaTreasury
+            if (treasury != address(0) && treasury.code.length > 0) {
+                try IGachaTreasuryYieldTracker(treasury).recordYieldClaim(account, unclaimed) {} catch {}
+            }
+
+            asset.safeTransfer(account, unclaimed);
+            emit IDepositorVault.YieldClaimed(account, unclaimed);
+        }
+
         totalShares -= currentShares;
         _shares[account] = 0;
         _rewardDebt[account] = 0;
@@ -170,9 +184,12 @@ contract DepositorVault is
         require(amount > 0, "DepositorVault: amount is zero");
         require(totalShares > 0, "DepositorVault: no shares outstanding");
 
+        uint256 increment = (amount * REWARD_PRECISION) / totalShares;
+        require(increment > 0, "DepositorVault: yield too small");
+
         asset.safeTransferFrom(msg.sender, address(this), amount);
 
-        accYieldPerShare += (amount * REWARD_PRECISION) / totalShares;
+        accYieldPerShare += increment;
         totalYieldDistributed += amount;
 
         emit IDepositorVault.YieldDistributed(msg.sender, amount);

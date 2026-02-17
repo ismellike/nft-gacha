@@ -32,6 +32,9 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
     /// @notice Enhanced events for monitoring
     event ServiceHandlerStatusUpdate(string indexed operation, bool success, string reason, uint256 timestamp);
 
+    /// @notice Emitted when an appraisal fails permanently (invalid data, will never succeed on retry)
+    event PermanentAppraisalFailure(string reason, uint256 timestamp);
+
     /// @notice Custom errors for validation
     error InvalidServiceManager();
     error InvalidAppraisalContract();
@@ -81,10 +84,19 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
         _serviceManager.validate(envelope, signatureData);
 
         // Try to decode as AppraisalSuccess first
-        (bool isSuccess, bool success) = _tryProcessSuccess(envelope.payload);
+        (bool isSuccess, bool success, bool permanent) = _tryProcessSuccess(envelope.payload);
 
         if (isSuccess) {
             if (!success) {
+                if (permanent) {
+                    // Permanent failure (invalid data) — emit event and return (no retry)
+                    emit PermanentAppraisalFailure("Invalid appraisal data", block.timestamp);
+                    emit ServiceHandlerStatusUpdate(
+                        "processAppraisal", false, "Permanent failure: invalid appraisal data", block.timestamp
+                    );
+                    return;
+                }
+                // Transient failure (contract revert) — revert for retry
                 emit ServiceHandlerStatusUpdate(
                     "processAppraisal", false, "Failed to process successful appraisal", block.timestamp
                 );
@@ -105,12 +117,13 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
      * @param payload The encoded payload to decode and process
      * @return isSuccess True if payload was successfully decoded as AppraisalSuccess
      * @return processed True if the appraisal was successfully processed
+     * @return permanent True if failure is permanent (invalid data, will never succeed on retry)
      */
-    function _tryProcessSuccess(bytes calldata payload) internal returns (bool isSuccess, bool processed) {
-        try this._decodeSuccess(payload) returns (AppraisalSuccess memory successPayload) {
-            // Validate appraisal data
-            if (successPayload.contractAddress == address(0)) return (true, false);
-            if (successPayload.price == 0) return (true, false);
+    function _tryProcessSuccess(bytes calldata payload) internal returns (bool isSuccess, bool processed, bool permanent) {
+        try this.decodeSuccess(payload) returns (AppraisalSuccess memory successPayload) {
+            // Validate appraisal data — permanent failures (bad data)
+            if (successPayload.contractAddress == address(0)) return (true, false, true);
+            if (successPayload.price == 0) return (true, false, true);
 
             // Emit event for monitoring (exclude chain per interface definition)
             emit AppraisalSuccessReceived(
@@ -129,15 +142,16 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
                 emit AppraisalProcessed(
                     successPayload.contractAddress, successPayload.tokenId, priceUSD18, true, block.timestamp
                 );
-                return (true, true);
+                return (true, true, false);
             } catch {
+                // Contract revert — transient failure (retry may succeed)
                 emit AppraisalProcessed(
                     successPayload.contractAddress, successPayload.tokenId, priceUSD18, false, block.timestamp
                 );
-                return (true, false);
+                return (true, false, false);
             }
         } catch {
-            return (false, false);
+            return (false, false, false);
         }
     }
 
@@ -146,7 +160,7 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
      * @param payload The encoded error payload to decode and emit
      */
     function _processError(bytes calldata payload) internal {
-        try this._decodeError(payload) returns (AppraisalError memory errorPayload) {
+        try this.decodeError(payload) returns (AppraisalError memory errorPayload) {
             // Emit error event for monitoring (exclude chain per interface definition)
             emit AppraisalErrorReceived(
                 errorPayload.contractAddress, errorPayload.tokenId, errorPayload.error, errorPayload.txHash
@@ -167,20 +181,24 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
     }
 
     /**
-     * @dev External function for safe ABI decoding of success payload
+     * @dev External function for safe ABI decoding of success payload.
+     * @dev Named without underscore despite being used internally via this.decodeSuccess()
+     *      because try/catch requires an external call target.
      * @param payload The encoded success payload
      * @return The decoded AppraisalSuccess struct
      */
-    function _decodeSuccess(bytes calldata payload) external pure returns (AppraisalSuccess memory) {
+    function decodeSuccess(bytes calldata payload) external pure returns (AppraisalSuccess memory) {
         return abi.decode(payload, (AppraisalSuccess));
     }
 
     /**
-     * @dev External function for safe ABI decoding of error payload
+     * @dev External function for safe ABI decoding of error payload.
+     * @dev Named without underscore despite being used internally via this.decodeError()
+     *      because try/catch requires an external call target.
      * @param payload The encoded error payload
      * @return The decoded AppraisalError struct
      */
-    function _decodeError(bytes calldata payload) external pure returns (AppraisalError memory) {
+    function decodeError(bytes calldata payload) external pure returns (AppraisalError memory) {
         return abi.decode(payload, (AppraisalError));
     }
 

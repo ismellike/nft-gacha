@@ -6,6 +6,30 @@ export default defineConfig({
 	plugins: [
 		foundry({
 			project: "../contracts",
+			exclude: [
+				"*.t.sol/**",
+				"Test.sol/**",
+				"TestConstants.sol/**",
+				"TestUsers.sol/**",
+				"StandardTest.sol/**",
+				"StdAssertions.sol/**",
+				"StdChains.sol/**",
+				"StdCheats.sol/**",
+				"StdError.sol/**",
+				"StdInvariant.sol/**",
+				"StdJson.sol/**",
+				"StdMath.sol/**",
+				"StdStorage.sol/**",
+				"StdStyle.sol/**",
+				"StdToml.sol/**",
+				"StdUtils.sol/**",
+				"Vm.sol/**",
+				"console.sol/**",
+				"console2.sol/**",
+				"Script.sol/**",
+				"**/script/**",
+				"Mock*.sol/**",
+			],
 		}),
 		react({
 			getHookName({ type, contractName, itemName }) {

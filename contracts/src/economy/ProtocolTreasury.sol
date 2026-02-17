@@ -90,8 +90,6 @@ contract ProtocolTreasury is
         appraisalOracle = NFTAppraisal(appraisalOracle_);
 
         redemptionWindow = 1 hours;
-
-        _transferOwnership(owner);
     }
 
     /// @inheritdoc IProtocolTreasury
@@ -117,17 +115,15 @@ contract ProtocolTreasury is
      * @notice Allows players to redeem NFTs back to the protocol at 80% of the appraised value.
      * @param collection NFT contract address
      * @param tokenId NFT identifier
-     * @param recipient Address receiving the USDC payout
      * @return payout Amount paid in USDC (6 decimals)
      */
-    function executeRedemption(address collection, uint256 tokenId, address recipient)
+    function executeRedemption(address collection, uint256 tokenId)
         external
         whenNotPaused
         nonReentrant
         returns (uint256 payout)
     {
         if (collection == address(0)) revert ZeroAddress("collection");
-        if (recipient == address(0)) revert ZeroAddress("recipient");
 
         (uint256 appraisalUSD, NFTAppraisal.AppraisalStatus status) =
             appraisalOracle.getAppraisedPrice(collection, tokenId);
@@ -159,7 +155,7 @@ contract ProtocolTreasury is
         IERC721(collection).safeTransferFrom(msg.sender, address(_treasury), tokenId);
         _treasury.handleRedemptionReturn(collection, tokenId, msg.sender, appraisalUSD);
 
-        _asset.safeTransfer(recipient, payout);
+        _asset.safeTransfer(msg.sender, payout);
 
         emit RedemptionExecuted(msg.sender, collection, tokenId, payout);
         return payout;

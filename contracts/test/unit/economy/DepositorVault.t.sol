@@ -553,6 +553,39 @@ contract DepositorVaultTest is Test {
     }
 
     // ========================================================================
+    // DEREGISTER AUTO-CLAIM TESTS
+    // ========================================================================
+
+    function testDeregisterAutoClaimsYield() public {
+        // Register and distribute yield
+        vm.startPrank(treasury);
+        vault.registerDepositor(depositor1, DEPOSITOR1_SHARES);
+        vm.stopPrank();
+
+        // Distribute yield
+        vm.startPrank(economyManager);
+        usdc.approve(address(vault), REWARD_AMOUNT);
+        vault.distributeYield(REWARD_AMOUNT);
+        vm.stopPrank();
+
+        // Verify pending yield
+        uint256 pending = vault.pendingYield(depositor1);
+        assertGt(pending, 0, "Should have pending yield before deregister");
+
+        uint256 balanceBefore = usdc.balanceOf(depositor1);
+
+        // Deregister should auto-transfer yield
+        vm.startPrank(treasury);
+        vault.deregisterDepositor(depositor1);
+        vm.stopPrank();
+
+        uint256 balanceAfter = usdc.balanceOf(depositor1);
+        assertEq(balanceAfter - balanceBefore, pending, "Depositor should receive pending yield on deregister");
+        assertEq(vault.sharesOf(depositor1), 0, "Shares should be zero after deregister");
+        assertEq(vault.pendingYield(depositor1), 0, "No pending yield after deregister");
+    }
+
+    // ========================================================================
     // HELPER FUNCTIONS
     // ========================================================================
 

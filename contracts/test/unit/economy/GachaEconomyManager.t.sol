@@ -147,8 +147,14 @@ contract GachaEconomyManagerTest is StandardTest {
 
     function testSetRevenueSplitFailsWhenInvalid() public {
         vm.prank(economyOwner);
-        vm.expectRevert("GachaEconomyManager: invalid split");
+        vm.expectRevert("GachaEconomyManager: must sum to 100%");
         economy.setRevenueSplit(10_001, 0);
+    }
+
+    function testSetRevenueSplitFailsWithZeroSum() public {
+        vm.prank(economyOwner);
+        vm.expectRevert("GachaEconomyManager: must sum to 100%");
+        economy.setRevenueSplit(0, 0);
     }
 
     function testSetFeeToken() public {

@@ -38,7 +38,7 @@ interface SpinControlsProps {
 }
 
 // Constants for spin configuration
-const SPIN_TIMEOUT_SECONDS = 30;
+const SPIN_TIMEOUT_SECONDS = 300;
 const PERMIT_DEADLINE_SECONDS = 3600; // 1 hour
 const MAX_FEE_SLIPPAGE_BPS = 200; // 2% max-fee buffer for UI
 
@@ -148,7 +148,7 @@ const SpinControls = memo(function SpinControls({
 	const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
 		address: contracts.treasury as `0x${string}` | undefined,
 		query: { enabled: !!contracts.treasury },
-	} as Parameters<typeof useReadGachaTreasuryIsGachaAvailable>[0]);
+	});
 
 	// ERC20 token data
 	const { data: tokenDecimals } = useReadErc20Decimals({

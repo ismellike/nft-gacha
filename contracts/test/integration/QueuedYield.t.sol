@@ -130,7 +130,7 @@ contract QueuedYield is Test, IERC721Receiver {
         treasury.depositNFT(address(collection), tokenId);
         treasury.sendRandomNFTToWinner(GachaTreasury.Rarity.Common, 0, address(this));
         collection.approve(address(protocolTreasury), tokenId);
-        protocolTreasury.executeRedemption(address(collection), tokenId, address(this));
+        protocolTreasury.executeRedemption(address(collection), tokenId);
         vm.stopPrank();
 
         // Now protocol should have shares and future auto-claims should work

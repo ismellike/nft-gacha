@@ -38,7 +38,6 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	};
 
 	// Batch fetch all rarity counts in single RPC call
-	// @ts-expect-error wagmi codegen deep type instantiation
 	const rarityCountsQuery = useReadGachaTreasuryGetAllRarityCounts({
 		address: contracts.treasury,
 		query: { enabled: !!contracts.treasury },

@@ -20,7 +20,6 @@ import {DepositorVault} from "../src/economy/DepositorVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../src/tokens/BaseERC721.sol";
-import {RarityTracker} from "../src/gacha/RarityTracker.sol";
 
 /// @dev Simple 6-decimal test token to simulate USDC
 contract TestUSDC is ERC20, ERC20Permit, Ownable {
@@ -78,11 +77,6 @@ contract DeployLocal is Script {
         address serviceHandler;
         address appraisalServiceHandler;
         address collection;
-        address commonTracker;
-        address uncommonTracker;
-        address rareTracker;
-        address epicTracker;
-        address legendaryTracker;
     }
 
     address constant TEMP_GACHA_ADDRESS = 0x1111111111111111111111111111111111111111;
@@ -131,11 +125,6 @@ contract DeployLocal is Script {
         console.log("Service Handler:       ", deployments.serviceHandler);
         console.log("Appraisal Handler:     ", deployments.appraisalServiceHandler);
         console.log("Demo Collection:       ", deployments.collection);
-        console.log("Common Tracker:        ", deployments.commonTracker);
-        console.log("Uncommon Tracker:      ", deployments.uncommonTracker);
-        console.log("Rare Tracker:          ", deployments.rareTracker);
-        console.log("Epic Tracker:          ", deployments.epicTracker);
-        console.log("Legendary Tracker:     ", deployments.legendaryTracker);
     }
 
     function _deployStack(address deployer, address wavsServiceManager) internal returns (Deployments memory d) {
@@ -297,36 +286,12 @@ contract DeployLocal is Script {
 
     function _deployCollectionAndTrackers(Deployments memory d, address deployer) internal {
         _deployCollection(d, deployer);
-        _deployTrackers(d, deployer);
         GachaTreasury(d.treasuryProxy).addToWhitelist(d.collection);
     }
 
     function _deployCollection(Deployments memory d, address deployer) internal {
         BaseERC721 collection = new BaseERC721("Gacha Collection", "GACHA", deployer);
         d.collection = address(collection);
-    }
-
-    function _deployTrackers(Deployments memory d, address deployer) internal {
-        address trackerImpl = address(new RarityTracker());
-        d.commonTracker = address(
-            new ERC1967Proxy(trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Common"))
-        );
-        d.uncommonTracker = address(
-            new ERC1967Proxy(
-                trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Uncommon")
-            )
-        );
-        d.rareTracker = address(
-            new ERC1967Proxy(trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Rare"))
-        );
-        d.epicTracker = address(
-            new ERC1967Proxy(trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Epic"))
-        );
-        d.legendaryTracker = address(
-            new ERC1967Proxy(
-                trackerImpl, abi.encodeWithSelector(RarityTracker.initialize.selector, deployer, "Legendary")
-            )
-        );
     }
 
     function _configureEconomy(Deployments memory d) internal {
@@ -684,12 +649,7 @@ contract DeployLocal is Script {
                 _envLine("GACHA_ADDRESS", vm.toString(deployments.gachaProxy)),
                 _envLine("GACHA_SERVICE_HANDLER_ADDRESS", vm.toString(deployments.serviceHandler)),
                 _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(deployments.appraisalServiceHandler)),
-                _envLine("COLLECTION_ADDRESS", vm.toString(deployments.collection)),
-                _envLine("COMMON_TRACKER_ADDRESS", vm.toString(deployments.commonTracker)),
-                _envLine("UNCOMMON_TRACKER_ADDRESS", vm.toString(deployments.uncommonTracker)),
-                _envLine("RARE_TRACKER_ADDRESS", vm.toString(deployments.rareTracker)),
-                _envLine("EPIC_TRACKER_ADDRESS", vm.toString(deployments.epicTracker)),
-                _envLine("LEGENDARY_TRACKER_ADDRESS", vm.toString(deployments.legendaryTracker))
+                _envLine("COLLECTION_ADDRESS", vm.toString(deployments.collection))
             )
         );
     }

@@ -108,6 +108,7 @@ contract NFTAppraisal is
     event TreasuryWhitelisted(address indexed treasury);
     event TreasuryUnwhitelisted(address indexed treasury);
     event AutoMigrationTriggered(address indexed treasury, address indexed collection, uint256 indexed tokenId);
+    event AutoMigrationFailed(address indexed treasury, address indexed collection, uint256 indexed tokenId, bytes reason);
     event FeeTokenUpdated(address oldToken, address newToken);
     event ProtocolAddressUpdated(address oldAddress, address newAddress);
 
@@ -712,11 +713,7 @@ contract NFTAppraisal is
             if (success) {
                 emit AutoMigrationTriggered(nftOwner, collection, tokenId);
             } else {
-                // Emit event for monitoring even if migration fails
-                // Decode revert reason if available
-                if (data.length > 0) {
-                    emit AutoMigrationTriggered(nftOwner, collection, tokenId);
-                }
+                emit AutoMigrationFailed(nftOwner, collection, tokenId, data);
             }
             // If migration fails, we don't revert - the price update still happened
         }

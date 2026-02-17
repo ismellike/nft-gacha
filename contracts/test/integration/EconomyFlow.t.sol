@@ -139,7 +139,7 @@ contract EconomyFlowTest is Test, IERC721Receiver {
         collection.approve(address(protocolTreasury), wonItem.tokenId);
 
         uint256 spinnerBalanceBefore = usdc.balanceOf(SPINNER);
-        uint256 payout = protocolTreasury.executeRedemption(address(collection), wonItem.tokenId, SPINNER);
+        uint256 payout = protocolTreasury.executeRedemption(address(collection), wonItem.tokenId);
         uint256 spinnerBalanceAfter = usdc.balanceOf(SPINNER);
         vm.stopPrank();
 

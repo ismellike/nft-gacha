@@ -51,10 +51,9 @@ interface IProtocolTreasury {
      * @notice Allows players to redeem NFTs back to the protocol
      * @param collection NFT collection address
      * @param tokenId NFT identifier
-     * @param recipient Address receiving the payout
-     * @return payout Amount of USDC paid to the recipient
+     * @return payout Amount of USDC paid to the caller
      */
-    function executeRedemption(address collection, uint256 tokenId, address recipient)
+    function executeRedemption(address collection, uint256 tokenId)
         external
         returns (uint256 payout);
 }

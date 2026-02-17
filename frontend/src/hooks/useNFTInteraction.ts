@@ -294,11 +294,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			} else if (mode === "buyback" && protocolTreasuryAddress && userAddress) {
 				const txHash = await executeRedemption({
 					address: protocolTreasuryAddress as `0x${string}`,
-					args: [
-						collection as `0x${string}`,
-						BigInt(tokenId),
-						userAddress as `0x${string}`,
-					],
+					args: [collection as `0x${string}`, BigInt(tokenId)],
 				});
 				if (txHash) {
 					markInteractionSubmitted(txHash);

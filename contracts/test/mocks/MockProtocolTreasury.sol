@@ -31,7 +31,7 @@ contract MockProtocolTreasury is IProtocolTreasury {
         emit ProtocolTransfer(to, amount);
     }
 
-    function executeRedemption(address collection, uint256 tokenId, address /* recipient */)
+    function executeRedemption(address collection, uint256 tokenId)
         external
         override
         returns (uint256 payout)

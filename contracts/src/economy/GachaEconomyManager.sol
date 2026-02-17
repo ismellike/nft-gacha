@@ -54,6 +54,9 @@ contract GachaEconomyManager is
     /// @notice Queued depositor yield when no shares exist
     uint256 public queuedDepositorYield;
 
+    /// @notice Total queued yield that has been released to depositors
+    uint256 public totalQueuedYieldReleased;
+
     /// @notice Events for admin changes
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
     event GachaUpdated(address indexed previousGacha, address indexed newGacha);
@@ -100,8 +103,6 @@ contract GachaEconomyManager is
         depositorShareBps = 9_500;
         protocolShareBps = 500;
         emit RevenueSplitUpdated(depositorShareBps, protocolShareBps);
-
-        _transferOwnership(owner);
     }
 
     /// @inheritdoc IGachaEconomyManager
@@ -168,7 +169,9 @@ contract GachaEconomyManager is
 
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
-        totalToDepositors += depositShare;
+        // Only count new revenue towards depositors (queued yield was already counted)
+        totalToDepositors += (depositShare - queuedAmount);
+        if (queuedAmount > 0) totalQueuedYieldReleased += queuedAmount;
         totalToProtocol += protocolShare;
 
         emit SpinRevenueReceived(usdcAmount, depositShare, protocolShare);
@@ -178,7 +181,7 @@ contract GachaEconomyManager is
      * @notice Updates the fee split (BPS must sum to <= 10_000)
      */
     function setRevenueSplit(uint256 depositorBps, uint256 protocolBps) external onlyOwner {
-        require(depositorBps + protocolBps <= BPS_DENOMINATOR, "GachaEconomyManager: invalid split");
+        require(depositorBps + protocolBps == BPS_DENOMINATOR, "GachaEconomyManager: must sum to 100%");
 
         depositorShareBps = depositorBps;
         protocolShareBps = protocolBps;
@@ -242,5 +245,5 @@ contract GachaEconomyManager is
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    uint256[42] private __gap;
+    uint256[41] private __gap;
 }

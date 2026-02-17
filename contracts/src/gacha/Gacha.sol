@@ -52,6 +52,7 @@ contract Gacha is
     error NoTreasuryInventory();
     error InvalidFeeTokenDecimals();
     error MaxFeeExceeded(uint256 currentFee, uint256 maxFee);
+    error InvalidSpinTimeout();
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
@@ -79,8 +80,8 @@ contract Gacha is
     uint256 public totalReclaimCount;
     mapping(GachaTreasury.Rarity => uint256) public globalRarityWins;
 
-    /// @notice Timeout for spin requests (30 seconds)
-    uint256 public constant SPIN_TIMEOUT = 30; // 30 seconds in seconds
+    /// @notice Timeout for spin requests (configurable)
+    uint256 public spinTimeout;
 
     /// @notice Total weight constant for rarity calculations (basis points)
     uint256 public constant TOTAL_WEIGHT = 10_000;
@@ -117,6 +118,7 @@ contract Gacha is
     event EmergencyUnpause(address indexed admin);
     event SpinRevenueForwarded(uint256 amount);
     event EconomyManagerUpdated(address indexed oldManager, address indexed newManager);
+    event SpinTimeoutUpdated(uint256 oldTimeout, uint256 newTimeout);
 
     /// @notice Enhanced events for better UX tracking
     event SpinStatusUpdate(uint256 indexed triggerId, address indexed requester, string status, uint256 timestamp);
@@ -160,14 +162,13 @@ contract Gacha is
         gachaServiceHandler = _gachaServiceHandler;
         feeToken = IERC20(_feeToken);
         economyManager = IGachaEconomyManager(_economyManager);
-        if (_feeToken != address(0)) {
-            feeTokenDecimals = IERC20Metadata(_feeToken).decimals();
-            if (feeTokenDecimals > 18) revert InvalidFeeTokenDecimals();
-            feeTokenScalar = 10 ** uint256(feeTokenDecimals);
-        }
+        feeTokenDecimals = IERC20Metadata(_feeToken).decimals();
+        if (feeTokenDecimals > 18) revert InvalidFeeTokenDecimals();
+        feeTokenScalar = 10 ** uint256(feeTokenDecimals);
 
         // Initialize trigger ID to start from 1 instead of 0
         _nextTriggerId = 1;
+        spinTimeout = 300; // 5 minutes
 
         pricingPremiumBps = 500; // 5% premium over EV
         minSpinFee = _minSpinFee;
@@ -297,11 +298,16 @@ contract Gacha is
         userSpinCount[request.requester]++;
         totalSpinCount++;
 
-        // Select rarity based on randomness
-        GachaTreasury.Rarity selectedRarity = _selectRarity(randomness);
+        // Select rarity based on randomness using cached counts
+        uint256[5] memory counts = treasury.getAllRarityCounts();
+        uint256 totalCount;
+        for (uint256 i = 0; i < 5; i++) {
+            totalCount += counts[i];
+        }
+        GachaTreasury.Rarity selectedRarity = _selectRarity(randomness, counts, totalCount);
 
         // Check if treasury has NFTs of selected rarity
-        uint256 availableCount = treasury.getRarityCount(selectedRarity);
+        uint256 availableCount = counts[uint256(selectedRarity)];
 
         if (availableCount == 0) {
             // Track refund statistics
@@ -341,8 +347,8 @@ contract Gacha is
         emit SpinStatusUpdate(triggerId, request.requester, "completed", block.timestamp);
     }
 
-    function _selectRarity(bytes32 randomness) private view returns (GachaTreasury.Rarity) {
-        uint256[5] memory weights = getCurrentRarityWeights();
+    function _selectRarity(bytes32 randomness, uint256[5] memory counts, uint256 totalCount) private view returns (GachaTreasury.Rarity) {
+        uint256[5] memory weights = _getCurrentRarityWeights(counts, totalCount);
         uint256 roll = uint256(randomness) % TOTAL_WEIGHT;
 
         // Select rarity from most common to rarest (cumulative probabilities)
@@ -555,8 +561,9 @@ contract Gacha is
      * @notice Allows users to reclaim their fees if randomness fails or times out
      * @param triggerId The trigger ID of the failed spin request
      * @dev Only the original requester can reclaim, and only if not already fulfilled
-     * @dev Request must have timed out (SPIN_TIMEOUT duration passed)
+     * @dev Request must have timed out (spinTimeout duration passed)
      * @dev Marks the request as fulfilled to prevent late fulfillment
+     * @dev Intentionally NOT guarded by whenNotPaused — users can always reclaim
      */
     function reclaimFailedSpin(uint256 triggerId) external nonReentrant {
         SpinRequest storage request = spinRequests[triggerId];
@@ -568,7 +575,7 @@ contract Gacha is
         if (fulfilled) revert CannotReclaimFulfilledSpin();
 
         // Check if the request has timed out
-        if (block.timestamp <= request.requestTime + SPIN_TIMEOUT) {
+        if (block.timestamp <= request.requestTime + spinTimeout) {
             revert SpinRequestNotExpired();
         }
 
@@ -598,6 +605,15 @@ contract Gacha is
     function emergencyUnpause() external onlyOwner {
         _unpause();
         emit EmergencyUnpause(msg.sender);
+    }
+
+    /// @notice Updates the spin timeout duration
+    /// @param _spinTimeout New timeout in seconds (must be between 30 and 3600)
+    function setSpinTimeout(uint256 _spinTimeout) external onlyOwner {
+        if (_spinTimeout < 30 || _spinTimeout > 3600) revert InvalidSpinTimeout();
+        uint256 oldTimeout = spinTimeout;
+        spinTimeout = _spinTimeout;
+        emit SpinTimeoutUpdated(oldTimeout, _spinTimeout);
     }
 
     /// @notice Update rewards manager address (for testing/emergency purposes)
@@ -793,6 +809,6 @@ contract Gacha is
         reclaimed = _isReclaimed(request.statusFlags);
     }
 
-    /// @notice Custom gap for future storage variables (50 slots)
-    uint256[45] private __gap;
+    /// @notice Custom gap for future storage variables
+    uint256[44] private __gap;
 }

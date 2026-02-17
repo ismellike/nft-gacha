@@ -325,7 +325,7 @@ contract GachaTest is StandardTest {
         uint256 triggerId = testSpin();
 
         // Advance time past timeout
-        vm.warp(block.timestamp + 31 seconds);
+        vm.warp(block.timestamp + 301 seconds);
 
         // Reclaim spin
         vm.prank(gameSpinner);
@@ -385,7 +385,7 @@ contract GachaTest is StandardTest {
         uint256 triggerId = testSpin();
 
         // Advance time and reclaim
-        vm.warp(block.timestamp + 31 seconds);
+        vm.warp(block.timestamp + 301 seconds);
         vm.prank(gameSpinner);
         gacha.reclaimFailedSpin(triggerId);
 
@@ -406,7 +406,7 @@ contract GachaTest is StandardTest {
         uint256 triggerId = testSpin();
 
         // Advance time past timeout
-        vm.warp(block.timestamp + 31 seconds);
+        vm.warp(block.timestamp + 301 seconds);
 
         // Different user tries to reclaim
         address attacker = makeAddr("attacker");
