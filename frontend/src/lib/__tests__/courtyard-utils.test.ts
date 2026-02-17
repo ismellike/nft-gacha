@@ -11,9 +11,9 @@ import type { CourtyardMetadata } from "../courtyard-utils";
 
 describe("isCourtyardTokenURI", () => {
 	it("returns true for api.courtyard.io URLs", () => {
-		expect(
-			isCourtyardTokenURI("https://api.courtyard.io/token/123"),
-		).toBe(true);
+		expect(isCourtyardTokenURI("https://api.courtyard.io/token/123")).toBe(
+			true,
+		);
 	});
 
 	it("returns false for other URLs", () => {

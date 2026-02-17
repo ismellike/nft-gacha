@@ -468,8 +468,7 @@ export function useGachaSpinMachine(
 			})
 			.catch((error) => {
 				if (!signal.aborted && isMountedRef.current) {
-					const errorMessage =
-						(error as Error)?.message || "Polling failed";
+					const errorMessage = (error as Error)?.message || "Polling failed";
 					updateState("error", { error: errorMessage });
 				}
 			})

@@ -11,11 +11,7 @@ interface OnChainStatsProps {
 	treasuryAddress?: string | undefined;
 }
 
-function RarityBar({
-	rarityWins,
-}: {
-	rarityWins: readonly bigint[];
-}) {
+function RarityBar({ rarityWins }: { rarityWins: readonly bigint[] }) {
 	const rarities = getAllRarities();
 	const total = rarityWins.reduce((sum, v) => sum + Number(v), 0);
 
@@ -118,24 +114,16 @@ export function OnChainStats({
 	if (!spinAnalytics) return null;
 
 	const userSpins = Number(spinAnalytics.totalSpins);
-	const globalSpins = globalAnalytics
-		? Number(globalAnalytics.totalSpins)
-		: 0;
+	const globalSpins = globalAnalytics ? Number(globalAnalytics.totalSpins) : 0;
 	const spinPercent =
 		globalSpins > 0 ? ((userSpins / globalSpins) * 100).toFixed(1) : "0";
 	const refundRate =
 		userSpins > 0
-			? (
-					(Number(spinAnalytics.totalRefunds) / userSpins) *
-					100
-				).toFixed(1)
+			? ((Number(spinAnalytics.totalRefunds) / userSpins) * 100).toFixed(1)
 			: "0";
 	const reclaimRate =
 		userSpins > 0
-			? (
-					(Number(spinAnalytics.totalReclaims) / userSpins) *
-					100
-				).toFixed(1)
+			? ((Number(spinAnalytics.totalReclaims) / userSpins) * 100).toFixed(1)
 			: "0";
 
 	// Map chipColor "default" to "glass" for Chip component compatibility
@@ -180,9 +168,7 @@ export function OnChainStats({
 
 				{/* Rarity Win Distribution */}
 				<Card color="glass" className="p-3">
-					<p className="text-white/60 text-xs mb-2">
-						Rarity Win Distribution
-					</p>
+					<p className="text-white/60 text-xs mb-2">Rarity Win Distribution</p>
 					<RarityBar rarityWins={spinAnalytics.rarityWins} />
 				</Card>
 			</div>

@@ -20,9 +20,7 @@ test.describe("Gacha Page", () => {
 	test("wallet connect button is visible for disconnected users", async ({
 		page,
 	}) => {
-		const walletButton = page
-			.locator("button")
-			.filter({ hasText: /connect/i });
+		const walletButton = page.locator("button").filter({ hasText: /connect/i });
 		await expect(walletButton).toBeVisible();
 	});
 

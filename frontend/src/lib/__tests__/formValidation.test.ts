@@ -26,15 +26,15 @@ describe("validationRules.ethAddress", () => {
 	const rule = validationRules.ethAddress();
 
 	it("passes for valid 0x + 40 hex chars", () => {
-		expect(
-			rule.validate("0x1234567890123456789012345678901234567890"),
-		).toBe(true);
+		expect(rule.validate("0x1234567890123456789012345678901234567890")).toBe(
+			true,
+		);
 	});
 
 	it("fails without 0x prefix", () => {
-		expect(
-			rule.validate("1234567890123456789012345678901234567890"),
-		).toBe(false);
+		expect(rule.validate("1234567890123456789012345678901234567890")).toBe(
+			false,
+		);
 	});
 
 	it("fails for wrong length", () => {
@@ -42,9 +42,9 @@ describe("validationRules.ethAddress", () => {
 	});
 
 	it("fails for non-hex characters", () => {
-		expect(
-			rule.validate("0x123456789012345678901234567890123456789g"),
-		).toBe(false);
+		expect(rule.validate("0x123456789012345678901234567890123456789g")).toBe(
+			false,
+		);
 	});
 });
 

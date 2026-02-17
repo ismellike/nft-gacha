@@ -11,6 +11,7 @@ import {
 	useWriteContract,
 } from "wagmi";
 import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
+import { useSoundEffects } from "../../hooks/useSoundEffects";
 import {
 	useReadErc20BalanceOf,
 	useReadErc20Decimals,
@@ -54,6 +55,9 @@ const SpinControls = memo(function SpinControls({
 	useEffect(() => {
 		setMounted(true);
 	}, []);
+
+	// Sound effects
+	const sound = useSoundEffects();
 
 	// Local state for permit handling
 	const [permitDeadline, setPermitDeadline] = useState<bigint | null>(null);
@@ -370,6 +374,7 @@ const SpinControls = memo(function SpinControls({
 
 	// Enhanced button click handler
 	const onSpinClick = async () => {
+		sound.playSpinClick();
 		logger.gachaSpin.log("Spin button clicked", {
 			state: gachaSpin.state,
 			isConnected,
@@ -705,9 +710,7 @@ const SpinControls = memo(function SpinControls({
 						tokenName,
 					},
 				});
-				gachaSpin.setError(
-					signatureError.message || "Signature failed",
-				);
+				gachaSpin.setError(signatureError.message || "Signature failed");
 			}
 		}
 	}, [
@@ -831,9 +834,7 @@ const SpinControls = memo(function SpinControls({
 					);
 				}
 
-				gachaSpin.setError(
-					spinWithPermitError.message || "Transaction failed",
-				);
+				gachaSpin.setError(spinWithPermitError.message || "Transaction failed");
 			}
 		}
 	}, [
@@ -1168,9 +1169,59 @@ const SpinControls = memo(function SpinControls({
 					{/* Enhanced header with better balance and fee display */}
 					<div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
 						<div className="space-y-2">
-							<h2 className={glassTypography({ variant: "mainHeading" })}>
-								Gacha Spinner
-							</h2>
+							<div className="flex items-center gap-3">
+								<h2 className={glassTypography({ variant: "mainHeading" })}>
+									Gacha Spinner
+								</h2>
+								<button
+									type="button"
+									onClick={sound.toggleMute}
+									className="p-2 rounded-xl bg-content1/30 hover:bg-content1/50 border border-white/10 backdrop-blur-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+									aria-label={
+										sound.isMuted
+											? "Unmute sound effects"
+											: "Mute sound effects"
+									}
+									title={sound.isMuted ? "Unmute sounds" : "Mute sounds"}
+								>
+									{sound.isMuted ? (
+										<svg
+											className="w-4 h-4 text-foreground/50"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											strokeWidth={2}
+										>
+											<title>Sound off</title>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+											/>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+											/>
+										</svg>
+									) : (
+										<svg
+											className="w-4 h-4 text-foreground/70"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											strokeWidth={2}
+										>
+											<title>Sound on</title>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+											/>
+										</svg>
+									)}
+								</button>
+							</div>
 							<p className="text-sm text-foreground/60">
 								Provably fair randomness with instant NFT reveals
 							</p>

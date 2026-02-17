@@ -26,9 +26,7 @@ describe("nftInteractionStore", () => {
 			const store = useNFTInteractionStore.getState();
 			store.startInteraction(startConfig);
 
-			const active = useNFTInteractionStore
-				.getState()
-				.getActiveInteraction();
+			const active = useNFTInteractionStore.getState().getActiveInteraction();
 			expect(active).not.toBeNull();
 			expect(active?.status).toBe("checkingApprovals");
 			expect(active?.context?.collection).toBe("0xCollection");
@@ -38,9 +36,9 @@ describe("nftInteractionStore", () => {
 		it("sets activeInteraction key", () => {
 			const store = useNFTInteractionStore.getState();
 			store.startInteraction(startConfig);
-			expect(
-				useNFTInteractionStore.getState().activeInteraction,
-			).toBe("deposit:0xCollection:1:default");
+			expect(useNFTInteractionStore.getState().activeInteraction).toBe(
+				"deposit:0xCollection:1:default",
+			);
 		});
 	});
 
@@ -53,9 +51,7 @@ describe("nftInteractionStore", () => {
 				.getState()
 				.setStatus("awaitingNFTApprovalSignature");
 
-			const active = useNFTInteractionStore
-				.getState()
-				.getActiveInteraction();
+			const active = useNFTInteractionStore.getState().getActiveInteraction();
 			expect(active?.status).toBe("awaitingNFTApprovalSignature");
 		});
 
@@ -70,13 +66,9 @@ describe("nftInteractionStore", () => {
 		it("sets status and stores txHash", () => {
 			const store = useNFTInteractionStore.getState();
 			store.startInteraction(startConfig);
-			useNFTInteractionStore
-				.getState()
-				.markApprovalSubmitted("0xTxHash");
+			useNFTInteractionStore.getState().markApprovalSubmitted("0xTxHash");
 
-			const active = useNFTInteractionStore
-				.getState()
-				.getActiveInteraction();
+			const active = useNFTInteractionStore.getState().getActiveInteraction();
 			expect(active?.status).toBe("awaitingNFTApprovalReceipt");
 			expect(active?.context?.nftApprovalTxHash).toBe("0xTxHash");
 		});
@@ -102,9 +94,7 @@ describe("nftInteractionStore", () => {
 				.getState()
 				.markInteractionSubmitted("0xInteractionTx");
 
-			const active = useNFTInteractionStore
-				.getState()
-				.getActiveInteraction();
+			const active = useNFTInteractionStore.getState().getActiveInteraction();
 			expect(active?.status).toBe("awaitingInteractionReceipt");
 			expect(active?.context?.interactionTxHash).toBe("0xInteractionTx");
 		});
@@ -114,13 +104,9 @@ describe("nftInteractionStore", () => {
 		it("sets status to completed and creates success object", () => {
 			const store = useNFTInteractionStore.getState();
 			store.startInteraction(startConfig);
-			useNFTInteractionStore
-				.getState()
-				.markInteractionSuccess("0xSuccessTx");
+			useNFTInteractionStore.getState().markInteractionSuccess("0xSuccessTx");
 
-			const active = useNFTInteractionStore
-				.getState()
-				.getActiveInteraction();
+			const active = useNFTInteractionStore.getState().getActiveInteraction();
 			expect(active?.status).toBe("completed");
 			expect(active?.context?.success).toBeDefined();
 			expect(active?.context?.success?.txHash).toBe("0xSuccessTx");
@@ -134,9 +120,7 @@ describe("nftInteractionStore", () => {
 			store.startInteraction(startConfig);
 			useNFTInteractionStore.getState().setError("Something failed");
 
-			const active = useNFTInteractionStore
-				.getState()
-				.getActiveInteraction();
+			const active = useNFTInteractionStore.getState().getActiveInteraction();
 			expect(active?.status).toBe("error");
 			expect(active?.context?.error).toBe("Something failed");
 		});
@@ -151,9 +135,7 @@ describe("nftInteractionStore", () => {
 			expect(
 				useNFTInteractionStore.getState().getActiveInteraction(),
 			).toBeNull();
-			expect(
-				useNFTInteractionStore.getState().activeInteraction,
-			).toBeNull();
+			expect(useNFTInteractionStore.getState().activeInteraction).toBeNull();
 		});
 	});
 

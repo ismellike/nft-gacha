@@ -21,11 +21,13 @@ import {
 	type RevealPhase,
 	STAGGER_DELAY_PER_TRAIT,
 } from "../../lib/revealAnimationConfig";
+import { useSoundEffects } from "../../hooks/useSoundEffects";
 import { DialogTitle, Modal, ModalBody, ModalContent } from "../../ui";
 import { NFTCard } from "../nft";
 import SellToTreasury from "../nft/SellToTreasury";
 import { RevealErrorBoundary } from "./RevealErrorBoundary";
 import RevealStep, { RevealStepGroup } from "./RevealStep";
+import SharePullButton from "./SharePullButton";
 
 const debugLog = createDebugLogger(DEBUG_FLAGS.NFT_METADATA);
 
@@ -107,6 +109,11 @@ export default function NFTRevealModal({
 	// Store timers in a ref to persist across effect re-runs
 	const animationTimersRef = useRef<NodeJS.Timeout[]>([]);
 
+	// Sound effects - stored in ref so animation effect can use without deps
+	const sound = useSoundEffects();
+	const soundRef = useRef(sound);
+	soundRef.current = sound;
+
 	// Get enhanced spin result with metadata
 	const enhancedResult = useEnhancedSpinResult(nftResult);
 
@@ -187,6 +194,7 @@ export default function NFTRevealModal({
 	const skipAnimation = useCallback(() => {
 		if (isSkippedRef.current) return; // Early exit, prevent re-entry
 
+		soundRef.current.playSkip();
 		isSkippedRef.current = true;
 		setIsSkipped(true);
 		setCurrentPhase("monetary");
@@ -348,6 +356,16 @@ export default function NFTRevealModal({
 			});
 			setCurrentPhase(phase.phase as RevealPhase);
 
+			// Play phase-appropriate sound
+			const s = soundRef.current;
+			if (phase.phase === "rarity") {
+				s.playRarityReveal(resultRarity);
+			} else if (phase.phase === "card") {
+				s.playCardReveal(resultRarity);
+			} else {
+				s.playTraitReveal(phase.phase as RevealPhase);
+			}
+
 			phaseIndex++;
 
 			// Schedule next phase
@@ -359,10 +377,7 @@ export default function NFTRevealModal({
 					phaseIndexAfterIncrement: phaseIndex,
 				});
 				const timer = setTimeout(() => {
-					debugLog(
-						"[NFTRevealModal] Timer fired for phase:",
-						nextPhase.phase,
-					);
+					debugLog("[NFTRevealModal] Timer fired for phase:", nextPhase.phase);
 					runNextPhase();
 				}, nextPhase.duration * 1000);
 
@@ -379,6 +394,7 @@ export default function NFTRevealModal({
 						debugLog("[NFTRevealModal] Showing monetary phase");
 						setCurrentPhase("monetary");
 						setShowMonetary(true);
+						soundRef.current.playValueReveal();
 						closeButtonRef.current?.focus();
 					}
 				}, 1000);
@@ -718,30 +734,43 @@ export default function NFTRevealModal({
 													</motion.p>
 												</motion.div>
 
-												{/* Sell Button with Dramatic Entrance */}
-												<motion.div
-													className="z-50 w-full flex justify-center pointer-events-auto"
-													initial={{ opacity: 0, scale: 0.8, y: 30 }}
-													animate={{ opacity: 1, scale: 1, y: 0 }}
-													transition={{
-														delay: 0.4,
-														duration: 0.6,
-														type: "spring",
-														stiffness: 150,
-														damping: 12,
-													}}
-													whileHover={{ scale: 1.05 }}
-												>
-													<SellToTreasury
-														collection={nftResult.collection}
-														tokenId={nftResult.tokenId}
-														appraisalContractAddress={appraisalContractAddress}
-														protocolTreasuryAddress={protocolTreasuryAddress}
-														gachaTreasuryAddress={gachaTreasuryAddress}
-														size="lg"
-														variant="button"
+												{/* Action Buttons */}
+												<div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
+													{/* Sell Button with Dramatic Entrance */}
+													<motion.div
+														className="z-50 flex justify-center pointer-events-auto"
+														initial={{ opacity: 0, scale: 0.8, y: 30 }}
+														animate={{ opacity: 1, scale: 1, y: 0 }}
+														transition={{
+															delay: 0.4,
+															duration: 0.6,
+															type: "spring",
+															stiffness: 150,
+															damping: 12,
+														}}
+														whileHover={{ scale: 1.05 }}
+													>
+														<SellToTreasury
+															collection={nftResult.collection}
+															tokenId={nftResult.tokenId}
+															appraisalContractAddress={
+																appraisalContractAddress
+															}
+															protocolTreasuryAddress={protocolTreasuryAddress}
+															gachaTreasuryAddress={gachaTreasuryAddress}
+															size="lg"
+															variant="button"
+														/>
+													</motion.div>
+
+													{/* Share Button */}
+													<SharePullButton
+														rarity={resultRarity}
+														metadata={enhancedResult?.metadata ?? null}
+														rarityName={nftResult.rarity}
+														animationDelay={0.6}
 													/>
-												</motion.div>
+												</div>
 
 												{/* Sparkle Effects for Value Reveal */}
 												{resultRarity >= Rarity.Rare && (

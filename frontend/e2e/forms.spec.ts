@@ -19,16 +19,20 @@ test.describe("NFT Appraisal Form Validation", () => {
 		await collectionInput.blur();
 
 		// Wait for validation to appear
-		await expect(collectionInput).toHaveAttribute("aria-invalid", "true", { timeout: 2000 }).catch(() => {
-			// Alternative: check for error styling
-		});
+		await expect(collectionInput)
+			.toHaveAttribute("aria-invalid", "true", { timeout: 2000 })
+			.catch(() => {
+				// Alternative: check for error styling
+			});
 
 		// Enter valid address
 		await collectionInput.fill("0x1234567890123456789012345678901234567890");
 		await collectionInput.blur();
 
 		// Should clear error state
-		await expect(page.locator(".text-danger").filter({ hasText: /address/i })).not.toBeVisible({ timeout: 2000 }).catch(() => {});
+		await expect(page.locator(".text-danger").filter({ hasText: /address/i }))
+			.not.toBeVisible({ timeout: 2000 })
+			.catch(() => {});
 	});
 
 	test("form validates token ID input", async ({ page }) => {
@@ -53,7 +57,9 @@ test.describe("NFT Appraisal Form Validation", () => {
 		await expect(submitButton).toBeDisabled();
 
 		// Fill in valid data
-		await page.locator("#collection").fill("0x1234567890123456789012345678901234567890");
+		await page
+			.locator("#collection")
+			.fill("0x1234567890123456789012345678901234567890");
 		await page.locator("#tokenId").fill("123");
 
 		// Wait for form state to update

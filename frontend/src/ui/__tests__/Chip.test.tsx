@@ -27,16 +27,12 @@ describe("Chip", () => {
 	});
 
 	it("renders startContent", () => {
-		render(
-			<Chip startContent={<span data-testid="dot">O</span>}>Label</Chip>,
-		);
+		render(<Chip startContent={<span data-testid="dot">O</span>}>Label</Chip>);
 		expect(screen.getByTestId("dot")).toBeInTheDocument();
 	});
 
 	it("renders endContent", () => {
-		render(
-			<Chip endContent={<span data-testid="close">X</span>}>Tag</Chip>,
-		);
+		render(<Chip endContent={<span data-testid="close">X</span>}>Tag</Chip>);
 		expect(screen.getByTestId("close")).toBeInTheDocument();
 	});
 

@@ -258,9 +258,9 @@ describe("formatErrorMessage", () => {
 	});
 
 	it("detects insufficient funds", () => {
-		expect(
-			formatErrorMessage({ message: "insufficient funds for gas" }),
-		).toBe("Insufficient balance for this transaction");
+		expect(formatErrorMessage({ message: "insufficient funds for gas" })).toBe(
+			"Insufficient balance for this transaction",
+		);
 	});
 
 	it("handles nested reason", () => {
@@ -310,15 +310,15 @@ describe("isValidAddress", () => {
 	});
 
 	it("rejects without 0x prefix", () => {
-		expect(
-			isValidAddress("1234567890123456789012345678901234567890"),
-		).toBe(false);
+		expect(isValidAddress("1234567890123456789012345678901234567890")).toBe(
+			false,
+		);
 	});
 
 	it("rejects non-hex characters", () => {
-		expect(
-			isValidAddress("0x123456789012345678901234567890123456789g"),
-		).toBe(false);
+		expect(isValidAddress("0x123456789012345678901234567890123456789g")).toBe(
+			false,
+		);
 	});
 
 	it("rejects non-string input", () => {

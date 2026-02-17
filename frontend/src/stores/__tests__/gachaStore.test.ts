@@ -82,9 +82,7 @@ describe("gachaStore", () => {
 			useGachaStore.getState().removePendingSpin(USER, GACHA);
 
 			const key = `${USER.toLowerCase()}_${GACHA.toLowerCase()}`;
-			expect(
-				useGachaStore.getState().pendingSpins[key],
-			).toBeUndefined();
+			expect(useGachaStore.getState().pendingSpins[key]).toBeUndefined();
 		});
 	});
 
@@ -137,9 +135,7 @@ describe("gachaStore", () => {
 				gachaAddress: "0xEFGH",
 			});
 
-			const spin = useGachaStore
-				.getState()
-				.getPendingSpin("0xabcd", "0xefgh");
+			const spin = useGachaStore.getState().getPendingSpin("0xabcd", "0xefgh");
 			expect(spin).not.toBeNull();
 		});
 	});

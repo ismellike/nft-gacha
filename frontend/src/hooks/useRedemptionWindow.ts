@@ -51,30 +51,26 @@ export function useRedemptionWindow({
 	// Fetch the fixed on-chain receiveTime (when the NFT was won).
 	// This value never changes so caching is fine.
 	// Use useReadContract directly to avoid "Type instantiation is excessively deep" error.
-	const {
-		data: receiveTime,
-		isLoading: isLoadingReceiveTime,
-	} = useReadContract({
-		address: gachaTreasuryAddress as `0x${string}`,
-		abi: gachaTreasuryAbi,
-		functionName: "getNFTReceiveTime",
-		args: [collectionAddr, tokenIdBigInt],
-		query: {
-			enabled: enabled && !!gachaTreasuryAddress,
-		},
-	});
+	const { data: receiveTime, isLoading: isLoadingReceiveTime } =
+		useReadContract({
+			address: gachaTreasuryAddress as `0x${string}`,
+			abi: gachaTreasuryAbi,
+			functionName: "getNFTReceiveTime",
+			args: [collectionAddr, tokenIdBigInt],
+			query: {
+				enabled: enabled && !!gachaTreasuryAddress,
+			},
+		});
 
 	// Fetch the redemption window duration (e.g. 3600 seconds).
 	// This is a global config that rarely changes.
-	const {
-		data: totalWindowOnChain,
-		isLoading: isLoadingTotal,
-	} = useReadProtocolTreasuryRedemptionWindow({
-		address: protocolTreasuryAddress as `0x${string}`,
-		query: {
-			enabled,
-		},
-	});
+	const { data: totalWindowOnChain, isLoading: isLoadingTotal } =
+		useReadProtocolTreasuryRedemptionWindow({
+			address: protocolTreasuryAddress as `0x${string}`,
+			query: {
+				enabled,
+			},
+		});
 
 	const isLoading = isLoadingReceiveTime || isLoadingTotal;
 

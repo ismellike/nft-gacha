@@ -77,9 +77,7 @@ describe("nftAppraisalStore", () => {
 			store.addOptimisticSubmission(USER, COLLECTION, "5");
 
 			expect(
-				useNFTAppraisalStore
-					.getState()
-					.getUserOptimisticSubmissions(USER),
+				useNFTAppraisalStore.getState().getUserOptimisticSubmissions(USER),
 			).toHaveLength(1);
 		});
 	});
@@ -135,9 +133,9 @@ describe("nftAppraisalStore", () => {
 		it("sets loading state", () => {
 			const store = useNFTAppraisalStore.getState();
 			store.setLoading(USER, true);
-			expect(
-				useNFTAppraisalStore.getState().loading[USER.toLowerCase()],
-			).toBe(true);
+			expect(useNFTAppraisalStore.getState().loading[USER.toLowerCase()]).toBe(
+				true,
+			);
 		});
 
 		it("sets error and clears loading", () => {

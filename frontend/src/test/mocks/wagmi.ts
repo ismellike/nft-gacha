@@ -6,7 +6,7 @@ import { vi } from "vitest";
  * Mock useAccount hook return values for testing
  */
 export function mockUseAccount(
-	overrides?: Partial<UseAccountReturnType>
+	overrides?: Partial<UseAccountReturnType>,
 ): UseAccountReturnType {
 	return {
 		address: "0x1234567890123456789012345678901234567890" as `0x${string}`,
@@ -26,15 +26,13 @@ export function mockUseAccount(
 /**
  * Mock useReadContract hook return values for testing
  */
-export function mockUseReadContract<TData = unknown>(
-	overrides?: {
-		data?: TData | undefined;
-		isLoading?: boolean | undefined;
-		isError?: boolean | undefined;
-		error?: Error | null | undefined;
-		refetch?: () => void | undefined;
-	}
-) {
+export function mockUseReadContract<TData = unknown>(overrides?: {
+	data?: TData | undefined;
+	isLoading?: boolean | undefined;
+	isError?: boolean | undefined;
+	error?: Error | null | undefined;
+	refetch?: () => void | undefined;
+}) {
 	return {
 		data: undefined,
 		dataUpdatedAt: 0,
@@ -68,7 +66,7 @@ export function mockUseReadContract<TData = unknown>(
  * Mock useWriteContract hook return values for testing
  */
 export function mockUseWriteContract(
-	overrides?: Partial<UseWriteContractReturnType>
+	overrides?: Partial<UseWriteContractReturnType>,
 ): UseWriteContractReturnType {
 	return {
 		data: undefined,
@@ -92,12 +90,10 @@ export function mockUseWriteContract(
 /**
  * Mock PublicClient for testing contract reads
  */
-export function mockPublicClient<TData = unknown>(
-	readContractReturn?: TData
-) {
+export function mockPublicClient<TData = unknown>(readContractReturn?: TData) {
 	return {
 		readContract: vi.fn(
-			async () => readContractReturn as ReadContractReturnType
+			async () => readContractReturn as ReadContractReturnType,
 		),
 		getBlockNumber: vi.fn(async () => 12345n),
 		getBlock: vi.fn(async () => ({
@@ -106,7 +102,8 @@ export function mockPublicClient<TData = unknown>(
 			hash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 		})),
 		getTransactionReceipt: vi.fn(async () => ({
-			transactionHash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+			transactionHash:
+				"0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
 			status: "success" as const,
 			blockNumber: 12345n,
 		})),

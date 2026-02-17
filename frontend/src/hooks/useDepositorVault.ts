@@ -2,7 +2,10 @@
 
 import { useCallback } from "react";
 import { usePublicClient, useReadContracts } from "wagmi";
-import { depositorVaultAbi, useWriteDepositorVaultClaimYield } from "@/generated";
+import {
+	depositorVaultAbi,
+	useWriteDepositorVaultClaimYield,
+} from "@/generated";
 
 export interface DepositorVaultData {
 	asset: string | undefined;

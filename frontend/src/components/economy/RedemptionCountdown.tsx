@@ -58,7 +58,13 @@ export function RedemptionCountdown({
 		}
 		return (
 			<Chip
-				color={progressPercent > 50 ? "success" : progressPercent > 20 ? "warning" : "danger"}
+				color={
+					progressPercent > 50
+						? "success"
+						: progressPercent > 20
+							? "warning"
+							: "danger"
+				}
 				variant="flat"
 				size="sm"
 			>

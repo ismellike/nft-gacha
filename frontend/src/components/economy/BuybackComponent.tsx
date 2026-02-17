@@ -643,10 +643,7 @@ export default function BuybackComponent({
 							)}
 
 							{/* Redemption Countdown */}
-							<RedemptionCountdown
-								state={redemptionWindow}
-								variant="full"
-							/>
+							<RedemptionCountdown state={redemptionWindow} variant="full" />
 
 							{/* Status Messages */}
 							{treasuryStatus.type !== "success" && (
@@ -794,10 +791,7 @@ export default function BuybackComponent({
 								</div>
 							)}
 
-							<RedemptionCountdown
-								state={redemptionWindow}
-								variant="card"
-							/>
+							<RedemptionCountdown state={redemptionWindow} variant="card" />
 
 							<Button
 								data-buyback-area="true"
@@ -900,10 +894,7 @@ export default function BuybackComponent({
 								Unavailable
 							</Chip>
 						) : null}
-						<RedemptionCountdown
-							state={redemptionWindow}
-							variant="button"
-						/>
+						<RedemptionCountdown state={redemptionWindow} variant="button" />
 						<Button
 							data-buyback-area="true"
 							onPress={handleInteractionButtonClick}

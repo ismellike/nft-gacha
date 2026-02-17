@@ -56,18 +56,14 @@ describe("Button", () => {
 
 	it("renders startContent", () => {
 		render(
-			<Button startContent={<span data-testid="icon">S</span>}>
-				Text
-			</Button>,
+			<Button startContent={<span data-testid="icon">S</span>}>Text</Button>,
 		);
 		expect(screen.getByTestId("icon")).toBeInTheDocument();
 	});
 
 	it("renders endContent", () => {
 		render(
-			<Button endContent={<span data-testid="end-icon">E</span>}>
-				Text
-			</Button>,
+			<Button endContent={<span data-testid="end-icon">E</span>}>Text</Button>,
 		);
 		expect(screen.getByTestId("end-icon")).toBeInTheDocument();
 	});

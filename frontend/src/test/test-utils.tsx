@@ -94,7 +94,9 @@ export function renderHook<Result, Props>(
 		...options,
 		wrapper: ({ children }) => (
 			<WagmiProvider config={testWagmiConfig}>
-				<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+				<QueryClientProvider client={queryClient}>
+					{children}
+				</QueryClientProvider>
 			</WagmiProvider>
 		),
 	});
