@@ -23,16 +23,25 @@ tasks:
             - forge test
 
     deploy:
-        desc: Deploy Gacha system contracts to WAVS chain using Forge script
+        desc: Deploy Gacha system contracts using Forge script
         dir: "{{.CONTRACTS_DIR}}"
+        vars:
+            DEPLOY_RPC_URL:
+                sh: task backend:get-evm-rpc-url-1
+            DEPLOY_CHAIN_ID:
+                sh: cast chain-id --rpc-url $(task backend:get-evm-rpc-url-1)
         requires:
             vars: [WAVS_SERVICE_MANAGER_ADDRESS]
         env:
             WAVS_SERVICE_MANAGER_ADDRESS: "{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
+            DEPLOY_ENV: "{{.DEPLOY_ENV}}"
+            CHAIN_ID: "{{.DEPLOY_CHAIN_ID}}"
+            RPC_URL: "{{.DEPLOY_RPC_URL}}"
+            USDC_TOKEN_ADDRESS: "{{.USDC_TOKEN_ADDRESS}}"
         cmds:
             - |
                 forge script script/DeployLocal.s.sol:DeployLocal \
-                  --rpc-url http://localhost:{{.ANVIL_PORT}} \
+                  --rpc-url {{.DEPLOY_RPC_URL}} \
                   --broadcast \
                   --private-key $DEPLOYER_PRIVATE_KEY
         preconditions:

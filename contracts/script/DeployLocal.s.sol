@@ -66,6 +66,13 @@ contract DeployLocal is Script {
      * House Edge: ($25 - $78.40 × 0.3) / $25 = ~6% (30% win rate adjustment)
      * Much more player-friendly while maintaining protocol sustainability.
      */
+    struct DeployConfig {
+        uint256 chainId;
+        string rpcUrl;
+        string deployEnv;
+        bool deployedTestUSDC; // true if we deployed TestUSDC (can mint)
+    }
+
     struct Deployments {
         address usdc;
         address appraisalProxy;
@@ -101,17 +108,25 @@ contract DeployLocal is Script {
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
-        console.log("Deploying local stack from:", deployer);
+        // Read deployment config from environment
+        DeployConfig memory cfg;
+        cfg.chainId = vm.envOr("CHAIN_ID", uint256(31337));
+        cfg.rpcUrl = vm.envOr("RPC_URL", string("http://localhost:8548"));
+        cfg.deployEnv = vm.envOr("DEPLOY_ENV", string("LOCAL"));
+
+        console.log("Deploying stack from:", deployer);
+        console.log("Chain ID:", cfg.chainId);
+        console.log("Deploy env:", cfg.deployEnv);
 
         // Deploy MockWavsServiceManager if needed for LOCAL development
         address wavsServiceManager = _resolveWavsServiceManager();
 
         vm.startBroadcast(deployerKey);
-        Deployments memory deployments = _deployStack(deployer, wavsServiceManager);
+        Deployments memory deployments = _deployStack(deployer, wavsServiceManager, cfg);
         vm.stopBroadcast();
 
         // Write addresses to .env file for frontend integration
-        _writeEnvFile(deployments);
+        _writeEnvFile(deployments, cfg);
         _writeServiceManagerAddress(wavsServiceManager);
 
         console.log("\n=== Deployment Summary ===");
@@ -127,9 +142,12 @@ contract DeployLocal is Script {
         console.log("Demo Collection:       ", deployments.collection);
     }
 
-    function _deployStack(address deployer, address wavsServiceManager) internal returns (Deployments memory d) {
-        // Deploy USDC
-        d.usdc = address(_deployUSDC(deployer));
+    function _deployStack(address deployer, address wavsServiceManager, DeployConfig memory cfg)
+        internal
+        returns (Deployments memory d)
+    {
+        // Deploy or use existing USDC
+        d.usdc = _resolveUSDC(deployer, cfg);
 
         // Deploy all contracts
         _deployImplementations(d);
@@ -142,15 +160,17 @@ contract DeployLocal is Script {
         // Deploy collection and trackers
         _deployCollectionAndTrackers(d, deployer);
 
-        // Fund ProtocolTreasury for NFT buybacks
-        _fundProtocolTreasury(TestUSDC(d.usdc), ProtocolTreasury(d.protocolTreasuryProxy));
+        // Fund ProtocolTreasury only when we deployed TestUSDC (can mint)
+        if (cfg.deployedTestUSDC) {
+            _fundProtocolTreasury(TestUSDC(d.usdc), ProtocolTreasury(d.protocolTreasuryProxy));
+        }
 
         // Seed treasury
         _seedTreasury(
             GachaTreasury(d.treasuryProxy), NFTAppraisal(d.appraisalProxy), BaseERC721(d.collection), deployer
         );
 
-        console.log("\n=== Local Gacha System Status ===");
+        console.log("\n=== Gacha System Status ===");
         console.log("Whitelist Length:    ", GachaTreasury(d.treasuryProxy).getWhitelistLength());
         console.log("Gacha Available:     ", GachaTreasury(d.treasuryProxy).isGachaAvailable());
         console.log("Total NFTs:          ", GachaTreasury(d.treasuryProxy).getTotalItemsCount());
@@ -158,13 +178,22 @@ contract DeployLocal is Script {
         // Display final stats
         _displayTreasuryStats(d.treasuryProxy);
 
-        console.log("Local stack deployed successfully");
+        console.log("Stack deployed successfully");
         return d;
     }
 
-    function _deployUSDC(address deployer) internal returns (TestUSDC usdc) {
-        usdc = new TestUSDC(deployer);
-        usdc.mint(deployer, INITIAL_MINT);
+    function _resolveUSDC(address deployer, DeployConfig memory cfg) internal returns (address) {
+        try vm.envAddress("USDC_TOKEN_ADDRESS") returns (address existingUsdc) {
+            console.log("Using existing USDC at:", existingUsdc);
+            cfg.deployedTestUSDC = false;
+            return existingUsdc;
+        } catch {
+            console.log("Deploying TestUSDC...");
+            TestUSDC usdc = new TestUSDC(deployer);
+            usdc.mint(deployer, INITIAL_MINT);
+            cfg.deployedTestUSDC = true;
+            return address(usdc);
+        }
     }
 
     function _deployImplementations(Deployments memory) internal {
@@ -628,18 +657,22 @@ contract DeployLocal is Script {
         console.log("Total Deposited: ", treasury.getTotalItemsCount());
     }
 
-    function _writeEnvFile(Deployments memory deployments) internal {
-        string memory envContent = _buildEnvContent(deployments);
+    function _writeEnvFile(Deployments memory deployments, DeployConfig memory cfg) internal {
+        string memory envContent = _buildEnvContent(deployments, cfg);
         vm.writeFile("../.env.local", envContent);
         console.log("Environment file written to: .env.local");
     }
 
-    function _buildEnvContent(Deployments memory deployments) internal pure returns (string memory) {
+    function _buildEnvContent(Deployments memory deployments, DeployConfig memory cfg)
+        internal
+        pure
+        returns (string memory)
+    {
         return string(
             abi.encodePacked(
-                // WAVS local anvil chain id
-                _envLine("CHAIN_ID", "31337"),
-                _envLine("RPC_URL", "http://localhost:8548"),
+                _envLine("ENV_MODE", cfg.deployEnv),
+                _envLine("CHAIN_ID", vm.toString(cfg.chainId)),
+                _envLine("RPC_URL", cfg.rpcUrl),
                 _envLine("USDC_ADDRESS", vm.toString(deployments.usdc)),
                 _envLine("NFT_APPRAISAL_ADDRESS", vm.toString(deployments.appraisalProxy)),
                 _envLine("GACHA_TREASURY_ADDRESS", vm.toString(deployments.treasuryProxy)),

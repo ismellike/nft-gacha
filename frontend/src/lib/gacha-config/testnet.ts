@@ -7,9 +7,9 @@ export const TESTNET_GACHA_CONFIGS: Record<string, GachaConfig> = {
 		address: (process.env.NEXT_PUBLIC_GACHA_ADDRESS ?? "") as `0x${string}`,
 		title: "Graded Pokemon Cards (Testnet)",
 		description:
-			"Collect professionally graded Pokemon trading cards on Holesky testnet.",
+			"Collect professionally graded Pokemon trading cards on Polygon Amoy testnet.",
 		longDescription:
-			"Testnet deployment of the Graded Pokemon Cards gacha system.",
+			"Polygon Amoy testnet deployment of the Graded Pokemon Cards gacha system.",
 		theme: "from-secondary to-warning-500",
 		treasuryAddress: (process.env.NEXT_PUBLIC_GACHA_TREASURY_ADDRESS ??
 			"") as `0x${string}`,

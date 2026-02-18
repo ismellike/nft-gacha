@@ -1,6 +1,6 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import type { Chain } from "viem";
-import { holesky, localhost, mainnet } from "wagmi/chains";
+import { localhost, mainnet, polygonAmoy } from "wagmi/chains";
 import { ENV_MODE } from "./lib/config";
 
 const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
@@ -8,9 +8,9 @@ const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
 function getChain(): Chain {
 	switch (ENV_MODE) {
 		case "TESTNET": {
-			if (!rpcUrl) return holesky;
+			if (!rpcUrl) return polygonAmoy;
 			return {
-				...holesky,
+				...polygonAmoy,
 				rpcUrls: {
 					default: { http: [rpcUrl] },
 				},
