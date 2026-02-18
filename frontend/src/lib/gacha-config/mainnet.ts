@@ -7,9 +7,9 @@ export const MAINNET_GACHA_CONFIGS: Record<string, GachaConfig> = {
 		address: (process.env.NEXT_PUBLIC_GACHA_ADDRESS ?? "") as `0x${string}`,
 		title: "Graded Pokemon Cards",
 		description:
-			"Collect professionally graded Pokemon trading cards with provably fair distribution.",
+			"Collect professionally graded Pokemon trading cards with provably fair distribution on Polygon.",
 		longDescription:
-			"Mainnet deployment of the Graded Pokemon Cards gacha system.",
+			"Polygon mainnet deployment of the Graded Pokemon Cards gacha system.",
 		theme: "from-secondary to-warning-500",
 		treasuryAddress: (process.env.NEXT_PUBLIC_GACHA_TREASURY_ADDRESS ??
 			"") as `0x${string}`,

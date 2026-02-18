@@ -1,6 +1,6 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import type { Chain } from "viem";
-import { localhost, mainnet, polygonAmoy } from "wagmi/chains";
+import { localhost, polygon, polygonAmoy } from "wagmi/chains";
 import { ENV_MODE } from "./lib/config";
 
 const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
@@ -17,9 +17,9 @@ function getChain(): Chain {
 			};
 		}
 		case "MAINNET": {
-			if (!rpcUrl) return mainnet;
+			if (!rpcUrl) return polygon;
 			return {
-				...mainnet,
+				...polygon,
 				rpcUrls: {
 					default: { http: [rpcUrl] },
 				},

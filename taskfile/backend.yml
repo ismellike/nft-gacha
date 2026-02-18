@@ -138,10 +138,12 @@ tasks:
             CHAIN_NUMBER: "{{index .MATCH 0}}"
             LOCAL_URL: "http://localhost:$(task backend:get-anvil-port-{{.CHAIN_NUMBER}})"
             TESTNET_URL: "{{index .TESTNET_EVM_RPC_URLS (sub (atoi .CHAIN_NUMBER) 1)}}"
+            MAINNET_URL: "{{index .MAINNET_EVM_RPC_URLS (sub (atoi .CHAIN_NUMBER) 1)}}"
         cmds:
             - |
                 case "{{.DEPLOY_ENV}}" in
                   "TESTNET") echo "{{.TESTNET_URL}}" ;;
+                  "MAINNET") echo "{{.MAINNET_URL}}" ;;
                   *) echo "{{.LOCAL_URL}}" ;;
                 esac
 
@@ -151,10 +153,12 @@ tasks:
             CHAIN_NUMBER: "{{index .MATCH 0}}"
             LOCAL_NAME: "evm:{{add .ANVIL_FORK_CHAIN_ID (sub (atoi .CHAIN_NUMBER) 1)}}"
             TESTNET_NAME: "{{index .TESTNET_EVM_CHAIN_NAMES (sub (atoi .CHAIN_NUMBER) 1)}}"
+            MAINNET_NAME: "{{index .MAINNET_EVM_CHAIN_NAMES (sub (atoi .CHAIN_NUMBER) 1)}}"
         cmds:
             - |
                 case "{{.DEPLOY_ENV}}" in
                   "TESTNET") echo "{{.TESTNET_NAME}}" ;;
+                  "MAINNET") echo "{{.MAINNET_NAME}}" ;;
                   *) echo "{{.LOCAL_NAME}}" ;;
                 esac
 

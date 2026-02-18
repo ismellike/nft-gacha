@@ -39,6 +39,12 @@ vars:
         ]
     TESTNET_EVM_CHAIN_NAMES: ["evm:80002"]
     TESTNET_CHAIN_COUNT: 1 # Count of testnet chains in TESTNET_EVM_RPC_URLS
+    # MAINNET (Polygon - chain ID 137)
+    MAINNET_EVM_RPC_URLS: [
+            "https://polygon-bor-rpc.publicnode.com",
+        ]
+    MAINNET_EVM_CHAIN_NAMES: ["evm:137"]
+    MAINNET_CHAIN_COUNT: 1 # Count of mainnet chains in MAINNET_EVM_RPC_URLS
     SUBMIT_DELAY: '{{ternary 1 5 (eq .DEPLOY_ENV "LOCAL")}}'
     # Transfer Ownership Config
     AVS_OWNER: "0x1111111111111111111111111111111111111111"
