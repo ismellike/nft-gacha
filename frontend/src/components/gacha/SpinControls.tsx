@@ -674,7 +674,7 @@ const SpinControls = memo(function SpinControls({
 		permitDeadline,
 		usedSignature,
 		spinWithPermit,
-		gachaSpin,
+		gachaSpin.reset,
 		contracts.gacha,
 	]);
 
@@ -718,7 +718,8 @@ const SpinControls = memo(function SpinControls({
 		}
 	}, [
 		signatureError,
-		gachaSpin,
+		gachaSpin.reset,
+		gachaSpin.setError,
 		userAddress,
 		feeToken,
 		spinFee,
@@ -833,7 +834,8 @@ const SpinControls = memo(function SpinControls({
 		}
 	}, [
 		spinWithPermitError,
-		gachaSpin,
+		gachaSpin.reset,
+		gachaSpin.setError,
 		contracts.gacha,
 		userAddress,
 		feeToken,
@@ -858,7 +860,7 @@ const SpinControls = memo(function SpinControls({
 				spinWithPermitReceiptError.message || "Transaction receipt error",
 			);
 		}
-	}, [spinWithPermitReceiptError, gachaSpin]);
+	}, [spinWithPermitReceiptError, gachaSpin.setError]);
 
 	// Handle direct spin transaction errors (fallback path)
 	useEffect(() => {
@@ -900,7 +902,7 @@ const SpinControls = memo(function SpinControls({
 				gachaSpin.setError(spinError.message || "Transaction failed");
 			}
 		}
-	}, [spinWait.error, gachaSpin, spinFeeQuery, spinFee]);
+	}, [spinWait.error, gachaSpin.reset, gachaSpin.setError, spinFeeQuery, spinFee]);
 
 	// Handle transaction receipt
 	useEffect(() => {
@@ -980,6 +982,12 @@ const SpinControls = memo(function SpinControls({
 				}
 			}
 
+			// Mark as processed BEFORE confirming to prevent race with re-render
+			const txHash = isSpinWithPermitSuccess
+				? (spinWithPermitTxHash as string)
+				: (spinTxHash as string);
+			setProcessedTxHash(txHash);
+
 			if (triggerId !== null) {
 				logger.gachaSpin.log(
 					"Confirming transaction with trigger ID:",
@@ -996,12 +1004,6 @@ const SpinControls = memo(function SpinControls({
 				);
 			}
 
-			// Mark as processed regardless of outcome to prevent infinite loops
-			const txHash = isSpinWithPermitSuccess
-				? (spinWithPermitTxHash as string)
-				: (spinTxHash as string);
-			setProcessedTxHash(txHash);
-
 			// Refetch balance after successful spin
 			refetchBalance();
 			// Refetch nonce for next permit
@@ -1016,7 +1018,7 @@ const SpinControls = memo(function SpinControls({
 		processedTxHash,
 		refetchBalance,
 		refetchNonce,
-		gachaSpin,
+		gachaSpin.confirmTransaction,
 		gachaSpin.state,
 		gachaSpin.isRevealing,
 		gachaSpin.isIdle,
@@ -1063,7 +1065,7 @@ const SpinControls = memo(function SpinControls({
 			refetchBalance();
 			refetchNonce();
 		}
-	}, [isReclaimReceiptSuccess, gachaSpin, refetchBalance, refetchNonce]);
+	}, [isReclaimReceiptSuccess, gachaSpin.reset, refetchBalance, refetchNonce]);
 
 	// Handle reclaim rejection
 	useEffect(() => {

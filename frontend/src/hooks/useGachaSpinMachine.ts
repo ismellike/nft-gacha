@@ -16,6 +16,9 @@ import { useGachaStore } from "../stores/gachaStore";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 
+// Module-level debug logger — stable reference, no need to include in effect deps
+const debugLog = createDebugLogger(DEBUG_FLAGS.GACHA_SPIN);
+
 export interface UseGachaSpinMachineReturn {
 	// State
 	state: string;
@@ -104,7 +107,6 @@ export function useGachaSpinMachine(
 	onSpinComplete?: () => void,
 	onRefund?: () => void,
 ): UseGachaSpinMachineReturn {
-	const debugLog = createDebugLogger(DEBUG_FLAGS.GACHA_SPIN);
 	const { address: userAddress } = useAccount();
 	const publicClient = usePublicClient();
 	const gachaId = useGachaId();
@@ -127,6 +129,14 @@ export function useGachaSpinMachine(
 	const isMountedRef = useRef(true);
 	const pollingAbortRef = useRef<AbortController | null>(null);
 	const hasTransitionedToRevealRef = useRef(false);
+	const hasHandledRefundRef = useRef(false);
+
+	// Atomic claim helper — returns true only for the first caller
+	const claimRevealTransition = useCallback(() => {
+		if (hasTransitionedToRevealRef.current) return false;
+		hasTransitionedToRevealRef.current = true;
+		return true;
+	}, []);
 
 	const updateState = useCallback(
 		(
@@ -145,7 +155,7 @@ export function useGachaSpinMachine(
 	const shouldAcceptSpinCompletedLog = useCallback(
 		(triggerId?: bigint) => {
 			// Never accept if we're already done with this flow
-			if (state.matches("revealing") || state.matches("idle")) {
+			if (state.value === "revealing" || state.value === "idle") {
 				return false;
 			}
 
@@ -156,7 +166,7 @@ export function useGachaSpinMachine(
 
 			// Only accept logs if we're in "waitingForFulfillment" state with a matching triggerId
 			// This prevents accepting logs for other pending spins or old sessions
-			if (state.matches("waitingForFulfillment")) {
+			if (state.value === "waitingForFulfillment") {
 				return triggerId === state.context.triggerId;
 			}
 
@@ -164,7 +174,7 @@ export function useGachaSpinMachine(
 			// The polling mechanism will handle fulfillment once we have the triggerId
 			return false;
 		},
-		[state.matches, state.context.triggerId],
+		[state.value, state.context.triggerId],
 	);
 
 	// Watch for SpinCompleted events from the contract
@@ -215,8 +225,7 @@ export function useGachaSpinMachine(
 						continue;
 					}
 
-					if (hasTransitionedToRevealRef.current) break;
-					hasTransitionedToRevealRef.current = true;
+					if (!claimRevealTransition()) break;
 					debugLog(
 						"✅ [useWatchContractEvent] Accepting SpinCompleted! Updating to revealing:",
 						result,
@@ -264,7 +273,7 @@ export function useGachaSpinMachine(
 		if (
 			!userAddress ||
 			!publicClient ||
-			!state.matches("idle") ||
+			state.value !== "idle" ||
 			!gachaAddress
 		)
 			return;
@@ -308,14 +317,7 @@ export function useGachaSpinMachine(
 					});
 				}
 			});
-	}, [
-		userAddress,
-		publicClient,
-		gachaAddress,
-		state.matches,
-		updateState,
-		debugLog,
-	]);
+	}, [userAddress, publicClient, gachaAddress, state.value, updateState]);
 
 	// Actions
 	const startSpin = () => {
@@ -406,7 +408,7 @@ export function useGachaSpinMachine(
 	// Kick off polling while waiting for fulfillment
 	useEffect(() => {
 		if (
-			!state.matches("waitingForFulfillment") ||
+			state.value !== "waitingForFulfillment" ||
 			!state.context.triggerId ||
 			!state.context.userAddress ||
 			!state.context.publicClient ||
@@ -442,8 +444,7 @@ export function useGachaSpinMachine(
 			.then((pollingResult) => {
 				if (!signal.aborted && isMountedRef.current) {
 					if (pollingResult.type === "completed") {
-						if (hasTransitionedToRevealRef.current) return;
-						hasTransitionedToRevealRef.current = true;
+						if (!claimRevealTransition()) return;
 						updateState("revealing", {
 							spinResult: pollingResult.result,
 							refundResult: null,
@@ -489,13 +490,14 @@ export function useGachaSpinMachine(
 			}
 		};
 	}, [
-		state.matches,
+		state.value,
 		state.context.triggerId,
 		state.context.userAddress,
 		state.context.publicClient,
 		state.context.gachaAddress,
 		onSpinComplete,
 		updateState,
+		claimRevealTransition,
 	]);
 
 	// Derived state
@@ -508,15 +510,19 @@ export function useGachaSpinMachine(
 	const isRefunded = state.matches("refunded");
 	const canRetry = state.context.retryCount < MAX_RETRIES;
 
-	// Handle refund completion
+	// Handle refund completion — guard prevents duplicate callback invocations
 	useEffect(() => {
 		if (isRefunded && state.context.refundResult) {
+			if (hasHandledRefundRef.current) return;
+			hasHandledRefundRef.current = true;
 			debugLog(
 				"💰 [useGachaSpinMachine] Refund completed, triggering balance refresh",
 			);
 			onRefund?.();
+		} else {
+			hasHandledRefundRef.current = false;
 		}
-	}, [isRefunded, state.context.refundResult, onRefund, debugLog]);
+	}, [isRefunded, state.context.refundResult, onRefund]);
 
 	// Cleanup on unmount
 	useEffect(() => {

@@ -62,7 +62,8 @@ export const getPollingDelay = (
 	attempt: number,
 	baseInterval: number,
 ): number => {
-	const exponentialDelay = baseInterval * 2 ** Math.min(attempt / 10, 5);
+	const exponentialDelay =
+		baseInterval * 2 ** Math.min(Math.floor(attempt / 3), 5);
 	const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
 	return Math.min(exponentialDelay + jitter, 30000); // Max 30 seconds
 };
@@ -91,7 +92,7 @@ export const pollForSpinFulfillment = async ({
 		let timeoutId: NodeJS.Timeout | null = null;
 		let attempts = 0;
 		const maxAttempts = 200;
-		const refundCheckDelay = 10;
+		const refundCheckDelay = 3;
 		let isDestroyed = false;
 
 		const cleanup = () => {
@@ -257,12 +258,31 @@ export const pollForSpinFulfillment = async ({
 					timeoutId = setTimeout(poll, delay);
 				}
 			} catch (error) {
+				// Don't retry aborted requests
+				if (error instanceof DOMException && error.name === "AbortError") {
+					cleanup();
+					reject(error);
+					return;
+				}
+
+				// Don't retry non-retryable errors (contract reverts)
+				const errorMsg = error instanceof Error ? error.message : "";
+				const isNonRetryable =
+					errorMsg.includes("execution reverted") ||
+					errorMsg.includes("invalid opcode") ||
+					errorMsg.includes("out of gas");
+
 				console.error(
 					`[GachaSpinMachine] Polling error (attempt ${attempts}):`,
 					error,
 				);
 
-				if (attempts < maxAttempts && !isDestroyed && !signal?.aborted) {
+				if (
+					!isNonRetryable &&
+					attempts < maxAttempts &&
+					!isDestroyed &&
+					!signal?.aborted
+				) {
 					const delay = getPollingDelay(attempts, POLLING_INTERVAL);
 					timeoutId = setTimeout(poll, delay);
 				} else {
