@@ -90,8 +90,8 @@ export function useSpinHistoryFetcher() {
 		async (blockNumbers: bigint[]): Promise<Record<string, number>> => {
 			if (!publicClient) return {};
 
-			const timestamps: Record<string, number> = await Promise.all(
-				blockNumbers.map(async (blockNumber) => {
+			const results: [string, number][] = await Promise.all(
+				blockNumbers.map(async (blockNumber): Promise<[string, number]> => {
 					try {
 						const block = await publicClient.getBlock({ blockNumber });
 						return [blockNumber.toString(), Number(block.timestamp)];
@@ -100,19 +100,15 @@ export function useSpinHistoryFetcher() {
 							`Failed to fetch timestamp for block ${blockNumber}:`,
 							error,
 						);
-						return [blockNumber.toString(), Date.now() / 1000]; // Fallback to now
+						return [blockNumber.toString(), Date.now() / 1000];
 					}
 				}),
-			).then((results) =>
-				results.reduce(
-					(acc, [key, value]) => {
-						acc[key] = value as number;
-						return acc;
-					},
-					{} as Record<string, number>,
-				),
 			);
 
+			const timestamps: Record<string, number> = {};
+			for (const [key, value] of results) {
+				timestamps[key] = value;
+			}
 			return timestamps;
 		},
 		[publicClient],

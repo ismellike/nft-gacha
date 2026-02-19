@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { isUserRejectedError } from "../lib/transactionErrors";
 import {
 	useAccount,
@@ -89,6 +89,12 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		resetInteraction: reset,
 	} = useNFTInteractionStore();
 
+	// Stable ref for context to avoid recreating callbacks on every context change
+	const contextRef = useRef(context);
+	contextRef.current = context;
+	const statusRef = useRef(status);
+	statusRef.current = status;
+
 	// Wagmi writes
 	const {
 		writeContractAsync: approveCollection,
@@ -144,12 +150,16 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				return;
 			}
 
+			// Read from refs to avoid stale closure over context/status
+			const ctx = contextRef.current;
+			const currentStatus = statusRef.current;
+
 			// Prevent overlapping interactions for the same NFT unless completed
-			const currentKey = `${context?.collection ?? ""}-${context?.tokenId ?? ""}`;
+			const currentKey = `${ctx?.collection ?? ""}-${ctx?.tokenId ?? ""}`;
 			const nextKey = `${collection}-${tokenId}`;
 			if (
-				status !== "idle" &&
-				status !== "completed" &&
+				currentStatus !== "idle" &&
+				currentStatus !== "completed" &&
 				currentKey !== nextKey
 			) {
 				setError("Another interaction is in progress for a different NFT.");
@@ -184,11 +194,8 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			storeStart(startConfig);
 		},
 		[
-			context?.collection,
-			context?.tokenId,
 			publicClient,
 			setError,
-			status,
 			storeStart,
 			userAddress,
 			params.uniqueId,
@@ -196,9 +203,10 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	);
 
 	// Kick off approval automatically when entering checkingApprovals
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Individual context properties used for clarity
 	const maybeStartApproval = useCallback(async () => {
-		if (status !== "checkingApprovals" || !context) return;
+		const currentStatus = statusRef.current;
+		const ctx = contextRef.current;
+		if (currentStatus !== "checkingApprovals" || !ctx) return;
 
 		const {
 			collection,
@@ -206,7 +214,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			protocolTreasuryAddress,
 			mode,
 			publicClient,
-		} = context;
+		} = ctx;
 		const operatorAddress =
 			mode === "buyback" ? protocolTreasuryAddress : treasuryAddress;
 
@@ -250,30 +258,25 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		}
 	}, [
 		approveCollection,
-		context?.collection,
-		context?.treasuryAddress,
-		context?.protocolTreasuryAddress,
-		context?.mode,
-		context?.publicClient,
 		markApprovalSubmitted,
 		resetNFTApproval,
 		setError,
 		setStatus,
-		status,
 		userAddress,
 	]);
 
 	// Deposit action for deposits or redemption for buybacks when awaitingInteractionSignature
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Individual context properties used for clarity
 	const maybeExecuteAction = useCallback(async () => {
-		if (status !== "awaitingInteractionSignature" || !context) return;
+		const currentStatus = statusRef.current;
+		const ctx = contextRef.current;
+		if (currentStatus !== "awaitingInteractionSignature" || !ctx) return;
 		const {
 			collection,
 			tokenId,
 			mode,
 			treasuryAddress,
 			protocolTreasuryAddress,
-		} = context;
+		} = ctx;
 		if (!collection || !tokenId) return;
 
 		try {
@@ -312,11 +315,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 			}
 		}
 	}, [
-		context?.collection,
-		context?.tokenId,
-		context?.mode,
-		context?.treasuryAddress,
-		context?.protocolTreasuryAddress,
 		depositNFT,
 		executeRedemption,
 		markInteractionSubmitted,
@@ -324,7 +322,6 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		resetRedemption,
 		setError,
 		setStatus,
-		status,
 		userAddress,
 	]);
 

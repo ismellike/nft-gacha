@@ -47,9 +47,10 @@ export function useAppraisalChecker(
 	useEffect(() => {
 		if (!userOwnedNFTs.length || !appraisal || !publicClient) return;
 
+		const abortController = new AbortController();
+		const signal = abortController.signal;
+
 		const checkAppraisals = async () => {
-			const abortController = new AbortController();
-			const signal = abortController.signal;
 
 			try {
 				// Try batch multicall first
@@ -194,10 +195,10 @@ export function useAppraisalChecker(
 					console.error("Error in batch appraisal check:", error);
 				}
 			}
-
-			return () => abortController.abort();
 		};
 
 		checkAppraisals();
+
+		return () => abortController.abort();
 	}, [userOwnedNFTs, appraisal, publicClient, updateAppraisedStatus]);
 }

@@ -111,11 +111,6 @@ export const useAppraisalData = (
 		return cacheExpired;
 	}, [address, lastFetched]);
 
-	// Get optimistic submissions to check their status
-	const optimisticSubmissions = useMemo(() => {
-		return address ? getUserOptimisticSubmissions(address) : [];
-	}, [address, getUserOptimisticSubmissions]);
-
 	const knownKeys = useMemo(() => {
 		const keys = new Set<string>();
 		allKnownNFTs.forEach((nft) => {
@@ -182,12 +177,17 @@ export const useAppraisalData = (
 				}
 
 				// Convert batch results to our format, using optimistic submission timestamps when available
+				const currentOptimistic = address
+					? useNFTAppraisalStore
+							.getState()
+							.getUserOptimisticSubmissions(address)
+					: [];
 				const appraisedNFTs: AppraisedNFT[] = allKnownNFTs.map((nft, index) => {
 					const price = prices[index];
 					const status = statuses[index];
 
 					// Try to get timestamp from optimistic submissions
-					const optimisticSubmission = optimisticSubmissions.find(
+					const optimisticSubmission = currentOptimistic.find(
 						(sub) =>
 							sub.collection.toLowerCase() === nft.collection.toLowerCase() &&
 							sub.tokenId === nft.tokenId,
@@ -217,7 +217,7 @@ export const useAppraisalData = (
 				setAppraisals(address, completedAppraisals);
 
 				// Remove optimistic submissions that are now appraised
-				optimisticSubmissions.forEach((submission) => {
+				currentOptimistic.forEach((submission) => {
 					const isAppraised = completedAppraisals.some(
 						(appraised) =>
 							appraised.collection.toLowerCase() ===
@@ -248,7 +248,6 @@ export const useAppraisalData = (
 		address,
 		batchResults,
 		allKnownNFTs,
-		optimisticSubmissions,
 		setLoading,
 		clearUserError,
 		setAppraisals,
@@ -275,18 +274,6 @@ export const useAppraisalData = (
 			setLoading(address, isBatchLoading);
 		}
 	}, [address, isBatchLoading, setLoading]);
-
-	// Update error state based on batch query
-	useEffect(() => {
-		if (address && batchError) {
-			setError(
-				address,
-				batchError instanceof Error
-					? batchError.message
-					: "Failed to fetch appraisals",
-			);
-		}
-	}, [address, batchError, setError]);
 
 	// Auto-refresh effect
 	// Use a ref to avoid dependency on the callback

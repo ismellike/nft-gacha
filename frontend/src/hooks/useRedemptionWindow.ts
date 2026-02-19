@@ -102,16 +102,22 @@ export function useRedemptionWindow({
 	}, [expiryTimestamp]);
 
 	// Tick every second
+	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	useEffect(() => {
-		const interval = setInterval(() => {
-			if (countdownRef.current === null || countdownRef.current <= 0) return;
+		intervalRef.current = setInterval(() => {
+			if (countdownRef.current === null || countdownRef.current <= 0) {
+				if (intervalRef.current) clearInterval(intervalRef.current);
+				return;
+			}
 			setCountdown((prev) => {
 				if (prev === null || prev <= 0) return 0;
 				return prev - 1;
 			});
 		}, 1000);
 
-		return () => clearInterval(interval);
+		return () => {
+			if (intervalRef.current) clearInterval(intervalRef.current);
+		};
 	}, []);
 
 	const remainingSeconds = countdown ?? 0;
