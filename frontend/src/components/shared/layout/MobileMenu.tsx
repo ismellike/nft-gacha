@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { getNavIcon } from "./navIcons";
 
 interface NavItem {
 	href: string;
@@ -15,27 +16,6 @@ interface NavItem {
 interface MobileMenuProps {
 	navItems: NavItem[];
 }
-
-// Helper function to get icon component
-function getNavIcon(iconName: string, className: string) {
-	switch (iconName) {
-		case "home":
-			return <HomeIcon className={className} />;
-		case "dice":
-			return <CubeIcon className={className} />;
-		case "search":
-			return <MagnifyingGlassIcon className={className} />;
-		default:
-			console.warn(`Nav icon "${iconName}" not found`);
-			return null;
-	}
-}
-
-import {
-	CubeIcon,
-	HomeIcon,
-	MagnifyingGlassIcon,
-} from "@heroicons/react/24/outline";
 
 export function MobileMenu({ navItems }: MobileMenuProps) {
 	const [isOpen, setIsOpen] = useState(false);

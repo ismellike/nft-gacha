@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
-import { decodeEventLog, formatUnits } from "viem";
+import { decodeEventLog } from "viem";
 import {
 	useAccount,
 	useChainId,
@@ -13,13 +13,13 @@ import {
 import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { useSoundEffects } from "../../hooks/useSoundEffects";
 import {
+	gachaTreasuryAbi,
 	useReadErc20BalanceOf,
 	useReadErc20Decimals,
 	useReadErc20Name,
 	useReadErc20Symbol,
 	useReadGachaFeeToken,
 	useReadGachaPaused,
-	useReadGachaTreasuryIsGachaAvailable,
 	useReadIerc20PermitNonces,
 	useWriteGachaReclaimFailedSpin,
 } from "../../generated";
@@ -28,9 +28,16 @@ import { useGachaId } from "../../hooks/useGachaId";
 import type { UseGachaSpinMachineReturn } from "../../hooks/useGachaSpinMachine";
 import { logger } from "../../lib/logger";
 import { cn, glassTypography } from "../../lib/theme-config";
-import { mapTransactionError } from "../../lib/transactionErrors";
+import {
+	isUserRejectedError,
+	mapTransactionError,
+} from "../../lib/transactionErrors";
 import { formatCurrency, formatTokenAmount } from "../../lib/utils";
-import { Button, Card, Modal, ModalContent } from "../../ui";
+import { Button, Card } from "../../ui";
+import { SpinErrorModal } from "./SpinErrorModal";
+import { SpinRefundModal } from "./SpinRefundModal";
+import { SpinTimeoutModal } from "./SpinTimeoutModal";
+import { SpinVisual } from "./SpinVisual";
 
 interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
@@ -145,8 +152,10 @@ const SpinControls = memo(function SpinControls({
 		query: { enabled: !!contracts.gacha },
 	});
 
-	const { data: isGachaAvailable } = useReadGachaTreasuryIsGachaAvailable({
+	const { data: isGachaAvailable } = useReadContract({
 		address: contracts.treasury as `0x${string}` | undefined,
+		abi: gachaTreasuryAbi,
+		functionName: "isGachaAvailable",
 		query: { enabled: !!contracts.treasury },
 	});
 
@@ -680,13 +689,7 @@ const SpinControls = memo(function SpinControls({
 			processedPermitErrorRef.current = errorId;
 
 			// Check if user canceled the signature
-			const errorMessage = signatureError.message.toLowerCase();
-			if (
-				errorMessage.includes("rejected") ||
-				errorMessage.includes("denied") ||
-				errorMessage.includes("cancelled") ||
-				errorMessage.includes("canceled")
-			) {
+			if (isUserRejectedError(signatureError)) {
 				// User canceled - silently reset to idle state and show subtle feedback
 				logger.gachaSpin.log("User cancelled signature request");
 				gachaSpin.reset();
@@ -737,26 +740,14 @@ const SpinControls = memo(function SpinControls({
 			processedReceiptErrorRef.current = errorId;
 
 			// Check if user canceled the transaction
-			const errorMessage = String(
-				spinWithPermitError.message || "",
-			).toLowerCase();
 			logger.gachaSpin.debug("Analyzing transaction error:", {
 				errorMessage: spinWithPermitError.message,
 				errorName: spinWithPermitError.name,
 				errorCode: (spinWithPermitError as { code?: string }).code,
-				isUserRejection:
-					errorMessage.includes("rejected") ||
-					errorMessage.includes("denied") ||
-					errorMessage.includes("cancelled") ||
-					errorMessage.includes("canceled"),
+				isUserRejection: isUserRejectedError(spinWithPermitError),
 			});
 
-			if (
-				errorMessage.includes("rejected") ||
-				errorMessage.includes("denied") ||
-				errorMessage.includes("cancelled") ||
-				errorMessage.includes("canceled")
-			) {
+			if (isUserRejectedError(spinWithPermitError)) {
 				// User canceled - silently reset to idle state and show subtle feedback
 				logger.gachaSpin.log("User cancelled transaction");
 				gachaSpin.reset();
@@ -764,6 +755,9 @@ const SpinControls = memo(function SpinControls({
 				setTimeout(() => setUserCancelledMessage(false), 2000);
 			} else {
 				// Real transaction error - log detailed debugging info
+				const errorMessage = String(
+					spinWithPermitError.message || "",
+				).toLowerCase();
 				logger.gachaSpin.error("Transaction submission error:", {
 					error: spinWithPermitError,
 					message: spinWithPermitError.message,
@@ -879,12 +873,7 @@ const SpinControls = memo(function SpinControls({
 
 			// Check if user canceled the transaction
 			const errorMessage = String(spinError.message || "").toLowerCase();
-			if (
-				errorMessage.includes("rejected") ||
-				errorMessage.includes("denied") ||
-				errorMessage.includes("cancelled") ||
-				errorMessage.includes("canceled")
-			) {
+			if (isUserRejectedError(spinError)) {
 				// User canceled - silently reset to idle state and show subtle feedback
 				gachaSpin.reset();
 				setUserCancelledMessage(true);
@@ -1079,30 +1068,14 @@ const SpinControls = memo(function SpinControls({
 	// Handle reclaim rejection
 	useEffect(() => {
 		if (reclaimError) {
-			const errorMessage = String(reclaimError.message || "").toLowerCase();
-			const errorCode = (reclaimError as { code?: number }).code;
-			const errorName = (reclaimError as { name?: string }).name;
-
 			logger.gachaSpin.debug("Analyzing reclaim error:", {
 				errorMessage: reclaimError.message,
 				errorName: reclaimError.name,
-				errorCode: errorCode,
+				errorCode: (reclaimError as { code?: number }).code,
 				cause: (reclaimError as { cause?: string }).cause,
 			});
 
-			// More robust user rejection detection
-			const isUserRejected =
-				errorMessage.includes("rejected") ||
-				errorMessage.includes("denied") ||
-				errorMessage.includes("cancelled") ||
-				errorMessage.includes("canceled") ||
-				errorMessage.includes("User rejected") ||
-				errorCode === 4001 || // MetaMask user rejection code
-				errorName?.includes("UserRejectedRequestError") ||
-				errorName?.includes("UserRejected") ||
-				(reclaimError as { cause?: { code?: number } }).cause?.code === 4001;
-
-			if (isUserRejected) {
+			if (isUserRejectedError(reclaimError)) {
 				// User canceled - show subtle feedback and keep them in timeout state
 				logger.gachaSpin.log("User cancelled reclaim transaction");
 				setUserCancelledMessage(true);
@@ -1302,238 +1275,42 @@ const SpinControls = memo(function SpinControls({
 					<div className="py-16">
 						<div className="flex flex-col items-center space-y-10">
 							{/* Enhanced Spinner Visual with Lottie Animation */}
-							<div className="relative group">
-								{/* Outer glow rings */}
-								<div
-									className={`absolute inset-0 w-64 h-64 rounded-full ${
-										gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
-											? "animate-pulse"
-											: ""
-									}`}
-								>
-									<div
-										className="w-full h-full rounded-full border-2 border-warning/20 animate-spin"
-										style={{ animationDuration: "8s" }}
-									></div>
-								</div>
-								<div
-									className={`absolute inset-2 w-60 h-60 rounded-full ${
-										gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
-											? "animate-pulse"
-											: ""
-									}`}
-								>
-									<div
-										className="w-full h-full rounded-full border border-warning/10 animate-spin"
-										style={{
-											animationDuration: "12s",
-											animationDirection: "reverse",
-										}}
-									></div>
-								</div>
-
-								{/* Main spinner with enhanced state-based styling */}
-								<div
-									className={cn(
-										"relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-warning p-3 shadow-2xl shadow-warning/20",
-										gachaSpin.isWaitingForFulfillment || gachaSpin.isSpinning
-											? "spin-wobble"
-											: gachaSpin.isError
-												? "animate-bounce"
-												: "hover:shadow-3xl hover:shadow-warning/30 transition-all duration-300",
-									)}
-								>
-									{/* Inner glass surface */}
-									<div className="w-full h-full rounded-full bg-gradient-to-br from-background to-background/80 backdrop-blur-xl flex items-center justify-center border border-warning/30 relative overflow-hidden">
-										{/* Shimmer effect */}
-										<div className="absolute inset-0 bg-gradient-to-r from-transparent via-warning/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1500"></div>
-
-										{/* Spin-Fi Logo */}
-										<div className="relative z-10 filter drop-shadow-2xl">
-											<svg
-												className="w-20 h-20 drop-shadow-lg text-warning"
-												viewBox="227 210 589 590"
-												xmlns="http://www.w3.org/2000/svg"
-											>
-												<title>Spin-Fi logo</title>
-												<path
-													d="M0,0 L47,0 L78,4 L101,9 L125,17 L149,28 L164,37 L181,49 L194,60 L202,67 L209,74 L218,85 L228,98 L239,115 L250,135 L260,160 L267,185 L271,208 L272,218 L272,258 L269,281 L264,302 L259,319 L248,347 L236,370 L225,386 L217,396 L208,406 L201,413 L196,418 L188,426 L175,436 L160,446 L142,456 L125,464 L102,471 L80,475 L58,476 L41,475 L22,471 L7,466 L-12,457 L-23,450 L-36,440 L-48,428 L-59,414 L-68,399 L-75,383 L-79,371 L-82,353 L-83,328 L-81,310 L-76,291 L-68,275 L-56,259 L-46,249 L-31,240 L-16,234 L-7,232 L11,232 L25,236 L35,242 L42,248 L48,257 L52,268 L53,278 L49,276 L40,269 L34,267 L22,267 L12,272 L4,279 L-5,291 L-11,303 L-13,311 L-13,331 L-10,345 L-5,358 L2,368 L11,378 L21,385 L38,393 L56,397 L82,397 L98,394 L114,388 L126,382 L142,370 L155,358 L164,347 L174,333 L185,312 L192,293 L197,272 L199,251 L199,240 L197,214 L192,192 L184,171 L174,152 L163,136 L154,125 L146,117 L135,108 L122,98 L109,90 L93,82 L79,76 L58,70 L41,67 L31,66 L-1,66 L-24,69 L-47,74 L-71,82 L-98,95 L-117,107 L-134,120 L-148,132 L-163,147 L-172,158 L-185,175 L-195,190 L-205,208 L-216,231 L-222,246 L-229,271 L-234,296 L-236,312 L-237,326 L-237,348 L-234,380 L-229,406 L-223,430 L-224,432 L-230,422 L-241,399 L-249,377 L-256,349 L-260,325 L-262,304 L-262,269 L-259,240 L-254,214 L-246,188 L-238,168 L-228,148 L-215,127 L-202,110 L-191,97 L-182,87 L-165,70 L-151,59 L-136,48 L-112,33 L-97,25 L-70,14 L-45,7 L-25,3 Z "
-													fill="currentColor"
-													transform="translate(489,210)"
-												/>
-												<path
-													d="M0,0 L26,0 L46,3 L67,9 L83,16 L94,22 L105,30 L119,41 L136,58 L144,69 L154,87 L160,101 L164,116 L166,128 L166,161 L162,179 L155,195 L149,206 L139,220 L130,229 L116,238 L105,243 L85,247 L74,247 L57,243 L45,236 L37,227 L32,217 L32,212 L43,215 L56,215 L67,211 L76,205 L82,200 L90,189 L94,180 L96,171 L96,146 L92,130 L86,118 L78,108 L67,98 L54,90 L38,83 L19,78 L10,77 L-3,77 L-17,79 L-35,85 L-50,93 L-63,103 L-74,113 L-83,124 L-92,136 L-100,150 L-108,167 L-115,191 L-118,212 L-118,246 L-113,276 L-108,292 L-99,313 L-88,332 L-75,349 L-64,361 L-52,372 L-38,382 L-22,391 L-4,399 L14,405 L34,409 L55,411 L66,411 L92,409 L114,405 L138,398 L162,388 L181,378 L199,366 L212,356 L222,348 L234,337 L246,325 L255,314 L269,295 L280,277 L291,256 L300,233 L306,214 L311,192 L314,172 L316,143 L316,130 L314,101 L311,78 L314,81 L322,100 L329,124 L334,151 L336,176 L336,201 L333,235 L328,260 L321,285 L312,309 L300,334 L291,350 L279,367 L268,381 L259,391 L252,399 L239,412 L228,421 L213,432 L193,445 L169,457 L140,468 L111,476 L89,480 L73,482 L31,482 L6,479 L-21,473 L-44,465 L-62,457 L-81,447 L-93,439 L-106,429 L-120,417 L-130,407 L-139,396 L-151,381 L-163,361 L-174,338 L-181,319 L-187,295 L-191,268 L-191,231 L-188,203 L-183,177 L-177,155 L-167,131 L-154,106 L-144,91 L-135,79 L-124,66 L-113,54 L-103,45 L-83,30 L-64,19 L-47,11 L-29,5 L-9,1 Z "
-													fill="currentColor"
-													transform="translate(480,318)"
-												/>
-											</svg>
-										</div>
-									</div>
-								</div>
-							</div>
+							<SpinVisual
+								isSpinning={gachaSpin.isSpinning}
+								isWaitingForFulfillment={gachaSpin.isWaitingForFulfillment}
+								isError={gachaSpin.isError}
+							/>
 
 							{/* Timeout Display */}
-							<Modal isOpen={gachaSpin.isTimeout} size="sm">
-								<ModalContent>
-									<div className="text-center">
-										<div className="w-16 h-16 bg-danger/20 rounded-full flex items-center justify-center mx-auto mb-3">
-											<svg
-												className="w-8 h-8 text-danger"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-												strokeWidth={2}
-												aria-hidden="true"
-											>
-												<title>Error</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"
-												/>
-											</svg>
-										</div>
-										<p className="text-sm mb-2 font-semibold text-danger">
-											Randomness Timeout
-										</p>
-										<p className="text-xs text-foreground/60 mb-3">
-											The random number generation took longer than expected.
-											This may indicate a network issue or VRF coordinator
-											problem.
-										</p>
-										<div className="flex flex-col gap-2">
-											<Button
-												color="warning"
-												size="sm"
-												onPress={handleReclaim}
-												isDisabled={isReclaimPending}
-											>
-												{isReclaimPending ? "Reclaiming..." : "Reclaim Funds"}
-											</Button>
-											<Button
-												color="default"
-												size="sm"
-												onPress={gachaSpin.reset}
-											>
-												Try Again
-											</Button>
-											<p className="text-xs text-foreground/50">
-												Reclaim refunds your spin fee and invalidates this
-												request to prevent late fulfillment.
-											</p>
-										</div>
-									</div>
-								</ModalContent>
-							</Modal>
+							<SpinTimeoutModal
+								isOpen={gachaSpin.isTimeout}
+								isReclaimPending={isReclaimPending}
+								onReclaim={handleReclaim}
+								onReset={gachaSpin.reset}
+							/>
 
 							{/* Refund Display */}
 							{gachaSpin.isRefunded && gachaSpin.refundResult && (
-								<Modal isOpen={gachaSpin.isRefunded} size="sm">
-									<ModalContent>
-										<div className="text-center">
-											<div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-3">
-												<svg
-													className="w-8 h-8 text-warning"
-													fill="none"
-													stroke="currentColor"
-													viewBox="0 0 24 24"
-													strokeWidth={2}
-													aria-hidden="true"
-												>
-													<title>Warning</title>
-													<path
-														strokeLinecap="round"
-														strokeLinejoin="round"
-														d="M9 8h6m-5 0a3 3 0 110 6H9l3 3-3-3m1 0h6m-6 0a3 3 0 110-6m6 0a3 3 0 110 6M9 8a3 3 0 000 6m0-6a3 3 0 016 0 201 201 0 00.999 1M15 14a3 3 0 000-6m0 6a3 3 0 000-6M10 21l-3-3 3-3"
-													/>
-												</svg>
-											</div>
-											<p className="text-sm mb-2 font-semibold text-warning">
-												Spin Refunded
-											</p>
-											<p className="text-xs text-foreground/60 mb-3">
-												Your spin was automatically refunded because the
-												selected rarity ({gachaSpin.refundResult.selectedRarity}
-												) had no available NFTs.
-											</p>
-											<div className="space-y-2">
-												<div className="bg-content1/20 rounded-lg p-3">
-													<p className="text-xs font-medium mb-1">
-														Refund Details:
-													</p>
-													<p className="text-sm">
-														<span className="font-semibold">Rarity:</span>{" "}
-														{gachaSpin.refundResult.selectedRarity}
-													</p>
-													<p className="text-sm">
-														<span className="font-semibold">Amount:</span>{" "}
-														{formatUnits(
-															gachaSpin.refundResult.refundAmount,
-															tokenDecimals || 18,
-														)}{" "}
-														{tokenSymbol}
-													</p>
-												</div>
-												<Button
-													color="warning"
-													size="sm"
-													onPress={gachaSpin.reset}
-													className="w-full"
-												>
-													Try Another Spin
-												</Button>
-												<p className="text-xs text-foreground/50">
-													Your funds have been automatically returned to your
-													wallet.
-												</p>
-											</div>
-										</div>
-									</ModalContent>
-								</Modal>
+								<SpinRefundModal
+									isOpen={gachaSpin.isRefunded}
+									refundResult={gachaSpin.refundResult}
+									tokenDecimals={tokenDecimals}
+									tokenSymbol={tokenSymbol}
+									onReset={gachaSpin.reset}
+								/>
 							)}
 
 							{/* Error Display Only */}
 							{gachaSpin.isError &&
 								!gachaSpin.isTimeout &&
 								!gachaSpin.isRefunded && (
-									<Modal isOpen={gachaSpin.isError} size="sm">
-										<ModalContent>
-											<div className="text-center p-6">
-												{/* Show user-friendly error if available */}
-												{userFriendlyError ? (
-													<>
-														<p className="text-lg font-semibold text-foreground mb-2">
-															{userFriendlyError.title}
-														</p>
-														<p className="text-sm text-foreground/70 mb-4">
-															{userFriendlyError.message}
-														</p>
-														{userFriendlyError.action && (
-															<p className="text-xs text-warning mb-3">
-																{userFriendlyError.action}
-															</p>
-														)}
-													</>
-												) : (
-													<p className="text-sm mb-2">{gachaSpin.error}</p>
-												)}
-												<p className="text-xs text-foreground/60">
-													Retry attempts: {gachaSpin.retryCount}/5
-												</p>
-												{/* Show retry button if applicable */}
-												{userFriendlyError?.canRetry && (
-													<Button
-														color="glassPrimary"
-														size="sm"
-														className="mt-4"
-														onPress={() => gachaSpin.retry()}
-													>
-														Retry
-													</Button>
-												)}
-											</div>
-										</ModalContent>
-									</Modal>
+									<SpinErrorModal
+										isOpen={gachaSpin.isError}
+										error={gachaSpin.error}
+										userFriendlyError={userFriendlyError}
+										retryCount={gachaSpin.retryCount}
+										onRetry={gachaSpin.retry}
+									/>
 								)}
 
 							{/* User Cancelled Message */}

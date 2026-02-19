@@ -6,7 +6,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePublicClient } from "wagmi";
 import { useReadErc721TokenUri } from "../generated";
 import { CACHE_DURATIONS } from "../lib/constants";
 import {
@@ -17,17 +16,6 @@ import {
 import { logger } from "../lib/logger";
 import { fetchNFTMetadata, processImageUrl } from "../lib/nft-metadata";
 import type { NFTMetadata, NFTWithMetadata } from "../types/hooks";
-
-// ERC721 tokenURI ABI
-const ERC721_ABI = [
-	{
-		inputs: [{ name: "tokenId", type: "uint256" }],
-		name: "tokenURI",
-		outputs: [{ name: "", type: "string" }],
-		stateMutability: "view",
-		type: "function",
-	},
-] as const;
 
 interface ImportedMetadata {
 	name?: string;
@@ -47,15 +35,6 @@ const METADATA_CACHE = new Map<
 	}
 >();
 
-const TOKEN_URI_CACHE = new Map<
-	string,
-	{
-		tokenURI: string | null;
-		timestamp: number;
-		promise?: Promise<string | null>;
-	}
->();
-
 const CACHE_KEY = (collection: string, tokenId: string) =>
 	`${collection}-${tokenId}`;
 
@@ -67,13 +46,6 @@ const cleanupExpiredCache = () => {
 	for (const [key, entry] of METADATA_CACHE.entries()) {
 		if (!isCacheValid(entry.timestamp)) {
 			METADATA_CACHE.delete(key);
-		}
-	}
-
-	// Clean tokenURI cache
-	for (const [key, entry] of TOKEN_URI_CACHE.entries()) {
-		if (!isCacheValid(entry.timestamp)) {
-			TOKEN_URI_CACHE.delete(key);
 		}
 	}
 };
@@ -346,181 +318,6 @@ export function useNFTMetadata(
 
 	return state;
 }
-
-/**
- * Hook for batch loading multiple NFTs
- * @param requests - Array of { collection, tokenId, options }
- * @returns Record of cache keys to NFTWithMetadata
- */
-export function useBatchNFTMetadata(
-	requests: Array<{
-		collection: string;
-		tokenId: string;
-		options?: Parameters<typeof useNFTMetadata>[2];
-	}>,
-): Record<string, NFTWithMetadata> {
-	const [results, setResults] = useState<Record<string, NFTWithMetadata>>({});
-	const publicClient = usePublicClient();
-
-	useEffect(() => {
-		if (requests.length === 0 || !publicClient) return;
-
-		const loadBatch = async () => {
-			const newResults: Record<string, NFTWithMetadata> = {};
-
-			// Process requests in parallel with concurrency limit
-			const batchSize = 6;
-			for (let i = 0; i < requests.length; i += batchSize) {
-				const batch = requests.slice(i, i + batchSize);
-
-				const batchPromises = batch.map(
-					async ({ collection, tokenId, options = {} }) => {
-						const cacheKey = CACHE_KEY(collection, tokenId);
-						const { enabled = true, skipFetch = false } = options;
-
-						// Check cache first
-						const cached = METADATA_CACHE.get(cacheKey);
-						if (cached && isCacheValid(cached.timestamp)) {
-							return { key: cacheKey, data: cached.data };
-						}
-
-						// Create loading state
-						const loadingState: NFTWithMetadata = {
-							collection,
-							tokenId,
-							tokenURI: null,
-							metadata: null,
-							imageUrl: null,
-							isLoading: true,
-							error: null,
-						};
-
-						// Skip fetch if disabled or skipFetch is true
-						if (!enabled || skipFetch) {
-							return {
-								key: cacheKey,
-								data: { ...loadingState, isLoading: false },
-							};
-						}
-
-						// Fetch tokenURI and metadata
-						try {
-							// Fetch tokenURI using contract read
-							const tokenURI = await publicClient.readContract({
-								address: collection as `0x${string}`,
-								abi: ERC721_ABI,
-								functionName: "tokenURI",
-								args: [BigInt(tokenId)],
-							});
-
-							if (!tokenURI) {
-								return {
-									key: cacheKey,
-									data: {
-										...loadingState,
-										isLoading: false,
-										error: "No tokenURI available",
-									},
-								};
-							}
-
-							// Fetch metadata from tokenURI
-							const { metadata, imageUrl } =
-								await fetchMetadataFromURI(tokenURI);
-
-							const result: NFTWithMetadata = {
-								collection,
-								tokenId,
-								tokenURI,
-								metadata,
-								imageUrl,
-								isLoading: false,
-								error: null,
-							};
-
-							// Cache the result
-							METADATA_CACHE.set(cacheKey, {
-								data: result,
-								timestamp: Date.now(),
-							});
-
-							return { key: cacheKey, data: result };
-						} catch (error) {
-							return {
-								key: cacheKey,
-								data: {
-									...loadingState,
-									isLoading: false,
-									error:
-										error instanceof Error
-											? error.message
-											: "Failed to fetch metadata",
-								},
-							};
-						}
-					},
-				);
-
-				const batchResults = await Promise.allSettled(batchPromises);
-
-				batchResults.forEach((result) => {
-					if (result.status === "fulfilled") {
-						newResults[result.value.key] = result.value.data;
-					}
-				});
-
-				setResults((prev) => ({ ...prev, ...newResults }));
-			}
-
-			// Cleanup expired cache entries
-			cleanupExpiredCache();
-		};
-
-		loadBatch();
-	}, [requests, publicClient]);
-
-	return results;
-}
-
-/**
- * Utility functions for cache management
- */
-export const NFTMetadataUtils = {
-	/**
-	 * Clear all cached metadata
-	 */
-	clearCache: () => {
-		METADATA_CACHE.clear();
-		TOKEN_URI_CACHE.clear();
-	},
-
-	/**
-	 * Get cache statistics
-	 */
-	getCacheStats: () => ({
-		metadataCacheSize: METADATA_CACHE.size,
-		tokenURICacheSize: TOKEN_URI_CACHE.size,
-	}),
-
-	/**
-	 * Prefetch NFT metadata
-	 */
-	prefetch: async (collection: string, tokenId: string) => {
-		const cacheKey = CACHE_KEY(collection, tokenId);
-
-		// Check if already cached
-		const cached = METADATA_CACHE.get(cacheKey);
-		if (cached && isCacheValid(cached.timestamp)) {
-			return cached.data;
-		}
-
-		// This would trigger a fetch - in practice, you'd call the hook with prefetch: true
-		logger.nftMetadata.debug(
-			`Prefetching NFT metadata for ${collection}-${tokenId}`,
-		);
-		return null;
-	},
-} as const;
 
 /**
  * Hook to enhance a spin result with metadata

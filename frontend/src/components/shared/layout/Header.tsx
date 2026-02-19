@@ -1,10 +1,5 @@
 "use client";
 
-import {
-	CubeIcon,
-	HomeIcon,
-	MagnifyingGlassIcon,
-} from "@heroicons/react/24/outline";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
@@ -13,21 +8,7 @@ import { usePathname } from "next/navigation";
 import { memo, useMemo } from "react";
 import { Card } from "../../../ui";
 import { MobileMenu } from "./MobileMenu";
-
-// Helper function to get icon component
-function getNavIcon(iconName: string, className: string) {
-	switch (iconName) {
-		case "home":
-			return <HomeIcon className={className} />;
-		case "dice":
-			return <CubeIcon className={className} />;
-		case "search":
-			return <MagnifyingGlassIcon className={className} />;
-		default:
-			console.warn(`Nav icon "${iconName}" not found`);
-			return null;
-	}
-}
+import { getNavIcon } from "./navIcons";
 
 export const Header = memo(() => {
 	const pathname = usePathname();

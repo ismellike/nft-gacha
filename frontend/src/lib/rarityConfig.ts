@@ -101,17 +101,6 @@ export const getAllRarities = (): Rarity[] => [
 	Rarity.Legendary,
 ];
 
-// Utility functions for rarity operations
-export const getRarityByName = (name: string): Rarity | undefined => {
-	return getAllRarities().find(
-		(rarity) => RARITY_CONFIG[rarity].name.toLowerCase() === name.toLowerCase(),
-	);
-};
-
-export const getRarityName = (rarity: Rarity): string => {
-	return RARITY_CONFIG[rarity].name;
-};
-
 export const getRarityEmoji = (rarity: Rarity): string => {
 	return RARITY_CONFIG[rarity].emoji;
 };
@@ -123,25 +112,6 @@ export const rarityFromNumber = (rarityNumber: number): Rarity => {
 	}
 	// Default to Common if invalid number
 	return Rarity.Common;
-};
-
-// Enhanced utility functions for rarity theming
-export const getRarityTailwindClasses = (rarity: Rarity) => {
-	const config = getRarityConfig(rarity);
-	const rarityName = config.name.toLowerCase();
-	return {
-		bg: `bg-rarity-${rarityName}-500`,
-		bgLight: `bg-rarity-${rarityName}-200`,
-		bgDark: `bg-rarity-${rarityName}-700`,
-		text: `text-rarity-${rarityName}-500`,
-		textLight: `text-rarity-${rarityName}-200`,
-		textDark: `text-rarity-${rarityName}-700`,
-		border: `border-rarity-${rarityName}-500`,
-		borderLight: `border-rarity-${rarityName}-300`,
-		shadow: `shadow-rarity-${rarityName}-500/20`,
-		gradient: config.bgGradient,
-		glow: `shadow-lg shadow-rarity-${rarityName}-500/30`,
-	};
 };
 
 // Get rarity color hex values for programmatic use

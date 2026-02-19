@@ -154,20 +154,6 @@ export function calculateUserSharePercentage(
 	return `${percentage.toFixed(4)}%`;
 }
 
-// Helper function to format token amounts
-export function formatTokenAmount(
-	amount: bigint | undefined,
-	decimals: number = 6,
-): string {
-	if (amount === undefined) return "0";
-	const divisor = 10n ** BigInt(decimals);
-	const formatted = Number(amount) / Number(divisor);
-	return formatted.toLocaleString(undefined, {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	});
-}
-
 // Hook for claiming yield
 export function useClaimYield() {
 	const publicClient = usePublicClient();

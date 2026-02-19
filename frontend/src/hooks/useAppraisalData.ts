@@ -2,9 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAccount } from "wagmi";
 import {
 	useReadNftAppraisalAppraisalFee,
-	useReadNftAppraisalGetAppraisal,
 	useReadNftAppraisalGetBatchAppraisals,
-	useReadNftAppraisalHasBatchAppraisals,
 	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived,
 	useWatchNftAppraisalServiceHandlerAppraisalProcessed,
 } from "../generated";
@@ -528,103 +526,5 @@ export const useAppraisalData = (
 
 		// Statistics
 		stats,
-	};
-};
-
-// Hook for fetching a single appraisal
-export const useSingleAppraisal = (collection: string, tokenId: string) => {
-	const {
-		data: appraisal,
-		isLoading,
-		error,
-	} = useReadNftAppraisalGetAppraisal({
-		args: [collection as `0x${string}`, BigInt(tokenId)],
-		query: {
-			enabled: !!collection && !!tokenId,
-			staleTime: 10000, // 10 seconds
-		},
-	});
-
-	return {
-		appraisal,
-		isLoading,
-		error,
-	};
-};
-
-// Hook to get appraisal statistics for a user
-export const useAppraisalStats = (userAddress?: string) => {
-	const { address: connectedAddress } = useAccount();
-	const address = userAddress || connectedAddress;
-	const appraisals = useNFTAppraisalStore((state) =>
-		address ? state.getUserAppraisals(address) : [],
-	);
-
-	const stats = {
-		total: appraisals.length,
-		completed: appraisals.filter((a) => a.status === 1 || a.status === 2)
-			.length,
-		pending: appraisals.filter((a) => a.status === 0).length,
-		totalValue: appraisals.reduce(
-			(sum, a) =>
-				sum + (a.status === 1 || a.status === 2 ? a.priceUSD : BigInt(0)),
-			BigInt(0),
-		),
-		recent24h: appraisals.filter(
-			(a) => Date.now() - Number(a.timestamp) * 1000 < 24 * 60 * 60 * 1000,
-		).length,
-	};
-
-	return stats;
-};
-
-// Hook for efficiently checking if multiple NFTs have appraisals
-export const useBatchAppraisalCheck = (
-	nfts: Array<{ collection: string; tokenId: string }>,
-) => {
-	const batchArgs = useMemo(() => {
-		if (nfts.length === 0) return null;
-
-		return {
-			collections: nfts.map((nft) => nft.collection as `0x${string}`),
-			tokenIds: nfts.map((nft) => BigInt(nft.tokenId)),
-		};
-	}, [nfts]);
-
-	const {
-		data: hasAppraisals,
-		isLoading,
-		error,
-	} = useReadNftAppraisalHasBatchAppraisals({
-		args: batchArgs ? [batchArgs.collections, batchArgs.tokenIds] : undefined,
-		query: {
-			enabled: !!batchArgs,
-			staleTime: 30000, // 30 seconds cache
-		},
-	});
-
-	return {
-		hasAppraisals,
-		isLoading,
-		error,
-	};
-};
-
-// Hook for getting appraisal fee info
-export const useAppraisalFee = () => {
-	const {
-		data: appraisalFee,
-		isLoading,
-		error,
-	} = useReadNftAppraisalAppraisalFee({
-		query: {
-			staleTime: 300000, // 5 minutes cache
-		},
-	});
-
-	return {
-		appraisalFee,
-		isLoading,
-		error,
 	};
 };

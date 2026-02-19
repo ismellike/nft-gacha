@@ -3,6 +3,8 @@
 // Economy components
 export * from "./economy";
 export * from "./gacha";
+// Landing components
+export * from "./landing";
 // NFT components
 export * from "./nft";
 

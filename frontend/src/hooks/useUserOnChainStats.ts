@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import {
 	gachaTreasuryAbi,
@@ -151,14 +151,11 @@ export function useUserOnChainStats({
 	const isLoading = isLoadingUser || isLoadingGlobal || isLoadingProfile;
 	const isError = isUserError || isGlobalError || isProfileError;
 
-	const refetch = useMemo(
-		() => () => {
-			refetchUser();
-			refetchGlobal();
-			refetchProfile();
-		},
-		[refetchUser, refetchGlobal, refetchProfile],
-	);
+	const refetch = useCallback(() => {
+		refetchUser();
+		refetchGlobal();
+		refetchProfile();
+	}, [refetchUser, refetchGlobal, refetchProfile]);
 
 	return {
 		spinAnalytics,

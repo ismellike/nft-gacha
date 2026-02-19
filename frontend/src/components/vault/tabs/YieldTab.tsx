@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import {
 	calculateUserSharePercentage,
 	type DepositorVaultData,
-	formatTokenAmount,
 	type UserDepositorData,
 	useClaimYield,
 } from "../../../hooks/useDepositorVault";
+import { formatTokenAmount } from "../../../lib/utils";
 import { Button } from "../../../ui";
 
 interface YieldTabProps {

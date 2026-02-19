@@ -12,7 +12,7 @@ import {
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import { BuybackNotificationProvider } from "../../components/economy";
 import {
 	AdminSection,
@@ -29,10 +29,10 @@ import {
 import { SpinHistorySection } from "../../components/spin-history";
 import { GachaRefreshProvider } from "../../contexts/GachaRefreshContext";
 import {
-	useReadGachaEconomyManagerOwner,
+	gachaAbi,
+	gachaEconomyManagerAbi,
+	gachaTreasuryAbi,
 	useReadGachaEconomyManagerPaused,
-	useReadGachaOwner,
-	useReadGachaTreasuryOwner,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
@@ -60,33 +60,39 @@ function GachaDetailPageContent() {
 		[gachaId],
 	);
 
-	// Owner checks for admin access
+	// Owner checks for admin access - use useReadContract directly to avoid deep instantiation
 	const {
 		data: gachaOwner,
 		isLoading: isLoadingGachaOwner,
 		isError: isGachaOwnerError,
-	} = useReadGachaOwner({
+	} = useReadContract({
 		address: gacha?.address as `0x${string}`,
+		abi: gachaAbi,
+		functionName: "owner",
 		query: { enabled: isConnected && !!gacha },
-	} as Parameters<typeof useReadGachaOwner>[0]);
+	});
 
 	const {
 		data: treasuryOwner,
 		isLoading: isLoadingTreasuryOwner,
 		isError: isTreasuryOwnerError,
-	} = useReadGachaTreasuryOwner({
+	} = useReadContract({
 		address: gacha?.treasuryAddress as `0x${string}`,
+		abi: gachaTreasuryAbi,
+		functionName: "owner",
 		query: { enabled: isConnected && !!gacha },
-	} as Parameters<typeof useReadGachaTreasuryOwner>[0]);
+	});
 
 	const {
 		data: rewardsOwner,
 		isLoading: isLoadingRewardsOwner,
 		isError: isRewardsOwnerError,
-	} = useReadGachaEconomyManagerOwner({
+	} = useReadContract({
 		address: contracts.economyManager,
+		abi: gachaEconomyManagerAbi,
+		functionName: "owner",
 		query: { enabled: isConnected && !!contracts.economyManager },
-	} as Parameters<typeof useReadGachaEconomyManagerOwner>[0]);
+	});
 
 	// Show loading skeleton while fetching owner permissions
 	const isLoadingOwnerData =

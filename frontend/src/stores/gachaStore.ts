@@ -2,6 +2,7 @@ import type { PublicClient } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { gachaAbi } from "../generated";
+import { getSpinKey } from "./storeUtils";
 
 export interface PendingSpin {
 	triggerId: bigint;
@@ -21,15 +22,10 @@ export interface GachaStore {
 		userAddress: string,
 		gachaAddress: string,
 	) => PendingSpin | null;
-	clearExpiredSpins: () => void;
 	validateAndCleanPendingSpins: (publicClient: PublicClient) => Promise<void>;
 }
 
 const PENDING_SPIN_TIMEOUT = 10 * 60 * 1000; // 10 minutes
-
-// Generate a unique key for user + gacha contract combination
-const getSpinKey = (userAddress: string, gachaAddress: string) =>
-	`${userAddress.toLowerCase()}_${gachaAddress.toLowerCase()}`;
 
 export const useGachaStore = create<GachaStore>()(
 	persist(
@@ -71,18 +67,6 @@ export const useGachaStore = create<GachaStore>()(
 				}
 
 				return spin;
-			},
-
-			clearExpiredSpins: () => {
-				const now = Date.now();
-				set((state) => {
-					const validSpins = Object.fromEntries(
-						Object.entries(state.pendingSpins).filter(
-							([_, spin]) => now - spin.timestamp < PENDING_SPIN_TIMEOUT,
-						),
-					);
-					return { pendingSpins: validSpins };
-				});
 			},
 
 			validateAndCleanPendingSpins: async (publicClient) => {

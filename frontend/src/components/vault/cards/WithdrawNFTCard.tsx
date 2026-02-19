@@ -4,7 +4,7 @@ import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { memo } from "react";
 import type { Address } from "viem";
-import type { Rarity } from "../../../lib/constants";
+import type { Rarity } from "../../../lib/rarityConfig";
 import { cn } from "../../../lib/theme-config";
 import { formatCurrency } from "../../../lib/utils";
 import { Button } from "../../../ui";

@@ -86,46 +86,6 @@ describe("gachaStore", () => {
 		});
 	});
 
-	describe("clearExpiredSpins", () => {
-		it("removes only expired spins", () => {
-			vi.useFakeTimers();
-			const now = Date.now();
-			vi.setSystemTime(now);
-
-			const store = useGachaStore.getState();
-			store.addPendingSpin({
-				triggerId: 1n,
-				userAddress: USER,
-				gachaAddress: GACHA,
-			});
-			store.addPendingSpin({
-				triggerId: 2n,
-				userAddress: "0xUser2",
-				gachaAddress: GACHA,
-			});
-
-			// Manually set one spin to be old
-			const key1 = `${USER.toLowerCase()}_${GACHA.toLowerCase()}`;
-			useGachaStore.setState((state) => ({
-				pendingSpins: {
-					...state.pendingSpins,
-					[key1]: {
-						...state.pendingSpins[key1],
-						timestamp: now - 11 * 60 * 1000,
-					},
-				},
-			}));
-
-			useGachaStore.getState().clearExpiredSpins();
-
-			const spins = useGachaStore.getState().pendingSpins;
-			expect(spins[key1]).toBeUndefined();
-			expect(
-				spins[`${"0xUser2".toLowerCase()}_${GACHA.toLowerCase()}`],
-			).toBeDefined();
-		});
-	});
-
 	describe("key generation", () => {
 		it("lowercases addresses for key", () => {
 			const store = useGachaStore.getState();

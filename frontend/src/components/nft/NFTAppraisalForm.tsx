@@ -31,6 +31,7 @@ import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useRewardsData } from "../../hooks/useRewardsData";
 import { validationRules } from "../../lib/formValidation";
+import { isUserRejectedError } from "../../lib/transactionErrors";
 import { formatTokenAmount } from "../../lib/utils";
 import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
 import { Button, Card } from "../../ui";
@@ -520,7 +521,7 @@ export function NFTAppraisalForm({
 			const message = error instanceof Error ? error.message : String(error);
 			console.error("Error:", error);
 			setAppraisalError(
-				message.includes("rejected")
+				isUserRejectedError(error)
 					? "Transaction cancelled"
 					: message.includes("already exists")
 						? "This NFT was already appraised"

@@ -1,9 +1,27 @@
-import { getAllActiveGachas, getGachaConfig } from "../gacha-config";
+import { ENV_MODE } from "../config";
+import { LOCAL_GACHA_CONFIGS } from "./local";
+import { MAINNET_GACHA_CONFIGS } from "./mainnet";
+import { TESTNET_GACHA_CONFIGS } from "./testnet";
 import type { GachaConfig } from "./types";
+import { getAllActiveGachas, getGachaConfig } from "./utils";
+
+const GACHA_CONFIGS = (() => {
+	switch (ENV_MODE) {
+		case "LOCAL":
+			return LOCAL_GACHA_CONFIGS;
+		case "TESTNET":
+			return TESTNET_GACHA_CONFIGS;
+		case "MAINNET":
+			return MAINNET_GACHA_CONFIGS;
+		default:
+			return LOCAL_GACHA_CONFIGS;
+	}
+})();
 
 const FALLBACK_GACHA_ID = "graded-pokemon";
 const defaultGacha =
-	getGachaConfig(FALLBACK_GACHA_ID) || getAllActiveGachas()[0];
+	getGachaConfig(GACHA_CONFIGS, FALLBACK_GACHA_ID) ||
+	getAllActiveGachas(GACHA_CONFIGS)[0];
 
 export const DEFAULT_GACHA_ID = defaultGacha?.id || FALLBACK_GACHA_ID;
 
@@ -30,7 +48,7 @@ const emptyContracts = {
 
 export function getGachaContracts(gachaId: string) {
 	const config: GachaConfig | undefined =
-		getGachaConfig(gachaId) || defaultGacha;
+		getGachaConfig(GACHA_CONFIGS, gachaId) || defaultGacha;
 
 	if (!config) {
 		return emptyContracts;

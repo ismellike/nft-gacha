@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 
 export interface DepositedNFT {
@@ -121,13 +121,6 @@ export function useUserDepositedNFTs(treasury?: Address) {
 		}
 	}, [publicClient, treasury, user]);
 
-	const getUserDepositedNFTsByCardId = useCallback(
-		async (_cardId: Hex): Promise<DepositedNFT[]> => {
-			return [];
-		},
-		[],
-	);
-
 	/**
 	 * Gets canonical NFT data from appraisal contract for a deposited NFT
 	 */
@@ -191,7 +184,6 @@ export function useUserDepositedNFTs(treasury?: Address) {
 
 	return {
 		getUserDepositedNFTs,
-		getUserDepositedNFTsByCardId,
 		getCanonicalNFTData,
 	};
 }

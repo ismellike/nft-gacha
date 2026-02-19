@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { UserRejectedRequestError } from "viem";
+import { isUserRejectedError } from "../lib/transactionErrors";
 import {
 	useAccount,
 	usePublicClient,
@@ -237,13 +237,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				markApprovalSubmitted(txHash);
 			}
 		} catch (error) {
-			const isUserRejected =
-				error instanceof UserRejectedRequestError ||
-				(error instanceof Error &&
-					(error.message.toLowerCase().includes("user rejected") ||
-						error.message.toLowerCase().includes("user denied") ||
-						error.message.toLowerCase().includes("cancelled")));
-			if (isUserRejected) {
+			if (isUserRejectedError(error)) {
 				resetNFTApproval();
 				setStatus("idle");
 			} else {
@@ -303,13 +297,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 				setError("Missing parameters for interaction execution");
 			}
 		} catch (error) {
-			const isUserRejected =
-				error instanceof UserRejectedRequestError ||
-				(error instanceof Error &&
-					(error.message.toLowerCase().includes("user rejected") ||
-						error.message.toLowerCase().includes("user denied") ||
-						error.message.toLowerCase().includes("cancelled")));
-			if (isUserRejected) {
+			if (isUserRejectedError(error)) {
 				setStatus("idle");
 				resetDeposit();
 				resetRedemption();
@@ -365,13 +353,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 
 	useEffect(() => {
 		if (isDepositError && depositError) {
-			const isUserRejected =
-				(depositError as UserRejectedRequestError)?.name ===
-					"UserRejectedRequestError" ||
-				(depositError as Error)?.message
-					?.toLowerCase?.()
-					.includes("user rejected");
-			if (isUserRejected) {
+			if (isUserRejectedError(depositError)) {
 				setStatus("idle");
 			} else {
 				setError(
@@ -385,13 +367,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 
 	useEffect(() => {
 		if (isRedemptionError && redemptionError) {
-			const isUserRejected =
-				(redemptionError as UserRejectedRequestError)?.name ===
-					"UserRejectedRequestError" ||
-				(redemptionError as Error)?.message
-					?.toLowerCase?.()
-					.includes("user rejected");
-			if (isUserRejected) {
+			if (isUserRejectedError(redemptionError)) {
 				setStatus("idle");
 			} else {
 				setError(

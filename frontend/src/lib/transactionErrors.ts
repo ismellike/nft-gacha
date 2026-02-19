@@ -5,6 +5,28 @@
  * with actionable next steps.
  */
 
+import { UserRejectedRequestError } from "viem";
+
+/**
+ * Returns true when the error represents a deliberate user rejection/cancellation
+ * of a wallet prompt, rather than an unexpected failure.
+ */
+export function isUserRejectedError(error: unknown): boolean {
+	if (error instanceof UserRejectedRequestError) {
+		return true;
+	}
+	if (error instanceof Error) {
+		const lower = error.message.toLowerCase();
+		return (
+			lower.includes("rejected") ||
+			lower.includes("denied") ||
+			lower.includes("cancelled") ||
+			lower.includes("canceled")
+		);
+	}
+	return false;
+}
+
 export type TransactionErrorType =
 	| "user_rejected"
 	| "insufficient_funds"

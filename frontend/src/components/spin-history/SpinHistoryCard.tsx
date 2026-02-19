@@ -10,6 +10,7 @@ import {
 	formatCurrency,
 	formatTokenId,
 	getRelativeTime,
+	isValidAddress,
 } from "@/lib/utils";
 import type { SpinHistoryEntry } from "@/types/spin-history";
 import { Card } from "@/ui/Card";
@@ -26,19 +27,12 @@ interface SpinHistoryCardProps {
 }
 
 /**
- * Validate Ethereum address format
- */
-function isValidEthAddress(address: string): address is `0x${string}` {
-	return /^0x[a-fA-F0-9]{40}$/.test(address);
-}
-
-/**
  * Validate and convert appraisal contract address
  */
 function validateAppraisalAddress(address?: string): `0x${string}` | undefined {
 	if (!address) return undefined;
-	if (isValidEthAddress(address)) {
-		return address;
+	if (isValidAddress(address)) {
+		return address as `0x${string}`;
 	}
 	// Log warning but don't crash
 	console.warn(

@@ -37,18 +37,6 @@ export interface CourtyardMetadata extends NFTMetadata {
 }
 
 /**
- * Type guard to check if metadata is from Courtyard
- * Simplified to work with direct tokenURI detection
- */
-export function isCourtyardMetadata(
-	_metadata: NFTMetadata,
-): _metadata is CourtyardMetadata {
-	// Simple check - if we got here, it's likely already verified as Courtyard
-	// This is mainly for type safety now
-	return true;
-}
-
-/**
  * Detects if a tokenURI is from Courtyard
  * Simplified to just check for the official API domain
  */

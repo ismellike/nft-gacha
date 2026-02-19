@@ -1,25 +1,3 @@
-export function generateGachaStructuredData(gacha: {
-	name: string;
-	description: string;
-	image: string;
-	spinFee: string;
-	contractAddress: string;
-}) {
-	return {
-		"@context": "https://schema.org",
-		"@type": "Game",
-		name: gacha.name,
-		description: gacha.description,
-		image: gacha.image,
-		offers: {
-			"@type": "Offer",
-			price: gacha.spinFee,
-			priceCurrency: "USD",
-		},
-		url: `https://spinfi.com/gacha/${gacha.contractAddress}`,
-	};
-}
-
 export function generateOrganizationStructuredData() {
 	return {
 		"@context": "https://schema.org",

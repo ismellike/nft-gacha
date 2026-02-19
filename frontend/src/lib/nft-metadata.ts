@@ -12,13 +12,6 @@ export interface NFTMetadata {
 	[key: string]: unknown;
 }
 
-export interface NFTMetadataResult {
-	metadata: NFTMetadata | null;
-	imageUrl: string | null;
-	isLoading: boolean;
-	error: string | null;
-}
-
 /**
  * Cache for storing fetched metadata to avoid redundant API calls
  */
@@ -319,57 +312,4 @@ export function processImageUrl(
 	return null;
 }
 
-/**
- * React hook for fetching NFT metadata with loading and error states
- */
-export function useNFTMetadata(
-	tokenURI: string | undefined,
-): NFTMetadataResult {
-	const [state, setState] = React.useState<NFTMetadataResult>({
-		metadata: null,
-		imageUrl: null,
-		isLoading: false,
-		error: null,
-	});
-
-	React.useEffect(() => {
-		if (!tokenURI) {
-			setState({
-				metadata: null,
-				imageUrl: null,
-				isLoading: false,
-				error: null,
-			});
-			return;
-		}
-
-		setState((prev) => ({ ...prev, isLoading: true, error: null }));
-
-		fetchNFTMetadata(tokenURI)
-			.then((metadata) => {
-				const imageUrl = metadata
-					? processImageUrl(metadata.image, metadata)
-					: null;
-				setState({
-					metadata,
-					imageUrl,
-					isLoading: false,
-					error: null,
-				});
-			})
-			.catch((error) => {
-				setState({
-					metadata: null,
-					imageUrl: null,
-					isLoading: false,
-					error: error.message || "Failed to fetch metadata",
-				});
-			});
-	}, [tokenURI]);
-
-	return state;
-}
-
-// Import React for the hook
-import React from "react";
 import { logger } from "./logger";
