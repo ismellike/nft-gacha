@@ -15,19 +15,18 @@ import {
 } from "../../lib/metadataValidation";
 import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
 import {
-	CARD_FADE_OUT_DURATION,
 	getGlowConfig,
 	getPhaseTiming,
 	type RevealPhase,
-	STAGGER_DELAY_PER_TRAIT,
 } from "../../lib/revealAnimationConfig";
 import { useSoundEffects } from "../../hooks/useSoundEffects";
 import { DialogTitle, Modal, ModalBody, ModalContent } from "../../ui";
-import { NFTCard } from "../nft";
-import SellToTreasury from "../nft/SellToTreasury";
 import { RevealErrorBoundary } from "./RevealErrorBoundary";
-import RevealStep, { RevealStepGroup } from "./RevealStep";
-import SharePullButton from "./SharePullButton";
+import {
+	MonetaryRevealSection,
+	RevealPhaseContent,
+	shouldShowItemInAvailable,
+} from "./reveal";
 
 const debugLog = createDebugLogger(DEBUG_FLAGS.NFT_METADATA);
 
@@ -46,31 +45,6 @@ interface NFTRevealModalProps {
 	gachaId?: string;
 }
 
-// Get all possible phases in their correct order
-const ALL_PHASES: RevealPhase[] = [
-	"year",
-	"setName",
-	"name",
-	"grading",
-	"rarity",
-	"card",
-];
-
-// Helper to determine if an item should be shown based on current phase and available phases
-const shouldShowItemInAvailable = (
-	itemPhase: RevealPhase,
-	currentPhase: RevealPhase,
-	availablePhases: RevealPhase[],
-): boolean => {
-	// Use the full phase order for index calculation, not just available phases
-	const currentIndex = ALL_PHASES.indexOf(currentPhase);
-	const itemIndex = ALL_PHASES.indexOf(itemPhase);
-
-	// Item must be in available phases AND at or before current phase
-	const isItemAvailable = availablePhases.includes(itemPhase);
-	return isItemAvailable && itemIndex >= 0 && itemIndex <= currentIndex;
-};
-
 // Determine which metadata fields are available for reveal
 // Only include phases that have corresponding data to avoid empty waits
 // Order: year → setName → name (title/subject) → grading → rarity → card
@@ -85,13 +59,6 @@ const getAvailableRevealPhases = (
 	phases.push("rarity"); // Always included - comes from spin result
 	phases.push("card"); // Always included
 	return phases;
-};
-
-// Calculate staggered delay for each trait to prevent simultaneous animations
-const getTraitStaggerDelay = (traitPhase: RevealPhase): number => {
-	// Use the full phase order for index calculation
-	const traitIndex = ALL_PHASES.indexOf(traitPhase);
-	return traitIndex * STAGGER_DELAY_PER_TRAIT;
 };
 
 export default function NFTRevealModal({
@@ -551,243 +518,47 @@ export default function NFTRevealModal({
 									</AnimatePresence>
 								)}
 
-								{/* Progressive Metadata Reveal - Conditional Accumulation */}
-								{!isMetadataLoading && currentPhase !== null && (
-									<>
-										{/* Traits Phase */}
-										{availablePhases.includes(currentPhase) &&
-											currentPhase !== "card" &&
-											currentPhase !== "monetary" && (
-												<motion.div
-													exit={{
-														opacity: 0,
-														scale: 0.95,
-														filter: "blur(8px)",
-														transition: { duration: CARD_FADE_OUT_DURATION },
-													}}
-												>
-													<RevealStepGroup className="gap-6">
-														{/* Year - shows from year phase onwards */}
-														{shouldShowItemInAvailable(
-															"year",
-															currentPhase,
-															availablePhases,
-														) &&
-															year && (
-																<RevealStep
-																	label="Year"
-																	value={year}
-																	delay={getTraitStaggerDelay("year")}
-																	duration={0.8}
-																	rarity={resultRarity}
-																	icon="📅"
-																/>
-															)}
+								{/* Progressive Metadata Reveal */}
+								<RevealPhaseContent
+									currentPhase={currentPhase}
+									availablePhases={availablePhases}
+									isMetadataLoading={isMetadataLoading}
+									year={year ?? null}
+									setName={setName ?? null}
+									cardName={cardName}
+									gradingInfo={gradingInfo ?? null}
+									resultRarity={resultRarity}
+									rarityName={nftResult.rarity}
+									cardPhaseTiming={cardPhaseTiming}
+									cardData={{
+										collection: nftResult.collection,
+										tokenId: nftResult.tokenId,
+										imageUrl:
+											enhancedResult?.imageUrl || nftResult.imageUrl,
+										rarity: resultRarity,
+										metadata: enhancedResult?.metadata ?? null,
+										tokenURI: enhancedResult?.tokenURI ?? null,
+									}}
+									appraisalContractAddress={appraisalContractAddress}
+									protocolTreasuryAddress={protocolTreasuryAddress}
+									gachaId={gachaId}
+								/>
 
-														{/* Set Name - shows from setName phase onwards */}
-														{shouldShowItemInAvailable(
-															"setName",
-															currentPhase,
-															availablePhases,
-														) &&
-															setName && (
-																<RevealStep
-																	label="Set"
-																	value={setName}
-																	delay={getTraitStaggerDelay("setName")}
-																	duration={0.8}
-																	rarity={resultRarity}
-																	icon="📦"
-																/>
-															)}
-
-														{/* Card Name - shows from name phase onwards */}
-														{shouldShowItemInAvailable(
-															"name",
-															currentPhase,
-															availablePhases,
-														) && (
-															<RevealStep
-																label="Title"
-																value={cardName}
-																delay={getTraitStaggerDelay("name")}
-																duration={0.8}
-																rarity={resultRarity}
-																icon="✨"
-															/>
-														)}
-
-														{/* Grading - shows from grading phase onwards */}
-														{shouldShowItemInAvailable(
-															"grading",
-															currentPhase,
-															availablePhases,
-														) &&
-															gradingInfo && (
-																<RevealStep
-																	label="Grading"
-																	value={gradingInfo.displayString}
-																	delay={getTraitStaggerDelay("grading")}
-																	duration={0.8}
-																	rarity={resultRarity}
-																	icon="📊"
-																/>
-															)}
-
-														{/* Rarity - shows from rarity phase onwards */}
-														{shouldShowItemInAvailable(
-															"rarity",
-															currentPhase,
-															availablePhases,
-														) && (
-															<RevealStep
-																label="Rarity"
-																value={nftResult.rarity}
-																delay={getTraitStaggerDelay("rarity")}
-																duration={0.8}
-																rarity={resultRarity}
-																icon="💎"
-															/>
-														)}
-													</RevealStepGroup>
-												</motion.div>
-											)}
-
-										{/* Full Card Reveal */}
-										{(currentPhase === "card" ||
-											currentPhase === "monetary") && (
-											<motion.div
-												initial={{
-													opacity: 0,
-													scale: 0.3,
-													rotateY: -180,
-												}}
-												animate={{
-													opacity: 1,
-													scale: 1,
-													rotateY: 0,
-												}}
-												transition={{
-													duration: cardPhaseTiming.animationDuration,
-													ease: "easeOut",
-													type: "spring",
-													damping: 20,
-													stiffness: 100,
-												}}
-												className="relative"
-												style={{ perspective: 1000 }}
-											>
-												<NFTCard
-													data={{
-														collection: nftResult.collection,
-														tokenId: nftResult.tokenId,
-														imageUrl:
-															enhancedResult?.imageUrl || nftResult.imageUrl,
-														rarity: resultRarity,
-														metadata: enhancedResult?.metadata ?? null,
-														tokenURI: enhancedResult?.tokenURI ?? null,
-													}}
-													size="lg"
-													showCollectionName={true}
-													appraisalContractAddress={appraisalContractAddress}
-													{...(protocolTreasuryAddress && {
-														protocolTreasuryAddress,
-													})}
-													{...(gachaId && { gachaId })}
-												/>
-											</motion.div>
-										)}
-									</>
+								{/* Monetary Reveal */}
+								{protocolTreasuryAddress && (
+									<MonetaryRevealSection
+										isMetadataLoading={isMetadataLoading}
+										currentPhase={currentPhase}
+										resultRarity={resultRarity}
+										rarityName={nftResult.rarity}
+										nftCollection={nftResult.collection}
+										nftTokenId={nftResult.tokenId}
+										enhancedMetadata={enhancedResult?.metadata ?? null}
+										appraisalContractAddress={appraisalContractAddress}
+										protocolTreasuryAddress={protocolTreasuryAddress}
+										gachaTreasuryAddress={gachaTreasuryAddress}
+									/>
 								)}
-
-								{/* Monetary Reveal - THE BANG! */}
-								{!isMetadataLoading &&
-									currentPhase === "monetary" &&
-									protocolTreasuryAddress && (
-										<AnimatePresence>
-											<motion.div
-												key="monetary-reveal"
-												initial={{ opacity: 0, scale: 0.5, y: 50 }}
-												animate={{ opacity: 1, scale: 1, y: 0 }}
-												exit={{ opacity: 0, scale: 0.8, y: 20 }}
-												transition={{
-													duration: 0.8,
-													type: "spring",
-													stiffness: 200,
-													damping: 15,
-												}}
-												className="flex flex-col items-center gap-6 mt-8"
-											>
-												{/* Dramatic "Value Revealed" Label */}
-												<motion.div
-													initial={{ opacity: 0, y: -20 }}
-													animate={{ opacity: 1, y: 0 }}
-													transition={{ delay: 0.2, duration: 0.5 }}
-													className="text-center"
-												>
-													<motion.p
-														className={`text-sm uppercase tracking-[0.3em] ${rarityConfig.textColor} font-bold mb-2`}
-														animate={{ opacity: [0.5, 1, 0.5] }}
-														transition={{ duration: 2, repeat: Infinity }}
-													>
-														Appraisal Value
-													</motion.p>
-												</motion.div>
-
-												{/* Action Buttons */}
-												<div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
-													{/* Sell Button with Dramatic Entrance */}
-													<motion.div
-														className="z-50 flex justify-center pointer-events-auto"
-														initial={{ opacity: 0, scale: 0.8, y: 30 }}
-														animate={{ opacity: 1, scale: 1, y: 0 }}
-														transition={{
-															delay: 0.4,
-															duration: 0.6,
-															type: "spring",
-															stiffness: 150,
-															damping: 12,
-														}}
-														whileHover={{ scale: 1.05 }}
-													>
-														<SellToTreasury
-															collection={nftResult.collection}
-															tokenId={nftResult.tokenId}
-															appraisalContractAddress={
-																appraisalContractAddress
-															}
-															protocolTreasuryAddress={protocolTreasuryAddress}
-															gachaTreasuryAddress={gachaTreasuryAddress}
-															size="lg"
-															variant="button"
-														/>
-													</motion.div>
-
-													{/* Share Button */}
-													<SharePullButton
-														rarity={resultRarity}
-														metadata={enhancedResult?.metadata ?? null}
-														rarityName={nftResult.rarity}
-														animationDelay={0.6}
-													/>
-												</div>
-
-												{/* Sparkle Effects for Value Reveal */}
-												{resultRarity >= Rarity.Rare && (
-													<motion.div
-														className="absolute inset-0 pointer-events-none -z-10"
-														initial={{ opacity: 0 }}
-														animate={{ opacity: [0, 0.6, 0.3] }}
-														transition={{ duration: 1.5, times: [0, 0.5, 1] }}
-													>
-														<div
-															className={`absolute inset-0 rounded-3xl bg-gradient-to-r ${rarityConfig.bgGradient} opacity-30 blur-2xl`}
-														/>
-													</motion.div>
-												)}
-											</motion.div>
-										</AnimatePresence>
-									)}
 							</div>
 						</div>
 					</RevealErrorBoundary>

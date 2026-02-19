@@ -3,11 +3,8 @@
 import {
 	CheckBadgeIcon,
 	CpuChipIcon,
-	CurrencyDollarIcon,
-	ExclamationTriangleIcon,
 	MagnifyingGlassIcon,
 	SparklesIcon,
-	XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -36,6 +33,11 @@ import { formatTokenAmount } from "../../lib/utils";
 import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
 import { Button, Card } from "../../ui";
 import { NFTCard } from "./NFTCard";
+import {
+	AppraisalFormFields,
+	AppraisalProgress,
+	AppraisalResult as AppraisalResultView,
+} from "./appraisal";
 
 interface NFTAppraisalFormProps {
 	onSubmissionSuccess?: (collection: string, tokenId: string) => void;
@@ -760,164 +762,13 @@ export function NFTAppraisalForm({
 				<div className="text-center p-8 pb-4">
 					<AnimatePresence mode="wait">
 						{state.matches("completed") ? (
-							<motion.div
-								key="success"
-								initial={{ scale: 0.8, opacity: 0 }}
-								animate={{ scale: 1, opacity: 1 }}
-								className="space-y-4"
-							>
-								<div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto">
-									<CheckBadgeIcon className="w-10 h-10 text-white" />
-								</div>
-								<h2 className="text-2xl font-semibold text-success">
-									Appraisal Complete! 🎉
-								</h2>
-								<p className="text-foreground/70">
-									Your NFT metadata has been analyzed and market data queried.
-									Ready for gacha deposits!
-								</p>
-								<div className="pt-4">
-									<Button
-										className="w-full bg-gradient-to-r from-success to-emerald-500 text-white font-medium"
-										onPress={resetForm}
-									>
-										<span className="flex items-center justify-center gap-2">
-											<CheckBadgeIcon className="w-5 h-5" /> Appraised
-											Successfully — Start another
-										</span>
-									</Button>
-								</div>
-							</motion.div>
+						<AppraisalResultView key="success" onReset={resetForm} />
 						) : state.matches("waitingForCompletion") ? (
-							<motion.div
-								key="processing"
-								initial={{ scale: 0.8, opacity: 0 }}
-								animate={{ scale: 1, opacity: 1 }}
-								className="space-y-6"
-							>
-								<div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center mx-auto">
-									<motion.div
-										animate={{ rotate: 360 }}
-										transition={{
-											duration: 2,
-											repeat: Infinity,
-											ease: "linear",
-										}}
-									>
-										<CpuChipIcon className="w-10 h-10 text-white" />
-									</motion.div>
-								</div>
-								<h2 className="text-2xl font-semibold text-foreground">
-									AVS Processing...
-								</h2>
-								<p className="text-foreground/70">
-									Decoding metadata and querying external APIs for market data
-								</p>
-
-								{/* Timer Display */}
-								<div className="bg-content1/20 rounded-xl p-4 text-center">
-									<p className="text-sm text-foreground/60 mb-1">
-										Time Elapsed
-									</p>
-									<p className="text-2xl font-mono font-bold text-warning">
-										{Math.floor(appraisalElapsed / 60000)}:
-										{Math.floor((appraisalElapsed % 60000) / 1000)
-											.toString()
-											.padStart(2, "0")}
-									</p>
-									<p className="text-xs text-foreground/50 mt-2">
-										Expected: 1-3 minutes
-									</p>
-								</div>
-
-								{/* Progress Stages */}
-								<div className="space-y-3">
-									{[
-										{
-											key: "validating",
-											label: "Validating NFT",
-											icon: CheckBadgeIcon,
-										},
-										{
-											key: "decoding",
-											label: "Decoding Metadata",
-											icon: CpuChipIcon,
-										},
-										{
-											key: "fetching",
-											label: "Fetching Market Data",
-											icon: MagnifyingGlassIcon,
-										},
-										{
-											key: "appraising",
-											label: "Calculating Appraisal",
-											icon: CurrencyDollarIcon,
-										},
-									].map((stage, index) => {
-										const stages: AppraisalStage[] = [
-											"validating",
-											"decoding",
-											"fetching",
-											"appraising",
-										];
-										const stageIndex = stages.indexOf(currentStage);
-										const isComplete = stageIndex > index;
-										const isCurrent = stage.key === currentStage;
-										const StageIcon = stage.icon;
-
-										return (
-											<div
-												key={stage.key}
-												className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-													isCurrent
-														? "bg-info/10 border border-info/30"
-														: isComplete
-															? "bg-success/10"
-															: "bg-content1/10"
-												}`}
-											>
-												<div
-													className={`w-8 h-8 rounded-full flex items-center justify-center ${
-														isComplete
-															? "bg-success text-white"
-															: isCurrent
-																? "bg-info text-white animate-pulse"
-																: "bg-content1/30 text-foreground/50"
-													}`}
-												>
-													{isComplete ? (
-														<span className="text-sm">✓</span>
-													) : (
-														<StageIcon className="w-4 h-4" />
-													)}
-												</div>
-												<span
-													className={`text-sm font-medium ${
-														isCurrent ? "text-foreground" : "text-foreground/60"
-													}`}
-												>
-													{stage.label}
-												</span>
-											</div>
-										);
-									})}
-								</div>
-
-								{/* Timeout Warning (appears after 3 minutes) */}
-								{appraisalElapsed > 3 * 60 * 1000 && (
-									<motion.div
-										initial={{ opacity: 0, y: -10 }}
-										animate={{ opacity: 1, y: 0 }}
-										className="bg-warning/10 border border-warning/30 rounded-lg p-3 text-center"
-									>
-										<p className="text-sm text-warning">
-											This is taking longer than usual. The AVS service may be
-											experiencing high load. Your appraisal is still being
-											processed.
-										</p>
-									</motion.div>
-								)}
-							</motion.div>
+						<AppraisalProgress
+							key="processing"
+							appraisalElapsed={appraisalElapsed}
+							currentStage={currentStage}
+						/>
 						) : (
 							<motion.div key="default" className="space-y-4">
 								<div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto">
@@ -1021,226 +872,24 @@ export function NFTAppraisalForm({
 
 				{/* Form */}
 				{(state.matches("idle") || state.matches("error")) && (
-					<form onSubmit={handleSubmit} className="p-8 pt-4 space-y-4">
-						{/* Collection Address */}
-						<div>
-							<label
-								htmlFor="collection"
-								className="block text-sm font-medium text-foreground mb-2"
-							>
-								Collection Address
-							</label>
-							<div className="relative">
-								<input
-									id="collection"
-									type="text"
-									placeholder="0x..."
-									value={formData.collection}
-									onChange={(e) =>
-										handleInputChange("collection", e.target.value)
-									}
-									onBlur={() => touchField("collection")}
-									disabled={isPending}
-									className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
-										fields.collection?.isTouched && !fields.collection?.isValid
-											? "border-danger bg-danger/10 focus:border-danger focus:ring-danger/30"
-											: fields.collection?.isValid
-												? "border-success bg-success/10 focus:border-success focus:ring-success/30"
-												: "border-white/10 focus:border-warning focus:ring-warning/30"
-									} focus:outline-none focus:ring-2 disabled:bg-content1/30 disabled:text-foreground/40 disabled:cursor-not-allowed`}
-									aria-invalid={
-										fields.collection?.isTouched && !fields.collection?.isValid
-									}
-									aria-describedby={
-										fields.collection?.error ? "collection-error" : undefined
-									}
-								/>
-								{fields.collection?.error ? (
-									<motion.p
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										id="collection-error"
-										className="text-danger text-sm mt-1 flex items-center gap-1"
-									>
-										<ExclamationTriangleIcon className="w-4 h-4" />
-										{fields.collection.error}
-									</motion.p>
-								) : errors.collection ? (
-									<motion.p
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										className="text-danger text-sm mt-1 flex items-center gap-1"
-									>
-										<ExclamationTriangleIcon className="w-4 h-4" />
-										{errors.collection}
-									</motion.p>
-								) : null}
-							</div>
-						</div>
-
-						{/* Token ID */}
-						<div>
-							<label
-								htmlFor="tokenId"
-								className="block text-sm font-medium text-foreground mb-2"
-							>
-								Token ID
-							</label>
-							<div className="relative">
-								<input
-									id="tokenId"
-									type="text"
-									placeholder="123"
-									value={formData.tokenId}
-									onChange={(e) => handleInputChange("tokenId", e.target.value)}
-									onBlur={() => touchField("tokenId")}
-									disabled={isPending}
-									className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
-										fields.tokenId?.isTouched && !fields.tokenId?.isValid
-											? "border-danger bg-danger/10 focus:border-danger focus:ring-danger/30"
-											: fields.tokenId?.isValid
-												? "border-success bg-success/10 focus:border-success focus:ring-success/30"
-												: "border-white/10 focus:border-warning focus:ring-warning/30"
-									} focus:outline-none focus:ring-2 disabled:bg-content1/30 disabled:text-foreground/40 disabled:cursor-not-allowed`}
-									aria-invalid={
-										fields.tokenId?.isTouched && !fields.tokenId?.isValid
-									}
-									aria-describedby={
-										fields.tokenId?.error ? "tokenId-error" : undefined
-									}
-								/>
-								{fields.tokenId?.error ? (
-									<motion.p
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										id="tokenId-error"
-										className="text-danger text-sm mt-1 flex items-center gap-1"
-									>
-										<ExclamationTriangleIcon className="w-4 h-4" />
-										{fields.tokenId.error}
-									</motion.p>
-								) : errors.tokenId ? (
-									<motion.p
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										className="text-danger text-sm mt-1 flex items-center gap-1"
-									>
-										<ExclamationTriangleIcon className="w-4 h-4" />
-										{errors.tokenId}
-									</motion.p>
-								) : null}
-							</div>
-						</div>
-
-						{/* Fee info */}
-						{appraisalFee && (
-							<div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-								<div className="flex items-center gap-3">
-									<CurrencyDollarIcon className="w-5 h-5 text-blue-600" />
-									<div>
-										<p className="text-sm text-gray-700">
-											Appraisal fee:{" "}
-											<span className="font-semibold text-blue-600">
-												{formatFeeAmount(appraisalFee)}{" "}
-												{tokenSymbol || "TOKENS"}
-											</span>
-										</p>
-										<p className="text-xs text-gray-500 mt-1">
-											If USDC isn’t approved yet, we’ll prompt an approval
-											first, then send the appraisal in the same flow—just
-											confirm the wallet prompts we show you.
-										</p>
-										{userBalance !== undefined && (
-											<p className="text-xs text-gray-600">
-												Your balance: {formatFeeAmount(userBalance)}{" "}
-												{tokenSymbol}
-											</p>
-										)}
-									</div>
-									{hasInsufficientBalance() && (
-										<ExclamationTriangleIcon className="w-5 h-5 text-orange-500" />
-									)}
-								</div>
-							</div>
-						)}
-
-						{/* Error display */}
-						<AnimatePresence>
-							{errors.general && (
-								<motion.div
-									initial={{ opacity: 0, y: -10 }}
-									animate={{ opacity: 1, y: 0 }}
-									exit={{ opacity: 0, y: -10 }}
-									className="bg-red-50 border border-red-200 rounded-lg p-3"
-								>
-									<div className="flex items-center gap-2">
-										<XCircleIcon className="w-5 h-5 text-red-600" />
-										<p className="text-red-700 text-sm">{errors.general}</p>
-									</div>
-								</motion.div>
-							)}
-						</AnimatePresence>
-
-						{/* Submit button */}
-						<AnimatePresence mode="wait">
-							<motion.div
-								key="submit"
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								exit={{ opacity: 0 }}
-							>
-								<Button
-									type="submit"
-									color="primary"
-									className="w-full bg-gradient-to-r from-orange-400 to-yellow-400 hover:from-orange-500 hover:to-yellow-500 text-white font-medium"
-									isLoading={isPending}
-									isDisabled={
-										!isFormValid ||
-										!formData.collection.trim() ||
-										!formData.tokenId.trim() ||
-										hasInsufficientBalance()
-									}
-								>
-									{needsApproval() ? "Approve & Appraise" : "Appraise"}
-								</Button>
-							</motion.div>
-						</AnimatePresence>
-
-						{/* AVS Info */}
-						<div className="text-center space-y-2 pt-4">
-							<div className="flex items-center justify-center space-x-2 text-foreground/60">
-								<SparklesIcon className="w-4 h-4" />
-								<span className="text-sm">
-									Professional appraisal helps your NFT get the best value
-								</span>
-							</div>
-							{approvalTxHash && (
-								<p className="text-xs text-foreground/50">
-									Approval tx submitted:{" "}
-									<span className="font-mono">
-										{formatHash(approvalTxHash)}
-									</span>
-									. Waiting for confirmation...
-								</p>
-							)}
-							{submissionTxHash && (
-								<p className="text-xs text-foreground/50">
-									Appraisal tx submitted:{" "}
-									<span className="font-mono">
-										{formatHash(submissionTxHash)}
-									</span>
-									.{" "}
-									{submissionOutcome === "pending" &&
-										"Waiting for confirmation..."}
-									{submissionOutcome === "success" && "Confirmed on-chain."}
-									{submissionOutcome === "refunded" &&
-										"Appraisal was refunded. You can retry anytime."}
-									{submissionOutcome === "failed" &&
-										"Appraisal was not processed (failed)."}
-								</p>
-							)}
-						</div>
-					</form>
+					<AppraisalFormFields
+						formData={formData}
+						onInputChange={handleInputChange}
+						onSubmit={handleSubmit}
+						touchField={touchField}
+						fields={fields}
+						errors={errors}
+						isPending={isPending}
+						isFormValid={isFormValid}
+						appraisalFee={appraisalFee}
+						tokenSymbol={tokenSymbol}
+						tokenDecimals={tokenDecimals}
+						userBalance={userBalance}
+						needsApproval={needsApproval()}
+						approvalTxHash={approvalTxHash}
+						submissionTxHash={submissionTxHash}
+						submissionOutcome={submissionOutcome}
+					/>
 				)}
 
 				{/* Pending states with cancel option */}
