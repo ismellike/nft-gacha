@@ -27,17 +27,21 @@ import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import type { UseGachaSpinMachineReturn } from "../../hooks/useGachaSpinMachine";
 import { logger } from "../../lib/logger";
-import { cn, glassTypography } from "../../lib/theme-config";
 import {
 	isUserRejectedError,
 	mapTransactionError,
 } from "../../lib/transactionErrors";
-import { formatCurrency, formatTokenAmount } from "../../lib/utils";
-import { Button, Card } from "../../ui";
+import { formatTokenAmount } from "../../lib/utils";
+import { Card } from "../../ui";
 import { SpinErrorModal } from "./SpinErrorModal";
 import { SpinRefundModal } from "./SpinRefundModal";
 import { SpinTimeoutModal } from "./SpinTimeoutModal";
 import { SpinVisual } from "./SpinVisual";
+import {
+	SpinButton,
+	SpinErrorDisplay,
+	SpinFeeDisplay,
+} from "./spin-controls";
 
 interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
@@ -301,11 +305,6 @@ const SpinControls = memo(function SpinControls({
 					useGrouping: true,
 				})
 			: "0";
-
-	const formatSpinFee = () => {
-		if (!spinFee || !tokenDecimals) return "Loading...";
-		return formatCurrency(spinFee, tokenDecimals, tokenSymbol || "TOKENS");
-	};
 
 	// Validation utilities
 	const hasPermitSupport = !noncesError && tokenNonce !== undefined && feeToken;
@@ -1141,139 +1140,16 @@ const SpinControls = memo(function SpinControls({
 					{/* Enhanced background gradient */}
 					<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,200,87,0.15),_transparent_60%)]" />
 
-					{/* Enhanced header with better balance and fee display */}
-					<div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-						<div className="space-y-2">
-							<div className="flex items-center gap-3">
-								<h2 className={glassTypography({ variant: "mainHeading" })}>
-									Gacha Spinner
-								</h2>
-								<button
-									type="button"
-									onClick={sound.toggleMute}
-									className="p-2 rounded-xl bg-content1/30 hover:bg-content1/50 border border-white/10 backdrop-blur-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
-									aria-label={
-										sound.isMuted
-											? "Unmute sound effects"
-											: "Mute sound effects"
-									}
-									title={sound.isMuted ? "Unmute sounds" : "Mute sounds"}
-								>
-									{sound.isMuted ? (
-										<svg
-											className="w-4 h-4 text-foreground/50"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-											strokeWidth={2}
-										>
-											<title>Sound off</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-											/>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-											/>
-										</svg>
-									) : (
-										<svg
-											className="w-4 h-4 text-foreground/70"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-											strokeWidth={2}
-										>
-											<title>Sound on</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-											/>
-										</svg>
-									)}
-								</button>
-							</div>
-							<p className="text-sm text-foreground/60">
-								Provably fair randomness with instant NFT reveals
-							</p>
-						</div>
-
-						{/* Enhanced Entry Fee Display */}
-						<div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 shadow-inner relative">
-							{/* Stale data indicator */}
-							{feeStale && (
-								<div className="absolute -top-2 -right-2 flex items-center gap-1.5 px-2 py-1 bg-danger/20 border border-danger/40 rounded-full animate-pulse">
-									<div className="w-1.5 h-1.5 rounded-full bg-danger animate-ping" />
-									<span className="text-[10px] font-semibold text-danger uppercase">
-										Updating...
-									</span>
-								</div>
-							)}
-							<div className="flex items-center gap-3">
-								<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/30 bg-warning/10">
-									<svg
-										className="w-5 h-5 text-warning"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-										strokeWidth={2}
-									>
-										<title>Entry Fee</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-										/>
-									</svg>
-								</div>
-								<div className="flex-1">
-									<div className="flex items-center gap-2">
-										<p className="text-xs uppercase tracking-wide text-warning/70 font-medium">
-											Entry Fee
-										</p>
-										<button
-											type="button"
-											onClick={() => spinFeeQuery.refetch()}
-											disabled={spinFeeQuery.isFetching}
-											className="p-1 rounded hover:bg-warning/20 transition-colors disabled:opacity-50"
-											aria-label="Refresh spin fee"
-											title="Refresh spin fee"
-										>
-											<svg
-												className={`w-3.5 h-3.5 text-warning/70 hover:text-warning ${
-													spinFeeQuery.isFetching ? "animate-spin" : ""
-												}`}
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-												strokeWidth={2}
-											>
-												<title>Refresh</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-												/>
-											</svg>
-										</button>
-									</div>
-									<p className="text-xl font-bold text-warning">
-										{formatSpinFee()}
-									</p>
-								</div>
-							</div>
-							{tokenSymbol && (
-								<p className="text-xs text-warning/60">
-									Per spin in {tokenSymbol}
-									{feeStale && " • Updating..."}
-								</p>
-							)}
-						</div>
-					</div>
+					<SpinFeeDisplay
+						spinFee={spinFee}
+						tokenDecimals={tokenDecimals}
+						tokenSymbol={tokenSymbol}
+						feeStale={feeStale}
+						isFetching={spinFeeQuery.isFetching}
+						onRefresh={() => spinFeeQuery.refetch()}
+						isMuted={sound.isMuted}
+						onToggleMute={sound.toggleMute}
+					/>
 					<div className="py-16">
 						<div className="flex flex-col items-center space-y-10">
 							{/* Enhanced Spinner Visual with Lottie Animation */}
@@ -1315,202 +1191,27 @@ const SpinControls = memo(function SpinControls({
 									/>
 								)}
 
-							{/* User Cancelled Message */}
-							{userCancelledMessage && (
-								<div className="animate-fade-in text-center text-xs text-foreground/50 px-4 py-2">
-									Transaction cancelled
-								</div>
-							)}
-
-							{/* Permit Fallback Message */}
-							{permitFailed && (
-								<output
-									className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
-									aria-live="polite"
-								>
-									<div>
-										<p className="text-sm mb-2 font-semibold text-warning">
-											Using Direct Approval Mode
-										</p>
-										<p className="text-xs opacity-60 mb-3">
-											Permit signing failed. Using direct approval instead. Make
-											sure you've approved the gacha contract to spend your{" "}
-											{tokenSymbol || "tokens"}.
-										</p>
-										<div className="text-xs opacity-50">
-											Contract: {contracts.gacha?.slice(0, 8)}...
-											{contracts.gacha?.slice(-6)}
-										</div>
-									</div>
-								</output>
-							)}
-
-							{/* Fee Mismatch Error Message */}
-							{feeMismatchError && (
-								<output
-									className="animate-fade-in text-center p-4 bg-warning/10 border border-warning/30 rounded-2xl"
-									aria-live="polite"
-								>
-									<div className="flex items-center justify-center gap-2 mb-2">
-										<svg
-											className="w-4 h-4 text-warning"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-											strokeWidth={2}
-										>
-											<title>Warning</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"
-											/>
-										</svg>
-										<p className="text-sm font-semibold text-warning">
-											Spin Fee Updated
-										</p>
-									</div>
-									<p className="text-xs text-foreground/70 mb-2">
-										The spin fee has changed. Please check the updated fee above
-										and try again.
-									</p>
-									<p className="text-[10px] text-foreground/50">
-										This happens when the treasury inventory changes from new
-										deposits.
-									</p>
-								</output>
-							)}
-
-							{/* Gacha Unavailable Warning */}
-							{isConnected && isGachaAvailable === false && (
-								<Card
-									className="text-center p-4 bg-warning/10 border border-warning/20 rounded-2xl"
-									role="alert"
-									aria-live="assertive"
-								>
-									<div>
-										<p className="text-sm mb-2">Gacha System Unavailable</p>
-										<p className="text-xs opacity-60">
-											No whitelisted collections or NFTs available for spinning
-										</p>
-									</div>
-								</Card>
-							)}
-							{/* Enhanced Spin Button */}
-							<div className="relative group">
-								{/* Glow effect on hover */}
-								<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-warning/20 to-orange-400/30 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 scale-110"></div>
-
-								{/* Removed particle effects for cleaner look */}
-
-								<Button
-									color="glassPrimary"
-									size="lg"
-									onPress={onSpinClick}
-									disabled={isButtonDisabled()}
-									isLoading={
-										isSignaturePending ||
-										isProcessingTransaction ||
-										gachaSpin.isSpinning
-									}
-									className={cn(
-										// Dynamic styling based on state
-										gachaSpin.isWaitingForFulfillment
-											? "border-orange-400/60 shadow-orange-400/40"
-											: undefined,
-										gachaSpin.isSpinning
-											? "border-orange-400 shadow-orange-400/30"
-											: undefined,
-										gachaSpin.isRevealing
-											? "bg-gradient-to-r from-success via-success/90 to-emerald-400 border-success/40 shadow-success/30"
-											: undefined,
-										gachaSpin.isError
-											? "bg-gradient-to-r from-danger via-danger/90 to-red-600 border-danger/40 shadow-danger/30"
-											: undefined,
-									)}
-									aria-label={getButtonText()}
-								>
-									{/* Button content with icon */}
-									<div className="flex items-center justify-center gap-3">
-										{/* Dynamic icon based on state */}
-										{gachaSpin.isWaitingForFulfillment && (
-											<svg
-												className="w-6 h-6 animate-spin"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-												strokeWidth={2}
-											>
-												<title>Processing</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-												/>
-											</svg>
-										)}
-										{gachaSpin.isRevealing && (
-											<svg
-												className="w-6 h-6"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-												strokeWidth={2}
-											>
-												<title>Revealing</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-												/>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-												/>
-											</svg>
-										)}
-										{gachaSpin.isError && (
-											<svg
-												className="w-6 h-6"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-												strokeWidth={2}
-											>
-												<title>Error</title>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"
-												/>
-											</svg>
-										)}
-										{!gachaSpin.isWaitingForFulfillment &&
-											!gachaSpin.isRevealing &&
-											!gachaSpin.isError && (
-												<svg
-													className="w-6 h-6"
-													fill="none"
-													stroke="currentColor"
-													viewBox="0 0 24 24"
-													strokeWidth={2}
-												>
-													<title>Spin</title>
-													<path
-														strokeLinecap="round"
-														strokeLinejoin="round"
-														d="M13 10V3L4 14h7v7l9-11h-7z"
-													/>
-												</svg>
-											)}
-
-										<span className="font-bold tracking-wide">
-											{getButtonText()}
-										</span>
-									</div>
-								</Button>
-							</div>
+							<SpinErrorDisplay
+								userCancelledMessage={userCancelledMessage}
+								permitFailed={permitFailed}
+								feeMismatchError={feeMismatchError}
+								isGachaUnavailable={isConnected && isGachaAvailable === false}
+								tokenSymbol={tokenSymbol}
+								gachaAddress={contracts.gacha}
+							/>
+							<SpinButton
+								buttonText={getButtonText()}
+								disabled={!!isButtonDisabled()}
+								isLoading={
+									isSignaturePending ||
+									isProcessingTransaction ||
+									gachaSpin.isSpinning
+								}
+								isWaitingForFulfillment={gachaSpin.isWaitingForFulfillment}
+								isRevealing={gachaSpin.isRevealing}
+								isError={gachaSpin.isError}
+								onClick={onSpinClick}
+							/>
 
 							{/* Balance Display - Under Button */}
 							{mounted && isConnected && !gachaSpin.isWaitingForFulfillment && (
