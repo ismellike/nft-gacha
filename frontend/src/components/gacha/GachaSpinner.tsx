@@ -5,6 +5,7 @@ import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useGachaSpinMachine } from "../../hooks/useGachaSpinMachine";
+import { logger } from "../../lib/logger";
 import { PricingBreakdown } from "./PricingBreakdown";
 import RarityBreakdown from "./RarityBreakdown";
 import SpinControls from "./SpinControls";
@@ -21,12 +22,12 @@ const GachaSpinner = memo(() => {
 	const gachaSpin = useGachaSpinMachine(
 		() => {
 			// onSpinComplete - trigger refresh for all data
-			console.log("🎯 [GachaSpinner] Spin completed, refreshing all data");
+			logger.gachaSpin.log("[GachaSpinner] Spin completed, refreshing all data");
 			triggerRefresh();
 		},
 		() => {
 			// onRefund - trigger refresh for all data
-			console.log("💰 [GachaSpinner] Refund detected, refreshing all data");
+			logger.gachaSpin.log("[GachaSpinner] Refund detected, refreshing all data");
 			triggerRefresh();
 		},
 	);
@@ -34,12 +35,12 @@ const GachaSpinner = memo(() => {
 	const handleCloseReveal = useCallback(() => {
 		gachaSpin.closeReveal();
 		// Refresh all data after reveal closes
-		console.log("🎉 [GachaSpinner] Reveal closed, refreshing all data");
+		logger.gachaSpin.log("[GachaSpinner] Reveal closed, refreshing all data");
 		triggerRefresh();
 	}, [gachaSpin, triggerRefresh]);
 
 	const handleRefund = useCallback(() => {
-		console.log("💰 [GachaSpinner] SpinControls refund callback triggered");
+		logger.gachaSpin.log("[GachaSpinner] SpinControls refund callback triggered");
 		triggerRefresh();
 	}, [triggerRefresh]);
 

@@ -130,20 +130,20 @@ describe("gachaSpinMachine", () => {
 		});
 
 		it("should resolve with refund result when SpinRefunded event is found", async () => {
-			// First 10 attempts (0-9) check for SpinCompleted events only (10 calls)
-			// Attempt 10 checks for SpinCompleted first, then SpinRefunded (2 calls)
-			// Total: 12 calls for attempts 0-10 to complete
-			// Call 13+: empty arrays to prevent further polling
+			// With refundCheckDelay = 3:
+			// Attempt 1: getLogs SpinCompleted (empty) - no refund check
+			// Attempt 2: getLogs SpinCompleted (empty) - no refund check
+			// Attempt 3: getLogs SpinCompleted (empty) + getLogs SpinRefunded (found!)
+			// Total: 4 getLogs calls
 
-			// Calls 1-11: SpinCompleted checks return empty
-			for (let i = 0; i < 11; i++) {
-				mockGetLogs.mockResolvedValueOnce([]);
-			}
-
-			// Call 12: SpinCompleted check in attempt 10 returns empty
+			// Calls 1-2: SpinCompleted checks return empty (attempts 1-2)
+			mockGetLogs.mockResolvedValueOnce([]);
 			mockGetLogs.mockResolvedValueOnce([]);
 
-			// Call 13: SpinRefunded check in attempt 10 returns refund data
+			// Call 3: SpinCompleted check in attempt 3 returns empty
+			mockGetLogs.mockResolvedValueOnce([]);
+
+			// Call 4: SpinRefunded check in attempt 3 returns refund data
 			const mockRefundData = {
 				selectedRarity: BigInt(1), // Uncommon
 				refundAmount: BigInt("1000000000"),
@@ -162,10 +162,10 @@ describe("gachaSpinMachine", () => {
 				gachaAddress: mockGachaAddress,
 			});
 
-			// Advance timers in increments to trigger all polling attempts
+			// Advance timers in increments to trigger polling attempts
 			// Each polling attempt has a delay that starts at 3000ms
-			// We need enough time for at least 11 attempts
-			for (let i = 0; i < 15; i++) {
+			// We need enough time for 3 attempts
+			for (let i = 0; i < 6; i++) {
 				await vi.advanceTimersByTimeAsync(5000);
 			}
 

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+import { logger } from "../../lib/logger";
 import { registerSW } from "../../lib/swRegistration";
 
 export function ServiceWorkerRegistrar() {
@@ -23,7 +24,7 @@ export function ServiceWorkerRegistrar() {
 		// Register service worker
 		registerSW().then((result) => {
 			if (isMounted && !result.success) {
-				console.warn("[SW] Service worker registration failed:", result.error);
+				logger.general.warn("[SW] Service worker registration failed:", result.error);
 			}
 		});
 

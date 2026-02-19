@@ -44,6 +44,29 @@ const skeleton = tv({
 	},
 });
 
+const VALID_SIZES = [
+	"full",
+	"sm",
+	"md",
+	"lg",
+	"h4",
+	"h6",
+	"h8",
+	"h12",
+	"h16",
+	"h20",
+	"h24",
+	"h32",
+	"w4",
+	"w6",
+	"w8",
+	"w10",
+	"w12",
+	"w16",
+	"w20",
+	"w24",
+] as const;
+
 export interface SkeletonProps
 	extends React.HTMLAttributes<HTMLDivElement>,
 		Omit<VariantProps<typeof skeleton>, "size"> {
@@ -61,34 +84,6 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
 		// Map string sizes to tailwind-variants compatible values
 		const getSizeClass = (size?: string) => {
 			if (!size) return "";
-			// If it's already a valid size, return it
-			if (
-				[
-					"full",
-					"sm",
-					"md",
-					"lg",
-					"h4",
-					"h6",
-					"h8",
-					"h12",
-					"h16",
-					"h20",
-					"h24",
-					"h32",
-					"w4",
-					"w6",
-					"w8",
-					"w10",
-					"w12",
-					"w16",
-					"w20",
-					"w24",
-				].includes(size)
-			) {
-				return size;
-			}
-			// Otherwise, return as-is (custom size class)
 			return size;
 		};
 
@@ -105,28 +100,7 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
 						size: sizeVariant,
 					}),
 					sizeProp &&
-						![
-							"full",
-							"sm",
-							"md",
-							"lg",
-							"h4",
-							"h6",
-							"h8",
-							"h12",
-							"h16",
-							"h20",
-							"h24",
-							"h32",
-							"w4",
-							"w6",
-							"w8",
-							"w10",
-							"w12",
-							"w16",
-							"w20",
-							"w24",
-						].includes(sizeProp)
+						!(VALID_SIZES as readonly string[]).includes(sizeProp)
 						? sizeProp
 						: "",
 					className,

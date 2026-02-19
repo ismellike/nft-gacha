@@ -77,8 +77,6 @@ export default function BuybackComponent({
 		[tokenId, showNotification],
 	);
 
-	const refetchTreasuryCards = useCallback(async () => {}, []);
-
 	// Build interaction params for NFT interaction hook with stable callbacks
 	const interactionParams = useMemo<UseNFTInteractionParams>(
 		() => ({
@@ -88,7 +86,6 @@ export default function BuybackComponent({
 			uniqueId,
 			onAction: handleInteractionAction,
 			onAppraisalStatusChange: handleAppraisalStatusChange,
-			refetchTreasuryCards,
 			onSuccess,
 			onBuybackSuccess,
 		}),
@@ -100,7 +97,6 @@ export default function BuybackComponent({
 			onBuybackSuccess,
 			handleInteractionAction,
 			handleAppraisalStatusChange,
-			refetchTreasuryCards,
 		],
 	);
 

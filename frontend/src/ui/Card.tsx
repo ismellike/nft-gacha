@@ -9,24 +9,11 @@ export interface CardProps
 		VariantProps<typeof glassCard> {
 	color?: "glass" | "glassInteractive";
 	isPressable?: boolean;
-	shadow?: string;
-	radius?: string;
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
 	(
-		{
-			className,
-			variant,
-			padding,
-			animate,
-			color,
-			isPressable,
-			shadow: _shadow,
-			radius: _radius,
-			children,
-			...props
-		},
+		{ className, variant, padding, animate, color, isPressable, children, ...props },
 		ref,
 	) => {
 		const resolvedVariant =
