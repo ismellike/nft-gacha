@@ -26,11 +26,6 @@ impl AppraisalProcessor {
         })
     }
 
-    #[allow(dead_code)]
-    pub fn with_context(context: AppraisalContext) -> Result<Self> {
-        Ok(Self { context })
-    }
-
     pub async fn process_appraisal_request(
         &self,
         evm_event: &TriggerDataEvmContractEvent,
@@ -125,9 +120,6 @@ impl AppraisalResponse {
         None
     }
 
-    pub fn to_error_payload(&self, error: String) -> Vec<u8> {
-        payload::encode_error(&self.identity, error)
-    }
 }
 
 fn scale_to_usdc6(p: f64) -> Option<U256> {
@@ -177,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn test_appraisal_response_error_payload() {
+    fn test_encode_error() {
         let identity = AppraisalIdentity::new(
             "polygon".to_string(),
             "0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD"
@@ -188,12 +180,7 @@ mod tests {
             &[0u8; 32],
         );
 
-        let response = AppraisalResponse {
-            identity,
-            price: None,
-        };
-
-        let payload = response.to_error_payload("Test error".to_string());
+        let payload = payload::encode_error(&identity, "Test error".to_string());
         assert!(!payload.is_empty());
     }
 

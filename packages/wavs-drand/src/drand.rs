@@ -7,6 +7,14 @@ use wavs_wasi_utils::http::{fetch_string, http_request_get};
 use crate::wasi::keyvalue::store::open;
 use crate::wasi::keyvalue::store::Bucket;
 
+/// Convert a 32-byte slice into B256, returning an error if the length is wrong.
+fn b256_from_bytes(bytes: &[u8]) -> Result<B256> {
+    let sized: [u8; 32] = bytes
+        .try_into()
+        .map_err(|_| anyhow!("Expected 32 bytes, got {}", bytes.len()))?;
+    Ok(B256::from(sized))
+}
+
 /// Drand client for fetching randomness
 #[derive(Debug)]
 pub struct DrandClient {
@@ -41,10 +49,8 @@ impl DrandClient {
         // Try to get from cache first
         if let Some(ref bucket) = self.cache_bucket {
             if let Ok(Some(cached_data)) = bucket.get(&cache_key) {
-                if cached_data.len() == 32 {
-                    let mut bytes = [0u8; 32];
-                    bytes.copy_from_slice(&cached_data);
-                    return Ok(B256::from(bytes));
+                if let Ok(b) = b256_from_bytes(&cached_data) {
+                    return Ok(b);
                 }
             }
         }
@@ -66,16 +72,8 @@ impl DrandClient {
         let randomness_bytes = hex::decode(&drand_round.randomness)
             .map_err(|e| anyhow!("Failed to decode drand randomness hex: {}", e))?;
 
-        if randomness_bytes.len() != 32 {
-            return Err(anyhow!(
-                "Drand randomness is not 32 bytes, got {} bytes",
-                randomness_bytes.len()
-            ));
-        }
-
-        let mut bytes = [0u8; 32];
-        bytes.copy_from_slice(&randomness_bytes);
-        let result = B256::from(bytes);
+        let result = b256_from_bytes(&randomness_bytes)
+            .map_err(|_| anyhow!("Drand randomness is not 32 bytes, got {} bytes", randomness_bytes.len()))?;
 
         // Cache the result
         if let Some(ref bucket) = self.cache_bucket {

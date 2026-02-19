@@ -7,4 +7,3 @@ pub mod errors;
 pub mod payload;
 
 pub use appraisal::AppraisalProcessor;
-pub use errors::AppraisalErrorCode;

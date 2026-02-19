@@ -96,8 +96,6 @@ impl MetadataProvider for CourtyardProvider {
         Ok(ProviderMetadata {
             provider: ProviderType::Courtyard,
             title: courtyard_metadata.name.clone(),
-            product_type: courtyard_metadata.product_type.clone(),
-            categories,
             resolver,
         })
     }

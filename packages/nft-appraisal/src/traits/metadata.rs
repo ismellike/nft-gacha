@@ -7,10 +7,6 @@ use async_trait::async_trait;
 pub struct ProviderMetadata {
     pub provider: ProviderType,
     pub title: String,
-    #[allow(dead_code)]
-    pub product_type: Option<String>,
-    #[allow(dead_code)]
-    pub categories: Vec<String>,
     pub resolver: Option<ResolverRoute>,
 }
 

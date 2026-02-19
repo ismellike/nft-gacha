@@ -1,8 +1,6 @@
 use alloy_primitives::{keccak256, B256};
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RandomDerivation {}
+pub struct RandomDerivation;
 
 impl RandomDerivation {
     /// Create VRF by combining multiple entropy sources

@@ -2,10 +2,8 @@
 
 use anyhow::{anyhow, Result};
 use http::Request;
-use wstd::{
-    http::{Client, IntoBody},
-    io::AsyncRead,
-};
+use wavs_wasi_utils::http::fetch_string;
+use wstd::http::IntoBody;
 
 use urlencoding::encode;
 
@@ -46,34 +44,9 @@ impl ScrydexClient {
             .body(Vec::new().into_body())
             .map_err(|e| anyhow!("Failed to construct Scrydex card request: {}", e))?;
 
-        let mut response = Client::new()
-            .send(request)
+        let response_text = fetch_string(request)
             .await
-            .map_err(|e| anyhow!("Scrydex card request failed: {}", e))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let mut err_body = Vec::new();
-            let _ = response.body_mut().read_to_end(&mut err_body).await;
-            let err_text = String::from_utf8_lossy(&err_body);
-            let truncated: String = err_text.chars().take(500).collect();
-            return Err(anyhow!(
-                "Scrydex card request returned status {} for card {}: {}",
-                status,
-                card_identifier,
-                truncated
-            ));
-        }
-
-        let mut body = Vec::new();
-        response
-            .body_mut()
-            .read_to_end(&mut body)
-            .await
-            .map_err(|e| anyhow!("Failed to read Scrydex card response: {}", e))?;
-
-        let response_text = String::from_utf8(body)
-            .map_err(|e| anyhow!("Scrydex card response was not valid UTF-8: {}", e))?;
+            .map_err(|e| anyhow!("Scrydex card request failed for {}: {}", card_identifier, e))?;
 
         let parsed: ScrydexCardResponse = serde_json::from_str(&response_text)
             .map_err(|e| anyhow!("Failed to parse Scrydex card response: {}", e))?;

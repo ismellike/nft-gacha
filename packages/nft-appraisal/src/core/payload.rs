@@ -1,8 +1,8 @@
 use alloy_primitives::{Address, B256, U256};
-use alloy_sol_types::{sol, SolValue};
+use alloy_sol_types::SolValue;
 use sha3::{Digest, Keccak256};
 
-sol!("../../contracts/src/interfaces/NFTAppraisalTypes.sol");
+use crate::{AppraisalError, AppraisalSuccess};
 
 #[derive(Debug, Clone)]
 pub struct AppraisalIdentity {

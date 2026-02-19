@@ -5,7 +5,10 @@ use wavs_wasi_utils::impl_u128_conversions;
 
 use crate::wavs::{
     aggregator::aggregator::{EvmAddress, EvmSubmitAction, SubmitAction, TimerAction, U128},
-    types::{core::Duration, service::Submit},
+    types::{
+        core::{Duration, LogLevel},
+        service::Submit,
+    },
 };
 
 impl_u128_conversions!(U128);
@@ -56,8 +59,28 @@ impl Guest for Component {
         tx_result: Result<AnyTxHash, String>,
     ) -> Result<(), String> {
         match tx_result {
-            Ok(_) => Ok(()),
-            Err(_) => Ok(()),
+            Ok(hash) => {
+                let tx_desc = match &hash {
+                    AnyTxHash::Evm(bytes) => {
+                        format!("evm:0x{}", alloy_primitives::hex::encode(bytes))
+                    }
+                    AnyTxHash::Cosmos(hash_str) => {
+                        format!("cosmos:{}", hash_str)
+                    }
+                };
+                host::log(
+                    LogLevel::Info,
+                    &format!("Submit succeeded: {}", tx_desc),
+                );
+                Ok(())
+            }
+            Err(e) => {
+                host::log(
+                    LogLevel::Error,
+                    &format!("Submit failed: {}", e),
+                );
+                Ok(())
+            }
         }
     }
 }
@@ -66,7 +89,9 @@ fn process_submission(packet: Packet, validate_tx: bool) -> Result<Vec<Aggregato
     let workflow = host::get_workflow().workflow;
 
     let submit_config = match workflow.submit {
-        Submit::None => unreachable!(),
+        Submit::None => {
+            return Err("Workflow has no submit configuration".to_string());
+        }
         Submit::Aggregator(aggregator_submit) => aggregator_submit.component.config,
     };
 
@@ -103,11 +128,11 @@ fn process_submission(packet: Packet, validate_tx: bool) -> Result<Vec<Aggregato
 
             actions.push(AggregatorAction::Submit(submit_action));
         } else if host::get_cosmos_chain_config(&chain_key).is_some() {
-            todo!("Cosmos support coming soon...")
+            return Err(format!(
+                "Cosmos chain '{chain_key}' is not yet supported"
+            ));
         } else {
-            // return Err(format!("Could not get chain config for chain {chain_key}"));
-
-            // just continue, not all config values are chains
+            // Not all config values are chains, skip unknown keys
             continue;
         }
     }

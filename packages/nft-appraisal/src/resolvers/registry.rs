@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 
-use crate::core::cache::AppraisalCache;
+use crate::core::cache::{AppraisalCache, CacheResult};
 use crate::resolvers::scrydex::ScrydexPokemonResolver;
 use crate::traits::pricing::{PriceResolver, ResolverQuote};
 use crate::types::{ResolverKind, ResolverRoute};
@@ -40,8 +40,10 @@ impl ResolverRegistry {
         cache: &AppraisalCache,
     ) -> Result<Option<ResolverQuote>> {
         let cache_key = cache.generate_cache_key(&Self::cache_seed(route));
-        if let Some(cached) = cache.get(&cache_key)? {
-            return Ok(cached);
+        match cache.get(&cache_key)? {
+            CacheResult::Hit(quote) => return Ok(Some(quote)),
+            CacheResult::NegativeHit => return Ok(None),
+            CacheResult::Miss => {}
         }
 
         let fresh = self.resolve(route).await?;
@@ -54,9 +56,9 @@ impl ResolverRegistry {
     }
 }
 
-#[allow(dead_code)]
 pub enum RegisteredResolver {
     Scrydex(ScrydexPokemonResolver),
+    #[allow(dead_code)]
     Custom(ResolverKind, Arc<dyn PriceResolver>),
 }
 

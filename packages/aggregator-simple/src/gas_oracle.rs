@@ -59,7 +59,7 @@ pub fn get_gas_price() -> Result<Option<u128>, String> {
         ));
     }
 
-    let gas_price_wei = (gas_price_gwei * 1_000_000_000.0) as u128;
+    let gas_price_wei = (gas_price_gwei * 1_000_000_000.0).round() as u128;
 
     host::log(
         LogLevel::Info,

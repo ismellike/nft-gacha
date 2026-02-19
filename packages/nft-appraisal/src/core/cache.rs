@@ -6,6 +6,16 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+/// Result of a cache lookup, avoiding confusing `Option<Option<T>>`.
+pub enum CacheResult {
+    /// Key was not in the cache (or expired).
+    Miss,
+    /// Key was cached but resolved to no quote (negative lookup).
+    NegativeHit,
+    /// Key was cached with a valid quote.
+    Hit(ResolverQuote),
+}
+
 /// Cache management for NFT appraisals
 #[derive(Debug)]
 pub struct AppraisalCache {
@@ -69,7 +79,7 @@ impl AppraisalCache {
         }
     }
 
-    pub fn get(&self, cache_key: &str) -> Result<Option<Option<ResolverQuote>>> {
+    pub fn get(&self, cache_key: &str) -> Result<CacheResult> {
         if let Some(ref bucket) = self.bucket {
             if let Ok(Some(cached_data)) = bucket.get(cache_key) {
                 if let Ok(cached_str) = String::from_utf8(cached_data) {
@@ -77,13 +87,16 @@ impl AppraisalCache {
                         serde_json::from_str::<CachedResolverQuote>(&cached_str)
                     {
                         if !cached_quote.is_expired() {
-                            return Ok(Some(cached_quote.into_quote()));
+                            return Ok(match cached_quote.into_quote() {
+                                Some(quote) => CacheResult::Hit(quote),
+                                None => CacheResult::NegativeHit,
+                            });
                         }
                     }
                 }
             }
         }
-        Ok(None)
+        Ok(CacheResult::Miss)
     }
 
     pub fn set(&self, cache_key: &str, quote: Option<&ResolverQuote>) -> Result<()> {

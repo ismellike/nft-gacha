@@ -57,9 +57,9 @@ impl ProviderRegistry {
 }
 
 /// Enum-backed registration so defaults stay declarative.
-#[allow(dead_code)]
 pub enum RegisteredProvider {
     Courtyard(CourtyardProvider),
+    #[allow(dead_code)]
     Custom(Arc<dyn AppraisalProvider>),
 }
 

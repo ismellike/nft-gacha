@@ -10,7 +10,6 @@ mod types;
 mod utils;
 
 use anyhow::Result;
-use core::AppraisalErrorCode;
 use core::AppraisalProcessor;
 
 wit_bindgen::generate!({
@@ -48,12 +47,11 @@ impl Guest for Component {
                     Ok(response)
                 }
                 Err(e) => {
-                    let error_response =
-                        AppraisalErrorCode::create_error_response(&evm_event, e.to_string());
-                    let response_payload = error_response.to_error_payload(e.to_string());
                     host::log(LogLevel::Error, &format!("Appraisal error: {}", e));
+                    let payload =
+                        core::errors::encode_error_from_event(&evm_event, e.to_string());
                     Ok(vec![WasmResponse {
-                        payload: response_payload,
+                        payload,
                         ordering: None,
                         event_id_salt: None,
                     }])

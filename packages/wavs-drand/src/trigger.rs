@@ -82,15 +82,18 @@ impl TriggerInfo {
                         block.header.transactions_root,
                         block.header.timestamp,
                     ))
-                } else if let Some(_chain_config) = get_cosmos_chain_config(&block.chain) {
-                    unimplemented!()
+                } else if get_cosmos_chain_config(&block.chain).is_some() {
+                    Err(anyhow!(
+                        "Cosmos block interval triggers are not yet supported for chain {}",
+                        block.chain
+                    ))
                 } else {
                     Err(anyhow!("Chain config for {0} not found", block.chain))
                 }
             }
-            _ => {
-                unimplemented!()
-            }
+            _ => Err(anyhow!(
+                "Unsupported trigger type: only EVM contract events, cron, and block interval triggers are supported"
+            ))
         }
     }
 
