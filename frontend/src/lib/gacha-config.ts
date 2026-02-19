@@ -24,6 +24,17 @@ const GACHA_CONFIGS = (() => {
 	}
 })();
 
+// Warn about empty contract addresses in non-local environments
+if (ENV_MODE !== "LOCAL") {
+	for (const [id, config] of Object.entries(GACHA_CONFIGS)) {
+		if (!config.address) {
+			console.warn(
+				`[gacha-config] Gacha "${id}" has no contract address in ${ENV_MODE} mode`,
+			);
+		}
+	}
+}
+
 // Environment-aware utility functions
 export function getGachaConfig(id: string) {
 	return getGachaConfigUtil(GACHA_CONFIGS, id);

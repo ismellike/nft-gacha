@@ -12,7 +12,6 @@ export function formatAddress(
 		startChars?: number;
 		endChars?: number;
 		middleText?: string;
-		ensureChecksum?: boolean;
 	} = {},
 ): string {
 	if (!address) return "";
@@ -20,17 +19,9 @@ export function formatAddress(
 	if (!address.startsWith("0x")) return address;
 	if (address.length < 10) return address;
 
-	const {
-		startChars = 6,
-		endChars = 4,
-		middleText = "...",
-		ensureChecksum = false,
-	} = options;
+	const { startChars = 6, endChars = 4, middleText = "..." } = options;
 
-	const cleanAddress =
-		ensureChecksum && address.length === 42
-			? address // Could add checksum validation here
-			: address.toLowerCase();
+	const cleanAddress = address.toLowerCase();
 
 	return `${cleanAddress.slice(0, startChars)}${middleText}${cleanAddress.slice(-endChars)}`;
 }
@@ -82,11 +73,7 @@ export function formatTokenAmount(
 		const bigIntAmount =
 			typeof amount === "bigint" ? amount : BigInt(amount.toString());
 
-		// Use pure BigInt arithmetic for divisor
-		let divisor = BigInt(10);
-		for (let i = 1; i < decimals; i++) {
-			divisor *= BigInt(10);
-		}
+		const divisor = 10n ** BigInt(decimals);
 		const quotient = bigIntAmount / divisor;
 		const remainder = bigIntAmount % divisor;
 
@@ -169,7 +156,8 @@ export function formatPercentage(
 // ============================================================================
 
 /**
- * Format timestamps for blockchain data
+ * Format timestamps for blockchain data.
+ * Uses `toLocaleString`/`toLocaleDateString` which display in the user's local timezone.
  */
 export function formatTimestamp(
 	timestamp: number | bigint,

@@ -49,13 +49,6 @@ describe("formatAddress", () => {
 		expect(formatAddress(addr, { middleText: "---" })).toBe("0x1234---7890");
 	});
 
-	it("preserves case when ensureChecksum is true for 42-char address", () => {
-		const addr = "0xAbCdEf1234567890123456789012345678901234";
-		const result = formatAddress(addr, { ensureChecksum: true });
-		// ensureChecksum keeps original case; startChars=6 gives "0xAbCd"
-		expect(result).toBe("0xAbCd...1234");
-	});
-
 	it("returns non-0x strings as-is", () => {
 		expect(formatAddress("abc123")).toBe("abc123");
 	});
