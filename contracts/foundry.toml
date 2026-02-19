@@ -18,6 +18,15 @@ remappings = [
     "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
 ]
 
+# Suppress naming convention lints for standard Solidity acronyms (USD, NFT, URI)
+[lint]
+exclude_lints = [
+    "mixed-case-variable",
+    "mixed-case-function",
+    "screaming-snake-case-immutable",
+    "pascal-case-struct",
+]
+
 # Coverage configuration
 [profile.default.fuzz]
 runs = 256
@@ -34,7 +43,6 @@ fail_on_revert = false
 # Enhanced test configuration
 [profile.test]
 verbosity = 3
-receipt_revert_price = "default"
 sender = "0x1804c8AB1F12E6bbf3894d4083f33e07309d1F38"
 tx_origin = "0x1804c8AB1F12E6bbf3894d4083f33e07309d1F38"
 initial_balance = "0xffffffffffffffffffffffff"

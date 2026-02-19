@@ -56,8 +56,12 @@ contract ProtocolTreasury is
     event RedemptionWindowUpdated(uint256 indexed oldWindow, uint256 indexed newWindow);
 
     modifier onlyEconomyManager() {
-        if (msg.sender != economyManager) revert UnauthorizedEconomyManager();
+        _onlyEconomyManager();
         _;
+    }
+
+    function _onlyEconomyManager() internal view {
+        if (msg.sender != economyManager) revert UnauthorizedEconomyManager();
     }
 
     /**

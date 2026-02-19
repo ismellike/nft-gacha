@@ -122,6 +122,7 @@ contract BaseERC20Test is Test {
         vm.expectEmit(true, true, false, true);
         emit Transfer(user, spender, 500e18);
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transfer(spender, 500e18);
 
         assertEq(token.balanceOf(user), 500e18);
@@ -136,6 +137,7 @@ contract BaseERC20Test is Test {
 
         vm.prank(user);
         vm.expectRevert();
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transfer(spender, 200e18);
     }
 
@@ -147,6 +149,7 @@ contract BaseERC20Test is Test {
 
         vm.prank(user);
         vm.expectRevert();
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transfer(address(0), 50e18);
     }
 
@@ -203,6 +206,7 @@ contract BaseERC20Test is Test {
         vm.expectEmit(true, true, false, true);
         emit Transfer(user, spender, 400e18);
 
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transferFrom(user, spender, 400e18);
 
         assertEq(token.balanceOf(user), 600e18);
@@ -221,6 +225,7 @@ contract BaseERC20Test is Test {
 
         vm.prank(spender);
         vm.expectRevert();
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transferFrom(user, spender, 200e18);
     }
 
@@ -234,6 +239,7 @@ contract BaseERC20Test is Test {
         token.approve(spender, 500e18);
 
         vm.prank(spender);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         token.transferFrom(user, spender, 300e18);
 
         assertEq(token.allowance(user, spender), 200e18);

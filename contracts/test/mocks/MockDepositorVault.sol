@@ -52,6 +52,7 @@ contract MockDepositorVault is IDepositorVault {
         withdrawn = pendingYield[account];
         pendingYield[account] = 0;
         if (withdrawn > 0) {
+            // forge-lint: disable-next-line(erc20-unchecked-transfer)
             asset.transfer(account, withdrawn);
         }
         emit YieldClaimed(account, withdrawn);

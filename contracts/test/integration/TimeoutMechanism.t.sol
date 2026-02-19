@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Gacha} from "../../src/gacha/Gacha.sol";
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";

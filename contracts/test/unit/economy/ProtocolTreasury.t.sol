@@ -4,7 +4,6 @@ pragma solidity ^0.8.27;
 import {StandardTest} from "../../helpers/StandardTest.sol";
 import {ProtocolTreasury} from "../../../src/economy/ProtocolTreasury.sol";
 import {GachaTreasury} from "../../../src/gacha/GachaTreasury.sol";
-import {NFTAppraisal} from "../../../src/appraisal/NFTAppraisal.sol";
 import {BaseERC20} from "../../../src/tokens/BaseERC20.sol";
 import {BaseERC721} from "../../../src/tokens/BaseERC721.sol";
 import {MockNFTAppraisal} from "../../mocks/MockNFTAppraisal.sol";

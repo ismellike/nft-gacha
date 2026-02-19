@@ -215,7 +215,6 @@ contract GachaTest is StandardTest {
         vm.prank(gachaOwner);
         gacha.emergencyPause();
 
-        uint256 fee = gacha.getCurrentSpinFee();
         vm.prank(gameSpinner);
         vm.expectRevert();  // Should fail due to pause
         gacha.spin(MAX_SPIN_FEE);

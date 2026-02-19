@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
-import {DepositorVault} from "../../src/economy/DepositorVault.sol";
 import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
@@ -110,8 +109,6 @@ contract EconomyInvariants is Test {
 
         // Protocol share should be approximately 5% of revenue
         // Allow small rounding differences
-        uint256 expectedProtocolShare = (totalRevenue * 500) / 10000;
-
         // Protocol should not receive more than 6% (allowing for rounding)
         uint256 maxAcceptableProtocol = (totalRevenue * 600) / 10000;
 

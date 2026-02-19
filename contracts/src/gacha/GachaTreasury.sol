@@ -183,13 +183,21 @@ contract GachaTreasury is
 
     /// @notice Restricts access to the authorized gacha contract
     modifier onlyGacha() {
-        if (msg.sender != gachaContract) revert UnauthorizedGachaContract();
+        _onlyGacha();
         _;
     }
 
     modifier onlyProtocolTreasury() {
-        if (msg.sender != protocolTreasury) revert UnauthorizedProtocolTreasury();
+        _onlyProtocolTreasury();
         _;
+    }
+
+    function _onlyGacha() internal view {
+        if (msg.sender != gachaContract) revert UnauthorizedGachaContract();
+    }
+
+    function _onlyProtocolTreasury() internal view {
+        if (msg.sender != protocolTreasury) revert UnauthorizedProtocolTreasury();
     }
 
     /**
@@ -235,28 +243,28 @@ contract GachaTreasury is
         // #3 — Common must start at $0 and have a non-zero max
         if (commonMin != 0) revert InvalidPriceRange();
         if (commonMax == 0) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Common)] = PriceRange(commonMin, commonMax);
+        priceRanges[uint256(Rarity.Common)] = PriceRange({minPriceUSD: commonMin, maxPriceUSD: commonMax});
 
         uint256 uncommonMin = minPrices[uint256(Rarity.Uncommon)];
         uint256 uncommonMax = maxPrices[uint256(Rarity.Uncommon)];
         if (uncommonMin >= uncommonMax) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Uncommon)] = PriceRange(uncommonMin, uncommonMax);
+        priceRanges[uint256(Rarity.Uncommon)] = PriceRange({minPriceUSD: uncommonMin, maxPriceUSD: uncommonMax});
 
         uint256 rareMin = minPrices[uint256(Rarity.Rare)];
         uint256 rareMax = maxPrices[uint256(Rarity.Rare)];
         if (rareMin >= rareMax) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Rare)] = PriceRange(rareMin, rareMax);
+        priceRanges[uint256(Rarity.Rare)] = PriceRange({minPriceUSD: rareMin, maxPriceUSD: rareMax});
 
         uint256 epicMin = minPrices[uint256(Rarity.Epic)];
         uint256 epicMax = maxPrices[uint256(Rarity.Epic)];
         if (epicMin >= epicMax) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Epic)] = PriceRange(epicMin, epicMax);
+        priceRanges[uint256(Rarity.Epic)] = PriceRange({minPriceUSD: epicMin, maxPriceUSD: epicMax});
 
         uint256 legendaryMin = minPrices[uint256(Rarity.Legendary)];
         uint256 legendaryMax = maxPrices[uint256(Rarity.Legendary)];
         if (legendaryMax != type(uint256).max) revert InvalidPriceRange();
         if (legendaryMin >= legendaryMax) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Legendary)] = PriceRange(legendaryMin, legendaryMax);
+        priceRanges[uint256(Rarity.Legendary)] = PriceRange({minPriceUSD: legendaryMin, maxPriceUSD: legendaryMax});
 
         // Ensure ranges are continuous and non-overlapping so every price fits exactly one bucket
         if (commonMax + PRICE_STEP != uncommonMin) revert InvalidPriceRange();

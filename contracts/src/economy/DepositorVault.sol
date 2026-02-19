@@ -62,14 +62,22 @@ contract DepositorVault is
 
     /// @dev Ensures calls originate from the active treasury
     modifier onlyTreasury() {
-        require(msg.sender == treasury, "DepositorVault: caller is not treasury");
+        _onlyTreasury();
         _;
     }
 
     /// @dev Ensures calls originate from the economy manager
     modifier onlyEconomyManager() {
-        require(msg.sender == economyManager, "DepositorVault: caller is not manager");
+        _onlyEconomyManager();
         _;
+    }
+
+    function _onlyTreasury() internal view {
+        require(msg.sender == treasury, "DepositorVault: caller is not treasury");
+    }
+
+    function _onlyEconomyManager() internal view {
+        require(msg.sender == economyManager, "DepositorVault: caller is not manager");
     }
 
     /**

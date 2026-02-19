@@ -85,6 +85,7 @@ contract StressTests is Test {
 
         // Create stress test users
         for (uint256 i = 0; i < 100; i++) {
+            // forge-lint: disable-next-line(unsafe-typecast)
             address user = address(uint160(i + 1000));
             stressUsers.push(user);
         }
@@ -172,6 +173,7 @@ contract StressTests is Test {
 
         // Create users
         for (uint256 i = 0; i < userCount; i++) {
+            // forge-lint: disable-next-line(unsafe-typecast)
             users[i] = address(uint160(i + 10000));
         }
 

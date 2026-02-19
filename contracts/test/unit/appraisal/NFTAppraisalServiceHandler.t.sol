@@ -69,7 +69,7 @@ contract NFTAppraisalServiceHandlerTest is StandardTest {
         assertEq(appraisedPrice, priceUSD, "Price should match");
     }
 
-    function testCheckAppraisalNonExistent() public {
+    function testCheckAppraisalNonExistent() public view {
         (bool exists, uint256 appraisedPrice) = handler.checkAppraisal(collection, 999);
 
         assertTrue(!exists, "Appraisal should not exist");

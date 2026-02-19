@@ -405,7 +405,7 @@ contract GachaTreasuryTest is StandardTest {
      * @notice Test empty rarity pool
      * @dev Verifies behavior when querying empty rarity pool
      */
-    function testEmptyRarityPool() public {
+    function testEmptyRarityPool() public view {
         GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(GachaTreasury.Rarity.Common);
         assertEq(items.length, 0, "Empty pool should return 0 items");
     }

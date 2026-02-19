@@ -82,6 +82,7 @@ contract GachaTreasuryInvariants is Test {
 
         // Create test depositors and mint NFTs
         for (uint256 i = 0; i < 10; i++) {
+            // forge-lint: disable-next-line(unsafe-typecast)
             address depositor = address(uint160(i + 100));
             depositors.push(depositor);
             nftCollection.mint(depositor, i);
@@ -128,7 +129,7 @@ contract GachaTreasuryInvariants is Test {
             uint256 count = treasury.rarityCount(rarity);
 
             for (uint256 j = 0; j < count; j++) {
-                (, , uint256 tokenId, uint256 appraisedPrice, , , ) = treasury.treasury(rarity, j);
+                (, , , uint256 appraisedPrice, , , ) = treasury.treasury(rarity, j);
 
                 // Verify price is within expected range for this rarity
                 if (rarity == GachaTreasury.Rarity.Common) {

@@ -237,6 +237,7 @@ contract ERC20BatchQueryTest is Test {
 
         for (uint256 i = 0; i < arraySize; i++) {
             // Start from 0x100 to avoid conflict with user (address(0x1))
+            // forge-lint: disable-next-line(unsafe-typecast)
             users[i] = address(uint160(i + 0x100));
             token.mint(users[i], i * 10e18);
         }
@@ -269,7 +270,7 @@ contract ERC20BatchQueryTest is Test {
      * @notice Test batch query is more gas efficient than individual calls
      * @dev This test verifies the gas savings of batch operations
      */
-    function test_GasOptimization_BatchVsIndividual() public view {
+    function test_GasOptimization_BatchVsIndividual() public pure {
         // Individual calls would require 5 separate calls
         // Batch query does it in 1 call
         // This is documented but not enforced in tests

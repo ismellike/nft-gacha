@@ -2,7 +2,6 @@
 pragma solidity ^0.8.27;
 
 import {Script, console} from "forge-std/Script.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -563,6 +562,7 @@ contract DeployLocal is Script {
 
     function _fundProtocolTreasury(TestUSDC usdc, ProtocolTreasury protocolTreasury) internal {
         console.log("=== Funding ProtocolTreasury for NFT Buybacks ===");
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         usdc.transfer(address(protocolTreasury), PROTOCOL_TREASURY_FUNDING);
         console.log("ProtocolTreasury funded with:", PROTOCOL_TREASURY_FUNDING / 1e6, " tUSDC");
 
@@ -607,6 +607,7 @@ contract DeployLocal is Script {
                 }
             } catch {
                 // Try to read from avs_deploy.json for TESTNET
+                // forge-lint: disable-next-line(unsafe-cheatcode)
                 string memory deployJson = vm.readFile("../avs/.project-output/chain-1/avs/avs_deploy.json");
                 wavsServiceManager = vm.parseJsonAddress(deployJson, ".addresses.WavsServiceManager");
                 console.log("Using WAVS manager from JSON:", wavsServiceManager);
@@ -619,6 +620,7 @@ contract DeployLocal is Script {
         string memory jsonPath = "../.project-output/chain-1/avs/avs_deploy.json";
         string memory serviceManagerStr = vm.toString(serviceManager);
         string memory jsonContent = string(abi.encodePacked('{"lastUpdate":{"timestamp":"1766905622","block_number":"595"},"addresses":{"WavsServiceManager":"', serviceManagerStr, '"}}'));
+        // forge-lint: disable-next-line(unsafe-cheatcode)
         vm.writeFile(jsonPath, jsonContent);
         console.log("Wrote service manager address to avs_deploy.json");
     }
@@ -659,6 +661,7 @@ contract DeployLocal is Script {
 
     function _writeEnvFile(Deployments memory deployments, DeployConfig memory cfg) internal {
         string memory envContent = _buildEnvContent(deployments, cfg);
+        // forge-lint: disable-next-line(unsafe-cheatcode)
         vm.writeFile("../.env.local", envContent);
         console.log("Environment file written to: .env.local");
     }

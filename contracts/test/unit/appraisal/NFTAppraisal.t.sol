@@ -509,6 +509,7 @@ contract NFTAppraisalTest is StandardTest {
             tokenId: TOKEN_ID_1,
             groupId: CARD_ID_1,
             price: 150 * 1e6,
+            // forge-lint: disable-next-line(unsafe-typecast)
             txHash: bytes32("tx_hash")
         });
 

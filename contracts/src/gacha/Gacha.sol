@@ -125,8 +125,12 @@ contract Gacha is
 
     /// @notice Restricts access to the authorized gacha service handler
     modifier onlyGachaServiceHandler() {
-        if (msg.sender != gachaServiceHandler) revert UnauthorizedServiceHandler();
+        _onlyGachaServiceHandler();
         _;
+    }
+
+    function _onlyGachaServiceHandler() internal view {
+        if (msg.sender != gachaServiceHandler) revert UnauthorizedServiceHandler();
     }
 
     /**

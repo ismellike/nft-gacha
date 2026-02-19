@@ -123,8 +123,12 @@ contract NFTAppraisal is
 
     /// @notice Restricts access to authorized service handler
     modifier onlyServiceHandler() {
-        if (msg.sender != serviceHandler) revert UnauthorizedServiceHandler();
+        _onlyServiceHandler();
         _;
+    }
+
+    function _onlyServiceHandler() internal view {
+        if (msg.sender != serviceHandler) revert UnauthorizedServiceHandler();
     }
 
     /**

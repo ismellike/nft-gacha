@@ -66,8 +66,12 @@ contract GachaEconomyManager is
     event QueuedDepositorYieldProcessed(uint256 amount);
 
     modifier onlyGacha() {
-        require(msg.sender == gacha, "GachaEconomyManager: caller not gacha");
+        _onlyGacha();
         _;
+    }
+
+    function _onlyGacha() internal view {
+        require(msg.sender == gacha, "GachaEconomyManager: caller not gacha");
     }
 
     /**

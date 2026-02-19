@@ -39,9 +39,9 @@ contract MockGachaEconomyManager {
      * @dev Simply accepts the fee tokens and emits an event for testing
      *      Does not perform actual distribution logic in tests
      * @param usdcAmount Amount of USDC (6 decimals) collected for the spin
-     * @param hitRarity Rarity executed, for analytical eventing
+     * @param - Rarity executed, for analytical eventing
      */
-    function onSpinRevenue(uint256 usdcAmount, GachaTreasury.Rarity hitRarity) external {
+    function onSpinRevenue(uint256 usdcAmount, GachaTreasury.Rarity /* hitRarity */) external {
         // Track total revenue for testing
         totalRevenueReceived += usdcAmount;
 

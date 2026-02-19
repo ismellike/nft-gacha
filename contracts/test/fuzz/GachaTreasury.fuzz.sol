@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
-import {TestConstants} from "../helpers/TestConstants.sol";
 import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
 import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
@@ -83,6 +82,7 @@ contract GachaTreasuryFuzz is Test {
 
         // Create depositors and mint NFTs
         for (uint256 i = 0; i < 10; i++) {
+            // forge-lint: disable-next-line(unsafe-typecast)
             address depositor = address(uint160(i + 100));
             depositors.push(depositor);
             vm.prank(depositor);
@@ -98,7 +98,7 @@ contract GachaTreasuryFuzz is Test {
 
     function testFuzz_RarityAssignment(
         uint256 priceUSD
-    ) public view {
+    ) public pure {
         vm.assume(priceUSD >= COMMON_MIN && priceUSD <= 11000e18);
 
         GachaTreasury.Rarity expectedRarity = _getRarityForPrice(priceUSD);
