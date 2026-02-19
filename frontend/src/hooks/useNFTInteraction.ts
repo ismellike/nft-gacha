@@ -56,7 +56,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	// Use selector to subscribe to specific interaction state (reactive)
 	const specificState = useNFTInteractionStore((state) => {
 		if (interactionKey) {
-			return state.interactions.get(interactionKey as InteractionKey) ?? null;
+			return state.interactions[interactionKey as InteractionKey] ?? null;
 		}
 		return null;
 	});
@@ -64,7 +64,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 	// Active interaction for non-specific usage
 	const activeState = useNFTInteractionStore((state) => {
 		if (state.activeInteraction) {
-			return state.interactions.get(state.activeInteraction) ?? null;
+			return state.interactions[state.activeInteraction] ?? null;
 		}
 		return null;
 	});

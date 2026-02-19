@@ -62,8 +62,10 @@ type StartConfig = {
 	payoutAmount?: bigint;
 };
 
+const STALE_INTERACTION_MS = 5 * 60 * 1000; // 5 minutes
+
 type InteractionStore = {
-	interactions: Map<InteractionKey, InteractionState>;
+	interactions: Record<string, InteractionState>;
 	activeInteraction: InteractionKey | null;
 	startInteraction: (config: StartConfig) => void;
 	setStatus: (status: InteractionStatus) => void;
@@ -73,6 +75,7 @@ type InteractionStore = {
 	markInteractionSuccess: (txHash: string) => void;
 	setError: (message: string) => void;
 	resetInteraction: () => void;
+	cleanupStaleInteractions: () => void;
 	getActiveInteraction: () => InteractionState | null;
 	getInteraction: (
 		mode: InteractionMode,
@@ -91,7 +94,7 @@ const createInteractionKey = (
 	`${mode}:${collection}:${tokenId}:${uniqueId ?? "default"}`;
 
 export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
-	interactions: new Map(),
+	interactions: {},
 	activeInteraction: null,
 
 	startInteraction: (config) => {
@@ -118,156 +121,174 @@ export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 			interactionTxHash: null,
 			error: null,
 			success: null,
-			uniqueId: config.uniqueId ?? null, // Store the uniqueId in context
+			uniqueId: config.uniqueId ?? null,
 		};
 
-		set((state) => {
-			const newInteractions = new Map(state.interactions);
-			newInteractions.set(key, {
-				status: "checkingApprovals",
-				context: newContext,
-			});
-			return {
-				interactions: newInteractions,
-				activeInteraction: key,
-			};
-		});
+		set((state) => ({
+			interactions: {
+				...state.interactions,
+				[key]: {
+					status: "checkingApprovals" as const,
+					context: newContext,
+				},
+			},
+			activeInteraction: key,
+		}));
 	},
 
 	setStatus: (status) =>
 		set((state) => {
 			if (!state.activeInteraction) return state;
-			const newInteractions = new Map(state.interactions);
-			const current = newInteractions.get(state.activeInteraction);
-			if (current) {
-				newInteractions.set(state.activeInteraction, {
-					...current,
-					status,
-				});
-			}
-			return { interactions: newInteractions };
+			const current = state.interactions[state.activeInteraction];
+			if (!current) return state;
+			return {
+				interactions: {
+					...state.interactions,
+					[state.activeInteraction]: { ...current, status },
+				},
+			};
 		}),
 
 	markApprovalSubmitted: (txHash) =>
 		set((state) => {
 			if (!state.activeInteraction) return state;
-			const newInteractions = new Map(state.interactions);
-			const current = newInteractions.get(state.activeInteraction);
-			if (current?.context) {
-				newInteractions.set(state.activeInteraction, {
-					status: "awaitingNFTApprovalReceipt",
-					context: {
-						...current.context,
-						nftApprovalTxHash: txHash,
+			const current = state.interactions[state.activeInteraction];
+			if (!current?.context) return state;
+			return {
+				interactions: {
+					...state.interactions,
+					[state.activeInteraction]: {
+						status: "awaitingNFTApprovalReceipt",
+						context: { ...current.context, nftApprovalTxHash: txHash },
 					},
-				});
-			}
-			return { interactions: newInteractions };
+				},
+			};
 		}),
 
 	markApprovalReceipt: (txHash) =>
 		set((state) => {
 			if (!state.activeInteraction) return state;
-			const newInteractions = new Map(state.interactions);
-			const current = newInteractions.get(state.activeInteraction);
-			if (current?.context) {
-				newInteractions.set(state.activeInteraction, {
-					status: "awaitingInteractionSignature",
-					context: {
-						...current.context,
-						nftApprovalTxHash: txHash,
+			const current = state.interactions[state.activeInteraction];
+			if (!current?.context) return state;
+			return {
+				interactions: {
+					...state.interactions,
+					[state.activeInteraction]: {
+						status: "awaitingInteractionSignature",
+						context: { ...current.context, nftApprovalTxHash: txHash },
 					},
-				});
-			}
-			return { interactions: newInteractions };
+				},
+			};
 		}),
 
 	markInteractionSubmitted: (txHash) =>
 		set((state) => {
 			if (!state.activeInteraction) return state;
-			const newInteractions = new Map(state.interactions);
-			const current = newInteractions.get(state.activeInteraction);
-			if (current?.context) {
-				newInteractions.set(state.activeInteraction, {
-					status: "awaitingInteractionReceipt",
-					context: {
-						...current.context,
-						interactionTxHash: txHash,
+			const current = state.interactions[state.activeInteraction];
+			if (!current?.context) return state;
+			return {
+				interactions: {
+					...state.interactions,
+					[state.activeInteraction]: {
+						status: "awaitingInteractionReceipt",
+						context: { ...current.context, interactionTxHash: txHash },
 					},
-				});
-			}
-			return { interactions: newInteractions };
+				},
+			};
 		}),
 
 	markInteractionSuccess: (txHash) =>
 		set((state) => {
 			if (!state.activeInteraction) return state;
-			const newInteractions = new Map(state.interactions);
-			const current = newInteractions.get(state.activeInteraction);
-			if (current?.context) {
-				const success =
-					current.context.payoutAmount !== null
-						? {
-								mode: current.context.mode,
-								txHash,
-								payoutAmount: current.context.payoutAmount,
-								completedAt: Date.now(),
-								collection: current.context.collection,
-								tokenId: current.context.tokenId,
-							}
-						: null;
-
-				newInteractions.set(state.activeInteraction, {
-					status: "completed",
-					context: {
-						...current.context,
-						interactionTxHash: txHash,
-						success,
-						error: null,
+			const current = state.interactions[state.activeInteraction];
+			if (!current?.context) return state;
+			const success =
+				current.context.payoutAmount !== null
+					? {
+							mode: current.context.mode,
+							txHash,
+							payoutAmount: current.context.payoutAmount,
+							completedAt: Date.now(),
+							collection: current.context.collection,
+							tokenId: current.context.tokenId,
+						}
+					: null;
+			return {
+				interactions: {
+					...state.interactions,
+					[state.activeInteraction]: {
+						status: "completed",
+						context: {
+							...current.context,
+							interactionTxHash: txHash,
+							success,
+							error: null,
+						},
 					},
-				});
-			}
-			return { interactions: newInteractions };
+				},
+			};
 		}),
 
 	setError: (message) =>
 		set((state) => {
 			if (!state.activeInteraction) return state;
-			const newInteractions = new Map(state.interactions);
-			const current = newInteractions.get(state.activeInteraction);
-			if (current?.context) {
-				newInteractions.set(state.activeInteraction, {
-					status: "error",
-					context: {
-						...current.context,
-						error: message,
-						success: null,
+			const current = state.interactions[state.activeInteraction];
+			if (!current?.context) return state;
+			return {
+				interactions: {
+					...state.interactions,
+					[state.activeInteraction]: {
+						status: "error",
+						context: {
+							...current.context,
+							error: message,
+							success: null,
+						},
 					},
-				});
-			}
-			return { interactions: newInteractions };
+				},
+			};
 		}),
 
-	resetInteraction: () =>
+	resetInteraction: () => {
+		get().cleanupStaleInteractions();
 		set((state) => {
 			if (!state.activeInteraction) return state;
-			const newInteractions = new Map(state.interactions);
-			newInteractions.delete(state.activeInteraction);
+			const { [state.activeInteraction]: _removed, ...remaining } =
+				state.interactions;
 			return {
-				interactions: newInteractions,
+				interactions: remaining,
 				activeInteraction: null,
 			};
+		});
+	},
+
+	cleanupStaleInteractions: () =>
+		set((state) => {
+			const now = Date.now();
+			const cleaned: Record<string, InteractionState> = {};
+			for (const [key, interaction] of Object.entries(state.interactions)) {
+				const isTerminal =
+					interaction.status === "completed" ||
+					interaction.status === "error";
+				const completedAt = interaction.context?.success?.completedAt;
+				const isStale =
+					isTerminal && completedAt && now - completedAt > STALE_INTERACTION_MS;
+				if (!isStale) {
+					cleaned[key] = interaction;
+				}
+			}
+			return { interactions: cleaned };
 		}),
 
 	getActiveInteraction: () => {
 		const state = get();
 		if (!state.activeInteraction) return null;
-		return state.interactions.get(state.activeInteraction) ?? null;
+		return state.interactions[state.activeInteraction] ?? null;
 	},
 
 	getInteraction: (mode, collection, tokenId, uniqueId) => {
 		const state = get();
 		const key = createInteractionKey(mode, collection, tokenId, uniqueId);
-		return state.interactions.get(key) ?? null;
+		return state.interactions[key] ?? null;
 	},
 }));

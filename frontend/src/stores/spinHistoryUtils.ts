@@ -11,14 +11,25 @@ export class Mutex {
 	private locked = false;
 	private waitQueue: Array<() => void> = [];
 
-	async acquire(): Promise<void> {
+	async acquire(timeoutMs = 10_000): Promise<void> {
 		if (!this.locked) {
 			this.locked = true;
 			return;
 		}
 
-		return new Promise((resolve) => {
-			this.waitQueue.push(resolve);
+		return new Promise((resolve, reject) => {
+			const timer = setTimeout(() => {
+				const idx = this.waitQueue.indexOf(wrappedResolve);
+				if (idx !== -1) this.waitQueue.splice(idx, 1);
+				reject(new Error(`Mutex acquire timed out after ${timeoutMs}ms`));
+			}, timeoutMs);
+
+			const wrappedResolve = () => {
+				clearTimeout(timer);
+				resolve();
+			};
+
+			this.waitQueue.push(wrappedResolve);
 		});
 	}
 
@@ -45,13 +56,40 @@ interface CacheEntry<T> {
 export class MemoizedCache<T> {
 	private cache: Map<string, CacheEntry<T>> = new Map();
 
+	private entriesMatch(
+		a: SpinHistoryEntry[],
+		b: SpinHistoryEntry[],
+	): boolean {
+		if (a === b) return true;
+		if (a.length !== b.length) return false;
+		if (a.length === 0) return true;
+		// Cheap heuristic: check first and last elements by reference
+		return a[0] === b[0] && a[a.length - 1] === b[b.length - 1];
+	}
+
+	private filtersMatch(
+		a: SpinHistoryFilters,
+		b: SpinHistoryFilters,
+	): boolean {
+		if (a === b) return true;
+		return (
+			a.status === b.status &&
+			a.dateRange?.start === b.dateRange?.start &&
+			a.dateRange?.end === b.dateRange?.end
+		);
+	}
+
 	get(
 		key: string,
 		entries: SpinHistoryEntry[],
 		filters: SpinHistoryFilters,
 	): T | null {
 		const cached = this.cache.get(key);
-		if (cached && cached.entries === entries && cached.filters === filters) {
+		if (
+			cached &&
+			this.entriesMatch(cached.entries, entries) &&
+			this.filtersMatch(cached.filters, filters)
+		) {
 			return cached.result;
 		}
 		return null;

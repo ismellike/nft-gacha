@@ -114,15 +114,17 @@ export const useGachaStore = create<GachaStore>()(
 			name: "gacha-store",
 			storage: createJSONStorage(() => localStorage, {
 				replacer: (_key, value) =>
-					typeof value === "bigint" ? value.toString() : value,
-				reviver: (key, value) => {
-					// Convert triggerId strings back to BigInt for specific keys
+					typeof value === "bigint"
+						? { __bigint: value.toString() }
+						: value,
+				reviver: (_key, value) => {
 					if (
-						key === "triggerId" &&
-						typeof value === "string" &&
-						value.match(/^\d+$/)
+						value !== null &&
+						typeof value === "object" &&
+						"__bigint" in value &&
+						typeof (value as { __bigint: unknown }).__bigint === "string"
 					) {
-						return BigInt(value);
+						return BigInt((value as { __bigint: string }).__bigint);
 					}
 					return value;
 				},

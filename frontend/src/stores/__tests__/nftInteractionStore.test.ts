@@ -16,7 +16,7 @@ const startConfig = {
 describe("nftInteractionStore", () => {
 	beforeEach(() => {
 		useNFTInteractionStore.setState({
-			interactions: new Map(),
+			interactions: {},
 			activeInteraction: null,
 		});
 	});
