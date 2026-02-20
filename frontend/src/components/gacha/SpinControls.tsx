@@ -124,27 +124,31 @@ const SpinControls = memo(function SpinControls({
 	});
 	const spinFee = spinFeeQuery.data;
 
-	// Update last fee update time when data changes
+	// Update last fee update time on every successful fetch (not just data changes)
 	useEffect(() => {
-		if (spinFeeQuery.data) {
-			setLastFeeUpdate(Date.now());
+		if (spinFeeQuery.dataUpdatedAt > 0) {
+			setLastFeeUpdate(spinFeeQuery.dataUpdatedAt);
 			setFeeStale(false);
 		}
-	}, [spinFeeQuery.data]);
+	}, [spinFeeQuery.dataUpdatedAt]);
 
 	// Mark fee as stale after 15 seconds without updates, but clear it if actively fetching
+	// Use ref for feeStale to avoid tearing down the interval when it changes
+	const feeStaleRef = useRef(feeStale);
+	feeStaleRef.current = feeStale;
+
 	useEffect(() => {
 		const interval = setInterval(() => {
 			if (Date.now() - lastFeeUpdate > 15000 && !spinFeeQuery.isFetching) {
 				setFeeStale(true);
-			} else if (spinFeeQuery.isFetching && feeStale) {
+			} else if (spinFeeQuery.isFetching && feeStaleRef.current) {
 				// Clear stale flag if we're actively fetching fresh data
 				setFeeStale(false);
 			}
 		}, 1000);
 
 		return () => clearInterval(interval);
-	}, [lastFeeUpdate, spinFeeQuery.isFetching, feeStale]);
+	}, [lastFeeUpdate, spinFeeQuery.isFetching]);
 
 	const { data: paused } = useReadGachaPaused({
 		address: contracts.gacha as `0x${string}` | undefined,
@@ -229,7 +233,7 @@ const SpinControls = memo(function SpinControls({
 
 		const cleanup = registerRefetch(refetchSpinFee);
 		return cleanup;
-	}, [registerRefetch, spinFeeQuery]);
+	}, [registerRefetch, spinFeeQuery.refetch]);
 
 	// Write operations
 	const {
