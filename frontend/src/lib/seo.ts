@@ -12,16 +12,16 @@ const defaultSEO = {
 	description:
 		"Spin for NFT rewards with provably fair randomness powered by WAVS-DRAND. Deposit appraised NFTs to earn yield.",
 	image: "/og-image.png",
-	url: "https://spinfi.com",
+	url: "https://spinfi.app",
 };
 
 export function generateMetadata(props: SEOProps = {}) {
 	const title = props.title ? `${props.title} | SPINFI` : defaultSEO.title;
 	const description = props.description || defaultSEO.description;
 	const image = props.image
-		? `https://spinfi.com${props.image}`
+		? `https://spinfi.app${props.image}`
 		: defaultSEO.image;
-	const url = props.url ? `https://spinfi.com${props.url}` : defaultSEO.url;
+	const url = props.url ? `https://spinfi.app${props.url}` : defaultSEO.url;
 
 	return {
 		title,

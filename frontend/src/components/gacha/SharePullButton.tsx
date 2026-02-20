@@ -26,7 +26,7 @@ function getShareText(
 ): string {
 	const config = getRarityConfig(rarity);
 	const cardName = metadata?.title || metadata?.name || "an NFT";
-	let text = `I just pulled a ${rarityName} ${config.emoji} ${cardName} on @spinikiapp!`;
+	let text = `I just pulled a ${rarityName} ${config.emoji} ${cardName} on @spinfiapp!`;
 
 	if (rarity >= Rarity.Epic) {
 		const flavor = EPIC_FLAVOR[Math.floor(Math.random() * EPIC_FLAVOR.length)];

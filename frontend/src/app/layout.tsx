@@ -37,6 +37,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 // Export metadata for Next.js App Router
 export const metadata = {
+	metadataBase: new URL("https://spinfi.app"),
 	title: "SPINFI - Provably Fair NFT Gacha on WAVS",
 	description:
 		"Spin for NFT rewards with provably fair randomness powered by WAVS-DRAND. Deposit appraised NFTs to earn yield.",
@@ -60,7 +61,7 @@ export const metadata = {
 	openGraph: {
 		type: "website",
 		locale: "en_US",
-		url: "https://spinfi.com",
+		url: "https://spinfi.app",
 		title: "SPINFI - Provably Fair NFT Gacha on WAVS",
 		description:
 			"Spin for NFT rewards with provably fair randomness powered by WAVS-DRAND. Deposit appraised NFTs to earn yield.",
