@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
+import { expectNoA11yViolations } from "../../test/axe-helper";
 import { Modal, ModalContent, ModalBody, DialogTitle } from "../Modal";
 
 const TestModal = ({
@@ -65,5 +66,10 @@ describe("Modal", () => {
 	it("has role=dialog", () => {
 		render(<TestModal />);
 		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
+	it("has no accessibility violations", async () => {
+		const { container } = render(<TestModal />);
+		await expectNoA11yViolations(container);
 	});
 });

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
+import { expectNoA11yViolations } from "../../test/axe-helper";
 import { Skeleton, CardSkeleton, ListSkeleton } from "../Skeleton";
 
 describe("Skeleton", () => {
@@ -28,10 +29,15 @@ describe("Skeleton", () => {
 	it("renders children", () => {
 		render(
 			<Skeleton data-testid="skel">
-				<span>Loading</span>
+				<span>Child content</span>
 			</Skeleton>,
 		);
-		expect(screen.getByText("Loading")).toBeInTheDocument();
+		expect(screen.getByText("Child content")).toBeInTheDocument();
+	});
+
+	it("has no accessibility violations", async () => {
+		const { container } = render(<Skeleton data-testid="skel" />);
+		await expectNoA11yViolations(container);
 	});
 });
 

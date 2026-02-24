@@ -92,8 +92,11 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
 		>["size"];
 
 		return (
+			// biome-ignore lint/a11y/useSemanticElements: <output> is for form results, role="status" is correct for loading indicators
 			<div
 				ref={ref}
+				role="status"
+				aria-busy="true"
 				className={cn(
 					skeleton({
 						variant: variantProp,
@@ -107,6 +110,7 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
 				)}
 				{...props}
 			>
+				<span className="sr-only">Loading</span>
 				{children}
 			</div>
 		);
@@ -120,7 +124,11 @@ export const CardSkeleton: React.FC<{
 	className?: string;
 	children?: React.ReactNode;
 }> = ({ className, children }) => (
+	// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
 	<div
+		role="status"
+		aria-busy="true"
+		aria-label="Loading card"
 		className={cn(
 			"rounded-2xl border border-white/10 bg-content1/20 p-6 backdrop-blur-xl",
 			className,
@@ -128,12 +136,12 @@ export const CardSkeleton: React.FC<{
 	>
 		{children || (
 			<div className="space-y-4">
-				<Skeleton variant="text" size="h8" className="w-1/3" />
-				<Skeleton variant="text" size="h6" className="w-2/3" />
-				<Skeleton variant="text" size="h6" className="w-1/2" />
+				<Skeleton variant="text" size="h8" className="w-1/3" aria-hidden="true" />
+				<Skeleton variant="text" size="h6" className="w-2/3" aria-hidden="true" />
+				<Skeleton variant="text" size="h6" className="w-1/2" aria-hidden="true" />
 				<div className="pt-4 space-y-3">
-					<Skeleton variant="button" size="h12" />
-					<Skeleton variant="button" size="h12" className="w-2/3" />
+					<Skeleton variant="button" size="h12" aria-hidden="true" />
+					<Skeleton variant="button" size="h12" className="w-2/3" aria-hidden="true" />
 				</div>
 			</div>
 		)}
@@ -151,18 +159,20 @@ export const ListSkeleton: React.FC<{
 	);
 
 	return (
-		<div className={cn("space-y-3", className)}>
+		// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
+		<div role="status" aria-busy="true" aria-label="Loading list" className={cn("space-y-3", className)}>
 			{skeletonItems.map((itemKey) => (
 				<div
 					key={itemKey}
 					className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-content1/20"
+					aria-hidden="true"
 				>
-					<Skeleton variant="circle" size="w12 h12" />
+					<Skeleton variant="circle" size="w12 h12" aria-hidden="true" />
 					<div className="flex-1 space-y-2">
-						<Skeleton variant="text" size="h6" className="w-1/3" />
-						<Skeleton variant="text" size="h4" className="w-2/3" />
+						<Skeleton variant="text" size="h6" className="w-1/3" aria-hidden="true" />
+						<Skeleton variant="text" size="h4" className="w-2/3" aria-hidden="true" />
 					</div>
-					<Skeleton variant="button" size="h8 w20" />
+					<Skeleton variant="button" size="h8 w20" aria-hidden="true" />
 				</div>
 			))}
 		</div>
@@ -179,16 +189,18 @@ export const StatsSkeleton: React.FC<{ className?: string }> = ({
 	);
 
 	return (
-		<div className={cn("grid gap-4", className)}>
+		// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
+		<div role="status" aria-busy="true" aria-label="Loading stats" className={cn("grid gap-4", className)}>
 			{statsSkeletons.map((skeletonKey) => (
 				<div
 					key={skeletonKey}
 					className="flex items-center gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3"
+					aria-hidden="true"
 				>
-					<Skeleton variant="circle" size="w10 h10" />
+					<Skeleton variant="circle" size="w10 h10" aria-hidden="true" />
 					<div className="flex-1">
-						<Skeleton variant="text" size="h4" className="w-1/2" />
-						<Skeleton variant="text" size="h6" className="w-1/3" />
+						<Skeleton variant="text" size="h4" className="w-1/2" aria-hidden="true" />
+						<Skeleton variant="text" size="h6" className="w-1/3" aria-hidden="true" />
 					</div>
 				</div>
 			))}
@@ -200,16 +212,17 @@ export const StatsSkeleton: React.FC<{ className?: string }> = ({
 export const FormSkeleton: React.FC<{ className?: string }> = ({
 	className,
 }) => (
-	<div className={cn("space-y-4", className)}>
+	// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
+	<div role="status" aria-busy="true" aria-label="Loading form" className={cn("space-y-4", className)}>
 		<div className="space-y-2">
-			<Skeleton variant="text" size="h4" className="w-1/4" />
-			<Skeleton variant="button" size="h12" />
+			<Skeleton variant="text" size="h4" className="w-1/4" aria-hidden="true" />
+			<Skeleton variant="button" size="h12" aria-hidden="true" />
 		</div>
 		<div className="space-y-2">
-			<Skeleton variant="text" size="h4" className="w-1/3" />
-			<Skeleton variant="button" size="h12" />
+			<Skeleton variant="text" size="h4" className="w-1/3" aria-hidden="true" />
+			<Skeleton variant="button" size="h12" aria-hidden="true" />
 		</div>
-		<Skeleton variant="button" size="h12" className="w-1/2" />
+		<Skeleton variant="button" size="h12" className="w-1/2" aria-hidden="true" />
 	</div>
 );
 
@@ -217,7 +230,11 @@ export const FormSkeleton: React.FC<{ className?: string }> = ({
 export const SpinnerButtonSkeleton: React.FC<{ className?: string }> = ({
 	className,
 }) => (
+	// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
 	<div
+		role="status"
+		aria-busy="true"
+		aria-label="Loading spin button"
 		className={cn(
 			"h-14 bg-content1/30 rounded-xl animate-pulse w-full max-w-xs mx-auto",
 			className,

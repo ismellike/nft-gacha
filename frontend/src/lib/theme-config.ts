@@ -12,7 +12,7 @@ export const glassButton = tv({
 	base: [
 		"inline-flex items-center justify-center gap-2",
 		"backdrop-blur-xl rounded-xl transition-all duration-300 relative overflow-hidden",
-		"focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background",
+		"focus:outline-none focus-visible:ring-2 focus-visible:ring-warning/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
 		"disabled:opacity-60 disabled:pointer-events-none",
 	],
 	variants: {
@@ -86,7 +86,7 @@ export const glassCard = tv({
 			interactive: [
 				"cursor-pointer",
 				"hover:bg-content1/30 hover:border-white/20 hover:shadow-3xl",
-				"focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background",
+				"focus:outline-none focus-visible:ring-2 focus-visible:ring-warning/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
 				"data-[pressed=true]:scale-[0.98]",
 			],
 			highlight: [
@@ -160,7 +160,7 @@ export const glassInput = tv({
 	base: [
 		"bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl",
 		"transition-all duration-200",
-		"focus:bg-content1/30 focus:border-warning/50 focus:ring-2 focus:ring-warning/20",
+		"focus:bg-content1/30 focus:border-warning/50 focus-visible:ring-2 focus-visible:ring-warning/20",
 		"placeholder:text-foreground/40",
 	],
 	variants: {
@@ -258,7 +258,7 @@ export const glassBreadcrumb = tv({
 			"flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200",
 			"bg-content1/20 backdrop-blur-xl border border-white/10",
 			"hover:bg-content1/30 hover:border-white/20",
-			"focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background",
+			"focus:outline-none focus-visible:ring-2 focus-visible:ring-warning/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
 			"text-foreground/70 hover:text-foreground min-h-[36px] font-medium",
 		],
 		current: [

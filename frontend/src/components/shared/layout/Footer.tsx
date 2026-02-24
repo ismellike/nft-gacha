@@ -5,9 +5,9 @@ export function Footer() {
 				<div className="grid md:grid-cols-3 gap-12 text-center md:text-left">
 					{/* Product Info */}
 					<div className="space-y-4">
-						<h3 className="text-xl font-semibold bg-gradient-to-r from-foreground to-warning bg-clip-text text-transparent">
+						<h2 className="text-xl font-semibold bg-gradient-to-r from-foreground to-warning bg-clip-text text-transparent">
 							Spin-Fi Gacha
-						</h3>
+						</h2>
 						<p className="text-foreground/70 font-light leading-relaxed">
 							The future of fair NFT distribution. Every spin is provably random
 							with complete transparency.
@@ -16,9 +16,9 @@ export function Footer() {
 
 					{/* Features */}
 					<div className="space-y-4">
-						<h4 className="text-lg font-medium text-foreground">
+						<h3 className="text-lg font-medium text-foreground">
 							Why Choose Spin-Fi?
-						</h4>
+						</h3>
 						<ul className="space-y-3 text-foreground/70">
 							<li className="flex items-center justify-center md:justify-start gap-3">
 								<div className="w-2 h-2 bg-warning rounded-full"></div>
@@ -37,9 +37,9 @@ export function Footer() {
 
 					{/* Call to Action */}
 					<div className="space-y-6">
-						<h4 className="text-lg font-medium text-foreground">
+						<h3 className="text-lg font-medium text-foreground">
 							Ready to Spin?
-						</h4>
+						</h3>
 						<p className="text-foreground/70 font-light leading-relaxed">
 							Experience the next generation of NFT gacha with complete fairness
 							and transparency.

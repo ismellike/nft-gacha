@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
+import { expectNoA11yViolations } from "../../test/axe-helper";
 import { Chip } from "../Chip";
 
 describe("Chip", () => {
@@ -43,5 +44,10 @@ describe("Chip", () => {
 			</Chip>,
 		);
 		expect(screen.getByTestId("chip")).toHaveClass("custom-class");
+	});
+
+	it("has no accessibility violations", async () => {
+		const { container } = render(<Chip>Accessible</Chip>);
+		await expectNoA11yViolations(container);
 	});
 });

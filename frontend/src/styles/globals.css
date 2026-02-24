@@ -18,8 +18,14 @@ a {
 	text-decoration: none;
 }
 
-/* Accessible focus styles for links */
-a:focus-visible {
+/* Accessible focus styles for interactive elements */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
 	outline: 2px solid rgba(201, 168, 108, 0.6);
 	outline-offset: 2px;
 	border-radius: 4px;
@@ -28,7 +34,13 @@ a:focus-visible {
 
 /* High contrast focus for better visibility */
 @media (prefers-contrast: high) {
-	a:focus-visible {
+	a:focus-visible,
+	button:focus-visible,
+	[role="button"]:focus-visible,
+	input:focus-visible,
+	select:focus-visible,
+	textarea:focus-visible,
+	[tabindex]:not([tabindex="-1"]):focus-visible {
 		outline-width: 3px;
 		outline-color: rgb(201, 168, 108);
 		background-color: rgba(201, 168, 108, 0.2);

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import { expectNoA11yViolations } from "../../test/axe-helper";
 import { Card } from "../Card";
 
 describe("Card", () => {
@@ -40,5 +41,10 @@ describe("Card", () => {
 			</Card>,
 		);
 		expect(screen.getByTestId("card")).toBeInTheDocument();
+	});
+
+	it("has no accessibility violations", async () => {
+		const { container } = render(<Card>Accessible content</Card>);
+		await expectNoA11yViolations(container);
 	});
 });

@@ -48,9 +48,9 @@ export const Header = memo(() => {
 									/>
 								</motion.div>
 							</div>
-							<h1 className="text-3xl font-black font-orbitron bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent group-hover:from-warning/90 group-hover:to-orange-400/90 transition-all duration-300">
+							<span className="text-3xl font-black font-orbitron bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent group-hover:from-warning/90 group-hover:to-orange-400/90 transition-all duration-300">
 								SPINFI
-							</h1>
+							</span>
 						</Link>
 
 						{/* Desktop Navigation */}

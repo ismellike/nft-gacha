@@ -99,6 +99,7 @@ export function AppraisalFormFields({
 						onChange={(e) => onInputChange("collection", e.target.value)}
 						onBlur={() => touchField("collection")}
 						disabled={isPending}
+						aria-required="true"
 						className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
 							fields.collection?.isTouched && !fields.collection?.isValid
 								? "border-danger bg-danger/10 focus:border-danger focus:ring-danger/30"
@@ -153,6 +154,7 @@ export function AppraisalFormFields({
 						onChange={(e) => onInputChange("tokenId", e.target.value)}
 						onBlur={() => touchField("tokenId")}
 						disabled={isPending}
+						aria-required="true"
 						className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
 							fields.tokenId?.isTouched && !fields.tokenId?.isValid
 								? "border-danger bg-danger/10 focus:border-danger focus:ring-danger/30"

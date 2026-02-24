@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
+import { expectNoA11yViolations } from "../../test/axe-helper";
 import { Button } from "../Button";
 
 describe("Button", () => {
@@ -66,5 +67,10 @@ describe("Button", () => {
 			<Button endContent={<span data-testid="end-icon">E</span>}>Text</Button>,
 		);
 		expect(screen.getByTestId("end-icon")).toBeInTheDocument();
+	});
+
+	it("has no accessibility violations", async () => {
+		const { container } = render(<Button>Accessible</Button>);
+		await expectNoA11yViolations(container);
 	});
 });

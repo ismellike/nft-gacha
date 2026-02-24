@@ -11,11 +11,11 @@ import {
 export function getNavIcon(iconName: string, className: string) {
 	switch (iconName) {
 		case "home":
-			return <HomeIcon className={className} />;
+			return <HomeIcon className={className} aria-hidden="true" />;
 		case "dice":
-			return <CubeIcon className={className} />;
+			return <CubeIcon className={className} aria-hidden="true" />;
 		case "search":
-			return <MagnifyingGlassIcon className={className} />;
+			return <MagnifyingGlassIcon className={className} aria-hidden="true" />;
 		default:
 			console.warn(`Nav icon "${iconName}" not found`);
 			return null;

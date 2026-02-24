@@ -108,7 +108,11 @@ export function showToast({
 	if (action) {
 		return toast(
 			(t) => (
-				<div className="glass-card !bg-content1/30 !border-white/20 !text-foreground rounded-xl overflow-hidden">
+				<div
+					className="glass-card !bg-content1/30 !border-white/20 !text-foreground rounded-xl overflow-hidden"
+					role={type === "error" ? "alert" : "status"}
+					aria-live={type === "error" ? "assertive" : "polite"}
+				>
 					<div className="flex items-start gap-3 p-4">
 						<div
 							className={`${toastStyles[type]} rounded-full p-2 flex-shrink-0`}
@@ -140,7 +144,11 @@ export function showToast({
 
 	return toast(
 		(t) => (
-			<div className="glass-card !bg-content1/30 !border-white/20 !text-foreground rounded-xl overflow-hidden">
+			<div
+				className="glass-card !bg-content1/30 !border-white/20 !text-foreground rounded-xl overflow-hidden"
+				role={type === "error" ? "alert" : "status"}
+				aria-live={type === "error" ? "assertive" : "polite"}
+			>
 				<div className="flex items-start gap-3 p-4">
 					<div
 						className={`${toastStyles[type]} rounded-full p-2 flex-shrink-0`}
@@ -155,6 +163,7 @@ export function showToast({
 						type="button"
 						onClick={() => toast.dismiss(t.id)}
 						className="text-foreground/50 hover:text-foreground flex-shrink-0"
+						aria-label="Dismiss notification"
 					>
 						<svg
 							className="w-4 h-4"
