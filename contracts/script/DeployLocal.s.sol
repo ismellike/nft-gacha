@@ -148,8 +148,7 @@ contract DeployLocal is Script {
         // Deploy or use existing USDC
         d.usdc = _resolveUSDC(deployer, cfg);
 
-        // Deploy all contracts
-        _deployImplementations(d);
+        // Deploy all contracts (implementations created inline in each proxy deploy)
         _deployProxies(d, deployer);
         _deployServiceHandlers(d, wavsServiceManager);
 
@@ -193,17 +192,6 @@ contract DeployLocal is Script {
             cfg.deployedTestUSDC = true;
             return address(usdc);
         }
-    }
-
-    function _deployImplementations(Deployments memory) internal {
-        // Store implementation addresses in temporary storage to avoid stack issues
-        // Implementations are deployed but addresses not stored in memory
-        new NFTAppraisal();
-        new GachaTreasury();
-        new DepositorVault();
-        new ProtocolTreasury();
-        new GachaEconomyManager();
-        new Gacha();
     }
 
     function _deployProxies(Deployments memory d, address deployer) internal {

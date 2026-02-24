@@ -60,7 +60,7 @@ export function SpinVisual({
 				{/* Inner glass surface */}
 				<div className="w-full h-full rounded-full bg-gradient-to-br from-background to-background/80 backdrop-blur-xl flex items-center justify-center border border-warning/30 relative overflow-hidden">
 					{/* Shimmer effect */}
-					<div className="absolute inset-0 bg-gradient-to-r from-transparent via-warning/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1500"></div>
+					<div className="absolute inset-0 bg-gradient-to-r from-transparent via-warning/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms]"></div>
 
 					{/* Spin-Fi Logo */}
 					<div className="relative z-10 filter drop-shadow-2xl">

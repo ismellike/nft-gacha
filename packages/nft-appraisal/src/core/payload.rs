@@ -52,12 +52,11 @@ pub fn compute_group_id(
 
 pub fn extract_tx_hash(tx_hash_bytes: &[u8]) -> B256 {
     let mut hash_bytes = [0u8; 32];
-    let src = tx_hash_bytes;
-    if src.len() == 32 {
-        hash_bytes.copy_from_slice(src);
+    if tx_hash_bytes.len() == 32 {
+        hash_bytes.copy_from_slice(tx_hash_bytes);
     } else {
-        let copy_len = src.len().min(32);
-        hash_bytes[32 - copy_len..].copy_from_slice(&src[src.len() - copy_len..]);
+        let copy_len = tx_hash_bytes.len().min(32);
+        hash_bytes[32 - copy_len..].copy_from_slice(&tx_hash_bytes[tx_hash_bytes.len() - copy_len..]);
     }
     B256::from(hash_bytes)
 }

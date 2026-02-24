@@ -292,8 +292,11 @@ contract DepositorVault is
 
         uint256 accrued = (share * accYieldPerShare) / REWARD_PRECISION;
         uint256 debt = _rewardDebt[account];
-        if (accrued > debt) {
-            _unclaimed[account] += accrued - debt;
+        // Invariant: accYieldPerShare is monotonically increasing, so accrued >= debt
+        assert(accrued >= debt);
+        uint256 pending = accrued - debt;
+        if (pending > 0) {
+            _unclaimed[account] += pending;
         }
         _rewardDebt[account] = accrued;
     }
