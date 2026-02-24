@@ -57,6 +57,12 @@ contract GachaEconomyManager is
     /// @notice Total queued yield that has been released to depositors
     uint256 public totalQueuedYieldReleased;
 
+    /// @notice Custom errors
+    error CallerNotGacha();
+    error ZeroAddress();
+    error ZeroRevenue();
+    error InvalidRevenueSplit();
+
     /// @notice Events for admin changes
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
     event GachaUpdated(address indexed previousGacha, address indexed newGacha);
@@ -66,12 +72,8 @@ contract GachaEconomyManager is
     event QueuedDepositorYieldProcessed(uint256 amount);
 
     modifier onlyGacha() {
-        _onlyGacha();
+        if (msg.sender != gacha) revert CallerNotGacha();
         _;
-    }
-
-    function _onlyGacha() internal view {
-        require(msg.sender == gacha, "GachaEconomyManager: caller not gacha");
     }
 
     /**
@@ -89,11 +91,11 @@ contract GachaEconomyManager is
         address depositorVault_,
         address protocolTreasury_
     ) external initializer {
-        require(owner != address(0), "GachaEconomyManager: owner is zero");
-        require(feeToken_ != address(0), "GachaEconomyManager: token is zero");
-        require(gacha_ != address(0), "GachaEconomyManager: gacha is zero");
-        require(depositorVault_ != address(0), "GachaEconomyManager: depositor vault is zero");
-        require(protocolTreasury_ != address(0), "GachaEconomyManager: protocol treasury is zero");
+        if (owner == address(0)) revert ZeroAddress();
+        if (feeToken_ == address(0)) revert ZeroAddress();
+        if (gacha_ == address(0)) revert ZeroAddress();
+        if (depositorVault_ == address(0)) revert ZeroAddress();
+        if (protocolTreasury_ == address(0)) revert ZeroAddress();
 
         __Ownable_init(owner);
         __Pausable_init();
@@ -117,7 +119,7 @@ contract GachaEconomyManager is
         whenNotPaused
         nonReentrant
     {
-        require(usdcAmount > 0, "GachaEconomyManager: zero revenue");
+        if (usdcAmount == 0) revert ZeroRevenue();
 
         // Pull funds from Gacha
         feeToken.safeTransferFrom(msg.sender, address(this), usdcAmount);
@@ -178,7 +180,7 @@ contract GachaEconomyManager is
      * @notice Updates the fee split (BPS must sum to <= 10_000)
      */
     function setRevenueSplit(uint256 depositorBps, uint256 protocolBps) external onlyOwner {
-        require(depositorBps + protocolBps == BPS_DENOMINATOR, "GachaEconomyManager: must sum to 100%");
+        if (depositorBps + protocolBps != BPS_DENOMINATOR) revert InvalidRevenueSplit();
 
         depositorShareBps = depositorBps;
         protocolShareBps = protocolBps;
@@ -190,7 +192,7 @@ contract GachaEconomyManager is
      * @notice Updates the fee token
      */
     function setFeeToken(address newToken) external onlyOwner {
-        require(newToken != address(0), "GachaEconomyManager: token is zero");
+        if (newToken == address(0)) revert ZeroAddress();
         address previous = address(feeToken);
         feeToken = IERC20(newToken);
         emit FeeTokenUpdated(previous, newToken);
@@ -200,7 +202,7 @@ contract GachaEconomyManager is
      * @notice Updates the gacha contract address
      */
     function setGacha(address newGacha) external onlyOwner {
-        require(newGacha != address(0), "GachaEconomyManager: gacha is zero");
+        if (newGacha == address(0)) revert ZeroAddress();
         address previous = gacha;
         gacha = newGacha;
         emit GachaUpdated(previous, newGacha);

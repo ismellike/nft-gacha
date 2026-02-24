@@ -115,13 +115,13 @@ contract GachaEconomyManagerTest is StandardTest {
 
     function testOnSpinRevenueFailsWithZeroAmount() public {
         vm.prank(localGacha);
-        vm.expectRevert("GachaEconomyManager: zero revenue");
+        vm.expectRevert(GachaEconomyManager.ZeroRevenue.selector);
         economy.onSpinRevenue(0, GachaTreasury.Rarity.Common);
     }
 
     function testOnSpinRevenueAuthorization() public {
         vm.prank(user);
-        vm.expectRevert("GachaEconomyManager: caller not gacha");
+        vm.expectRevert(GachaEconomyManager.CallerNotGacha.selector);
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
     }
 
@@ -147,13 +147,13 @@ contract GachaEconomyManagerTest is StandardTest {
 
     function testSetRevenueSplitFailsWhenInvalid() public {
         vm.prank(economyOwner);
-        vm.expectRevert("GachaEconomyManager: must sum to 100%");
+        vm.expectRevert(GachaEconomyManager.InvalidRevenueSplit.selector);
         economy.setRevenueSplit(10_001, 0);
     }
 
     function testSetRevenueSplitFailsWithZeroSum() public {
         vm.prank(economyOwner);
-        vm.expectRevert("GachaEconomyManager: must sum to 100%");
+        vm.expectRevert(GachaEconomyManager.InvalidRevenueSplit.selector);
         economy.setRevenueSplit(0, 0);
     }
 

@@ -15,7 +15,7 @@ export interface RarityConfigItem {
 	borderColor: string;
 	textColor: string;
 	chipColor:
-		| "default"
+		| "glass"
 		| "primary"
 		| "secondary"
 		| "success"
@@ -34,7 +34,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfigItem> = {
 		bgGradient: "from-rarity-common-500 to-rarity-common-600",
 		borderColor: "border-rarity-common-500/50",
 		textColor: "text-rarity-common-200",
-		chipColor: "default" as const,
+		chipColor: "glass" as const,
 		glowColor: "shadow-rarity-common-500/20",
 		hexColor: "#9CA3AF", // Gray
 		description: "Standard cards with steady rewards and high availability",

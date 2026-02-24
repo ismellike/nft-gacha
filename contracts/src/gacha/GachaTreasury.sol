@@ -783,6 +783,10 @@ contract GachaTreasury is
                 _addUserGroupId(msg.sender, cardId);
             }
 
+            // Track lifetime statistics (mirrors single depositNFT)
+            userLifetimeDeposited[msg.sender] += priceUSD;
+            globalLifetimeDeposited += priceUSD;
+
             emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
         }
 

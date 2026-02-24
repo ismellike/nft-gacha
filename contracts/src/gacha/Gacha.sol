@@ -769,7 +769,14 @@ contract Gacha is
         }
 
         if (assigned < TOTAL_WEIGHT) {
-            weights[0] += TOTAL_WEIGHT - assigned;
+            // Assign remainder to first non-zero weight to avoid
+            // routing probability to an empty rarity pool
+            for (uint256 i = 0; i < 5; i++) {
+                if (weights[i] > 0) {
+                    weights[i] += TOTAL_WEIGHT - assigned;
+                    break;
+                }
+            }
         }
     }
 

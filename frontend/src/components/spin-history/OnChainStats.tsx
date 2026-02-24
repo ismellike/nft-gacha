@@ -126,11 +126,9 @@ export function OnChainStats({
 			? ((Number(spinAnalytics.totalReclaims) / userSpins) * 100).toFixed(1)
 			: "0";
 
-	// Map chipColor "default" to "glass" for Chip component compatibility
 	const mapChipColor = (
 		chipColor: string,
 	): "primary" | "secondary" | "success" | "warning" | "danger" | "glass" => {
-		if (chipColor === "default") return "glass";
 		return chipColor as
 			| "primary"
 			| "secondary"

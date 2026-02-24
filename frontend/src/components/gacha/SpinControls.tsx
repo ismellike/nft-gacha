@@ -777,7 +777,6 @@ const SpinControls = memo(function SpinControls({
 						maxFee: maxFee?.toString(),
 						permitDeadline: permitDeadline?.toString(),
 						signatureUsed: !!usedSignature,
-						blockExplorer: `https://holesky.etherscan.io/address/${contracts.gacha}`,
 						tokenName,
 						tokenVersion: "1",
 						chainId,
@@ -1100,7 +1099,7 @@ const SpinControls = memo(function SpinControls({
 						triggerId: gachaSpin.triggerId,
 						contract: contracts.gacha,
 						userAddress,
-						blockExplorer: `https://holesky.etherscan.io/address/${contracts.gacha}`,
+						chainId,
 					},
 				});
 			}

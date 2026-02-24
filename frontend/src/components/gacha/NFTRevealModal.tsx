@@ -406,7 +406,7 @@ export default function NFTRevealModal({
 		>
 			<ModalContent>
 				<DialogTitle className="sr-only">
-					{resultRarity} {nftResult.rarity} NFT Revealed
+					{rarityConfig.name} NFT Revealed
 				</DialogTitle>
 				<ModalBody
 					className="relative overflow-hidden p-0 min-h-screen flex items-center justify-center pointer-events-auto"

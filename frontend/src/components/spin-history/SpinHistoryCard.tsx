@@ -58,11 +58,7 @@ const SpinHistoryCard = memo(
 				? getRarityConfig(rarityFromNumber(entry.rarity))
 				: null;
 
-		// Map "default" rarity color to "glass" for Chip compatibility
-		const rarityColor =
-			rarityConfig?.chipColor === "default"
-				? "glass"
-				: (rarityConfig?.chipColor ?? "glass");
+		const rarityColor = rarityConfig?.chipColor ?? "glass";
 
 		const statusVariant =
 			entry.status === "completed"
