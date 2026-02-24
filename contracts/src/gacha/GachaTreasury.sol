@@ -55,6 +55,7 @@ contract GachaTreasury is
     error InvalidDepositorVault();
     error InvalidProtocolTreasury();
     error UnauthorizedProtocolTreasury();
+    error TreasuryRotationBlocked();
     error InsufficientDepositorValue();
 
     /// @notice Maximum batch operation limits for gas optimization
@@ -641,7 +642,7 @@ contract GachaTreasury is
 
         // Prevent treasury rotation unless all NFTs are withdrawn to avoid yield loss
         // Existing inventory would keep old treasury as depositor, locking vault shares and yield
-        require(userTotalDeposits[protocolTreasury] == 0, "TreasuryRotation: Must drain inventory before rotation");
+        if (userTotalDeposits[protocolTreasury] != 0) revert TreasuryRotationBlocked();
 
         address previous = protocolTreasury;
         protocolTreasury = _protocolTreasury;

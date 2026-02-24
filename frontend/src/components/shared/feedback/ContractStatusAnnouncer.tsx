@@ -6,7 +6,7 @@ import {
 	ExclamationTriangleIcon,
 	InformationCircleIcon,
 } from "@heroicons/react/24/outline";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "../../../lib/theme-config";
 
 export type ContractStatusType = "success" | "error" | "pending" | "info";
@@ -27,27 +27,10 @@ interface ContractStatusAnnouncerProps {
 
 export function ContractStatusAnnouncer({
 	status,
-	clearAfterMs = 5000,
 	className,
 	compact = false,
 }: ContractStatusAnnouncerProps) {
-	const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 	const statusRef = useRef<HTMLOutputElement>(null);
-
-	// Clear status after timeout
-	useEffect(() => {
-		if (status && !status.persistent && clearAfterMs > 0) {
-			timeoutRef.current = setTimeout(() => {
-				// Status will be cleared by parent component
-			}, clearAfterMs);
-		}
-
-		return () => {
-			if (timeoutRef.current) {
-				clearTimeout(timeoutRef.current);
-			}
-		};
-	}, [status, clearAfterMs]);
 
 	if (!status) return null;
 

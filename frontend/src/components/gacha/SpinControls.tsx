@@ -255,7 +255,6 @@ const SpinControls = memo(function SpinControls({
 		writeContract: reclaimFailedSpin,
 		data: reclaimTxHash,
 		isPending: isReclaimPending,
-		isSuccess: _,
 		error: reclaimError,
 	} = useWriteGachaReclaimFailedSpin();
 

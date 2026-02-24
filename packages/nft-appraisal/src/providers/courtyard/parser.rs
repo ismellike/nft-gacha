@@ -278,11 +278,11 @@ impl AttributeParser {
     }
 }
 
-/// TryInto implementation for converting NFTMetadata to ScrydexCardInfo
-impl TryInto<ScrydexCardInfo> for &NFTMetadata {
+/// TryFrom implementation for converting NFTMetadata to ScrydexCardInfo
+impl TryFrom<&NFTMetadata> for ScrydexCardInfo {
     type Error = anyhow::Error;
 
-    fn try_into(self) -> Result<ScrydexCardInfo> {
+    fn try_from(value: &NFTMetadata) -> Result<ScrydexCardInfo> {
         let mut card_number = None;
         let mut grade = None;
         let mut company = None;
@@ -291,7 +291,7 @@ impl TryInto<ScrydexCardInfo> for &NFTMetadata {
         let mut variant_parts = Vec::new();
 
         // Extract information from attributes
-        for attr in &self.attributes {
+        for attr in &value.attributes {
             if let Some(trait_type) = &attr.trait_type {
                 let value_str = AttributeParser::attribute_value_as_string(&attr.value);
 

@@ -81,18 +81,34 @@ impl AppraisalCache {
 
     pub fn get(&self, cache_key: &str) -> Result<CacheResult> {
         if let Some(ref bucket) = self.bucket {
-            if let Ok(Some(cached_data)) = bucket.get(cache_key) {
-                if let Ok(cached_str) = String::from_utf8(cached_data) {
-                    if let Ok(cached_quote) =
-                        serde_json::from_str::<CachedResolverQuote>(&cached_str)
-                    {
-                        if !cached_quote.is_expired() {
-                            return Ok(match cached_quote.into_quote() {
-                                Some(quote) => CacheResult::Hit(quote),
-                                None => CacheResult::NegativeHit,
-                            });
+            match bucket.get(cache_key) {
+                Ok(Some(cached_data)) => {
+                    match String::from_utf8(cached_data) {
+                        Ok(cached_str) => {
+                            match serde_json::from_str::<CachedResolverQuote>(&cached_str) {
+                                Ok(cached_quote) => {
+                                    if !cached_quote.is_expired() {
+                                        return Ok(match cached_quote.into_quote() {
+                                            Some(quote) => CacheResult::Hit(quote),
+                                            None => CacheResult::NegativeHit,
+                                        });
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("WARN: cache entry '{cache_key}' corrupted (JSON): {e}");
+                                    let _ = bucket.delete(cache_key);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("WARN: cache entry '{cache_key}' corrupted (UTF-8): {e}");
+                            let _ = bucket.delete(cache_key);
                         }
                     }
+                }
+                Ok(None) => {}
+                Err(e) => {
+                    eprintln!("WARN: cache read error for '{cache_key}': {e}");
                 }
             }
         }

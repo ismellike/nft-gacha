@@ -46,7 +46,14 @@ pub fn get_gas_price() -> Result<Option<u128>, String> {
     let gas_price_str = match strategy.as_str() {
         "fast" => &response.result.fast_gas_price,
         "slow" | "safe" => &response.result.safe_gas_price,
-        _ => &response.result.propose_gas_price,
+        "standard" => &response.result.propose_gas_price,
+        unknown => {
+            host::log(
+                LogLevel::Warn,
+                &format!("Unknown gas_strategy '{unknown}', falling back to 'standard'"),
+            );
+            &response.result.propose_gas_price
+        }
     };
 
     let gas_price_gwei: f64 = gas_price_str

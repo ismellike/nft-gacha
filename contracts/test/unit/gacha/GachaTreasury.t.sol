@@ -561,7 +561,7 @@ contract GachaTreasuryTest is StandardTest {
 
         // Attempt to rotate - should fail
         vm.prank(owner);
-        vm.expectRevert("TreasuryRotation: Must drain inventory before rotation");
+        vm.expectRevert(GachaTreasury.TreasuryRotationBlocked.selector);
         treasury.setProtocolTreasury(address(0x456));
     }
 
