@@ -20,7 +20,6 @@ interface ContractStatusUpdate {
 
 interface ContractStatusAnnouncerProps {
 	status?: ContractStatusUpdate | null;
-	clearAfterMs?: number;
 	className?: string;
 	compact?: boolean;
 }
@@ -121,101 +120,3 @@ export function useContractStatusAnnouncer() {
 	};
 }
 
-// Predefined status messages for common contract interactions
-export const ContractStatusMessages = {
-	// Wallet connection
-	walletConnected: {
-		type: "success" as ContractStatusType,
-		message: "Wallet connected successfully",
-	},
-	walletDisconnected: {
-		type: "info" as ContractStatusType,
-		message: "Wallet disconnected",
-	},
-	walletSwitchingNetwork: {
-		type: "pending" as ContractStatusType,
-		message: "Switching network...",
-	},
-	walletNetworkSwitched: {
-		type: "success" as ContractStatusType,
-		message: "Network switched successfully",
-	},
-
-	// Transaction status
-	transactionPending: {
-		type: "pending" as ContractStatusType,
-		message: "Transaction submitted, waiting for confirmation...",
-		persistent: true,
-	},
-	transactionConfirmed: {
-		type: "success" as ContractStatusType,
-		message: "Transaction confirmed successfully",
-	},
-	transactionFailed: {
-		type: "error" as ContractStatusType,
-		message: "Transaction failed. Please try again.",
-	},
-
-	// Gacha-specific
-	gachaSpinning: {
-		type: "pending" as ContractStatusType,
-		message: "Spinning gacha... WAVS randomness in progress",
-		persistent: true,
-	},
-	gachaRevealing: {
-		type: "pending" as ContractStatusType,
-		message: "Revealing your NFT reward...",
-		persistent: true,
-	},
-	gachaComplete: {
-		type: "success" as ContractStatusType,
-		message: "Congratulations! You won an NFT",
-	},
-	gachaRefunded: {
-		type: "info" as ContractStatusType,
-		message: "No NFTs available in rarity pool. Fee refunded.",
-	},
-
-	// Appraisal-specific
-	appraisalSubmitted: {
-		type: "pending" as ContractStatusType,
-		message: "Appraisal submitted. Waiting for oracle results...",
-		persistent: true,
-	},
-	appraisalComplete: {
-		type: "success" as ContractStatusType,
-		message: "NFT appraisal completed successfully",
-	},
-	appraisalFailed: {
-		type: "error" as ContractStatusType,
-		message: "Appraisal failed. The fee will be refunded.",
-	},
-
-	// General contract errors
-	contractCallFailed: {
-		type: "error" as ContractStatusType,
-		message: "Contract call failed. Please check your wallet and try again.",
-	},
-	insufficientFunds: {
-		type: "error" as ContractStatusType,
-		message: "Insufficient funds for this transaction",
-	},
-	userRejected: {
-		type: "info" as ContractStatusType,
-		message: "Transaction cancelled by user",
-	},
-
-	// Network status
-	networkConnected: {
-		type: "success" as ContractStatusType,
-		message: "Connected to network",
-	},
-	networkDisconnected: {
-		type: "error" as ContractStatusType,
-		message: "Lost connection to network",
-	},
-	networkReconnected: {
-		type: "success" as ContractStatusType,
-		message: "Network connection restored",
-	},
-};

@@ -10,7 +10,7 @@ import { NFTCard } from "../../nft";
 import RevealStep, { RevealStepGroup } from "../RevealStep";
 
 // Get all possible phases in their correct order
-export const ALL_PHASES: RevealPhase[] = [
+const ALL_PHASES: RevealPhase[] = [
 	"year",
 	"setName",
 	"name",
@@ -32,7 +32,7 @@ export const shouldShowItemInAvailable = (
 };
 
 // Calculate staggered delay for each trait to prevent simultaneous animations
-export const getTraitStaggerDelay = (traitPhase: RevealPhase): number => {
+const getTraitStaggerDelay = (traitPhase: RevealPhase): number => {
 	const traitIndex = ALL_PHASES.indexOf(traitPhase);
 	return traitIndex * STAGGER_DELAY_PER_TRAIT;
 };

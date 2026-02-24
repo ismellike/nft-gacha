@@ -6,7 +6,6 @@ import type {
 	SpinHistoryStats,
 } from "../types/spin-history";
 import {
-	Mutex,
 	computeStats,
 	filterEntries,
 	filteredEntriesCache,
@@ -14,9 +13,6 @@ import {
 	statsCache,
 } from "./spinHistoryUtils";
 import { getSpinKey } from "./storeUtils";
-
-// Create a mutex instance for spin history updates
-const appendMutex = new Mutex();
 
 /**
  * Default pagination settings
@@ -116,35 +112,25 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 
 	appendEntries: async (userAddress, gachaAddress, newEntries) => {
 		const key = getSpinKey(userAddress, gachaAddress);
-
-		// Acquire mutex lock to prevent concurrent updates
-		await appendMutex.acquire();
-
-		try {
-			// Invalidate cache before updating entries
-			invalidateCache(key);
-			set((state) => {
-				const existing = state.entries[key] || [];
-				// Merge entries, avoiding duplicates by triggerId
-				const merged = [...existing];
-				for (const entry of newEntries) {
-					if (!merged.some((e) => e.triggerId === entry.triggerId)) {
-						merged.push(entry);
-					}
+		invalidateCache(key);
+		set((state) => {
+			const existing = state.entries[key] || [];
+			// Merge entries, avoiding duplicates by triggerId
+			const merged = [...existing];
+			for (const entry of newEntries) {
+				if (!merged.some((e) => e.triggerId === entry.triggerId)) {
+					merged.push(entry);
 				}
-				// Sort by timestamp descending
-				merged.sort((a, b) => b.timestamp - a.timestamp);
-				return {
-					entries: {
-						...state.entries,
-						[key]: merged,
-					},
-				};
-			});
-		} finally {
-			// Always release the mutex
-			appendMutex.release();
-		}
+			}
+			// Sort by timestamp descending
+			merged.sort((a, b) => b.timestamp - a.timestamp);
+			return {
+				entries: {
+					...state.entries,
+					[key]: merged,
+				},
+			};
+		});
 	},
 
 	setPagination: (userAddress, gachaAddress, partialPagination) => {

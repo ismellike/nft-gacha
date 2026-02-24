@@ -5,46 +5,6 @@ import type {
 } from "../types/spin-history";
 
 /**
- * Mutex for preventing race conditions in concurrent updates
- */
-export class Mutex {
-	private locked = false;
-	private waitQueue: Array<() => void> = [];
-
-	async acquire(timeoutMs = 10_000): Promise<void> {
-		if (!this.locked) {
-			this.locked = true;
-			return;
-		}
-
-		return new Promise((resolve, reject) => {
-			const timer = setTimeout(() => {
-				const idx = this.waitQueue.indexOf(wrappedResolve);
-				if (idx !== -1) this.waitQueue.splice(idx, 1);
-				reject(new Error(`Mutex acquire timed out after ${timeoutMs}ms`));
-			}, timeoutMs);
-
-			const wrappedResolve = () => {
-				clearTimeout(timer);
-				resolve();
-			};
-
-			this.waitQueue.push(wrappedResolve);
-		});
-	}
-
-	release(): void {
-		if (this.waitQueue.length > 0) {
-			// biome-ignore lint/style/noNonNullAssertion: waitQueue.length > 0 is checked above
-			const resolve = this.waitQueue.shift()!;
-			resolve();
-		} else {
-			this.locked = false;
-		}
-	}
-}
-
-/**
  * Simple memoization cache for computed values per key
  */
 interface CacheEntry<T> {

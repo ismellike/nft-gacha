@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { subscribeWithSelector } from "zustand/middleware";
 
 export interface AppraisedNFT {
 	collection: string;
@@ -53,8 +52,7 @@ interface NFTAppraisalStore {
 const getNFTKey = (collection: string, tokenId: string) =>
 	`${collection.toLowerCase()}:${tokenId}`;
 
-export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
-	subscribeWithSelector((set, get) => ({
+export const useNFTAppraisalStore = create<NFTAppraisalStore>()((set, get) => ({
 		appraisals: {},
 		optimisticSubmissions: {},
 		loading: {},
@@ -213,8 +211,7 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()(
 				},
 			}));
 		},
-	})),
-);
+	}));
 
 // Selectors for common use cases
 export const useUserAppraisals = (userAddress: string | undefined) => {

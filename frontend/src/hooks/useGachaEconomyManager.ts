@@ -137,7 +137,7 @@ export function useGachaEconomyManagerData({
 }
 
 // Helper function to format basis points to percentage
-export function formatBpsToPercentage(bps: bigint | undefined): string {
+function formatBpsToPercentage(bps: bigint | undefined): string {
 	if (bps === undefined) return "0%";
 	return `${Number(bps) / 100}%`;
 }
