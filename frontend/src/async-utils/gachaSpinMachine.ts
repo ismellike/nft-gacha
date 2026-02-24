@@ -305,7 +305,7 @@ export const loadFromStorage = (
 	const pendingSpin = useGachaStore
 		.getState()
 		.getPendingSpin(userAddress, gachaAddress);
-	return pendingSpin?.triggerId || null;
+	return pendingSpin?.triggerId ?? null;
 };
 
 // Utility function to clear all pending spins

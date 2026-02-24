@@ -159,17 +159,10 @@ contract GachaEconomyManager is
             protocolTreasury.onRevenueReceived(protocolShare);
         }
 
-        // Only auto-claim for protocol if it has meaningful shares and pending yield
-        address protocolTreasuryAddr = address(protocolTreasury);
-        if (protocolTreasuryAddr != address(0)) {
-            uint256 protocolShares = depositorVault.sharesOf(protocolTreasuryAddr);
-            if (protocolShares > 0) {
-                uint256 pending = depositorVault.pendingYield(protocolTreasuryAddr);
-                if (pending > 0) {
-                    depositorVault.claimYield(protocolTreasuryAddr);
-                }
-            }
-        }
+        // NOTE: Protocol yield auto-claim removed to prevent DoS vector.
+        // If claimYield or downstream protocolTreasury logic reverts,
+        // it would block all spins. Protocol should claim on its own schedule
+        // via depositorVault.claimYield(protocolTreasuryAddress).
 
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;

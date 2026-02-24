@@ -932,6 +932,20 @@ contract GachaTreasury is
 
             userDepositValues[item.depositor][rarity] -= item.appraisedPrice;
             _decreaseActiveValue(item.depositor, item.appraisedPrice);
+
+            // Update card tracking (mirrors withdrawMyNFT logic)
+            bytes32 cardId = appraisalContract.getTokenCardId(item.collection, item.tokenId);
+            if (cardId != bytes32(0)) {
+                uint256 cardCount = userCardDeposits[item.depositor][cardId];
+                if (cardCount > 0) {
+                    uint256 newCount = cardCount - 1;
+                    userCardDeposits[item.depositor][cardId] = newCount;
+                    cardTotalDeposits[cardId]--;
+                    if (newCount == 0) {
+                        _removeUserGroupId(item.depositor, cardId);
+                    }
+                }
+            }
         }
 
         totalRarityValue[rarity] -= item.appraisedPrice;

@@ -27,3 +27,4 @@ alloy-rpc-types = { workspace = true }
 wavs-wasi-utils = { workspace = true }
 wit-bindgen = { workspace = true }
 wasip2 = { workspace = true }
+drand-verify = "0.6.2"

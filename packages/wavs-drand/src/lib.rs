@@ -15,7 +15,7 @@ use anyhow::Result;
 use wstd::runtime::block_on;
 
 use crate::config::Config;
-use crate::drand::DrandClient;
+use crate::drand::{ChainConfig, DrandClient};
 use crate::random_derivation::RandomDerivation;
 use crate::trigger::TriggerInfo;
 
@@ -49,8 +49,17 @@ async fn process_trigger(trigger_action: TriggerAction) -> Result<Vec<WasmRespon
         .await
         .map_err(|e| anyhow::anyhow!("Failed to extract trigger info: {}", e))?;
 
-    // Create drand client and fetch randomness
-    let drand_client = DrandClient::new(config.drand_url, config.drand_chain_hash);
+    // Build chain config for BLS signature verification.
+    let chain_config = ChainConfig::from_chain_hash_and_pubkey(
+        &config.drand_chain_hash,
+        &config.drand_public_key,
+    )
+    .map_err(|e| anyhow::anyhow!("Invalid drand chain configuration: {}", e))?;
+
+    // Create drand client and fetch randomness. Every round is BLS-verified.
+    let drand_client =
+        DrandClient::new(config.drand_url, config.drand_chain_hash, chain_config)
+            .map_err(|e| anyhow::anyhow!("Failed to create drand client: {}", e))?;
     let drand_randomness = drand_client
         .get_round(trigger_info.drand_round)
         .await
