@@ -34,11 +34,11 @@ describe("useFormValidation", () => {
 	it("validateField returns true and marks valid for passing input", () => {
 		const { result } = renderHook(() => useFormValidation(testConfig));
 
-		let isValid: boolean;
+		let isValid = false;
 		act(() => {
 			isValid = result.current.validateField("name", "John");
 		});
-		expect(isValid!).toBe(true);
+		expect(isValid).toBe(true);
 		expect(result.current.fields.name.isValid).toBe(true);
 		expect(result.current.fields.name.isTouched).toBe(true);
 	});
@@ -46,11 +46,11 @@ describe("useFormValidation", () => {
 	it("validateField returns false and sets error for failing input", () => {
 		const { result } = renderHook(() => useFormValidation(testConfig));
 
-		let isValid: boolean;
+		let isValid = false;
 		act(() => {
 			isValid = result.current.validateField("name", "");
 		});
-		expect(isValid!).toBe(false);
+		expect(isValid).toBe(false);
 		expect(result.current.fields.name.isValid).toBe(false);
 		expect(result.current.fields.name.error).toBe("Name is required");
 		expect(result.current.fields.name.isTouched).toBe(true);
@@ -59,37 +59,37 @@ describe("useFormValidation", () => {
 	it("validateField returns true for unknown field", () => {
 		const { result } = renderHook(() => useFormValidation(testConfig));
 
-		let isValid: boolean;
+		let isValid = false;
 		act(() => {
 			isValid = result.current.validateField("unknown", "anything");
 		});
-		expect(isValid!).toBe(true);
+		expect(isValid).toBe(true);
 	});
 
 	it("validateAll returns true when all fields pass", () => {
 		const { result } = renderHook(() => useFormValidation(testConfig));
 
-		let isValid: boolean;
+		let isValid = false;
 		act(() => {
 			isValid = result.current.validateAll({
 				name: "John",
 				email: "john@example.com",
 			});
 		});
-		expect(isValid!).toBe(true);
+		expect(isValid).toBe(true);
 	});
 
 	it("validateAll returns false when any field fails", () => {
 		const { result } = renderHook(() => useFormValidation(testConfig));
 
-		let isValid: boolean;
+		let isValid = false;
 		act(() => {
 			isValid = result.current.validateAll({
 				name: "John",
 				email: "invalid",
 			});
 		});
-		expect(isValid!).toBe(false);
+		expect(isValid).toBe(false);
 		expect(result.current.fields.email.isValid).toBe(false);
 	});
 

@@ -31,7 +31,7 @@ export function mockUseReadContract<TData = unknown>(overrides?: {
 	isLoading?: boolean | undefined;
 	isError?: boolean | undefined;
 	error?: Error | null | undefined;
-	refetch?: () => void | undefined;
+	refetch?: (() => void) | undefined;
 }) {
 	return {
 		data: undefined,

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useNFTInteractionStore } from "../nftInteractionStore";
 
-const mockPublicClient = {} as any;
+const mockPublicClient = {} as import("viem").PublicClient;
 
 const startConfig = {
 	collection: "0xCollection",
