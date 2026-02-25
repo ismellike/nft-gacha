@@ -58,8 +58,6 @@ impl ResolverRegistry {
 
 pub enum RegisteredResolver {
     Scrydex(ScrydexPokemonResolver),
-    #[allow(dead_code)]
-    Custom(ResolverKind, Arc<dyn PriceResolver>),
 }
 
 impl RegisteredResolver {
@@ -68,7 +66,6 @@ impl RegisteredResolver {
             RegisteredResolver::Scrydex(resolver) => {
                 (ResolverKind::PokemonGradedCard, Arc::new(resolver))
             }
-            RegisteredResolver::Custom(kind, resolver) => (kind, resolver),
         }
     }
 }

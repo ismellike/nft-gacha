@@ -420,12 +420,6 @@ contract NFTAppraisal is
         return (ca.priceUSD, ca.status);
     }
 
-    /**
-     * @notice Gets full appraisal details
-     * @param collection NFT collection address
-     * @param tokenId Token ID to query
-     * @return appraisal Complete appraisal record
-     */
     /// @notice Minimal view combining token request and card appraisal
     struct Appraisal {
         address requester;
@@ -435,6 +429,12 @@ contract NFTAppraisal is
         uint256 lastUpdated;
     }
 
+    /**
+     * @notice Gets full appraisal details
+     * @param collection NFT collection address
+     * @param tokenId Token ID to query
+     * @return appraisal Complete appraisal record
+     */
     function getAppraisal(address collection, uint256 tokenId) external view returns (Appraisal memory appraisal) {
         TokenRequest memory tr = tokenRequests[collection][tokenId];
         bytes32 cardId = tokenCardIds[collection][tokenId];
