@@ -8,6 +8,7 @@ export { DepositableNFTCard } from "./DepositableNFTCard";
 // Empty state components
 export { EmptyDepositState } from "./empty-states/EmptyDepositState";
 export { EmptyWithdrawState } from "./empty-states/EmptyWithdrawState";
+export { BatchDepositTab } from "./tabs/BatchDepositTab";
 export { DepositTab } from "./tabs/DepositTab";
 // Tab components
 export { VaultTabNavigation } from "./tabs/VaultTabNavigation";
