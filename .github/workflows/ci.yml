@@ -37,6 +37,14 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build contracts
+        run: forge build
+        working-directory: contracts
 
       - uses: pnpm/action-setup@v4
         with:
@@ -50,6 +58,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Verify codegen is up to date
+        run: |
+          pnpm codegen
+          git diff --exit-code src/generated.ts
 
       - name: Type check
         run: pnpm tsc
@@ -72,5 +85,5 @@ jobs:
       - name: Cargo check (native)
         run: cargo check
 
-      - name: Cargo check (wasm32-wasip2)
-        run: cargo check --target wasm32-wasip2
+      - name: Cargo build (wasm32-wasip2)
+        run: cargo build --target wasm32-wasip2
