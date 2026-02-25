@@ -4,8 +4,17 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright E2E Testing Configuration for SPINFI
  *
- * This configuration sets up end-to-end testing for the NFT Gacha platform,
- * including wallet mocking, local Anvil chain integration, and visual regression tests.
+ * This configuration sets up end-to-end testing for the NFT Gacha platform.
+ *
+ * IMPORTANT: Tests require the Next.js dev server to be running.
+ * Start your dev server manually before running tests:
+ *   pnpm dev   (in a separate terminal, from the frontend/ directory)
+ *
+ * Then run tests with:
+ *   pnpm test:e2e
+ *
+ * The webServer config below uses `reuseExistingServer: true` so tests will
+ * connect to the already-running server rather than starting a new one.
  */
 export default defineConfig({
 	testDir: "./e2e",
@@ -41,14 +50,21 @@ export default defineConfig({
 		},
 	],
 
-	// Local development server configuration
-	// Note: Start your dev server manually before running tests:
-	// 1. In one terminal: cd ../.. && task backend:start
-	// 2. In another terminal: pnpm exec playwright test
-	webServer: {
-		command: "cd ../.. && task backend:start",
-		port: 3000,
-		reuseExistingServer: !process.env.CI,
-		timeout: 120000,
-	},
+	// Expect a running dev server at port 3000.
+	// With reuseExistingServer: true (local) we reuse whatever is already
+	// running (e.g. started via `pnpm dev`).
+	// In CI, set E2E_START_SERVER=true to have Playwright start the server.
+	webServer: process.env.E2E_START_SERVER
+		? {
+				command: "pnpm dev",
+				port: 3000,
+				reuseExistingServer: false,
+				timeout: 120000,
+			}
+		: {
+				command: "pnpm dev",
+				port: 3000,
+				reuseExistingServer: true,
+				timeout: 120000,
+			},
 });
