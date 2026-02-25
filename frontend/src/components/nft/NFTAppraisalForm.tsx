@@ -521,7 +521,6 @@ export function NFTAppraisalForm({
 			setStatus("waitingForCompletion");
 		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : String(error);
-			console.error("Error:", error);
 			setAppraisalError(
 				isUserRejectedError(error)
 					? "Transaction cancelled"

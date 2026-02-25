@@ -315,13 +315,6 @@ export default function BuybackComponent({
 
 	// Handle starting the buyback interaction
 	const handleStartBuyback = useCallback(async () => {
-		console.log("BuybackComponent handleStartBuyback invoked", {
-			status,
-			actionType: actionInfo.type,
-			hasAppraisal,
-			needsApproval,
-			hasEnoughLiquidity,
-		});
 		const priceValue = Array.isArray(appraisalPrice)
 			? (appraisalPrice[0] as unknown as bigint)
 			: (appraisalPrice as unknown as bigint);
@@ -350,7 +343,6 @@ export default function BuybackComponent({
 		}
 
 		try {
-			console.log("BuybackComponent starting interaction", interactionConfig);
 			await startInteraction(collection, tokenId, "buyback", interactionConfig);
 		} catch (error) {
 			console.error("Buyback interaction failed:", error);
@@ -371,18 +363,9 @@ export default function BuybackComponent({
 
 	// Handle button clicks and state machine actions
 	const handleAction = useCallback(async () => {
-		console.log("🎯 BuybackComponent handleAction called", {
-			status,
-			contextMode: context?.mode,
-			isSuccessState,
-			isProcessing,
-			error,
-		});
-
 		// If we're in a completed buyback state, don't allow new interactions
 		// This is intentional - once a buyback is completed, the NFT is no longer owned by the user
 		if (isSuccessState) {
-			console.log("ℹ️ Buyback already completed - NFT no longer owned by user");
 			return;
 		}
 

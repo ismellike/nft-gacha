@@ -50,17 +50,10 @@ export function RewardsRefetchProvider({ children }: { children: ReactNode }) {
 	}, []);
 
 	const triggerAllRefetches = useCallback(async () => {
-		console.log(
-			"🔄 [RewardsRefetchProvider] Triggering all registered refetches",
-		);
-
 		const promises = Object.values(refetchCallbacks.current).map(
 			async (refetchFn, index) => {
 				if (refetchFn) {
 					try {
-						console.log(
-							`🔄 Refetching callback ${index + 1}/${Object.keys(refetchCallbacks.current).length}`,
-						);
 						const result = refetchFn();
 						// Handle both Promise and void return types
 						if (result && typeof result.then === "function") {
@@ -74,7 +67,6 @@ export function RewardsRefetchProvider({ children }: { children: ReactNode }) {
 		);
 
 		await Promise.allSettled(promises);
-		console.log("✅ [RewardsRefetchProvider] All refetches completed");
 	}, []);
 
 	return (
@@ -132,20 +124,11 @@ export function useRewardsData(): RewardsData {
 	// Main refetch function that triggers all registered callbacks
 	const refetchAllRewardsData = useCallback(async (): Promise<void> => {
 		if (!userAddress || !contracts.trackers) {
-			console.log(
-				"Skipping rewards refetch - missing user address or contracts",
-			);
 			return;
 		}
 
-		console.log(
-			"🔄 [useRewardsData] Starting coordinated refetch of all rewards data",
-		);
-
 		// Trigger all registered refetch callbacks
 		await triggerAllRefetches();
-
-		console.log("✅ [useRewardsData] Coordinated refetch completed");
 	}, [userAddress, contracts.trackers, triggerAllRefetches]);
 
 	return {

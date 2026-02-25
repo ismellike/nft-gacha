@@ -77,9 +77,6 @@ function DepositNFTCard({
 								: undefined,
 					}}
 					size="sm"
-					onClick={() =>
-						console.log(`Vault NFT ${nft.collection}:${nft.tokenId} clicked`)
-					}
 					{...(appraisalContractAddress && {
 						appraisalContractAddress,
 					})}

@@ -41,6 +41,9 @@ contract NFTAppraisal is
     error InvalidTreasuryAddress();
     error TreasuryAlreadyWhitelisted();
     error TreasuryNotWhitelisted();
+    error ArrayLengthMismatch();
+    error EmptyArrays();
+    error TooManyItems();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
@@ -211,8 +214,8 @@ contract NFTAppraisal is
         whenNotPaused
         nonReentrant
     {
-        require(collections.length == tokenIds.length, "Array length mismatch");
-        require(collections.length > 0, "Empty arrays");
+        if (collections.length != tokenIds.length) revert ArrayLengthMismatch();
+        if (collections.length == 0) revert EmptyArrays();
 
         uint256 totalFee = appraisalFee * collections.length;
 
@@ -317,12 +320,11 @@ contract NFTAppraisal is
         bytes32[] calldata cardIds,
         uint256[] calldata pricesUSD
     ) external onlyOwner whenNotPaused nonReentrant {
-        require(
-            collections.length == tokenIds.length && tokenIds.length == cardIds.length
-                && cardIds.length == pricesUSD.length,
-            "Array length mismatch"
-        );
-        require(collections.length <= 50, "Too many items");
+        if (
+            collections.length != tokenIds.length || tokenIds.length != cardIds.length
+                || cardIds.length != pricesUSD.length
+        ) revert ArrayLengthMismatch();
+        if (collections.length > 50) revert TooManyItems();
 
         for (uint256 i = 0; i < collections.length; i++) {
             _setAppraisalForTokenWithCard(collections[i], tokenIds[i], cardIds[i], pricesUSD[i], true);
@@ -471,7 +473,7 @@ contract NFTAppraisal is
         view
         returns (uint256[] memory prices, AppraisalStatus[] memory statuses)
     {
-        require(collections.length == tokenIds.length, "Array length mismatch");
+        if (collections.length != tokenIds.length) revert ArrayLengthMismatch();
 
         prices = new uint256[](collections.length);
         statuses = new AppraisalStatus[](collections.length);
@@ -500,7 +502,7 @@ contract NFTAppraisal is
         view
         returns (bool[] memory hasAppraisals)
     {
-        require(collections.length == tokenIds.length, "Array length mismatch");
+        if (collections.length != tokenIds.length) revert ArrayLengthMismatch();
 
         hasAppraisals = new bool[](collections.length);
 

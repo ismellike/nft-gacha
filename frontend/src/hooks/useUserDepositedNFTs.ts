@@ -170,12 +170,7 @@ export function useUserDepositedNFTs(treasury?: Address) {
 				}
 
 				return {};
-			} catch (error) {
-				console.debug(
-					"Failed to get canonical data for NFT",
-					{ collection, tokenId },
-					error,
-				);
+			} catch {
 				return {};
 			}
 		},

@@ -78,7 +78,6 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	// Expose refresh function to parent component
 	useImperativeHandle(ref, () => ({
 		refreshCounts: () => {
-			console.log("🔄 Refreshing rarity counts after spin completion");
 			rarityCountsQuery.refetch();
 		},
 	}));

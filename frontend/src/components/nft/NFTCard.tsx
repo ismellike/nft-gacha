@@ -441,15 +441,6 @@ export const NFTCard = memo<NFTCardProps>(
 		const error = nftData.error;
 		const tokenURI = prefetchedTokenURI || nftData.tokenURI;
 
-		// Debug logging to help diagnose the stuck animation
-		if (prefetchedMetadata) {
-			console.log("[NFTCard] Using prefetched metadata:", {
-				hasMetadata: !!metadata,
-				hasTokenURI: !!metadata?.tokenURI || !!tokenURI,
-				shouldSkipFetch,
-				isLoading,
-			});
-		}
 
 		// Collection name fetching with caching
 		const { data: collectionName } = useReadErc721Name({

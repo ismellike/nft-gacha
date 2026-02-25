@@ -95,10 +95,6 @@ export const useGachaStore = create<GachaStore>()(
 							!fulfilled
 						) {
 							validatedSpins[key] = spin;
-						} else {
-							console.log(
-								`🧹 Removing invalid pending spin for ${spin.userAddress} on ${spin.gachaAddress} (${fulfilled ? "fulfilled" : "not found"})`,
-							);
 						}
 					} catch (error) {
 						console.warn(`Failed to validate pending spin for ${key}:`, error);

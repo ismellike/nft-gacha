@@ -57,6 +57,7 @@ contract GachaTreasury is
     error UnauthorizedProtocolTreasury();
     error TreasuryRotationBlocked();
     error InsufficientDepositorValue();
+    error InvalidLimit();
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -181,6 +182,7 @@ contract GachaTreasury is
         Rarity rarity,
         uint256 appraisedPrice
     );
+    event YieldClaimRecorded(address indexed user, uint256 amount);
 
     /// @notice Restricts access to the authorized gacha contract
     modifier onlyGacha() {
@@ -551,7 +553,7 @@ contract GachaTreasury is
         view
         returns (bytes32[] memory cardIds, uint256 total, bool hasMore)
     {
-        require(limit > 0 && limit <= 100, "Invalid limit: must be 1-100");
+        if (limit == 0 || limit > 100) revert InvalidLimit();
 
         bytes32[] storage list = userGroupIds[user];
         total = list.length;
@@ -1139,6 +1141,8 @@ contract GachaTreasury is
 
         // Update global lifetime claimed analytics
         globalLifetimeClaimed += claimedValueUSD;
+
+        emit YieldClaimRecorded(user, amount);
     }
 
     /// @notice Required for receiving ERC721 tokens
@@ -1172,7 +1176,7 @@ contract GachaTreasury is
         view
         returns (UserCardDeposit[] memory deposits, uint256 total, bool hasMore)
     {
-        require(limit > 0 && limit <= 50, "Invalid limit: must be 1-50");
+        if (limit == 0 || limit > 50) revert InvalidLimit();
         if (user == address(0)) {
             return (new UserCardDeposit[](0), 0, false);
         }

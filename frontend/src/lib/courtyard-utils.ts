@@ -62,11 +62,6 @@ export async function fetchCourtyardMetadata(
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
 		try {
-			console.log(
-				`Fetching Courtyard metadata (attempt ${attempt}/${maxRetries}):`,
-				tokenURI,
-			);
-
 			const timeoutMs = 10000 + attempt * 3000; // Increase timeout with each retry
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -122,13 +117,6 @@ export async function fetchCourtyardMetadata(
 				throw new Error("Invalid Courtyard metadata format");
 			}
 
-			console.log("Successfully fetched Courtyard metadata:", {
-				name: metadata.name,
-				hasImage: !!metadata.image,
-				imageUrl: metadata.image,
-				hasAttributes: !!metadata.attributes?.length,
-			});
-
 			return metadata;
 		} catch (error) {
 			lastError = error as Error;
@@ -152,7 +140,6 @@ export async function fetchCourtyardMetadata(
 			// Wait before retry (exponential backoff)
 			if (attempt < maxRetries) {
 				const delay = Math.min(1000 * 2 ** attempt, 5000);
-				console.log(`Retrying Courtyard fetch in ${delay}ms...`);
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			}
 		}
@@ -176,25 +163,15 @@ export function processCourtyardImageUrl(
 		return null;
 	}
 
-	console.log("Processing Courtyard image URL from metadata:", {
-		hasImage: !!metadata.image,
-		image: metadata.image,
-		hasAttributes: !!metadata.attributes?.length,
-		hasExternalUrl: !!metadata.external_url,
-		metadataKeys: Object.keys(metadata),
-	});
-
 	// Direct image field - most common case
 	if (metadata.image) {
 		const url = metadata.image.trim();
 		if (url.startsWith("http://") || url.startsWith("https://")) {
-			console.log("Found Courtyard image URL in image field:", url);
 			return url;
 		}
 		// Handle IPFS URLs in image field
 		if (url.startsWith("ipfs://")) {
 			const ipfsUrl = url.replace("ipfs://", "https://ipfs.io/ipfs/");
-			console.log("Converted IPFS image URL:", ipfsUrl);
 			return ipfsUrl;
 		}
 	}
@@ -215,15 +192,10 @@ export function processCourtyardImageUrl(
 			if (isImageTrait && typeof attr.value === "string") {
 				const value = attr.value.trim();
 				if (value.startsWith("http://") || value.startsWith("https://")) {
-					console.log("Found Courtyard image in attributes:", {
-						traitType,
-						value,
-					});
 					return value;
 				}
 				if (value.startsWith("ipfs://")) {
 					const ipfsUrl = value.replace("ipfs://", "https://ipfs.io/ipfs/");
-					console.log("Converted IPFS image URL from attributes:", ipfsUrl);
 					return ipfsUrl;
 				}
 			}
@@ -247,7 +219,6 @@ export function processCourtyardImageUrl(
 			isImageUrl &&
 			(url.startsWith("http://") || url.startsWith("https://"))
 		) {
-			console.log("Using external_url as Courtyard image fallback:", url);
 			return url;
 		}
 	}
@@ -266,7 +237,6 @@ export function processCourtyardImageUrl(
 	);
 
 	if (allValues.length > 0) {
-		console.log("Found image URL in metadata fields:", allValues[0]);
 		return allValues[0] as string;
 	}
 

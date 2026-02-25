@@ -9,7 +9,7 @@ import {
 	WalletIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../../../generated";
@@ -313,7 +313,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	}, [displayUserNFTs, state.appraisedNFTs]);
 
 	// Cleanup orphaned state
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!displayUserNFTs.length) {
 			// Avoid infinite loops: only clear when we actually have cached entries
 			if (state.appraisedNFTs.size > 0) {
@@ -391,11 +391,11 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		}
 	}, [treasury, address, getUserDepositedNFTs, appraisal, getCanonicalNFTData]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		loadDepositedNFTs();
 	}, [loadDepositedNFTs]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (activeTab !== "withdraw") {
 			// Clear selection when switching away from withdraw tab
 			updateState("selectedForWithdrawal", new Set());
@@ -404,7 +404,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	}, [activeTab, updateState]);
 
 	// Reconcile optimistic user-owned state when real data changes
-	React.useEffect(() => {
+	useEffect(() => {
 		if (
 			optimisticUserNFTAdds.length === 0 &&
 			optimisticUserNFTRemovals.size === 0
@@ -432,7 +432,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		optimisticUserNFTRemovals.size,
 	]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (optimisticWithdrawals.size === 0) return;
 
 		const depositedKeys = new Set(
@@ -447,7 +447,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		});
 	}, [state.depositedNFTs, optimisticWithdrawals.size]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!pendingDepositKey) return;
 		if (
 			!interactionContext ||

@@ -18,7 +18,7 @@ export { Footer, Header } from "./layout";
 export { GachaCardSkeleton, Skeleton } from "./loading";
 
 // Misc shared
-export { EmptyState, EmptyStateIcons } from "./EmptyState";
+export { EmptyState } from "./EmptyState";
 export { ServiceWorkerRegistrar } from "./service-worker-registrar";
 export { SkipToContent } from "./SkipToContent";
 export { Toaster } from "./Toaster";
