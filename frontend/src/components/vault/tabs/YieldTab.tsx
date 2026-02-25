@@ -3,16 +3,16 @@
 import { motion } from "framer-motion";
 import {
 	calculateUserSharePercentage,
-	type DepositorVaultData,
-	type UserDepositorData,
+	type CardGroupedVaultData,
+	type UserCardGroupedData,
 	useClaimYield,
-} from "../../../hooks/useDepositorVault";
+} from "../../../hooks/useCardGroupedVault";
 import { formatTokenAmount } from "../../../lib/utils";
 import { Button } from "../../../ui";
 
 interface YieldTabProps {
-	depositorUserData: UserDepositorData;
-	depositorData: DepositorVaultData;
+	depositorUserData: UserCardGroupedData;
+	depositorData: CardGroupedVaultData;
 	treasuryAddress?: `0x${string}` | undefined;
 }
 
@@ -99,8 +99,8 @@ export function YieldTab({
 								Total Earned
 							</h4>
 							<p className="text-lg sm:text-xl font-semibold text-foreground">
-								{depositorUserData?.yieldValue
-									? formatTokenAmount(depositorUserData.yieldValue, 6)
+								{depositorUserData?.pendingYield
+									? formatTokenAmount(depositorUserData.pendingYield, 6)
 									: "0.000000"}{" "}
 								USDC
 							</p>

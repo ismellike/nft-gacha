@@ -3,13 +3,12 @@
 import { useCallback } from "react";
 import { usePublicClient, useReadContracts } from "wagmi";
 import {
-	depositorVaultAbi,
-	useWriteDepositorVaultClaimYield,
+	cardGroupedVaultAbi,
+	useWriteCardGroupedVaultClaimYield,
 } from "@/generated";
 
-export interface DepositorVaultData {
+export interface CardGroupedVaultData {
 	asset: string | undefined;
-	accYieldPerShare: bigint | undefined;
 	economyManager: string | undefined;
 	owner: string | undefined;
 	paused: boolean | undefined;
@@ -19,37 +18,36 @@ export interface DepositorVaultData {
 	treasury: string | undefined;
 }
 
-export interface UserDepositorData {
+export interface UserCardGroupedData {
 	shares: bigint | undefined;
-	yieldValue: bigint | undefined;
 	pendingYield: bigint | undefined;
 }
 
-export interface UseDepositorVaultProps {
+export interface UseCardGroupedVaultProps {
 	contractAddress?: string;
 	userAddress?: string;
 	enabled?: boolean;
 }
 
-export function useDepositorVaultData({
+export function useCardGroupedVaultData({
 	contractAddress,
 	userAddress,
 	enabled = true,
-}: UseDepositorVaultProps = {}) {
+}: UseCardGroupedVaultProps = {}) {
 	const isEnabled = enabled && !!contractAddress;
 	const addr = contractAddress as `0x${string}`;
 
 	// Static config — rarely changes
 	const staticQuery = useReadContracts({
 		contracts: [
-			{ address: addr, abi: depositorVaultAbi, functionName: "asset" },
+			{ address: addr, abi: cardGroupedVaultAbi, functionName: "asset" },
 			{
 				address: addr,
-				abi: depositorVaultAbi,
+				abi: cardGroupedVaultAbi,
 				functionName: "economyManager",
 			},
-			{ address: addr, abi: depositorVaultAbi, functionName: "owner" },
-			{ address: addr, abi: depositorVaultAbi, functionName: "treasury" },
+			{ address: addr, abi: cardGroupedVaultAbi, functionName: "owner" },
+			{ address: addr, abi: cardGroupedVaultAbi, functionName: "treasury" },
 		] as const,
 		query: {
 			enabled: isEnabled,
@@ -63,32 +61,27 @@ export function useDepositorVaultData({
 	// Dynamic data — default refresh interval
 	const dynamicQuery = useReadContracts({
 		contracts: [
+			{ address: addr, abi: cardGroupedVaultAbi, functionName: "paused" },
+			{ address: addr, abi: cardGroupedVaultAbi, functionName: "totalShares" },
 			{
 				address: addr,
-				abi: depositorVaultAbi,
-				functionName: "accYieldPerShare",
-			},
-			{ address: addr, abi: depositorVaultAbi, functionName: "paused" },
-			{ address: addr, abi: depositorVaultAbi, functionName: "totalShares" },
-			{
-				address: addr,
-				abi: depositorVaultAbi,
+				abi: cardGroupedVaultAbi,
 				functionName: "totalYieldClaimed",
 			},
 			{
 				address: addr,
-				abi: depositorVaultAbi,
+				abi: cardGroupedVaultAbi,
 				functionName: "totalYieldDistributed",
 			},
 			{
 				address: addr,
-				abi: depositorVaultAbi,
+				abi: cardGroupedVaultAbi,
 				functionName: "sharesOf",
 				args: [userAddr],
 			},
 			{
 				address: addr,
-				abi: depositorVaultAbi,
+				abi: cardGroupedVaultAbi,
 				functionName: "pendingYield",
 				args: [userAddr],
 			},
@@ -104,32 +97,26 @@ export function useDepositorVaultData({
 	const s = staticQuery.data;
 	const d = dynamicQuery.data;
 
-	const accYieldPerShare = d?.[0]?.result as bigint | undefined;
 	const userShares = hasUser
-		? (d?.[5]?.result as bigint | undefined)
+		? (d?.[4]?.result as bigint | undefined)
 		: undefined;
 	const userPendingYield = hasUser
-		? (d?.[6]?.result as bigint | undefined)
+		? (d?.[5]?.result as bigint | undefined)
 		: undefined;
 
-	const data: DepositorVaultData = {
+	const data: CardGroupedVaultData = {
 		asset: s?.[0]?.result as string | undefined,
-		accYieldPerShare,
 		economyManager: s?.[1]?.result as string | undefined,
 		owner: s?.[2]?.result as string | undefined,
-		paused: d?.[1]?.result as boolean | undefined,
-		totalShares: d?.[2]?.result as bigint | undefined,
-		totalYieldClaimed: d?.[3]?.result as bigint | undefined,
-		totalYieldDistributed: d?.[4]?.result as bigint | undefined,
+		paused: d?.[0]?.result as boolean | undefined,
+		totalShares: d?.[1]?.result as bigint | undefined,
+		totalYieldClaimed: d?.[2]?.result as bigint | undefined,
+		totalYieldDistributed: d?.[3]?.result as bigint | undefined,
 		treasury: s?.[3]?.result as string | undefined,
 	};
 
-	const userData: UserDepositorData = {
+	const userData: UserCardGroupedData = {
 		shares: userShares,
-		yieldValue:
-			userShares !== undefined && accYieldPerShare !== undefined
-				? (userShares * accYieldPerShare) / 10n ** 18n
-				: undefined,
 		pendingYield: userPendingYield,
 	};
 
@@ -161,7 +148,7 @@ export function useClaimYield() {
 		writeContractAsync: claimYieldAsync,
 		isPending: isClaiming,
 		error: claimError,
-	} = useWriteDepositorVaultClaimYield();
+	} = useWriteCardGroupedVaultClaimYield();
 
 	const claimYield = useCallback(
 		async (

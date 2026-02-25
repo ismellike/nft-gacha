@@ -55,8 +55,8 @@ export function createGachaConfig(
 				"NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS",
 				fb,
 			),
-			depositorVaultAddress: addr(
-				"NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS",
+			cardGroupedVaultAddress: addr(
+				"NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS",
 				fb,
 			),
 			buybackVaultAddress: addr("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS", fb),

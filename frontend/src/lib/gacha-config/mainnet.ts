@@ -27,7 +27,7 @@ import type { GachaConfig } from "./types";
  *   NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS         — GachaEconomyManager.sol (fees/yield)
  *   NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS   — WAVS service handler for gacha
  *   NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS — WAVS service handler for appraisal
- *   NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS         — Depositor vault (yield source)
+ *   NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS       — Card-grouped vault (yield source)
  *   NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS           — Buyback vault (token buybacks)
  *   NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS       — Protocol fee recipient
  *   NEXT_PUBLIC_COMMON_TRACKER_ADDRESS          — Common rarity spin-counter tracker
@@ -86,7 +86,7 @@ export function getMissingMainnetAddresses(config: GachaConfig): string[] {
 	if (isPlaceholder(config.economyManagerAddress)) missing.push("NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS");
 	if (isPlaceholder(config.gachaServiceHandlerAddress)) missing.push("NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS");
 	if (isPlaceholder(config.appraisalServiceHandlerAddress)) missing.push("NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS");
-	if (isPlaceholder(config.depositorVaultAddress)) missing.push("NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS");
+	if (isPlaceholder(config.cardGroupedVaultAddress)) missing.push("NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS");
 	if (isPlaceholder(config.buybackVaultAddress)) missing.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
 	if (isPlaceholder(config.protocolTreasuryAddress)) missing.push("NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS");
 	if (isPlaceholder(config.trackerAddresses.common)) missing.push("NEXT_PUBLIC_COMMON_TRACKER_ADDRESS");

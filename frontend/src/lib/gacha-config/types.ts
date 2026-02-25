@@ -15,7 +15,7 @@ export interface GachaConfig {
 	gachaServiceHandlerAddress: Address;
 	appraisalServiceHandlerAddress: Address;
 	// New economy system contracts
-	depositorVaultAddress: Address;
+	cardGroupedVaultAddress: Address;
 	buybackVaultAddress: Address;
 	protocolTreasuryAddress: Address;
 	// Collections are now queried dynamically from the treasury contract

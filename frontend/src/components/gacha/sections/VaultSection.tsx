@@ -15,10 +15,10 @@ import type { Address } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../../../generated";
 import {
-	type UserDepositorData,
+	type UserCardGroupedData,
 	useClaimYield,
-	useDepositorVaultData,
-} from "../../../hooks/useDepositorVault";
+	useCardGroupedVaultData,
+} from "../../../hooks/useCardGroupedVault";
 import { formatTokenAmount } from "../../../lib/utils";
 import { useAppraisalChecker } from "../../../hooks/useAppraisalChecker";
 import { useGachaContracts } from "../../../hooks/useGachaContracts";
@@ -72,7 +72,7 @@ const WalletConnectPrompt: React.FC = () => (
 );
 
 const BalanceOverview: React.FC<{
-	depositorUserData: UserDepositorData;
+	depositorUserData: UserCardGroupedData;
 	isClaiming: boolean;
 	onClaimYield: () => void;
 	totalDepositedNFTs: number;
@@ -140,8 +140,8 @@ const BalanceOverview: React.FC<{
 						Total Earned
 					</h3>
 					<p className="text-xl font-semibold text-foreground">
-						{depositorUserData?.yieldValue
-							? formatTokenAmount(depositorUserData.yieldValue, 6)
+						{depositorUserData?.pendingYield
+							? formatTokenAmount(depositorUserData.pendingYield, 6)
 							: "0.000000"}{" "}
 						USDC
 					</p>
@@ -166,19 +166,19 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		useVaultState();
 
 	// Contract data
-	const depositorVaultProps = useMemo(
+	const cardGroupedVaultProps = useMemo(
 		() => ({
-			contractAddress: gachaConfig?.depositorVaultAddress || "",
+			contractAddress: gachaConfig?.cardGroupedVaultAddress || "",
 			...(address && { userAddress: address }),
 		}),
-		[gachaConfig?.depositorVaultAddress, address],
+		[gachaConfig?.cardGroupedVaultAddress, address],
 	);
 
 	const {
 		data: depositorData,
 		userData: depositorUserData,
-		refetch: refetchDepositorVault,
-	} = useDepositorVaultData(depositorVaultProps);
+		refetch: refetchCardGroupedVault,
+	} = useCardGroupedVaultData(cardGroupedVaultProps);
 
 	// Yield functionality
 	const { claimYield, isClaiming } = useClaimYield();
@@ -273,7 +273,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		onSuccess: () => {
 			toastSuccess("NFT deposited successfully!");
 
-			refetchDepositorVault();
+			refetchCardGroupedVault();
 			refetchUserNFTs();
 			loadDepositedNFTs();
 		},
@@ -551,13 +551,13 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 		try {
 			const receipt = await claimYield({
-				address: gachaConfig?.depositorVaultAddress as `0x${string}`,
+				address: gachaConfig?.cardGroupedVaultAddress as `0x${string}`,
 				args: [address as `0x${string}`],
 			});
 
 			if (receipt?.status === "success") {
 				toastSuccess("Yield claimed successfully!");
-				refetchDepositorVault();
+				refetchCardGroupedVault();
 			}
 		} catch (error) {
 			console.error("Error claiming yield:", error);
@@ -569,8 +569,8 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		address,
 		depositorUserData.pendingYield,
 		claimYield,
-		gachaConfig?.depositorVaultAddress,
-		refetchDepositorVault,
+		gachaConfig?.cardGroupedVaultAddress,
+		refetchCardGroupedVault,
 	]);
 
 	const handleWithdrawNFT = useCallback(
@@ -622,7 +622,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 
 				// Refetch to get updated data from chain
 				await Promise.all([
-					refetchDepositorVault(),
+					refetchCardGroupedVault(),
 					refetchUserNFTs(),
 					loadDepositedNFTs(),
 				]);
@@ -666,7 +666,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			withdrawNFT,
 			loadDepositedNFTs,
 			publicClient,
-			refetchDepositorVault,
+			refetchCardGroupedVault,
 			refetchUserNFTs,
 			updateState,
 		],

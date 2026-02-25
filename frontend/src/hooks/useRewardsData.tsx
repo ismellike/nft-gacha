@@ -23,7 +23,7 @@ interface RefetchCallbacks {
 	rarityRewards?: RefetchFunction;
 	treasuryCards?: RefetchFunction;
 	economyData?: RefetchFunction;
-	depositorVault?: RefetchFunction;
+	cardGroupedVault?: RefetchFunction;
 	buybackVault?: RefetchFunction;
 	protocolTreasury?: RefetchFunction;
 	[key: string]: RefetchFunction | undefined;

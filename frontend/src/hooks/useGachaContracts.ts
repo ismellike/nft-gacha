@@ -13,7 +13,7 @@ export interface GachaContracts {
 	economyManager: Address | undefined;
 	gachaServiceHandler: Address | undefined;
 	appraisalServiceHandler: Address | undefined;
-	depositorVault: Address | undefined;
+	cardGroupedVault: Address | undefined;
 	buybackVault: Address | undefined;
 	protocolTreasury: Address | undefined;
 	trackers:
@@ -50,7 +50,7 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 				economyManager: contractAddresses.economyManager,
 				gachaServiceHandler: contractAddresses.gachaServiceHandler,
 				appraisalServiceHandler: contractAddresses.appraisalServiceHandler,
-				depositorVault: contractAddresses.depositorVault,
+				cardGroupedVault: contractAddresses.cardGroupedVault,
 				buybackVault: contractAddresses.buybackVault,
 				protocolTreasury: contractAddresses.protocolTreasury,
 				trackers: contractAddresses.trackers,
@@ -91,7 +91,7 @@ function getEmptyContracts(): GachaContracts {
 		economyManager: undefined,
 		gachaServiceHandler: undefined,
 		appraisalServiceHandler: undefined,
-		depositorVault: undefined,
+		cardGroupedVault: undefined,
 		buybackVault: undefined,
 		protocolTreasury: undefined,
 		trackers: {
