@@ -138,7 +138,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	const totalItems = rarityStats.reduce((sum, item) => sum + item.count, 0);
 
 	return (
-		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-8 backdrop-blur-2xl">
+		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-4 sm:p-8 backdrop-blur-2xl">
 			{/* Enhanced background gradient matching spinner */}
 			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,200,87,0.15),_transparent_60%)]" />
 			<div className="pointer-events-none absolute -top-20 right-0 h-40 w-40 rounded-full bg-primary/20 blur-[140px]" />
@@ -195,25 +195,25 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 							key={rarity.name}
 							type="button"
 							onClick={() => handleRarityClick(rarity.rarity)}
-							className="group relative flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-gradient-to-r from-content1/40 via-content1/20 to-content1/30 px-4 py-4 text-left transition-transform duration-200 hover:-translate-y-0.5 hover:border-white/20"
+							className="group relative flex items-center justify-between gap-2 sm:gap-4 rounded-2xl border border-white/5 bg-gradient-to-r from-content1/40 via-content1/20 to-content1/30 px-3 sm:px-4 py-3 sm:py-4 text-left transition-transform duration-200 hover:-translate-y-0.5 hover:border-white/20"
 						>
-							<div className="flex items-center gap-4">
+							<div className="flex items-center gap-2 sm:gap-4 min-w-0">
 								<div
-									className={`flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br ${rarity.bgGradient} text-white shadow-lg`}
+									className={`flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br ${rarity.bgGradient} text-white shadow-lg`}
 								>
-									<span className="text-lg">{rarity.emoji}</span>
+									<span className="text-base sm:text-lg">{rarity.emoji}</span>
 								</div>
-								<div>
-									<p className="text-sm font-semibold text-foreground">
+								<div className="min-w-0">
+									<p className="text-sm font-semibold text-foreground truncate">
 										{rarity.name}
 									</p>
-									<p className="text-xs text-foreground/60">
+									<p className="text-xs text-foreground/60 hidden sm:block truncate">
 										{rarity.description}
 									</p>
 								</div>
 							</div>
-							<div className="flex items-center gap-4">
-								<div className="text-right">
+							<div className="flex items-center gap-2 sm:gap-4 shrink-0">
+								<div className="text-right hidden sm:block">
 									<p className="text-sm font-semibold text-foreground">
 										{rarity.count}
 									</p>

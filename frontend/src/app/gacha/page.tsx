@@ -305,20 +305,20 @@ function GachaDetailPageContent() {
 			<GachaRefreshProvider>
 				<div className="min-h-screen bg-transparent">
 					{/* Global contract status announcer */}
-					<div className="fixed top-4 right-4 z-50 max-w-sm">
+					<div className="fixed top-4 right-2 sm:right-4 z-50 max-w-[calc(100vw-1rem)] sm:max-w-sm">
 						<ContractStatusAnnouncer status={contractStatus} compact />
 					</div>
-					<header className="mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
-						<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-							<div className="flex items-start gap-4">
+					<header className="mx-auto w-full max-w-7xl px-4 pt-8 sm:pt-12 sm:px-6 lg:px-8">
+						<div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-end lg:justify-between">
+							<div className="flex items-start gap-3 sm:gap-4">
 								<Button
-									className="p-2 rounded-xl border border-white/20 bg-content1/20 text-foreground hover:bg-content1/30 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
+									className="mt-1 p-2 rounded-xl border border-white/20 bg-content1/20 text-foreground hover:bg-content1/30 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background shrink-0"
 									onPress={() => router.push("/discover")}
 									aria-label="Go back to discovery page"
 								>
 									<ArrowLeftIcon className="w-5 h-5" />
 								</Button>
-								<div className="space-y-1">
+								<div className="space-y-1 min-w-0">
 									<Chip color="success" size="sm">
 										<span
 											className="flex h-2 w-2 rounded-full bg-success"
@@ -326,7 +326,7 @@ function GachaDetailPageContent() {
 										/>
 										Live
 									</Chip>
-									<h1 className="text-xl font-semibold text-foreground md:text-3xl">
+									<h1 className="text-lg font-semibold text-foreground sm:text-xl md:text-3xl">
 										{gacha.title}
 									</h1>
 									<p className="text-sm text-foreground/60 md:text-base max-w-2xl">
@@ -334,7 +334,7 @@ function GachaDetailPageContent() {
 									</p>
 								</div>
 							</div>
-							<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-content1/20 px-4 py-3 text-sm text-foreground/70">
+							<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-content1/20 px-4 py-3 text-sm text-foreground/70 self-start lg:self-auto">
 								<div className="flex flex-col">
 									<span className="text-xs uppercase tracking-wide text-foreground/50">
 										Status
@@ -345,7 +345,7 @@ function GachaDetailPageContent() {
 						</div>
 
 						<FlowSwitcher
-							className="mt-8"
+							className="mt-6 sm:mt-8"
 							options={flowOptions}
 							activeId={activeSection}
 							onSelect={(section) => selectSection(section as FlowOption["id"])}

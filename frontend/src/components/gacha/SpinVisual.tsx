@@ -24,7 +24,7 @@ export function SpinVisual({
 			{/* Outer glow rings - decorative only */}
 			<div
 				aria-hidden="true"
-				className={`absolute inset-0 w-64 h-64 rounded-full ${
+				className={`absolute inset-0 w-52 h-52 sm:w-64 sm:h-64 rounded-full ${
 					isWaitingForFulfillment || isSpinning ? "animate-pulse" : ""
 				}`}
 			>
@@ -35,7 +35,7 @@ export function SpinVisual({
 			</div>
 			<div
 				aria-hidden="true"
-				className={`absolute inset-2 w-60 h-60 rounded-full ${
+				className={`absolute inset-2 w-48 h-48 sm:w-60 sm:h-60 rounded-full ${
 					isWaitingForFulfillment || isSpinning ? "animate-pulse" : ""
 				}`}
 			>
@@ -52,7 +52,7 @@ export function SpinVisual({
 			<div
 				aria-hidden="true"
 				className={cn(
-					"relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-warning p-3 shadow-2xl shadow-warning/20",
+					"relative w-52 h-52 sm:w-64 sm:h-64 rounded-full bg-gradient-to-r from-primary via-warning to-warning p-3 shadow-2xl shadow-warning/20",
 					isWaitingForFulfillment || isSpinning
 						? "spin-wobble"
 						: isError

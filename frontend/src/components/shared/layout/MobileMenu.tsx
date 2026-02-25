@@ -1,6 +1,7 @@
 "use client";
 
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -122,7 +123,7 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
 							damping: 25,
 							stiffness: 200,
 						}}
-						className="fixed top-0 right-0 bottom-0 w-72 bg-background/95 backdrop-blur-xl border-l border-white/10 z-50 md:hidden"
+						className="fixed top-0 right-0 bottom-0 w-72 flex flex-col bg-background/95 backdrop-blur-xl border-l border-white/10 z-50 md:hidden"
 						role="dialog"
 						aria-modal="true"
 						aria-label="Mobile navigation menu"
@@ -141,7 +142,7 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
 						</div>
 
 						{/* Navigation Links */}
-						<nav className="p-4 space-y-2" aria-label="Mobile navigation">
+						<nav className="p-4 space-y-2 flex-1 overflow-y-auto" aria-label="Mobile navigation">
 							{navItems.map((item) => {
 								const isActive =
 									item.href === "/"
@@ -172,6 +173,11 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
 								);
 							})}
 						</nav>
+
+						{/* Wallet Connect */}
+						<div className="p-4 border-t border-white/10 mt-auto">
+							<ConnectButton />
+						</div>
 					</motion.div>
 				)}
 			</AnimatePresence>

@@ -1,8 +1,8 @@
 export function Footer() {
 	return (
-		<footer className="border-t border-white/10 bg-content1/20 backdrop-blur-xl py-20 shadow-inner">
-			<div className="container mx-auto px-6 max-w-6xl">
-				<div className="grid md:grid-cols-3 gap-12 text-center md:text-left">
+		<footer className="border-t border-white/10 bg-content1/20 backdrop-blur-xl py-10 md:py-20 shadow-inner">
+			<div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+				<div className="grid md:grid-cols-3 gap-8 md:gap-12 text-center md:text-left">
 					{/* Product Info */}
 					<div className="space-y-4">
 						<h2 className="text-xl font-semibold bg-gradient-to-r from-foreground to-warning bg-clip-text text-transparent">

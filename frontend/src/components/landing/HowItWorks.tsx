@@ -60,7 +60,7 @@ export function HowItWorks({ className = "" }: HowItWorksProps) {
 					<ScrollReveal>
 						<h2
 							id="how-heading"
-							className="text-4xl md:text-6xl font-black mb-6"
+							className="text-3xl sm:text-4xl md:text-6xl font-black mb-6"
 						>
 							<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
 								How It Works

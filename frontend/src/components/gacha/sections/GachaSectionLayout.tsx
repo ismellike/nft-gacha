@@ -107,19 +107,19 @@ export function GachaSectionLayout({
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.35 }}
 			>
-				<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-6 backdrop-blur-2xl md:p-8">
+				<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-4 sm:p-6 backdrop-blur-2xl md:p-8">
 					<div
 						className={cn(
 							"pointer-events-none absolute inset-0",
 							toneStyles.gradient,
 						)}
 					/>
-					<div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-						<div className="max-w-2xl space-y-4">
+					<div className="relative flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
+						<div className="max-w-2xl space-y-3 sm:space-y-4">
 							<div className="flex items-center gap-3 group text-foreground">
 								<span
 									className={cn(
-										"flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors",
+										"flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border transition-colors",
 										toneStyles.iconWrapper,
 									)}
 								>
@@ -135,7 +135,7 @@ export function GachaSectionLayout({
 								</span>
 							</div>
 							<div className="space-y-2">
-								<h2 className="text-2xl font-semibold text-foreground md:text-3xl">
+								<h2 className="text-xl font-semibold text-foreground sm:text-2xl md:text-3xl">
 									{title}
 								</h2>
 								<p className="text-sm text-foreground/70 md:text-base">
@@ -146,7 +146,7 @@ export function GachaSectionLayout({
 						{asideSlot ? (
 							<div className="w-full lg:w-auto">{asideSlot}</div>
 						) : highlights && highlights.length > 0 ? (
-							<div className="grid w-full gap-3 rounded-2xl border border-white/10 bg-content1/40 p-4 text-sm text-foreground/80 shadow-inner lg:grid-cols-2 lg:w-auto lg:min-w-[320px]">
+							<div className="grid w-full gap-3 rounded-2xl border border-white/10 bg-content1/40 p-3 sm:p-4 text-sm text-foreground/80 shadow-inner sm:grid-cols-2 lg:w-auto lg:min-w-[320px]">
 								{highlights.map(
 									({
 										icon: HighlightIcon,

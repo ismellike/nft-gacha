@@ -26,17 +26,17 @@ export const Header = memo(() => {
 	return (
 		<div className="relative">
 			{/* Floating Header */}
-			<div className="sticky top-0 z-40 max-w-7xl mx-auto px-6 pt-2">
+			<div className="sticky top-0 z-40 max-w-7xl mx-auto px-3 sm:px-6 pt-2">
 				<Card className="shadow-lg" isPressable={false}>
-					<div className="flex items-center justify-between px-8 py-6">
+					<div className="flex items-center justify-between px-4 py-3 sm:px-8 sm:py-5">
 						{/* Logo */}
-						<Link href="/" className="flex items-center space-x-4 group">
+						<Link href="/" className="flex items-center space-x-2 sm:space-x-4 group">
 							<div className="relative">
 								{/* Subtle glow effect behind logo */}
 								<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-orange-400/20 to-warning/30 rounded-2xl blur-md animate-pulse opacity-60" />
 
 								<motion.div
-									className="relative w-12 h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+									className="relative w-9 h-9 sm:w-12 sm:h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105"
 									{...(!reduceMotion && { whileHover: { rotate: -8 } })}
 								>
 									<Image
@@ -48,7 +48,7 @@ export const Header = memo(() => {
 									/>
 								</motion.div>
 							</div>
-							<span className="text-3xl font-black font-orbitron bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent group-hover:from-warning/90 group-hover:to-orange-400/90 transition-all duration-300">
+							<span className="text-xl sm:text-3xl font-black font-orbitron bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent group-hover:from-warning/90 group-hover:to-orange-400/90 transition-all duration-300">
 								SPINFI
 							</span>
 						</Link>
