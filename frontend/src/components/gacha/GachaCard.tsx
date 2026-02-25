@@ -193,13 +193,15 @@ export function GachaCard({ gacha }: GachaCardProps) {
 										<div
 											key={rarity}
 											className="text-center p-1 rounded bg-content1/10 border border-white/5"
+											aria-label={`${rarity}: ${Number(count)}`}
 										>
 											<div
+												aria-hidden="true"
 												className={`text-lg mb-1 ${hasCards ? "opacity-100" : "opacity-30"}`}
 											>
 												{getRarityEmoji(rarity)}
 											</div>
-											<div className="text-xs text-foreground/60 font-medium">
+											<div aria-hidden="true" className="text-xs text-foreground/60 font-medium">
 												{Number(count)}
 											</div>
 										</div>

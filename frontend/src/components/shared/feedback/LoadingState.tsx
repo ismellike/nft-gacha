@@ -97,7 +97,8 @@ export function LoadingState({
 	};
 
 	return (
-		<div className={containerClasses}>
+		<div role="status" aria-live="polite" className={containerClasses}>
+			<span className="sr-only">{text ?? "Loading..."}</span>
 			{renderVariant()}
 			{text && (
 				<motion.p
@@ -108,6 +109,7 @@ export function LoadingState({
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					transition={{ delay: 0.2 }}
+					aria-hidden="true"
 				>
 					{text}
 				</motion.p>

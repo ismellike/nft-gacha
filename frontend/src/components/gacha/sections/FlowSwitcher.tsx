@@ -26,6 +26,7 @@ export function FlowSwitcher({
 }: FlowSwitcherProps) {
 	return (
 		<div
+			role="tablist"
 			className={cn(
 				"relative flex w-full flex-wrap gap-2 border-b border-white/10 pb-2",
 				className,
@@ -38,12 +39,13 @@ export function FlowSwitcher({
 					<button
 						key={id}
 						type="button"
+						role="tab"
+						aria-selected={isActive}
 						onClick={() => onSelect(id)}
 						className={cn(
 							"group relative flex min-h-[3.5rem] flex-1 items-center gap-3 rounded-xl px-4 py-3 text-left transition",
 							"cursor-pointer text-sm text-foreground/70 hover:text-foreground hover:bg-content1/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/60 focus-visible:bg-content1/10 group-hover:-translate-y-0.5",
 						)}
-						aria-label={`Navigate to ${label}`}
 					>
 						{isActive && (
 							<motion.span

@@ -1,7 +1,7 @@
 "use client";
 
 import type { UserFriendlyError } from "../../lib/transactionErrors";
-import { Button, Modal, ModalContent } from "../../ui";
+import { Button, DialogTitle, Modal, ModalContent } from "../../ui";
 
 interface SpinErrorModalProps {
 	isOpen: boolean;
@@ -21,6 +21,7 @@ export function SpinErrorModal({
 	return (
 		<Modal isOpen={isOpen} size="sm">
 			<ModalContent>
+				<DialogTitle className="sr-only">Spin Error</DialogTitle>
 				<div className="text-center p-6">
 					{/* Show user-friendly error if available */}
 					{userFriendlyError ? (

@@ -1119,7 +1119,7 @@ const SpinControls = memo(function SpinControls({
 		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-8 backdrop-blur-2xl">
 			{/* Loading skeleton during SSR */}
 			{!mounted && (
-				<div className="space-y-6">
+				<div role="status" aria-label="Loading" className="space-y-6">
 					<div className="flex justify-between">
 						<div className="space-y-2">
 							<div className="h-8 bg-content1/30 rounded-lg animate-pulse w-48" />
@@ -1227,7 +1227,7 @@ const SpinControls = memo(function SpinControls({
 							{/* Minimalist Countdown Display */}
 							{gachaSpin.isWaitingForFulfillment && (
 								<div className="flex items-center justify-center gap-3">
-									<div className="w-4 h-4 border border-warning/50 border-t-warning rounded-full animate-spin"></div>
+									<div aria-hidden="true" className="w-4 h-4 border border-warning/50 border-t-warning rounded-full animate-spin"></div>
 									<p className="text-sm text-warning/80 font-medium">
 										Awaiting randomness • {countdown}s
 									</p>

@@ -13,12 +13,22 @@ export interface CardProps
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
 	(
-		{ className, variant, padding, animate, color, isPressable, children, ...props },
+		{ className, variant, padding, animate, color, isPressable, children, onKeyDown, ...props },
 		ref,
 	) => {
 		const resolvedVariant =
 			variant ??
 			(color === "glassInteractive" || isPressable ? "interactive" : "base");
+
+		const isInteractive = isPressable || color === "glassInteractive";
+
+		const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+			if (isInteractive && (e.key === "Enter" || e.key === " ")) {
+				e.preventDefault();
+				e.currentTarget.click();
+			}
+			onKeyDown?.(e);
+		};
 
 		return (
 			<div
@@ -27,6 +37,9 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
 					glassCard({ variant: resolvedVariant, padding, animate }),
 					className,
 				)}
+				{...(isInteractive
+					? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown }
+					: { onKeyDown })}
 				{...props}
 			>
 				{children}

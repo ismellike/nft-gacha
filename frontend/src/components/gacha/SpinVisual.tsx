@@ -21,8 +21,9 @@ export function SpinVisual({
 }: SpinVisualProps) {
 	return (
 		<div className="relative group">
-			{/* Outer glow rings */}
+			{/* Outer glow rings - decorative only */}
 			<div
+				aria-hidden="true"
 				className={`absolute inset-0 w-64 h-64 rounded-full ${
 					isWaitingForFulfillment || isSpinning ? "animate-pulse" : ""
 				}`}
@@ -33,6 +34,7 @@ export function SpinVisual({
 				></div>
 			</div>
 			<div
+				aria-hidden="true"
 				className={`absolute inset-2 w-60 h-60 rounded-full ${
 					isWaitingForFulfillment || isSpinning ? "animate-pulse" : ""
 				}`}
@@ -48,6 +50,7 @@ export function SpinVisual({
 
 			{/* Main spinner with enhanced state-based styling */}
 			<div
+				aria-hidden="true"
 				className={cn(
 					"relative w-64 h-64 rounded-full bg-gradient-to-r from-primary via-warning to-warning p-3 shadow-2xl shadow-warning/20",
 					isWaitingForFulfillment || isSpinning

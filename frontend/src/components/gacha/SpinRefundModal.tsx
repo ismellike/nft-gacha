@@ -2,7 +2,7 @@
 
 import { formatUnits } from "viem";
 import type { RefundResult } from "../../async-utils/gachaSpinMachine";
-import { Button, Modal, ModalContent } from "../../ui";
+import { Button, DialogTitle, Modal, ModalContent } from "../../ui";
 
 interface SpinRefundModalProps {
 	isOpen: boolean;
@@ -40,9 +40,9 @@ export function SpinRefundModal({
 							/>
 						</svg>
 					</div>
-					<p className="text-sm mb-2 font-semibold text-warning">
+					<DialogTitle className="text-sm mb-2 font-semibold text-warning">
 						Spin Refunded
-					</p>
+					</DialogTitle>
 					<p className="text-xs text-foreground/60 mb-3">
 						Your spin was automatically refunded because the selected rarity (
 						{refundResult.selectedRarity}) had no available NFTs.

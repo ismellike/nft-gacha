@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Modal, ModalContent } from "../../ui";
+import { Button, DialogTitle, Modal, ModalContent } from "../../ui";
 
 interface SpinTimeoutModalProps {
 	isOpen: boolean;
@@ -36,9 +36,9 @@ export function SpinTimeoutModal({
 							/>
 						</svg>
 					</div>
-					<p className="text-sm mb-2 font-semibold text-danger">
+					<DialogTitle className="text-sm mb-2 font-semibold text-danger">
 						Randomness Timeout
-					</p>
+					</DialogTitle>
 					<p className="text-xs text-foreground/60 mb-3">
 						The random number generation took longer than expected. This may
 						indicate a network issue or VRF coordinator problem.
