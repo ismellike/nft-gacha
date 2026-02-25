@@ -15,7 +15,7 @@ import {NFTAppraisalServiceHandler} from "../src/appraisal/NFTAppraisalServiceHa
 import {Gacha} from "../src/gacha/Gacha.sol";
 import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
 import {GachaServiceHandler} from "../src/gacha/GachaServiceHandler.sol";
-import {DepositorVault} from "../src/economy/DepositorVault.sol";
+import {CardGroupedVault} from "../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../src/tokens/BaseERC721.sol";
@@ -76,7 +76,7 @@ contract DeployLocal is Script {
         address usdc;
         address appraisalProxy;
         address treasuryProxy;
-        address depositorVaultProxy;
+        address cardGroupedVaultProxy;
         address protocolTreasuryProxy;
         address economyManagerProxy;
         address gachaProxy;
@@ -132,7 +132,7 @@ contract DeployLocal is Script {
         console.log("USDC:                  ", deployments.usdc);
         console.log("NFTAppraisal Proxy:    ", deployments.appraisalProxy);
         console.log("GachaTreasury Proxy:   ", deployments.treasuryProxy);
-        console.log("DepositorVault Proxy:  ", deployments.depositorVaultProxy);
+        console.log("CardGroupedVault Proxy:", deployments.cardGroupedVaultProxy);
         console.log("ProtocolTreasury Proxy:", deployments.protocolTreasuryProxy);
         console.log("EconomyManager Proxy:  ", deployments.economyManagerProxy);
         console.log("Gacha Proxy:           ", deployments.gachaProxy);
@@ -197,7 +197,7 @@ contract DeployLocal is Script {
     function _deployProxies(Deployments memory d, address deployer) internal {
         _deployAppraisalProxy(d, deployer);
         _deployTreasuryProxy(d, deployer);
-        _deployDepositorVaultProxy(d, deployer);
+        _deployCardGroupedVaultProxy(d, deployer);
         _deployProtocolTreasuryProxy(d, deployer);
         _deployEconomyManagerProxy(d, deployer);
         _deployGachaProxy(d, deployer);
@@ -232,12 +232,12 @@ contract DeployLocal is Script {
         );
     }
 
-    function _deployDepositorVaultProxy(Deployments memory d, address deployer) internal {
-        DepositorVault depositorVaultImpl = new DepositorVault();
-        d.depositorVaultProxy = address(
+    function _deployCardGroupedVaultProxy(Deployments memory d, address deployer) internal {
+        CardGroupedVault cardGroupedVaultImpl = new CardGroupedVault();
+        d.cardGroupedVaultProxy = address(
             new ERC1967Proxy(
-                address(depositorVaultImpl),
-                abi.encodeWithSelector(DepositorVault.initialize.selector, deployer, d.usdc, d.treasuryProxy, deployer)
+                address(cardGroupedVaultImpl),
+                abi.encodeWithSelector(CardGroupedVault.initialize.selector, deployer, d.usdc, d.treasuryProxy, deployer)
             )
         );
     }
@@ -264,7 +264,7 @@ contract DeployLocal is Script {
                     deployer,
                     d.usdc,
                     TEMP_GACHA_ADDRESS,
-                    d.depositorVaultProxy,
+                    d.cardGroupedVaultProxy,
                     d.protocolTreasuryProxy
                 )
             )
@@ -313,15 +313,15 @@ contract DeployLocal is Script {
     function _configureEconomy(Deployments memory d) internal {
         // Treasury wiring
         GachaTreasury(d.treasuryProxy).setGachaContract(d.gachaProxy);
-        GachaTreasury(d.treasuryProxy).setDepositorVault(d.depositorVaultProxy);
+        GachaTreasury(d.treasuryProxy).setCardGroupedVault(d.cardGroupedVaultProxy);
         GachaTreasury(d.treasuryProxy).setProtocolTreasury(d.protocolTreasuryProxy);
 
         // Economy manager links
         GachaEconomyManager(d.economyManagerProxy).setGacha(d.gachaProxy);
-        GachaEconomyManager(d.economyManagerProxy).setVaults(d.depositorVaultProxy, d.protocolTreasuryProxy);
+        GachaEconomyManager(d.economyManagerProxy).setVaults(d.cardGroupedVaultProxy, d.protocolTreasuryProxy);
 
         // Update vault controllers
-        DepositorVault(d.depositorVaultProxy).setEconomyManager(d.economyManagerProxy);
+        CardGroupedVault(d.cardGroupedVaultProxy).setEconomyManager(d.economyManagerProxy);
         ProtocolTreasury(d.protocolTreasuryProxy).setEconomyManager(d.economyManagerProxy);
         ProtocolTreasury(d.protocolTreasuryProxy).setGachaTreasury(d.treasuryProxy);
 
@@ -667,7 +667,7 @@ contract DeployLocal is Script {
                 _envLine("USDC_ADDRESS", vm.toString(deployments.usdc)),
                 _envLine("NFT_APPRAISAL_ADDRESS", vm.toString(deployments.appraisalProxy)),
                 _envLine("GACHA_TREASURY_ADDRESS", vm.toString(deployments.treasuryProxy)),
-                _envLine("DEPOSITOR_VAULT_ADDRESS", vm.toString(deployments.depositorVaultProxy)),
+                _envLine("CARD_GROUPED_VAULT_ADDRESS", vm.toString(deployments.cardGroupedVaultProxy)),
                 _envLine("PROTOCOL_TREASURY_ADDRESS", vm.toString(deployments.protocolTreasuryProxy)),
                 _envLine("ECONOMY_MANAGER_ADDRESS", vm.toString(deployments.economyManagerProxy)),
                 _envLine("GACHA_ADDRESS", vm.toString(deployments.gachaProxy)),

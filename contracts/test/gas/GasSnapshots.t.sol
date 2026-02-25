@@ -6,10 +6,10 @@ import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {Gacha} from "../../src/gacha/Gacha.sol";
 import {NFTAppraisal} from "../../src/appraisal/NFTAppraisal.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
-import {DepositorVault} from "../../src/economy/DepositorVault.sol";
+import {CardGroupedVault} from "../../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../../src/economy/ProtocolTreasury.sol";
 import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
-import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
+import {MockCardGroupedVault} from "../mocks/MockCardGroupedVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 import {MockERC721} from "../mocks/MockERC721.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
@@ -28,11 +28,11 @@ contract GasSnapshots is Test {
     Gacha gacha;
     NFTAppraisal appraisal;
     GachaEconomyManager economy;
-    DepositorVault vault;
+    CardGroupedVault vault;
     ProtocolTreasury protocolTreasury;
 
     MockNFTAppraisal mockAppraisal;
-    MockDepositorVault mockVault;
+    MockCardGroupedVault mockVault;
     MockProtocolTreasury mockProtocolTreasury;
 
     MockERC721 nftCollection;
@@ -54,7 +54,7 @@ contract GasSnapshots is Test {
     function setUp() public {
         // Deploy mock contracts
         mockAppraisal = new MockNFTAppraisal();
-        mockVault = new MockDepositorVault(address(0x1));
+        mockVault = new MockCardGroupedVault(address(0x1));
         mockProtocolTreasury = new MockProtocolTreasury();
         nftCollection = new MockERC721("Mock NFT", "MNFT");
         usdc = new MockERC20("USDC", "USDC", 6);
@@ -90,7 +90,7 @@ contract GasSnapshots is Test {
 
         // Set vault and protocol addresses
         vm.prank(owner);
-        treasury.setDepositorVault(address(mockVault));
+        treasury.setCardGroupedVault(address(mockVault));
         vm.prank(owner);
         treasury.setProtocolTreasury(address(mockProtocolTreasury));
 
@@ -334,7 +334,6 @@ contract GasSnapshots is Test {
 
         // Query user info
         treasury.userTotalDeposits(user);
-        treasury.userActiveDepositValueUSD(user);
     }
 
     // ========================================================================

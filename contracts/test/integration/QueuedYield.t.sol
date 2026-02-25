@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
-import {DepositorVault} from "../../src/economy/DepositorVault.sol";
+import {CardGroupedVault} from "../../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../../src/tokens/BaseERC721.sol";
@@ -16,7 +16,7 @@ contract QueuedYield is Test, IERC721Receiver {
     MockERC20 internal usdc;
     MockNFTAppraisal internal appraisal;
     GachaTreasury internal treasury;
-    DepositorVault internal depositorVault;
+    CardGroupedVault internal cardGroupedVault;
     ProtocolTreasury internal protocolTreasury;
     GachaEconomyManager internal economy;
     BaseERC721 internal collection;
@@ -41,27 +41,27 @@ contract QueuedYield is Test, IERC721Receiver {
         uint256[5] memory maxPrices = [uint256(100 * 1e18), 500 * 1e18, 2_000 * 1e18, 10_000 * 1e18, type(uint256).max];
         treasury.initialize(address(this), address(0xDEAD), address(appraisal), minPrices, maxPrices);
 
-        depositorVault = new DepositorVault();
-        depositorVault.initialize(address(this), address(usdc), address(treasury), address(this));
+        cardGroupedVault = new CardGroupedVault();
+        cardGroupedVault.initialize(address(this), address(usdc), address(treasury), address(this));
 
         protocolTreasury = new ProtocolTreasury();
         protocolTreasury.initialize(address(this), address(usdc), address(this), address(treasury), address(appraisal));
 
         economy = new GachaEconomyManager();
         economy.initialize(
-            address(this), address(usdc), address(this), address(depositorVault), address(protocolTreasury)
+            address(this), address(usdc), address(this), address(cardGroupedVault), address(protocolTreasury)
         );
 
         // Wire contract relationships
         treasury.setGachaContract(address(this));
-        treasury.setDepositorVault(address(depositorVault));
+        treasury.setCardGroupedVault(address(cardGroupedVault));
         treasury.setProtocolTreasury(address(protocolTreasury));
 
-        depositorVault.setEconomyManager(address(economy));
+        cardGroupedVault.setEconomyManager(address(economy));
         protocolTreasury.setEconomyManager(address(economy));
         protocolTreasury.setGachaTreasury(address(treasury));
         economy.setGacha(address(this));
-        economy.setVaults(address(depositorVault), address(protocolTreasury));
+        economy.setVaults(address(cardGroupedVault), address(protocolTreasury));
 
         // Deploy helper NFT collection and whitelist
         collection = new BaseERC721("Test NFT", "TNFT", address(this));
@@ -77,7 +77,7 @@ contract QueuedYield is Test, IERC721Receiver {
 
         // Verify depositor share was queued, not sent to protocol
         assertEq(economy.queuedDepositorYield(), (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000, "Queued yield mismatch");
-        assertEq(usdc.balanceOf(address(depositorVault)), 0, "Depositor vault should have no funds");
+        assertEq(usdc.balanceOf(address(cardGroupedVault)), 0, "Depositor vault should have no funds");
         assertEq(usdc.balanceOf(address(protocolTreasury)), (REVENUE_AMOUNT * economy.protocolShareBps()) / 10_000, "Protocol should only get its share");
     }
 
@@ -106,7 +106,7 @@ contract QueuedYield is Test, IERC721Receiver {
 
         // Verify queued yield was processed
         assertEq(economy.queuedDepositorYield(), 0, "Queued yield should be processed");
-        assertGt(usdc.balanceOf(address(depositorVault)), queuedAmount, "Depositor vault should have queued funds");
+        assertGt(usdc.balanceOf(address(cardGroupedVault)), queuedAmount, "Depositor vault should have queued funds");
     }
 
     function testProtocolAutoClaimOnlyWithShares() public {
@@ -117,7 +117,7 @@ contract QueuedYield is Test, IERC721Receiver {
 
         // Protocol should not have claimed any yield since it has no shares
         uint256 protocolBalanceBefore = usdc.balanceOf(address(protocolTreasury));
-        uint256 protocolPending = depositorVault.pendingYield(address(protocolTreasury));
+        uint256 protocolPending = cardGroupedVault.pendingYield(address(protocolTreasury));
         assertEq(protocolPending, 0, "Protocol should have no pending yield");
 
         // Now give protocol shares by redeeming an NFT back to treasury
@@ -169,7 +169,7 @@ contract QueuedYield is Test, IERC721Receiver {
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
         assertEq(economy.queuedDepositorYield(), 0, "All queued yield should be processed");
-        assertGt(usdc.balanceOf(address(depositorVault)), totalQueued, "Depositor vault should have all queued funds");
+        assertGt(usdc.balanceOf(address(cardGroupedVault)), totalQueued, "Depositor vault should have all queued funds");
     }
 
     function onERC721Received(

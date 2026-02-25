@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {NFTAppraisal} from "../../src/appraisal/NFTAppraisal.sol";
-import {DepositorVault} from "../../src/economy/DepositorVault.sol";
+import {CardGroupedVault} from "../../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
 import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
@@ -116,7 +116,7 @@ contract DeploymentHelpers is Test {
      * @notice Deploy complete economy stack (vault + treasury + manager)
      * @param owner The owner of all contracts
      * @param feeToken The fee token for rewards
-     * @return vault The deployed DepositorVault
+     * @return vault The deployed CardGroupedVault
      * @return protocolTreasury The deployed ProtocolTreasury
      * @return manager The deployed GachaEconomyManager
      */
@@ -126,7 +126,7 @@ contract DeploymentHelpers is Test {
     )
         internal
         returns (
-            DepositorVault vault,
+            CardGroupedVault vault,
             ProtocolTreasury protocolTreasury,
             GachaEconomyManager manager
         )
@@ -134,7 +134,7 @@ contract DeploymentHelpers is Test {
         vm.startPrank(owner);
 
         // Deploy all contracts first
-        vault = new DepositorVault();
+        vault = new CardGroupedVault();
         protocolTreasury = new ProtocolTreasury();
         manager = new GachaEconomyManager();
 
@@ -152,7 +152,7 @@ contract DeploymentHelpers is Test {
 
     /**
      * @notice Deploy economy stack with default test configuration
-     * @return vault The deployed DepositorVault
+     * @return vault The deployed CardGroupedVault
      * @return protocolTreasury The deployed ProtocolTreasury
      * @return manager The deployed GachaEconomyManager
      * @return feeToken The deployed fee token
@@ -160,7 +160,7 @@ contract DeploymentHelpers is Test {
     function _deployDefaultEconomyStack()
         internal
         returns (
-            DepositorVault vault,
+            CardGroupedVault vault,
             ProtocolTreasury protocolTreasury,
             GachaEconomyManager manager,
             BaseERC20 feeToken
@@ -175,13 +175,13 @@ contract DeploymentHelpers is Test {
     // ========================================================================
 
     /**
-     * @notice Deploy DepositorVault
+     * @notice Deploy CardGroupedVault
      * @param owner The owner of the contract
      * @param feeToken The fee token address
-     * @return vault The deployed DepositorVault
+     * @return vault The deployed CardGroupedVault
      */
-    function _deployVault(address owner, address feeToken) internal returns (DepositorVault vault) {
-        vault = new DepositorVault();
+    function _deployVault(address owner, address feeToken) internal returns (CardGroupedVault vault) {
+        vault = new CardGroupedVault();
         vm.prank(owner);
         // Initialize with temporary addresses
         vault.initialize(owner, feeToken, address(0), address(0));
@@ -245,7 +245,7 @@ contract DeploymentHelpers is Test {
      * @notice Deploy complete test suite (treasury + economy stack)
      * @param owner The owner of all contracts
      * @return treasury The deployed GachaTreasury
-     * @return vault The deployed DepositorVault
+     * @return vault The deployed CardGroupedVault
      * @return protocolTreasury The deployed ProtocolTreasury
      * @return manager The deployed GachaEconomyManager
      * @return feeToken The deployed fee token
@@ -255,7 +255,7 @@ contract DeploymentHelpers is Test {
         internal
         returns (
             GachaTreasury treasury,
-            DepositorVault vault,
+            CardGroupedVault vault,
             ProtocolTreasury protocolTreasury,
             GachaEconomyManager manager,
             BaseERC20 feeToken,

@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
-import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
+import {MockCardGroupedVault} from "../mocks/MockCardGroupedVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
@@ -20,7 +20,7 @@ contract GachaEconomyManagerFuzz is Test {
     // ========================================================================
 
     GachaEconomyManager economy;
-    MockDepositorVault vault;
+    MockCardGroupedVault vault;
     MockProtocolTreasury protocolTreasury;
     MockERC20 usdc;
     address gacha;
@@ -32,7 +32,7 @@ contract GachaEconomyManagerFuzz is Test {
     function setUp() public {
         // Deploy mocks
         usdc = new MockERC20("USDC", "USDC", 6);
-        vault = new MockDepositorVault(address(usdc)); // Fixed: use USDC address
+        vault = new MockCardGroupedVault(address(usdc)); // Fixed: use USDC address
         protocolTreasury = new MockProtocolTreasury();
         protocolTreasury.setAsset(IERC20(address(usdc))); // Fixed: set USDC asset
         gacha = address(0x999);

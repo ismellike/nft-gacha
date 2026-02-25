@@ -8,7 +8,7 @@ import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockERC721} from "../mocks/MockERC721.sol";
 import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
-import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
+import {MockCardGroupedVault} from "../mocks/MockCardGroupedVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 
 contract TimeoutMechanism is Test {
@@ -18,7 +18,7 @@ contract TimeoutMechanism is Test {
     MockNFTAppraisal internal appraisal;
     MockERC20 internal feeToken;
     MockERC721 internal nftCollection;
-    MockDepositorVault internal depositorVault;
+    MockCardGroupedVault internal cardGroupedVault;
     MockProtocolTreasury internal protocolTreasury;
 
     address internal owner = address(0x1);
@@ -33,7 +33,7 @@ contract TimeoutMechanism is Test {
         feeToken = new MockERC20("USDC", "USDC", 6);
         nftCollection = new MockERC721("Test NFT", "TNFT");
         appraisal = new MockNFTAppraisal();
-        depositorVault = new MockDepositorVault(address(feeToken));
+        cardGroupedVault = new MockCardGroupedVault(address(feeToken));
         vm.startPrank(owner);
         protocolTreasury = new MockProtocolTreasury();
         vm.stopPrank();
@@ -73,7 +73,7 @@ contract TimeoutMechanism is Test {
             owner,
             address(feeToken),
             address(gacha),
-            address(depositorVault),
+            address(cardGroupedVault),
             address(protocolTreasury)
         );
 

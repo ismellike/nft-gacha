@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import {StandardTest} from "../../helpers/StandardTest.sol";
 import {GachaEconomyManager} from "../../../src/economy/GachaEconomyManager.sol";
-import {DepositorVault} from "../../../src/economy/DepositorVault.sol";
+import {CardGroupedVault} from "../../../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../../../src/economy/ProtocolTreasury.sol";
 import {GachaTreasury} from "../../../src/gacha/GachaTreasury.sol";
 import {BaseERC20} from "../../../src/tokens/BaseERC20.sol";
@@ -16,7 +16,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 contract GachaEconomyManagerTest is StandardTest {
     GachaEconomyManager public economy;
     GachaEconomyManager public economyImpl;
-    DepositorVault public vault;
+    CardGroupedVault public vault;
     ProtocolTreasury public protTreasury;
     BaseERC20 public usdc;
 
@@ -39,16 +39,16 @@ contract GachaEconomyManagerTest is StandardTest {
         usdc = new BaseERC20("USDC", "USDC", economyOwner);
 
         // Deploy vault
-        DepositorVault vaultImpl = new DepositorVault();
+        CardGroupedVault vaultImpl = new CardGroupedVault();
         bytes memory vaultInit = abi.encodeWithSelector(
-            DepositorVault.initialize.selector,
+            CardGroupedVault.initialize.selector,
             economyOwner,
             address(usdc),
             address(this),
             address(this)
         );
         ERC1967Proxy vaultProxy = new ERC1967Proxy(address(vaultImpl), vaultInit);
-        vault = DepositorVault(address(vaultProxy));
+        vault = CardGroupedVault(address(vaultProxy));
 
         // Deploy protocol treasury
         ProtocolTreasury treasuryImpl = new ProtocolTreasury();
@@ -90,7 +90,7 @@ contract GachaEconomyManagerTest is StandardTest {
     function testDeployment() public view {
         assertEq(address(economy.feeToken()), address(usdc));
         assertEq(economy.gacha(), localGacha);
-        assertEq(address(economy.depositorVault()), address(vault));
+        assertEq(address(economy.cardGroupedVault()), address(vault));
         assertEq(address(economy.protocolTreasury()), address(protTreasury));
         assertEq(economy.depositorShareBps(), DEPOSITOR_SHARE_BPS);
         assertEq(economy.protocolShareBps(), PROTOCOL_SHARE_BPS);

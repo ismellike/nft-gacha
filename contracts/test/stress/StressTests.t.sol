@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import {Test} from "forge-std/Test.sol";
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
-import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
+import {MockCardGroupedVault} from "../mocks/MockCardGroupedVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 import {MockERC721} from "../mocks/MockERC721.sol";
 
@@ -20,7 +20,7 @@ contract StressTests is Test {
 
     GachaTreasury treasury;
     MockNFTAppraisal appraisal;
-    MockDepositorVault vault;
+    MockCardGroupedVault vault;
     MockProtocolTreasury protocolTreasury;
     MockERC721 nftCollection;
 
@@ -40,7 +40,7 @@ contract StressTests is Test {
     function setUp() public {
         // Deploy mocks
         appraisal = new MockNFTAppraisal();
-        vault = new MockDepositorVault(address(0x1));
+        vault = new MockCardGroupedVault(address(0x1));
         protocolTreasury = new MockProtocolTreasury();
         nftCollection = new MockERC721("Mock NFT", "MNFT");
 
@@ -75,7 +75,7 @@ contract StressTests is Test {
 
         // Set vault and protocol addresses
         vm.prank(owner);
-        treasury.setDepositorVault(address(vault));
+        treasury.setCardGroupedVault(address(vault));
         vm.prank(owner);
         treasury.setProtocolTreasury(address(protocolTreasury));
 

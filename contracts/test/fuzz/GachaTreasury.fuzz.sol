@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import {Test} from "forge-std/Test.sol";
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {MockNFTAppraisal} from "../mocks/MockNFTAppraisal.sol";
-import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
+import {MockCardGroupedVault} from "../mocks/MockCardGroupedVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 import {MockERC721} from "../mocks/MockERC721.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
@@ -16,7 +16,7 @@ import {MockERC20} from "../mocks/MockERC20.sol";
 contract GachaTreasuryFuzz is Test {
     GachaTreasury public treasury;
     MockNFTAppraisal public appraisal;
-    MockDepositorVault public vault;
+    MockCardGroupedVault public vault;
     MockProtocolTreasury public mockTreasury;
     MockERC721 public nftCollection;
     MockERC20 public usdc;
@@ -38,7 +38,7 @@ contract GachaTreasuryFuzz is Test {
         // Deploy mocks
         appraisal = new MockNFTAppraisal();
         usdc = new MockERC20("USDC", "USDC", 6);
-        vault = new MockDepositorVault(address(usdc));
+        vault = new MockCardGroupedVault(address(usdc));
         mockTreasury = new MockProtocolTreasury();
         nftCollection = new MockERC721("Mock NFT", "MNFT");
 
@@ -72,7 +72,7 @@ contract GachaTreasuryFuzz is Test {
 
         // Set vault and treasury addresses
         vm.prank(owner);
-        treasury.setDepositorVault(address(vault));
+        treasury.setCardGroupedVault(address(vault));
         vm.prank(owner);
         treasury.setProtocolTreasury(address(mockTreasury));
 

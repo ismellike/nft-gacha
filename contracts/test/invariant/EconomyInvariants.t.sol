@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
-import {MockDepositorVault} from "../mocks/MockDepositorVault.sol";
+import {MockCardGroupedVault} from "../mocks/MockCardGroupedVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
@@ -21,7 +21,7 @@ contract EconomyInvariants is Test {
     // ========================================================================
 
     GachaEconomyManager economy;
-    MockDepositorVault vault;
+    MockCardGroupedVault vault;
     MockProtocolTreasury protocolTreasury;
     MockERC20 usdc;
     address gacha;
@@ -33,7 +33,7 @@ contract EconomyInvariants is Test {
     function setUp() public {
         // Deploy mocks
         usdc = new MockERC20("USDC", "USDC", 6);
-        vault = new MockDepositorVault(address(usdc)); // Fixed: use USDC address
+        vault = new MockCardGroupedVault(address(usdc)); // Fixed: use USDC address
         protocolTreasury = new MockProtocolTreasury();
         protocolTreasury.setAsset(IERC20(address(usdc))); // Fixed: set USDC asset
         gacha = address(0x999);
@@ -84,7 +84,7 @@ contract EconomyInvariants is Test {
      * @dev This invariant ensures fair distribution based on shares
      */
     function invariant_SharesAlwaysProportional() public view {
-        // In the actual system, shares in DepositorVault represent user's proportion
+        // In the actual system, shares in CardGroupedVault represent user's proportion
         // This is a conceptual invariant - in practice, you'd query the vault
 
         uint256 totalShares = vault.totalShares();

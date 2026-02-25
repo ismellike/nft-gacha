@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
-import {DepositorVault} from "../../src/economy/DepositorVault.sol";
+import {CardGroupedVault} from "../../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../../src/tokens/BaseERC721.sol";
@@ -16,7 +16,7 @@ contract EconomyFlowTest is Test, IERC721Receiver {
     MockERC20 internal usdc;
     MockNFTAppraisal internal appraisal;
     GachaTreasury internal treasury;
-    DepositorVault internal depositorVault;
+    CardGroupedVault internal cardGroupedVault;
     ProtocolTreasury internal protocolTreasury;
     GachaEconomyManager internal economy;
     BaseERC721 internal collection;
@@ -43,27 +43,27 @@ contract EconomyFlowTest is Test, IERC721Receiver {
         uint256[5] memory maxPrices = [uint256(100 * 1e18), 500 * 1e18, 2_000 * 1e18, 10_000 * 1e18, type(uint256).max];
         treasury.initialize(address(this), address(0xDEAD), address(appraisal), minPrices, maxPrices);
 
-        depositorVault = new DepositorVault();
-        depositorVault.initialize(address(this), address(usdc), address(treasury), address(this));
+        cardGroupedVault = new CardGroupedVault();
+        cardGroupedVault.initialize(address(this), address(usdc), address(treasury), address(this));
 
         protocolTreasury = new ProtocolTreasury();
         protocolTreasury.initialize(address(this), address(usdc), address(this), address(treasury), address(appraisal));
 
         economy = new GachaEconomyManager();
         economy.initialize(
-            address(this), address(usdc), address(this), address(depositorVault), address(protocolTreasury)
+            address(this), address(usdc), address(this), address(cardGroupedVault), address(protocolTreasury)
         );
 
         // Wire contract relationships
         treasury.setGachaContract(address(this));
-        treasury.setDepositorVault(address(depositorVault));
+        treasury.setCardGroupedVault(address(cardGroupedVault));
         treasury.setProtocolTreasury(address(protocolTreasury));
 
-        depositorVault.setEconomyManager(address(economy));
+        cardGroupedVault.setEconomyManager(address(economy));
         protocolTreasury.setEconomyManager(address(economy));
         protocolTreasury.setGachaTreasury(address(treasury));
         economy.setGacha(address(this));
-        economy.setVaults(address(depositorVault), address(protocolTreasury));
+        economy.setVaults(address(cardGroupedVault), address(protocolTreasury));
 
         // Deploy helper NFT collection and whitelist
         collection = new BaseERC721("Test NFT", "TNFT", address(this));
@@ -88,9 +88,9 @@ contract EconomyFlowTest is Test, IERC721Receiver {
 
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
-        assertEq(usdc.balanceOf(address(depositorVault)), depositorShare, "Depositor vault balance mismatch");
+        assertEq(usdc.balanceOf(address(cardGroupedVault)), depositorShare, "Depositor vault balance mismatch");
         assertEq(usdc.balanceOf(address(protocolTreasury)), protocolShare, "Protocol treasury balance mismatch");
-        assertEq(depositorVault.totalYieldDistributed(), depositorShare, "Yield distributed tracking mismatch");
+        assertEq(cardGroupedVault.totalYieldDistributed(), depositorShare, "Yield distributed tracking mismatch");
         assertEq(economy.totalRevenueProcessed(), REVENUE_AMOUNT, "Revenue processed mismatch");
         assertEq(economy.revenueByRarity(GachaTreasury.Rarity.Common), REVENUE_AMOUNT, "Rarity accounting mismatch");
     }
@@ -104,15 +104,15 @@ contract EconomyFlowTest is Test, IERC721Receiver {
 
         uint256 depositorBalanceBefore = usdc.balanceOf(DEPOSITOR);
         vm.prank(DEPOSITOR);
-        uint256 claimed = depositorVault.claimYield(DEPOSITOR);
+        uint256 claimed = cardGroupedVault.claimYield(DEPOSITOR);
         uint256 depositorBalanceAfter = usdc.balanceOf(DEPOSITOR);
 
         assertEq(claimed, expectedClaim, "Claimed amount mismatch");
         assertEq(
             depositorBalanceAfter - depositorBalanceBefore, expectedClaim, "Depositor did not receive expected yield"
         );
-        assertEq(depositorVault.totalYieldClaimed(), expectedClaim, "Total claimed tracking mismatch");
-        assertEq(usdc.balanceOf(address(depositorVault)), 0, "Vault should be empty after claim");
+        assertEq(cardGroupedVault.totalYieldClaimed(), expectedClaim, "Total claimed tracking mismatch");
+        assertEq(usdc.balanceOf(address(cardGroupedVault)), 0, "Vault should be empty after claim");
     }
 
     function testBuybackRedemption() public {

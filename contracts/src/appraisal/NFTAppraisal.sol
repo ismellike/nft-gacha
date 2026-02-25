@@ -710,10 +710,14 @@ contract NFTAppraisal is
         }
 
         if (whitelistedTreasuries[nftOwner]) {
-            // Call the treasury's migration function
+            // Get card-level info for the O(1) vault update path
+            bytes32 cardId = tokenCardIds[collection][tokenId];
+            uint256 newPrice = cardAppraisals[cardId].priceUSD;
+
+            // Call the treasury's card-level price update (O(1) vault + O(tokens) treasury array)
             // Use low-level call to prevent revert from failing this transaction
-            (bool success, bytes memory data) = nftOwner.call{gas: 100_000}(
-                abi.encodeWithSignature("migrateNFTRarity(address,uint256)", collection, tokenId)
+            (bool success, bytes memory data) = nftOwner.call{gas: 500_000}(
+                abi.encodeWithSignature("onCardPriceUpdated(bytes32,uint256)", cardId, newPrice)
             );
 
             if (success) {

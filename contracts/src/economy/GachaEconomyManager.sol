@@ -10,7 +10,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
-import {IDepositorVault} from "../interfaces/IDepositorVault.sol";
+import {ICardGroupedVault} from "../interfaces/ICardGroupedVault.sol";
 import {IProtocolTreasury} from "../interfaces/IProtocolTreasury.sol";
 import {GachaTreasury} from "../gacha/GachaTreasury.sol";
 
@@ -35,8 +35,8 @@ contract GachaEconomyManager is
     IERC20 public feeToken;
     /// @notice Authorized gacha contract
     address public gacha;
-    /// @notice Depositor yield vault
-    IDepositorVault public depositorVault;
+    /// @notice Card-grouped yield vault
+    ICardGroupedVault public cardGroupedVault;
     /// @notice Protocol treasury wallet
     IProtocolTreasury public protocolTreasury;
 
@@ -66,7 +66,7 @@ contract GachaEconomyManager is
     /// @notice Events for admin changes
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
     event GachaUpdated(address indexed previousGacha, address indexed newGacha);
-    event DepositorVaultUpdated(address indexed previousVault, address indexed newVault);
+    event CardGroupedVaultUpdated(address indexed previousVault, address indexed newVault);
     event ProtocolTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
     event DepositorYieldQueued(uint256 amount);
     event QueuedDepositorYieldProcessed(uint256 amount);
@@ -85,20 +85,20 @@ contract GachaEconomyManager is
      * @param owner Owner address
      * @param feeToken_ USDC token
      * @param gacha_ Gacha contract authorized to report revenue
-     * @param depositorVault_ Depositor vault address
+     * @param cardGroupedVault_ Card-grouped vault address
      * @param protocolTreasury_ Protocol treasury address
      */
     function initialize(
         address owner,
         address feeToken_,
         address gacha_,
-        address depositorVault_,
+        address cardGroupedVault_,
         address protocolTreasury_
     ) external initializer {
         if (owner == address(0)) revert ZeroAddress();
         if (feeToken_ == address(0)) revert ZeroAddress();
         if (gacha_ == address(0)) revert ZeroAddress();
-        if (depositorVault_ == address(0)) revert ZeroAddress();
+        if (cardGroupedVault_ == address(0)) revert ZeroAddress();
         if (protocolTreasury_ == address(0)) revert ZeroAddress();
 
         __Ownable_init(owner);
@@ -107,7 +107,7 @@ contract GachaEconomyManager is
 
         feeToken = IERC20(feeToken_);
         gacha = gacha_;
-        depositorVault = IDepositorVault(depositorVault_);
+        cardGroupedVault = ICardGroupedVault(cardGroupedVault_);
         protocolTreasury = IProtocolTreasury(protocolTreasury_);
 
         depositorShareBps = 9_500;
@@ -137,7 +137,7 @@ contract GachaEconomyManager is
             protocolShare += usdcAmount - distributed;
         }
 
-        uint256 totalShares = depositorVault.totalShares();
+        uint256 totalShares = cardGroupedVault.totalShares();
         uint256 queuedAmount = 0;
 
         // Queue depositor yield if no shares exist
@@ -156,8 +156,16 @@ contract GachaEconomyManager is
         }
 
         if (depositShare > 0) {
-            feeToken.forceApprove(address(depositorVault), depositShare);
-            depositorVault.distributeYield(depositShare);
+            feeToken.forceApprove(address(cardGroupedVault), depositShare);
+            // Try to distribute to the rarity that generated the revenue
+            try cardGroupedVault.distributeYield(depositShare, uint8(hitRarity)) {
+                // Success — yield went to the correct rarity pool
+            } catch {
+                // Rarity pool is empty — queue for later distribution
+                queuedDepositorYield += depositShare;
+                emit DepositorYieldQueued(depositShare);
+                depositShare = 0;
+            }
         }
 
         if (protocolShare > 0) {
@@ -168,7 +176,7 @@ contract GachaEconomyManager is
         // NOTE: Protocol yield auto-claim removed to prevent DoS vector.
         // If claimYield or downstream protocolTreasury logic reverts,
         // it would block all spins. Protocol should claim on its own schedule
-        // via depositorVault.claimYield(protocolTreasuryAddress).
+        // via cardGroupedVault.claimYield(protocolTreasuryAddress).
 
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
@@ -215,11 +223,11 @@ contract GachaEconomyManager is
     /**
      * @notice Updates downstream vault addresses
      */
-    function setVaults(address depositorVault_, address protocolTreasury_) external onlyOwner {
-        if (depositorVault_ != address(0)) {
-            address previous = address(depositorVault);
-            depositorVault = IDepositorVault(depositorVault_);
-            emit DepositorVaultUpdated(previous, depositorVault_);
+    function setVaults(address cardGroupedVault_, address protocolTreasury_) external onlyOwner {
+        if (cardGroupedVault_ != address(0)) {
+            address previous = address(cardGroupedVault);
+            cardGroupedVault = ICardGroupedVault(cardGroupedVault_);
+            emit CardGroupedVaultUpdated(previous, cardGroupedVault_);
         }
 
         if (protocolTreasury_ != address(0)) {
