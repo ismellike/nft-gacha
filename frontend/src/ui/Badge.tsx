@@ -85,6 +85,7 @@ const Badge = function Badge({
 			{children}
 			{shouldShowBadge ? (
 				<span
+					role="status"
 					className={cn(
 						badgeVariants({ color, dot: dot ? true : false, pulse }),
 						badgeClassName,
