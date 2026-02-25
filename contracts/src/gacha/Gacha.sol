@@ -284,7 +284,7 @@ contract Gacha is
     /// @notice Fulfills a spin request with randomness
     /// @param triggerId The spin request identifier
     /// @param randomness Random bytes for selection
-    function fulfillRandomness(uint256 triggerId, bytes32 randomness) external onlyGachaServiceHandler {
+    function fulfillRandomness(uint256 triggerId, bytes32 randomness) external onlyGachaServiceHandler nonReentrant {
         SpinRequest storage request = spinRequests[triggerId];
         if (request.requester == address(0)) revert InvalidTriggerId();
         (bool isFulfilled, bool isReclaimed) = _getSpinRequestStatus(request);

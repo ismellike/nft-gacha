@@ -219,6 +219,7 @@ contract CardGroupedVault is
         override
         onlyTreasury
         whenNotPaused
+        nonReentrant
     {
         if (depositor == address(0)) revert ZeroAddress();
         if (count == 0) revert ZeroAmount();

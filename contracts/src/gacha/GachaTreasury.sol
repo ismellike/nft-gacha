@@ -915,6 +915,7 @@ contract GachaTreasury is
     function sendRandomNFTToWinner(Rarity rarity, uint256 randomSeed, address winner)
         external
         onlyGacha
+        nonReentrant
         returns (NFTItem memory item)
     {
         uint256 totalCount = treasury[rarity].length;
