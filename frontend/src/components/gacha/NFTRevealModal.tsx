@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEnhancedSpinResult } from "../../hooks/useNFTMetadata";
 import { getGachaConfig } from "../../lib/gacha-config";
@@ -73,7 +73,6 @@ export default function NFTRevealModal({
 	const [showMonetary, setShowMonetary] = useState(false);
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
 	const isSkippedRef = useRef(false);
-	const prefersReducedMotion = useReducedMotion();
 	// Store timers in a ref to persist across effect re-runs
 	const animationTimersRef = useRef<NodeJS.Timeout[]>([]);
 
@@ -253,16 +252,6 @@ export default function NFTRevealModal({
 		// Wait for metadata to be loaded before starting
 		if (isMetadataLoading) {
 			debugLog("[NFTRevealModal] Metadata still loading, waiting...");
-			return;
-		}
-
-		// Skip animation sequence for users who prefer reduced motion
-		if (prefersReducedMotion && currentPhase === null) {
-			debugLog("[NFTRevealModal] Reduced motion: skipping to monetary phase");
-			isSkippedRef.current = true;
-			setIsSkipped(true);
-			setCurrentPhase("monetary");
-			setShowMonetary(true);
 			return;
 		}
 
