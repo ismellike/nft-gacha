@@ -24,7 +24,7 @@ import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { formatCurrency } from "../../lib/utils";
 import type { OptimisticAppraisal } from "../../stores/nftAppraisalStore";
-import { Button, Card } from "../../ui";
+import { Button, Card, Select } from "../../ui";
 import { LoadingState } from "../shared/feedback";
 import { DepositableNFTCard } from "../vault";
 import { NFTCard } from "./NFTCard";
@@ -532,17 +532,18 @@ export function AppraisedNFTsList({
 							<ArrowsUpDownIcon className="w-4 h-4" />
 							Sort:
 						</span>
-						<select
+						<Select
+							size="sm"
 							value={sort}
 							onChange={(e) => setSort(e.target.value as AppraisalSort)}
-							className="bg-content1/20 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-warning/50"
-						>
-							<option value="newest">Newest First</option>
-							<option value="oldest">Oldest First</option>
-							<option value="highestValue">Highest Value</option>
-							<option value="lowestValue">Lowest Value</option>
-							<option value="recentlyUpdated">Recently Updated</option>
-						</select>
+							options={[
+							{ value: "newest", label: "Newest First" },
+							{ value: "oldest", label: "Oldest First" },
+							{ value: "highestValue", label: "Highest Value" },
+							{ value: "lowestValue", label: "Lowest Value" },
+							{ value: "recentlyUpdated", label: "Recently Updated" },
+						]}
+					/>
 					</div>
 				</div>
 
