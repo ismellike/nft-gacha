@@ -30,13 +30,13 @@ export default function DiscoverPage() {
 						</span>
 					</div>
 
-					<h1 className="text-5xl md:text-7xl font-black mb-6">
+					<h1 className="text-4xl sm:text-5xl md:text-7xl font-black mb-6">
 						<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
 							Card Collections
 						</span>
 					</h1>
 
-					<p className="text-xl text-foreground/80 max-w-3xl mx-auto leading-relaxed mb-8">
+					<p className="text-base sm:text-xl text-foreground/80 max-w-3xl mx-auto leading-relaxed mb-8">
 						Explore our collection of provably fair trading card gacha systems.
 						Each collection features authentic graded cards with transparent
 						rarity mechanics.

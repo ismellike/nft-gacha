@@ -1116,7 +1116,7 @@ const SpinControls = memo(function SpinControls({
 	}, [gachaSpin.isError, gachaSpin.error]);
 
 	return (
-		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-8 backdrop-blur-2xl">
+		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-4 sm:p-8 backdrop-blur-2xl">
 			{/* Loading skeleton during SSR */}
 			{!mounted && (
 				<div role="status" aria-label="Loading" className="space-y-6">
@@ -1152,8 +1152,8 @@ const SpinControls = memo(function SpinControls({
 						isMuted={sound.isMuted}
 						onToggleMute={sound.toggleMute}
 					/>
-					<div className="py-16">
-						<div className="flex flex-col items-center space-y-10">
+					<div className="py-8 sm:py-16">
+						<div className="flex flex-col items-center space-y-6 sm:space-y-10">
 							{/* Enhanced Spinner Visual with Lottie Animation */}
 							<SpinVisual
 								isSpinning={gachaSpin.isSpinning}

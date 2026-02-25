@@ -412,7 +412,7 @@ export default function NFTRevealModal({
 								<motion.button
 									ref={closeButtonRef}
 									onClick={onClose}
-									className="absolute top-8 right-8 z-50 w-12 h-12 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+									className="absolute top-4 right-4 sm:top-8 sm:right-8 z-50 w-10 h-10 sm:w-12 sm:h-12 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl flex items-center justify-center group transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
 									initial={{ opacity: 0, scale: 0 }}
 									animate={{ opacity: 1, scale: 1 }}
 									transition={{ duration: 0.3 }}
@@ -442,7 +442,7 @@ export default function NFTRevealModal({
 						{!isSkipped && !showMonetary && currentPhase !== "monetary" && (
 							<motion.button
 								onClick={skipAnimation}
-								className="absolute bottom-12 right-12 z-50 px-6 py-3 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-foreground/80 font-medium"
+								className="absolute bottom-6 right-4 sm:bottom-12 sm:right-12 z-50 px-4 sm:px-6 py-2 sm:py-3 bg-content1/60 hover:bg-content1/80 rounded-xl border border-white/30 shadow-xl backdrop-blur-xl transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-foreground/80 font-medium text-sm sm:text-base"
 								initial={{ opacity: 0, y: 20 }}
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: 0.5, duration: 0.5 }}

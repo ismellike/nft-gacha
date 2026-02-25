@@ -70,13 +70,13 @@ export default function LandingPage() {
 							<div className="mb-8">
 								<h1
 									id="hero-heading"
-									className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight font-orbitron"
+									className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight font-orbitron"
 								>
 									<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent drop-shadow-2xl">
 										Fair Spins.
 									</span>
 									<br />
-									<span className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground/90">
+									<span className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-foreground/90">
 										Real Yield.
 									</span>
 								</h1>
@@ -85,7 +85,7 @@ export default function LandingPage() {
 
 						{/* Value Proposition - Simplified */}
 						<ScrollReveal delay={0.3}>
-							<p className="text-xl md:text-2xl text-foreground/80 mb-12 max-w-4xl mx-auto leading-relaxed font-medium">
+							<p className="text-base sm:text-xl md:text-2xl text-foreground/80 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed font-medium">
 								Everything verified on-chain.{" "}
 								<span className="text-warning font-semibold">
 									Zero manipulation. Zero trust required.
@@ -160,7 +160,7 @@ export default function LandingPage() {
 
 								<h2
 									id="cta-heading"
-									className="text-4xl md:text-6xl font-black mb-6 font-orbitron"
+									className="text-3xl sm:text-4xl md:text-6xl font-black mb-6 font-orbitron"
 								>
 									<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
 										Be Among the First
@@ -206,7 +206,7 @@ export default function LandingPage() {
 
 								{/* Trust Indicators */}
 								<ul
-									className="flex items-center justify-center gap-8 text-foreground/60"
+									className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-foreground/60"
 									aria-label="Security features"
 								>
 									<li className="flex items-center gap-2">

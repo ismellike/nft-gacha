@@ -107,7 +107,7 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 					<ScrollReveal>
 						<h2
 							id="why-heading"
-							className="text-4xl md:text-6xl font-black mb-6"
+							className="text-3xl sm:text-4xl md:text-6xl font-black mb-6"
 						>
 							<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
 								Why This is Different
@@ -121,7 +121,7 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 				</div>
 
 				{/* 3 Key Differentiators */}
-				<div className="grid md:grid-cols-3 gap-6 mb-16 max-w-6xl mx-auto">
+				<div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-12 sm:mb-16 max-w-6xl mx-auto">
 					<DifferentiatorCard
 						icon={
 							<svg
@@ -207,19 +207,19 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 							})}
 						>
 							{/* Header */}
-							<div className="grid grid-cols-3 gap-4 mb-6 pb-6 border-b border-white/10">
+							<div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-white/10">
 								<div className="text-left">
-									<h4 className="text-lg font-semibold text-foreground/80">
+									<h4 className="text-xs sm:text-lg font-semibold text-foreground/80">
 										Feature
 									</h4>
 								</div>
 								<div className="text-center">
-									<h4 className="text-lg font-semibold text-foreground/60">
+									<h4 className="text-xs sm:text-lg font-semibold text-foreground/60">
 										Traditional
 									</h4>
 								</div>
 								<div className="text-center">
-									<h4 className="text-xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
+									<h4 className="text-xs sm:text-xl font-bold bg-gradient-to-r from-warning to-orange-400 bg-clip-text text-transparent">
 										SPINFI
 									</h4>
 								</div>
@@ -230,7 +230,7 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 								{comparisonData.map((item, index) => (
 									<motion.div
 										key={item.feature}
-										className="grid grid-cols-3 gap-4 items-center p-3 rounded-xl transition-all duration-200 hover:bg-content1/10"
+										className="grid grid-cols-3 gap-2 sm:gap-4 items-center p-2 sm:p-3 rounded-xl transition-all duration-200 hover:bg-content1/10"
 										whileHover={{ scale: 1.01 }}
 										initial={{ opacity: 0, y: 20 }}
 										whileInView={{ opacity: 1, y: 0 }}
@@ -239,7 +239,7 @@ export function TheWhySection({ className = "" }: TheWhySectionProps) {
 									>
 										{/* Feature Name */}
 										<div>
-											<p className="font-medium text-foreground mb-1">
+											<p className="text-xs sm:text-sm font-medium text-foreground mb-1">
 												{item.feature}
 											</p>
 											{item.details && (
