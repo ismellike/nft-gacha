@@ -2,15 +2,24 @@ import { createGachaConfig } from "./factory";
 import type { GachaConfig } from "./types";
 
 /**
- * TESTNET CONFIGURATION — Polygon Amoy
+ * TESTNET CONFIGURATION
+ *
+ * Supports any EVM testnet (Holesky, Sepolia, Polygon Amoy, etc.).
+ * The target chain is determined by NEXT_PUBLIC_CHAIN_ID and NEXT_PUBLIC_RPC_URL.
  *
  * All contract addresses are read from NEXT_PUBLIC_* environment variables.
  * The `emptyFallback: true` option lets the app start even when an env var is
  * missing; missing addresses resolve to an empty string and are caught by
  * `validateTestnetConfig` / the warning loop in gacha-config.ts.
  *
- * Required environment variables (set in root .env, prefixed automatically):
+ * After deploying contracts with `DeployTestnet.s.sol`, copy the generated
+ * `.env.testnet` into the root `.env.local` and run `task frontend:sync-env`
+ * to populate these variables.
  *
+ * Required environment variables (set in root .env.local, prefixed automatically):
+ *
+ *   NEXT_PUBLIC_CHAIN_ID                        — Target chain ID (e.g. 17000, 11155111, 80002)
+ *   NEXT_PUBLIC_RPC_URL                         — RPC endpoint for the target chain
  *   NEXT_PUBLIC_GACHA_ADDRESS                   — Gacha.sol (main game logic)
  *   NEXT_PUBLIC_GACHA_TREASURY_ADDRESS          — GachaTreasury.sol (NFT storage)
  *   NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS           — NFTAppraisal.sol (price oracle)
@@ -20,17 +29,18 @@ import type { GachaConfig } from "./types";
  *   NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS       — Card-grouped vault (yield source)
  *   NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS           — Buyback vault (token buybacks)
  *   NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS       — Protocol fee recipient
- *   NEXT_PUBLIC_COMMON_TRACKER_ADDRESS          — Common rarity spin-counter tracker
- *   NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS        — Uncommon rarity spin-counter tracker
- *   NEXT_PUBLIC_RARE_TRACKER_ADDRESS            — Rare rarity spin-counter tracker
- *   NEXT_PUBLIC_EPIC_TRACKER_ADDRESS            — Epic rarity spin-counter tracker
- *   NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS       — Legendary rarity spin-counter tracker
+ *   NEXT_PUBLIC_USDC_ADDRESS                    — USDC/stablecoin token address
+ *   NEXT_PUBLIC_COMMON_TRACKER_ADDRESS          — Common rarity spin-counter tracker (optional)
+ *   NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS        — Uncommon rarity spin-counter tracker (optional)
+ *   NEXT_PUBLIC_RARE_TRACKER_ADDRESS            — Rare rarity spin-counter tracker (optional)
+ *   NEXT_PUBLIC_EPIC_TRACKER_ADDRESS            — Epic rarity spin-counter tracker (optional)
+ *   NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS       — Legendary rarity spin-counter tracker (optional)
  */
 export const TESTNET_GACHA_CONFIGS = createGachaConfig({
 	title: "Graded Pokemon Cards (Testnet)",
 	description:
-		"Collect professionally graded Pokemon trading cards on Polygon Amoy testnet. Test the full gacha experience with free test tokens before the mainnet launch.",
-	longDescription: `Welcome to Graded Pokemon Cards on Polygon Amoy Testnet — a full-featured preview of the production gacha system running on the Amoy test network.
+		"Collect professionally graded Pokemon trading cards on testnet. Test the full gacha experience with test tokens before the mainnet launch.",
+	longDescription: `Welcome to Graded Pokemon Cards Testnet — a full-featured preview of the production gacha system running on a public test network.
 
 Each Pokemon card belongs to one of five rarity tiers mirroring the mainnet distribution:
 - **Common** (70%) - Great starter cards for building your collection
@@ -40,9 +50,9 @@ Each Pokemon card belongs to one of five rarity tiers mirroring the mainnet dist
 - **Legendary** (1%) - The ultimate prize every Pokemon collector dreams of owning
 
 **Testnet Environment Notes:**
-- Uses Polygon Amoy testnet — obtain free MATIC from the Amoy faucet
-- Contract addresses are deployed via the task runner: \`task contracts:deploy\`
-- Randomness is provided by the WAVS-DRAND infrastructure running against the Amoy chain
+- Contract addresses are set via environment variables after deployment
+- Deploy contracts with \`DeployTestnet.s.sol\`, then run \`task frontend:sync-env\`
+- Randomness is provided by the WAVS-DRAND infrastructure
 - NFTs minted here have no real-world value and may be reset between deployments
 - All on-chain behaviour is identical to mainnet — this is the canonical staging environment`,
 	emptyFallback: true,
