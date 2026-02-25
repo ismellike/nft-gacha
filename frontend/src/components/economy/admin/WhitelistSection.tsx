@@ -7,7 +7,7 @@ import {
 	useWriteGachaTreasuryAddToWhitelist,
 	useWriteGachaTreasuryRemoveFromWhitelist,
 } from "@/generated";
-import { Button, Card } from "../../../ui";
+import { Button, Card, Input } from "../../../ui";
 
 export function WhitelistSection() {
 	const [newCollectionAddress, setNewCollectionAddress] = useState("");
@@ -75,12 +75,12 @@ export function WhitelistSection() {
 					Add Collection to Whitelist
 				</h3>
 				<div className="flex gap-4">
-					<input
+					<Input
 						type="text"
 						value={newCollectionAddress}
 						onChange={(e) => setNewCollectionAddress(e.target.value)}
 						placeholder="0x..."
-						className="flex-1 bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
+						wrapperClassName="flex-1"
 					/>
 					<Button
 						color="glassPrimary"

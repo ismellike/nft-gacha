@@ -7,7 +7,7 @@ import { useAccount } from "wagmi";
 import { useClientSearchParam } from "../../hooks/useClientSearchParams";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { Button, Card } from "../../ui";
+import { Button, Card, Input } from "../../ui";
 import { NFTCard } from "./NFTCard";
 
 export interface SelectedNFT {
@@ -110,38 +110,22 @@ export function WalletNFTPicker({
 
 					{/* Entry form */}
 					<div className="space-y-4">
-						<div>
-							<label
-								htmlFor="collection-address"
-								className="block text-sm font-medium text-foreground mb-2"
-							>
-								Collection Address
-							</label>
-							<input
-								id="collection-address"
-								type="text"
-								placeholder="0x..."
-								value={collection}
-								onChange={(e) => setCollection(e.target.value)}
-								className="w-full rounded-lg border border-white/10 bg-content1/50 px-4 py-3 text-foreground placeholder:text-foreground/40 focus:border-warning focus:ring-2 focus:ring-warning/30 focus:outline-none transition-all"
-							/>
-						</div>
-						<div>
-							<label
-								htmlFor="token-id"
-								className="block text-sm font-medium text-foreground mb-2"
-							>
-								Token ID
-							</label>
-							<input
-								id="token-id"
-								type="text"
-								placeholder="123"
-								value={tokenId}
-								onChange={(e) => setTokenId(e.target.value)}
-								className="w-full rounded-lg border border-white/10 bg-content1/50 px-4 py-3 text-foreground placeholder:text-foreground/40 focus:border-warning focus:ring-2 focus:ring-warning/30 focus:outline-none transition-all"
-							/>
-						</div>
+						<Input
+							id="collection-address"
+							type="text"
+							label="Collection Address"
+							placeholder="0x..."
+							value={collection}
+							onChange={(e) => setCollection(e.target.value)}
+						/>
+						<Input
+							id="token-id"
+							type="text"
+							label="Token ID"
+							placeholder="123"
+							value={tokenId}
+							onChange={(e) => setTokenId(e.target.value)}
+						/>
 
 						{/* Preview - sm size for preview context */}
 						{collection && tokenId && contracts.appraisal && (

@@ -3,7 +3,7 @@
 import { FolderOpenIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { useReadGachaTreasuryGetUserCardDepositsPage } from "@/generated";
-import { Button, Card, Chip } from "../../../ui";
+import { Button, Card, Chip, Input } from "../../../ui";
 
 export function DepositsSection() {
 	const [userAddress, setUserAddress] = useState("");
@@ -42,12 +42,12 @@ export function DepositsSection() {
 					Search User Deposits
 				</h3>
 				<div className="flex gap-4">
-					<input
+					<Input
 						type="text"
 						value={userAddress}
 						onChange={(e) => setUserAddress(e.target.value)}
 						placeholder="Enter user wallet address (0x...)"
-						className="flex-1 bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
+						wrapperClassName="flex-1"
 					/>
 					<Button
 						color="glassPrimary"

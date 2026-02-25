@@ -11,7 +11,7 @@ import {
 } from "@/generated";
 import type { GachaConfig } from "@/lib/gacha-config";
 import { formatPercentage, formatTokenAmount } from "@/lib/utils";
-import { Button, Card } from "../../../ui";
+import { Button, Card, Input } from "../../../ui";
 
 export function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 	const [newMinFee, setNewMinFee] = useState("");
@@ -102,62 +102,38 @@ export function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 					</div>
 				</div>
 
-				<div>
-					<label
-						htmlFor="newMinSpinFee"
-						className="block text-sm font-medium text-foreground mb-2"
-					>
-						New Min Spin Fee (in TOKENS)
-					</label>
-					<input
-						id="newMinSpinFee"
-						type="number"
-						value={newMinFee}
-						onChange={(e) => setNewMinFee(e.target.value)}
-						className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
-						placeholder="Enter min fee (e.g., 10.5)"
-						step="0.01"
-						min="0"
-					/>
-				</div>
+				<Input
+					id="newMinSpinFee"
+					type="number"
+					label="New Min Spin Fee (in TOKENS)"
+					value={newMinFee}
+					onChange={(e) => setNewMinFee(e.target.value)}
+					placeholder="Enter min fee (e.g., 10.5)"
+					step="0.01"
+					min="0"
+				/>
 
-				<div>
-					<label
-						htmlFor="newMaxSpinFee"
-						className="block text-sm font-medium text-foreground mb-2"
-					>
-						New Max Spin Fee (in TOKENS)
-					</label>
-					<input
-						id="newMaxSpinFee"
-						type="number"
-						value={newMaxFee}
-						onChange={(e) => setNewMaxFee(e.target.value)}
-						className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
-						placeholder="Enter max fee (e.g., 10.5)"
-						step="0.01"
-						min="0"
-					/>
-				</div>
+				<Input
+					id="newMaxSpinFee"
+					type="number"
+					label="New Max Spin Fee (in TOKENS)"
+					value={newMaxFee}
+					onChange={(e) => setNewMaxFee(e.target.value)}
+					placeholder="Enter max fee (e.g., 10.5)"
+					step="0.01"
+					min="0"
+				/>
 
-				<div>
-					<label
-						htmlFor="newPremiumBps"
-						className="block text-sm font-medium text-foreground mb-2"
-					>
-						Pricing Premium (BPS)
-					</label>
-					<input
-						id="newPremiumBps"
-						type="number"
-						value={newPremiumBps}
-						onChange={(e) => setNewPremiumBps(e.target.value)}
-						className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
-						placeholder="Enter premium bps (e.g., 500)"
-						step="1"
-						min="0"
-					/>
-				</div>
+				<Input
+					id="newPremiumBps"
+					type="number"
+					label="Pricing Premium (BPS)"
+					value={newPremiumBps}
+					onChange={(e) => setNewPremiumBps(e.target.value)}
+					placeholder="Enter premium bps (e.g., 500)"
+					step="1"
+					min="0"
+				/>
 
 				<div className="flex justify-end gap-4">
 					<Button

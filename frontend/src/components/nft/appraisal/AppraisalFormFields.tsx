@@ -6,7 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
 import { formatTokenAmount } from "../../../lib/utils";
-import { Button } from "../../../ui";
+import { Button, Input } from "../../../ui";
 
 interface FormData {
 	collection: string;
@@ -83,114 +83,52 @@ export function AppraisalFormFields({
 	return (
 		<form onSubmit={onSubmit} className="p-8 pt-4 space-y-4">
 			{/* Collection Address */}
-			<div>
-				<label
-					htmlFor="collection"
-					className="block text-sm font-medium text-foreground mb-2"
-				>
-					Collection Address
-				</label>
-				<div className="relative">
-					<input
-						id="collection"
-						type="text"
-						placeholder="0x..."
-						value={formData.collection}
-						onChange={(e) => onInputChange("collection", e.target.value)}
-						onBlur={() => touchField("collection")}
-						disabled={isPending}
-						aria-required="true"
-						className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
-							fields.collection?.isTouched && !fields.collection?.isValid
-								? "border-danger bg-danger/10 focus:border-danger focus:ring-danger/30"
-								: fields.collection?.isValid
-									? "border-success bg-success/10 focus:border-success focus:ring-success/30"
-									: "border-white/10 focus:border-warning focus:ring-warning/30"
-						} focus:outline-none focus:ring-2 disabled:bg-content1/30 disabled:text-foreground/40 disabled:cursor-not-allowed`}
-						aria-invalid={
-							fields.collection?.isTouched && !fields.collection?.isValid
-						}
-						aria-describedby={
-							fields.collection?.error ? "collection-error" : undefined
-						}
-					/>
-					{fields.collection?.error ? (
-						<motion.p
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							id="collection-error"
-							className="text-danger text-sm mt-1 flex items-center gap-1"
-						>
-							<ExclamationTriangleIcon className="w-4 h-4" />
-							{fields.collection.error}
-						</motion.p>
-					) : errors.collection ? (
-						<motion.p
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							className="text-danger text-sm mt-1 flex items-center gap-1"
-						>
-							<ExclamationTriangleIcon className="w-4 h-4" />
-							{errors.collection}
-						</motion.p>
-					) : null}
-				</div>
-			</div>
+			<Input
+				id="collection"
+				type="text"
+				label="Collection Address"
+				placeholder="0x..."
+				value={formData.collection}
+				onChange={(e) => onInputChange("collection", e.target.value)}
+				onBlur={() => touchField("collection")}
+				disabled={isPending}
+				aria-required="true"
+				variant={
+					fields.collection?.isTouched && !fields.collection?.isValid
+						? "error"
+						: "default"
+				}
+				errorMessage={
+					fields.collection?.error ??
+					(fields.collection?.isTouched && !fields.collection?.isValid
+						? errors.collection
+						: undefined)
+				}
+			/>
 
 			{/* Token ID */}
-			<div>
-				<label
-					htmlFor="tokenId"
-					className="block text-sm font-medium text-foreground mb-2"
-				>
-					Token ID
-				</label>
-				<div className="relative">
-					<input
-						id="tokenId"
-						type="text"
-						placeholder="123"
-						value={formData.tokenId}
-						onChange={(e) => onInputChange("tokenId", e.target.value)}
-						onBlur={() => touchField("tokenId")}
-						disabled={isPending}
-						aria-required="true"
-						className={`w-full rounded-lg border px-4 py-3 transition-colors bg-content1/50 text-foreground placeholder:text-foreground/40 ${
-							fields.tokenId?.isTouched && !fields.tokenId?.isValid
-								? "border-danger bg-danger/10 focus:border-danger focus:ring-danger/30"
-								: fields.tokenId?.isValid
-									? "border-success bg-success/10 focus:border-success focus:ring-success/30"
-									: "border-white/10 focus:border-warning focus:ring-warning/30"
-						} focus:outline-none focus:ring-2 disabled:bg-content1/30 disabled:text-foreground/40 disabled:cursor-not-allowed`}
-						aria-invalid={
-							fields.tokenId?.isTouched && !fields.tokenId?.isValid
-						}
-						aria-describedby={
-							fields.tokenId?.error ? "tokenId-error" : undefined
-						}
-					/>
-					{fields.tokenId?.error ? (
-						<motion.p
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							id="tokenId-error"
-							className="text-danger text-sm mt-1 flex items-center gap-1"
-						>
-							<ExclamationTriangleIcon className="w-4 h-4" />
-							{fields.tokenId.error}
-						</motion.p>
-					) : errors.tokenId ? (
-						<motion.p
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							className="text-danger text-sm mt-1 flex items-center gap-1"
-						>
-							<ExclamationTriangleIcon className="w-4 h-4" />
-							{errors.tokenId}
-						</motion.p>
-					) : null}
-				</div>
-			</div>
+			<Input
+				id="tokenId"
+				type="text"
+				label="Token ID"
+				placeholder="123"
+				value={formData.tokenId}
+				onChange={(e) => onInputChange("tokenId", e.target.value)}
+				onBlur={() => touchField("tokenId")}
+				disabled={isPending}
+				aria-required="true"
+				variant={
+					fields.tokenId?.isTouched && !fields.tokenId?.isValid
+						? "error"
+						: "default"
+				}
+				errorMessage={
+					fields.tokenId?.error ??
+					(fields.tokenId?.isTouched && !fields.tokenId?.isValid
+						? errors.tokenId
+						: undefined)
+				}
+			/>
 
 			{/* Fee info */}
 			{appraisalFee && (

@@ -6,7 +6,7 @@ import { useReadContract, useWriteContract } from "wagmi";
 import type { GachaConfig } from "@/lib/gacha-config";
 import { RARITY_CONFIG } from "@/lib/rarityConfig";
 import { formatPercentage } from "@/lib/utils";
-import { Button, Card, Chip } from "../../../ui";
+import { Button, Card, Chip, Input } from "../../../ui";
 
 export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 	const [weights, setWeights] = useState([7000, 2000, 600, 300, 100]);
@@ -112,20 +112,19 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 								</div>
 							</div>
 
-							<div className="relative">
-								<input
-									type="number"
-									value={weight}
-									onChange={(e) => handleWeightChange(index, e.target.value)}
-									className="w-full bg-content1/20 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 text-foreground focus:border-warning/50 focus:outline-none transition-colors"
-									placeholder="Weight (0-10000)"
-									min="0"
-									max="10000"
-								/>
-								<div className="absolute right-3 top-3 text-sm text-foreground/60">
+							<Input
+							type="number"
+							value={weight}
+							onChange={(e) => handleWeightChange(index, e.target.value)}
+							placeholder="Weight (0-10000)"
+							min="0"
+							max="10000"
+							rightIcon={
+								<span className="text-sm text-foreground/60">
 									/ 10,000
-								</div>
-							</div>
+								</span>
+							}
+						/>
 						</div>
 					);
 				})}
