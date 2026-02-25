@@ -9,7 +9,8 @@ import {
 	WalletIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { useReadGachaTreasuryGetWhitelistedCollections } from "../../../generated";
