@@ -10,23 +10,20 @@ import {
 	XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { BuybackNotificationProvider } from "../../components/economy";
 import {
-	AdminSection,
-	EconomySection,
 	FlowSwitcher,
 	SpinSection,
-	VaultSection,
 } from "../../components/gacha";
 import {
 	ContractStatusAnnouncer,
 	InlineRetryMessage,
 	useContractStatusAnnouncer,
 } from "../../components/shared/feedback";
-import { SpinHistorySection } from "../../components/spin-history";
 import { GachaRefreshProvider } from "../../contexts/GachaRefreshContext";
 import {
 	gachaAbi,
@@ -40,6 +37,80 @@ import { useGachaSections } from "../../hooks/useGachaSections";
 import { useRewardsData } from "../../hooks/useRewardsData";
 import { getGachaConfig } from "../../lib/gacha-config";
 import { Button, Card, CardSkeleton, Chip } from "../../ui";
+
+// Lazy-load non-default sections to reduce initial bundle size.
+// SpinSection is the default view and is always loaded eagerly.
+const VaultSection = dynamic(
+	() =>
+		import("../../components/gacha/sections/VaultSection").then(
+			(m) => m.VaultSection,
+		),
+	{
+		loading: () => (
+			<div className="space-y-6">
+				<div className="grid gap-6 lg:grid-cols-3">
+					<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+					<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+					<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+				</div>
+			</div>
+		),
+		ssr: false,
+	},
+);
+
+const EconomySection = dynamic(
+	() =>
+		import("../../components/gacha/sections/EconomySection").then(
+			(m) => m.EconomySection,
+		),
+	{
+		loading: () => (
+			<div className="space-y-6">
+				<div className="grid gap-6 lg:grid-cols-2">
+					<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+					<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+				</div>
+			</div>
+		),
+		ssr: false,
+	},
+);
+
+const SpinHistorySection = dynamic(
+	() =>
+		import("../../components/spin-history/SpinHistorySection").then(
+			(m) => m.SpinHistorySection,
+		),
+	{
+		loading: () => (
+			<div className="space-y-6">
+				<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+				<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+			</div>
+		),
+		ssr: false,
+	},
+);
+
+const AdminSection = dynamic(
+	() =>
+		import("../../components/gacha/sections/AdminSection").then(
+			(m) => m.AdminSection,
+		),
+	{
+		loading: () => (
+			<div className="space-y-6">
+				<div className="grid gap-6 lg:grid-cols-3">
+					<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+					<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+					<CardSkeleton className="bg-content1/20 backdrop-blur-xl border border-white/10" />
+				</div>
+			</div>
+		),
+		ssr: false,
+	},
+);
 
 type FlowOption = {
 	id: "spin" | "vault" | "economy" | "history" | "admin";
