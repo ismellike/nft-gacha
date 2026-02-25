@@ -6,11 +6,9 @@ use wavs_wasi_utils::evm::new_evm_provider;
 
 use crate::host::get_evm_chain_config;
 
-// Generate sol! macro from the actual ERC721.json ABI file
 sol!(
     #[sol(rpc)]
-    ERC721,
-    "../../contracts/out/ERC721.sol/ERC721.json"
+    "../../contracts/lib/openzeppelin-contracts/contracts/token/ERC721/extensions/IERC721Metadata.sol"
 );
 
 #[derive(Debug)]
@@ -49,7 +47,7 @@ impl ERC721Client {
             .map_err(|e| anyhow!("Failed to parse token ID: {}", e))?;
 
         // Create ERC721 contract instance using the generated sol! types
-        let contract = ERC721::new(contract_addr, provider);
+        let contract = IERC721Metadata::new(contract_addr, provider);
 
         // Call the tokenURI function using the contract instance
         let result = contract
@@ -77,7 +75,7 @@ mod tests {
     fn test_sol_macro_generation() {
         // Test that the sol! macro generates the expected types
         let token_id = U256::from(123);
-        let call = ERC721::tokenURICall { tokenId: token_id };
+        let call = IERC721Metadata::tokenURICall { tokenId: token_id };
 
         // Verify the call can be ABI encoded
         let encoded = alloy_sol_types::SolCall::abi_encode(&call);
