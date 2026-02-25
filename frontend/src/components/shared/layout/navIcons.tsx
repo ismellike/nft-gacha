@@ -1,4 +1,5 @@
 import {
+	ChartBarIcon,
 	CubeIcon,
 	HomeIcon,
 	MagnifyingGlassIcon,
@@ -16,6 +17,8 @@ export function getNavIcon(iconName: string, className: string) {
 			return <CubeIcon className={className} aria-hidden="true" />;
 		case "search":
 			return <MagnifyingGlassIcon className={className} aria-hidden="true" />;
+		case "chart":
+			return <ChartBarIcon className={className} aria-hidden="true" />;
 		default:
 			console.warn(`Nav icon "${iconName}" not found`);
 			return null;
