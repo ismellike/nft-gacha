@@ -2,33 +2,32 @@ import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import type { Chain } from "viem";
 import { localhost, polygon, polygonAmoy } from "wagmi/chains";
 import { ENV_MODE } from "./lib/config";
-
-const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
+import { env } from "./lib/env";
 
 function getChain(): Chain {
 	switch (ENV_MODE) {
 		case "TESTNET": {
-			if (!rpcUrl) return polygonAmoy;
+			if (!env.NEXT_PUBLIC_RPC_URL) return polygonAmoy;
 			return {
 				...polygonAmoy,
 				rpcUrls: {
-					default: { http: [rpcUrl] },
+					default: { http: [env.NEXT_PUBLIC_RPC_URL] },
 				},
 			};
 		}
 		case "MAINNET": {
-			if (!rpcUrl) return polygon;
+			if (!env.NEXT_PUBLIC_RPC_URL) return polygon;
 			return {
 				...polygon,
 				rpcUrls: {
-					default: { http: [rpcUrl] },
+					default: { http: [env.NEXT_PUBLIC_RPC_URL] },
 				},
 			};
 		}
 		default: {
 			// LOCAL
-			const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 17000);
-			const localRpc = rpcUrl || "http://localhost:8548";
+			const chainId = env.NEXT_PUBLIC_CHAIN_ID;
+			const localRpc = env.NEXT_PUBLIC_RPC_URL ?? "http://localhost:8548";
 			return {
 				...localhost,
 				id: chainId,
@@ -43,7 +42,7 @@ function getChain(): Chain {
 
 export const config = getDefaultConfig({
 	appName: "Spin-Fi",
-	projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "placeholder",
+	projectId: env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
 	chains: [getChain()],
 	ssr: false,
 });

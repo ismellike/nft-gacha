@@ -1,13 +1,15 @@
+import { env } from "./env";
+
 type LogLevel = "log" | "info" | "warn" | "error" | "debug";
 
 const DEBUG_FLAGS = {
-	GENERAL: process.env.NEXT_PUBLIC_DEBUG_GENERAL === "true",
-	GACHA_SPIN: process.env.NEXT_PUBLIC_DEBUG_GACHA_SPIN === "true",
-	NFT_METADATA: process.env.NEXT_PUBLIC_DEBUG_NFT_METADATA === "true",
-	CONTRACTS: process.env.NEXT_PUBLIC_DEBUG_CONTRACTS === "true",
-	STATE: process.env.NEXT_PUBLIC_DEBUG_STATE === "true",
-	NETWORK: process.env.NEXT_PUBLIC_DEBUG_NETWORK === "true",
-	ALL: process.env.NEXT_PUBLIC_DEBUG_ALL === "true",
+	GENERAL: env.NEXT_PUBLIC_DEBUG_GENERAL,
+	GACHA_SPIN: env.NEXT_PUBLIC_DEBUG_GACHA_SPIN,
+	NFT_METADATA: env.NEXT_PUBLIC_DEBUG_NFT_METADATA,
+	CONTRACTS: env.NEXT_PUBLIC_DEBUG_CONTRACTS,
+	STATE: env.NEXT_PUBLIC_DEBUG_STATE,
+	NETWORK: env.NEXT_PUBLIC_DEBUG_NETWORK,
+	ALL: env.NEXT_PUBLIC_DEBUG_ALL,
 } as const;
 
 type DebugCategory = keyof typeof DEBUG_FLAGS;

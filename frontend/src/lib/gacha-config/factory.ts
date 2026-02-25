@@ -1,47 +1,20 @@
+import { env } from "../env";
 import type { GachaConfig } from "./types";
 
 /**
- * Static env var map — Next.js can only inline NEXT_PUBLIC_* on the client
- * when accessed via literal `process.env.NEXT_PUBLIC_FOO` expressions.
- * Dynamic `process.env[key]` only works server-side (Node.js runtime).
- */
-const ENV: Record<string, string | undefined> = {
-	NEXT_PUBLIC_GACHA_ADDRESS: process.env.NEXT_PUBLIC_GACHA_ADDRESS,
-	NEXT_PUBLIC_GACHA_TREASURY_ADDRESS:
-		process.env.NEXT_PUBLIC_GACHA_TREASURY_ADDRESS,
-	NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS:
-		process.env.NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS,
-	NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS:
-		process.env.NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS,
-	NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS:
-		process.env.NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS,
-	NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS:
-		process.env.NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS,
-	NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS:
-		process.env.NEXT_PUBLIC_DEPOSITOR_VAULT_ADDRESS,
-	NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS:
-		process.env.NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS,
-	NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS:
-		process.env.NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS,
-	NEXT_PUBLIC_COMMON_TRACKER_ADDRESS:
-		process.env.NEXT_PUBLIC_COMMON_TRACKER_ADDRESS,
-	NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS:
-		process.env.NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS,
-	NEXT_PUBLIC_RARE_TRACKER_ADDRESS:
-		process.env.NEXT_PUBLIC_RARE_TRACKER_ADDRESS,
-	NEXT_PUBLIC_EPIC_TRACKER_ADDRESS:
-		process.env.NEXT_PUBLIC_EPIC_TRACKER_ADDRESS,
-	NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS:
-		process.env.NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS,
-};
-
-/**
- * Read an env-var as a hex address. When `fallback` is true (testnet/mainnet),
+ * Read a validated env address. When `fallback` is true (testnet/mainnet),
  * missing variables resolve to `""` so the app can still start—validation in
  * gacha-config.ts will log a warning instead.
+ *
+ * The `env` object is already validated by Zod; each address field is either a
+ * valid `0x…` string or `undefined`.  The `fallback` flag preserves the
+ * original behaviour of returning `""` for absent addresses in non-local modes.
  */
-function addr(key: string, fallback: boolean): `0x${string}` {
-	const value = ENV[key];
+function addr(
+	key: keyof typeof env,
+	fallback: boolean,
+): `0x${string}` {
+	const value = env[key] as `0x${string}` | undefined;
 	return (fallback ? (value ?? "") : value) as `0x${string}`;
 }
 

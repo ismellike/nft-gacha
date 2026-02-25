@@ -18,6 +18,7 @@ import {
 	gachaEconomyManagerAbi,
 	gachaTreasuryAbi,
 } from "@/generated";
+import { env } from "@/lib/env";
 import type { GachaConfig } from "@/lib/gacha-config";
 import {
 	DepositsSection,
@@ -108,7 +109,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 		functionName: "owner",
 	});
 
-	const rewardsManager = process.env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as
+	const rewardsManager = env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS as
 		| `0x${string}`
 		| undefined;
 	const { data: rewardsOwner } = useReadContract({
