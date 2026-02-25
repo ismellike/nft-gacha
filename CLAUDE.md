@@ -108,12 +108,18 @@ Gacha.sol (Main game logic)
 GachaTreasury.sol (NFT storage)
     ├─→ Assigns rarity by price
     ├─→ Stores NFTs by rarity pool
+    ├─→ Calls CardGroupedVault for card-level tracking
     └─→ Mints to winners
 
 GachaEconomyManager.sol (Fees & yield)
     ├─→ Collects spin fees
-    ├─→ Distributes to treasury
-    └─→ Manages yield
+    ├─→ Routes yield per-rarity to CardGroupedVault
+    └─→ Queues yield when rarity pool empty
+
+CardGroupedVault.sol (Card-grouped yield)
+    ├─→ Per-rarity yield pools (5 tiers)
+    ├─→ O(1) price updates via correction accumulator
+    └─→ O(1) rarity migration with yield settlement
 ```
 
 ### Frontend State Flow

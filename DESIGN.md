@@ -26,11 +26,11 @@
   - Holds NFTs bucketed by rarity; rarity derived from USD appraisal bands (set at init; Legendary upper bound can be `type(uint256).max`).
   - Whitelists NFT collections; rejects un‑appraised tokens.
   - Swap‑and‑pop storage for O(1) random NFT extraction; records receive times to enforce redemption window.
-  - Tracks depositor counts/value, cardId groupings, lifetime stats, and syncs deposit weights to DepositorVault.
+  - Tracks depositor counts/value, cardId groupings, lifetime stats, and syncs deposit weights to CardGroupedVault.
   - Supports rarity migration when appraisals move, withdrawal by depositor, redemption restocking from ProtocolTreasury.
 - **Economics**
   - **GachaEconomyManager (`economy/GachaEconomyManager.sol`)**: splits spin revenue (default 95% depositors / 5% protocol, adjustable) and handles queued yield when no shares exist. Auto-claims protocol’s vault yield if present.
-  - **DepositorVault (`economy/DepositorVault.sol`)**: ERC-2222–style share accounting using appraisal value (1e18) as shares. Distributes USDC yield, supports claim by user or economy manager; records claims back into treasury analytics.
+  - **CardGroupedVault (`economy/CardGroupedVault.sol`)**: ERC-2222–style share accounting using appraisal value (1e18) as shares. Distributes USDC yield, supports claim by user or economy manager; records claims back into treasury analytics.
   - **ProtocolTreasury (`economy/ProtocolTreasury.sol`)**: receives protocol fee, executes buybacks/redemptions at 85% of appraisal (USD→USDC conversion), restocks NFTs into treasury, enforces redemption window (default 1h).
 - **Appraisal**
   - **NFTAppraisal (`appraisal/NFTAppraisal.sol`)**: user requests appraisal (pays fee), tracks token→cardId mapping, stores card-level price in 1e18 USD. Whitelisted treasuries auto-migrate rarities on price updates.
@@ -42,7 +42,7 @@
 ### A) Deposit & appraisal (Courtyard Pokémon cards first)
 1. Depositor requests appraisal via `NFTAppraisal.requestAppraisal` (pays fee in `feeToken`, typically USDC).
 2. WAVS appraisal worker (fed by Courtyard pricing) returns signed payload → `NFTAppraisalServiceHandler` → `setAppraisalForTokenWithCard`.
-3. Depositor calls `GachaTreasury.depositNFT` (collection must be whitelisted). Treasury pulls the NFT, derives rarity from price bands, records depositor/value, syncs shares to `DepositorVault`.
+3. Depositor calls `GachaTreasury.depositNFT` (collection must be whitelisted). Treasury pulls the NFT, derives rarity from price bands, records depositor/value, syncs shares to `CardGroupedVault`.
 
 ### B) Spin
 1. User calls `Gacha.spin`/`spinWithPermit`; contract checks all weighted rarities have inventory, collects `spinFee` (USDC), emits `RandomnessRequested(triggerId)`.
@@ -53,7 +53,7 @@
 
 ### C) Revenue distribution per spin
 1. Economy manager splits fee: default 95% → depositors, 5% → protocol (rounding left to protocol).
-2. Depositor share: `DepositorVault.distributeYield` accrues yield pro‑rata to appraisal-weighted shares; users call `claimYield` (or protocol auto-claims its own shares).
+2. Depositor share: `CardGroupedVault.distributeYield` accrues yield pro‑rata to appraisal-weighted shares; users call `claimYield` (or protocol auto-claims its own shares).
 3. Protocol share: `ProtocolTreasury.onRevenueReceived` holds USDC for operations/buybacks.
 
 ### D) Redemption / buyback
@@ -66,7 +66,7 @@
 - Admin pause on Gacha, Treasury, Vault, Appraisal, EconomyManager, ProtocolTreasury.
 
 ## 5) Multi-gacha approach
-- Each gacha instance pairs with its own `GachaTreasury` (rarity pools and price bands per market) and may share the same `DepositorVault`/`GachaEconomyManager`/`ProtocolTreasury` or use isolated instances per SKU.
+- Each gacha instance pairs with its own `GachaTreasury` (rarity pools and price bands per market) and may share the same `CardGroupedVault`/`GachaEconomyManager`/`ProtocolTreasury` or use isolated instances per SKU.
 - Launch plan: start with one Pokémon-graded gacha (Courtyard feed) using default rarity weights; add more gachas by cloning the stack with collection-specific whitelists and price bands.
 - Shared appraisal service (WAVS) to reuse pricing across gachas; treasuries listen for auto-migration when prices move.
 

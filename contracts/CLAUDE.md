@@ -80,11 +80,13 @@ forge create <contract> --rpc-url <url> --private-key <key>
 - Auto-claims protocol yield when protocol has meaningful shares
 - Prevents protocol from receiving depositor yield inappropriately
 
-**DepositorVault Contract** (`src/economy/DepositorVault.sol`)
-- Yield vault for NFT depositors to earn rewards
-- Tracks user deposits and reward shares
-- Implements withdrawal and claim mechanisms
-- Supports batch operations for gas optimization
+**CardGroupedVault Contract** (`src/economy/CardGroupedVault.sol`)
+- Card-grouped yield vault using correction accumulator pattern for O(1) price updates
+- Tracks deposits at the card level (all tokens of the same card share one CardNode)
+- Per-rarity yield distribution: spin revenue routes to the rarity tier that generated it
+- Correction accumulator enables O(1) price updates without iterating depositors
+- Rarity migration settles old-tier yield and moves card to new pool atomically
+- Backward-compatible view functions (`sharesOf`, `pendingYield`, `totalShares`, `claimYield`, `asset`)
 
 **ProtocolTreasury Contract** (`src/economy/ProtocolTreasury.sol`)
 - Treasury for protocol funds and fees
@@ -103,61 +105,72 @@ This pattern separates core game logic from external service integration, allowi
 ### Utility Contracts
 
 Additional utility contracts provide system-wide functionality:
-- **RarityTracker** (`src/gacha/RarityTracker.sol`): ERC2222-style appraisal-weighted deposit tracking across a rarity → card → depositor tree structure
 - **ERC20BatchQuery** (`src/utils/ERC20BatchQuery.sol`): Batch query operations for ERC20 tokens
 - **BaseERC20** (`src/tokens/BaseERC20.sol`): Base ERC20 token implementation
 - **BaseERC721** (`src/tokens/BaseERC721.sol`): Base ERC721 NFT implementation
 
-### ERC2222 Tree Structure in RarityTracker
+### CardGroupedVault Architecture
 
-The RarityTracker implements an ERC2222-style hierarchical tree structure for tracking NFT deposits and their associated rewards:
+The CardGroupedVault uses a correction accumulator pattern for efficient card-level yield tracking:
 
-**Tree Hierarchy:**
+**Data Model:**
 ```
-Rarity Tier (Root)
-├── Card Node (by cardId)
-│   ├── Appraisal USD value
-│   ├── Total count & value
-│   └── Depositor Positions[]
-│       ├── Depositor Address
-│       └── Count × Appraisal Value
+RarityPool[5]                    ← 5 per-rarity accumulators
+  └─ accYieldPerUSD              ← cumulative yield per $1 of value
+  └─ totalValueUSD               ← sum of (count × price) for all cards
+
+CardNode[cardId]                 ← one per card
+  └─ rarity, cardPriceUSD, totalCount
+  └─ correctionPerUnit (int256)  ← accumulates price-change corrections
+  └─ settledYieldPerUnit         ← yield from previous rarity stints
+  └─ baseAcc                     ← accYieldPerUSD[rarity] when card entered pool
+
+DepositorPosition[cardId][depositor]  ← per depositor per card
+  └─ count, rewardDebt, correctionDebt (int256), settledDebt
 ```
 
-**Key Features:**
-- **Card-Based Grouping**: Multiple NFTs with the same appraisal value are grouped under a single `CardNode`
-- **Appraisal-Weighted Tracking**: Depositor positions tracked as `count × appraisalUSD` for fair reward distribution
-- **O(1) Array Operations**: Efficient add/remove operations using swap-and-pop patterns
-- **Cascading Price Updates**: When card appraisals change, deltas cascade to all affected depositors
-- **Gas-Optimized Storage**: Minimal storage slots per depositor position
+**Key Operations:**
+- `registerCardDeposit(cardId, depositor, priceUSD, rarity, count)`: Adds card deposit to vault
+- `removeCardDeposit(cardId, depositor, count)`: Removes deposit, auto-claims if count reaches 0
+- `updateCardPrice(cardId, newPriceUSD)`: O(1) price update via correction accumulator
+- `migrateCardRarity(cardId, newRarity, newPriceUSD)`: O(1) rarity migration with yield settlement
+- `distributeYield(amount, rarity)`: O(1) yield distribution to a specific rarity pool
+- `claimYield(account)`: Iterates depositor's card list, claims accumulated yield
 
-**Core Functions:**
-- `registerDeposit(cardId, depositor, appraisalUSD, count)`: Adds NFTs to the tree
-- `removeDeposit(cardId, depositor, count)`: Removes NFTs from the tree
-- `updateCardAppraisal(cardId, newAppraisalUSD)`: Updates card value and cascades changes
-- `getCardInfo(cardId)`: Returns aggregated card data
-- `getCardDepositors(cardId)`: Returns all depositors for a specific card
-- `getDepositorValue(depositor)`: Returns total value across all cards for a depositor
+**Correction Accumulator (O(1) price updates):**
+When a card's price changes within the same rarity:
+```
+correctionPerUnit += (newP - oldP) × (accYieldPerUSD[rarity] - baseAcc) / PRECISION
+```
+This adjusts all depositors' yield calculations without iterating them.
+
+**Rarity Migration (O(1) vault update):**
+When a card moves to a new rarity tier:
+```
+settledYieldPerUnit += price × (accYieldPerUSD[oldR] - baseAcc) / PRECISION - correctionPerUnit
+baseAcc = accYieldPerUSD[newR]; correctionPerUnit = 0
+```
 
 ### Rewards Integration
 
-Multi-tier rewards system integrated across the ERC2222 tree structure:
-1. **Rarity-level rewards**: Aggregate rewards for entire rarity tiers tracked in RarityTracker
-2. **Card-level rewards**: Value-weighted rewards based on card appraisal and total deposits
+Multi-tier rewards system integrated with the CardGroupedVault:
+1. **Rarity-level rewards**: Spin revenue routes to the rarity tier that generated it via `distributeYield(amount, rarity)`
+2. **Card-level rewards**: Value-weighted rewards based on card appraisal within each rarity pool
 3. **Depositor-level rewards**: Individual rewards calculated as `depositValue / totalRarityValue × rarityRewards`
 
 **GachaEconomyManager** handles intelligent fee distribution from spin operations:
 - Splits spin revenue between depositors (95%) and protocol (5%)
-- Queues depositor yield when no NFTs are deposited (no shares exist)
+- Routes depositor yield to the specific rarity pool via `distributeYield(amount, rarity)`
+- Queues depositor yield when the rarity pool has no deposits (totalValueUSD == 0)
 - Processes queued yield automatically when deposits arrive
 - Only auto-claims protocol yield when protocol has meaningful shares
-- Prevents protocol from receiving depositor yield inappropriately
 
 ### Key Data Flows
 
-1. **NFT Deposit Flow**: appraisal → price-based rarity → treasury deposit → RarityTracker tree registration (cardId → depositor position)
-2. **Gacha Spin Flow**: fee payment → randomness request → rarity selection → NFT distribution → economy manager fee splitting → depositor vault yield distribution
-3. **Price Migration Flow**: price update → `updateCardAppraisal()` → cascading value deltas through tree → reward recalculation
-4. **Tree Management Flow**: deposit/withdraw → tree position updates → appraisal-weighted share calculation → yield distribution
+1. **NFT Deposit Flow**: appraisal → price-based rarity → treasury deposit → `vault.registerCardDeposit(cardId, depositor, priceUSD, rarity, 1)`
+2. **Gacha Spin Flow**: fee payment → randomness request → rarity selection → NFT distribution → economy manager fee splitting → `vault.distributeYield(amount, rarity)`
+3. **Price Update Flow**: `NFTAppraisal._triggerAutoMigration()` → `GachaTreasury.onCardPriceUpdated(cardId, newPriceUSD)` → `vault.updateCardPrice(cardId, newPriceUSD)` [O(1)]
+4. **Rarity Migration Flow**: price change crosses rarity boundary → `vault.migrateCardRarity(cardId, newRarity, newPriceUSD)` [O(1) vault] + treasury array migration [O(tokens_per_card)]
 
 ### Advanced Features
 
@@ -179,13 +192,13 @@ Multi-tier rewards system integrated across the ERC2222 tree structure:
 - **Batch Queries**: ERC20 token balances can be queried in batches
 - **Gas Optimization**: All batch operations designed for maximum gas efficiency
 
-#### ERC2222 Tree Implementation Details
-- **CardNode Structure**: Each card stores appraisal value, total metrics, and depositor positions array
-- **DepositorPosition**: Simple count tracking per depositor per card (actual value = count × appraisal)
-- **Array Management**: O(1) add/remove using swap-and-pop with index mapping for efficient cleanup
-- **Price Update Cascading**: Single `updateCardAppraisal()` call updates all depositor values atomically
-- **Overflow Protection**: Comprehensive bounds checking on all arithmetic operations
-- **Gas Efficiency**: Minimal storage writes per operation and optimized loop structures
+#### Correction Accumulator Implementation Details
+- **CardNode Structure**: Each card stores rarity, price, totalCount, correctionPerUnit (int256), settledYieldPerUnit, and baseAcc
+- **DepositorPosition**: Per-depositor-per-card tracking with count, rewardDebt, correctionDebt (int256), settledDebt
+- **O(1) Price Updates**: `updateCardPrice` adjusts correctionPerUnit without iterating depositors
+- **O(1) Rarity Migration**: `migrateCardRarity` settles yield from old tier and resets for new tier
+- **Signed Math**: correctionPerUnit uses int256 because prices can decrease
+- **Precision**: Uses `Math.mulDiv` for safe 256-bit multiplication with 1e18 precision factor
 
 ## Testing
 
@@ -208,7 +221,7 @@ Test files are organized with comprehensive unit and integration testing:
 
 ### Mock Contracts
 Mock contracts available in `test/mocks/` for isolated testing:
-- `MockDepositorVault.sol` - Mock vault for testing
+- `MockCardGroupedVault.sol` - Mock card-grouped vault for testing
 - `MockERC20.sol` - Mock ERC20 token
 - `MockERC721.sol` - Mock ERC721 NFT
 - `MockNFTAppraisal.sol` - Mock appraisal service
