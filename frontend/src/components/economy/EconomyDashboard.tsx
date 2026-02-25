@@ -74,8 +74,8 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 	const canShowProtocolTreasury = !protocolLoading;
 
 	const revenueShares = calculateRevenueShares(
-		economyData.depositorShareBps || 0n,
-		economyData.protocolShareBps || 0n,
+		economyData.depositorShareBps ?? 0n,
+		economyData.protocolShareBps ?? 0n,
 	);
 
 	const treasuryStatus = getTreasuryStatus(protocolData.paused);

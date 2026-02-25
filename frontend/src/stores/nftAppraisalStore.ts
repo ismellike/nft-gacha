@@ -242,6 +242,6 @@ export const useAppraisalLoading = (userAddress: string | undefined) => {
 
 export const useAppraisalError = (userAddress: string | undefined) => {
 	return useNFTAppraisalStore((state) =>
-		userAddress ? state.error[userAddress.toLowerCase()] || null : null,
+		userAddress ? state.error[userAddress.toLowerCase()] ?? null : null,
 	);
 };

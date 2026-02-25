@@ -394,3 +394,19 @@ export function isValidTokenAmount(amount: string): boolean {
 		return false;
 	}
 }
+
+const BLOCK_EXPLORERS: Record<number, string> = {
+	137: "https://polygonscan.com",
+	80002: "https://amoy.polygonscan.com",
+	1: "https://etherscan.io",
+	17000: "https://holesky.etherscan.io",
+};
+
+export function getBlockExplorerTxUrl(
+	chainId: number,
+	txHash: string,
+): string | null {
+	const base = BLOCK_EXPLORERS[chainId];
+	if (!base) return null;
+	return `${base}/tx/${txHash}`;
+}

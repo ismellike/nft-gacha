@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { memo } from "react";
+import { useChainId } from "wagmi";
 import BuybackComponent from "@/components/economy/BuybackComponent";
 import { NFTCard, type NFTCardData } from "@/components/nft";
 import { getRarityConfig, rarityFromNumber } from "@/lib/rarityConfig";
@@ -9,6 +10,7 @@ import {
 	formatAddress,
 	formatCurrency,
 	formatTokenId,
+	getBlockExplorerTxUrl,
 	getRelativeTime,
 	isValidAddress,
 } from "@/lib/utils";
@@ -52,6 +54,8 @@ const SpinHistoryCard = memo(
 		onBuybackSuccess,
 		uniqueId,
 	}: SpinHistoryCardProps) => {
+		const chainId = useChainId();
+
 		// Safely validate rarity using rarityFromNumber utility
 		const rarityConfig =
 			entry.rarity !== undefined
@@ -188,14 +192,16 @@ const SpinHistoryCard = memo(
 								</span>
 							)}
 						</div>
-						<a
-							href={`https://etherscan.io/tx/${entry.transactionHash}`}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-[11px] !text-white/80 hover:!text-white hover:underline transition-colors"
-						>
-							View Transaction →
-						</a>
+						{getBlockExplorerTxUrl(chainId, entry.transactionHash) && (
+							<a
+								href={getBlockExplorerTxUrl(chainId, entry.transactionHash)!}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-[11px] !text-white/80 hover:!text-white hover:underline transition-colors"
+							>
+								View Transaction →
+							</a>
+						)}
 					</div>
 
 					{/* Buyback Action (completed spins with NFT and treasury) */}

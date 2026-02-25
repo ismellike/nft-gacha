@@ -8,6 +8,10 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// @title BaseERC721
 /// @notice Minimal owner-mintable ERC721 for local deploys and tests with tokenURI support
 contract BaseERC721 is ERC721Enumerable, Ownable {
+    /// @notice Custom errors
+    error InvalidCount();
+    error TokenDoesNotExist(uint256 tokenId);
+
     uint256 private _nextId;
 
     /// @notice Mapping from token ID to token URI
@@ -35,7 +39,7 @@ contract BaseERC721 is ERC721Enumerable, Ownable {
     }
 
     function batchMint(address to, uint256 count) external onlyOwner returns (uint256[] memory tokenIds) {
-        require(count > 0 && count <= 100, "Invalid count");
+        if (count == 0 || count > 100) revert InvalidCount();
 
         tokenIds = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
@@ -50,7 +54,7 @@ contract BaseERC721 is ERC721Enumerable, Ownable {
         onlyOwner
         returns (uint256[] memory tokenIds)
     {
-        require(uris.length > 0 && uris.length <= 100, "Invalid count");
+        if (uris.length == 0 || uris.length > 100) revert InvalidCount();
 
         tokenIds = new uint256[](uris.length);
         for (uint256 i = 0; i < uris.length; i++) {
@@ -62,7 +66,7 @@ contract BaseERC721 is ERC721Enumerable, Ownable {
     }
 
     function setTokenURI(uint256 tokenId, string calldata uri) external onlyOwner {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        if (_ownerOf(tokenId) == address(0)) revert TokenDoesNotExist(tokenId);
         _tokenURIs[tokenId] = uri;
     }
 
@@ -71,7 +75,7 @@ contract BaseERC721 is ERC721Enumerable, Ownable {
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        if (_ownerOf(tokenId) == address(0)) revert TokenDoesNotExist(tokenId);
 
         string memory _tokenURI = _tokenURIs[tokenId];
         string memory base = _baseURI();

@@ -5,7 +5,7 @@ export function getGachaConfig(
 	configs: Record<string, GachaConfig>,
 	id: string,
 ): GachaConfig | null {
-	return configs[id] || null;
+	return configs[id] ?? null;
 }
 
 export function getAllActiveGachas(

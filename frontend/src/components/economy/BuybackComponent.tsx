@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, useChainId, useReadContract } from "wagmi";
 import {
 	useReadErc721IsApprovedForAll,
 	useReadNftAppraisalGetAppraisedPrice,
@@ -16,7 +16,7 @@ import {
 } from "@/hooks/useNFTInteraction";
 import { useRedemptionWindow } from "@/hooks/useRedemptionWindow";
 import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getBlockExplorerTxUrl } from "@/lib/utils";
 import { RedemptionCountdown } from "./RedemptionCountdown";
 import { Button } from "../../ui/Button";
 import { Card } from "../../ui/Card";
@@ -55,6 +55,7 @@ export default function BuybackComponent({
 	showTreasuryRestock = true,
 }: BuybackComponentProps) {
 	const { address: connectedAddress } = useAccount();
+	const chainId = useChainId();
 	const { showNotification } = useBuybackNotificationsContext();
 
 	// Build stable callbacks first to avoid recreating on every render
@@ -570,18 +571,20 @@ export default function BuybackComponent({
 							</div>
 							{successData?.txHash && (
 								<div className="flex flex-col gap-2">
-									<Button
-										size="md"
-										color="glassPrimary"
-										onPress={() =>
-											window.open(
-												`https://etherscan.io/tx/${successData.txHash}`,
-												"_blank",
-											)
-										}
-									>
-										View Transaction
-									</Button>
+									{getBlockExplorerTxUrl(chainId, successData.txHash) && (
+										<Button
+											size="md"
+											color="glassPrimary"
+											onPress={() =>
+												window.open(
+													getBlockExplorerTxUrl(chainId, successData.txHash)!,
+													"_blank",
+												)
+											}
+										>
+											View Transaction
+										</Button>
+									)}
 									<Button
 										size="md"
 										color="glassPrimary"

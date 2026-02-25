@@ -595,7 +595,7 @@ export const NFTCard = memo<NFTCardProps>(
 						<NFTImage
 							data={{ collection, tokenId, imageUrl, rarity }}
 							metadata={metadata}
-							tokenURI={tokenURI || null}
+							tokenURI={tokenURI ?? null}
 							size={size}
 						/>
 					</div>

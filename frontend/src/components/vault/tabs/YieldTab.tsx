@@ -67,14 +67,14 @@ export function YieldTab({
 						<h3 className="text-base sm:text-lg font-medium text-foreground">
 							Yield Summary
 						</h3>
-						{(depositorUserData?.pendingYield || 0n) > 0n && (
+						{(depositorUserData?.pendingYield ?? 0n) > 0n && (
 							<Button
 								color="glassPrimary"
 								className="min-h-[44px] px-4 sm:px-6"
 								onPress={handleClaimYield}
 								isLoading={isClaiming}
 								disabled={
-									isClaiming || (depositorUserData?.pendingYield || 0n) === 0n
+									isClaiming || (depositorUserData?.pendingYield ?? 0n) === 0n
 								}
 							>
 								Claim Yield

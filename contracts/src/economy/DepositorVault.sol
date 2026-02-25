@@ -30,6 +30,19 @@ contract DepositorVault is
 {
     using SafeERC20 for IERC20;
 
+    /// @notice Custom errors
+    error ZeroAddress();
+    error CallerNotTreasury();
+    error CallerNotManager();
+    error ZeroAppraisal();
+    error NoShares();
+    error NoSharesOutstanding();
+    error ZeroAmount();
+    error YieldTooSmall();
+    error UnauthorizedClaim();
+    error NothingToClaim();
+    error InsufficientVaultBalance();
+
     /// @notice Precision used for reward accounting (1e18)
     uint256 private constant REWARD_PRECISION = 1e18;
     /// @notice USDC token used for payouts
@@ -73,11 +86,11 @@ contract DepositorVault is
     }
 
     function _onlyTreasury() internal view {
-        require(msg.sender == treasury, "DepositorVault: caller is not treasury");
+        if (msg.sender != treasury) revert CallerNotTreasury();
     }
 
     function _onlyEconomyManager() internal view {
-        require(msg.sender == economyManager, "DepositorVault: caller is not manager");
+        if (msg.sender != economyManager) revert CallerNotManager();
     }
 
     /**
@@ -91,13 +104,13 @@ contract DepositorVault is
         external
         initializer
     {
-        require(owner != address(0), "DepositorVault: owner is zero");
+        if (owner == address(0)) revert ZeroAddress();
         __Ownable_init(owner);
         __Pausable_init();
 
-        require(asset_ != address(0), "DepositorVault: asset is zero");
-        require(treasury_ != address(0), "DepositorVault: treasury is zero");
-        require(economyManager_ != address(0), "DepositorVault: manager is zero");
+        if (asset_ == address(0)) revert ZeroAddress();
+        if (treasury_ == address(0)) revert ZeroAddress();
+        if (economyManager_ == address(0)) revert ZeroAddress();
 
         asset = IERC20(asset_);
         treasury = treasury_;
@@ -111,8 +124,8 @@ contract DepositorVault is
         onlyTreasury
         whenNotPaused
     {
-        require(account != address(0), "DepositorVault: invalid depositor");
-        require(appraisalValueUSD > 0, "DepositorVault: appraisal is zero");
+        if (account == address(0)) revert ZeroAddress();
+        if (appraisalValueUSD == 0) revert ZeroAppraisal();
 
         _accrue(account);
 
@@ -131,12 +144,12 @@ contract DepositorVault is
         onlyTreasury
         whenNotPaused
     {
-        require(account != address(0), "DepositorVault: invalid depositor");
+        if (account == address(0)) revert ZeroAddress();
 
         _accrue(account);
 
         uint256 previous = _shares[account];
-        require(newAppraisalValueUSD > 0, "DepositorVault: new appraisal is zero");
+        if (newAppraisalValueUSD == 0) revert ZeroAppraisal();
 
         if (newAppraisalValueUSD == previous) {
             return;
@@ -158,12 +171,12 @@ contract DepositorVault is
 
     /// @inheritdoc IDepositorVault
     function deregisterDepositor(address account) external override onlyTreasury whenNotPaused {
-        require(account != address(0), "DepositorVault: invalid depositor");
+        if (account == address(0)) revert ZeroAddress();
 
         _accrue(account);
 
         uint256 currentShares = _shares[account];
-        require(currentShares > 0, "DepositorVault: no shares");
+        if (currentShares == 0) revert NoShares();
 
         // Auto-transfer any unclaimed yield to the user before clearing
         uint256 unclaimed = _unclaimed[account];
@@ -189,11 +202,11 @@ contract DepositorVault is
 
     /// @inheritdoc IDepositorVault
     function distributeYield(uint256 amount) external override onlyEconomyManager whenNotPaused nonReentrant {
-        require(amount > 0, "DepositorVault: amount is zero");
-        require(totalShares > 0, "DepositorVault: no shares outstanding");
+        if (amount == 0) revert ZeroAmount();
+        if (totalShares == 0) revert NoSharesOutstanding();
 
         uint256 increment = (amount * REWARD_PRECISION) / totalShares;
-        require(increment > 0, "DepositorVault: yield too small");
+        if (increment == 0) revert YieldTooSmall();
 
         asset.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -205,13 +218,13 @@ contract DepositorVault is
 
     /// @inheritdoc IDepositorVault
     function claimYield(address account) external override whenNotPaused nonReentrant returns (uint256 withdrawn) {
-        require(account != address(0), "DepositorVault: invalid account");
-        require(msg.sender == account || msg.sender == economyManager, "DepositorVault: unauthorized claim");
+        if (account == address(0)) revert ZeroAddress();
+        if (msg.sender != account && msg.sender != economyManager) revert UnauthorizedClaim();
 
         _accrue(account);
 
         withdrawn = _unclaimed[account];
-        require(withdrawn > 0, "DepositorVault: nothing to claim");
+        if (withdrawn == 0) revert NothingToClaim();
 
         _unclaimed[account] = 0;
         totalYieldClaimed += withdrawn;
@@ -225,7 +238,7 @@ contract DepositorVault is
             }
         }
 
-        require(asset.balanceOf(address(this)) >= withdrawn, "DepositorVault: insufficient vault balance");
+        if (asset.balanceOf(address(this)) < withdrawn) revert InsufficientVaultBalance();
         asset.safeTransfer(account, withdrawn);
 
         emit IDepositorVault.YieldClaimed(account, withdrawn);
@@ -248,7 +261,7 @@ contract DepositorVault is
      * @notice Updates the treasury address
      */
     function setTreasury(address newTreasury) external onlyOwner {
-        require(newTreasury != address(0), "DepositorVault: treasury is zero");
+        if (newTreasury == address(0)) revert ZeroAddress();
         address previous = treasury;
         treasury = newTreasury;
         emit TreasuryUpdated(previous, newTreasury);
@@ -258,7 +271,7 @@ contract DepositorVault is
      * @notice Updates the economy manager address
      */
     function setEconomyManager(address newManager) external onlyOwner {
-        require(newManager != address(0), "DepositorVault: manager is zero");
+        if (newManager == address(0)) revert ZeroAddress();
         address previous = economyManager;
         economyManager = newManager;
         emit EconomyManagerUpdated(previous, newManager);

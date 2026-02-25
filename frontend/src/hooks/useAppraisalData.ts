@@ -199,7 +199,7 @@ export const useAppraisalData = (
 					return {
 						collection: nft.collection,
 						tokenId: nft.tokenId,
-						priceUSD: price || BigInt(0),
+						priceUSD: price ?? BigInt(0),
 						status: Number(status) || 0,
 						requester: address,
 						timestamp: optimisticSubmission

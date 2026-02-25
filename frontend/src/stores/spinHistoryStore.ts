@@ -236,7 +236,7 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 
 	getError: (userAddress, gachaAddress) => {
 		const key = getSpinKey(userAddress, gachaAddress);
-		return get().error[key] || null;
+		return get().error[key] ?? null;
 	},
 
 	// Clear

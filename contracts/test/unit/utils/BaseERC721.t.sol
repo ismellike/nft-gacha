@@ -159,7 +159,7 @@ contract BaseERC721Test is Test {
      * @notice Test batch mint with zero count fails
      */
     function test_BatchMint_ZeroCount_Fails() public {
-        vm.expectRevert(bytes("Invalid count"));
+        vm.expectRevert(abi.encodeWithSelector(BaseERC721.InvalidCount.selector));
         nft.batchMint(user, 0);
     }
 
@@ -167,7 +167,7 @@ contract BaseERC721Test is Test {
      * @notice Test batch mint exceeds maximum fails
      */
     function test_BatchMint_ExceedsMax_Fails() public {
-        vm.expectRevert(bytes("Invalid count"));
+        vm.expectRevert(abi.encodeWithSelector(BaseERC721.InvalidCount.selector));
         nft.batchMint(user, 101);
     }
 
@@ -210,7 +210,7 @@ contract BaseERC721Test is Test {
     function test_BatchMintWithURIs_EmptyArray_Fails() public {
         string[] memory uris = new string[](0);
 
-        vm.expectRevert(bytes("Invalid count"));
+        vm.expectRevert(abi.encodeWithSelector(BaseERC721.InvalidCount.selector));
         nft.batchMintWithURIs(user, uris);
     }
 
@@ -220,7 +220,7 @@ contract BaseERC721Test is Test {
     function test_BatchMintWithURIs_ExceedsMax_Fails() public {
         string[] memory uris = new string[](101);
 
-        vm.expectRevert(bytes("Invalid count"));
+        vm.expectRevert(abi.encodeWithSelector(BaseERC721.InvalidCount.selector));
         nft.batchMintWithURIs(user, uris);
     }
 
@@ -369,7 +369,7 @@ contract BaseERC721Test is Test {
      * @notice Test tokenURI for non-existent token fails
      */
     function test_TokenURI_NonExistentToken_Fails() public {
-        vm.expectRevert(bytes("Token does not exist"));
+        vm.expectRevert(abi.encodeWithSelector(BaseERC721.TokenDoesNotExist.selector, 999));
         nft.tokenURI(999);
     }
 
@@ -422,7 +422,7 @@ contract BaseERC721Test is Test {
      * @notice Test setTokenURI for non-existent token fails
      */
     function test_SetTokenURI_NonExistentToken_Fails() public {
-        vm.expectRevert(bytes("Token does not exist"));
+        vm.expectRevert(abi.encodeWithSelector(BaseERC721.TokenDoesNotExist.selector, 999));
         nft.setTokenURI(999, "ipfs://test");
     }
 

@@ -118,11 +118,11 @@ export function useGachaEconomyManagerData({
 		totalToDepositors: d?.[1]?.result as bigint | undefined,
 		totalToProtocol: d?.[2]?.result as bigint | undefined,
 		revenueByRarity: [
-			(d?.[3]?.result as bigint | undefined) || 0n,
-			(d?.[4]?.result as bigint | undefined) || 0n,
-			(d?.[5]?.result as bigint | undefined) || 0n,
-			(d?.[6]?.result as bigint | undefined) || 0n,
-			(d?.[7]?.result as bigint | undefined) || 0n,
+			(d?.[3]?.result as bigint | undefined) ?? 0n,
+			(d?.[4]?.result as bigint | undefined) ?? 0n,
+			(d?.[5]?.result as bigint | undefined) ?? 0n,
+			(d?.[6]?.result as bigint | undefined) ?? 0n,
+			(d?.[7]?.result as bigint | undefined) ?? 0n,
 		],
 	};
 
@@ -147,8 +147,8 @@ export function calculateRevenueShares(
 	depositorBps: bigint | undefined,
 	protocolBps: bigint | undefined,
 ) {
-	const safeDepositorBps = depositorBps || 0n;
-	const safeProtocolBps = protocolBps || 0n;
+	const safeDepositorBps = depositorBps ?? 0n;
+	const safeProtocolBps = protocolBps ?? 0n;
 
 	return {
 		depositor: formatBpsToPercentage(safeDepositorBps),

@@ -50,12 +50,12 @@ export function GachaCard({ gacha }: GachaCardProps) {
 
 	// Extract platform data with simple type assertions
 	const rarityCounts = platformData?.[0] || [0n, 0n, 0n, 0n, 0n];
-	const totalItemsCount = platformData?.[1] || 0n;
+	const totalItemsCount = platformData?.[1] ?? 0n;
 	const isAvailable = platformData?.[2] || false;
 
 	// Extract gacha config
 	const feeToken = gachaConfig?.[0];
-	const spinFee = gachaConfig?.[1] || 0n;
+	const spinFee = gachaConfig?.[1] ?? 0n;
 
 	const { data: feeTokenSymbol } = useReadErc20Symbol({
 		address: feeToken,
@@ -186,7 +186,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 							</div>
 							<div className="grid grid-cols-5 gap-1">
 								{getAllRarities().map((rarity, index) => {
-									const count = rarityCountsArray[index] || 0n;
+									const count = rarityCountsArray[index] ?? 0n;
 									const hasCards = count > 0n;
 
 									return (

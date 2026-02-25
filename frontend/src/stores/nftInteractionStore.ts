@@ -110,7 +110,7 @@ export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 			tokenId: config.tokenId,
 			mode: config.mode,
 			treasuryAddress: config.treasuryAddress,
-			protocolTreasuryAddress: config.protocolTreasuryAddress || null,
+			protocolTreasuryAddress: config.protocolTreasuryAddress ?? null,
 			userAddress: config.userAddress,
 			publicClient: config.publicClient,
 			hasAppraisal: config.hasAppraisal ?? false,

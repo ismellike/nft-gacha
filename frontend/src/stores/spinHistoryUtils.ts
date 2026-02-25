@@ -133,7 +133,7 @@ export function computeStats(
 	const winRate = totalSpins > 0 ? (completedSpins / totalSpins) * 100 : 0;
 
 	const totalValueWon = filteredEntries.reduce(
-		(acc, entry) => acc + (entry.appraisedPrice || 0n),
+		(acc, entry) => acc + (entry.appraisedPrice ?? 0n),
 		0n,
 	);
 
