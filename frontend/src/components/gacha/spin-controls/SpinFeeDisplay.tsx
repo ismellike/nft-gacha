@@ -1,5 +1,6 @@
 import { glassTypography } from "../../../lib/theme-config";
 import { formatCurrency } from "../../../lib/utils";
+import { Badge } from "../../../ui";
 
 interface SpinFeeDisplayProps {
 	spinFee: bigint | undefined;
@@ -87,16 +88,13 @@ export function SpinFeeDisplay({
 			</div>
 
 			{/* Enhanced Entry Fee Display */}
-			<div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 shadow-inner relative">
-				{/* Stale data indicator */}
-				{feeStale && (
-					<div className="absolute -top-2 -right-2 flex items-center gap-1.5 px-2 py-1 bg-danger/20 border border-danger/40 rounded-full animate-pulse">
-						<div className="w-1.5 h-1.5 rounded-full bg-danger animate-ping" />
-						<span className="text-[10px] font-semibold text-danger uppercase">
-							Updating...
-						</span>
-					</div>
-				)}
+			<Badge
+				dot={feeStale}
+				color="danger"
+				pulse={feeStale}
+				className="w-full"
+				>
+			<div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 shadow-inner w-full">
 				<div className="flex items-center gap-3">
 					<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/30 bg-warning/10">
 						<svg
@@ -155,6 +153,7 @@ export function SpinFeeDisplay({
 					</p>
 				)}
 			</div>
+		</Badge>
 		</div>
 	);
 }
