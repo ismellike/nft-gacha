@@ -143,15 +143,14 @@ contract ProtocolTreasury is
         payout = Math.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
         if (payout == 0) revert InvalidAmount();
 
-        // Check redemption window (user must redeem within configured time of winning)
-        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
-        if (
-            receiveTime == 0 || block.timestamp > receiveTime + redemptionWindow
-        ) {
+        // Check redemption window using snapshot deadline
+        uint256 deadline = _treasury.getNFTRedemptionDeadline(collection, tokenId);
+        if (deadline == 0 || block.timestamp > deadline) {
             revert RedemptionWindowExpired();
         }
 
-        uint256 timeSinceWin = block.timestamp - receiveTime;
+        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
+        uint256 timeSinceWin = receiveTime > 0 ? block.timestamp - receiveTime : 0;
         emit RedemptionWindowEnforced(collection, tokenId, msg.sender, timeSinceWin);
 
         if (_asset.balanceOf(address(this)) < payout) revert InsufficientLiquidity();
@@ -224,17 +223,9 @@ contract ProtocolTreasury is
      * @return remainingTime Remaining time in seconds (0 if expired)
      */
     function getRemainingRedemptionWindow(address collection, uint256 tokenId) external view returns (uint256 remainingTime) {
-        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
-        if (receiveTime == 0) {
-            return 0; // NFT not received from gacha
-        }
-
-        uint256 expiryTime = receiveTime + redemptionWindow;
-        if (block.timestamp >= expiryTime) {
-            return 0; // Window expired
-        }
-
-        return expiryTime - block.timestamp;
+        uint256 deadline = _treasury.getNFTRedemptionDeadline(collection, tokenId);
+        if (deadline == 0 || block.timestamp >= deadline) return 0;
+        return deadline - block.timestamp;
     }
 
     /**
@@ -244,8 +235,8 @@ contract ProtocolTreasury is
      * @return isEligible True if NFT can still be redeemed
      */
     function isRedemptionEligible(address collection, uint256 tokenId) external view returns (bool isEligible) {
-        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
-        return receiveTime > 0 && block.timestamp <= receiveTime + redemptionWindow;
+        uint256 deadline = _treasury.getNFTRedemptionDeadline(collection, tokenId);
+        return deadline > 0 && block.timestamp <= deadline;
     }
 
     /**

@@ -34,7 +34,6 @@ contract NFTAppraisal is
     error InvalidCollection();
     error InvalidTokenId();
     error AppraisalNotFound();
-    error AppraisalAlreadyExists();
     error UnauthorizedServiceHandler();
     error InvalidPrice();
     error CardIdMismatch();
@@ -239,15 +238,14 @@ contract NFTAppraisal is
                 revert InvalidTokenId();
             }
 
-            // Check if request already exists
-            if (tokenRequests[collection][tokenId].timestamp != 0) revert AppraisalAlreadyExists();
+            // Allow re-appraisals matching single-request path
+            bool isReAppraisal = tokenRequests[collection][tokenId].timestamp != 0;
 
-            // Create token request record
             tokenRequests[collection][tokenId] = TokenRequest({
                 requester: msg.sender,
                 status: AppraisalStatus.Pending,
                 timestamp: block.timestamp,
-                lastUpdated: 0
+                lastUpdated: isReAppraisal ? block.timestamp : 0
             });
 
             // Emit events for external service integration

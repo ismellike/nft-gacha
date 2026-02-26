@@ -398,11 +398,11 @@ override path.
 `_triggerAutoMigration` uses a low-level call with a 500,000 gas cap. If the treasury call
 reverts, only `AutoMigrationFailed` is emitted; the appraisal price update still commits.
 
-#### I-NA-5: Re-appraisal Policy Asymmetry
+#### I-NA-5: Re-appraisal Policy Is Consistent
 
-`requestAppraisal` (single token) allows re-requesting a token that already has a request.
-`requestBatchAppraisal` reverts with `AppraisalAlreadyExists` for any token with a prior
-request. This asymmetry should be reviewed — see TRUST-8.
+Both `requestAppraisal` (single token) and `requestBatchAppraisal` allow re-requesting a token
+that already has a request, charging a new fee. Previously `requestBatchAppraisal` reverted
+with `AppraisalAlreadyExists` — this was fixed as part of TRUST-8.
 
 #### I-NA-6: Treasury Whitelist Determines Auto-Migration Scope
 
@@ -464,14 +464,16 @@ EOAs or non-whitelisted contracts require manual `migrateNFTRarity` calls.
 | `batchDepositNFT(collections, tokenIds)` | NFTOwner, when not paused | Treasury arrays, counters, value tracking, calls CardVault | Yes |
 | `withdrawMyNFT(collection, tokenId)` | Depositor only, when not paused | Treasury arrays, counters, value tracking, calls CardVault | Yes |
 | `migrateNFTRarity(collection, tokenId)` | Anyone, when not paused | Treasury arrays, rarity/value tracking | Yes |
-| `sendRandomNFTToWinner(rarity, seed, winner)` | Gacha only | Treasury arrays, counters, value tracking, calls CardVault, transfers NFT | Yes |
+| `batchMigrateNFTRarity(collections, tokenIds)` | Anyone, when not paused | Treasury arrays, rarity/value tracking (max 50 items) | Yes |
+| `sendRandomNFTToWinner(rarity, seed, winner)` | Gacha only | Treasury arrays, counters, value tracking, calls CardVault, transfers NFT, snapshots redemption deadline | Yes |
 | `handleRedemptionReturn(col,tok,seller,price)` | ProtoTreasury only, when not paused | Treasury arrays, counters, value tracking, calls CardVault | Yes |
 | `onCardPriceUpdated(cardId, newPriceUSD)` | AppraisalCtr only | Calls CardVault (`updateCardPrice` or `migrateCardRarity`) | No |
 | `recordYieldClaim(user, amount)` | CardVault only, when not paused | `userLifetimeClaimed`, `globalLifetimeClaimed` | No |
 | `setGachaContract(addr)` | Owner | `gachaContract` | No |
 | `setAppraisalContract(addr)` | Owner | `appraisalContract` | No |
 | `setCardGroupedVault(addr)` | Owner | `cardGroupedVault` | No |
-| `setProtocolTreasury(addr)` | Owner | `protocolTreasury` (guarded by depositor check) | No |
+| `setMaxDepositsPerCard(max)` | Owner | `maxDepositsPerCard` (must be > 0) | No |
+| `setProtocolTreasury(addr)` | Owner | `protocolTreasury` (guarded by deposit + vault shares check) | No |
 | `addToWhitelist(collection)` | Owner | `whitelistedCollections`, `whitelistedCollectionsList` | No |
 | `removeFromWhitelist(collection)` | Owner | `whitelistedCollections`, `whitelistedCollectionsList` | No |
 | `emergencyPause()` | Owner | `_paused = true` | No |
@@ -642,6 +644,9 @@ Custom Gacha state (starting ~slot 103):
 - `priceRangesSet` (bool) follows `priceRanges` and occupies its own slot due to alignment.
 - `cardGroupedVault` (address) and `protocolTreasury` (address) were added after initial
   deployment. Confirm they fit within the reserved `__gap` before deploying any upgrade.
+- `maxDepositsPerCard` (uint256) added for TRUST-7 — 1 slot.
+- `nftRedemptionDeadlines` (mapping) added for TRUST-11 — 1 slot.
+- `__gap` reduced from `[47]` to `[45]` (2 new slots consumed).
 
 ### CardGroupedVault.sol Storage Notes
 
@@ -770,7 +775,7 @@ rarity tier may receive yield attributable to spins in a different rarity tier.
 This is an accepted design trade-off that should be explicitly documented in user-facing
 materials and ratified by protocol governance.
 
-### TRUST-7: Auto-Migration Gas Limit May Be Insufficient
+### TRUST-7: Auto-Migration Gas Limit May Be Insufficient — RESOLVED
 
 `_triggerAutoMigration` in NFTAppraisal passes `gas: 500_000` to
 `GachaTreasury.onCardPriceUpdated`. For cards with a large number of deposited tokens,
@@ -780,18 +785,25 @@ but not reverting the appraisal update). The vault's card data is updated but tr
 are not migrated, causing `nftCurrentRarity` in the treasury to diverge from `cardNodes.rarity`
 in the vault.
 
-**Recommendation:** Enforce an upper bound on `cardTotalDeposits` per card, or implement a
-paginated, separately-callable migration function.
+**Fix applied:**
+1. Added `maxDepositsPerCard` storage variable (default 50, owner-configurable via
+   `setMaxDepositsPerCard`). `_trackDeposit` reverts with `MaxCardDepositsReached` when the
+   per-card cap is reached, bounding worst-case migration gas.
+2. Added `batchMigrateNFTRarity(collections, tokenIds)` as a public manual fallback (capped at
+   `MAX_MIGRATION_BATCH = 50`). When auto-migration fails (emitting `AutoMigrationFailed`),
+   operators or users can call this to batch-migrate tokens that were not migrated.
 
-### TRUST-8: Batch vs. Single Appraisal Re-request Inconsistency
+### TRUST-8: Batch vs. Single Appraisal Re-request Inconsistency — RESOLVED
 
 `requestAppraisal` (single token) allows re-requesting a token that already has a request and
-charges a new fee. `requestBatchAppraisal` reverts with `AppraisalAlreadyExists` for any token
-that already has a request. An attacker could front-run a user's batch request by inserting a
-single-token request for one of the batch members, causing the batch to revert after the user
-has already paid gas.
+charges a new fee. `requestBatchAppraisal` previously reverted with `AppraisalAlreadyExists`
+for any token that already had a request. An attacker could front-run a user's batch request
+by inserting a single-token request for one of the batch members, causing the batch to revert
+after the user has already paid gas.
 
-**Recommendation:** Align the two paths — either both allow re-requests, or both reject them.
+**Fix applied:** `requestBatchAppraisal` now allows re-requests matching the single-request
+path. The `AppraisalAlreadyExists` error has been removed. Both paths now create or update
+the `TokenRequest` with `lastUpdated` set to `block.timestamp` for re-appraisals.
 
 ### TRUST-9: `onCardPriceUpdated` Is Indirectly Owner-Controlled
 
@@ -801,24 +813,31 @@ could point `appraisalContract` to a malicious contract that calls `onCardPriceU
 arbitrary arguments, triggering unauthorised rarity migrations and vault state corruption without
 going through the WAVS appraisal system.
 
-### TRUST-10: `setProtocolTreasury` Rotation Guard Is Incomplete
+### TRUST-10: `setProtocolTreasury` Rotation Guard Is Incomplete — RESOLVED
 
-`setProtocolTreasury` blocks rotation if `userTotalDeposits[protocolTreasury] != 0`. However:
-1. If `protocolTreasury` is currently `address(0)`, this check passes regardless of vault state.
-2. The check does not cover `CardGroupedVault` positions held by the old protocol treasury
+`setProtocolTreasury` previously only blocked rotation if
+`userTotalDeposits[protocolTreasury] != 0`. This missed two cases:
+1. If `protocolTreasury` was `address(0)`, the check passed regardless of vault state.
+2. The check did not cover `CardGroupedVault` positions held by the old protocol treasury
    address — those vault shares and pending yield would be orphaned after rotation.
 
-**Recommendation:** Before rotating the protocol treasury, claim all vault positions held by the
-outgoing address and verify `cardGroupedVault.sharesOf(oldProtocolTreasury) == 0`.
+**Fix applied:** The guard now skips validation when `protocolTreasury == address(0)` (first-time
+configuration). For subsequent rotations, it checks both `userTotalDeposits` and
+`cardGroupedVault.sharesOf(protocolTreasury) != 0`, reverting with `TreasuryRotationBlocked`
+if either has outstanding positions.
 
-### TRUST-11: Redemption Window Is a Mutable Global Parameter
+### TRUST-11: Redemption Window Is a Mutable Global Parameter — RESOLVED
 
-`ProtocolTreasury.redemptionWindow` applies uniformly to all NFTs. If the owner reduces the
-window after a user wins an NFT, the user's eligibility deadline is shortened without notice.
+`ProtocolTreasury.redemptionWindow` previously applied uniformly to all NFTs. If the owner
+reduced the window after a user won an NFT, the user's eligibility deadline was shortened
+without notice.
 
-**Recommendation:** Snapshot the deadline per NFT at win time (store
-`receiveTime + redemptionWindow` at the moment of the gacha win) and compare against the
-snapshot rather than dynamically recalculating from the mutable `redemptionWindow` value.
+**Fix applied:** `GachaTreasury._removeNFTAtIndex` now snapshots
+`receiveTime + ProtocolTreasury.redemptionWindow()` into a new
+`nftRedemptionDeadlines[collection][tokenId]` mapping at win time. `ProtocolTreasury` methods
+(`executeRedemption`, `getRemainingRedemptionWindow`, `isRedemptionEligible`) now compare
+against the snapshot deadline instead of dynamically recalculating from the mutable
+`redemptionWindow`. The deadline is cleared when the NFT returns via `handleRedemptionReturn`.
 
 ### TRUST-12: `fulfillRandomness` Has No Reentrancy Guard — RESOLVED
 

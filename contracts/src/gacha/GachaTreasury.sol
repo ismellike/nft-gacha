@@ -12,6 +12,11 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
 import {ICardGroupedVault} from "../interfaces/ICardGroupedVault.sol";
 
+/// @notice Minimal interface for reading redemptionWindow from ProtocolTreasury
+interface IRedemptionWindow {
+    function redemptionWindow() external view returns (uint256);
+}
+
 /**
  * @title GachaTreasury - Upgradeable Price-Based NFT Treasury Management
  * @notice Manages NFT storage with automatic rarity assignment based on appraised USD values
@@ -58,6 +63,7 @@ contract GachaTreasury is
     error TreasuryRotationBlocked();
     error InsufficientDepositorValue();
     error InvalidLimit();
+    error MaxCardDepositsReached();
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -233,6 +239,7 @@ contract GachaTreasury is
 
         gachaContract = _gachaContract;
         appraisalContract = NFTAppraisal(_appraisalContract);
+        maxDepositsPerCard = 50;
     }
 
     /**
@@ -342,6 +349,25 @@ contract GachaTreasury is
     /// @dev Can be called by anyone when appraisal price changes through appraisal system updates
     function migrateNFTRarity(address collection, uint256 tokenId) external whenNotPaused nonReentrant {
         _migrateNFTRarity(collection, tokenId);
+    }
+
+    /// @notice Batch migrate multiple NFTs to their correct rarity
+    /// @param collections Array of NFT collection addresses
+    /// @param tokenIds Array of token IDs to migrate
+    function batchMigrateNFTRarity(address[] calldata collections, uint256[] calldata tokenIds)
+        external
+        whenNotPaused
+        nonReentrant
+    {
+        uint256 length = collections.length;
+        if (length != tokenIds.length) revert ArrayLengthMismatch();
+        if (length == 0) revert EmptyArrays();
+        if (length > MAX_MIGRATION_BATCH) revert TooManyItems();
+
+        for (uint256 i; i < length;) {
+            _migrateNFTRarity(collections[i], tokenIds[i]);
+            unchecked { ++i; }
+        }
     }
 
     /// @dev Internal function to migrate NFT rarity
@@ -590,12 +616,25 @@ contract GachaTreasury is
         emit CardGroupedVaultUpdated(previous, _cardGroupedVault);
     }
 
+    /// @notice Sets the maximum deposits allowed per card to bound migration gas
+    /// @param _maxDepositsPerCard New maximum (must be > 0)
+    function setMaxDepositsPerCard(uint256 _maxDepositsPerCard) external onlyOwner {
+        if (_maxDepositsPerCard == 0) revert InvalidLimit();
+        maxDepositsPerCard = _maxDepositsPerCard;
+    }
+
     function setProtocolTreasury(address _protocolTreasury) external onlyOwner {
         if (_protocolTreasury == address(0)) revert InvalidProtocolTreasury();
 
-        // Prevent treasury rotation unless all NFTs are withdrawn to avoid yield loss
-        // Existing inventory would keep old treasury as depositor, locking vault shares and yield
-        if (userTotalDeposits[protocolTreasury] != 0) revert TreasuryRotationBlocked();
+        // Skip guard if current treasury is unset (first-time configuration)
+        if (protocolTreasury != address(0)) {
+            // Prevent treasury rotation unless all NFTs are withdrawn to avoid yield loss
+            if (userTotalDeposits[protocolTreasury] != 0) revert TreasuryRotationBlocked();
+            // Also check vault shares to prevent stranding unclaimed yield
+            if (address(cardGroupedVault) != address(0) && cardGroupedVault.sharesOf(protocolTreasury) != 0) {
+                revert TreasuryRotationBlocked();
+            }
+        }
 
         address previous = protocolTreasury;
         protocolTreasury = _protocolTreasury;
@@ -861,6 +900,14 @@ contract GachaTreasury is
         return nftReceiveTimes[collection][tokenId];
     }
 
+    /// @notice Gets the snapshot redemption deadline for an NFT
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID
+    /// @return deadline Timestamp deadline (0 if not set)
+    function getNFTRedemptionDeadline(address collection, uint256 tokenId) external view returns (uint256 deadline) {
+        return nftRedemptionDeadlines[collection][tokenId];
+    }
+
     /// @notice Gets all deposit counts for a user across all rarities
     /// @param user User address
     /// @return counts Array of deposit counts [Common, Uncommon, Rare, Epic, Legendary]
@@ -964,6 +1011,12 @@ contract GachaTreasury is
         uint256 receiveTime = block.timestamp;
         nftReceiveTimes[item.collection][item.tokenId] = receiveTime;
 
+        // Snapshot redemption deadline at win time
+        if (protocolTreasury != address(0)) {
+            uint256 window = IRedemptionWindow(protocolTreasury).redemptionWindow();
+            nftRedemptionDeadlines[item.collection][item.tokenId] = receiveTime + window;
+        }
+
         // Transfer NFT to winner
         IERC721(item.collection).safeTransferFrom(address(this), winner, item.tokenId);
 
@@ -999,8 +1052,9 @@ contract GachaTreasury is
         treasury[rarity].push(item);
         nftToTreasuryIndex[collection][tokenId] = treasury[rarity].length - 1;
 
-        // Clear receive time when NFT returns to treasury
+        // Clear receive time and redemption deadline when NFT returns to treasury
         delete nftReceiveTimes[collection][tokenId];
+        delete nftRedemptionDeadlines[collection][tokenId];
 
         unchecked {
             ++rarityCount[rarity];
@@ -1024,6 +1078,7 @@ contract GachaTreasury is
 
         bytes32 cardId = appraisalContract.getTokenCardId(collection, tokenId);
         if (cardId != bytes32(0)) {
+            if (cardTotalDeposits[cardId] >= maxDepositsPerCard) revert MaxCardDepositsReached();
             userCardDeposits[depositor][cardId]++;
             cardTotalDeposits[cardId]++;
             _addUserGroupId(depositor, cardId);
@@ -1552,6 +1607,12 @@ contract GachaTreasury is
         activeUsers = 0; // Placeholder - would need separate implementation
     }
 
+    /// @notice Maximum deposits allowed per card to bound migration gas
+    uint256 public maxDepositsPerCard;
+
+    /// @notice Snapshot of redemption deadline at win time
+    mapping(address => mapping(uint256 => uint256)) public nftRedemptionDeadlines;
+
     /// @notice Custom gap for future storage variables (50 slots)
-    uint256[47] private __gap;
+    uint256[45] private __gap;
 }
