@@ -63,27 +63,34 @@ contract GasSnapshots is Test {
         treasury = GachaTreasury(payable(address(new GachaTreasury())));
 
         // Initialize treasury with price ranges
-        uint256[5] memory minPrices = [
-            uint256(0),              // Common
-            uint256(15.01e18),        // Uncommon
-            uint256(60.01e18),        // Rare
-            uint256(250.01e18),       // Epic
-            uint256(1200.01e18)       // Legendary
-        ];
+        uint256[] memory minPrices = new uint256[](5);
+        minPrices[0] = uint256(0);              // Common
+        minPrices[1] = uint256(15.01e18);        // Uncommon
+        minPrices[2] = uint256(60.01e18);        // Rare
+        minPrices[3] = uint256(250.01e18);       // Epic
+        minPrices[4] = uint256(1200.01e18);      // Legendary
 
-        uint256[5] memory maxPrices = [
-            uint256(15e18),          // Common
-            uint256(60e18),          // Uncommon
-            uint256(250e18),         // Rare
-            uint256(1200e18),        // Epic
-            uint256(type(uint256).max)  // Legendary (no max) (no max)
-        ];
+        uint256[] memory maxPrices = new uint256[](5);
+        maxPrices[0] = uint256(15e18);           // Common
+        maxPrices[1] = uint256(60e18);           // Uncommon
+        maxPrices[2] = uint256(250e18);          // Rare
+        maxPrices[3] = uint256(1200e18);         // Epic
+        maxPrices[4] = uint256(type(uint256).max); // Legendary (no max)
+
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
 
         vm.prank(owner);
         treasury.initialize(
             owner,
             gachaContract,
             address(mockAppraisal),
+            uint8(5),
+            rarityNames,
             minPrices,
             maxPrices
         );
@@ -307,9 +314,9 @@ contract GasSnapshots is Test {
         treasury.batchDepositNFT(_toAddressArray(address(nftCollection), tokenIds.length), tokenIds);
 
         // Query counts
-        treasury.rarityCount(GachaTreasury.Rarity.Common);
-        treasury.rarityCount(GachaTreasury.Rarity.Uncommon);
-        treasury.rarityCount(GachaTreasury.Rarity.Rare);
+        treasury.rarityCount(0);
+        treasury.rarityCount(1);
+        treasury.rarityCount(2);
     }
 
     /**

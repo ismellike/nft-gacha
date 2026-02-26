@@ -4,9 +4,8 @@ import { useMemo } from "react";
 import { useReadContract } from "wagmi";
 import {
 	gachaAbi,
+	gachaTreasuryAbi,
 	useReadGachaGetGlobalAnalytics,
-	useReadGachaTreasuryGetAllRarityCounts,
-	useReadGachaTreasuryGetAllRarityTotalValues,
 } from "@/generated";
 import { getAllActiveGachas } from "@/lib/gacha-config";
 import type { GachaConfig } from "@/lib/gacha-config/types";
@@ -57,13 +56,14 @@ const PLACEHOLDER_CONFIG: GachaConfig = {
 	cardGroupedVaultAddress: ZERO_ADDRESS,
 	buybackVaultAddress: ZERO_ADDRESS,
 	protocolTreasuryAddress: ZERO_ADDRESS,
-	trackerAddresses: {
-		common: ZERO_ADDRESS,
-		uncommon: ZERO_ADDRESS,
-		rare: ZERO_ADDRESS,
-		epic: ZERO_ADDRESS,
-		legendary: ZERO_ADDRESS,
-	},
+	trackerAddresses: [
+		ZERO_ADDRESS,
+		ZERO_ADDRESS,
+		ZERO_ADDRESS,
+		ZERO_ADDRESS,
+		ZERO_ADDRESS,
+	],
+	rarityNames: [],
 };
 
 /**
@@ -90,19 +90,23 @@ function useGachaAnalyticsSingle(
 		data: rarityCountsRaw,
 		isLoading: isLoadingCounts,
 		isError: isCountsError,
-	} = useReadGachaTreasuryGetAllRarityCounts({
+	} = useReadContract({
 		address: treasuryAddr,
+		abi: gachaTreasuryAbi,
+		functionName: "getAllRarityCounts",
 		query: { enabled, refetchInterval: 60000 },
-	} as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
+	});
 
 	const {
 		data: rarityValuesRaw,
 		isLoading: isLoadingValues,
 		isError: isValuesError,
-	} = useReadGachaTreasuryGetAllRarityTotalValues({
+	} = useReadContract({
 		address: treasuryAddr,
+		abi: gachaTreasuryAbi,
+		functionName: "getAllRarityTotalValues",
 		query: { enabled, refetchInterval: 60000 },
-	} as Parameters<typeof useReadGachaTreasuryGetAllRarityTotalValues>[0]);
+	});
 
 	const {
 		data: tvlRaw,

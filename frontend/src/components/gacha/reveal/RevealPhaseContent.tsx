@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import type { Rarity } from "../../../lib/rarityConfig";
 import type { NFTCardData } from "../../nft";
 import {
 	CARD_FADE_OUT_DURATION,
@@ -45,7 +44,7 @@ interface RevealPhaseContentProps {
 	setName: string | null;
 	cardName: string;
 	gradingInfo: { displayString: string } | null;
-	resultRarity: Rarity;
+	resultRarity: number;
 	rarityName: string;
 	cardPhaseTiming: { duration: number; animationDuration: number };
 	cardData: NFTCardData;

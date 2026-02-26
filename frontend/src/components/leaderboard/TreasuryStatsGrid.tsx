@@ -6,16 +6,10 @@ import { useReadContract } from "wagmi";
 import { gachaTreasuryAbi } from "@/generated";
 import type { GachaAnalytics } from "@/hooks/useLeaderboardAnalytics";
 import { cn } from "@/lib/theme-config";
-import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
+import { DEFAULT_RARITY_CONFIG, getRarityConfig } from "@/lib/rarityConfig";
 import { Card, Skeleton } from "@/ui";
 
-const RARITIES = [
-	Rarity.Common,
-	Rarity.Uncommon,
-	Rarity.Rare,
-	Rarity.Epic,
-	Rarity.Legendary,
-] as const;
+const RARITIES = DEFAULT_RARITY_CONFIG.map((_, i) => i);
 
 interface TreasuryCardProps {
 	gacha: GachaAnalytics;
@@ -62,7 +56,7 @@ function TreasuryCard({ gacha }: TreasuryCardProps) {
 			{/* Rarity pool breakdown */}
 			<div className="space-y-2 mb-5">
 				{RARITIES.map((rarity) => {
-					const config = RARITY_CONFIG[rarity];
+					const config = getRarityConfig(rarity);
 					const count = gacha.rarityCounts[rarity] ?? 0n;
 					const total = gacha.totalItems;
 					const pct =

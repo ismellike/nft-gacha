@@ -1,6 +1,6 @@
 "use client";
 
-import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
+import { DEFAULT_RARITY_CONFIG, getRarityConfig } from "@/lib/rarityConfig";
 import { Card, Skeleton } from "@/ui";
 
 interface RarityDistributionChartProps {
@@ -12,22 +12,12 @@ interface RarityDistributionChartProps {
 	isLoading: boolean;
 }
 
-const RARITIES = [
-	Rarity.Common,
-	Rarity.Uncommon,
-	Rarity.Rare,
-	Rarity.Epic,
-	Rarity.Legendary,
-] as const;
+const RARITIES = DEFAULT_RARITY_CONFIG.map((_, i) => i);
 
-// Bar colors that map from rarity hex colors (using inline styles for dynamic values)
-const RARITY_BAR_COLORS: Record<Rarity, string> = {
-	[Rarity.Common]: "#9CA3AF",
-	[Rarity.Uncommon]: "#10B981",
-	[Rarity.Rare]: "#3B82F6",
-	[Rarity.Epic]: "#8B5CF6",
-	[Rarity.Legendary]: "#F59E0B",
-};
+// Bar colors derived from the default rarity config hex colors
+const RARITY_BAR_COLORS: string[] = DEFAULT_RARITY_CONFIG.map(
+	(c) => c.hexColor,
+);
 
 export function RarityDistributionChart({
 	rarityWinCounts,
@@ -65,7 +55,7 @@ export function RarityDistributionChart({
 
 			<div className="space-y-4">
 				{RARITIES.map((rarity) => {
-					const config = RARITY_CONFIG[rarity];
+					const config = getRarityConfig(rarity);
 					const wins = rarityWinCounts[rarity] ?? 0n;
 					const available = rarityCounts ? (rarityCounts[rarity] ?? 0n) : null;
 					const pct =

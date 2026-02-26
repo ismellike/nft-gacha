@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
-	RARITY_NAMES,
 	rarityIndexToName,
 	rarityBigIntToName,
 	isValidRarityName,
 	rarityNameToIndex,
 } from "../rarity-utils";
+import { DEFAULT_RARITY_NAMES } from "../rarityConfig";
 
-describe("RARITY_NAMES", () => {
+describe("DEFAULT_RARITY_NAMES", () => {
 	it("contains 5 rarity names in order", () => {
-		expect(RARITY_NAMES).toEqual([
+		expect(DEFAULT_RARITY_NAMES).toEqual([
 			"Common",
 			"Uncommon",
 			"Rare",
@@ -44,6 +44,13 @@ describe("rarityIndexToName", () => {
 		expect(rarityIndexToName(5)).toBe("Unknown");
 		expect(rarityIndexToName(-1)).toBe("Unknown");
 	});
+
+	it("uses custom names array", () => {
+		const customNames = ["Low", "Mid", "High"];
+		expect(rarityIndexToName(0, customNames)).toBe("Low");
+		expect(rarityIndexToName(2, customNames)).toBe("High");
+		expect(rarityIndexToName(3, customNames)).toBe("Unknown");
+	});
 });
 
 describe("rarityBigIntToName", () => {
@@ -66,7 +73,7 @@ describe("rarityBigIntToName", () => {
 
 describe("isValidRarityName", () => {
 	it("returns true for each valid name", () => {
-		for (const name of RARITY_NAMES) {
+		for (const name of DEFAULT_RARITY_NAMES) {
 			expect(isValidRarityName(name)).toBe(true);
 		}
 	});

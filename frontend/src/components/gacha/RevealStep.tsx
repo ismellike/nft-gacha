@@ -7,7 +7,7 @@
 
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
-import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
+import { getRarityConfig } from "../../lib/rarityConfig";
 import { getSpringConfig } from "../../lib/revealAnimationConfig";
 
 interface RevealStepProps {
@@ -15,7 +15,7 @@ interface RevealStepProps {
 	value: string | ReactNode;
 	delay: number;
 	duration: number;
-	rarity: Rarity;
+	rarity: number;
 	icon?: ReactNode;
 	className?: string;
 }
@@ -93,7 +93,7 @@ export default function RevealStep({
 			</div>
 
 			{/* Sparkle effect for rare+ */}
-			{rarity >= Rarity.Rare && (
+			{rarity >= 2 && (
 				<motion.div
 					className="absolute inset-0 pointer-events-none"
 					initial={{ opacity: 0 }}

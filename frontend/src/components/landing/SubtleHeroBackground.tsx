@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { getRarityColorHex, Rarity } from "../../lib/rarityConfig";
+import { getAllRarities, getRarityColorHex } from "../../lib/rarityConfig";
 
 interface SubtleHeroBackgroundProps {
 	className?: string;
@@ -14,13 +14,7 @@ interface SubtleHeroBackgroundProps {
 export function SubtleHeroBackground({
 	className = "",
 }: SubtleHeroBackgroundProps) {
-	const rarities = [
-		Rarity.Common,
-		Rarity.Uncommon,
-		Rarity.Rare,
-		Rarity.Epic,
-		Rarity.Legendary,
-	];
+	const rarities = getAllRarities();
 
 	return (
 		<div
@@ -132,10 +126,10 @@ export function SubtleHeroBackground({
 
 			{/* Small floating accent orbs using rarity colors */}
 			{[
-				{ rarity: Rarity.Rare, x: "15%", y: "60%", size: 180, delay: 0.5 },
-				{ rarity: Rarity.Epic, x: "75%", y: "30%", size: 200, delay: 1.5 },
-				{ rarity: Rarity.Legendary, x: "50%", y: "75%", size: 160, delay: 2.5 },
-				{ rarity: Rarity.Uncommon, x: "85%", y: "65%", size: 140, delay: 3 },
+				{ rarity: 2, x: "15%", y: "60%", size: 180, delay: 0.5 },
+				{ rarity: 3, x: "75%", y: "30%", size: 200, delay: 1.5 },
+				{ rarity: 4, x: "50%", y: "75%", size: 160, delay: 2.5 },
+				{ rarity: 1, x: "85%", y: "65%", size: 140, delay: 3 },
 			].map((orb, i) => {
 				const colorHex = getRarityColorHex(orb.rarity, 500);
 				const colorWithAlpha = `${colorHex}18`;

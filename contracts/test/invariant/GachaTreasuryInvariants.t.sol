@@ -45,27 +45,34 @@ contract GachaTreasuryInvariants is Test {
         address owner = address(this);
 
         // Initialize treasury with price ranges
-        uint256[5] memory minPrices = [
-            uint256(0),              // Common
-            uint256(15.01e18),        // Uncommon
-            uint256(60.01e18),        // Rare
-            uint256(250.01e18),       // Epic
-            uint256(1200.01e18)       // Legendary
-        ];
+        uint256[] memory minPrices = new uint256[](5);
+        minPrices[0] = uint256(0);              // Common
+        minPrices[1] = uint256(15.01e18);        // Uncommon
+        minPrices[2] = uint256(60.01e18);        // Rare
+        minPrices[3] = uint256(250.01e18);       // Epic
+        minPrices[4] = uint256(1200.01e18);      // Legendary
 
-        uint256[5] memory maxPrices = [
-            uint256(15e18),          // Common
-            uint256(60e18),          // Uncommon
-            uint256(250e18),         // Rare
-            uint256(1200e18),        // Epic
-            uint256(type(uint256).max)  // Legendary (no max) (no max)
-        ];
+        uint256[] memory maxPrices = new uint256[](5);
+        maxPrices[0] = uint256(15e18);           // Common
+        maxPrices[1] = uint256(60e18);           // Uncommon
+        maxPrices[2] = uint256(250e18);          // Rare
+        maxPrices[3] = uint256(1200e18);         // Epic
+        maxPrices[4] = uint256(type(uint256).max); // Legendary (no max)
+
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
 
         vm.prank(owner);
         treasury.initialize(
             owner,
             address(0x999),
             address(appraisal),
+            uint8(5),
+            rarityNames,
             minPrices,
             maxPrices
         );
@@ -105,7 +112,7 @@ contract GachaTreasuryInvariants is Test {
         uint256 totalNFTsInTreasury = 0;
 
         for (uint256 i = 0; i < 5; i++) {
-            totalNFTsInTreasury += treasury.rarityCount(GachaTreasury.Rarity(i));
+            totalNFTsInTreasury += treasury.rarityCount(uint8(i));
         }
 
         uint256 totalDeposits = treasury.globalLifetimeDeposited();
@@ -125,22 +132,22 @@ contract GachaTreasuryInvariants is Test {
     function invariant_RarityPricesMatchRange() public view {
         // Check each rarity tier
         for (uint256 i = 0; i < 5; i++) {
-            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            uint8 rarity = uint8(i);
             uint256 count = treasury.rarityCount(rarity);
 
             for (uint256 j = 0; j < count; j++) {
                 (, , , uint256 appraisedPrice, , , ) = treasury.treasury(rarity, j);
 
                 // Verify price is within expected range for this rarity
-                if (rarity == GachaTreasury.Rarity.Common) {
+                if (rarity == 0) {
                     assertTrue(appraisedPrice >= 0 && appraisedPrice <= 15e18);
-                } else if (rarity == GachaTreasury.Rarity.Uncommon) {
+                } else if (rarity == 1) {
                     assertTrue(appraisedPrice >= 25e18 && appraisedPrice <= 60e18);
-                } else if (rarity == GachaTreasury.Rarity.Rare) {
+                } else if (rarity == 2) {
                     assertTrue(appraisedPrice >= 70e18 && appraisedPrice <= 250e18);
-                } else if (rarity == GachaTreasury.Rarity.Epic) {
+                } else if (rarity == 3) {
                     assertTrue(appraisedPrice >= 300e18 && appraisedPrice <= 1200e18);
-                } else if (rarity == GachaTreasury.Rarity.Legendary) {
+                } else if (rarity == 4) {
                     assertTrue(appraisedPrice >= 1500e18);
                 }
             }
@@ -159,7 +166,7 @@ contract GachaTreasuryInvariants is Test {
         // Check all NFTs in treasury are from whitelisted collections
 
         for (uint256 i = 0; i < 5; i++) {
-            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            uint8 rarity = uint8(i);
             uint256 count = treasury.rarityCount(rarity);
 
             for (uint256 j = 0; j < count; j++) {
@@ -203,7 +210,7 @@ contract GachaTreasuryInvariants is Test {
      */
     function invariant_RarityValueConsistency() public view {
         for (uint256 i = 0; i < 5; i++) {
-            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            uint8 rarity = uint8(i);
             uint256 count = treasury.rarityCount(rarity);
 
             uint256 calculatedValue = 0;
@@ -233,7 +240,7 @@ contract GachaTreasuryInvariants is Test {
 
         uint256 totalInTreasury = 0;
         for (uint256 i = 0; i < 5; i++) {
-            totalInTreasury += treasury.rarityCount(GachaTreasury.Rarity(i));
+            totalInTreasury += treasury.rarityCount(uint8(i));
         }
 
         // Total NFTs in treasury should not exceed global deposited count
@@ -250,7 +257,7 @@ contract GachaTreasuryInvariants is Test {
      */
     function invariant_DepositorOwnershipConsistency() public view {
         for (uint256 i = 0; i < 5; i++) {
-            GachaTreasury.Rarity rarity = GachaTreasury.Rarity(i);
+            uint8 rarity = uint8(i);
             uint256 count = treasury.rarityCount(rarity);
 
             for (uint256 j = 0; j < count; j++) {
@@ -329,7 +336,7 @@ contract GachaTreasuryInvariants is Test {
     function withdraw_handler(uint256 rarity, uint256 index) external {
         // Constrain inputs
         rarity = bound(rarity, 0, 4);
-        GachaTreasury.Rarity r = GachaTreasury.Rarity(rarity);
+        uint8 r = uint8(rarity);
 
         uint256 count = treasury.rarityCount(r);
         if (count == 0) return;

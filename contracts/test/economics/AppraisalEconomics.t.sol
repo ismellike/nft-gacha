@@ -91,17 +91,29 @@ contract AppraisalEconomicsTest is Test {
         vm.startPrank(owner);
         GachaTreasury treasuryImpl = new GachaTreasury();
         uint256 PRICE_STEP = 1e16;
-        uint256[5] memory minPrices = [
-            uint256(0),
-            uint256(15 * 1e18) + PRICE_STEP,
-            uint256(60 * 1e18) + PRICE_STEP,
-            uint256(250 * 1e18) + PRICE_STEP,
-            uint256(1_200 * 1e18) + PRICE_STEP
-        ];
-        uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
+        uint256[] memory minPrices = new uint256[](5);
+        minPrices[0] = 0;
+        minPrices[1] = uint256(15 * 1e18) + PRICE_STEP;
+        minPrices[2] = uint256(60 * 1e18) + PRICE_STEP;
+        minPrices[3] = uint256(250 * 1e18) + PRICE_STEP;
+        minPrices[4] = uint256(1_200 * 1e18) + PRICE_STEP;
+
+        uint256[] memory maxPrices = new uint256[](5);
+        maxPrices[0] = uint256(15 * 1e18);
+        maxPrices[1] = uint256(60 * 1e18);
+        maxPrices[2] = uint256(250 * 1e18);
+        maxPrices[3] = uint256(1_200 * 1e18);
+        maxPrices[4] = type(uint256).max;
+
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
 
         bytes memory initData = abi.encodeWithSelector(
-            GachaTreasury.initialize.selector, owner, address(this), address(appraisal), minPrices, maxPrices
+            GachaTreasury.initialize.selector, owner, address(this), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices
         );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
@@ -191,7 +203,7 @@ contract AppraisalEconomicsTest is Test {
         vm.stopPrank();
 
         assertEq(
-            treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should be assigned Common rarity based on price"
+            treasury.getRarityCount(0), 1, "Should be assigned Common rarity based on price"
         );
     }
 
@@ -201,27 +213,27 @@ contract AppraisalEconomicsTest is Test {
     function testRarityBoundaryConditions() public {
         // Test exact boundary prices
         uint256[] memory boundaryPrices = new uint256[](5);
-        GachaTreasury.Rarity[] memory expectedRarities = new GachaTreasury.Rarity[](5);
+        uint8[] memory expectedRarities = new uint8[](5);
 
         // Common: $0-$15
         boundaryPrices[0] = 10e18;
-        expectedRarities[0] = GachaTreasury.Rarity.Common;
+        expectedRarities[0] = 0;
 
         // Uncommon: $25-$60
         boundaryPrices[1] = 25e18;
-        expectedRarities[1] = GachaTreasury.Rarity.Uncommon;
+        expectedRarities[1] = 1;
 
         // Rare: $70-$250
         boundaryPrices[2] = 70e18;
-        expectedRarities[2] = GachaTreasury.Rarity.Rare;
+        expectedRarities[2] = 2;
 
         // Epic: $300-$1200
         boundaryPrices[3] = 300e18;
-        expectedRarities[3] = GachaTreasury.Rarity.Epic;
+        expectedRarities[3] = 3;
 
         // Legendary: $1500+
         boundaryPrices[4] = 1500e18;
-        expectedRarities[4] = GachaTreasury.Rarity.Legendary;
+        expectedRarities[4] = 4;
 
         for (uint256 i = 0; i < 5; i++) {
             uint256 tokenId = i;
@@ -303,7 +315,7 @@ contract AppraisalEconomicsTest is Test {
         vm.stopPrank();
 
         // Verify initial rarity
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Initial rarity should be Epic");
+        assertEq(treasury.getRarityCount(3), 1, "Initial rarity should be Epic");
 
         // Price update through re-appraisal
         vm.prank(user);
@@ -320,8 +332,8 @@ contract AppraisalEconomicsTest is Test {
         vm.stopPrank();
 
         // Should now be Legendary
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0, "Should no longer be Epic");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 1, "Should now be Legendary");
+        assertEq(treasury.getRarityCount(3), 0, "Should no longer be Epic");
+        assertEq(treasury.getRarityCount(4), 1, "Should now be Legendary");
     }
 
     /**
@@ -362,7 +374,7 @@ contract AppraisalEconomicsTest is Test {
         vm.stopPrank();
 
         assertEq(
-            treasury.getRarityCount(GachaTreasury.Rarity.Legendary),
+            treasury.getRarityCount(4),
             1,
             "Should be Legendary based on owner override price"
         );
@@ -417,11 +429,11 @@ contract AppraisalEconomicsTest is Test {
         vm.stopPrank();
 
         // Verify one NFT in each rarity tier
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should have 1 Common");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Uncommon), 1, "Should have 1 Uncommon");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 1, "Should have 1 Rare");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Should have 1 Epic");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 1, "Should have 1 Legendary");
+        assertEq(treasury.getRarityCount(0), 1, "Should have 1 Common");
+        assertEq(treasury.getRarityCount(1), 1, "Should have 1 Uncommon");
+        assertEq(treasury.getRarityCount(2), 1, "Should have 1 Rare");
+        assertEq(treasury.getRarityCount(3), 1, "Should have 1 Epic");
+        assertEq(treasury.getRarityCount(4), 1, "Should have 1 Legendary");
     }
 
     // ========================================================================
@@ -459,7 +471,7 @@ contract AppraisalEconomicsTest is Test {
         treasury.depositNFT(address(collection), tokenId);
         vm.stopPrank();
 
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should be able to deposit after appraisal");
+        assertEq(treasury.getRarityCount(0), 1, "Should be able to deposit after appraisal");
     }
 
     /**
@@ -507,6 +519,6 @@ contract AppraisalEconomicsTest is Test {
         treasury.depositNFT(address(collection2), tokenId2);
         vm.stopPrank();
 
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 2, "Both should be Rare");
+        assertEq(treasury.getRarityCount(2), 2, "Both should be Rare");
     }
 }

@@ -197,8 +197,25 @@ contract DeployTestnet is Script {
         // GachaTreasury
         {
             GachaTreasury impl = new GachaTreasury();
-            uint256[5] memory minPrices = [COMMON_MIN, UNCOMMON_MIN, RARE_MIN, EPIC_MIN, LEGENDARY_MIN];
-            uint256[5] memory maxPrices = [COMMON_MAX, UNCOMMON_MAX, RARE_MAX, EPIC_MAX, LEGENDARY_MAX];
+            uint8 numRarities = 5;
+            string[] memory rarityNames = new string[](5);
+            rarityNames[0] = "Common";
+            rarityNames[1] = "Uncommon";
+            rarityNames[2] = "Rare";
+            rarityNames[3] = "Epic";
+            rarityNames[4] = "Legendary";
+            uint256[] memory minPrices = new uint256[](5);
+            minPrices[0] = COMMON_MIN;
+            minPrices[1] = UNCOMMON_MIN;
+            minPrices[2] = RARE_MIN;
+            minPrices[3] = EPIC_MIN;
+            minPrices[4] = LEGENDARY_MIN;
+            uint256[] memory maxPrices = new uint256[](5);
+            maxPrices[0] = COMMON_MAX;
+            maxPrices[1] = UNCOMMON_MAX;
+            maxPrices[2] = RARE_MAX;
+            maxPrices[3] = EPIC_MAX;
+            maxPrices[4] = LEGENDARY_MAX;
             d.treasuryProxy = address(
                 new ERC1967Proxy(
                     address(impl),
@@ -207,6 +224,8 @@ contract DeployTestnet is Script {
                         deployer,
                         TEMP_GACHA_ADDRESS,
                         d.appraisalProxy,
+                        numRarities,
+                        rarityNames,
                         minPrices,
                         maxPrices
                     )
@@ -222,7 +241,7 @@ contract DeployTestnet is Script {
                 new ERC1967Proxy(
                     address(impl),
                     abi.encodeWithSelector(
-                        CardGroupedVault.initialize.selector, deployer, d.usdc, d.treasuryProxy, deployer
+                        CardGroupedVault.initialize.selector, deployer, d.usdc, d.treasuryProxy, deployer, uint8(5)
                     )
                 )
             );
@@ -260,7 +279,8 @@ contract DeployTestnet is Script {
                         d.usdc,
                         TEMP_GACHA_ADDRESS,
                         d.cardGroupedVaultProxy,
-                        d.protocolTreasuryProxy
+                        d.protocolTreasuryProxy,
+                        uint8(5)
                     )
                 )
             );
@@ -329,7 +349,12 @@ contract DeployTestnet is Script {
         Gacha(d.gachaProxy).setEconomyManager(d.economyManagerProxy);
 
         // Configure default rarity weights
-        uint256[5] memory defaultTargets = [uint256(7000), 2000, 600, 300, 100];
+        uint256[] memory defaultTargets = new uint256[](5);
+        defaultTargets[0] = 7000;
+        defaultTargets[1] = 2000;
+        defaultTargets[2] = 600;
+        defaultTargets[3] = 300;
+        defaultTargets[4] = 100;
         Gacha(d.gachaProxy).setDynamicWeightsConfig(defaultTargets);
 
         console.log("Economy wiring complete.");

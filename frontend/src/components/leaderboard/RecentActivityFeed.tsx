@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { parseAbiItem } from "viem";
 import { usePublicClient } from "wagmi";
 import type { GachaConfig } from "@/lib/gacha-config/types";
-import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
+import { getRarityConfig } from "@/lib/rarityConfig";
 import { Card, Skeleton } from "@/ui";
 
 const SPIN_COMPLETED_EVENT = parseAbiItem(
@@ -24,7 +24,7 @@ interface RawLogEntry {
 interface ActivityEntry {
 	id: string;
 	requester: string;
-	rarity: Rarity;
+	rarity: number;
 	gachaTitle: string;
 	timestamp: number;
 }
@@ -125,19 +125,19 @@ export function RecentActivityFeed({
 			);
 
 			const entries: ActivityEntry[] = top
-				.map(({ gacha, blockNumber, args }) => {
+				.map(({ gacha, blockNumber, args }): ActivityEntry | null => {
 					if (!args.triggerId || !args.requester || args.rarity === undefined) {
 						return null;
 					}
-					const rarity = args.rarity as Rarity;
+					const rarity = args.rarity as number;
 					return {
 						id: `${gacha.id}-${args.triggerId.toString()}`,
-						requester: args.requester,
+						requester: args.requester as string,
 						rarity,
 						gachaTitle: gacha.title,
 						timestamp:
 							timestampMap[blockNumber.toString()] ?? Date.now() / 1000,
-					} satisfies ActivityEntry;
+					} as ActivityEntry;
 				})
 				.filter((e): e is ActivityEntry => e !== null);
 
@@ -202,7 +202,7 @@ export function RecentActivityFeed({
 			{!isLoading && !error && activities.length > 0 && (
 				<ul className="space-y-1">
 					{activities.map((activity) => {
-						const config = RARITY_CONFIG[activity.rarity];
+						const config = getRarityConfig(activity.rarity);
 						return (
 							<li
 								key={activity.id}

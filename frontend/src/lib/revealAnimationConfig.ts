@@ -3,8 +3,6 @@
  * Provides timing presets and animation parameters based on NFT rarity
  */
 
-import { Rarity } from "./rarityConfig";
-
 // ============================================================================
 // TIMING RATIONALE
 // ============================================================================
@@ -58,15 +56,6 @@ export interface PhaseTimingConfig {
 // NAMED CONSTANTS
 // ============================================================================
 
-// Glow intensities by rarity
-const GLOW_INTENSITIES: Record<Rarity, number> = {
-	[Rarity.Common]: 0.2,
-	[Rarity.Uncommon]: 0.3,
-	[Rarity.Rare]: 0.5,
-	[Rarity.Epic]: 0.7,
-	[Rarity.Legendary]: 0.9,
-};
-
 // Animation durations (in seconds)
 const DURATION_STEP_MIN = 1.8; // Standard phase duration
 const DURATION_STEP_BASE = 2.0; // Longer for complex traits like grading
@@ -101,42 +90,51 @@ export const SPRING_CONFIGS = {
 	},
 };
 
-// Helper to get spring config based on rarity
-export const getSpringConfig = (rarity: Rarity) => {
-	switch (rarity) {
-		case Rarity.Common:
-		case Rarity.Uncommon:
-			return SPRING_CONFIGS.soft;
-		case Rarity.Rare:
-			return SPRING_CONFIGS.smooth;
-		case Rarity.Epic:
-			return SPRING_CONFIGS.bouncy;
-		case Rarity.Legendary:
-			return SPRING_CONFIGS.dramatic;
-		default:
-			return SPRING_CONFIGS.smooth;
-	}
+/**
+ * Get spring config based on rarity index using normalized position
+ * @param rarityIndex - Numeric rarity index (0 = lowest)
+ * @param numRarities - Total number of rarity tiers
+ */
+export const getSpringConfig = (rarityIndex: number, numRarities = 5) => {
+	const normalized = rarityIndex / Math.max(numRarities - 1, 1);
+	if (normalized < 0.4) return SPRING_CONFIGS.soft;
+	if (normalized < 0.6) return SPRING_CONFIGS.smooth;
+	if (normalized < 0.8) return SPRING_CONFIGS.bouncy;
+	return SPRING_CONFIGS.dramatic;
 };
 
-// Glow animation config based on rarity
-export const getGlowConfig = (rarity: Rarity) => {
-	const intensity = GLOW_INTENSITIES[rarity] ?? GLOW_INTENSITIES[Rarity.Common];
-	const PULSE_DURATION_LEGENDARY = 3;
+/**
+ * Get glow intensity based on rarity index using linear interpolation
+ * @param rarityIndex - Numeric rarity index (0 = lowest)
+ * @param numRarities - Total number of rarity tiers
+ */
+const getGlowIntensity = (rarityIndex: number, numRarities = 5): number => {
+	const normalized = rarityIndex / Math.max(numRarities - 1, 1);
+	return 0.2 + normalized * 0.7; // 0.2 to 0.9
+};
+
+/**
+ * Glow animation config based on rarity
+ * @param rarityIndex - Numeric rarity index (0 = lowest)
+ * @param numRarities - Total number of rarity tiers
+ */
+export const getGlowConfig = (rarityIndex: number, numRarities = 5) => {
+	const intensity = getGlowIntensity(rarityIndex, numRarities);
+	const isTopTier = rarityIndex >= numRarities - 1;
+
+	const PULSE_DURATION_TOP = 3;
 	const PULSE_DURATION_BASE = 4;
 	// Use mutable arrays for framer-motion compatibility
-	const SCALE_LEGENDARY = [1, 1.15, 1];
+	const SCALE_TOP = [1, 1.15, 1];
 	const SCALE_BASE = [1, 1.1, 1];
-	const OPACITY_LEGENDARY = [0.4, 0.6, 0.4];
+	const OPACITY_TOP = [0.4, 0.6, 0.4];
 	const OPACITY_BASE = [0.3, 0.5, 0.3];
 
 	return {
 		intensity,
-		pulseDuration:
-			rarity === Rarity.Legendary
-				? PULSE_DURATION_LEGENDARY
-				: PULSE_DURATION_BASE,
-		scale: rarity === Rarity.Legendary ? SCALE_LEGENDARY : SCALE_BASE,
-		opacity: rarity === Rarity.Legendary ? OPACITY_LEGENDARY : OPACITY_BASE,
+		pulseDuration: isTopTier ? PULSE_DURATION_TOP : PULSE_DURATION_BASE,
+		scale: isTopTier ? SCALE_TOP : SCALE_BASE,
+		opacity: isTopTier ? OPACITY_TOP : OPACITY_BASE,
 	};
 };
 

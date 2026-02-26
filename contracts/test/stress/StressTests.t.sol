@@ -48,27 +48,34 @@ contract StressTests is Test {
         treasury = GachaTreasury(payable(address(new GachaTreasury())));
 
         // Initialize treasury with price ranges
-        uint256[5] memory minPrices = [
-            uint256(0),              // Common
-            uint256(15.01e18),        // Uncommon
-            uint256(60.01e18),        // Rare
-            uint256(250.01e18),       // Epic
-            uint256(1200.01e18)       // Legendary
-        ];
+        uint256[] memory minPrices = new uint256[](5);
+        minPrices[0] = uint256(0);              // Common
+        minPrices[1] = uint256(15.01e18);        // Uncommon
+        minPrices[2] = uint256(60.01e18);        // Rare
+        minPrices[3] = uint256(250.01e18);       // Epic
+        minPrices[4] = uint256(1200.01e18);      // Legendary
 
-        uint256[5] memory maxPrices = [
-            uint256(15e18),          // Common
-            uint256(60e18),          // Uncommon
-            uint256(250e18),         // Rare
-            uint256(1200e18),        // Epic
-            uint256(type(uint256).max)  // Legendary (no max) (no max)
-        ];
+        uint256[] memory maxPrices = new uint256[](5);
+        maxPrices[0] = uint256(15e18);           // Common
+        maxPrices[1] = uint256(60e18);           // Uncommon
+        maxPrices[2] = uint256(250e18);          // Rare
+        maxPrices[3] = uint256(1200e18);         // Epic
+        maxPrices[4] = uint256(type(uint256).max); // Legendary (no max)
+
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
 
         vm.prank(owner);
         treasury.initialize(
             owner,
             address(0x999),  // gachaContract
             address(appraisal),
+            uint8(5),
+            rarityNames,
             minPrices,
             maxPrices
         );
@@ -128,7 +135,7 @@ contract StressTests is Test {
         }
 
         // Verify all deposits
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Common), depositCount);
+        assertEq(treasury.rarityCount(0), depositCount);
     }
 
     // ========================================================================
@@ -156,7 +163,7 @@ contract StressTests is Test {
         }
 
         // Verify all NFTs are in treasury
-        uint256 totalCommon = treasury.rarityCount(GachaTreasury.Rarity.Common);
+        uint256 totalCommon = treasury.rarityCount(0);
         assertEq(totalCommon, spinCount);
     }
 
@@ -195,7 +202,7 @@ contract StressTests is Test {
         }
 
         // Verify total treasury count
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Common), userCount);
+        assertEq(treasury.rarityCount(0), userCount);
     }
 
     // ========================================================================
@@ -268,7 +275,7 @@ contract StressTests is Test {
 
         // Verify all deposits
         uint256 totalDeposits = batchSize * numBatches;
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Common), totalDeposits);
+        assertEq(treasury.rarityCount(0), totalDeposits);
     }
 
     // ========================================================================
@@ -307,11 +314,11 @@ contract StressTests is Test {
         }
 
         // Verify each rarity count
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Common), perRarityCount);
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Uncommon), perRarityCount);
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Rare), perRarityCount);
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Epic), perRarityCount);
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Legendary), perRarityCount);
+        assertEq(treasury.rarityCount(0), perRarityCount);
+        assertEq(treasury.rarityCount(1), perRarityCount);
+        assertEq(treasury.rarityCount(2), perRarityCount);
+        assertEq(treasury.rarityCount(3), perRarityCount);
+        assertEq(treasury.rarityCount(4), perRarityCount);
     }
 
     // ========================================================================
@@ -349,7 +356,7 @@ contract StressTests is Test {
         }
 
         // Verify total count
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Common), userCount * 10);
+        assertEq(treasury.rarityCount(0), userCount * 10);
     }
 
     // ========================================================================
@@ -382,7 +389,7 @@ contract StressTests is Test {
         }
 
         // All should be withdrawn
-        assertEq(treasury.rarityCount(GachaTreasury.Rarity.Common), 0);
+        assertEq(treasury.rarityCount(0), 0);
     }
 
     // ========================================================================

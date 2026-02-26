@@ -27,17 +27,17 @@ interface IGacha {
     function setPricingConfig(uint256 premiumBps, uint256 minFee, uint256 maxFee) external;
 
     /// @notice Configure target rarity weights
-    /// @param targetBps Target rarity distribution in bps [Common..Legendary]
-    function setDynamicWeightsConfig(uint256[5] calldata targetBps) external;
+    /// @param targetBps Target rarity distribution in bps (length must match numRarities)
+    function setDynamicWeightsConfig(uint256[] calldata targetBps) external;
 
     /// @notice Get current spin fee (dynamic)
     function getCurrentSpinFee() external view returns (uint256);
 
     /// @notice Get current rarity weights (dynamic)
-    function getCurrentRarityWeights() external view returns (uint256[5] memory);
+    function getCurrentRarityWeights() external view returns (uint256[] memory);
 
-    /// @notice Get target rarity weights in bps [Common..Legendary]
-    function getTargetRarityBps() external view returns (uint256[5] memory);
+    /// @notice Get target rarity weights in bps
+    function getTargetRarityBps() external view returns (uint256[] memory);
 
     /// @notice Get expected value for a spin in USD (18 decimals)
     function getExpectedValueUSD() external view returns (uint256);

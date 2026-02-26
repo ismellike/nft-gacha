@@ -15,7 +15,7 @@ import {
 	useNFTInteraction,
 } from "@/hooks/useNFTInteraction";
 import { useRedemptionWindow } from "@/hooks/useRedemptionWindow";
-import { getRarityConfig, Rarity } from "@/lib/rarityConfig";
+import { getRarityConfig } from "@/lib/rarityConfig";
 import { formatCurrency, getBlockExplorerTxUrl } from "@/lib/utils";
 import { RedemptionCountdown } from "./RedemptionCountdown";
 import { Button } from "../../ui/Button";
@@ -467,9 +467,7 @@ export default function BuybackComponent({
 
 	// Full variant - comprehensive buyback interface
 	if (variant === "full") {
-		const resultRarity = rarity
-			? Rarity[rarity as keyof typeof Rarity] || Rarity.Common
-			: Rarity.Common;
+		const resultRarity = rarity ? (Number.parseInt(rarity, 10) || 0) : 0;
 		const rarityConfig = getRarityConfig(resultRarity);
 
 		return (

@@ -794,6 +794,7 @@ export const cardGroupedVaultAbi = [
       { name: 'asset_', internalType: 'address', type: 'address' },
       { name: 'treasury_', internalType: 'address', type: 'address' },
       { name: 'economyManager_', internalType: 'address', type: 'address' },
+      { name: 'numRarities_', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'initialize',
     outputs: [],
@@ -809,6 +810,13 @@ export const cardGroupedVaultAbi = [
     name: 'migrateCardRarity',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'numRarities',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -1274,6 +1282,7 @@ export const cardGroupedVaultAbi = [
   { type: 'error', inputs: [], name: 'InsufficientPosition' },
   { type: 'error', inputs: [], name: 'InsufficientVaultBalance' },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  { type: 'error', inputs: [], name: 'InvalidNumRarities' },
   { type: 'error', inputs: [], name: 'InvalidRarity' },
   { type: 'error', inputs: [], name: 'NoValueInPool' },
   { type: 'error', inputs: [], name: 'NotInitializing' },
@@ -1308,53 +1317,10 @@ export const cardGroupedVaultAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ContextUpgradeable
+// CardGroupedVaultFuzz
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const contextUpgradeableAbi = [
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'version',
-        internalType: 'uint64',
-        type: 'uint64',
-        indexed: false,
-      },
-    ],
-    name: 'Initialized',
-  },
-  { type: 'error', inputs: [], name: 'InvalidInitialization' },
-  { type: 'error', inputs: [], name: 'NotInitializing' },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// DeployLocal
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const deployLocalAbi = [
-  {
-    type: 'function',
-    inputs: [],
-    name: 'IS_SCRIPT',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'run',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// DeploymentHelpers
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const deploymentHelpersAbi = [
+export const cardGroupedVaultFuzzAbi = [
   {
     type: 'function',
     inputs: [],
@@ -1424,6 +1390,13 @@ export const deploymentHelpersAbi = [
     name: 'failed',
     outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'setUp',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -1514,6 +1487,354 @@ export const deploymentHelpersAbi = [
       },
     ],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'count1', internalType: 'uint256', type: 'uint256' },
+      { name: 'count2', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_AdditionalDeposit_ZeroPendingAfterDeposit',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_ClaimIdempotent',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'priceA', internalType: 'uint256', type: 'uint256' },
+      { name: 'priceB', internalType: 'uint256', type: 'uint256' },
+      { name: 'countA', internalType: 'uint256', type: 'uint256' },
+      { name: 'countB', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldA', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldB', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_ClaimYieldForCards_Partial',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'p0', internalType: 'uint256', type: 'uint256' },
+      { name: 'p1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_CorrectionAccumulator_MatchesReference',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'newPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldBefore', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldAfter', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_DepositYieldPriceChangeClaim_Integrity',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'priceA', internalType: 'uint256', type: 'uint256' },
+      { name: 'priceB', internalType: 'uint256', type: 'uint256' },
+      { name: 'countA', internalType: 'uint256', type: 'uint256' },
+      { name: 'countB', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
+    ],
+    name: 'testFuzz_DifferentPrices_ProportionalByValue',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_FullRemove_AutoClaims',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+      { name: 'y3', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_GlobalInvariant_ClaimedNeverExceedsDistributed',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_LargePrice_NoOverflow',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'aliceCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'bobCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldBefore', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldAfter', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_LateJoiner_GetsNoHistoricalYield',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_LifecycleTotals',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price0', internalType: 'uint256', type: 'uint256' },
+      { name: 'price1', internalType: 'uint256', type: 'uint256' },
+      { name: 'price2', internalType: 'uint256', type: 'uint256' },
+      { name: 'y0', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_MigrationAndPriceUpdate_Combined',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'seed', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldBase', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_MixedOperations_Invariants',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'priceA', internalType: 'uint256', type: 'uint256' },
+      { name: 'priceB', internalType: 'uint256', type: 'uint256' },
+      { name: 'countA', internalType: 'uint256', type: 'uint256' },
+      { name: 'countB', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldA', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldB', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_MultiCardDepositor_AggregatedPending',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+      { name: 'y3', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_MultiMigration_NoYieldDuplication',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'initialCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'removeCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_PartialRemove_FutureYieldCorrect',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'newPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'newRarity', internalType: 'uint8', type: 'uint8' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_PendingYield_AlwaysNonNegative',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'p', internalType: 'uint256', type: 'uint256' },
+      { name: 'd', internalType: 'uint256', type: 'uint256' },
+      { name: 'y0', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_PriceDeltaSymmetry',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'p0', internalType: 'uint256', type: 'uint256' },
+      { name: 'p1', internalType: 'uint256', type: 'uint256' },
+      { name: 'p2', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_PriceOscillation_NeverNegativePending',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'p0', internalType: 'uint256', type: 'uint256' },
+      { name: 'p1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y2', internalType: 'uint256', type: 'uint256' },
+      { name: 'y3', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_PriceOscillation_YieldConservation',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'p0', internalType: 'uint256', type: 'uint256' },
+      { name: 'p1', internalType: 'uint256', type: 'uint256' },
+      { name: 'y0', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_PriceRoundTrip_CorrectionCancels',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'priceCommon', internalType: 'uint256', type: 'uint256' },
+      { name: 'priceRare', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldCommon', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldRare', internalType: 'uint256', type: 'uint256' },
+      { name: 'countCommon', internalType: 'uint256', type: 'uint256' },
+      { name: 'countRare', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_RarityIsolation',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'newPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'oldRarity', internalType: 'uint8', type: 'uint8' },
+      { name: 'newRarity', internalType: 'uint8', type: 'uint8' },
+      { name: 'yieldOld', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldNew', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_RarityMigration_PreservesYield',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'aliceCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'bobCount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_RemoveAll_ZeroTotalShares',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'count', internalType: 'uint256', type: 'uint256' },
+      { name: 'numDistributions', internalType: 'uint8', type: 'uint8' },
+    ],
+    name: 'testFuzz_SmallYieldDistributions_Accumulate',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'aliceCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'bobCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'carolCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldAmount', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'testFuzz_TotalClaimed_NeverExceedsDistributed',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'aliceCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'bobCount', internalType: 'uint256', type: 'uint256' },
+      { name: 'yieldAmount', internalType: 'uint256', type: 'uint256' },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
+    ],
+    name: 'testFuzz_TwoDepositors_ProportionalSplit',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'event',
@@ -1744,6 +2065,28 @@ export const deploymentHelpersAbi = [
     ],
     name: 'logs',
   },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ContextUpgradeable
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const contextUpgradeableAbi = [
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'version',
+        internalType: 'uint64',
+        type: 'uint64',
+        indexed: false,
+      },
+    ],
+    name: 'Initialized',
+  },
+  { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  { type: 'error', inputs: [], name: 'NotInitializing' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2928,7 +3271,7 @@ export const gachaAbi = [
     inputs: [],
     name: 'getAverageRarityValues',
     outputs: [
-      { name: 'averageValues', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'averageValues', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     stateMutability: 'view',
   },
@@ -2958,7 +3301,7 @@ export const gachaAbi = [
     inputs: [],
     name: 'getCurrentRarityWeights',
     outputs: [
-      { name: 'weights', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'weights', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     stateMutability: 'view',
   },
@@ -2986,7 +3329,7 @@ export const gachaAbi = [
       { name: 'feeTokenAddr', internalType: 'address', type: 'address' },
       { name: 'spinFeeAmount', internalType: 'uint256', type: 'uint256' },
       { name: 'isPaused', internalType: 'bool', type: 'bool' },
-      { name: 'rarityWeights', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'rarityWeights', internalType: 'uint256[]', type: 'uint256[]' },
       { name: 'totalWeight', internalType: 'uint256', type: 'uint256' },
       { name: 'isAvailable', internalType: 'bool', type: 'bool' },
     ],
@@ -3002,8 +3345,8 @@ export const gachaAbi = [
       { name: 'totalReclaims', internalType: 'uint256', type: 'uint256' },
       {
         name: 'globalRarityWinCounts',
-        internalType: 'uint256[5]',
-        type: 'uint256[5]',
+        internalType: 'uint256[]',
+        type: 'uint256[]',
       },
     ],
     stateMutability: 'view',
@@ -3033,7 +3376,7 @@ export const gachaAbi = [
     inputs: [],
     name: 'getTargetRarityBps',
     outputs: [
-      { name: 'targetBps', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'targetBps', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     stateMutability: 'view',
   },
@@ -3058,7 +3401,7 @@ export const gachaAbi = [
     inputs: [],
     name: 'getTreasuryDistribution',
     outputs: [
-      { name: 'distribution', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'distribution', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     stateMutability: 'view',
   },
@@ -3070,7 +3413,7 @@ export const gachaAbi = [
       { name: 'totalSpins', internalType: 'uint256', type: 'uint256' },
       { name: 'totalRefunds', internalType: 'uint256', type: 'uint256' },
       { name: 'totalReclaims', internalType: 'uint256', type: 'uint256' },
-      { name: 'rarityWins', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'rarityWins', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     stateMutability: 'view',
   },
@@ -3082,7 +3425,7 @@ export const gachaAbi = [
       { name: 'totalSpins', internalType: 'uint256', type: 'uint256' },
       { name: 'totalRefunds', internalType: 'uint256', type: 'uint256' },
       { name: 'totalReclaims', internalType: 'uint256', type: 'uint256' },
-      { name: 'rarityWins', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'rarityWins', internalType: 'uint256[]', type: 'uint256[]' },
       { name: 'spinCount', internalType: 'uint256', type: 'uint256' },
     ],
     stateMutability: 'view',
@@ -3091,11 +3434,7 @@ export const gachaAbi = [
     type: 'function',
     inputs: [
       { name: 'user', internalType: 'address', type: 'address' },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'getUserRarityWinCount',
     outputs: [{ name: 'winCount', internalType: 'uint256', type: 'uint256' }],
@@ -3110,9 +3449,7 @@ export const gachaAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
-    ],
+    inputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     name: 'globalRarityWins',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -3147,6 +3484,13 @@ export const gachaAbi = [
     inputs: [],
     name: 'minSpinFee',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'numRarities',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     stateMutability: 'view',
   },
   {
@@ -3194,7 +3538,7 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'targetBps', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'targetBps', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     name: 'setDynamicWeightsConfig',
     outputs: [],
@@ -3346,7 +3690,7 @@ export const gachaAbi = [
     type: 'function',
     inputs: [
       { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+      { name: '', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'userRarityWins',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -3379,8 +3723,8 @@ export const gachaAbi = [
     inputs: [
       {
         name: 'targetBps',
-        internalType: 'uint256[5]',
-        type: 'uint256[5]',
+        internalType: 'uint256[]',
+        type: 'uint256[]',
         indexed: false,
       },
     ],
@@ -3568,12 +3912,7 @@ export const gachaAbi = [
         type: 'address',
         indexed: true,
       },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-        indexed: false,
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8', indexed: false },
       {
         name: 'collection',
         internalType: 'address',
@@ -3638,7 +3977,7 @@ export const gachaAbi = [
       },
       {
         name: 'selectedRarity',
-        internalType: 'enum GachaTreasury.Rarity',
+        internalType: 'uint8',
         type: 'uint8',
         indexed: false,
       },
@@ -3768,6 +4107,7 @@ export const gachaAbi = [
   { type: 'error', inputs: [], name: 'InvalidSpinTimeout' },
   { type: 'error', inputs: [], name: 'InvalidTreasuryContract' },
   { type: 'error', inputs: [], name: 'InvalidTriggerId' },
+  { type: 'error', inputs: [], name: 'InvalidWeightsLength' },
   {
     type: 'error',
     inputs: [
@@ -3778,13 +4118,7 @@ export const gachaAbi = [
   },
   {
     type: 'error',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-    ],
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
     name: 'NoNFTsAvailable',
   },
   { type: 'error', inputs: [], name: 'NoTreasuryInventory' },
@@ -3875,6 +4209,7 @@ export const gachaEconomyManagerAbi = [
       { name: 'gacha_', internalType: 'address', type: 'address' },
       { name: 'cardGroupedVault_', internalType: 'address', type: 'address' },
       { name: 'protocolTreasury_', internalType: 'address', type: 'address' },
+      { name: 'numRarities_', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'initialize',
     outputs: [],
@@ -3882,13 +4217,16 @@ export const gachaEconomyManagerAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'numRarities',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'usdcAmount', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'hitRarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+      { name: 'hitRarity', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'onSpinRevenue',
     outputs: [],
@@ -3940,8 +4278,8 @@ export const gachaEconomyManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'queuedDepositorYield',
+    inputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    name: 'queuedYieldByRarity',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -3954,9 +4292,7 @@ export const gachaEconomyManagerAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
-    ],
+    inputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     name: 'revenueByRarity',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -3994,6 +4330,13 @@ export const gachaEconomyManagerAbi = [
     name: 'setVaults',
     outputs: [],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'totalQueuedYield',
+    outputs: [{ name: 'total', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -4076,6 +4419,7 @@ export const gachaEconomyManagerAbi = [
         type: 'uint256',
         indexed: false,
       },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8', indexed: false },
     ],
     name: 'DepositorYieldQueued',
   },
@@ -4191,6 +4535,7 @@ export const gachaEconomyManagerAbi = [
         type: 'uint256',
         indexed: false,
       },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8', indexed: false },
     ],
     name: 'QueuedDepositorYieldProcessed',
   },
@@ -4282,6 +4627,7 @@ export const gachaEconomyManagerAbi = [
   { type: 'error', inputs: [], name: 'ExpectedPause' },
   { type: 'error', inputs: [], name: 'FailedCall' },
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
+  { type: 'error', inputs: [], name: 'InvalidNumRarities' },
   { type: 'error', inputs: [], name: 'InvalidRevenueSplit' },
   { type: 'error', inputs: [], name: 'NotInitializing' },
   {
@@ -4892,6 +5238,16 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'collections', internalType: 'address[]', type: 'address[]' },
+      { name: 'tokenIds', internalType: 'uint256[]', type: 'uint256[]' },
+    ],
+    name: 'batchMigrateNFTRarity',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'cardGroupedVault',
     outputs: [
@@ -4954,8 +5310,8 @@ export const gachaTreasuryAbi = [
     outputs: [
       {
         name: 'ranges',
-        internalType: 'struct GachaTreasury.PriceRange[5]',
-        type: 'tuple[5]',
+        internalType: 'struct GachaTreasury.PriceRange[]',
+        type: 'tuple[]',
         components: [
           { name: 'minPriceUSD', internalType: 'uint256', type: 'uint256' },
           { name: 'maxPriceUSD', internalType: 'uint256', type: 'uint256' },
@@ -4968,40 +5324,14 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [],
     name: 'getAllRarityCounts',
-    outputs: [
-      { name: 'counts', internalType: 'uint256[5]', type: 'uint256[5]' },
-    ],
+    outputs: [{ name: 'counts', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [],
     name: 'getAllRarityTotalValues',
-    outputs: [
-      { name: 'values', internalType: 'uint256[5]', type: 'uint256[5]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getAllUserCardDeposits',
-    outputs: [
-      {
-        name: 'deposits',
-        internalType: 'struct GachaTreasury.UserCardDeposit[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
-          { name: 'depositCount', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'totalCardDeposits',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
-        ],
-      },
-    ],
+    outputs: [{ name: 'values', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
@@ -5029,9 +5359,7 @@ export const gachaTreasuryAbi = [
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'getNFTCurrentRarity',
-    outputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
-    ],
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     stateMutability: 'view',
   },
   {
@@ -5048,10 +5376,27 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getNFTRedemptionDeadline',
+    outputs: [{ name: 'deadline', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getNumRarities',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'getPlatformOverviewBatch',
     outputs: [
-      { name: 'rarityCounts', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'rarityCounts', internalType: 'uint256[]', type: 'uint256[]' },
       { name: 'totalItems', internalType: 'uint256', type: 'uint256' },
       { name: 'gachaAvailable', internalType: 'bool', type: 'bool' },
       { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
@@ -5061,13 +5406,7 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-    ],
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
     name: 'getPriceRange',
     outputs: [
       { name: 'minPrice', internalType: 'uint256', type: 'uint256' },
@@ -5079,37 +5418,33 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [{ name: 'priceUSD', internalType: 'uint256', type: 'uint256' }],
     name: 'getRarityByPrice',
-    outputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-    ],
+    outputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-    ],
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
     name: 'getRarityCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-    ],
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
+    name: 'getRarityName',
+    outputs: [{ name: 'name', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getRarityNames',
+    outputs: [{ name: 'names', internalType: 'string[]', type: 'string[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
     name: 'getRarityTotalValue',
     outputs: [{ name: 'totalValue', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -5124,11 +5459,7 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
       { name: 'index', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'getTreasuryItem',
@@ -5142,11 +5473,7 @@ export const gachaTreasuryAbi = [
           { name: 'depositor', internalType: 'address', type: 'address' },
           { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
           { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'rarity',
-            internalType: 'enum GachaTreasury.Rarity',
-            type: 'uint8',
-          },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
           { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
@@ -5156,13 +5483,7 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-    ],
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
     name: 'getTreasuryItems',
     outputs: [
       {
@@ -5174,11 +5495,7 @@ export const gachaTreasuryAbi = [
           { name: 'depositor', internalType: 'address', type: 'address' },
           { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
           { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'rarity',
-            internalType: 'enum GachaTreasury.Rarity',
-            type: 'uint8',
-          },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
           { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
@@ -5190,18 +5507,14 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
     name: 'getUserAllDepositCounts',
-    outputs: [
-      { name: 'counts', internalType: 'uint256[5]', type: 'uint256[5]' },
-    ],
+    outputs: [{ name: 'counts', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
     name: 'getUserAllDepositValues',
-    outputs: [
-      { name: 'values', internalType: 'uint256[5]', type: 'uint256[5]' },
-    ],
+    outputs: [{ name: 'values', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
@@ -5258,11 +5571,7 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       { name: 'user', internalType: 'address', type: 'address' },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'getUserDepositCount',
     outputs: [{ name: 'count', internalType: 'uint256', type: 'uint256' }],
@@ -5272,11 +5581,7 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       { name: 'user', internalType: 'address', type: 'address' },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'getUserDepositValue',
     outputs: [{ name: 'value', internalType: 'uint256', type: 'uint256' }],
@@ -5296,40 +5601,7 @@ export const gachaTreasuryAbi = [
           { name: 'depositor', internalType: 'address', type: 'address' },
           { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
           { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'rarity',
-            internalType: 'enum GachaTreasury.Rarity',
-            type: 'uint8',
-          },
-          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
-          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
-        ],
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
-    ],
-    name: 'getUserDepositedNFTsByCardId',
-    outputs: [
-      {
-        name: 'items',
-        internalType: 'struct GachaTreasury.NFTItem[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'collection', internalType: 'address', type: 'address' },
-          { name: 'depositor', internalType: 'address', type: 'address' },
-          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'rarity',
-            internalType: 'enum GachaTreasury.Rarity',
-            type: 'uint8',
-          },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
           { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
@@ -5356,11 +5628,7 @@ export const gachaTreasuryAbi = [
           { name: 'depositor', internalType: 'address', type: 'address' },
           { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
           { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'rarity',
-            internalType: 'enum GachaTreasury.Rarity',
-            type: 'uint8',
-          },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
           { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
@@ -5388,11 +5656,7 @@ export const gachaTreasuryAbi = [
           { name: 'depositor', internalType: 'address', type: 'address' },
           { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
           { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'rarity',
-            internalType: 'enum GachaTreasury.Rarity',
-            type: 'uint8',
-          },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
           { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
@@ -5419,18 +5683,6 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserLifetimeStats',
-    outputs: [
-      { name: 'deposited', internalType: 'uint256', type: 'uint256' },
-      { name: 'withdrawn', internalType: 'uint256', type: 'uint256' },
-      { name: 'claimed', internalType: 'uint256', type: 'uint256' },
-      { name: 'netContribution', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
     name: 'getUserLifetimeWithdrawn',
     outputs: [{ name: 'withdrawn', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -5440,7 +5692,7 @@ export const gachaTreasuryAbi = [
     inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
     name: 'getUserProfileBatch',
     outputs: [
-      { name: 'depositCounts', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'depositCounts', internalType: 'uint256[]', type: 'uint256[]' },
       { name: 'totalDeposits', internalType: 'uint256', type: 'uint256' },
       { name: 'lifetimeClaimed', internalType: 'uint256', type: 'uint256' },
       { name: 'lifetimeDeposited', internalType: 'uint256', type: 'uint256' },
@@ -5504,8 +5756,10 @@ export const gachaTreasuryAbi = [
       { name: '_owner', internalType: 'address', type: 'address' },
       { name: '_gachaContract', internalType: 'address', type: 'address' },
       { name: '_appraisalContract', internalType: 'address', type: 'address' },
-      { name: 'minPrices', internalType: 'uint256[5]', type: 'uint256[5]' },
-      { name: 'maxPrices', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: '_numRarities', internalType: 'uint8', type: 'uint8' },
+      { name: '_rarityNames', internalType: 'string[]', type: 'string[]' },
+      { name: 'minPrices', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'maxPrices', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     name: 'initialize',
     outputs: [],
@@ -5537,6 +5791,13 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'maxDepositsPerCard',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
@@ -5552,9 +5813,7 @@ export const gachaTreasuryAbi = [
       { name: '', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'nftCurrentRarity',
-    outputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
-    ],
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     stateMutability: 'view',
   },
   {
@@ -5573,8 +5832,25 @@ export const gachaTreasuryAbi = [
       { name: '', internalType: 'address', type: 'address' },
       { name: '', internalType: 'uint256', type: 'uint256' },
     ],
+    name: 'nftRedemptionDeadlines',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
     name: 'nftToTreasuryIndex',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'numRarities',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     stateMutability: 'view',
   },
   {
@@ -5646,11 +5922,16 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
-    ],
+    inputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     name: 'rarityCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'rarityNames',
+    outputs: [{ name: '', internalType: 'string', type: 'string' }],
     stateMutability: 'view',
   },
   {
@@ -5680,11 +5961,7 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
       { name: 'randomSeed', internalType: 'uint256', type: 'uint256' },
       { name: 'winner', internalType: 'address', type: 'address' },
     ],
@@ -5699,11 +5976,7 @@ export const gachaTreasuryAbi = [
           { name: 'depositor', internalType: 'address', type: 'address' },
           { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
           { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'rarity',
-            internalType: 'enum GachaTreasury.Rarity',
-            type: 'uint8',
-          },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
           { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
           { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
         ],
@@ -5741,6 +6014,15 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [
+      { name: '_maxDepositsPerCard', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'setMaxDepositsPerCard',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: '_protocolTreasury', internalType: 'address', type: 'address' },
     ],
     name: 'setProtocolTreasury',
@@ -5749,9 +6031,7 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
-    ],
+    inputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     name: 'totalRarityValue',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -5766,7 +6046,7 @@ export const gachaTreasuryAbi = [
   {
     type: 'function',
     inputs: [
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+      { name: '', internalType: 'uint8', type: 'uint8' },
       { name: '', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'treasury',
@@ -5775,11 +6055,7 @@ export const gachaTreasuryAbi = [
       { name: 'depositor', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
       { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
       { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
       { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
     ],
@@ -5809,7 +6085,7 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+      { name: '', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'userDepositCounts',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -5819,7 +6095,7 @@ export const gachaTreasuryAbi = [
     type: 'function',
     inputs: [
       { name: '', internalType: 'address', type: 'address' },
-      { name: '', internalType: 'enum GachaTreasury.Rarity', type: 'uint8' },
+      { name: '', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'userDepositValues',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -5919,12 +6195,7 @@ export const gachaTreasuryAbi = [
         type: 'uint256',
         indexed: false,
       },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-        indexed: false,
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8', indexed: false },
       { name: 'to', internalType: 'address', type: 'address', indexed: false },
     ],
     name: 'BatchWithdrawn',
@@ -6028,12 +6299,7 @@ export const gachaTreasuryAbi = [
         type: 'address',
         indexed: true,
       },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-        indexed: false,
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8', indexed: false },
       {
         name: 'appraisedPrice',
         internalType: 'uint256',
@@ -6059,12 +6325,7 @@ export const gachaTreasuryAbi = [
         type: 'uint256',
         indexed: true,
       },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-        indexed: false,
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8', indexed: false },
       { name: 'to', internalType: 'address', type: 'address', indexed: true },
     ],
     name: 'NFTWithdrawn',
@@ -6138,13 +6399,13 @@ export const gachaTreasuryAbi = [
       },
       {
         name: 'oldRarity',
-        internalType: 'enum GachaTreasury.Rarity',
+        internalType: 'uint8',
         type: 'uint8',
         indexed: false,
       },
       {
         name: 'newRarity',
-        internalType: 'enum GachaTreasury.Rarity',
+        internalType: 'uint8',
         type: 'uint8',
         indexed: false,
       },
@@ -6179,12 +6440,7 @@ export const gachaTreasuryAbi = [
         type: 'address',
         indexed: true,
       },
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-        indexed: false,
-      },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8', indexed: false },
       {
         name: 'appraisedPrice',
         internalType: 'uint256',
@@ -6265,21 +6521,17 @@ export const gachaTreasuryAbi = [
   { type: 'error', inputs: [], name: 'InvalidInitialization' },
   { type: 'error', inputs: [], name: 'InvalidLimit' },
   { type: 'error', inputs: [], name: 'InvalidNFTContract' },
+  { type: 'error', inputs: [], name: 'InvalidNumRarities' },
   { type: 'error', inputs: [], name: 'InvalidPriceRange' },
   { type: 'error', inputs: [], name: 'InvalidProtocolTreasury' },
   { type: 'error', inputs: [], name: 'InvalidRecipient' },
+  { type: 'error', inputs: [], name: 'MaxCardDepositsReached' },
   { type: 'error', inputs: [], name: 'NFTAlreadyDeposited' },
   { type: 'error', inputs: [], name: 'NFTNotAppraised' },
   { type: 'error', inputs: [], name: 'NFTNotDeposited' },
   {
     type: 'error',
-    inputs: [
-      {
-        name: 'rarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
-    ],
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
     name: 'NoNFTsAvailable',
   },
   { type: 'error', inputs: [], name: 'NotInitializing' },
@@ -8369,7 +8621,7 @@ export const iGachaAbi = [
     type: 'function',
     inputs: [],
     name: 'getCurrentRarityWeights',
-    outputs: [{ name: '', internalType: 'uint256[5]', type: 'uint256[5]' }],
+    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
@@ -8390,13 +8642,13 @@ export const iGachaAbi = [
     type: 'function',
     inputs: [],
     name: 'getTargetRarityBps',
-    outputs: [{ name: '', internalType: 'uint256[5]', type: 'uint256[5]' }],
+    outputs: [{ name: '', internalType: 'uint256[]', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     inputs: [
-      { name: 'targetBps', internalType: 'uint256[5]', type: 'uint256[5]' },
+      { name: 'targetBps', internalType: 'uint256[]', type: 'uint256[]' },
     ],
     name: 'setDynamicWeightsConfig',
     outputs: [],
@@ -8467,11 +8719,7 @@ export const iGachaEconomyManagerAbi = [
     type: 'function',
     inputs: [
       { name: 'usdcAmount', internalType: 'uint256', type: 'uint256' },
-      {
-        name: 'hitRarity',
-        internalType: 'enum GachaTreasury.Rarity',
-        type: 'uint8',
-      },
+      { name: 'hitRarity', internalType: 'uint8', type: 'uint8' },
     ],
     name: 'onSpinRevenue',
     outputs: [],
@@ -8886,6 +9134,20 @@ export const iProtocolTreasuryAbi = [
       },
     ],
     name: 'RedemptionExecuted',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IRedemptionWindow
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const iRedemptionWindowAbi = [
+  {
+    type: 'function',
+    inputs: [],
+    name: 'redemptionWindow',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
 ] as const
 
@@ -10023,7 +10285,6 @@ export const nftAppraisalAbi = [
     inputs: [{ name: 'target', internalType: 'address', type: 'address' }],
     name: 'AddressEmptyCode',
   },
-  { type: 'error', inputs: [], name: 'AppraisalAlreadyExists' },
   { type: 'error', inputs: [], name: 'AppraisalNotFound' },
   { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
   { type: 'error', inputs: [], name: 'CardIdMismatch' },
@@ -11524,317 +11785,6 @@ export const stringsAbi = [
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// TestUSDC
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-export const testUsdcAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      { name: 'initialOwner', internalType: 'address', type: 'address' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'DOMAIN_SEPARATOR',
-    outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'spender', internalType: 'address', type: 'address' },
-    ],
-    name: 'allowance',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'approve',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
-    stateMutability: 'pure',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'eip712Domain',
-    outputs: [
-      { name: 'fields', internalType: 'bytes1', type: 'bytes1' },
-      { name: 'name', internalType: 'string', type: 'string' },
-      { name: 'version', internalType: 'string', type: 'string' },
-      { name: 'chainId', internalType: 'uint256', type: 'uint256' },
-      { name: 'verifyingContract', internalType: 'address', type: 'address' },
-      { name: 'salt', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'extensions', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'amount', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'mint',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'name',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'nonces',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'owner', internalType: 'address', type: 'address' },
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-      { name: 'deadline', internalType: 'uint256', type: 'uint256' },
-      { name: 'v', internalType: 'uint8', type: 'uint8' },
-      { name: 'r', internalType: 'bytes32', type: 'bytes32' },
-      { name: 's', internalType: 'bytes32', type: 'bytes32' },
-    ],
-    name: 'permit',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'symbol',
-    outputs: [{ name: '', internalType: 'string', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'totalSupply',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transfer',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address' },
-      { name: 'to', internalType: 'address', type: 'address' },
-      { name: 'value', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'transferFrom',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
-    name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'owner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'spender',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Approval',
-  },
-  { type: 'event', anonymous: false, inputs: [], name: 'EIP712DomainChanged' },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'previousOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-      {
-        name: 'newOwner',
-        internalType: 'address',
-        type: 'address',
-        indexed: true,
-      },
-    ],
-    name: 'OwnershipTransferred',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      { name: 'from', internalType: 'address', type: 'address', indexed: true },
-      { name: 'to', internalType: 'address', type: 'address', indexed: true },
-      {
-        name: 'value',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
-    ],
-    name: 'Transfer',
-  },
-  { type: 'error', inputs: [], name: 'ECDSAInvalidSignature' },
-  {
-    type: 'error',
-    inputs: [{ name: 'length', internalType: 'uint256', type: 'uint256' }],
-    name: 'ECDSAInvalidSignatureLength',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 's', internalType: 'bytes32', type: 'bytes32' }],
-    name: 'ECDSAInvalidSignatureS',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'spender', internalType: 'address', type: 'address' },
-      { name: 'allowance', internalType: 'uint256', type: 'uint256' },
-      { name: 'needed', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC20InsufficientAllowance',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'sender', internalType: 'address', type: 'address' },
-      { name: 'balance', internalType: 'uint256', type: 'uint256' },
-      { name: 'needed', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'ERC20InsufficientBalance',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'approver', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidApprover',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'receiver', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidReceiver',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'sender', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidSender',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'spender', internalType: 'address', type: 'address' }],
-    name: 'ERC20InvalidSpender',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'deadline', internalType: 'uint256', type: 'uint256' }],
-    name: 'ERC2612ExpiredSignature',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'signer', internalType: 'address', type: 'address' },
-      { name: 'owner', internalType: 'address', type: 'address' },
-    ],
-    name: 'ERC2612InvalidSigner',
-  },
-  {
-    type: 'error',
-    inputs: [
-      { name: 'account', internalType: 'address', type: 'address' },
-      { name: 'currentNonce', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'InvalidAccountNonce',
-  },
-  { type: 'error', inputs: [], name: 'InvalidShortString' },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
-    name: 'StringTooLong',
-  },
-] as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // UUPSUpgradeable
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -12586,6 +12536,15 @@ export const useReadCardGroupedVaultGetDepositorCards =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultAbi}__ and `functionName` set to `"numRarities"`
+ */
+export const useReadCardGroupedVaultNumRarities =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultAbi,
+    functionName: 'numRarities',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultAbi}__ and `functionName` set to `"owner"`
  */
 export const useReadCardGroupedVaultOwner = /*#__PURE__*/ createUseReadContract(
@@ -13097,6 +13056,804 @@ export const useWatchCardGroupedVaultYieldDistributed =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__
+ */
+export const useReadCardGroupedVaultFuzzContract =
+  /*#__PURE__*/ createUseReadContract({ abi: cardGroupedVaultFuzzAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"IS_TEST"`
+ */
+export const useReadCardGroupedVaultFuzzIsTest =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'IS_TEST',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"excludeArtifacts"`
+ */
+export const useReadCardGroupedVaultFuzzExcludeArtifacts =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'excludeArtifacts',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"excludeContracts"`
+ */
+export const useReadCardGroupedVaultFuzzExcludeContracts =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'excludeContracts',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"excludeSelectors"`
+ */
+export const useReadCardGroupedVaultFuzzExcludeSelectors =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'excludeSelectors',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"excludeSenders"`
+ */
+export const useReadCardGroupedVaultFuzzExcludeSenders =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'excludeSenders',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"failed"`
+ */
+export const useReadCardGroupedVaultFuzzFailed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'failed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"targetArtifactSelectors"`
+ */
+export const useReadCardGroupedVaultFuzzTargetArtifactSelectors =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'targetArtifactSelectors',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"targetArtifacts"`
+ */
+export const useReadCardGroupedVaultFuzzTargetArtifacts =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'targetArtifacts',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"targetContracts"`
+ */
+export const useReadCardGroupedVaultFuzzTargetContracts =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'targetContracts',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"targetInterfaces"`
+ */
+export const useReadCardGroupedVaultFuzzTargetInterfaces =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'targetInterfaces',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"targetSelectors"`
+ */
+export const useReadCardGroupedVaultFuzzTargetSelectors =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'targetSelectors',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"targetSenders"`
+ */
+export const useReadCardGroupedVaultFuzzTargetSenders =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'targetSenders',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__
+ */
+export const useWriteCardGroupedVaultFuzzContract =
+  /*#__PURE__*/ createUseWriteContract({ abi: cardGroupedVaultFuzzAbi })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"setUp"`
+ */
+export const useWriteCardGroupedVaultFuzzSetUp =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'setUp',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_AdditionalDeposit_ZeroPendingAfterDeposit"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzAdditionalDepositZeroPendingAfterDeposit =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_AdditionalDeposit_ZeroPendingAfterDeposit',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_ClaimIdempotent"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzClaimIdempotent =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_ClaimIdempotent',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_ClaimYieldForCards_Partial"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzClaimYieldForCardsPartial =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_ClaimYieldForCards_Partial',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_CorrectionAccumulator_MatchesReference"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzCorrectionAccumulatorMatchesReference =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_CorrectionAccumulator_MatchesReference',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_DepositYieldPriceChangeClaim_Integrity"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzDepositYieldPriceChangeClaimIntegrity =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_DepositYieldPriceChangeClaim_Integrity',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_DifferentPrices_ProportionalByValue"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzDifferentPricesProportionalByValue =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_DifferentPrices_ProportionalByValue',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_FullRemove_AutoClaims"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzFullRemoveAutoClaims =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_FullRemove_AutoClaims',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_GlobalInvariant_ClaimedNeverExceedsDistributed"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzGlobalInvariantClaimedNeverExceedsDistributed =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_GlobalInvariant_ClaimedNeverExceedsDistributed',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_LargePrice_NoOverflow"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzLargePriceNoOverflow =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_LargePrice_NoOverflow',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_LateJoiner_GetsNoHistoricalYield"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzLateJoinerGetsNoHistoricalYield =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_LateJoiner_GetsNoHistoricalYield',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_LifecycleTotals"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzLifecycleTotals =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_LifecycleTotals',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_MigrationAndPriceUpdate_Combined"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzMigrationAndPriceUpdateCombined =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_MigrationAndPriceUpdate_Combined',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_MixedOperations_Invariants"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzMixedOperationsInvariants =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_MixedOperations_Invariants',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_MultiCardDepositor_AggregatedPending"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzMultiCardDepositorAggregatedPending =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_MultiCardDepositor_AggregatedPending',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_MultiMigration_NoYieldDuplication"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzMultiMigrationNoYieldDuplication =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_MultiMigration_NoYieldDuplication',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PartialRemove_FutureYieldCorrect"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzPartialRemoveFutureYieldCorrect =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PartialRemove_FutureYieldCorrect',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PendingYield_AlwaysNonNegative"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzPendingYieldAlwaysNonNegative =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PendingYield_AlwaysNonNegative',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PriceDeltaSymmetry"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzPriceDeltaSymmetry =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PriceDeltaSymmetry',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PriceOscillation_NeverNegativePending"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzPriceOscillationNeverNegativePending =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PriceOscillation_NeverNegativePending',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PriceOscillation_YieldConservation"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzPriceOscillationYieldConservation =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PriceOscillation_YieldConservation',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PriceRoundTrip_CorrectionCancels"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzPriceRoundTripCorrectionCancels =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PriceRoundTrip_CorrectionCancels',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_RarityIsolation"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzRarityIsolation =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_RarityIsolation',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_RarityMigration_PreservesYield"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzRarityMigrationPreservesYield =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_RarityMigration_PreservesYield',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_RemoveAll_ZeroTotalShares"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzRemoveAllZeroTotalShares =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_RemoveAll_ZeroTotalShares',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_SmallYieldDistributions_Accumulate"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzSmallYieldDistributionsAccumulate =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_SmallYieldDistributions_Accumulate',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_TotalClaimed_NeverExceedsDistributed"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzTotalClaimedNeverExceedsDistributed =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_TotalClaimed_NeverExceedsDistributed',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_TwoDepositors_ProportionalSplit"`
+ */
+export const useWriteCardGroupedVaultFuzzTestFuzzTwoDepositorsProportionalSplit =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_TwoDepositors_ProportionalSplit',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__
+ */
+export const useSimulateCardGroupedVaultFuzzContract =
+  /*#__PURE__*/ createUseSimulateContract({ abi: cardGroupedVaultFuzzAbi })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"setUp"`
+ */
+export const useSimulateCardGroupedVaultFuzzSetUp =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'setUp',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_AdditionalDeposit_ZeroPendingAfterDeposit"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzAdditionalDepositZeroPendingAfterDeposit =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_AdditionalDeposit_ZeroPendingAfterDeposit',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_ClaimIdempotent"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzClaimIdempotent =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_ClaimIdempotent',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_ClaimYieldForCards_Partial"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzClaimYieldForCardsPartial =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_ClaimYieldForCards_Partial',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_CorrectionAccumulator_MatchesReference"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzCorrectionAccumulatorMatchesReference =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_CorrectionAccumulator_MatchesReference',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_DepositYieldPriceChangeClaim_Integrity"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzDepositYieldPriceChangeClaimIntegrity =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_DepositYieldPriceChangeClaim_Integrity',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_DifferentPrices_ProportionalByValue"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzDifferentPricesProportionalByValue =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_DifferentPrices_ProportionalByValue',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_FullRemove_AutoClaims"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzFullRemoveAutoClaims =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_FullRemove_AutoClaims',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_GlobalInvariant_ClaimedNeverExceedsDistributed"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzGlobalInvariantClaimedNeverExceedsDistributed =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_GlobalInvariant_ClaimedNeverExceedsDistributed',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_LargePrice_NoOverflow"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzLargePriceNoOverflow =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_LargePrice_NoOverflow',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_LateJoiner_GetsNoHistoricalYield"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzLateJoinerGetsNoHistoricalYield =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_LateJoiner_GetsNoHistoricalYield',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_LifecycleTotals"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzLifecycleTotals =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_LifecycleTotals',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_MigrationAndPriceUpdate_Combined"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzMigrationAndPriceUpdateCombined =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_MigrationAndPriceUpdate_Combined',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_MixedOperations_Invariants"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzMixedOperationsInvariants =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_MixedOperations_Invariants',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_MultiCardDepositor_AggregatedPending"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzMultiCardDepositorAggregatedPending =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_MultiCardDepositor_AggregatedPending',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_MultiMigration_NoYieldDuplication"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzMultiMigrationNoYieldDuplication =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_MultiMigration_NoYieldDuplication',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PartialRemove_FutureYieldCorrect"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzPartialRemoveFutureYieldCorrect =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PartialRemove_FutureYieldCorrect',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PendingYield_AlwaysNonNegative"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzPendingYieldAlwaysNonNegative =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PendingYield_AlwaysNonNegative',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PriceDeltaSymmetry"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzPriceDeltaSymmetry =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PriceDeltaSymmetry',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PriceOscillation_NeverNegativePending"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzPriceOscillationNeverNegativePending =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PriceOscillation_NeverNegativePending',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PriceOscillation_YieldConservation"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzPriceOscillationYieldConservation =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PriceOscillation_YieldConservation',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_PriceRoundTrip_CorrectionCancels"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzPriceRoundTripCorrectionCancels =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_PriceRoundTrip_CorrectionCancels',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_RarityIsolation"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzRarityIsolation =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_RarityIsolation',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_RarityMigration_PreservesYield"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzRarityMigrationPreservesYield =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_RarityMigration_PreservesYield',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_RemoveAll_ZeroTotalShares"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzRemoveAllZeroTotalShares =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_RemoveAll_ZeroTotalShares',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_SmallYieldDistributions_Accumulate"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzSmallYieldDistributionsAccumulate =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_SmallYieldDistributions_Accumulate',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_TotalClaimed_NeverExceedsDistributed"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzTotalClaimedNeverExceedsDistributed =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_TotalClaimed_NeverExceedsDistributed',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `functionName` set to `"testFuzz_TwoDepositors_ProportionalSplit"`
+ */
+export const useSimulateCardGroupedVaultFuzzTestFuzzTwoDepositorsProportionalSplit =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultFuzzAbi,
+    functionName: 'testFuzz_TwoDepositors_ProportionalSplit',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__
+ */
+export const useWatchCardGroupedVaultFuzzContract =
+  /*#__PURE__*/ createUseWatchContractEvent({ abi: cardGroupedVaultFuzzAbi })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log"`
+ */
+export const useWatchCardGroupedVaultFuzzLog =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_address"`
+ */
+export const useWatchCardGroupedVaultFuzzLogAddress =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_address',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_array"`
+ */
+export const useWatchCardGroupedVaultFuzzLogArray =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_array',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_bytes"`
+ */
+export const useWatchCardGroupedVaultFuzzLogBytes =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_bytes',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_bytes32"`
+ */
+export const useWatchCardGroupedVaultFuzzLogBytes32 =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_bytes32',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_int"`
+ */
+export const useWatchCardGroupedVaultFuzzLogInt =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_int',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_address"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedAddress =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_address',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_array"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedArray =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_array',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_bytes"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedBytes =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_bytes',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_bytes32"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedBytes32 =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_bytes32',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_decimal_int"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedDecimalInt =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_decimal_int',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_decimal_uint"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedDecimalUint =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_decimal_uint',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_int"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedInt =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_int',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_string"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedString =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_string',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_named_uint"`
+ */
+export const useWatchCardGroupedVaultFuzzLogNamedUint =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_named_uint',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_string"`
+ */
+export const useWatchCardGroupedVaultFuzzLogString =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_string',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"log_uint"`
+ */
+export const useWatchCardGroupedVaultFuzzLogUint =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'log_uint',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link cardGroupedVaultFuzzAbi}__ and `eventName` set to `"logs"`
+ */
+export const useWatchCardGroupedVaultFuzzLogs =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: cardGroupedVaultFuzzAbi,
+    eventName: 'logs',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link contextUpgradeableAbi}__
  */
 export const useWatchContextUpgradeableContract =
@@ -13109,333 +13866,6 @@ export const useWatchContextUpgradeableInitialized =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: contextUpgradeableAbi,
     eventName: 'Initialized',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deployLocalAbi}__
- */
-export const useReadDeployLocalContract = /*#__PURE__*/ createUseReadContract({
-  abi: deployLocalAbi,
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deployLocalAbi}__ and `functionName` set to `"IS_SCRIPT"`
- */
-export const useReadDeployLocalIsScript = /*#__PURE__*/ createUseReadContract({
-  abi: deployLocalAbi,
-  functionName: 'IS_SCRIPT',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link deployLocalAbi}__
- */
-export const useWriteDeployLocalContract = /*#__PURE__*/ createUseWriteContract(
-  { abi: deployLocalAbi },
-)
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link deployLocalAbi}__ and `functionName` set to `"run"`
- */
-export const useWriteDeployLocalRun = /*#__PURE__*/ createUseWriteContract({
-  abi: deployLocalAbi,
-  functionName: 'run',
-})
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link deployLocalAbi}__
- */
-export const useSimulateDeployLocalContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: deployLocalAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link deployLocalAbi}__ and `functionName` set to `"run"`
- */
-export const useSimulateDeployLocalRun =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: deployLocalAbi,
-    functionName: 'run',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__
- */
-export const useReadDeploymentHelpersContract =
-  /*#__PURE__*/ createUseReadContract({ abi: deploymentHelpersAbi })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"IS_TEST"`
- */
-export const useReadDeploymentHelpersIsTest =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'IS_TEST',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"excludeArtifacts"`
- */
-export const useReadDeploymentHelpersExcludeArtifacts =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'excludeArtifacts',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"excludeContracts"`
- */
-export const useReadDeploymentHelpersExcludeContracts =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'excludeContracts',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"excludeSelectors"`
- */
-export const useReadDeploymentHelpersExcludeSelectors =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'excludeSelectors',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"excludeSenders"`
- */
-export const useReadDeploymentHelpersExcludeSenders =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'excludeSenders',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"failed"`
- */
-export const useReadDeploymentHelpersFailed =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'failed',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"targetArtifactSelectors"`
- */
-export const useReadDeploymentHelpersTargetArtifactSelectors =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'targetArtifactSelectors',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"targetArtifacts"`
- */
-export const useReadDeploymentHelpersTargetArtifacts =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'targetArtifacts',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"targetContracts"`
- */
-export const useReadDeploymentHelpersTargetContracts =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'targetContracts',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"targetInterfaces"`
- */
-export const useReadDeploymentHelpersTargetInterfaces =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'targetInterfaces',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"targetSelectors"`
- */
-export const useReadDeploymentHelpersTargetSelectors =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'targetSelectors',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `functionName` set to `"targetSenders"`
- */
-export const useReadDeploymentHelpersTargetSenders =
-  /*#__PURE__*/ createUseReadContract({
-    abi: deploymentHelpersAbi,
-    functionName: 'targetSenders',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__
- */
-export const useWatchDeploymentHelpersContract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: deploymentHelpersAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log"`
- */
-export const useWatchDeploymentHelpersLog =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_address"`
- */
-export const useWatchDeploymentHelpersLogAddress =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_address',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_array"`
- */
-export const useWatchDeploymentHelpersLogArray =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_array',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_bytes"`
- */
-export const useWatchDeploymentHelpersLogBytes =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_bytes',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_bytes32"`
- */
-export const useWatchDeploymentHelpersLogBytes32 =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_bytes32',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_int"`
- */
-export const useWatchDeploymentHelpersLogInt =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_int',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_address"`
- */
-export const useWatchDeploymentHelpersLogNamedAddress =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_address',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_array"`
- */
-export const useWatchDeploymentHelpersLogNamedArray =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_array',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_bytes"`
- */
-export const useWatchDeploymentHelpersLogNamedBytes =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_bytes',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_bytes32"`
- */
-export const useWatchDeploymentHelpersLogNamedBytes32 =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_bytes32',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_decimal_int"`
- */
-export const useWatchDeploymentHelpersLogNamedDecimalInt =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_decimal_int',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_decimal_uint"`
- */
-export const useWatchDeploymentHelpersLogNamedDecimalUint =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_decimal_uint',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_int"`
- */
-export const useWatchDeploymentHelpersLogNamedInt =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_int',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_string"`
- */
-export const useWatchDeploymentHelpersLogNamedString =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_string',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_named_uint"`
- */
-export const useWatchDeploymentHelpersLogNamedUint =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_named_uint',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_string"`
- */
-export const useWatchDeploymentHelpersLogString =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_string',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"log_uint"`
- */
-export const useWatchDeploymentHelpersLogUint =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'log_uint',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link deploymentHelpersAbi}__ and `eventName` set to `"logs"`
- */
-export const useWatchDeploymentHelpersLogs =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: deploymentHelpersAbi,
-    eventName: 'logs',
   })
 
 /**
@@ -14508,6 +14938,14 @@ export const useReadGachaMinSpinFee = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"numRarities"`
+ */
+export const useReadGachaNumRarities = /*#__PURE__*/ createUseReadContract({
+  abi: gachaAbi,
+  functionName: 'numRarities',
+})
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"owner"`
  */
 export const useReadGachaOwner = /*#__PURE__*/ createUseReadContract({
@@ -15156,6 +15594,15 @@ export const useReadGachaEconomyManagerGacha =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"numRarities"`
+ */
+export const useReadGachaEconomyManagerNumRarities =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaEconomyManagerAbi,
+    functionName: 'numRarities',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"owner"`
  */
 export const useReadGachaEconomyManagerOwner =
@@ -15201,12 +15648,12 @@ export const useReadGachaEconomyManagerProxiableUuid =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"queuedDepositorYield"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"queuedYieldByRarity"`
  */
-export const useReadGachaEconomyManagerQueuedDepositorYield =
+export const useReadGachaEconomyManagerQueuedYieldByRarity =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaEconomyManagerAbi,
-    functionName: 'queuedDepositorYield',
+    functionName: 'queuedYieldByRarity',
   })
 
 /**
@@ -15216,6 +15663,15 @@ export const useReadGachaEconomyManagerRevenueByRarity =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaEconomyManagerAbi,
     functionName: 'revenueByRarity',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaEconomyManagerAbi}__ and `functionName` set to `"totalQueuedYield"`
+ */
+export const useReadGachaEconomyManagerTotalQueuedYield =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaEconomyManagerAbi,
+    functionName: 'totalQueuedYield',
   })
 
 /**
@@ -16165,15 +16621,6 @@ export const useReadGachaTreasuryGetAllRarityTotalValues =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getAllUserCardDeposits"`
- */
-export const useReadGachaTreasuryGetAllUserCardDeposits =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getAllUserCardDeposits',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getCardTotalDeposits"`
  */
 export const useReadGachaTreasuryGetCardTotalDeposits =
@@ -16210,6 +16657,24 @@ export const useReadGachaTreasuryGetNftReceiveTime =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getNFTRedemptionDeadline"`
+ */
+export const useReadGachaTreasuryGetNftRedemptionDeadline =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getNFTRedemptionDeadline',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getNumRarities"`
+ */
+export const useReadGachaTreasuryGetNumRarities =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getNumRarities',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getPlatformOverviewBatch"`
  */
 export const useReadGachaTreasuryGetPlatformOverviewBatch =
@@ -16243,6 +16708,24 @@ export const useReadGachaTreasuryGetRarityCount =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getRarityCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getRarityName"`
+ */
+export const useReadGachaTreasuryGetRarityName =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getRarityName',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getRarityNames"`
+ */
+export const useReadGachaTreasuryGetRarityNames =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getRarityNames',
   })
 
 /**
@@ -16354,15 +16837,6 @@ export const useReadGachaTreasuryGetUserDepositedNfTs =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserDepositedNFTsByCardId"`
- */
-export const useReadGachaTreasuryGetUserDepositedNfTsByCardId =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserDepositedNFTsByCardId',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserDepositedNFTsByCardIdPaginated"`
  */
 export const useReadGachaTreasuryGetUserDepositedNfTsByCardIdPaginated =
@@ -16396,15 +16870,6 @@ export const useReadGachaTreasuryGetUserLifetimeDeposited =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getUserLifetimeDeposited',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeStats"`
- */
-export const useReadGachaTreasuryGetUserLifetimeStats =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserLifetimeStats',
   })
 
 /**
@@ -16498,6 +16963,15 @@ export const useReadGachaTreasuryIsNftDeposited =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"maxDepositsPerCard"`
+ */
+export const useReadGachaTreasuryMaxDepositsPerCard =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'maxDepositsPerCard',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftCurrentRarity"`
  */
 export const useReadGachaTreasuryNftCurrentRarity =
@@ -16516,12 +16990,30 @@ export const useReadGachaTreasuryNftReceiveTimes =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftRedemptionDeadlines"`
+ */
+export const useReadGachaTreasuryNftRedemptionDeadlines =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'nftRedemptionDeadlines',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftToTreasuryIndex"`
  */
 export const useReadGachaTreasuryNftToTreasuryIndex =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'nftToTreasuryIndex',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"numRarities"`
+ */
+export const useReadGachaTreasuryNumRarities =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'numRarities',
   })
 
 /**
@@ -16592,6 +17084,15 @@ export const useReadGachaTreasuryRarityCount =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'rarityCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"rarityNames"`
+ */
+export const useReadGachaTreasuryRarityNames =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'rarityNames',
   })
 
 /**
@@ -16713,6 +17214,15 @@ export const useWriteGachaTreasuryBatchDepositNft =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaTreasuryAbi,
     functionName: 'batchDepositNFT',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"batchMigrateNFTRarity"`
+ */
+export const useWriteGachaTreasuryBatchMigrateNftRarity =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'batchMigrateNFTRarity',
   })
 
 /**
@@ -16842,6 +17352,15 @@ export const useWriteGachaTreasurySetGachaContract =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setMaxDepositsPerCard"`
+ */
+export const useWriteGachaTreasurySetMaxDepositsPerCard =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setMaxDepositsPerCard',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setProtocolTreasury"`
  */
 export const useWriteGachaTreasurySetProtocolTreasury =
@@ -16899,6 +17418,15 @@ export const useSimulateGachaTreasuryBatchDepositNft =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'batchDepositNFT',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"batchMigrateNFTRarity"`
+ */
+export const useSimulateGachaTreasuryBatchMigrateNftRarity =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'batchMigrateNFTRarity',
   })
 
 /**
@@ -17025,6 +17553,15 @@ export const useSimulateGachaTreasurySetGachaContract =
   /*#__PURE__*/ createUseSimulateContract({
     abi: gachaTreasuryAbi,
     functionName: 'setGachaContract',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setMaxDepositsPerCard"`
+ */
+export const useSimulateGachaTreasurySetMaxDepositsPerCard =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setMaxDepositsPerCard',
   })
 
 /**
@@ -19727,6 +20264,21 @@ export const useWatchIProtocolTreasuryRedemptionExecuted =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iRedemptionWindowAbi}__
+ */
+export const useReadIRedemptionWindowContract =
+  /*#__PURE__*/ createUseReadContract({ abi: iRedemptionWindowAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iRedemptionWindowAbi}__ and `functionName` set to `"redemptionWindow"`
+ */
+export const useReadIRedemptionWindowRedemptionWindow =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iRedemptionWindowAbi,
+    functionName: 'redemptionWindow',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link iWavsServiceHandlerAbi}__
  */
 export const useReadIWavsServiceHandlerContract =
@@ -21780,270 +22332,6 @@ export const useWatchProtocolTreasuryUpgraded =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: protocolTreasuryAbi,
     eventName: 'Upgraded',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__
- */
-export const useReadTestUsdcContract = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"DOMAIN_SEPARATOR"`
- */
-export const useReadTestUsdcDomainSeparator =
-  /*#__PURE__*/ createUseReadContract({
-    abi: testUsdcAbi,
-    functionName: 'DOMAIN_SEPARATOR',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"allowance"`
- */
-export const useReadTestUsdcAllowance = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'allowance',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"balanceOf"`
- */
-export const useReadTestUsdcBalanceOf = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'balanceOf',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"decimals"`
- */
-export const useReadTestUsdcDecimals = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'decimals',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"eip712Domain"`
- */
-export const useReadTestUsdcEip712Domain = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'eip712Domain',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"name"`
- */
-export const useReadTestUsdcName = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'name',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"nonces"`
- */
-export const useReadTestUsdcNonces = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'nonces',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"owner"`
- */
-export const useReadTestUsdcOwner = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'owner',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"symbol"`
- */
-export const useReadTestUsdcSymbol = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'symbol',
-})
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"totalSupply"`
- */
-export const useReadTestUsdcTotalSupply = /*#__PURE__*/ createUseReadContract({
-  abi: testUsdcAbi,
-  functionName: 'totalSupply',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testUsdcAbi}__
- */
-export const useWriteTestUsdcContract = /*#__PURE__*/ createUseWriteContract({
-  abi: testUsdcAbi,
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"approve"`
- */
-export const useWriteTestUsdcApprove = /*#__PURE__*/ createUseWriteContract({
-  abi: testUsdcAbi,
-  functionName: 'approve',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"mint"`
- */
-export const useWriteTestUsdcMint = /*#__PURE__*/ createUseWriteContract({
-  abi: testUsdcAbi,
-  functionName: 'mint',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"permit"`
- */
-export const useWriteTestUsdcPermit = /*#__PURE__*/ createUseWriteContract({
-  abi: testUsdcAbi,
-  functionName: 'permit',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useWriteTestUsdcRenounceOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: testUsdcAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"transfer"`
- */
-export const useWriteTestUsdcTransfer = /*#__PURE__*/ createUseWriteContract({
-  abi: testUsdcAbi,
-  functionName: 'transfer',
-})
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"transferFrom"`
- */
-export const useWriteTestUsdcTransferFrom =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: testUsdcAbi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useWriteTestUsdcTransferOwnership =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: testUsdcAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testUsdcAbi}__
- */
-export const useSimulateTestUsdcContract =
-  /*#__PURE__*/ createUseSimulateContract({ abi: testUsdcAbi })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"approve"`
- */
-export const useSimulateTestUsdcApprove =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testUsdcAbi,
-    functionName: 'approve',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"mint"`
- */
-export const useSimulateTestUsdcMint = /*#__PURE__*/ createUseSimulateContract({
-  abi: testUsdcAbi,
-  functionName: 'mint',
-})
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"permit"`
- */
-export const useSimulateTestUsdcPermit =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testUsdcAbi,
-    functionName: 'permit',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"renounceOwnership"`
- */
-export const useSimulateTestUsdcRenounceOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testUsdcAbi,
-    functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"transfer"`
- */
-export const useSimulateTestUsdcTransfer =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testUsdcAbi,
-    functionName: 'transfer',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"transferFrom"`
- */
-export const useSimulateTestUsdcTransferFrom =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testUsdcAbi,
-    functionName: 'transferFrom',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link testUsdcAbi}__ and `functionName` set to `"transferOwnership"`
- */
-export const useSimulateTestUsdcTransferOwnership =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: testUsdcAbi,
-    functionName: 'transferOwnership',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testUsdcAbi}__
- */
-export const useWatchTestUsdcContract =
-  /*#__PURE__*/ createUseWatchContractEvent({ abi: testUsdcAbi })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testUsdcAbi}__ and `eventName` set to `"Approval"`
- */
-export const useWatchTestUsdcApproval =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: testUsdcAbi,
-    eventName: 'Approval',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testUsdcAbi}__ and `eventName` set to `"EIP712DomainChanged"`
- */
-export const useWatchTestUsdcEip712DomainChanged =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: testUsdcAbi,
-    eventName: 'EIP712DomainChanged',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testUsdcAbi}__ and `eventName` set to `"OwnershipTransferred"`
- */
-export const useWatchTestUsdcOwnershipTransferred =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: testUsdcAbi,
-    eventName: 'OwnershipTransferred',
-  })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link testUsdcAbi}__ and `eventName` set to `"Transfer"`
- */
-export const useWatchTestUsdcTransfer =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: testUsdcAbi,
-    eventName: 'Transfer',
   })
 
 /**

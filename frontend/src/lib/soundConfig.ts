@@ -3,8 +3,6 @@
  * No external dependencies - all sounds are synthesized at runtime (~3KB).
  */
 
-import { Rarity } from "./rarityConfig";
-
 /** Master volume for all sounds (0-1). Keep subtle. */
 const MASTER_VOLUME = 0.15;
 
@@ -88,32 +86,37 @@ export function playTraitDing(ctx: AudioContext, stepIndex: number): void {
 
 /**
  * Rarity-scaled reveal sound.
- * Common = single tone, Legendary = 5-note fanfare.
+ * Lowest rarity = single tone, highest = 5-note fanfare.
+ * @param rarityIndex - Numeric rarity index (0 = lowest)
+ * @param numRarities - Total number of rarity tiers
  */
-export function playRarityReveal(ctx: AudioContext, rarity: Rarity): void {
+export function playRarityReveal(
+	ctx: AudioContext,
+	rarityIndex: number,
+	numRarities = 5,
+): void {
 	const now = ctx.currentTime;
+	const maxIndex = Math.max(numRarities - 1, 1);
+	const normalized = rarityIndex / maxIndex; // 0.0 to 1.0
 
-	// Note count and volume scale with rarity
-	const noteCounts: Record<Rarity, number> = {
-		[Rarity.Common]: 1,
-		[Rarity.Uncommon]: 2,
-		[Rarity.Rare]: 3,
-		[Rarity.Epic]: 4,
-		[Rarity.Legendary]: 5,
-	};
-	const noteCount = noteCounts[rarity];
-	const volume = 0.4 + rarity * 0.12;
+	// Note count scales: 1 for lowest, up to 5 for highest
+	const noteCount = Math.min(rarityIndex + 1, 5);
+	// Volume scales from 0.4 to 0.9
+	const volume = 0.4 + normalized * 0.5;
 
 	// Ascending major pentatonic scale from E5
 	const intervals = [0, 2, 4, 7, 9]; // pentatonic semitones
 	const baseFreq = 659.25; // E5
+
+	// Use "sine" for top 2 tiers, "triangle" for lower
+	const isHighTier = rarityIndex >= numRarities - 2;
 
 	for (let i = 0; i < noteCount; i++) {
 		const offset = i * 0.1;
 		const freq = baseFreq * 2 ** (intervals[i] / 12);
 
 		const osc = ctx.createOscillator();
-		osc.type = rarity >= Rarity.Epic ? "sine" : "triangle";
+		osc.type = isHighTier ? "sine" : "triangle";
 		osc.frequency.setValueAtTime(freq, now + offset);
 
 		const gain = masterGain(ctx, volume);
@@ -129,8 +132,8 @@ export function playRarityReveal(ctx: AudioContext, rarity: Rarity): void {
 		osc.stop(now + offset + 0.15);
 	}
 
-	// Legendary shimmer: add a subtle high-frequency sparkle
-	if (rarity >= Rarity.Legendary) {
+	// Top-tier shimmer: add a subtle high-frequency sparkle
+	if (rarityIndex >= numRarities - 1) {
 		const shimmerOsc = ctx.createOscillator();
 		shimmerOsc.type = "sine";
 		shimmerOsc.frequency.setValueAtTime(2637, now + 0.3); // E7
@@ -150,11 +153,20 @@ export function playRarityReveal(ctx: AudioContext, rarity: Rarity): void {
 /**
  * Card reveal: low sweep (100Hz->400Hz) + percussive hit.
  * Rarity scales duration and intensity.
+ * @param rarityIndex - Numeric rarity index (0 = lowest)
+ * @param numRarities - Total number of rarity tiers
  */
-export function playCardReveal(ctx: AudioContext, rarity: Rarity): void {
+export function playCardReveal(
+	ctx: AudioContext,
+	rarityIndex: number,
+	numRarities = 5,
+): void {
 	const now = ctx.currentTime;
-	const duration = 0.3 + rarity * 0.1; // 0.3s to 0.7s
-	const volume = 0.5 + rarity * 0.1;
+	const maxIndex = Math.max(numRarities - 1, 1);
+	const normalized = rarityIndex / maxIndex; // 0.0 to 1.0
+
+	const duration = 0.3 + normalized * 0.4; // 0.3s to 0.7s
+	const volume = 0.5 + normalized * 0.4; // 0.5 to 0.9
 
 	// Low sweep
 	const sweep = ctx.createOscillator();

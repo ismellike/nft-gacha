@@ -14,14 +14,13 @@ import { useReadNftAppraisalGetAppraisal } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useNFTInteraction } from "../../hooks/useNFTInteraction";
-import type { Rarity } from "../../lib/rarityConfig";
 import { Button } from "../../ui";
 import { NFTCard } from "../nft/NFTCard";
 
 interface DepositableNFTCardProps {
 	collection: string;
 	tokenId: string;
-	rarity?: Rarity;
+	rarity?: number;
 	imageUrl?: string;
 	onAction: (
 		collection: string,

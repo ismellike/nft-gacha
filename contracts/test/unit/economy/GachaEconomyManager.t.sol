@@ -45,7 +45,8 @@ contract GachaEconomyManagerTest is StandardTest {
             economyOwner,
             address(usdc),
             address(this),
-            address(this)
+            address(this),
+            uint8(5)
         );
         ERC1967Proxy vaultProxy = new ERC1967Proxy(address(vaultImpl), vaultInit);
         vault = CardGroupedVault(address(vaultProxy));
@@ -74,7 +75,8 @@ contract GachaEconomyManagerTest is StandardTest {
             address(usdc),
             localGacha,
             address(vault),
-            address(protTreasury)
+            address(protTreasury),
+            uint8(5)
         );
         ERC1967Proxy economyProxy = new ERC1967Proxy(address(economyImpl), economyInit);
         economy = GachaEconomyManager(address(economyProxy));
@@ -100,7 +102,7 @@ contract GachaEconomyManagerTest is StandardTest {
         vm.startPrank(localGacha);
 
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 0);
 
         vm.stopPrank();
 
@@ -116,20 +118,20 @@ contract GachaEconomyManagerTest is StandardTest {
     function testOnSpinRevenueFailsWithZeroAmount() public {
         vm.prank(localGacha);
         vm.expectRevert(GachaEconomyManager.ZeroRevenue.selector);
-        economy.onSpinRevenue(0, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(0, 0);
     }
 
     function testOnSpinRevenueAuthorization() public {
         vm.prank(user);
         vm.expectRevert(GachaEconomyManager.CallerNotGacha.selector);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 0);
     }
 
     function testYieldQueuedWhenNoShares() public {
         vm.startPrank(localGacha);
 
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 0);
 
         vm.stopPrank();
 
@@ -185,7 +187,7 @@ contract GachaEconomyManagerTest is StandardTest {
 
         vm.prank(localGacha);
         vm.expectRevert();
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 0);
     }
 
     function testUnpauseAllowsRevenue() public {
@@ -199,7 +201,7 @@ contract GachaEconomyManagerTest is StandardTest {
         vm.startPrank(localGacha);
 
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 0);
 
         vm.stopPrank();
 
@@ -211,17 +213,17 @@ contract GachaEconomyManagerTest is StandardTest {
 
         usdc.approve(address(economy), REVENUE_AMOUNT * 5);
 
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Uncommon);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Rare);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Epic);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Legendary);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 0);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 2);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 3);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 4);
 
         vm.stopPrank();
 
         assertEq(economy.totalRevenueProcessed(), REVENUE_AMOUNT * 5);
-        assertEq(economy.revenueByRarity(GachaTreasury.Rarity.Common), REVENUE_AMOUNT);
-        assertEq(economy.revenueByRarity(GachaTreasury.Rarity.Legendary), REVENUE_AMOUNT);
+        assertEq(economy.revenueByRarity(0), REVENUE_AMOUNT);
+        assertEq(economy.revenueByRarity(4), REVENUE_AMOUNT);
     }
 
     function testRoundingFavorsProtocol() public {
@@ -230,7 +232,7 @@ contract GachaEconomyManagerTest is StandardTest {
         vm.startPrank(localGacha);
 
         usdc.approve(address(economy), oddAmount);
-        economy.onSpinRevenue(oddAmount, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(oddAmount, 0);
 
         vm.stopPrank();
 
@@ -253,7 +255,7 @@ contract GachaEconomyManagerTest is StandardTest {
         vm.startPrank(localGacha);
 
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 0);
 
         vm.stopPrank();
 

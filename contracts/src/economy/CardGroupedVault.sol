@@ -22,7 +22,7 @@ interface IGachaTreasuryYieldTracker {
  *
  * ## Data Model
  *
- *   RarityPool[5]          — 5 per-rarity accumulators
+ *   RarityPool[]              — N per-rarity accumulators (numRarities set at init)
  *     accYieldPerUSD       — cumulative yield per $1 of value (scaled by PRECISION)
  *     totalValueUSD        — sum of (count × price) for all cards in this tier
  *
@@ -72,11 +72,9 @@ contract CardGroupedVault is
     error UnauthorizedClaim();
     error NoValueInPool();
     error YieldTooSmall();
+    error InvalidNumRarities();
 
     // ─── Constants ──────────────────────────────────────────────────────
-
-    /// @notice Number of rarity tiers
-    uint256 private constant NUM_RARITIES = 5;
 
     /// @notice Precision for accumulator math (1e18)
     uint256 private constant PRECISION = 1e18;
@@ -91,6 +89,9 @@ contract CardGroupedVault is
 
     /// @notice Economy manager that distributes yield
     address public economyManager;
+
+    /// @notice Number of rarity tiers
+    uint8 public numRarities;
 
     /// @notice Aggregate USDC distributed / claimed
     uint256 public totalYieldDistributed;
@@ -120,7 +121,7 @@ contract CardGroupedVault is
         uint256 settledDebt;    // Snapshot of settled yield at time of last update
     }
 
-    RarityPool[5] public rarityPools;
+    RarityPool[] public rarityPools;
 
     mapping(bytes32 => CardNode) public cardNodes;
 
@@ -151,7 +152,7 @@ contract CardGroupedVault is
 
     // ─── Initialization ─────────────────────────────────────────────────
 
-    function initialize(address owner_, address asset_, address treasury_, address economyManager_)
+    function initialize(address owner_, address asset_, address treasury_, address economyManager_, uint8 numRarities_)
         external
         initializer
     {
@@ -159,6 +160,7 @@ contract CardGroupedVault is
         if (asset_ == address(0)) revert ZeroAddress();
         if (treasury_ == address(0)) revert ZeroAddress();
         if (economyManager_ == address(0)) revert ZeroAddress();
+        if (numRarities_ < 2 || numRarities_ > 10) revert InvalidNumRarities();
 
         __Ownable_init(owner_);
         __Pausable_init();
@@ -166,6 +168,12 @@ contract CardGroupedVault is
         asset = IERC20(asset_);
         treasury = treasury_;
         economyManager = economyManager_;
+        numRarities = numRarities_;
+
+        // Initialize rarity pools
+        for (uint8 i = 0; i < numRarities_; i++) {
+            rarityPools.push(RarityPool({accYieldPerUSD: 0, totalValueUSD: 0}));
+        }
     }
 
     // ─── Card-level operations ──────────────────────────────────────────
@@ -181,7 +189,7 @@ contract CardGroupedVault is
         if (depositor == address(0)) revert ZeroAddress();
         if (priceUSD == 0) revert ZeroPrice();
         if (count == 0) revert ZeroAmount();
-        if (rarity >= NUM_RARITIES) revert InvalidRarity();
+        if (rarity >= numRarities) revert InvalidRarity();
 
         CardNode storage card = cardNodes[cardId];
         DepositorPosition storage pos = positions[cardId][depositor];
@@ -306,7 +314,7 @@ contract CardGroupedVault is
         whenNotPaused
     {
         if (newPriceUSD == 0) revert ZeroPrice();
-        if (newRarity >= NUM_RARITIES) revert InvalidRarity();
+        if (newRarity >= numRarities) revert InvalidRarity();
 
         CardNode storage card = cardNodes[cardId];
         if (card.totalCount == 0 && card.cardPriceUSD == 0) revert CardNotRegistered();
@@ -359,7 +367,7 @@ contract CardGroupedVault is
         nonReentrant
     {
         if (amount == 0) revert ZeroAmount();
-        if (rarity >= NUM_RARITIES) revert InvalidRarity();
+        if (rarity >= numRarities) revert InvalidRarity();
 
         RarityPool storage pool = rarityPools[rarity];
         if (pool.totalValueUSD == 0) revert NoValueInPool();
@@ -436,7 +444,7 @@ contract CardGroupedVault is
 
     /// @inheritdoc ICardGroupedVault
     function totalShares() external view override returns (uint256 total) {
-        for (uint256 r; r < NUM_RARITIES; ++r) {
+        for (uint256 r; r < numRarities; ++r) {
             total += rarityPools[r].totalValueUSD;
         }
     }
@@ -452,7 +460,7 @@ contract CardGroupedVault is
 
     /**
      * @notice Returns the total value in a specific rarity pool
-     * @param rarity Rarity tier (0-4)
+     * @param rarity Rarity tier index
      */
     function rarityTotalValue(uint8 rarity) external view returns (uint256) {
         return rarityPools[rarity].totalValueUSD;
@@ -533,10 +541,6 @@ contract CardGroupedVault is
 
     /**
      * @dev Returns the "unclaimed" portion that was already accrued into debt snapshots.
-     *      After _accruePosition, the user's pending is zero; unclaimed is in the debt diff.
-     *      We store it as: the amount that would be claimed = _pendingForCard (which is 0 after reset)
-     *      Actually, after accrual + reset, unclaimed is captured by the fact that we DON'T reset.
-     *      We use a different approach: _accrueAll sums pending before resetting.
      */
     function _unclaimedOf(bytes32 cardId, address depositor) internal view returns (uint256) {
         return _pendingForCard(cardId, depositor);
@@ -544,8 +548,6 @@ contract CardGroupedVault is
 
     /**
      * @dev Accrues pending yield for a position (no-op, just for API consistency).
-     *      Since our formula is fully computed from current state, "accrual" just means
-     *      we'll reset debts after reading the pending amount.
      */
     function _accruePosition(bytes32, address) internal pure {
         // No-op: pending is computed from current state. Debt reset happens separately.

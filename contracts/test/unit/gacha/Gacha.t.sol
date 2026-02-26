@@ -54,7 +54,7 @@ contract GachaTest is StandardTest {
     event SpinCompleted(
         uint256 indexed triggerId,
         address indexed requester,
-        GachaTreasury.Rarity rarity,
+        uint8 rarity,
         address collection,
         uint256 tokenId,
         uint256 appraisedPrice
@@ -62,7 +62,7 @@ contract GachaTest is StandardTest {
     event SpinRefunded(
         uint256 indexed triggerId,
         address indexed requester,
-        GachaTreasury.Rarity selectedRarity,
+        uint8 selectedRarity,
         uint256 refundAmount
     );
     event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
@@ -97,13 +97,16 @@ contract GachaTest is StandardTest {
         // Deploy treasury
         vm.startPrank(treasuryOwner);
         GachaTreasury treasuryImpl = new GachaTreasury();
-        uint256[5] memory minPrices = TestConstants.getMinPrices();
-        uint256[5] memory maxPrices = TestConstants.getMaxPrices();
+        uint256[] memory minPrices = TestConstants.getMinPrices();
+        uint256[] memory maxPrices = TestConstants.getMaxPrices();
+        string[] memory rarityNames = TestConstants.getDefaultRarityNames();
         bytes memory initData = abi.encodeWithSelector(
             GachaTreasury.initialize.selector,
             treasuryOwner,
             address(0xDEAD), // Placeholder gacha address
             address(mockAppraisal),
+            uint8(5),
+            rarityNames,
             minPrices,
             maxPrices
         );
@@ -449,7 +452,7 @@ contract GachaTest is StandardTest {
      * @dev Verifies that owner can update rarity weights
      */
     function testSetDynamicWeightsConfig() public {
-        uint256[5] memory newWeights;
+        uint256[] memory newWeights = new uint256[](5);
         newWeights[0] = 6000;
         newWeights[1] = 2500;
         newWeights[2] = 1000;
@@ -459,7 +462,7 @@ contract GachaTest is StandardTest {
         vm.prank(gachaOwner);
         gacha.setDynamicWeightsConfig(newWeights);
 
-        uint256[5] memory targetBps = gacha.getTargetRarityBps();
+        uint256[] memory targetBps = gacha.getTargetRarityBps();
         for (uint256 i = 0; i < 5; i++) {
             assertEq(targetBps[i], newWeights[i], "Weight should be updated");
         }
@@ -470,7 +473,7 @@ contract GachaTest is StandardTest {
      * @dev Verifies that invalid weight configurations are rejected
      */
     function testSetDynamicWeightsFailsWithInvalidWeights() public {
-        uint256[5] memory invalidWeights;
+        uint256[] memory invalidWeights = new uint256[](5);
         invalidWeights[0] = 6000;
         invalidWeights[1] = 2500;
         invalidWeights[2] = 1000;
@@ -599,7 +602,7 @@ contract GachaTest is StandardTest {
      * @dev Verifies that treasury distribution is calculated correctly
      */
     function testGetTreasuryDistribution() public view {
-        uint256[5] memory distribution = gacha.getTreasuryDistribution();
+        uint256[] memory distribution = gacha.getTreasuryDistribution();
 
         // Should have 5 elements (one per rarity)
         assertEq(distribution.length, 5, "Distribution should have 5 elements");

@@ -87,7 +87,7 @@ contract CardGroupedVaultFuzz is Test {
     function setUp() public {
         usdc = new BaseERC20("USDC", "USDC", address(this));
         vault = new CardGroupedVault();
-        vault.initialize(owner, address(usdc), treasury, economyManager);
+        vault.initialize(owner, address(usdc), treasury, economyManager, uint8(5));
 
         usdc.mint(economyManager, type(uint128).max);
         vm.prank(economyManager);

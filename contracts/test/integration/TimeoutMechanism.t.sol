@@ -48,19 +48,33 @@ contract TimeoutMechanism is Test {
 
         // Initialize treasury with minimal price ranges (in USD 18 decimals)
         uint256 PRICE_STEP = 1e16;
-        uint256[5] memory minPrices = [
-            uint256(0),
-            uint256(15 * 1e18) + PRICE_STEP,
-            uint256(60 * 1e18) + PRICE_STEP,
-            uint256(250 * 1e18) + PRICE_STEP,
-            uint256(1_200 * 1e18) + PRICE_STEP
-        ];
-        uint256[5] memory maxPrices = [uint256(15 * 1e18), 60 * 1e18, 250 * 1e18, 1_200 * 1e18, type(uint256).max];
+        uint256[] memory minPrices = new uint256[](5);
+        minPrices[0] = 0;
+        minPrices[1] = uint256(15 * 1e18) + PRICE_STEP;
+        minPrices[2] = uint256(60 * 1e18) + PRICE_STEP;
+        minPrices[3] = uint256(250 * 1e18) + PRICE_STEP;
+        minPrices[4] = uint256(1_200 * 1e18) + PRICE_STEP;
+
+        uint256[] memory maxPrices = new uint256[](5);
+        maxPrices[0] = uint256(15 * 1e18);
+        maxPrices[1] = 60 * 1e18;
+        maxPrices[2] = 250 * 1e18;
+        maxPrices[3] = 1_200 * 1e18;
+        maxPrices[4] = type(uint256).max;
+
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
 
         treasury.initialize(
             owner,
             address(gacha),
             address(appraisal),
+            uint8(5),
+            rarityNames,
             minPrices,
             maxPrices
         );
@@ -74,7 +88,8 @@ contract TimeoutMechanism is Test {
             address(feeToken),
             address(gacha),
             address(cardGroupedVault),
-            address(protocolTreasury)
+            address(protocolTreasury),
+            uint8(5)
         );
 
         // Initialize gacha
@@ -312,7 +327,12 @@ contract TimeoutMechanism is Test {
 
         // Set weights to 100% Common for simplicity
         vm.startPrank(owner);
-        uint256[5] memory targetWeights = [uint256(10_000), 0, 0, 0, 0];
+        uint256[] memory targetWeights = new uint256[](5);
+        targetWeights[0] = 10_000;
+        targetWeights[1] = 0;
+        targetWeights[2] = 0;
+        targetWeights[3] = 0;
+        targetWeights[4] = 0;
         gacha.setDynamicWeightsConfig(targetWeights); // 100% Common, others 0
         vm.stopPrank();
     }

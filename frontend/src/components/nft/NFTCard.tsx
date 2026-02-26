@@ -57,7 +57,7 @@ import {
 	processCourtyardImageUrl,
 } from "../../lib/courtyard-utils";
 import { processImageUrl } from "../../lib/nft-metadata";
-import { getRarityConfig, type Rarity } from "../../lib/rarityConfig";
+import { getRarityConfig } from "../../lib/rarityConfig";
 import { cn } from "../../lib/theme-config";
 import {
 	formatAddress,
@@ -79,7 +79,7 @@ export interface NFTCardData {
 	collection: string;
 	tokenId: string;
 	imageUrl?: string | undefined;
-	rarity?: Rarity | undefined;
+	rarity?: number | undefined;
 	appraisalOverride?: { hasAppraisal: boolean; priceUSD: bigint } | undefined;
 	appraisedValue?: bigint | undefined;
 	// Pre-fetched metadata to avoid re-fetching

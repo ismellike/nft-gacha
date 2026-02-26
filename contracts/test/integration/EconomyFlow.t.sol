@@ -33,25 +33,38 @@ contract EconomyFlowTest is Test, IERC721Receiver {
 
         treasury = new GachaTreasury();
         uint256 PRICE_STEP = 1e16;
-        uint256[5] memory minPrices = [
-            uint256(0),
-            uint256(100 * 1e18) + PRICE_STEP,
-            uint256(500 * 1e18) + PRICE_STEP,
-            uint256(2_000 * 1e18) + PRICE_STEP,
-            uint256(10_000 * 1e18) + PRICE_STEP
-        ];
-        uint256[5] memory maxPrices = [uint256(100 * 1e18), 500 * 1e18, 2_000 * 1e18, 10_000 * 1e18, type(uint256).max];
-        treasury.initialize(address(this), address(0xDEAD), address(appraisal), minPrices, maxPrices);
+        uint256[] memory minPrices = new uint256[](5);
+        minPrices[0] = 0;
+        minPrices[1] = uint256(15 * 1e18) + PRICE_STEP;
+        minPrices[2] = uint256(60 * 1e18) + PRICE_STEP;
+        minPrices[3] = uint256(250 * 1e18) + PRICE_STEP;
+        minPrices[4] = uint256(1_200 * 1e18) + PRICE_STEP;
+
+        uint256[] memory maxPrices = new uint256[](5);
+        maxPrices[0] = uint256(15 * 1e18);
+        maxPrices[1] = uint256(60 * 1e18);
+        maxPrices[2] = uint256(250 * 1e18);
+        maxPrices[3] = uint256(1_200 * 1e18);
+        maxPrices[4] = type(uint256).max;
+
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
+
+        treasury.initialize(address(this), address(0xDEAD), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices);
 
         cardGroupedVault = new CardGroupedVault();
-        cardGroupedVault.initialize(address(this), address(usdc), address(treasury), address(this));
+        cardGroupedVault.initialize(address(this), address(usdc), address(treasury), address(this), uint8(5));
 
         protocolTreasury = new ProtocolTreasury();
         protocolTreasury.initialize(address(this), address(usdc), address(this), address(treasury), address(appraisal));
 
         economy = new GachaEconomyManager();
         economy.initialize(
-            address(this), address(usdc), address(this), address(cardGroupedVault), address(protocolTreasury)
+            address(this), address(usdc), address(this), address(cardGroupedVault), address(protocolTreasury), uint8(5)
         );
 
         // Wire contract relationships
@@ -86,19 +99,19 @@ contract EconomyFlowTest is Test, IERC721Receiver {
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
 
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         assertEq(usdc.balanceOf(address(cardGroupedVault)), depositorShare, "Depositor vault balance mismatch");
         assertEq(usdc.balanceOf(address(protocolTreasury)), protocolShare, "Protocol treasury balance mismatch");
         assertEq(cardGroupedVault.totalYieldDistributed(), depositorShare, "Yield distributed tracking mismatch");
         assertEq(economy.totalRevenueProcessed(), REVENUE_AMOUNT, "Revenue processed mismatch");
-        assertEq(economy.revenueByRarity(GachaTreasury.Rarity.Common), REVENUE_AMOUNT, "Rarity accounting mismatch");
+        assertEq(economy.revenueByRarity(1), REVENUE_AMOUNT, "Rarity accounting mismatch");
     }
 
     function testDepositorClaimsYield() public {
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         uint256 expectedClaim = (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000;
 
@@ -118,7 +131,7 @@ contract EconomyFlowTest is Test, IERC721Receiver {
     function testBuybackRedemption() public {
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         // Deposit an NFT into treasury first
         uint256 tokenId = collection.mint(address(this));
@@ -131,7 +144,7 @@ contract EconomyFlowTest is Test, IERC721Receiver {
 
         // Simulate gacha win by sending random NFT to SPINNER (this test contract acts as gacha)
         // This sets the receive time needed for redemption
-        GachaTreasury.NFTItem memory wonItem = treasury.sendRandomNFTToWinner(GachaTreasury.Rarity.Common, 0, SPINNER);
+        GachaTreasury.NFTItem memory wonItem = treasury.sendRandomNFTToWinner(1, 0, SPINNER);
 
         // The NFT is now owned by SPINNER, so they need to approve it for redemption
         vm.startPrank(SPINNER);

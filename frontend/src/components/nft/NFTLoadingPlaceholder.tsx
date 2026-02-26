@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { Rarity } from "../../lib/rarityConfig";
 import { getRarityConfig } from "../../lib/rarityConfig";
 import { cn } from "../../lib/theme-config";
 
@@ -10,7 +9,7 @@ interface NFTLoadingPlaceholderProps {
 	animate?: boolean;
 	className?: string;
 	error?: string | null;
-	rarity?: Rarity;
+	rarity?: number;
 	showProgress?: boolean;
 	progress?: number; // 0-100
 }

@@ -46,26 +46,33 @@ contract GachaTreasuryFuzz is Test {
         treasury = GachaTreasury(payable(address(new GachaTreasury())));
 
         // Initialize treasury with price ranges
-        uint256[5] memory minPrices = [
-            COMMON_MIN,
-            UNCOMMON_MIN,
-            RARE_MIN,
-            EPIC_MIN,
-            LEGENDARY_MIN
-        ];
+        uint256[] memory minPrices = new uint256[](5);
+        minPrices[0] = COMMON_MIN;
+        minPrices[1] = UNCOMMON_MIN;
+        minPrices[2] = RARE_MIN;
+        minPrices[3] = EPIC_MIN;
+        minPrices[4] = LEGENDARY_MIN;
 
-        uint256[5] memory maxPrices = [
-            COMMON_MAX,
-            UNCOMMON_MAX,
-            RARE_MAX,
-            EPIC_MAX,
-            type(uint256).max
-        ];
+        uint256[] memory maxPrices = new uint256[](5);
+        maxPrices[0] = COMMON_MAX;
+        maxPrices[1] = UNCOMMON_MAX;
+        maxPrices[2] = RARE_MAX;
+        maxPrices[3] = EPIC_MAX;
+        maxPrices[4] = type(uint256).max;
+
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
 
         treasury.initialize(
             owner,
             address(0x999),
             address(appraisal),
+            uint8(5),
+            rarityNames,
             minPrices,
             maxPrices
         );
@@ -101,43 +108,43 @@ contract GachaTreasuryFuzz is Test {
     ) public pure {
         vm.assume(priceUSD >= COMMON_MIN && priceUSD <= 11000e18);
 
-        GachaTreasury.Rarity expectedRarity = _getRarityForPrice(priceUSD);
+        uint8 expectedRarity = _getRarityForPrice(priceUSD);
 
         if (priceUSD >= COMMON_MIN && priceUSD <= COMMON_MAX) {
-            assertEq(uint8(expectedRarity), uint8(GachaTreasury.Rarity.Common));
+            assertEq(expectedRarity, uint8(0));
         } else if (priceUSD >= UNCOMMON_MIN && priceUSD <= UNCOMMON_MAX) {
-            assertEq(uint8(expectedRarity), uint8(GachaTreasury.Rarity.Uncommon));
+            assertEq(expectedRarity, uint8(1));
         } else if (priceUSD >= RARE_MIN && priceUSD <= RARE_MAX) {
-            assertEq(uint8(expectedRarity), uint8(GachaTreasury.Rarity.Rare));
+            assertEq(expectedRarity, uint8(2));
         } else if (priceUSD >= EPIC_MIN && priceUSD <= EPIC_MAX) {
-            assertEq(uint8(expectedRarity), uint8(GachaTreasury.Rarity.Epic));
+            assertEq(expectedRarity, uint8(3));
         } else if (priceUSD >= LEGENDARY_MIN) {
-            assertEq(uint8(expectedRarity), uint8(GachaTreasury.Rarity.Legendary));
+            assertEq(expectedRarity, uint8(4));
         }
     }
 
-    function _getRarityForPrice(uint256 priceUSD) internal pure returns (GachaTreasury.Rarity) {
+    function _getRarityForPrice(uint256 priceUSD) internal pure returns (uint8) {
         if (priceUSD >= LEGENDARY_MIN) {
-            return GachaTreasury.Rarity.Legendary;
+            return 4;
         } else if (priceUSD >= EPIC_MIN) {
-            return GachaTreasury.Rarity.Epic;
+            return 3;
         } else if (priceUSD >= RARE_MIN) {
-            return GachaTreasury.Rarity.Rare;
+            return 2;
         } else if (priceUSD >= UNCOMMON_MIN) {
-            return GachaTreasury.Rarity.Uncommon;
+            return 1;
         } else {
-            return GachaTreasury.Rarity.Common;
+            return 0;
         }
     }
 
-    function _getPriceForRarity(GachaTreasury.Rarity rarity) internal pure returns (uint256) {
-        if (rarity == GachaTreasury.Rarity.Common) {
+    function _getPriceForRarity(uint8 rarity) internal pure returns (uint256) {
+        if (rarity == 0) {
             return 10e18;
-        } else if (rarity == GachaTreasury.Rarity.Uncommon) {
+        } else if (rarity == 1) {
             return 50e18;
-        } else if (rarity == GachaTreasury.Rarity.Rare) {
+        } else if (rarity == 2) {
             return 100e18;
-        } else if (rarity == GachaTreasury.Rarity.Epic) {
+        } else if (rarity == 3) {
             return 500e18;
         } else {
             return 2000e18;

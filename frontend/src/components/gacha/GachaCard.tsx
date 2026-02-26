@@ -11,11 +11,12 @@ import {
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import { useReadContract } from "wagmi";
 import {
+	gachaTreasuryAbi,
 	useReadErc20Decimals,
 	useReadErc20Symbol,
 	useReadGachaGetGachaConfigBatch,
-	useReadGachaTreasuryGetPlatformOverviewBatch,
 } from "../../generated";
 import type { GachaConfig } from "../../lib/gacha-config";
 import { getAllRarities, getRarityEmoji } from "../../lib/rarityConfig";
@@ -34,9 +35,10 @@ export function GachaCard({ gacha }: GachaCardProps) {
 	// 🚀 BATCH OPTIMIZED: Get all data in 2 calls instead of 5!
 	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
 
-	// @ts-expect-error wagmi codegen deep type instantiation
-	const platformResult = useReadGachaTreasuryGetPlatformOverviewBatch({
+	const platformResult = useReadContract({
 		address: treasuryAddress,
+		abi: gachaTreasuryAbi,
+		functionName: "getPlatformOverviewBatch",
 	});
 
 	const gachaConfigResult = useReadGachaGetGachaConfigBatch({

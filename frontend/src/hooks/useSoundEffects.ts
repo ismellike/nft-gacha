@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Rarity } from "../lib/rarityConfig";
 import {
 	playCardReveal,
 	playRarityReveal,
@@ -101,17 +100,17 @@ export function useSoundEffects() {
 	);
 
 	const handlePlayRarityReveal = useCallback(
-		(rarity: Rarity) => {
+		(rarityIndex: number) => {
 			const ctx = getCtx();
-			if (ctx) playRarityReveal(ctx, rarity);
+			if (ctx) playRarityReveal(ctx, rarityIndex);
 		},
 		[getCtx],
 	);
 
 	const handlePlayCardReveal = useCallback(
-		(rarity: Rarity) => {
+		(rarityIndex: number) => {
 			const ctx = getCtx();
-			if (ctx) playCardReveal(ctx, rarity);
+			if (ctx) playCardReveal(ctx, rarityIndex);
 		},
 		[getCtx],
 	);

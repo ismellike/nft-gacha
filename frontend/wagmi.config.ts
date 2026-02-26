@@ -28,6 +28,8 @@ export default defineConfig({
 				"console2.sol/**",
 				"Script.sol/**",
 				"**/script/**",
+				"Deploy*.sol/**",
+				"TestUSDC.sol/**",
 				"Mock*.sol/**",
 			],
 		}),

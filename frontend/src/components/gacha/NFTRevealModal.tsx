@@ -13,7 +13,7 @@ import {
 	getYear,
 	type NFTMetadata,
 } from "../../lib/metadataValidation";
-import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
+import { getRarityConfig } from "../../lib/rarityConfig";
 import {
 	getGlowConfig,
 	getPhaseTiming,
@@ -141,8 +141,7 @@ export default function NFTRevealModal({
 	const gachaTreasuryAddress = gachaConfig?.treasuryAddress || "";
 
 	// Get rarity config
-	const resultRarity =
-		Rarity[nftResult.rarity as keyof typeof Rarity] || Rarity.Common;
+	const resultRarity = Number(nftResult.rarity) || 0;
 	const rarityConfig = getRarityConfig(resultRarity);
 	const allPhaseTimings = useMemo(() => getPhaseTiming(), []);
 	const glowConfig = useMemo(() => getGlowConfig(resultRarity), [resultRarity]);

@@ -1,13 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import type { NFTMetadata } from "../../../lib/metadataValidation";
-import { getRarityConfig, Rarity } from "../../../lib/rarityConfig";
+import { getRarityConfig } from "../../../lib/rarityConfig";
 import SellToTreasury from "../../nft/SellToTreasury";
 import SharePullButton from "../SharePullButton";
 
 interface MonetaryRevealSectionProps {
 	isMetadataLoading: boolean;
 	currentPhase: string | null;
-	resultRarity: Rarity;
+	resultRarity: number;
 	rarityName: string;
 	nftCollection: string;
 	nftTokenId: string;
@@ -101,7 +101,8 @@ export function MonetaryRevealSection({
 				</div>
 
 				{/* Sparkle Effects for Value Reveal */}
-				{resultRarity >= Rarity.Rare && (
+				{/* Sparkle effects for rare+ (index 2 = Rare in the default 5-rarity system) */}
+			{resultRarity >= 2 && (
 					<motion.div
 						className="absolute inset-0 pointer-events-none -z-10"
 						initial={{ opacity: 0 }}

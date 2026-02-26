@@ -5,17 +5,18 @@ import {
 	ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import { useReadGachaTreasuryGetTreasuryItems } from "../../generated";
+import { useReadContract } from "wagmi";
+import { gachaTreasuryAbi } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { getRarityConfig, type Rarity } from "../../lib/rarityConfig";
+import { getRarityConfig } from "../../lib/rarityConfig";
 import { DialogTitle, Modal, ModalBody, ModalContent } from "../../ui";
 import { NFTCard } from "../nft";
 
 interface RarityShowcaseModalProps {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
-	rarity: Rarity | null;
+	rarity: number | null;
 }
 
 export default function RarityShowcaseModal({
@@ -28,15 +29,18 @@ export default function RarityShowcaseModal({
 	const contracts = useGachaContracts(gachaId);
 
 	// Fetch NFTs for the selected rarity
+	// Using useReadContract directly to avoid Wagmi deep instantiation type error
 	const {
 		data: nftItems,
 		isLoading,
 		error,
-	} = useReadGachaTreasuryGetTreasuryItems({
+	} = useReadContract({
 		address: contracts.treasury as `0x${string}` | undefined,
+		abi: gachaTreasuryAbi,
+		functionName: "getTreasuryItems",
 		args: rarity !== null ? [rarity] : undefined,
 		query: { enabled: rarity !== null && isOpen && !!contracts.treasury },
-	} as Parameters<typeof useReadGachaTreasuryGetTreasuryItems>[0]);
+	});
 
 	// Convert treasury items to simple format
 	const normalizedItems = Array.isArray(nftItems)

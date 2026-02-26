@@ -89,11 +89,18 @@ export function getMissingMainnetAddresses(config: GachaConfig): string[] {
 	if (isPlaceholder(config.cardGroupedVaultAddress)) missing.push("NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS");
 	if (isPlaceholder(config.buybackVaultAddress)) missing.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
 	if (isPlaceholder(config.protocolTreasuryAddress)) missing.push("NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.common)) missing.push("NEXT_PUBLIC_COMMON_TRACKER_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.uncommon)) missing.push("NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.rare)) missing.push("NEXT_PUBLIC_RARE_TRACKER_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.epic)) missing.push("NEXT_PUBLIC_EPIC_TRACKER_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.legendary)) missing.push("NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS");
+	const trackerEnvNames = [
+		"NEXT_PUBLIC_COMMON_TRACKER_ADDRESS",
+		"NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS",
+		"NEXT_PUBLIC_RARE_TRACKER_ADDRESS",
+		"NEXT_PUBLIC_EPIC_TRACKER_ADDRESS",
+		"NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS",
+	];
+	for (let i = 0; i < config.trackerAddresses.length; i++) {
+		if (isPlaceholder(config.trackerAddresses[i]) && trackerEnvNames[i]) {
+			missing.push(trackerEnvNames[i]);
+		}
+	}
 
 	return missing;
 }
@@ -117,7 +124,7 @@ export function validateMainnetConfig(
 			// Use console.error on mainnet — this is a blocking deployment issue.
 			console.error(
 				`[gacha-config/mainnet] DEPLOYMENT BLOCKED: Gacha "${id}" is missing ${missing.length} mainnet address(es).\n` +
-				`  The following env vars must be set to real mainnet contract addresses:\n` +
+				"  The following env vars must be set to real mainnet contract addresses:\n" +
 				missing.map((v) => `    ${v}`).join("\n"),
 			);
 		}

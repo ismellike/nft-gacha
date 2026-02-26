@@ -25,13 +25,7 @@ const defaultGacha =
 
 export const DEFAULT_GACHA_ID = defaultGacha?.id || FALLBACK_GACHA_ID;
 
-const emptyTrackers = {
-	common: undefined,
-	uncommon: undefined,
-	rare: undefined,
-	epic: undefined,
-	legendary: undefined,
-} as const;
+const emptyTrackers: (undefined | `0x${string}`)[] = [];
 
 const emptyContracts = {
 	gacha: undefined,
@@ -44,6 +38,7 @@ const emptyContracts = {
 	buybackVault: undefined,
 	protocolTreasury: undefined,
 	trackers: emptyTrackers,
+	rarityNames: [] as string[],
 };
 
 export function getGachaContracts(gachaId: string) {
@@ -65,5 +60,6 @@ export function getGachaContracts(gachaId: string) {
 		buybackVault: config.buybackVaultAddress,
 		protocolTreasury: config.protocolTreasuryAddress,
 		trackers: config.trackerAddresses,
+		rarityNames: config.rarityNames,
 	};
 }

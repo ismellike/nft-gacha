@@ -21,7 +21,7 @@ interface IRedemptionWindow {
  * @title GachaTreasury - Upgradeable Price-Based NFT Treasury Management
  * @notice Manages NFT storage with automatic rarity assignment based on appraised USD values
  * @dev Integrates with NFTAppraisal contract for price-based categorization with immutable price ranges
- * @dev Price ranges are set during initialization: Common $0-$15, Uncommon $25-$60, Rare $70-$250, Epic $300-$1.2k, Legendary $1.5k+
+ * @dev Number of rarities is configurable at initialization (2-10, immutable after init)
  * @dev This contract is upgradeable using UUPS proxy pattern
  * @author NFT Gacha Team
  */
@@ -54,7 +54,7 @@ contract GachaTreasury is
     error InvalidPriceRange();
     error PriceRangesAlreadySet();
     error PriceOutOfBounds(uint256 priceUSD);
-    error NoNFTsAvailable(Rarity rarity);
+    error NoNFTsAvailable(uint8 rarity);
     error NFTNotDeposited();
     error NotNFTDepositor();
     error InvalidCardGroupedVault();
@@ -64,6 +64,7 @@ contract GachaTreasury is
     error InsufficientDepositorValue();
     error InvalidLimit();
     error MaxCardDepositsReached();
+    error InvalidNumRarities();
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -71,16 +72,6 @@ contract GachaTreasury is
     uint256 public constant MAX_MIGRATION_BATCH = 50;
     /// @notice Rarity price ranges must be continuous in 1-cent steps (1e16)
     uint256 private constant PRICE_STEP = 1e16;
-
-    /// @notice NFT rarity tiers for gacha distribution
-    enum Rarity {
-        Common, // 0
-        Uncommon, // 1
-        Rare, // 2
-        Epic, // 3
-        Legendary // 4
-
-    }
 
     /// @notice Price range for a rarity tier
     struct PriceRange {
@@ -94,7 +85,7 @@ contract GachaTreasury is
         address depositor; // Original depositor address
         uint256 tokenId; // Token ID within the collection
         uint256 appraisedPrice; // USD price when deposited (scaled by 1e18)
-        Rarity rarity; // Current rarity tier based on price
+        uint8 rarity; // Current rarity tier based on price
         uint256 depositTime; // When NFT was deposited
         uint256 receiveTime; // When user received the NFT from gacha (0 if not won yet)
     }
@@ -106,10 +97,16 @@ contract GachaTreasury is
         uint256 totalCardDeposits; // Total deposits across all users for this card
     }
 
+    /// @notice Number of rarity tiers (2-10, set once during init)
+    uint8 public numRarities;
+
+    /// @notice On-chain rarity names
+    string[] public rarityNames;
+
     /// @notice Core treasury storage
-    mapping(Rarity => NFTItem[]) public treasury;
+    mapping(uint8 => NFTItem[]) public treasury;
     /// @dev NFTs organized by rarity
-    mapping(Rarity => uint256) public rarityCount;
+    mapping(uint8 => uint256) public rarityCount;
     /// @dev Count of NFTs per rarity
 
     /// @notice Contract addresses
@@ -118,8 +115,8 @@ contract GachaTreasury is
     ICardGroupedVault public cardGroupedVault;
     address public protocolTreasury;
 
-    /// @notice Price ranges for each rarity tier indexed by Rarity enum (set during initialization, not modifiable afterwards)
-    PriceRange[5] public priceRanges;
+    /// @notice Price ranges for each rarity tier (set during initialization, not modifiable afterwards)
+    PriceRange[] public priceRanges;
 
     /// @notice Track if price ranges have been set (to prevent changes after initialization)
     bool public priceRangesSet;
@@ -127,18 +124,18 @@ contract GachaTreasury is
     /// @notice Duplicate protection and indexing
     mapping(address => mapping(uint256 => bool)) public depositedNFTs;
     mapping(address => mapping(uint256 => uint256)) public nftToTreasuryIndex; // collection => tokenId => index in rarity array
-    mapping(address => mapping(uint256 => Rarity)) public nftCurrentRarity; // collection => tokenId => current rarity
+    mapping(address => mapping(uint256 => uint8)) public nftCurrentRarity; // collection => tokenId => current rarity
     mapping(address => mapping(uint256 => uint256)) public nftReceiveTimes; // collection => tokenId => when user received NFT from gacha
 
     /// @notice User deposit tracking for rewards
-    mapping(address => mapping(Rarity => uint256)) public userDepositCounts;
+    mapping(address => mapping(uint8 => uint256)) public userDepositCounts;
     mapping(address => uint256) public userTotalDeposits;
     /// @dev Slot preserved for storage layout compatibility (was userActiveDepositValueUSD)
     mapping(address => uint256) private __deprecated_userActiveDepositValueUSD;
 
     /// @notice Value-weighted dividend tracking
-    mapping(address => mapping(Rarity => uint256)) public userDepositValues; // Total USD value deposited by user per rarity
-    mapping(Rarity => uint256) public totalRarityValue; // Total USD value in each rarity pool
+    mapping(address => mapping(uint8 => uint256)) public userDepositValues; // Total USD value deposited by user per rarity
+    mapping(uint8 => uint256) public totalRarityValue; // Total USD value in each rarity pool
 
     /// @notice Lifetime user statistics tracking (industry standard)
     mapping(address => uint256) public userLifetimeClaimed; // Total value claimed by user across all time
@@ -165,16 +162,16 @@ contract GachaTreasury is
         address indexed collection,
         uint256 indexed tokenId,
         address indexed depositor,
-        Rarity rarity,
+        uint8 rarity,
         uint256 appraisedPrice
     );
-    event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, Rarity rarity, address indexed to);
+    event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, uint8 rarity, address indexed to);
     event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
     event BatchDeposited(uint256 count);
-    event BatchWithdrawn(uint256 count, Rarity rarity, address to);
+    event BatchWithdrawn(uint256 count, uint8 rarity, address to);
 
     event RarityMigrated(
-        address indexed collection, uint256 indexed tokenId, Rarity oldRarity, Rarity newRarity, uint256 newPrice
+        address indexed collection, uint256 indexed tokenId, uint8 oldRarity, uint8 newRarity, uint256 newPrice
     );
 
     event AppraisalContractUpdated(address indexed oldAppraisal, address indexed newAppraisal);
@@ -186,7 +183,7 @@ contract GachaTreasury is
         address indexed collection,
         uint256 indexed tokenId,
         address indexed seller,
-        Rarity rarity,
+        uint8 rarity,
         uint256 appraisedPrice
     );
     event YieldClaimRecorded(address indexed user, uint256 amount);
@@ -214,16 +211,19 @@ contract GachaTreasury is
      * @notice Initializes the treasury with required contracts and price ranges
      * @param _gachaContract Address of the authorized gacha contract
      * @param _appraisalContract Address of the NFT appraisal contract
-     * @param minPrices Array of minimum prices per rarity [Common, Uncommon, Rare, Epic, Legendary] (scaled by 1e18)
-     * @param maxPrices Array of maximum prices per rarity [Common, Uncommon, Rare, Epic, Legendary] (scaled by 1e18)
-     *                  Legendary max can be set to `type(uint256).max` to indicate no upper bound.
+     * @param _numRarities Number of rarity tiers (2-10)
+     * @param _rarityNames On-chain names for each rarity tier
+     * @param minPrices Array of minimum prices per rarity (scaled by 1e18)
+     * @param maxPrices Array of maximum prices per rarity (scaled by 1e18)
      */
     function initialize(
         address _owner,
         address _gachaContract,
         address _appraisalContract,
-        uint256[5] memory minPrices,
-        uint256[5] memory maxPrices
+        uint8 _numRarities,
+        string[] memory _rarityNames,
+        uint256[] memory minPrices,
+        uint256[] memory maxPrices
     ) public initializer {
         __Ownable_init(_owner);
         __Pausable_init();
@@ -232,10 +232,21 @@ contract GachaTreasury is
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         if (_appraisalContract == address(0)) revert InvalidAppraisalContract();
 
+        // Validate rarity count
+        if (_numRarities < 2 || _numRarities > 10) revert InvalidNumRarities();
+        if (_rarityNames.length != _numRarities) revert ArrayLengthMismatch();
+        if (minPrices.length != _numRarities) revert ArrayLengthMismatch();
+        if (maxPrices.length != _numRarities) revert ArrayLengthMismatch();
+
         // Check if price ranges have already been set
         if (priceRangesSet) revert PriceRangesAlreadySet();
 
-        _setInitialPriceRanges(minPrices, maxPrices);
+        numRarities = _numRarities;
+        for (uint256 i = 0; i < _rarityNames.length; i++) {
+            rarityNames.push(_rarityNames[i]);
+        }
+
+        _setInitialPriceRanges(_numRarities, minPrices, maxPrices);
 
         gachaContract = _gachaContract;
         appraisalContract = NFTAppraisal(_appraisalContract);
@@ -248,41 +259,23 @@ contract GachaTreasury is
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    function _setInitialPriceRanges(uint256[5] memory minPrices, uint256[5] memory maxPrices) private {
-        uint256 commonMin = minPrices[uint256(Rarity.Common)];
-        uint256 commonMax = maxPrices[uint256(Rarity.Common)];
-        // #3 — Common must start at $0 and have a non-zero max
-        if (commonMin != 0) revert InvalidPriceRange();
-        if (commonMax == 0) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Common)] = PriceRange({minPriceUSD: commonMin, maxPriceUSD: commonMax});
+    function _setInitialPriceRanges(uint8 n, uint256[] memory minPrices, uint256[] memory maxPrices) private {
+        // Lowest rarity must start at $0
+        if (minPrices[0] != 0) revert InvalidPriceRange();
+        // Highest rarity must be open-ended
+        if (maxPrices[n - 1] != type(uint256).max) revert InvalidPriceRange();
 
-        uint256 uncommonMin = minPrices[uint256(Rarity.Uncommon)];
-        uint256 uncommonMax = maxPrices[uint256(Rarity.Uncommon)];
-        if (uncommonMin >= uncommonMax) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Uncommon)] = PriceRange({minPriceUSD: uncommonMin, maxPriceUSD: uncommonMax});
-
-        uint256 rareMin = minPrices[uint256(Rarity.Rare)];
-        uint256 rareMax = maxPrices[uint256(Rarity.Rare)];
-        if (rareMin >= rareMax) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Rare)] = PriceRange({minPriceUSD: rareMin, maxPriceUSD: rareMax});
-
-        uint256 epicMin = minPrices[uint256(Rarity.Epic)];
-        uint256 epicMax = maxPrices[uint256(Rarity.Epic)];
-        if (epicMin >= epicMax) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Epic)] = PriceRange({minPriceUSD: epicMin, maxPriceUSD: epicMax});
-
-        uint256 legendaryMin = minPrices[uint256(Rarity.Legendary)];
-        uint256 legendaryMax = maxPrices[uint256(Rarity.Legendary)];
-        if (legendaryMax != type(uint256).max) revert InvalidPriceRange();
-        if (legendaryMin >= legendaryMax) revert InvalidPriceRange();
-        priceRanges[uint256(Rarity.Legendary)] = PriceRange({minPriceUSD: legendaryMin, maxPriceUSD: legendaryMax});
-
-        // Ensure ranges are continuous and non-overlapping so every price fits exactly one bucket
-        if (commonMax + PRICE_STEP != uncommonMin) revert InvalidPriceRange();
-        if (uncommonMax + PRICE_STEP != rareMin) revert InvalidPriceRange();
-        if (rareMax + PRICE_STEP != epicMin) revert InvalidPriceRange();
-        if (epicMax + PRICE_STEP != legendaryMin) revert InvalidPriceRange();
-
+        for (uint8 i = 0; i < n; i++) {
+            // All ranges except the last must have min < max
+            if (i < n - 1) {
+                if (minPrices[i] >= maxPrices[i]) revert InvalidPriceRange();
+            }
+            // Ranges must be contiguous
+            if (i > 0) {
+                if (maxPrices[i - 1] + PRICE_STEP != minPrices[i]) revert InvalidPriceRange();
+            }
+            priceRanges.push(PriceRange({minPriceUSD: minPrices[i], maxPriceUSD: maxPrices[i]}));
+        }
         priceRangesSet = true;
     }
 
@@ -310,7 +303,7 @@ contract GachaTreasury is
         }
 
         // Determine rarity based on price
-        Rarity rarity = getRarityByPrice(priceUSD);
+        uint8 rarity = getRarityByPrice(priceUSD);
 
         // Transfer NFT to treasury
         IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
@@ -386,10 +379,10 @@ contract GachaTreasury is
             revert NFTNotAppraised();
         }
 
-        Rarity currentRarity = nftCurrentRarity[collection][tokenId];
+        uint8 currentRarity = nftCurrentRarity[collection][tokenId];
 
         // Determine new rarity based on updated price
-        Rarity newRarity = getRarityByPrice(newPriceUSD);
+        uint8 newRarity = getRarityByPrice(newPriceUSD);
 
         // Only migrate if rarity actually changes
         if (currentRarity == newRarity) return;
@@ -454,7 +447,7 @@ contract GachaTreasury is
         if (!depositedNFTs[collection][tokenId]) revert NFTNotDeposited();
 
         // Get the NFT's current rarity and treasury index
-        Rarity rarity = nftCurrentRarity[collection][tokenId];
+        uint8 rarity = nftCurrentRarity[collection][tokenId];
         uint256 index = nftToTreasuryIndex[collection][tokenId];
 
         if (index >= treasury[rarity].length) revert InvalidIndex();
@@ -496,7 +489,7 @@ contract GachaTreasury is
         emit NFTWithdrawn(collection, tokenId, rarity, msg.sender);
     }
 
-    function getTreasuryItems(Rarity rarity) external view returns (NFTItem[] memory) {
+    function getTreasuryItems(uint8 rarity) external view returns (NFTItem[] memory) {
         return treasury[rarity];
     }
 
@@ -504,12 +497,12 @@ contract GachaTreasury is
     /// @param rarity Rarity tier
     /// @param index Index in the rarity array
     /// @return NFT item at the specified position
-    function getTreasuryItem(Rarity rarity, uint256 index) external view returns (NFTItem memory) {
+    function getTreasuryItem(uint8 rarity, uint256 index) external view returns (NFTItem memory) {
         if (index >= treasury[rarity].length) revert InvalidIndex();
         return treasury[rarity][index];
     }
 
-    function getRarityCount(Rarity rarity) external view returns (uint256) {
+    function getRarityCount(uint8 rarity) external view returns (uint256) {
         return rarityCount[rarity];
     }
 
@@ -553,7 +546,7 @@ contract GachaTreasury is
         hasMore = end < total;
     }
 
-  
+
     /// @dev Internal: add a cardId (bytes32 hash) to user's list if absent, using cardId index
     function _addUserGroupId(address user, bytes32 cardId) internal {
         if (userCardIdIndex[user][cardId] == 0) {
@@ -581,18 +574,20 @@ contract GachaTreasury is
     }
 
     /// @notice Gets all rarity counts in a single call to reduce RPC usage
-    /// @return counts Array of rarity counts [Common, Uncommon, Rare, Epic, Legendary]
-    function getAllRarityCounts() external view returns (uint256[5] memory counts) {
-        counts[0] = rarityCount[Rarity.Common];
-        counts[1] = rarityCount[Rarity.Uncommon];
-        counts[2] = rarityCount[Rarity.Rare];
-        counts[3] = rarityCount[Rarity.Epic];
-        counts[4] = rarityCount[Rarity.Legendary];
+    /// @return counts Array of rarity counts
+    function getAllRarityCounts() external view returns (uint256[] memory counts) {
+        counts = new uint256[](numRarities);
+        for (uint8 i = 0; i < numRarities; i++) {
+            counts[i] = rarityCount[i];
+        }
     }
 
     function getTotalItemsCount() external view returns (uint256) {
-        return rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + rarityCount[Rarity.Rare]
-            + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
+        uint256 total;
+        for (uint8 i = 0; i < numRarities; i++) {
+            total += rarityCount[i];
+        }
+        return total;
     }
 
     function setGachaContract(address _gachaContract) external onlyOwner {
@@ -653,7 +648,7 @@ contract GachaTreasury is
         if (address(cardGroupedVault) == address(0)) return;
         if (cardTotalDeposits[cardId] == 0) return;
 
-        Rarity newRarity = getRarityByPrice(newPriceUSD);
+        uint8 newRarity = getRarityByPrice(newPriceUSD);
 
         // Get current rarity from the canonical token for this card
         NFTAppraisal.CardAppraisal memory ca = appraisalContract.getCardAppraisal(cardId);
@@ -667,7 +662,7 @@ contract GachaTreasury is
             return;
         }
 
-        Rarity currentRarity = nftCurrentRarity[canonCollection][canonTokenId];
+        uint8 currentRarity = nftCurrentRarity[canonCollection][canonTokenId];
 
         if (currentRarity == newRarity) {
             // Same rarity — O(1) vault price update
@@ -690,8 +685,8 @@ contract GachaTreasury is
      */
     function _migrateCardTokensInTreasury(
         bytes32 cardId,
-        Rarity fromRarity,
-        Rarity toRarity,
+        uint8 fromRarity,
+        uint8 toRarity,
         uint256 newPriceUSD
     ) internal {
         NFTItem[] storage fromArr = treasury[fromRarity];
@@ -748,29 +743,23 @@ contract GachaTreasury is
      * @param priceUSD Price in USD (scaled by 1e18)
      * @return rarity The appropriate rarity tier for the price
      */
-    function getRarityByPrice(uint256 priceUSD) public view returns (Rarity rarity) {
-        // Open-ended top tier guarantees a slot for any sufficiently high price
-        PriceRange memory r;
-        r = priceRanges[uint256(Rarity.Legendary)];
-        if (priceUSD >= r.minPriceUSD && priceUSD <= r.maxPriceUSD) return Rarity.Legendary;
-        r = priceRanges[uint256(Rarity.Epic)];
-        if (priceUSD >= r.minPriceUSD && priceUSD <= r.maxPriceUSD) return Rarity.Epic;
-        r = priceRanges[uint256(Rarity.Rare)];
-        if (priceUSD >= r.minPriceUSD && priceUSD <= r.maxPriceUSD) return Rarity.Rare;
-        r = priceRanges[uint256(Rarity.Uncommon)];
-        if (priceUSD >= r.minPriceUSD && priceUSD <= r.maxPriceUSD) return Rarity.Uncommon;
-        r = priceRanges[uint256(Rarity.Common)];
-        if (priceUSD >= r.minPriceUSD && priceUSD <= r.maxPriceUSD) return Rarity.Common;
-
+    function getRarityByPrice(uint256 priceUSD) public view returns (uint8 rarity) {
+        // Search from highest rarity to lowest
+        for (uint8 i = numRarities; i > 0;) {
+            unchecked { --i; }
+            PriceRange memory r = priceRanges[i];
+            if (priceUSD >= r.minPriceUSD && priceUSD <= r.maxPriceUSD) return i;
+        }
         revert PriceOutOfBounds(priceUSD);
     }
 
     /**
      * @notice Gets all price ranges in a single call
-     * @return ranges Array of price ranges [Common, Uncommon, Rare, Epic, Legendary]
+     * @return ranges Array of price ranges
      */
-    function getAllPriceRanges() external view returns (PriceRange[5] memory ranges) {
-        for (uint256 i = 0; i < 5; i++) {
+    function getAllPriceRanges() external view returns (PriceRange[] memory ranges) {
+        ranges = new PriceRange[](numRarities);
+        for (uint8 i = 0; i < numRarities; i++) {
             ranges[i] = priceRanges[i];
         }
     }
@@ -781,10 +770,9 @@ contract GachaTreasury is
      * @return minPrice Minimum price in USD
      * @return maxPrice Maximum price in USD
      */
-    function getPriceRange(Rarity rarity) external view returns (uint256 minPrice, uint256 maxPrice) {
-        uint256 idx = uint256(rarity);
-        if (idx > 4) revert InvalidPriceRange();
-        PriceRange memory r = priceRanges[idx];
+    function getPriceRange(uint8 rarity) external view returns (uint256 minPrice, uint256 maxPrice) {
+        if (rarity >= numRarities) revert InvalidPriceRange();
+        PriceRange memory r = priceRanges[rarity];
         return (r.minPriceUSD, r.maxPriceUSD);
     }
 
@@ -826,7 +814,7 @@ contract GachaTreasury is
             }
 
             // Determine rarity based on price
-            Rarity rarity = getRarityByPrice(priceUSD);
+            uint8 rarity = getRarityByPrice(priceUSD);
 
             IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
             depositedNFTs[collection][tokenId] = true;
@@ -871,7 +859,7 @@ contract GachaTreasury is
         return depositedNFTs[collection][tokenId];
     }
 
-    function getNFTCurrentRarity(address collection, uint256 tokenId) external view returns (Rarity) {
+    function getNFTCurrentRarity(address collection, uint256 tokenId) external view returns (uint8) {
         return nftCurrentRarity[collection][tokenId];
     }
 
@@ -879,7 +867,7 @@ contract GachaTreasury is
     /// @param user User address
     /// @param rarity Rarity to check
     /// @return count Number of deposits by user for the rarity
-    function getUserDepositCount(address user, Rarity rarity) external view returns (uint256 count) {
+    function getUserDepositCount(address user, uint8 rarity) external view returns (uint256 count) {
         if (user == address(0)) return 0;
         return userDepositCounts[user][rarity];
     }
@@ -910,11 +898,12 @@ contract GachaTreasury is
 
     /// @notice Gets all deposit counts for a user across all rarities
     /// @param user User address
-    /// @return counts Array of deposit counts [Common, Uncommon, Rare, Epic, Legendary]
-    function getUserAllDepositCounts(address user) external view returns (uint256[5] memory counts) {
+    /// @return counts Array of deposit counts
+    function getUserAllDepositCounts(address user) external view returns (uint256[] memory counts) {
+        counts = new uint256[](numRarities);
         if (user == address(0)) return counts; // Returns all zeros
-        for (uint256 i = 0; i < 5; i++) {
-            counts[i] = userDepositCounts[user][Rarity(i)];
+        for (uint8 i = 0; i < numRarities; i++) {
+            counts[i] = userDepositCounts[user][i];
         }
     }
 
@@ -924,7 +913,7 @@ contract GachaTreasury is
     /// @param user User address
     /// @param rarity Rarity to check
     /// @return value Total USD value (in 18 decimals) deposited by user for the rarity
-    function getUserDepositValue(address user, Rarity rarity) external view returns (uint256 value) {
+    function getUserDepositValue(address user, uint8 rarity) external view returns (uint256 value) {
         if (user == address(0)) return 0;
         return userDepositValues[user][rarity];
     }
@@ -932,25 +921,27 @@ contract GachaTreasury is
     /// @notice Gets total value in a specific rarity pool
     /// @param rarity Rarity to check
     /// @return totalValue Total USD value (in 18 decimals) in the rarity pool
-    function getRarityTotalValue(Rarity rarity) external view returns (uint256 totalValue) {
+    function getRarityTotalValue(uint8 rarity) external view returns (uint256 totalValue) {
         return totalRarityValue[rarity];
     }
 
     /// @notice Gets all deposit values for a user across all rarities
     /// @param user User address
-    /// @return values Array of deposit values [Common, Uncommon, Rare, Epic, Legendary] in USD (18 decimals)
-    function getUserAllDepositValues(address user) external view returns (uint256[5] memory values) {
+    /// @return values Array of deposit values in USD (18 decimals)
+    function getUserAllDepositValues(address user) external view returns (uint256[] memory values) {
+        values = new uint256[](numRarities);
         if (user == address(0)) return values; // Returns all zeros
-        for (uint256 i = 0; i < 5; i++) {
-            values[i] = userDepositValues[user][Rarity(i)];
+        for (uint8 i = 0; i < numRarities; i++) {
+            values[i] = userDepositValues[user][i];
         }
     }
 
     /// @notice Gets total values across all rarity pools
-    /// @return values Array of total values [Common, Uncommon, Rare, Epic, Legendary] in USD (18 decimals)
-    function getAllRarityTotalValues() external view returns (uint256[5] memory values) {
-        for (uint256 i = 0; i < 5; i++) {
-            values[i] = totalRarityValue[Rarity(i)];
+    /// @return values Array of total values in USD (18 decimals)
+    function getAllRarityTotalValues() external view returns (uint256[] memory values) {
+        values = new uint256[](numRarities);
+        for (uint8 i = 0; i < numRarities; i++) {
+            values[i] = totalRarityValue[i];
         }
     }
 
@@ -959,7 +950,7 @@ contract GachaTreasury is
     /// @param randomSeed Random seed for selection (from VRF or similar)
     /// @param winner Winner's address
     /// @return item The NFT item that was sent
-    function sendRandomNFTToWinner(Rarity rarity, uint256 randomSeed, address winner)
+    function sendRandomNFTToWinner(uint8 rarity, uint256 randomSeed, address winner)
         external
         onlyGacha
         nonReentrant
@@ -979,7 +970,7 @@ contract GachaTreasury is
     /// @param index Index to remove
     /// @param winner Winner receiving the NFT
     /// @return item Removed NFT item
-    function _removeNFTAtIndex(Rarity rarity, uint256 index, address winner) private returns (NFTItem memory item) {
+    function _removeNFTAtIndex(uint8 rarity, uint256 index, address winner) private returns (NFTItem memory item) {
         NFTItem[] storage rarityTreasury = treasury[rarity];
         if (index >= rarityTreasury.length) revert InvalidIndex();
 
@@ -1035,7 +1026,7 @@ contract GachaTreasury is
         address protocol = protocolTreasury;
         if (protocol == address(0)) revert InvalidProtocolTreasury();
 
-        Rarity rarity = getRarityByPrice(appraisalUSD);
+        uint8 rarity = getRarityByPrice(appraisalUSD);
 
         NFTItem memory item = NFTItem({
             collection: collection,
@@ -1066,7 +1057,7 @@ contract GachaTreasury is
     }
 
     /// @dev Shared deposit tracking: counters, values, card vault registration
-    function _trackDeposit(address depositor, address collection, uint256 tokenId, Rarity rarity, uint256 priceUSD)
+    function _trackDeposit(address depositor, address collection, uint256 tokenId, uint8 rarity, uint256 priceUSD)
         internal
     {
         userDepositCounts[depositor][rarity]++;
@@ -1083,13 +1074,13 @@ contract GachaTreasury is
             cardTotalDeposits[cardId]++;
             _addUserGroupId(depositor, cardId);
             if (address(cardGroupedVault) != address(0)) {
-                cardGroupedVault.registerCardDeposit(cardId, depositor, priceUSD, uint8(rarity), 1);
+                cardGroupedVault.registerCardDeposit(cardId, depositor, priceUSD, rarity, 1);
             }
         }
     }
 
     /// @dev Shared removal tracking: counters, values, card vault deregistration
-    function _trackRemoval(address depositor, address collection, uint256 tokenId, Rarity rarity, uint256 priceUSD)
+    function _trackRemoval(address depositor, address collection, uint256 tokenId, uint8 rarity, uint256 priceUSD)
         internal
     {
         if (depositor != address(0)) {
@@ -1187,8 +1178,10 @@ contract GachaTreasury is
     /// @return available True if gacha can operate
     function isGachaAvailable() external view returns (bool available) {
         if (whitelistedCollectionsList.length == 0) return false;
-        uint256 totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + rarityCount[Rarity.Rare]
-            + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
+        uint256 totalItems;
+        for (uint8 i = 0; i < numRarities; i++) {
+            totalItems += rarityCount[i];
+        }
         return totalItems > 0;
     }
 
@@ -1222,7 +1215,7 @@ contract GachaTreasury is
         return IERC721Receiver.onERC721Received.selector;
     }
 
-    
+
     /// @notice Gets total deposit count for a specific card ID
     /// @param cardId Card ID to check
     /// @return totalCount Total number of deposits for the card
@@ -1275,28 +1268,6 @@ contract GachaTreasury is
         hasMore = end < total;
     }
 
-    /// @notice Gets all user card deposits with deposit counts (for smaller datasets)
-    /// @param user The user address
-    /// @return deposits Array of all UserCardDeposit structs for the user
-    function getAllUserCardDeposits(address user) external view returns (UserCardDeposit[] memory deposits) {
-        if (user == address(0)) {
-            return new UserCardDeposit[](0);
-        }
-
-        bytes32[] storage userCards = userGroupIds[user];
-        uint256 length = userCards.length;
-        deposits = new UserCardDeposit[](length);
-
-        for (uint256 i = 0; i < length; i++) {
-            bytes32 cardId = userCards[i];
-            deposits[i] = UserCardDeposit({
-                cardId: cardId,
-                depositCount: userCardDeposits[user][cardId],
-                totalCardDeposits: cardTotalDeposits[cardId]
-            });
-        }
-    }
-
     // ============ PAGINATED QUERY FUNCTIONS ============
 
     /// @notice Gets paginated list of NFTs deposited by a user
@@ -1314,8 +1285,8 @@ contract GachaTreasury is
         if (user == address(0) || limit == 0) return (new NFTItem[](0), 0, false);
 
         // Count total items for user
-        for (uint256 i = 0; i < 5; i++) {
-            total += userDepositCounts[user][Rarity(i)];
+        for (uint8 i = 0; i < numRarities; i++) {
+            total += userDepositCounts[user][i];
         }
 
         if (total == 0 || offset >= total) return (new NFTItem[](0), total, false);
@@ -1326,8 +1297,8 @@ contract GachaTreasury is
         uint256 currentIndex = 0;
         uint256 skipped = 0;
 
-        for (uint256 rarity = 0; rarity < 5 && currentIndex < resultLength; rarity++) {
-            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
+        for (uint8 rarity = 0; rarity < numRarities && currentIndex < resultLength; rarity++) {
+            NFTItem[] memory rarityItems = treasury[rarity];
             for (uint256 i = 0; i < rarityItems.length && currentIndex < resultLength; i++) {
                 if (rarityItems[i].depositor == user) {
                     if (skipped < offset) {
@@ -1360,8 +1331,8 @@ contract GachaTreasury is
         if (address(appraisalContract) == address(0)) return (new NFTItem[](0), 0, false);
 
         // First pass: count matching items
-        for (uint256 rarity = 0; rarity < 5; rarity++) {
-            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
+        for (uint8 rarity = 0; rarity < numRarities; rarity++) {
+            NFTItem[] memory rarityItems = treasury[rarity];
             for (uint256 i = 0; i < rarityItems.length; i++) {
                 if (rarityItems[i].depositor == user) {
                     bytes32 itemCardId = appraisalContract.getTokenCardId(rarityItems[i].collection, rarityItems[i].tokenId);
@@ -1378,8 +1349,8 @@ contract GachaTreasury is
         uint256 currentIndex = 0;
         uint256 skipped = 0;
 
-        for (uint256 rarity = 0; rarity < 5 && currentIndex < resultLength; rarity++) {
-            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
+        for (uint8 rarity = 0; rarity < numRarities && currentIndex < resultLength; rarity++) {
+            NFTItem[] memory rarityItems = treasury[rarity];
             for (uint256 i = 0; i < rarityItems.length && currentIndex < resultLength; i++) {
                 if (rarityItems[i].depositor == user) {
                     bytes32 itemCardId = appraisalContract.getTokenCardId(rarityItems[i].collection, rarityItems[i].tokenId);
@@ -1410,7 +1381,7 @@ contract GachaTreasury is
 
     /// @notice Gets comprehensive user profile data in a single call (BATCH FUNCTION)
     /// @param user User address
-    /// @return depositCounts Array of deposit counts [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return depositCounts Array of deposit counts
     /// @return totalDeposits Total number of deposits
     /// @return lifetimeClaimed Total rewards claimed
     /// @return lifetimeDeposited Total value deposited
@@ -1420,7 +1391,7 @@ contract GachaTreasury is
         external
         view
         returns (
-            uint256[5] memory depositCounts,
+            uint256[] memory depositCounts,
             uint256 totalDeposits,
             uint256 lifetimeClaimed,
             uint256 lifetimeDeposited,
@@ -1428,13 +1399,14 @@ contract GachaTreasury is
             uint256 netContribution
         )
     {
+        depositCounts = new uint256[](numRarities);
         if (user == address(0)) {
             return (depositCounts, 0, 0, 0, 0, 0);
         }
 
         // Get deposit counts for all rarities
-        for (uint256 i = 0; i < 5; i++) {
-            depositCounts[i] = userDepositCounts[user][Rarity(i)];
+        for (uint8 i = 0; i < numRarities; i++) {
+            depositCounts[i] = userDepositCounts[user][i];
         }
 
         totalDeposits = userTotalDeposits[user];
@@ -1445,7 +1417,7 @@ contract GachaTreasury is
     }
 
     /// @notice Gets platform overview data in a single call (BATCH FUNCTION)
-    /// @return rarityCounts Array of NFT counts [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return rarityCounts Array of NFT counts
     /// @return totalItems Total NFTs in treasury
     /// @return gachaAvailable Whether gacha is available
     /// @return totalDeposited Global total value deposited
@@ -1454,7 +1426,7 @@ contract GachaTreasury is
         external
         view
         returns (
-            uint256[5] memory rarityCounts,
+            uint256[] memory rarityCounts,
             uint256 totalItems,
             bool gachaAvailable,
             uint256 totalDeposited,
@@ -1462,13 +1434,11 @@ contract GachaTreasury is
         )
     {
         // Get rarity counts inline
-        for (uint256 i = 0; i < 5; i++) {
-            rarityCounts[i] = rarityCount[Rarity(i)];
+        rarityCounts = new uint256[](numRarities);
+        for (uint8 i = 0; i < numRarities; i++) {
+            rarityCounts[i] = rarityCount[i];
+            totalItems += rarityCounts[i];
         }
-
-        // Calculate total items inline
-        totalItems = rarityCount[Rarity.Common] + rarityCount[Rarity.Uncommon] + rarityCount[Rarity.Rare]
-            + rarityCount[Rarity.Epic] + rarityCount[Rarity.Legendary];
 
         // Check if gacha is available
         gachaAvailable = whitelistedCollectionsList.length > 0 && totalItems > 0;
@@ -1502,8 +1472,8 @@ contract GachaTreasury is
 
         // First, count how many items the user has to optimize array size
         uint256 userItemCount = 0;
-        for (uint256 i = 0; i < 5; i++) {
-            userItemCount += userDepositCounts[user][Rarity(i)];
+        for (uint8 i = 0; i < numRarities; i++) {
+            userItemCount += userDepositCounts[user][i];
         }
 
         if (userItemCount == 0) return new NFTItem[](0);
@@ -1513,8 +1483,8 @@ contract GachaTreasury is
         uint256 currentIndex = 0;
 
         // Iterate through all rarity tiers and collect user's items
-        for (uint256 rarity = 0; rarity < 5; rarity++) {
-            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
+        for (uint8 rarity = 0; rarity < numRarities; rarity++) {
+            NFTItem[] memory rarityItems = treasury[rarity];
 
             for (uint256 i = 0; i < rarityItems.length; i++) {
                 if (rarityItems[i].depositor == user) {
@@ -1525,73 +1495,6 @@ contract GachaTreasury is
         }
     }
 
-    /// @notice Gets all NFTs deposited by a user for a specific card ID
-    /// @param user User address
-    /// @param cardId Card ID to filter by
-    /// @return items Array of NFT items for the specified card ID
-    function getUserDepositedNFTsByCardId(address user, bytes32 cardId) external view returns (NFTItem[] memory items) {
-        if (user == address(0) || cardId == bytes32(0)) return new NFTItem[](0);
-
-        // Get the appraisal contract to check card IDs
-        if (address(appraisalContract) == address(0)) return new NFTItem[](0);
-
-        // First, count how many matching items the user has
-        uint256 matchingItemCount = 0;
-        for (uint256 rarity = 0; rarity < 5; rarity++) {
-            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
-
-            for (uint256 i = 0; i < rarityItems.length; i++) {
-                if (rarityItems[i].depositor == user) {
-                    bytes32 itemCardId = appraisalContract.getTokenCardId(rarityItems[i].collection, rarityItems[i].tokenId);
-                    if (itemCardId == cardId) {
-                        matchingItemCount++;
-                    }
-                }
-            }
-        }
-
-        if (matchingItemCount == 0) return new NFTItem[](0);
-
-        // Create array with exact size needed
-        items = new NFTItem[](matchingItemCount);
-        uint256 currentIndex = 0;
-
-        // Iterate through all rarity tiers and collect matching items
-        for (uint256 rarity = 0; rarity < 5; rarity++) {
-            NFTItem[] memory rarityItems = treasury[Rarity(rarity)];
-
-            for (uint256 i = 0; i < rarityItems.length; i++) {
-                if (rarityItems[i].depositor == user) {
-                    bytes32 itemCardId = appraisalContract.getTokenCardId(rarityItems[i].collection, rarityItems[i].tokenId);
-                    if (itemCardId == cardId) {
-                        items[currentIndex] = rarityItems[i];
-                        currentIndex++;
-                    }
-                }
-            }
-        }
-    }
-
-    /// @notice Gets comprehensive user lifetime statistics
-    /// @param user User address
-    /// @return deposited Total value deposited
-    /// @return withdrawn Total value withdrawn
-    /// @return claimed Total rewards claimed
-    /// @return netContribution Net value contributed (deposited - withdrawn)
-    function getUserLifetimeStats(address user)
-        external
-        view
-        returns (uint256 deposited, uint256 withdrawn, uint256 claimed, uint256 netContribution)
-    {
-        if (user == address(0)) return (0, 0, 0, 0);
-
-        deposited = userLifetimeDeposited[user];
-        withdrawn = userLifetimeWithdrawn[user];
-        claimed = userLifetimeClaimed[user];
-        netContribution = deposited > withdrawn ? deposited - withdrawn : 0;
-    }
-
-  
     /// @notice Gets global platform statistics
     /// @return totalDeposited Total value deposited across all users
     /// @return totalClaimed Total rewards claimed across all users
@@ -1612,6 +1515,31 @@ contract GachaTreasury is
 
     /// @notice Snapshot of redemption deadline at win time
     mapping(address => mapping(uint256 => uint256)) public nftRedemptionDeadlines;
+
+    // ============ RARITY METADATA GETTERS ============
+
+    /// @notice Gets the number of rarity tiers
+    /// @return The number of rarity tiers configured
+    function getNumRarities() external view returns (uint8) {
+        return numRarities;
+    }
+
+    /// @notice Gets all rarity names
+    /// @return names Array of rarity names
+    function getRarityNames() external view returns (string[] memory names) {
+        names = new string[](numRarities);
+        for (uint8 i = 0; i < numRarities; i++) {
+            names[i] = rarityNames[i];
+        }
+    }
+
+    /// @notice Gets the name of a specific rarity tier
+    /// @param rarity The rarity tier index
+    /// @return name The rarity name
+    function getRarityName(uint8 rarity) external view returns (string memory name) {
+        if (rarity >= numRarities) revert InvalidPriceRange();
+        return rarityNames[rarity];
+    }
 
     /// @notice Custom gap for future storage variables (50 slots)
     uint256[45] private __gap;

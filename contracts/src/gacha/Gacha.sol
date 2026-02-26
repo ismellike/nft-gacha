@@ -40,7 +40,7 @@ contract Gacha is
     error AlreadyFulfilled();
     error InvalidRecipient();
     error WeightsMustSumToTotal();
-    error NoNFTsAvailable(GachaTreasury.Rarity rarity);
+    error NoNFTsAvailable(uint8 rarity);
     error UnauthorizedServiceHandler();
     error InvalidTreasuryContract();
     error InvalidEconomyManager();
@@ -53,6 +53,7 @@ contract Gacha is
     error InvalidFeeTokenDecimals();
     error MaxFeeExceeded(uint256 currentFee, uint256 maxFee);
     error InvalidSpinTimeout();
+    error InvalidWeightsLength();
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
@@ -72,13 +73,13 @@ contract Gacha is
     uint256 private _nextTriggerId;
     mapping(uint256 => SpinRequest) public spinRequests;
     mapping(address => uint256) public userSpinCount;
-    mapping(address => mapping(GachaTreasury.Rarity => uint256)) public userRarityWins;
+    mapping(address => mapping(uint8 => uint256)) public userRarityWins;
     mapping(address => uint256) public userRefundCount;
     mapping(address => uint256) public userReclaimCount;
     uint256 public totalSpinCount;
     uint256 public totalRefundCount;
     uint256 public totalReclaimCount;
-    mapping(GachaTreasury.Rarity => uint256) public globalRarityWins;
+    mapping(uint8 => uint256) public globalRarityWins;
 
     /// @notice Timeout for spin requests (configurable)
     uint256 public spinTimeout;
@@ -92,25 +93,28 @@ contract Gacha is
     uint256 public pricingPremiumBps;
     uint256 public minSpinFee;
     uint256 public maxSpinFee;
-    uint256[5] public targetRarityBps;
+    uint256[] public targetRarityBps;
+
+    /// @notice Number of rarity tiers (read from treasury at init)
+    uint8 public numRarities;
 
     event SpinCompleted(
         uint256 indexed triggerId,
         address indexed requester,
-        GachaTreasury.Rarity rarity,
+        uint8 rarity,
         address collection,
         uint256 tokenId,
         uint256 appraisedPrice
     );
 
     event SpinRefunded(
-        uint256 indexed triggerId, address indexed requester, GachaTreasury.Rarity selectedRarity, uint256 refundAmount
+        uint256 indexed triggerId, address indexed requester, uint8 selectedRarity, uint256 refundAmount
     );
 
     event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
 
     event PricingConfigUpdated(uint256 premiumBps, uint256 minFee, uint256 maxFee);
-    event DynamicWeightsUpdated(uint256[5] targetBps);
+    event DynamicWeightsUpdated(uint256[] targetBps);
     event FeeTokenDecimalsUpdated(uint8 previousDecimals, uint8 newDecimals);
 
     event GachaServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
@@ -177,11 +181,30 @@ contract Gacha is
         pricingPremiumBps = 500; // 5% premium over EV
         minSpinFee = _minSpinFee;
         maxSpinFee = 0;
-        targetRarityBps[0] = 7_000;
-        targetRarityBps[1] = 2_000;
-        targetRarityBps[2] = 600;
-        targetRarityBps[3] = 300;
-        targetRarityBps[4] = 100;
+
+        // Read numRarities from treasury
+        numRarities = treasury.numRarities();
+
+        // Set default target weights (distribute proportionally)
+        // For backward compat with 5 rarities: 70%, 20%, 6%, 3%, 1%
+        if (numRarities == 5) {
+            targetRarityBps.push(7_000);
+            targetRarityBps.push(2_000);
+            targetRarityBps.push(600);
+            targetRarityBps.push(300);
+            targetRarityBps.push(100);
+        } else {
+            // Distribute evenly with remainder to first rarity
+            uint256 perRarity = TOTAL_WEIGHT / numRarities;
+            uint256 assigned;
+            for (uint8 i = 0; i < numRarities; i++) {
+                targetRarityBps.push(perRarity);
+                assigned += perRarity;
+            }
+            if (assigned < TOTAL_WEIGHT) {
+                targetRarityBps[0] += TOTAL_WEIGHT - assigned;
+            }
+        }
     }
 
     /**
@@ -256,28 +279,18 @@ contract Gacha is
 
     /// @dev Validates that treasury has NFTs for all weighted rarities
     function _validateTreasuryHasItems() private view {
-        uint256[5] memory counts = treasury.getAllRarityCounts();
+        uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < numRarities; i++) {
             totalCount += counts[i];
         }
         if (totalCount == 0) revert NoTreasuryInventory();
 
-        uint256[5] memory weights = _getCurrentRarityWeights(counts, totalCount);
-        if (weights[0] > 0 && counts[0] == 0) {
-            revert NoNFTsAvailable(GachaTreasury.Rarity.Common);
-        }
-        if (weights[1] > 0 && counts[1] == 0) {
-            revert NoNFTsAvailable(GachaTreasury.Rarity.Uncommon);
-        }
-        if (weights[2] > 0 && counts[2] == 0) {
-            revert NoNFTsAvailable(GachaTreasury.Rarity.Rare);
-        }
-        if (weights[3] > 0 && counts[3] == 0) {
-            revert NoNFTsAvailable(GachaTreasury.Rarity.Epic);
-        }
-        if (weights[4] > 0 && counts[4] == 0) {
-            revert NoNFTsAvailable(GachaTreasury.Rarity.Legendary);
+        uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
+        for (uint8 i = 0; i < numRarities; i++) {
+            if (weights[i] > 0 && counts[i] == 0) {
+                revert NoNFTsAvailable(i);
+            }
         }
     }
 
@@ -303,15 +316,15 @@ contract Gacha is
         totalSpinCount++;
 
         // Select rarity based on randomness using cached counts
-        uint256[5] memory counts = treasury.getAllRarityCounts();
+        uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < numRarities; i++) {
             totalCount += counts[i];
         }
-        GachaTreasury.Rarity selectedRarity = _selectRarity(randomness, counts, totalCount);
+        uint8 selectedRarity = _selectRarity(randomness, counts, totalCount);
 
         // Check if treasury has NFTs of selected rarity
-        uint256 availableCount = counts[uint256(selectedRarity)];
+        uint256 availableCount = counts[selectedRarity];
 
         if (availableCount == 0) {
             // Track refund statistics
@@ -351,22 +364,17 @@ contract Gacha is
         emit SpinStatusUpdate(triggerId, request.requester, "completed", block.timestamp);
     }
 
-    function _selectRarity(bytes32 randomness, uint256[5] memory counts, uint256 totalCount) private view returns (GachaTreasury.Rarity) {
-        uint256[5] memory weights = _getCurrentRarityWeights(counts, totalCount);
+    function _selectRarity(bytes32 randomness, uint256[] memory counts, uint256 totalCount) private view returns (uint8) {
+        uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
         uint256 roll = uint256(randomness) % TOTAL_WEIGHT;
 
-        // Select rarity from most common to rarest (cumulative probabilities)
-        if (roll < weights[0]) {
-            return GachaTreasury.Rarity.Common;
-        } else if (roll < weights[0] + weights[1]) {
-            return GachaTreasury.Rarity.Uncommon;
-        } else if (roll < weights[0] + weights[1] + weights[2]) {
-            return GachaTreasury.Rarity.Rare;
-        } else if (roll < weights[0] + weights[1] + weights[2] + weights[3]) {
-            return GachaTreasury.Rarity.Epic;
-        } else {
-            return GachaTreasury.Rarity.Legendary;
+        // Select rarity using cumulative probabilities
+        uint256 cumulative = 0;
+        for (uint8 i = 0; i < numRarities; i++) {
+            cumulative += weights[i];
+            if (roll < cumulative) return i;
         }
+        return numRarities - 1;
     }
 
     function setFeeTokenDecimals(uint8 decimals) external onlyOwner {
@@ -421,15 +429,24 @@ contract Gacha is
         emit PricingConfigUpdated(premiumBps, minFee, maxFee);
     }
 
-    function setDynamicWeightsConfig(uint256[5] calldata targetBps) external onlyOwner {
+    function setDynamicWeightsConfig(uint256[] calldata targetBps) external onlyOwner {
+        if (targetBps.length != numRarities) revert InvalidWeightsLength();
         uint256 total;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < numRarities; i++) {
             total += targetBps[i];
         }
         if (total != TOTAL_WEIGHT) revert WeightsMustSumToTotal();
 
-        for (uint256 i = 0; i < 5; i++) {
-            targetRarityBps[i] = targetBps[i];
+        // Resize if needed and copy
+        while (targetRarityBps.length > numRarities) {
+            targetRarityBps.pop();
+        }
+        for (uint256 i = 0; i < numRarities; i++) {
+            if (i < targetRarityBps.length) {
+                targetRarityBps[i] = targetBps[i];
+            } else {
+                targetRarityBps.push(targetBps[i]);
+            }
         }
         emit DynamicWeightsUpdated(targetBps);
     }
@@ -438,34 +455,38 @@ contract Gacha is
         return _getSpinFeeToCharge();
     }
 
-    function getCurrentRarityWeights() public view returns (uint256[5] memory weights) {
-        uint256[5] memory counts = treasury.getAllRarityCounts();
+    function getCurrentRarityWeights() public view returns (uint256[] memory weights) {
+        uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < numRarities; i++) {
             totalCount += counts[i];
         }
-        if (totalCount == 0) return weights;
+        if (totalCount == 0) {
+            weights = new uint256[](numRarities);
+            return weights;
+        }
         return _getCurrentRarityWeights(counts, totalCount);
     }
 
-    function getTargetRarityBps() external view returns (uint256[5] memory targetBps) {
-        for (uint256 i = 0; i < 5; i++) {
+    function getTargetRarityBps() external view returns (uint256[] memory targetBps) {
+        targetBps = new uint256[](numRarities);
+        for (uint256 i = 0; i < numRarities; i++) {
             targetBps[i] = targetRarityBps[i];
         }
     }
 
     function getExpectedValueUSD() public view returns (uint256 expectedValueUSD) {
-        uint256[5] memory counts = treasury.getAllRarityCounts();
+        uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < numRarities; i++) {
             totalCount += counts[i];
         }
         if (totalCount == 0) return 0;
 
-        uint256[5] memory weights = _getCurrentRarityWeights(counts, totalCount);
-        uint256[5] memory totals = treasury.getAllRarityTotalValues();
+        uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
+        uint256[] memory totals = treasury.getAllRarityTotalValues();
 
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < numRarities; i++) {
             if (counts[i] == 0 || weights[i] == 0) continue;
             uint256 averageValue = totals[i] / counts[i];
             expectedValueUSD += Math.mulDiv(weights[i], averageValue, TOTAL_WEIGHT);
@@ -482,7 +503,7 @@ contract Gacha is
     }
 
     /// @notice Internal function to distribute spin rewards
-    function _distributeSpinRewards(GachaTreasury.Rarity hitRarity, uint256 feeAmount) private {
+    function _distributeSpinRewards(uint8 hitRarity, uint256 feeAmount) private {
         if (feeAmount == 0) return;
 
         IGachaEconomyManager manager = economyManager;
@@ -510,18 +531,19 @@ contract Gacha is
     /// @return totalSpins Total completed spins
     /// @return totalRefunds Total refunded spins
     /// @return totalReclaims Total reclaimed spins
-    /// @return rarityWins Array of wins per rarity [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return rarityWins Array of wins per rarity
     function getUserAnalytics(address user)
         external
         view
-        returns (uint256 totalSpins, uint256 totalRefunds, uint256 totalReclaims, uint256[5] memory rarityWins)
+        returns (uint256 totalSpins, uint256 totalRefunds, uint256 totalReclaims, uint256[] memory rarityWins)
     {
         totalSpins = userSpinCount[user];
         totalRefunds = userRefundCount[user];
         totalReclaims = userReclaimCount[user];
 
-        for (uint256 i = 0; i < 5; i++) {
-            rarityWins[i] = userRarityWins[user][GachaTreasury.Rarity(i)];
+        rarityWins = new uint256[](numRarities);
+        for (uint8 i = 0; i < numRarities; i++) {
+            rarityWins[i] = userRarityWins[user][i];
         }
     }
 
@@ -537,15 +559,16 @@ contract Gacha is
             uint256 totalSpins,
             uint256 totalRefunds,
             uint256 totalReclaims,
-            uint256[5] memory globalRarityWinCounts
+            uint256[] memory globalRarityWinCounts
         )
     {
         totalSpins = totalSpinCount;
         totalRefunds = totalRefundCount;
         totalReclaims = totalReclaimCount;
 
-        for (uint256 i = 0; i < 5; i++) {
-            globalRarityWinCounts[i] = globalRarityWins[GachaTreasury.Rarity(i)];
+        globalRarityWinCounts = new uint256[](numRarities);
+        for (uint8 i = 0; i < numRarities; i++) {
+            globalRarityWinCounts[i] = globalRarityWins[i];
         }
     }
 
@@ -553,7 +576,7 @@ contract Gacha is
     /// @param user The user address to query
     /// @param rarity The rarity to check
     /// @return winCount Number of wins for that rarity
-    function getUserRarityWinCount(address user, GachaTreasury.Rarity rarity)
+    function getUserRarityWinCount(address user, uint8 rarity)
         external
         view
         returns (uint256 winCount)
@@ -635,18 +658,19 @@ contract Gacha is
      * @notice Gets the expected rarity distribution based on current treasury contents
      * @return distribution Array of rarity counts showing current treasury distribution
      */
-    function getTreasuryDistribution() external view returns (uint256[5] memory distribution) {
+    function getTreasuryDistribution() external view returns (uint256[] memory distribution) {
         return treasury.getAllRarityCounts();
     }
 
     /**
      * @notice Gets the expected value (in USD) for each rarity tier based on current treasury
-     * @return averageValues Array of average USD values per rarity [Common, Uncommon, Rare, Epic, Legendary]
+     * @return averageValues Array of average USD values per rarity
      */
-    function getAverageRarityValues() external view returns (uint256[5] memory averageValues) {
-        uint256[5] memory counts = treasury.getAllRarityCounts();
-        uint256[5] memory totals = treasury.getAllRarityTotalValues();
-        for (uint256 i = 0; i < 5; i++) {
+    function getAverageRarityValues() external view returns (uint256[] memory averageValues) {
+        uint256[] memory counts = treasury.getAllRarityCounts();
+        uint256[] memory totals = treasury.getAllRarityTotalValues();
+        averageValues = new uint256[](numRarities);
+        for (uint256 i = 0; i < numRarities; i++) {
             if (counts[i] == 0) continue;
             averageValues[i] = totals[i] / counts[i];
         }
@@ -657,8 +681,8 @@ contract Gacha is
      * @return totalValueUSD Total USD value of all NFTs in treasury (scaled by 1e18)
      */
     function getTotalValueLocked() external view returns (uint256 totalValueUSD) {
-        uint256[5] memory totals = treasury.getAllRarityTotalValues();
-        for (uint256 i = 0; i < 5; i++) {
+        uint256[] memory totals = treasury.getAllRarityTotalValues();
+        for (uint256 i = 0; i < numRarities; i++) {
             totalValueUSD += totals[i];
         }
     }
@@ -667,7 +691,7 @@ contract Gacha is
     /// @return feeTokenAddr Fee token contract address
     /// @return spinFeeAmount Cost to spin in fee token units
     /// @return isPaused Whether the gacha is currently paused
-    /// @return rarityWeights Current rarity weights [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return rarityWeights Current rarity weights
     /// @return totalWeight Sum of all rarity weights
     /// @return isAvailable Whether gacha has NFTs available
     function getGachaConfigBatch()
@@ -677,7 +701,7 @@ contract Gacha is
             address feeTokenAddr,
             uint256 spinFeeAmount,
             bool isPaused,
-            uint256[5] memory rarityWeights,
+            uint256[] memory rarityWeights,
             uint256 totalWeight,
             bool isAvailable
         )
@@ -698,7 +722,7 @@ contract Gacha is
     /// @return totalSpins Total spins by user
     /// @return totalRefunds Total refunds for user
     /// @return totalReclaims Total reclaims for user
-    /// @return rarityWins Wins per rarity [Common, Uncommon, Rare, Epic, Legendary]
+    /// @return rarityWins Wins per rarity
     /// @return spinCount Total spin count (same as totalSpins, for compatibility)
     function getUserGachaBatch(address user)
         external
@@ -707,7 +731,7 @@ contract Gacha is
             uint256 totalSpins,
             uint256 totalRefunds,
             uint256 totalReclaims,
-            uint256[5] memory rarityWins,
+            uint256[] memory rarityWins,
             uint256 spinCount
         )
     {
@@ -717,8 +741,9 @@ contract Gacha is
         totalReclaims = userReclaimCount[user];
 
         // Get rarity wins
-        for (uint256 i = 0; i < 5; i++) {
-            rarityWins[i] = userRarityWins[user][GachaTreasury.Rarity(i)];
+        rarityWins = new uint256[](numRarities);
+        for (uint8 i = 0; i < numRarities; i++) {
+            rarityWins[i] = userRarityWins[user][i];
         }
 
         spinCount = totalSpins; // Same value for compatibility
@@ -746,14 +771,15 @@ contract Gacha is
         return Math.mulDiv(amountUSD, feeTokenScalar, 1e18);
     }
 
-    function _getCurrentRarityWeights(uint256[5] memory counts, uint256 totalCount)
+    function _getCurrentRarityWeights(uint256[] memory counts, uint256 totalCount)
         private
         view
-        returns (uint256[5] memory weights)
+        returns (uint256[] memory weights)
     {
-        uint256[5] memory raw;
+        weights = new uint256[](numRarities);
+        uint256[] memory raw = new uint256[](numRarities);
         uint256 rawSum;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < numRarities; i++) {
             if (counts[i] == 0 || targetRarityBps[i] == 0) continue;
             raw[i] = Math.mulDiv(targetRarityBps[i], totalCount, counts[i]);
             rawSum += raw[i];
@@ -762,7 +788,7 @@ contract Gacha is
         if (rawSum == 0) return weights;
 
         uint256 assigned;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < numRarities; i++) {
             if (raw[i] == 0) continue;
             weights[i] = Math.mulDiv(raw[i], TOTAL_WEIGHT, rawSum);
             assigned += weights[i];
@@ -771,7 +797,7 @@ contract Gacha is
         if (assigned < TOTAL_WEIGHT) {
             // Assign remainder to first non-zero weight to avoid
             // routing probability to an empty rarity pool
-            for (uint256 i = 0; i < 5; i++) {
+            for (uint256 i = 0; i < numRarities; i++) {
                 if (weights[i] > 0) {
                     weights[i] += TOTAL_WEIGHT - assigned;
                     break;
@@ -821,5 +847,5 @@ contract Gacha is
     }
 
     /// @notice Custom gap for future storage variables
-    uint256[44] private __gap;
+    uint256[43] private __gap;
 }

@@ -20,11 +20,8 @@ export interface GachaConfig {
 	protocolTreasuryAddress: Address;
 	// Collections are now queried dynamically from the treasury contract
 	// Removed: nftCollectionAddress - collections are fetched from treasury whitelist
-	trackerAddresses: {
-		common: Address;
-		uncommon: Address;
-		rare: Address;
-		epic: Address;
-		legendary: Address;
-	};
+	// Dynamic rarity support: array indexed by rarity tier (0 = lowest)
+	trackerAddresses: Address[];
+	// Rarity names are immutable after deployment, so store statically
+	rarityNames: string[];
 }

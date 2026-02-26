@@ -4,7 +4,7 @@ import { CheckIcon } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import { useReadContract, useWriteContract } from "wagmi";
 import type { GachaConfig } from "@/lib/gacha-config";
-import { RARITY_CONFIG } from "@/lib/rarityConfig";
+import { DEFAULT_RARITY_CONFIG } from "@/lib/rarityConfig";
 import { formatPercentage } from "@/lib/utils";
 import { Button, Card, Chip, Input } from "../../../ui";
 
@@ -19,7 +19,7 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 				name: "getTargetRarityBps",
 				stateMutability: "view",
 				inputs: [],
-				outputs: [{ name: "targetBps", type: "uint256[5]" }],
+				outputs: [{ name: "targetBps", type: "uint256[]" }],
 			},
 		],
 		functionName: "getTargetRarityBps",
@@ -55,20 +55,12 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 					type: "function",
 					name: "setDynamicWeightsConfig",
 					stateMutability: "nonpayable",
-					inputs: [{ name: "targetBps", type: "uint256[5]" }],
+					inputs: [{ name: "targetBps", type: "uint256[]" }],
 					outputs: [],
 				},
 			],
 			functionName: "setDynamicWeightsConfig",
-			args: [
-				weights.map((w: number) => BigInt(w)) as unknown as readonly [
-					bigint,
-					bigint,
-					bigint,
-					bigint,
-					bigint,
-				],
-			],
+			args: [weights.map((w: number) => BigInt(w))],
 		});
 	};
 
@@ -93,7 +85,7 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 
 			<div className="grid gap-6 mb-8 lg:grid-cols-2">
 				{weights.map((weight, index) => {
-					const rarity = Object.values(RARITY_CONFIG)[index];
+					const rarity = DEFAULT_RARITY_CONFIG[index];
 					const percentage = formatPercentage(weight / 100, 2, true);
 
 					return (

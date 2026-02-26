@@ -2,43 +2,47 @@
  * Utility functions for handling rarity conversions and common operations
  */
 
-export const RARITY_NAMES = [
-	"Common",
-	"Uncommon",
-	"Rare",
-	"Epic",
-	"Legendary",
-] as const;
-export type ValidRarityName = (typeof RARITY_NAMES)[number];
-export type RarityName = ValidRarityName | "Unknown";
+import { DEFAULT_RARITY_NAMES } from "./rarityConfig";
+
+export type RarityName = string;
 
 /**
- * Convert rarity enum number to readable name
+ * Convert rarity index to readable name
  */
-export function rarityIndexToName(rarityIndex: number): RarityName {
-	return RARITY_NAMES[rarityIndex] || "Unknown";
+export function rarityIndexToName(
+	rarityIndex: number,
+	names: readonly string[] = DEFAULT_RARITY_NAMES,
+): string {
+	return names[rarityIndex] ?? "Unknown";
 }
 
 /**
- * Convert rarity enum bigint to readable name
+ * Convert rarity bigint to readable name
  */
 export function rarityBigIntToName(
 	rarity: bigint | undefined | number,
-): RarityName {
+	names: readonly string[] = DEFAULT_RARITY_NAMES,
+): string {
 	if (rarity === undefined) return "Unknown";
-	return rarityIndexToName(Number(rarity));
+	return rarityIndexToName(Number(rarity), names);
 }
 
 /**
  * Validate if a string is a valid rarity name
  */
-export function isValidRarityName(name: string): name is ValidRarityName {
-	return RARITY_NAMES.includes(name as ValidRarityName);
+export function isValidRarityName(
+	name: string,
+	names: readonly string[] = DEFAULT_RARITY_NAMES,
+): boolean {
+	return names.includes(name);
 }
 
 /**
  * Get rarity index from name (inverse operation)
  */
-export function rarityNameToIndex(name: string): number {
-	return RARITY_NAMES.indexOf(name as ValidRarityName);
+export function rarityNameToIndex(
+	name: string,
+	names: readonly string[] = DEFAULT_RARITY_NAMES,
+): number {
+	return names.indexOf(name);
 }

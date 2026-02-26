@@ -6,7 +6,6 @@ import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
 import {MockCardGroupedVault} from "../mocks/MockCardGroupedVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
-import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
@@ -44,7 +43,8 @@ contract GachaEconomyManagerFuzz is Test {
             address(usdc),
             gacha,
             address(vault),
-            address(protocolTreasury)
+            address(protocolTreasury),
+            uint8(5)
         );
 
         // Mint USDC to gacha
@@ -128,7 +128,7 @@ contract GachaEconomyManagerFuzz is Test {
     function testFuzz_ZeroRevenue_Fails() public {
         vm.prank(gacha);
         vm.expectRevert();
-        economy.onSpinRevenue(0, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(0, 0);
     }
 
     /**
@@ -143,7 +143,7 @@ contract GachaEconomyManagerFuzz is Test {
 
         vm.prank(unauthorizedCaller);
         vm.expectRevert();
-        economy.onSpinRevenue(revenueAmount, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(revenueAmount, 0);
     }
 
     /**
@@ -168,7 +168,7 @@ contract GachaEconomyManagerFuzz is Test {
 
         vm.prank(gacha);
         vm.expectRevert();
-        economy.onSpinRevenue(revenueAmount, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(revenueAmount, 0);
     }
 
     // ========================================================================

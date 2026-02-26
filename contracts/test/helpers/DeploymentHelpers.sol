@@ -40,14 +40,17 @@ contract DeploymentHelpers is Test {
         GachaTreasury treasuryImpl = new GachaTreasury();
 
         vm.startPrank(owner);
-        uint256[5] memory minPrices = TestConstants.getMinPrices();
-        uint256[5] memory maxPrices = TestConstants.getMaxPrices();
+        uint256[] memory minPrices = TestConstants.getMinPrices();
+        uint256[] memory maxPrices = TestConstants.getMaxPrices();
+        string[] memory rarityNames = TestConstants.getDefaultRarityNames();
 
         bytes memory initData = abi.encodeWithSelector(
             GachaTreasury.initialize.selector,
             owner,
             gachaContract,
             mockAppraisal,
+            TestConstants.DEFAULT_NUM_RARITIES,
+            rarityNames,
             minPrices,
             maxPrices
         );
@@ -139,9 +142,9 @@ contract DeploymentHelpers is Test {
         manager = new GachaEconomyManager();
 
         // Initialize with temporary addresses (will be wired later)
-        vault.initialize(owner, feeToken, address(protocolTreasury), address(manager));
+        vault.initialize(owner, feeToken, address(protocolTreasury), address(manager), TestConstants.DEFAULT_NUM_RARITIES);
         protocolTreasury.initialize(owner, feeToken, address(manager), address(0), address(0));  // treasury and appraisal will be set later
-        manager.initialize(owner, feeToken, TestConstants.GACHA_CONTRACT, address(vault), address(protocolTreasury));
+        manager.initialize(owner, feeToken, TestConstants.GACHA_CONTRACT, address(vault), address(protocolTreasury), TestConstants.DEFAULT_NUM_RARITIES);
 
         // Wire up the contracts using setter functions
         vault.setEconomyManager(address(manager));
@@ -184,7 +187,7 @@ contract DeploymentHelpers is Test {
         vault = new CardGroupedVault();
         vm.prank(owner);
         // Initialize with temporary addresses
-        vault.initialize(owner, feeToken, address(0), address(0));
+        vault.initialize(owner, feeToken, address(0), address(0), TestConstants.DEFAULT_NUM_RARITIES);
     }
 
     /**
@@ -213,7 +216,7 @@ contract DeploymentHelpers is Test {
         manager = new GachaEconomyManager();
         vm.prank(owner);
         // Initialize with temporary addresses
-        manager.initialize(owner, feeToken, TestConstants.GACHA_CONTRACT, address(0), address(0));
+        manager.initialize(owner, feeToken, TestConstants.GACHA_CONTRACT, address(0), address(0), TestConstants.DEFAULT_NUM_RARITIES);
     }
 
     // ========================================================================

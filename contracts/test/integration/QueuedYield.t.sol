@@ -31,25 +31,38 @@ contract QueuedYield is Test, IERC721Receiver {
 
         treasury = new GachaTreasury();
         uint256 PRICE_STEP = 1e16;
-        uint256[5] memory minPrices = [
-            uint256(0),
-            uint256(100 * 1e18) + PRICE_STEP,
-            uint256(500 * 1e18) + PRICE_STEP,
-            uint256(2_000 * 1e18) + PRICE_STEP,
-            uint256(10_000 * 1e18) + PRICE_STEP
-        ];
-        uint256[5] memory maxPrices = [uint256(100 * 1e18), 500 * 1e18, 2_000 * 1e18, 10_000 * 1e18, type(uint256).max];
-        treasury.initialize(address(this), address(0xDEAD), address(appraisal), minPrices, maxPrices);
+        uint256[] memory minPrices = new uint256[](5);
+        minPrices[0] = 0;
+        minPrices[1] = uint256(15 * 1e18) + PRICE_STEP;
+        minPrices[2] = uint256(60 * 1e18) + PRICE_STEP;
+        minPrices[3] = uint256(250 * 1e18) + PRICE_STEP;
+        minPrices[4] = uint256(1_200 * 1e18) + PRICE_STEP;
+
+        uint256[] memory maxPrices = new uint256[](5);
+        maxPrices[0] = uint256(15 * 1e18);
+        maxPrices[1] = uint256(60 * 1e18);
+        maxPrices[2] = uint256(250 * 1e18);
+        maxPrices[3] = uint256(1_200 * 1e18);
+        maxPrices[4] = type(uint256).max;
+
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
+
+        treasury.initialize(address(this), address(0xDEAD), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices);
 
         cardGroupedVault = new CardGroupedVault();
-        cardGroupedVault.initialize(address(this), address(usdc), address(treasury), address(this));
+        cardGroupedVault.initialize(address(this), address(usdc), address(treasury), address(this), uint8(5));
 
         protocolTreasury = new ProtocolTreasury();
         protocolTreasury.initialize(address(this), address(usdc), address(this), address(treasury), address(appraisal));
 
         economy = new GachaEconomyManager();
         economy.initialize(
-            address(this), address(usdc), address(this), address(cardGroupedVault), address(protocolTreasury)
+            address(this), address(usdc), address(this), address(cardGroupedVault), address(protocolTreasury), uint8(5)
         );
 
         // Wire contract relationships
@@ -73,7 +86,7 @@ contract QueuedYield is Test, IERC721Receiver {
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
 
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         // Verify depositor share was queued, not sent to protocol
         assertEq(economy.totalQueuedYield(), (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000, "Queued yield mismatch");
@@ -85,7 +98,7 @@ contract QueuedYield is Test, IERC721Receiver {
         // First, queue some yield
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         uint256 queuedAmount = economy.totalQueuedYield();
         assertGt(queuedAmount, 0, "Should have queued yield");
@@ -102,7 +115,7 @@ contract QueuedYield is Test, IERC721Receiver {
         // Process more revenue to trigger queued yield processing
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         // Verify queued yield was processed
         assertEq(economy.totalQueuedYield(), 0, "Queued yield should be processed");
@@ -113,7 +126,7 @@ contract QueuedYield is Test, IERC721Receiver {
         // Process revenue when protocol has no shares
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         // Protocol should not have claimed any yield since it has no shares
         uint256 protocolBalanceBefore = usdc.balanceOf(address(protocolTreasury));
@@ -127,7 +140,7 @@ contract QueuedYield is Test, IERC721Receiver {
         vm.startPrank(address(this));
         collection.setApprovalForAll(address(treasury), true);
         treasury.depositNFT(address(collection), tokenId);
-        treasury.sendRandomNFTToWinner(GachaTreasury.Rarity.Common, 0, address(this));
+        treasury.sendRandomNFTToWinner(1, 0, address(this));
         collection.approve(address(protocolTreasury), tokenId);
         protocolTreasury.executeRedemption(address(collection), tokenId);
         vm.stopPrank();
@@ -135,7 +148,7 @@ contract QueuedYield is Test, IERC721Receiver {
         // Now protocol should have shares and future auto-claims should work
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         uint256 protocolBalanceAfter = usdc.balanceOf(address(protocolTreasury));
         assertGt(protocolBalanceAfter, protocolBalanceBefore, "Protocol should have claimed yield after getting shares");
@@ -146,7 +159,7 @@ contract QueuedYield is Test, IERC721Receiver {
         for (uint256 i = 0; i < 3; i++) {
             usdc.mint(address(this), REVENUE_AMOUNT);
             usdc.approve(address(economy), REVENUE_AMOUNT);
-            economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+            economy.onSpinRevenue(REVENUE_AMOUNT, 1);
         }
 
         uint256 totalQueued = economy.totalQueuedYield();
@@ -166,7 +179,7 @@ contract QueuedYield is Test, IERC721Receiver {
         // Final revenue should process all queued yield
         usdc.mint(address(this), REVENUE_AMOUNT);
         usdc.approve(address(economy), REVENUE_AMOUNT);
-        economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         assertEq(economy.totalQueuedYield(), 0, "All queued yield should be processed");
         assertGt(usdc.balanceOf(address(cardGroupedVault)), totalQueued, "Depositor vault should have all queued funds");

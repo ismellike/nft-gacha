@@ -12,7 +12,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
 import {ICardGroupedVault} from "../interfaces/ICardGroupedVault.sol";
 import {IProtocolTreasury} from "../interfaces/IProtocolTreasury.sol";
-import {GachaTreasury} from "../gacha/GachaTreasury.sol";
 
 /**
  * @title GachaEconomyManager
@@ -49,7 +48,10 @@ contract GachaEconomyManager is
     uint256 public totalRevenueProcessed;
     uint256 public totalToDepositors;
     uint256 public totalToProtocol;
-    mapping(GachaTreasury.Rarity => uint256) public revenueByRarity;
+    mapping(uint8 => uint256) public revenueByRarity;
+
+    /// @notice Number of rarity tiers
+    uint8 public numRarities;
 
     /// @notice Per-rarity queued depositor yield when no shares exist in that rarity pool
     mapping(uint8 => uint256) public queuedYieldByRarity;
@@ -62,6 +64,7 @@ contract GachaEconomyManager is
     error ZeroAddress();
     error ZeroRevenue();
     error InvalidRevenueSplit();
+    error InvalidNumRarities();
 
     /// @notice Events for admin changes
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
@@ -87,19 +90,22 @@ contract GachaEconomyManager is
      * @param gacha_ Gacha contract authorized to report revenue
      * @param cardGroupedVault_ Card-grouped vault address
      * @param protocolTreasury_ Protocol treasury address
+     * @param numRarities_ Number of rarity tiers
      */
     function initialize(
         address owner,
         address feeToken_,
         address gacha_,
         address cardGroupedVault_,
-        address protocolTreasury_
+        address protocolTreasury_,
+        uint8 numRarities_
     ) external initializer {
         if (owner == address(0)) revert ZeroAddress();
         if (feeToken_ == address(0)) revert ZeroAddress();
         if (gacha_ == address(0)) revert ZeroAddress();
         if (cardGroupedVault_ == address(0)) revert ZeroAddress();
         if (protocolTreasury_ == address(0)) revert ZeroAddress();
+        if (numRarities_ < 2 || numRarities_ > 10) revert InvalidNumRarities();
 
         __Ownable_init(owner);
         __Pausable_init();
@@ -109,6 +115,7 @@ contract GachaEconomyManager is
         gacha = gacha_;
         cardGroupedVault = ICardGroupedVault(cardGroupedVault_);
         protocolTreasury = IProtocolTreasury(protocolTreasury_);
+        numRarities = numRarities_;
 
         depositorShareBps = 9_500;
         protocolShareBps = 500;
@@ -116,7 +123,7 @@ contract GachaEconomyManager is
     }
 
     /// @inheritdoc IGachaEconomyManager
-    function onSpinRevenue(uint256 usdcAmount, GachaTreasury.Rarity hitRarity)
+    function onSpinRevenue(uint256 usdcAmount, uint8 hitRarity)
         external
         override
         onlyGacha
@@ -141,18 +148,18 @@ contract GachaEconomyManager is
         uint256 actualDistributed = 0;
         if (depositShare > 0) {
             feeToken.forceApprove(address(cardGroupedVault), depositShare);
-            try cardGroupedVault.distributeYield(depositShare, uint8(hitRarity)) {
+            try cardGroupedVault.distributeYield(depositShare, hitRarity) {
                 actualDistributed += depositShare;
             } catch {
                 // Rarity pool is empty — queue for that specific rarity
-                queuedYieldByRarity[uint8(hitRarity)] += depositShare;
-                emit DepositorYieldQueued(depositShare, uint8(hitRarity));
+                queuedYieldByRarity[hitRarity] += depositShare;
+                emit DepositorYieldQueued(depositShare, hitRarity);
             }
         }
 
         // Flush queued yield for each rarity that has a non-zero queue
         uint256 totalFlushed = 0;
-        for (uint8 i; i < 5; i++) {
+        for (uint8 i; i < numRarities; i++) {
             uint256 queued = queuedYieldByRarity[i];
             if (queued == 0) continue;
             feeToken.forceApprove(address(cardGroupedVault), queued);
@@ -170,11 +177,6 @@ contract GachaEconomyManager is
             protocolTreasury.onRevenueReceived(protocolShare);
         }
 
-        // NOTE: Protocol yield auto-claim removed to prevent DoS vector.
-        // If claimYield or downstream protocolTreasury logic reverts,
-        // it would block all spins. Protocol should claim on its own schedule
-        // via cardGroupedVault.claimYield(protocolTreasuryAddress).
-
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
         totalToDepositors += actualDistributed;
@@ -188,7 +190,7 @@ contract GachaEconomyManager is
      * @notice Returns the sum of all per-rarity queued yield
      */
     function totalQueuedYield() external view returns (uint256 total) {
-        for (uint8 i; i < 5; i++) total += queuedYieldByRarity[i];
+        for (uint8 i; i < numRarities; i++) total += queuedYieldByRarity[i];
     }
 
     /**
@@ -259,5 +261,5 @@ contract GachaEconomyManager is
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    uint256[41] private __gap;
+    uint256[40] private __gap;
 }

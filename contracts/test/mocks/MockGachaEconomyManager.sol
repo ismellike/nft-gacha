@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
-
 /**
  * @title MockGachaEconomyManager
  * @notice Mock implementation of IGachaEconomyManager for testing Gacha contract
@@ -41,7 +39,7 @@ contract MockGachaEconomyManager {
      * @param usdcAmount Amount of USDC (6 decimals) collected for the spin
      * @param - Rarity executed, for analytical eventing
      */
-    function onSpinRevenue(uint256 usdcAmount, GachaTreasury.Rarity /* hitRarity */) external {
+    function onSpinRevenue(uint256 usdcAmount, uint8 /* hitRarity */) external {
         // Track total revenue for testing
         totalRevenueReceived += usdcAmount;
 

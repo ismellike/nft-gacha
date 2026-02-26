@@ -33,7 +33,7 @@ contract CardGroupedVaultTest is Test {
     function setUp() public {
         usdc = new BaseERC20("USDC", "USDC", address(this));
         vault = new CardGroupedVault();
-        vault.initialize(owner, address(usdc), treasury, economyManager);
+        vault.initialize(owner, address(usdc), treasury, economyManager, uint8(5));
 
         // Mint and fund economy manager with USDC for yield distributions
         usdc.mint(economyManager, 1_000_000e6);

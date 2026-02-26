@@ -64,13 +64,20 @@ export function createGachaConfig(
 				"NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS",
 				fb,
 			),
-			trackerAddresses: {
-				common: addr("NEXT_PUBLIC_COMMON_TRACKER_ADDRESS", fb),
-				uncommon: addr("NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS", fb),
-				rare: addr("NEXT_PUBLIC_RARE_TRACKER_ADDRESS", fb),
-				epic: addr("NEXT_PUBLIC_EPIC_TRACKER_ADDRESS", fb),
-				legendary: addr("NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS", fb),
-			},
+			trackerAddresses: [
+				addr("NEXT_PUBLIC_COMMON_TRACKER_ADDRESS", fb),
+				addr("NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS", fb),
+				addr("NEXT_PUBLIC_RARE_TRACKER_ADDRESS", fb),
+				addr("NEXT_PUBLIC_EPIC_TRACKER_ADDRESS", fb),
+				addr("NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS", fb),
+			],
+			rarityNames: [
+				"Common",
+				"Uncommon",
+				"Rare",
+				"Epic",
+				"Legendary",
+			],
 		},
 	};
 }

@@ -96,26 +96,44 @@ library TestConstants {
     /// @dev Price step for treasury min price calculations
     uint256 public constant PRICE_STEP = 1e16; // 0.01
 
+    /// @dev Default number of rarity tiers
+    uint8 public constant DEFAULT_NUM_RARITIES = 5;
+
+    /// @dev Rarity tier constants
+    uint8 public constant COMMON = 0;
+    uint8 public constant UNCOMMON = 1;
+    uint8 public constant RARE = 2;
+    uint8 public constant EPIC = 3;
+    uint8 public constant LEGENDARY = 4;
+
     /// @dev Min prices array [Common, Uncommon, Rare, Epic, Legendary]
-    function getMinPrices() internal pure returns (uint256[5] memory) {
-        return [
-            uint256(0),
-            uint256(15 * 1e18) + PRICE_STEP,
-            uint256(60 * 1e18) + PRICE_STEP,
-            uint256(250 * 1e18) + PRICE_STEP,
-            uint256(1_200 * 1e18) + PRICE_STEP
-        ];
+    function getMinPrices() internal pure returns (uint256[] memory minPrices) {
+        minPrices = new uint256[](5);
+        minPrices[0] = 0;
+        minPrices[1] = uint256(15 * 1e18) + PRICE_STEP;
+        minPrices[2] = uint256(60 * 1e18) + PRICE_STEP;
+        minPrices[3] = uint256(250 * 1e18) + PRICE_STEP;
+        minPrices[4] = uint256(1_200 * 1e18) + PRICE_STEP;
     }
 
     /// @dev Max prices array [Common, Uncommon, Rare, Epic, Legendary]
-    function getMaxPrices() internal pure returns (uint256[5] memory) {
-        return [
-            uint256(15 * 1e18),
-            uint256(60 * 1e18),
-            uint256(250 * 1e18),
-            uint256(1_200 * 1e18),
-            type(uint256).max
-        ];
+    function getMaxPrices() internal pure returns (uint256[] memory maxPrices) {
+        maxPrices = new uint256[](5);
+        maxPrices[0] = uint256(15 * 1e18);
+        maxPrices[1] = uint256(60 * 1e18);
+        maxPrices[2] = uint256(250 * 1e18);
+        maxPrices[3] = uint256(1_200 * 1e18);
+        maxPrices[4] = type(uint256).max;
+    }
+
+    /// @dev Default rarity names
+    function getDefaultRarityNames() internal pure returns (string[] memory names) {
+        names = new string[](5);
+        names[0] = "Common";
+        names[1] = "Uncommon";
+        names[2] = "Rare";
+        names[3] = "Epic";
+        names[4] = "Legendary";
     }
 
     // ========================================================================

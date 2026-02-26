@@ -3,7 +3,7 @@
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import type { GachaAnalytics } from "@/hooks/useLeaderboardAnalytics";
-import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
+import { DEFAULT_RARITY_CONFIG, getRarityConfig } from "@/lib/rarityConfig";
 import { Card, Skeleton } from "@/ui";
 
 interface GachaLeaderboardTableProps {
@@ -11,13 +11,7 @@ interface GachaLeaderboardTableProps {
 	isLoading: boolean;
 }
 
-const RARITIES = [
-	Rarity.Common,
-	Rarity.Uncommon,
-	Rarity.Rare,
-	Rarity.Epic,
-	Rarity.Legendary,
-] as const;
+const RARITIES = DEFAULT_RARITY_CONFIG.map((_, i) => i);
 
 function LoadingRow() {
 	return (
@@ -70,7 +64,7 @@ export function GachaLeaderboardTable({
 									key={r}
 									className="text-right py-3 px-4 font-medium hidden md:table-cell"
 								>
-									{RARITY_CONFIG[r].emoji}
+									{getRarityConfig(r).emoji}
 								</th>
 							))}
 							<th className="text-right py-3 px-4 font-medium">Avail. Items</th>

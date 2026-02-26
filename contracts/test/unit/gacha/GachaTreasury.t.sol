@@ -38,7 +38,7 @@ contract GachaTreasuryTest is StandardTest {
     event CollectionWhitelisted(address indexed collection);
     event CollectionRemovedFromWhitelist(address indexed collection);
     event NFTDeposited(
-        address indexed collection, uint256 indexed tokenId, address indexed depositor, GachaTreasury.Rarity rarity
+        address indexed collection, uint256 indexed tokenId, address indexed depositor, uint8 rarity
     );
     event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, address indexed depositor);
     event ProtocolTreasuryUpdated(address indexed previous, address indexed newProtocol);
@@ -73,7 +73,7 @@ contract GachaTreasuryTest is StandardTest {
     function testDeployment() public view {
         assertEq(treasury.owner(), owner, "Owner should be set correctly");
         assertEq(treasury.gachaContract(), gachaContract, "Gacha contract should be set correctly");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Common), 0, "Initial common count should be zero");
+        assertEq(treasury.getRarityCount(0), 0, "Initial common count should be zero");
         assertEq(treasury.getTotalItemsCount(), 0, "Initial total count should be zero");
     }
 
@@ -208,7 +208,7 @@ contract GachaTreasuryTest is StandardTest {
         vm.prank(owner);
         treasury.depositNFT(address(nft), tokenId);
 
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Uncommon), 1, "Should have 1 Uncommon NFT");
+        assertEq(treasury.getRarityCount(1), 1, "Should have 1 Uncommon NFT");
         assertEq(treasury.getTotalItemsCount(), 1, "Should have 1 total NFT");
         assertEq(nft.ownerOf(tokenId), address(treasury), "Treasury should own the NFT");
     }
@@ -270,11 +270,11 @@ contract GachaTreasuryTest is StandardTest {
         }
         vm.stopPrank();
 
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should have 1 Common NFT");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Uncommon), 1, "Should have 1 Uncommon NFT");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 1, "Should have 1 Rare NFT");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Should have 1 Epic NFT");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 1, "Should have 1 Legendary NFT");
+        assertEq(treasury.getRarityCount(0), 1, "Should have 1 Common NFT");
+        assertEq(treasury.getRarityCount(1), 1, "Should have 1 Uncommon NFT");
+        assertEq(treasury.getRarityCount(2), 1, "Should have 1 Rare NFT");
+        assertEq(treasury.getRarityCount(3), 1, "Should have 1 Epic NFT");
+        assertEq(treasury.getRarityCount(4), 1, "Should have 1 Legendary NFT");
         assertEq(treasury.getTotalItemsCount(), 5, "Should have 5 total NFTs");
     }
 
@@ -302,7 +302,7 @@ contract GachaTreasuryTest is StandardTest {
         vm.prank(owner);
         treasury.withdrawMyNFT(address(nft), tokenId);
 
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0, "Should have 0 Epic NFTs after withdrawal");
+        assertEq(treasury.getRarityCount(3), 0, "Should have 0 Epic NFTs after withdrawal");
         assertEq(nft.ownerOf(tokenId), owner, "Owner should own their withdrawn NFT");
     }
 
@@ -347,13 +347,13 @@ contract GachaTreasuryTest is StandardTest {
         prices[4] = 1500e18; // Legendary: exact threshold
         prices[5] = 5000e18; // Legendary: way above
 
-        GachaTreasury.Rarity[] memory expectedRarities = new GachaTreasury.Rarity[](6);
-        expectedRarities[0] = GachaTreasury.Rarity.Common;
-        expectedRarities[1] = GachaTreasury.Rarity.Uncommon;
-        expectedRarities[2] = GachaTreasury.Rarity.Rare;
-        expectedRarities[3] = GachaTreasury.Rarity.Epic;
-        expectedRarities[4] = GachaTreasury.Rarity.Legendary;
-        expectedRarities[5] = GachaTreasury.Rarity.Legendary;
+        uint8[] memory expectedRarities = new uint8[](6);
+        expectedRarities[0] = 0;
+        expectedRarities[1] = 1;
+        expectedRarities[2] = 2;
+        expectedRarities[3] = 3;
+        expectedRarities[4] = 4;
+        expectedRarities[5] = 4;
 
         uint256[] memory tokenIds = _mintNFTs(nft, owner, 6);
 
@@ -366,11 +366,11 @@ contract GachaTreasuryTest is StandardTest {
         vm.stopPrank();
 
         // Verify counts
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Common), 1, "Should have 1 Common");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Uncommon), 1, "Should have 1 Uncommon");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Rare), 1, "Should have 1 Rare");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 1, "Should have 1 Epic");
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Legendary), 2, "Should have 2 Legendary");
+        assertEq(treasury.getRarityCount(0), 1, "Should have 1 Common");
+        assertEq(treasury.getRarityCount(1), 1, "Should have 1 Uncommon");
+        assertEq(treasury.getRarityCount(2), 1, "Should have 1 Rare");
+        assertEq(treasury.getRarityCount(3), 1, "Should have 1 Epic");
+        assertEq(treasury.getRarityCount(4), 2, "Should have 2 Legendary");
     }
 
     /**
@@ -393,11 +393,11 @@ contract GachaTreasuryTest is StandardTest {
         }
         vm.stopPrank();
 
-        GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(GachaTreasury.Rarity.Uncommon);
+        GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(1);
         assertEq(items.length, 2, "Should have 2 Uncommon items");
         assertEq(items[0].collection, address(nft), "First item should have correct collection");
         assertEq(items[0].tokenId, tokenIds[0], "First item should have correct tokenId");
-        assertEq(uint8(items[0].rarity), uint8(GachaTreasury.Rarity.Uncommon), "First item should be Uncommon");
+        assertEq(items[0].rarity, uint8(1), "First item should be Uncommon");
         assertEq(items[0].appraisedPrice, TestConstants.UNCOMMON_PRICE, "First item should have correct price");
     }
 
@@ -406,7 +406,7 @@ contract GachaTreasuryTest is StandardTest {
      * @dev Verifies behavior when querying empty rarity pool
      */
     function testEmptyRarityPool() public view {
-        GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(GachaTreasury.Rarity.Common);
+        GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(0);
         assertEq(items.length, 0, "Empty pool should return 0 items");
     }
 
@@ -433,22 +433,22 @@ contract GachaTreasuryTest is StandardTest {
         address winner = address(0x456);
 
         // Check initial state
-        assertEq(treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic), 1, "Should have 1 Epic deposit");
+        assertEq(treasury.getUserDepositCount(owner, 3), 1, "Should have 1 Epic deposit");
         assertEq(treasury.getUserTotalDepositCount(owner), 1, "Should have 1 total deposit");
 
         // Gacha sends NFT to winner
         vm.prank(gachaContract);
-        GachaTreasury.NFTItem memory item = treasury.sendRandomNFTToWinner(GachaTreasury.Rarity.Epic, 0, winner);
+        GachaTreasury.NFTItem memory item = treasury.sendRandomNFTToWinner(3, 0, winner);
 
-        assertEq(treasury.getRarityCount(GachaTreasury.Rarity.Epic), 0, "Should have 0 Epic NFTs after distribution");
+        assertEq(treasury.getRarityCount(3), 0, "Should have 0 Epic NFTs after distribution");
         assertEq(nft.ownerOf(tokenId), winner, "Winner should own the NFT");
         assertEq(item.collection, address(nft), "Item should have correct collection");
         assertEq(item.tokenId, tokenId, "Item should have correct tokenId");
-        assertEq(uint8(item.rarity), uint8(GachaTreasury.Rarity.Epic), "Item should be Epic rarity");
+        assertEq(item.rarity, uint8(3), "Item should be Epic rarity");
         assertEq(item.appraisedPrice, TestConstants.EPIC_PRICE, "Item should have correct price");
 
         // Verify deposit counts decreased
-        assertEq(treasury.getUserDepositCount(owner, GachaTreasury.Rarity.Epic), 0, "Should have 0 Epic deposits");
+        assertEq(treasury.getUserDepositCount(owner, 3), 0, "Should have 0 Epic deposits");
         assertEq(treasury.getUserTotalDepositCount(owner), 0, "Should have 0 total deposits");
     }
 
@@ -470,7 +470,7 @@ contract GachaTreasuryTest is StandardTest {
         // Non-gacha address cannot send NFT
         vm.prank(user);
         vm.expectRevert(abi.encodeWithSelector(GachaTreasury.UnauthorizedGachaContract.selector));
-        treasury.sendRandomNFTToWinner(GachaTreasury.Rarity.Epic, 0, user);
+        treasury.sendRandomNFTToWinner(3, 0, user);
     }
 
     /**

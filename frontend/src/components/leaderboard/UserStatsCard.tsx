@@ -4,7 +4,7 @@ import { UserCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useUserLeaderboardStats } from "@/hooks/useLeaderboardAnalytics";
-import { RARITY_CONFIG, Rarity } from "@/lib/rarityConfig";
+import { DEFAULT_RARITY_CONFIG, getRarityConfig } from "@/lib/rarityConfig";
 import { Button, Card, Skeleton } from "@/ui";
 
 interface UserStatsCardProps {
@@ -13,13 +13,7 @@ interface UserStatsCardProps {
 	gachaTitle: string;
 }
 
-const RARITIES = [
-	Rarity.Common,
-	Rarity.Uncommon,
-	Rarity.Rare,
-	Rarity.Epic,
-	Rarity.Legendary,
-] as const;
+const RARITIES = DEFAULT_RARITY_CONFIG.map((_, i) => i);
 
 export function UserStatsCard({
 	gachaAddress,
@@ -135,7 +129,7 @@ export function UserStatsCard({
 					Wins by rarity
 				</p>
 				{RARITIES.map((rarity) => {
-					const config = RARITY_CONFIG[rarity];
+					const config = getRarityConfig(rarity);
 					const wins = rarityWins[rarity] ?? 0n;
 
 					return (

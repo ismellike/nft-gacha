@@ -80,25 +80,34 @@ contract GachaServiceHandlerTest is StandardTest {
         vm.startPrank(treasuryOwner);
         GachaTreasury treasuryImpl = new GachaTreasury();
         uint256 PRICE_STEP = 1e16;
-        uint256[5] memory minPrices;
+        uint256[] memory minPrices = new uint256[](5);
         minPrices[0] = 0;
         minPrices[1] = 15 * 1e18 + PRICE_STEP; // 15.01
         minPrices[2] = 60 * 1e18 + PRICE_STEP; // 60.01
         minPrices[3] = 250 * 1e18 + PRICE_STEP; // 250.01
         minPrices[4] = 1200 * 1e18 + PRICE_STEP; // 1200.01
 
-        uint256[5] memory maxPrices;
+        uint256[] memory maxPrices = new uint256[](5);
         maxPrices[0] = 15 * 1e18;
         maxPrices[1] = 60 * 1e18;
         maxPrices[2] = 250 * 1e18;
         maxPrices[3] = 1200 * 1e18;
         maxPrices[4] = type(uint256).max;
 
+        string[] memory rarityNames = new string[](5);
+        rarityNames[0] = "Common";
+        rarityNames[1] = "Uncommon";
+        rarityNames[2] = "Rare";
+        rarityNames[3] = "Epic";
+        rarityNames[4] = "Legendary";
+
         bytes memory initData = abi.encodeWithSelector(
             GachaTreasury.initialize.selector,
             treasuryOwner,
             address(0xDEAD), // Placeholder gacha
             address(mockAppraisal),
+            uint8(5),
+            rarityNames,
             minPrices,
             maxPrices
         );

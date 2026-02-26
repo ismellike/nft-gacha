@@ -87,11 +87,18 @@ export function getMissingTestnetAddresses(config: GachaConfig): string[] {
 	if (isPlaceholder(config.cardGroupedVaultAddress)) missing.push("NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS");
 	if (isPlaceholder(config.buybackVaultAddress)) missing.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
 	if (isPlaceholder(config.protocolTreasuryAddress)) missing.push("NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.common)) missing.push("NEXT_PUBLIC_COMMON_TRACKER_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.uncommon)) missing.push("NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.rare)) missing.push("NEXT_PUBLIC_RARE_TRACKER_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.epic)) missing.push("NEXT_PUBLIC_EPIC_TRACKER_ADDRESS");
-	if (isPlaceholder(config.trackerAddresses.legendary)) missing.push("NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS");
+	const trackerEnvNames = [
+		"NEXT_PUBLIC_COMMON_TRACKER_ADDRESS",
+		"NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS",
+		"NEXT_PUBLIC_RARE_TRACKER_ADDRESS",
+		"NEXT_PUBLIC_EPIC_TRACKER_ADDRESS",
+		"NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS",
+	];
+	for (let i = 0; i < config.trackerAddresses.length; i++) {
+		if (isPlaceholder(config.trackerAddresses[i]) && trackerEnvNames[i]) {
+			missing.push(trackerEnvNames[i]);
+		}
+	}
 
 	return missing;
 }
@@ -114,7 +121,7 @@ export function validateTestnetConfig(
 			allValid = false;
 			console.warn(
 				`[gacha-config/testnet] Gacha "${id}" is missing ${missing.length} address(es).\n` +
-				`  Set the following env vars before deploying to testnet:\n` +
+				"  Set the following env vars before deploying to testnet:\n" +
 				missing.map((v) => `    ${v}`).join("\n"),
 			);
 		}

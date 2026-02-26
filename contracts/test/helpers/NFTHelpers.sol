@@ -194,37 +194,37 @@ contract NFTHelpers is Test {
     // ========================================================================
 
     /**
-     * @notice Get rarity enum from price
+     * @notice Get rarity index from price
      * @param priceUSD The appraised price
-     * @return rarity The corresponding rarity tier
+     * @return rarity The corresponding rarity tier as uint8
      */
-    function _getRarityFromPrice(uint256 priceUSD) internal pure returns (GachaTreasury.Rarity rarity) {
+    function _getRarityFromPrice(uint256 priceUSD) internal pure returns (uint8) {
         if (priceUSD <= TestConstants.COMMON_MAX) {
-            return GachaTreasury.Rarity.Common;
+            return 0; // Common
         } else if (priceUSD >= TestConstants.UNCOMMON_MIN && priceUSD <= TestConstants.UNCOMMON_MAX) {
-            return GachaTreasury.Rarity.Uncommon;
+            return 1; // Uncommon
         } else if (priceUSD >= TestConstants.RARE_MIN && priceUSD <= TestConstants.RARE_MAX) {
-            return GachaTreasury.Rarity.Rare;
+            return 2; // Rare
         } else if (priceUSD >= TestConstants.EPIC_MIN && priceUSD <= TestConstants.EPIC_MAX) {
-            return GachaTreasury.Rarity.Epic;
+            return 3; // Epic
         } else {
-            return GachaTreasury.Rarity.Legendary;
+            return 4; // Legendary
         }
     }
 
     /**
      * @notice Get test price for a specific rarity
-     * @param rarity The desired rarity tier
+     * @param rarity The desired rarity tier as uint8
      * @return priceUSD The test price for that rarity
      */
-    function _getPriceForRarity(GachaTreasury.Rarity rarity) internal pure returns (uint256 priceUSD) {
-        if (rarity == GachaTreasury.Rarity.Common) {
+    function _getPriceForRarity(uint8 rarity) internal pure returns (uint256 priceUSD) {
+        if (rarity == 0) {
             return TestConstants.COMMON_PRICE;
-        } else if (rarity == GachaTreasury.Rarity.Uncommon) {
+        } else if (rarity == 1) {
             return TestConstants.UNCOMMON_PRICE;
-        } else if (rarity == GachaTreasury.Rarity.Rare) {
+        } else if (rarity == 2) {
             return TestConstants.RARE_PRICE;
-        } else if (rarity == GachaTreasury.Rarity.Epic) {
+        } else if (rarity == 3) {
             return TestConstants.EPIC_PRICE;
         } else {
             return TestConstants.LEGENDARY_PRICE;

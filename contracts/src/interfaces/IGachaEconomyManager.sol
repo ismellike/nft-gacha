@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {GachaTreasury} from "../gacha/GachaTreasury.sol";
-
 /**
  * @title IGachaEconomyManager
  * @notice Interface for routing spin revenue through the NFT Gacha economy loop
@@ -26,9 +24,9 @@ interface IGachaEconomyManager {
     /**
      * @notice Processes spin revenue and forwards shares to downstream vaults
      * @param usdcAmount Amount of USDC (6 decimals) collected for the spin
-     * @param hitRarity Rarity executed, for analytical eventing
+     * @param hitRarity Rarity tier that was hit (uint8 index)
      */
-    function onSpinRevenue(uint256 usdcAmount, GachaTreasury.Rarity hitRarity) external;
+    function onSpinRevenue(uint256 usdcAmount, uint8 hitRarity) external;
 
     /**
      * @notice Basis points for depositor share

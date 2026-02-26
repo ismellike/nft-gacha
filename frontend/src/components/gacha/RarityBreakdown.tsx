@@ -9,7 +9,7 @@ import {
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
-import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
+import { getAllRarities, getRarityConfig } from "../../lib/rarityConfig";
 import { Card } from "../../ui";
 import RarityShowcaseModal from "./RarityShowcaseModal";
 
@@ -18,14 +18,14 @@ interface RarityBreakdownRef {
 }
 
 const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
-	const [selectedRarity, setSelectedRarity] = useState<Rarity | null>(null);
+	const [selectedRarity, setSelectedRarity] = useState<number | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	// Get gacha ID and contract addresses
 	const gachaId = useGachaId();
 	const contracts = useGachaContracts(gachaId);
 
-	const handleRarityClick = (rarity: Rarity) => {
+	const handleRarityClick = (rarity: number) => {
 		setSelectedRarity(rarity);
 		setIsModalOpen(true);
 	};
@@ -97,43 +97,14 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		return Number(rarityWeights[index]) / 100; // Convert basis points to percentage
 	};
 
-	const rarityStats = [
-		{
-			rarity: Rarity.Common,
-			...getRarityConfig(Rarity.Common),
-			percentage: getRarityPercentage(0),
-			count: Number(allRarityCounts?.[0] ?? 0),
-			avgValue: averageRarityValues?.[0] ?? 0n,
-		},
-		{
-			rarity: Rarity.Uncommon,
-			...getRarityConfig(Rarity.Uncommon),
-			percentage: getRarityPercentage(1),
-			count: Number(allRarityCounts?.[1] ?? 0),
-			avgValue: averageRarityValues?.[1] ?? 0n,
-		},
-		{
-			rarity: Rarity.Rare,
-			...getRarityConfig(Rarity.Rare),
-			percentage: getRarityPercentage(2),
-			count: Number(allRarityCounts?.[2] ?? 0),
-			avgValue: averageRarityValues?.[2] ?? 0n,
-		},
-		{
-			rarity: Rarity.Epic,
-			...getRarityConfig(Rarity.Epic),
-			percentage: getRarityPercentage(3),
-			count: Number(allRarityCounts?.[3] ?? 0),
-			avgValue: averageRarityValues?.[3] ?? 0n,
-		},
-		{
-			rarity: Rarity.Legendary,
-			...getRarityConfig(Rarity.Legendary),
-			percentage: getRarityPercentage(4),
-			count: Number(allRarityCounts?.[4] ?? 0),
-			avgValue: averageRarityValues?.[4] ?? 0n,
-		},
-	] as const;
+	const numRarities = allRarityCounts ? allRarityCounts.length : 5;
+	const rarityStats = getAllRarities(numRarities).map((rarityIndex) => ({
+		rarity: rarityIndex,
+		...getRarityConfig(rarityIndex),
+		percentage: getRarityPercentage(rarityIndex),
+		count: Number(allRarityCounts?.[rarityIndex] ?? 0),
+		avgValue: averageRarityValues?.[rarityIndex] ?? 0n,
+	}));
 
 	const totalItems = rarityStats.reduce((sum, item) => sum + item.count, 0);
 

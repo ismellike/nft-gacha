@@ -16,15 +16,8 @@ export interface GachaContracts {
 	cardGroupedVault: Address | undefined;
 	buybackVault: Address | undefined;
 	protocolTreasury: Address | undefined;
-	trackers:
-		| {
-				common: Address | undefined;
-				uncommon: Address | undefined;
-				rare: Address | undefined;
-				epic: Address | undefined;
-				legendary: Address | undefined;
-		  }
-		| undefined;
+	trackers: (Address | undefined)[];
+	rarityNames: string[];
 }
 
 /**
@@ -54,16 +47,20 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 				buybackVault: contractAddresses.buybackVault,
 				protocolTreasury: contractAddresses.protocolTreasury,
 				trackers: contractAddresses.trackers,
+				rarityNames: contractAddresses.rarityNames,
 			};
 
 			// Log warnings for invalid addresses
-			Object.entries(validatedContracts).forEach(([key, value]) => {
-				if (key === "trackers" && value) {
-					Object.entries(value).forEach(([rarity, address]) => {
+			for (const [key, value] of Object.entries(validatedContracts)) {
+				if (key === "trackers" && Array.isArray(value)) {
+					for (let i = 0; i < value.length; i++) {
+						const address = value[i] as string | undefined;
 						if (address && !isValidContractAddress(address)) {
-							console.warn(`Invalid ${rarity} tracker address: ${address}`);
+							console.warn(
+								`Invalid tracker[${i}] address: ${address}`,
+							);
 						}
-					});
+					}
 				} else if (
 					typeof value === "string" &&
 					value &&
@@ -71,7 +68,7 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 				) {
 					console.warn(`Invalid ${key} contract address: ${value}`);
 				}
-			});
+			}
 
 			return validatedContracts;
 		} catch (error) {
@@ -94,12 +91,7 @@ function getEmptyContracts(): GachaContracts {
 		cardGroupedVault: undefined,
 		buybackVault: undefined,
 		protocolTreasury: undefined,
-		trackers: {
-			common: undefined,
-			uncommon: undefined,
-			rare: undefined,
-			epic: undefined,
-			legendary: undefined,
-		},
+		trackers: [],
+		rarityNames: [],
 	};
 }

@@ -4,7 +4,6 @@ import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { memo } from "react";
 import type { Address } from "viem";
-import type { Rarity } from "../../../lib/rarityConfig";
 import { cn } from "../../../lib/theme-config";
 import { formatCurrency } from "../../../lib/utils";
 import { Button } from "../../../ui";
@@ -69,7 +68,7 @@ function WithdrawNFTCard({
 						tokenId: nft.tokenId.toString(),
 						rarity:
 							typeof nft.currentRarity === "number"
-								? (nft.currentRarity as Rarity)
+								? nft.currentRarity
 								: undefined,
 						appraisedValue: nft.appraisedPrice,
 					}}

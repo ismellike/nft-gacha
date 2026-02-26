@@ -6,7 +6,6 @@ import {GachaEconomyManager} from "../../src/economy/GachaEconomyManager.sol";
 import {MockCardGroupedVault} from "../mocks/MockCardGroupedVault.sol";
 import {MockProtocolTreasury} from "../mocks/MockProtocolTreasury.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
-import {GachaTreasury} from "../../src/gacha/GachaTreasury.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
@@ -45,7 +44,8 @@ contract EconomyInvariants is Test {
             address(usdc),
             gacha,
             address(vault),
-            address(protocolTreasury)
+            address(protocolTreasury),
+            uint8(5)
         );
 
         // Mint USDC to gacha
@@ -209,11 +209,9 @@ contract EconomyInvariants is Test {
         revenueAmount = bound(revenueAmount, 1, 10000e6);
         rarity = uint8(bound(rarity, uint256(0), uint256(4)));
 
-        GachaTreasury.Rarity r = GachaTreasury.Rarity(rarity);
-
         // Process revenue as gacha
         vm.prank(gacha);
-        try economy.onSpinRevenue(revenueAmount, r) {
+        try economy.onSpinRevenue(revenueAmount, uint8(rarity)) {
             // Success
         } catch {
             // Expected failure (e.g., contract paused)

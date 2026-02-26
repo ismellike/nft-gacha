@@ -3,11 +3,11 @@
 import { motion } from "framer-motion";
 import { useCallback, useState } from "react";
 import type { NFTMetadata } from "../../lib/metadataValidation";
-import { Rarity, getRarityConfig } from "../../lib/rarityConfig";
+import { getRarityConfig } from "../../lib/rarityConfig";
 import { Button } from "../../ui";
 
 interface SharePullButtonProps {
-	rarity: Rarity;
+	rarity: number;
 	metadata: NFTMetadata | null;
 	rarityName: string;
 	animationDelay?: number | undefined;
@@ -20,7 +20,7 @@ const EPIC_FLAVOR = [
 ];
 
 function getShareText(
-	rarity: Rarity,
+	rarity: number,
 	rarityName: string,
 	metadata: NFTMetadata | null,
 ): string {
@@ -28,7 +28,8 @@ function getShareText(
 	const cardName = metadata?.title || metadata?.name || "an NFT";
 	let text = `I just pulled a ${rarityName} ${config.emoji} ${cardName} on @spinfiapp!`;
 
-	if (rarity >= Rarity.Epic) {
+	// Index 3+ (Epic and above in the default 5-rarity system)
+	if (rarity >= 3) {
 		const flavor = EPIC_FLAVOR[Math.floor(Math.random() * EPIC_FLAVOR.length)];
 		text += ` ${flavor}`;
 	}

@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { getRarityConfig, Rarity } from "../../lib/rarityConfig";
+import { getAllRarities, getRarityConfig } from "../../lib/rarityConfig";
 import { Chip } from "../../ui";
 
 interface RarityBadgeProps {
-	rarity: Rarity;
+	rarity: number;
 	showEmoji?: boolean;
 	size?: "sm" | "md" | "lg";
 	className?: string;
@@ -46,7 +46,7 @@ function RarityBadge({
 interface RarityShowcaseProps {
 	className?: string;
 	animate?: boolean;
-	onRarityClick?: (rarity: Rarity) => void;
+	onRarityClick?: (rarity: number) => void;
 }
 
 function RarityShowcase({
@@ -54,20 +54,14 @@ function RarityShowcase({
 	animate = false,
 	onRarityClick,
 }: RarityShowcaseProps) {
-	const rarities: Rarity[] = [
-		Rarity.Common,
-		Rarity.Uncommon,
-		Rarity.Rare,
-		Rarity.Epic,
-		Rarity.Legendary,
-	];
+	const rarities: number[] = getAllRarities();
 
 	return (
 		<div className={`flex gap-3 flex-wrap ${className}`}>
 			{rarities.map((rarity, index: number) => {
 				return (
 					<motion.div
-						key={rarity.toString()}
+						key={rarity}
 						initial={{ opacity: 0, y: 20 }}
 						animate={{
 							opacity: 1,
