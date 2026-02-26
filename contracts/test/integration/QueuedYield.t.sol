@@ -76,7 +76,7 @@ contract QueuedYield is Test, IERC721Receiver {
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
         // Verify depositor share was queued, not sent to protocol
-        assertEq(economy.queuedDepositorYield(), (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000, "Queued yield mismatch");
+        assertEq(economy.totalQueuedYield(), (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000, "Queued yield mismatch");
         assertEq(usdc.balanceOf(address(cardGroupedVault)), 0, "Depositor vault should have no funds");
         assertEq(usdc.balanceOf(address(protocolTreasury)), (REVENUE_AMOUNT * economy.protocolShareBps()) / 10_000, "Protocol should only get its share");
     }
@@ -87,7 +87,7 @@ contract QueuedYield is Test, IERC721Receiver {
         usdc.approve(address(economy), REVENUE_AMOUNT);
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
-        uint256 queuedAmount = economy.queuedDepositorYield();
+        uint256 queuedAmount = economy.totalQueuedYield();
         assertGt(queuedAmount, 0, "Should have queued yield");
 
         // Now deposit an NFT, which should trigger processing of queued yield
@@ -105,7 +105,7 @@ contract QueuedYield is Test, IERC721Receiver {
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
         // Verify queued yield was processed
-        assertEq(economy.queuedDepositorYield(), 0, "Queued yield should be processed");
+        assertEq(economy.totalQueuedYield(), 0, "Queued yield should be processed");
         assertGt(usdc.balanceOf(address(cardGroupedVault)), queuedAmount, "Depositor vault should have queued funds");
     }
 
@@ -149,7 +149,7 @@ contract QueuedYield is Test, IERC721Receiver {
             economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
         }
 
-        uint256 totalQueued = economy.queuedDepositorYield();
+        uint256 totalQueued = economy.totalQueuedYield();
         // forge-lint: disable-next-line(divide-before-multiply)
         uint256 expectedQueued = (REVENUE_AMOUNT * economy.depositorShareBps() / 10_000) * 3;
         assertEq(totalQueued, expectedQueued, "Total queued yield should be accumulated");
@@ -168,7 +168,7 @@ contract QueuedYield is Test, IERC721Receiver {
         usdc.approve(address(economy), REVENUE_AMOUNT);
         economy.onSpinRevenue(REVENUE_AMOUNT, GachaTreasury.Rarity.Common);
 
-        assertEq(economy.queuedDepositorYield(), 0, "All queued yield should be processed");
+        assertEq(economy.totalQueuedYield(), 0, "All queued yield should be processed");
         assertGt(usdc.balanceOf(address(cardGroupedVault)), totalQueued, "Depositor vault should have all queued funds");
     }
 

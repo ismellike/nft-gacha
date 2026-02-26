@@ -335,14 +335,12 @@ if (distributed < usdcAmount) {
 
 No USDC is stranded in the economy manager.
 
-#### I-GEM-3: Queued Yield Is Eventually Distributed or Retained
+#### I-GEM-3: Queued Yield Is Eventually Distributed to Originating Rarity
 
-When `cardGroupedVault.distributeYield` reverts (empty rarity pool), `depositShare` is added back
-to `queuedDepositorYield` rather than lost. The next `onSpinRevenue` call attempts to flush the
-queue.
-
-**Known limitation:** Queued yield is distributed to the *next* spin's rarity pool, not the
-originating rarity. This crosses rarity boundaries — see TRUST-6.
+When `cardGroupedVault.distributeYield` reverts (empty rarity pool), `depositShare` is added to
+`queuedYieldByRarity[rarity]` rather than lost. Each `onSpinRevenue` call attempts to flush all
+5 per-rarity queues, distributing queued yield only to the rarity pool that originally generated
+it.
 
 #### I-GEM-4: No Yield Lost on Successful Distribution
 
@@ -765,15 +763,21 @@ All contracts share a single `OwnableUpgradeable` owner. A compromised owner key
 **Recommendation:** Deploy with a Gnosis Safe multisig (minimum 3-of-5) as owner, gated by a
 48-hour time-lock for upgrade and service-handler change operations.
 
-### TRUST-6: Queued Yield Rarity Cross-Contamination
+### TRUST-6: Queued Yield Rarity Cross-Contamination — RESOLVED
 
-When a rarity pool is empty and `distributeYield` reverts, yield is accumulated in
-`queuedDepositorYield`. The queued amount is flushed during the *next* `onSpinRevenue` call and
-distributed to the *next spin's hit rarity pool*, not the originating rarity. Depositors of one
-rarity tier may receive yield attributable to spins in a different rarity tier.
+When a rarity pool is empty and `distributeYield` reverts, yield was previously accumulated in a
+single global `queuedDepositorYield`. The queued amount was flushed during the *next*
+`onSpinRevenue` call and distributed to the *next spin's hit rarity pool*, not the originating
+rarity. Depositors of one rarity tier could receive yield attributable to spins in a different
+rarity tier.
 
-This is an accepted design trade-off that should be explicitly documented in user-facing
-materials and ratified by protocol governance.
+**Fix applied:** `queuedDepositorYield` has been replaced with a per-rarity mapping
+`queuedYieldByRarity[uint8]`. When `distributeYield` reverts for a rarity pool, yield is queued
+under that specific rarity. On each `onSpinRevenue` call, the flush loop iterates all 5 rarities
+and attempts to distribute each rarity's queued yield back to its originating pool. Yield is only
+released when the correct rarity pool has depositors. Events `DepositorYieldQueued` and
+`QueuedDepositorYieldProcessed` now include a `rarity` parameter for auditability. A convenience
+view `totalQueuedYield()` sums all per-rarity queues.
 
 ### TRUST-7: Auto-Migration Gas Limit May Be Insufficient — RESOLVED
 

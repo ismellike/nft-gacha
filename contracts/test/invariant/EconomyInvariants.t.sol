@@ -140,7 +140,7 @@ contract EconomyInvariants is Test {
      * @dev This invariant ensures queued yield is eventually distributed
      */
     function invariant_QueuedYieldConsistency() public view {
-        uint256 queuedYield = economy.queuedDepositorYield();
+        uint256 queuedYield = economy.totalQueuedYield();
         uint256 totalShares = vault.totalShares();
 
         // If there are shares, queued yield should be zero (processed immediately)

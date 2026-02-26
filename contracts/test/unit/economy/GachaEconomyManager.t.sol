@@ -108,7 +108,7 @@ contract GachaEconomyManagerTest is StandardTest {
         uint256 expectedDepositor = (REVENUE_AMOUNT * DEPOSITOR_SHARE_BPS) / 10_000;
         uint256 expectedProtocol = REVENUE_AMOUNT - expectedDepositor;
 
-        assertEq(economy.queuedDepositorYield(), expectedDepositor);
+        assertEq(economy.totalQueuedYield(), expectedDepositor);
         assertEq(economy.totalToProtocol(), expectedProtocol);
         assertEq(economy.totalRevenueProcessed(), REVENUE_AMOUNT);
     }
@@ -134,7 +134,7 @@ contract GachaEconomyManagerTest is StandardTest {
         vm.stopPrank();
 
         uint256 expectedQueue = (REVENUE_AMOUNT * DEPOSITOR_SHARE_BPS) / 10_000;
-        assertEq(economy.queuedDepositorYield(), expectedQueue);
+        assertEq(economy.totalQueuedYield(), expectedQueue);
     }
 
     function testSetRevenueSplit() public {
@@ -238,9 +238,9 @@ contract GachaEconomyManagerTest is StandardTest {
         uint256 depositorShare = (oddAmount * DEPOSITOR_SHARE_BPS) / 10_000;
         uint256 protocolShare = oddAmount - depositorShare;
 
-        assertEq(economy.queuedDepositorYield(), depositorShare);
+        assertEq(economy.totalQueuedYield(), depositorShare);
         assertEq(economy.totalToProtocol(), protocolShare);
-        assertEq(economy.queuedDepositorYield() + economy.totalToProtocol(), oddAmount);
+        assertEq(economy.totalQueuedYield() + economy.totalToProtocol(), oddAmount);
     }
 
     function testZeroDepositorShare() public {

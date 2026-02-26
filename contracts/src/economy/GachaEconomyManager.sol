@@ -51,8 +51,8 @@ contract GachaEconomyManager is
     uint256 public totalToProtocol;
     mapping(GachaTreasury.Rarity => uint256) public revenueByRarity;
 
-    /// @notice Queued depositor yield when no shares exist
-    uint256 public queuedDepositorYield;
+    /// @notice Per-rarity queued depositor yield when no shares exist in that rarity pool
+    mapping(uint8 => uint256) public queuedYieldByRarity;
 
     /// @notice Total queued yield that has been released to depositors
     uint256 public totalQueuedYieldReleased;
@@ -68,8 +68,8 @@ contract GachaEconomyManager is
     event GachaUpdated(address indexed previousGacha, address indexed newGacha);
     event CardGroupedVaultUpdated(address indexed previousVault, address indexed newVault);
     event ProtocolTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
-    event DepositorYieldQueued(uint256 amount);
-    event QueuedDepositorYieldProcessed(uint256 amount);
+    event DepositorYieldQueued(uint256 amount, uint8 rarity);
+    event QueuedDepositorYieldProcessed(uint256 amount, uint8 rarity);
 
     modifier onlyGacha() {
         _onlyGacha();
@@ -137,34 +137,31 @@ contract GachaEconomyManager is
             protocolShare += usdcAmount - distributed;
         }
 
-        uint256 totalShares = cardGroupedVault.totalShares();
-        uint256 queuedAmount = 0;
-
-        // Queue depositor yield if no shares exist
-        if (depositShare > 0 && totalShares == 0) {
-            queuedDepositorYield += depositShare;
-            emit DepositorYieldQueued(depositShare);
-            depositShare = 0;
-        }
-
-        // Process any queued yield if shares now exist
-        if (queuedDepositorYield > 0 && totalShares > 0) {
-            queuedAmount = queuedDepositorYield;
-            depositShare += queuedDepositorYield;
-            emit QueuedDepositorYieldProcessed(queuedDepositorYield);
-            queuedDepositorYield = 0;
-        }
-
+        // Try to distribute this spin's depositor share to the hit rarity
+        uint256 actualDistributed = 0;
         if (depositShare > 0) {
             feeToken.forceApprove(address(cardGroupedVault), depositShare);
-            // Try to distribute to the rarity that generated the revenue
             try cardGroupedVault.distributeYield(depositShare, uint8(hitRarity)) {
-                // Success — yield went to the correct rarity pool
+                actualDistributed += depositShare;
             } catch {
-                // Rarity pool is empty — queue for later distribution
-                queuedDepositorYield += depositShare;
-                emit DepositorYieldQueued(depositShare);
-                depositShare = 0;
+                // Rarity pool is empty — queue for that specific rarity
+                queuedYieldByRarity[uint8(hitRarity)] += depositShare;
+                emit DepositorYieldQueued(depositShare, uint8(hitRarity));
+            }
+        }
+
+        // Flush queued yield for each rarity that has a non-zero queue
+        uint256 totalFlushed = 0;
+        for (uint8 i; i < 5; i++) {
+            uint256 queued = queuedYieldByRarity[i];
+            if (queued == 0) continue;
+            feeToken.forceApprove(address(cardGroupedVault), queued);
+            try cardGroupedVault.distributeYield(queued, i) {
+                totalFlushed += queued;
+                queuedYieldByRarity[i] = 0;
+                emit QueuedDepositorYieldProcessed(queued, i);
+            } catch {
+                // Pool still empty — leave queued
             }
         }
 
@@ -180,12 +177,18 @@ contract GachaEconomyManager is
 
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
-        // Only count new revenue towards depositors (queued yield was already counted)
-        totalToDepositors += (depositShare - queuedAmount);
-        if (queuedAmount > 0) totalQueuedYieldReleased += queuedAmount;
+        totalToDepositors += actualDistributed;
+        if (totalFlushed > 0) totalQueuedYieldReleased += totalFlushed;
         totalToProtocol += protocolShare;
 
-        emit SpinRevenueReceived(usdcAmount, depositShare, protocolShare);
+        emit SpinRevenueReceived(usdcAmount, actualDistributed + totalFlushed, protocolShare);
+    }
+
+    /**
+     * @notice Returns the sum of all per-rarity queued yield
+     */
+    function totalQueuedYield() external view returns (uint256 total) {
+        for (uint8 i; i < 5; i++) total += queuedYieldByRarity[i];
     }
 
     /**
