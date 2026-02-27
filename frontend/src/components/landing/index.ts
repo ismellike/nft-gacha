@@ -1,7 +1,3 @@
-// Animation Primitives
-
-// Animation Variants (reusable framer-motion presets)
-export * from "./animation-variants";
 export { HowItWorks } from "./HowItWorks";
 // Economic Model Components (used in HowItWorks)
 export { RevenueSplitVisualization } from "./RevenueSplitVisualization";
