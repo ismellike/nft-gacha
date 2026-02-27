@@ -4,8 +4,8 @@ import { forwardRef, memo, useImperativeHandle, useState } from "react";
 import { useReadContract } from "wagmi";
 import { useGachaRefetch } from "../../contexts/GachaRefreshContext";
 import {
+	gachaTreasuryAbi,
 	useReadGachaGetAverageRarityValues,
-	useReadGachaTreasuryGetAllRarityCounts,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
@@ -38,8 +38,11 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 	};
 
 	// Batch fetch all rarity counts in single RPC call
-	const rarityCountsQuery = useReadGachaTreasuryGetAllRarityCounts({
-		address: contracts.treasury,
+	// Use useReadContract directly to avoid deep type instantiation with generated hook
+	const rarityCountsQuery = useReadContract({
+		abi: gachaTreasuryAbi,
+		address: contracts.treasury as `0x${string}` | undefined,
+		functionName: "getAllRarityCounts",
 		query: { enabled: !!contracts.treasury },
 	});
 	const allRarityCounts = rarityCountsQuery.data as unknown as
