@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo } from "react";
-import { useAccount, useChainId, useReadContract } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import {
 	useReadErc721IsApprovedForAll,
 	useReadNftAppraisalGetAppraisedPrice,
@@ -17,8 +17,10 @@ import {
 import { logger } from "@/lib/logger";
 import { useRedemptionWindow } from "@/hooks/useRedemptionWindow";
 import { getRarityConfig } from "@/lib/rarityConfig";
-import { formatCurrency, getBlockExplorerTxUrl } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
+import { useBuybackActions } from "../../hooks/useBuybackActions";
 import { RedemptionCountdown } from "./RedemptionCountdown";
+import { BuybackSuccessView } from "./BuybackSuccessView";
 import { Button } from "../../ui/Button";
 import { Card } from "../../ui/Card";
 import { Chip } from "../../ui/Chip";
@@ -56,7 +58,6 @@ export default function BuybackComponent({
 	showTreasuryRestock = true,
 }: BuybackComponentProps) {
 	const { address: connectedAddress } = useAccount();
-	const chainId = useChainId();
 	const { showNotification } = useBuybackNotificationsContext();
 
 	// Build stable callbacks first to avoid recreating on every render
@@ -105,7 +106,6 @@ export default function BuybackComponent({
 	// Use the unified NFT interaction hook
 	const {
 		status,
-		context,
 		error,
 		isLoading,
 		isCompleted,
@@ -274,81 +274,8 @@ export default function BuybackComponent({
 
 	const shouldShowPayout = hasAppraisalData;
 
-	// Determine button label based on current state
-	const getButtonLabel = () => {
-		// If redemption window expired, show that first
-		if (redemptionWindow.isExpired) {
-			return "Window Expired";
-		}
-
-		// If there's an error, show retry button
-		if (error) {
-			return "Retry Buyback";
-		}
-
-		// If user no longer owns the NFT, it was bought back
-		if (isNotOwned) {
-			return "Sold";
-		}
-
-		if (status === "idle") {
-			return needsApproval ? "Approve NFT" : "Accept Buyback";
-		}
-
-		if (status === "awaitingInteractionSignature") {
-			return "Awaiting Approval...";
-		}
-
-		if (isSuccessState) {
-			return "Buyback Completed";
-		}
-
-		if (actionInfo.label) {
-			return actionInfo.label;
-		}
-
-		// Fallback for any other states
-		return "Accept Buyback";
-	};
-
-	const primaryButtonLabel =
-		getButtonLabel() || `Sell for ${formattedPayoutAmount}`;
-
-	// Handle starting the buyback interaction
-	const handleStartBuyback = useCallback(async () => {
-		const priceValue = Array.isArray(appraisalPrice)
-			? (appraisalPrice[0] as unknown as bigint)
-			: (appraisalPrice as unknown as bigint);
-
-		const interactionConfig: {
-			treasuryAddress: string;
-			protocolTreasuryAddress?: string;
-			hasAppraisal?: boolean;
-			appraisalPrice?: bigint;
-			payoutAmount?: bigint;
-		} = {
-			treasuryAddress: protocolTreasuryAddress,
-		};
-
-		if (protocolTreasuryAddress) {
-			interactionConfig.protocolTreasuryAddress = protocolTreasuryAddress;
-		}
-		if (hasAppraisal !== undefined) {
-			interactionConfig.hasAppraisal = hasAppraisal;
-		}
-		if (priceValue) {
-			interactionConfig.appraisalPrice = priceValue;
-		}
-		if (payoutAmount) {
-			interactionConfig.payoutAmount = payoutAmount;
-		}
-
-		try {
-			await startInteraction(collection, tokenId, "buyback", interactionConfig);
-		} catch (error) {
-			logger.contracts.error("Buyback interaction failed:", error);
-		}
-	}, [
+	// Extract button handlers and label derivation into a dedicated hook
+	const { handleInteractionButtonClick, primaryButtonLabel } = useBuybackActions({
 		collection,
 		tokenId,
 		protocolTreasuryAddress,
@@ -356,70 +283,16 @@ export default function BuybackComponent({
 		appraisalPrice,
 		payoutAmount,
 		startInteraction,
-		actionInfo.type,
 		status,
-		needsApproval,
-		hasEnoughLiquidity,
-	]);
-
-	// Handle button clicks and state machine actions
-	const handleAction = useCallback(async () => {
-		// If we're in a completed buyback state, don't allow new interactions
-		// This is intentional - once a buyback is completed, the NFT is no longer owned by the user
-		if (isSuccessState) {
-			return;
-		}
-
-		// Special handling for stuck awaitingInteractionSignature state
-		// Only start buyback if we're idle
-		if (status === "idle") {
-			await handleStartBuyback();
-			return;
-		}
-
-		// If we previously completed a different NFT, reset and start fresh
-		if (isCompletedOtherNFT) {
-			reset();
-			await new Promise((resolve) => setTimeout(resolve, 150));
-			await handleStartBuyback();
-			return;
-		}
-
-		// If we're stuck in an in-flight state, allow reset then retry
-		if (status !== "completed") {
-			reset();
-			await new Promise((resolve) => setTimeout(resolve, 150));
-			await handleStartBuyback();
-		}
-	}, [
-		status,
-		context,
 		isSuccessState,
-		isProcessing,
-		error,
 		isCompletedOtherNFT,
+		error,
+		actionInfo,
 		reset,
-		handleStartBuyback,
-	]);
-
-	const handleButtonPress = useCallback(async () => {
-		if ("action" in actionInfo && actionInfo.action) {
-			try {
-				await Promise.resolve(
-					(actionInfo.action as () => Promise<void> | void)(),
-				);
-			} catch (error) {
-				logger.contracts.error("BuybackComponent action failed:", error);
-			}
-			return;
-		}
-		// Call the actual handleAction function
-		handleAction();
-	}, [actionInfo, handleAction]);
-
-	const handleInteractionButtonClick = useCallback(() => {
-		void handleButtonPress();
-	}, [handleButtonPress]);
+		redemptionWindowIsExpired: redemptionWindow.isExpired,
+		needsApproval,
+		isNotOwned,
+	});
 
 	// Treasury status helper
 	const getTreasuryStatus = () => {
@@ -503,83 +376,14 @@ export default function BuybackComponent({
 					</div>
 
 					{isSuccessState ? (
-						<motion.div
-							initial={{ opacity: 0, scale: 0.9 }}
-							animate={{ opacity: 1, scale: 1 }}
-							className="text-center space-y-4"
-						>
-							<div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
-								<svg
-									className="w-8 h-8 text-emerald-400"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-									aria-label="Success checkmark"
-								>
-									<title>Success</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M5 13l4 4L19 7"
-									/>
-								</svg>
-							</div>
-							<div>
-								<h4 className="text-white font-bold text-lg mb-2">
-									Buyback Successful!
-								</h4>
-								<p className="text-emerald-300 font-semibold text-xl mb-2">
-									You received{" "}
-									{formatCurrency(
-										successData?.payoutAmount?.toString() ||
-											payoutAmount?.toString() ||
-											"0",
-										6,
-										"USDC",
-									)}
-								</p>
-								{successTimestamp && (
-									<p className="text-white/60 text-xs mb-2">
-										Completed: {successTimestamp}
-									</p>
-								)}
-								{showTreasuryRestock && (
-									<p className="text-white/70 text-sm">
-										Your NFT has been restocked in the treasury for other
-										players to win
-									</p>
-								)}
-							</div>
-							{successData?.txHash && (
-								<div className="flex flex-col gap-2">
-									{getBlockExplorerTxUrl(chainId, successData.txHash) && (
-										<Button
-											size="md"
-											color="glassPrimary"
-											onPress={() =>
-												window.open(
-													getBlockExplorerTxUrl(chainId, successData.txHash)!,
-													"_blank",
-												)
-											}
-										>
-											View Transaction
-										</Button>
-									)}
-									<Button
-										size="md"
-										color="glassPrimary"
-										onPress={() => {
-											// Reset the state machine to allow new interactions
-											reset();
-										}}
-									>
-										Start New Transaction
-									</Button>
-								</div>
-							)}
-						</motion.div>
+						<BuybackSuccessView
+							variant="full"
+							successData={successData}
+							payoutAmount={payoutAmount}
+							successTimestamp={successTimestamp}
+							showTreasuryRestock={showTreasuryRestock}
+							onReset={reset}
+						/>
 					) : (
 						<>
 							{/* Appraisal and Payout Information */}
@@ -712,45 +516,13 @@ export default function BuybackComponent({
 					</div>
 
 					{isSuccessState ? (
-						<div className="text-center space-y-2">
-							<div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
-								<svg
-									className="w-6 h-6 text-emerald-400"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-									aria-label="Success checkmark"
-								>
-									<title>Success</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M5 13l4 4L19 7"
-									/>
-								</svg>
-							</div>
-							<p className="text-emerald-300 font-bold">
-								Sold for{" "}
-								{formatCurrency(
-									successData?.payoutAmount?.toString() ||
-										payoutAmount?.toString() ||
-										"0",
-									6,
-									"USDC",
-								)}
-							</p>
-							{successTimestamp && (
-								<p className="text-white/50 text-xs">
-									Completed: {successTimestamp}
-								</p>
-							)}
-							{showTreasuryRestock && (
-								<p className="text-white/60 text-xs">
-									NFT restocked in treasury
-								</p>
-							)}
-						</div>
+						<BuybackSuccessView
+							variant="card"
+							successData={successData}
+							payoutAmount={payoutAmount}
+							successTimestamp={successTimestamp}
+							showTreasuryRestock={showTreasuryRestock}
+						/>
 					) : (
 						<>
 							{hasAppraisalData && appraisalPrice ? (
@@ -802,40 +574,13 @@ export default function BuybackComponent({
 		<div className="flex flex-col items-center space-y-2">
 			<div className="flex flex-col items-center space-y-2">
 				{isSuccessState ? (
-					<div className="flex flex-col items-center space-y-2">
-						<Chip
-							color="success"
-							variant="flat"
-							size="sm"
-							className={classes.chip}
-							startContent={
-								<svg
-									className="w-4 h-4"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-									aria-label="Success checkmark"
-								>
-									<title>Success</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M5 13l4 4L19 7"
-									/>
-								</svg>
-							}
-						>
-							Sold for{" "}
-							{formatCurrency(
-								successData?.payoutAmount?.toString() ||
-									payoutAmount?.toString() ||
-									"0",
-								6,
-								"USDC",
-							)}
-						</Chip>
-					</div>
+					<BuybackSuccessView
+						variant="button"
+						successData={successData}
+						payoutAmount={payoutAmount}
+						successTimestamp={successTimestamp}
+						chipClassName={classes.chip}
+					/>
 				) : (
 					<>
 						{isNotOwned ? (

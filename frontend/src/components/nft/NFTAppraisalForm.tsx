@@ -9,7 +9,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isAddress } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import type { AppraisalResult } from "../../async-utils/nftAppraisalMachine";
 import {
 	useReadErc20Allowance,
@@ -18,17 +18,15 @@ import {
 	useReadErc20Symbol,
 	useReadNftAppraisalAppraisalFee,
 	useReadNftAppraisalFeeToken,
-	useWatchNftAppraisalAppraisalStatusChanged,
-	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived,
-	useWatchNftAppraisalServiceHandlerAppraisalProcessed,
 } from "../../generated";
+import { useAppraisalEvents } from "../../hooks/useAppraisalEvents";
 import { useFormUrlSync } from "../../hooks/useFormUrlSync";
 import { useFormValidation } from "../../hooks/useFormValidation";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
+import { useNFTApproval } from "../../hooks/useNFTApproval";
 import { useRewardsData } from "../../hooks/useRewardsData";
 import { validationRules } from "../../lib/formValidation";
-import { isUserRejectedError } from "../../lib/transactionErrors";
 import { formatTokenAmount } from "../../lib/utils";
 import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
 import { Button, Card } from "../../ui";
@@ -219,13 +217,35 @@ export function NFTAppraisalForm({
 		query: { enabled: !!feeToken && !!userAddress && !!contracts.appraisal },
 	});
 
-	// Contract writes
-	const { writeContractAsync: approveTokensAsync, isPending: isApproving } =
-		useWriteContract();
-	const {
-		writeContractAsync: requestAppraisalAsync,
-		isPending: isRequestingAppraisal,
-	} = useWriteContract();
+	// Approval + submission hook
+	const { submitAppraisal, isApproving, isRequestingAppraisal } = useNFTApproval({
+		publicClient,
+		appraisalContractAddress: contracts.appraisal as `0x${string}` | undefined,
+		feeTokenAddress: feeToken as `0x${string}` | undefined,
+		appraisalFee,
+		currentAllowance,
+		userAddress,
+		lastSubmittedRef,
+		onStatusChange: setStatus,
+		onApprovalTxHash: setApprovalTxHash,
+		onSubmissionTxHash: setSubmissionTxHash,
+		onOutcomeChange: setSubmissionOutcome,
+		onError: (message) => setAppraisalError(message),
+		onClearError: () => setAppraisalError(null),
+	});
+
+	// Event watchers
+	useAppraisalEvents({
+		appraisalServiceHandlerAddress: contracts.appraisalServiceHandler as `0x${string}` | undefined,
+		appraisalContractAddress: contracts.appraisal as `0x${string}` | undefined,
+		lastSubmittedRef,
+		appraisalFee,
+		userAddress,
+		onStatusChange: setStatus,
+		onAppraisalResult: setAppraisalResult,
+		onError: (message) => setAppraisalError(message),
+		onOutcomeChange: setSubmissionOutcome,
+	});
 
 	// Handle machine state completion
 	useEffect(() => {
@@ -400,136 +420,8 @@ export function NFTAppraisalForm({
 			return;
 		}
 
-		if (
-			!userAddress ||
-			!publicClient ||
-			!contracts.appraisal ||
-			!feeToken ||
-			!appraisalFee
-		) {
-			setErrors({ general: "Missing required parameters" });
-			return;
-		}
-
-		try {
-			setErrors({});
-			setAppraisalError(null);
-			setSubmissionOutcome("pending");
-			if (userAddress) {
-				// Track this submission optimistically so watcher hooks can react to handler events
-				useNFTAppraisalStore
-					.getState()
-					.addOptimisticSubmission(
-						userAddress,
-						formData.collection,
-						formData.tokenId,
-					);
-			}
-
-			// Fetch a fresh allowance to avoid unnecessary approvals for users already approved
-			let allowance = currentAllowance;
-			if (allowance === undefined) {
-				allowance = (await publicClient.readContract({
-					address: feeToken as `0x${string}`,
-					abi: [
-						{
-							name: "allowance",
-							type: "function",
-							stateMutability: "view",
-							inputs: [
-								{ name: "owner", type: "address" },
-								{ name: "spender", type: "address" },
-							],
-							outputs: [{ name: "", type: "uint256" }],
-						},
-					],
-					functionName: "allowance",
-					args: [
-						userAddress as `0x${string}`,
-						contracts.appraisal as `0x${string}`,
-					],
-				})) as bigint;
-			}
-
-			const approvalNeeded =
-				appraisalFee !== undefined && allowance !== undefined
-					? allowance < appraisalFee
-					: true;
-
-			// Approve only when needed, then submit the appraisal
-			if (approvalNeeded) {
-				setStatus("approving");
-				const hash = await approveTokensAsync({
-					address: feeToken as `0x${string}`,
-					abi: [
-						{
-							name: "approve",
-							type: "function",
-							stateMutability: "nonpayable",
-							inputs: [
-								{ name: "spender", type: "address" },
-								{ name: "amount", type: "uint256" },
-							],
-							outputs: [{ name: "", type: "bool" }],
-						},
-					],
-					functionName: "approve",
-					args: [contracts.appraisal as `0x${string}`, appraisalFee],
-				});
-				setApprovalTxHash(hash);
-				await publicClient.waitForTransactionReceipt({ hash });
-			}
-
-			setStatus("submitting");
-			const submissionHash = await requestAppraisalAsync({
-				address: contracts.appraisal as `0x${string}`,
-				abi: [
-					{
-						name: "requestAppraisal",
-						type: "function",
-						stateMutability: "nonpayable",
-						inputs: [
-							{ name: "collection", type: "address" },
-							{ name: "tokenId", type: "uint256" },
-						],
-						outputs: [],
-					},
-				],
-				functionName: "requestAppraisal",
-				args: [formData.collection as `0x${string}`, BigInt(formData.tokenId)],
-			});
-			setSubmissionTxHash(submissionHash);
-			const submissionReceipt = await publicClient.waitForTransactionReceipt({
-				hash: submissionHash,
-			});
-
-			lastSubmittedRef.current = {
-				collection: formData.collection,
-				tokenId: formData.tokenId,
-			};
-			if (submissionReceipt.status !== "success") {
-				setSubmissionOutcome("failed");
-				setAppraisalError(
-					"Appraisal transaction did not complete successfully (refunded or failed).",
-				);
-				setStatus("error");
-				return;
-			}
-
-			setSubmissionOutcome("success");
-
-			setStatus("waitingForCompletion");
-		} catch (error: unknown) {
-			const message = error instanceof Error ? error.message : String(error);
-			setAppraisalError(
-				isUserRejectedError(error)
-					? "Transaction cancelled"
-					: message.includes("already exists")
-						? "This NFT was already appraised"
-						: "Something went wrong, please try again",
-			);
-			setStatus("error");
-		}
+		setErrors({});
+		await submitAppraisal(formData);
 	};
 
 	const handleInputChange = (field: keyof FormData, value: string) => {
@@ -579,163 +471,6 @@ export function NFTAppraisalForm({
 		state.value === "approving" ||
 		state.value === "submitting" ||
 		state.value === "waitingForCompletion";
-
-	// Listen for service handler confirmations to unblock UI immediately when the oracle finishes
-	useWatchNftAppraisalServiceHandlerAppraisalProcessed({
-		address: contracts.appraisalServiceHandler as `0x${string}` | undefined,
-		enabled: !!contracts.appraisalServiceHandler && !!lastSubmittedRef.current,
-		onLogs: (logs: unknown[]) => {
-			const latest = lastSubmittedRef.current;
-			if (!latest) return;
-
-			for (const log of logs) {
-				const { collection, tokenId, priceUSD, success, timestamp } = ((
-					log as { args?: unknown }
-				).args || {}) as {
-					collection?: `0x${string}`;
-					tokenId?: bigint;
-					priceUSD?: bigint;
-					success?: boolean;
-					timestamp?: bigint;
-				};
-
-				const matchesCollection =
-					collection?.toLowerCase() === latest.collection.toLowerCase();
-				const matchesToken =
-					tokenId !== undefined &&
-					BigInt(tokenId).toString() === BigInt(latest.tokenId).toString();
-
-				if (!matchesCollection || !matchesToken) continue;
-
-				if (success) {
-					setSubmissionOutcome("success");
-					setStatus("completed");
-					setAppraisalResult({
-						collection: latest.collection,
-						tokenId: latest.tokenId,
-						appraisalData: [
-							true,
-							priceUSD ?? BigInt(0),
-							BigInt(0),
-							"",
-							BigInt(timestamp ?? Math.floor(Date.now() / 1000)),
-						],
-					});
-					if (userAddress) {
-						useNFTAppraisalStore.getState().refreshUserAppraisals(userAddress);
-					}
-				} else {
-					setSubmissionOutcome("failed");
-					setAppraisalError("Appraisal processing failed.");
-					setStatus("error");
-					if (userAddress) {
-						useNFTAppraisalStore.getState().refreshUserAppraisals(userAddress);
-					}
-				}
-
-				lastSubmittedRef.current = null;
-				break;
-			}
-		},
-	});
-
-	useWatchNftAppraisalServiceHandlerAppraisalErrorReceived({
-		address: contracts.appraisalServiceHandler as `0x${string}` | undefined,
-		enabled: !!contracts.appraisalServiceHandler && !!lastSubmittedRef.current,
-		onLogs: (logs: unknown[]) => {
-			const latest = lastSubmittedRef.current;
-			if (!latest) return;
-
-			for (const log of logs) {
-				const { contractAddress, tokenId, error } = ((log as { args?: unknown })
-					.args || {}) as {
-					contractAddress?: `0x${string}`;
-					tokenId?: bigint;
-					error?: string;
-				};
-
-				const matchesCollection =
-					contractAddress?.toLowerCase() === latest.collection.toLowerCase();
-				const matchesToken =
-					tokenId !== undefined &&
-					BigInt(tokenId).toString() === BigInt(latest.tokenId).toString();
-
-				if (!matchesCollection || !matchesToken) continue;
-
-				setSubmissionOutcome("failed");
-				setAppraisalError(
-					error ? `Appraisal error: ${error}` : "Appraisal failed to process.",
-				);
-				setStatus("error");
-				if (userAddress) {
-					useNFTAppraisalStore.getState().refreshUserAppraisals(userAddress);
-				}
-				lastSubmittedRef.current = null;
-				break;
-			}
-		},
-	});
-
-	// Watch on-chain appraisal status changes to mark success/refund for the most recent submission
-	useWatchNftAppraisalAppraisalStatusChanged({
-		address: contracts.appraisal as `0x${string}` | undefined,
-		enabled: !!contracts.appraisal && !!lastSubmittedRef.current,
-		onLogs: (logs: unknown[]) => {
-			const latest = lastSubmittedRef.current;
-			if (!latest) return;
-
-			for (const log of logs) {
-				const { collection, tokenId, newStatus } = ((log as { args?: unknown })
-					.args || {}) as {
-					collection?: `0x${string}`;
-					tokenId?: bigint;
-					newStatus?: bigint | number;
-				};
-
-				const matchesCollection =
-					collection?.toLowerCase() === latest.collection.toLowerCase();
-				const matchesToken =
-					tokenId !== undefined &&
-					BigInt(tokenId).toString() === BigInt(latest.tokenId).toString();
-
-				if (!matchesCollection || !matchesToken) continue;
-
-				if (newStatus === undefined) continue;
-
-				const statusValue = Number(newStatus);
-				// 1 = Completed, 2 = OwnerOverride
-				if (statusValue === 1 || statusValue === 2) {
-					setSubmissionOutcome("success");
-					setStatus("completed");
-					setAppraisalResult({
-						collection: latest.collection,
-						tokenId: latest.tokenId,
-						appraisalData: [
-							true,
-							appraisalFee ?? BigInt(0),
-							BigInt(0),
-							"",
-							BigInt(Date.now()),
-						],
-					});
-				} else if (statusValue === 0) {
-					// Still pending; keep waiting
-					continue;
-				} else {
-					// Treat any other status as refunded/failed
-					setSubmissionOutcome("refunded");
-					setAppraisalError(
-						"Appraisal was not completed and the fee should be refunded.",
-					);
-					setStatus("error");
-				}
-
-				// Stop listening for further updates on this submission
-				lastSubmittedRef.current = null;
-				break;
-			}
-		},
-	});
 
 	// Show preview if valid NFT details
 	const shouldShowPreview = () => {
