@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "../logger";
 import type { CourtyardMetadata } from "./types";
 
 /**
@@ -19,7 +20,7 @@ export async function fetchCourtyardMetadata(
 	tokenURI: string,
 ): Promise<CourtyardMetadata | null> {
 	if (!tokenURI || !isCourtyardTokenURI(tokenURI)) {
-		console.warn("Invalid Courtyard tokenURI:", tokenURI);
+		logger.nftMetadata.warn("Invalid Courtyard tokenURI:", tokenURI);
 		return null;
 	}
 
@@ -48,11 +49,11 @@ export async function fetchCourtyardMetadata(
 
 			if (!response.ok) {
 				if (response.status === 404) {
-					console.error("Courtyard metadata not found (404):", tokenURI);
+					logger.nftMetadata.error("Courtyard metadata not found (404):", tokenURI);
 					throw new Error(`Courtyard metadata not found: ${tokenURI}`);
 				}
 				if (response.status === 403) {
-					console.error("Courtyard access forbidden (403):", tokenURI);
+					logger.nftMetadata.error("Courtyard access forbidden (403):", tokenURI);
 					throw new Error("Access to Courtyard metadata forbidden");
 				}
 				if (response.status >= 500) {
@@ -90,7 +91,7 @@ export async function fetchCourtyardMetadata(
 			// Don't retry for certain errors
 			if (error instanceof Error) {
 				if (error.name === "AbortError") {
-					console.error(
+					logger.nftMetadata.error(
 						`Courtyard request timeout after ${10000 + attempt * 3000}ms`,
 					);
 					throw new Error("Courtyard request timeout");
@@ -101,7 +102,7 @@ export async function fetchCourtyardMetadata(
 				}
 			}
 
-			console.warn(`Courtyard fetch attempt ${attempt} failed:`, error);
+			logger.nftMetadata.warn(`Courtyard fetch attempt ${attempt} failed:`, error);
 
 			// Wait before retry (exponential backoff)
 			if (attempt < maxRetries) {
@@ -111,7 +112,7 @@ export async function fetchCourtyardMetadata(
 		}
 	}
 
-	console.error(
+	logger.nftMetadata.error(
 		"Failed to fetch Courtyard metadata after all retries:",
 		lastError,
 	);

@@ -5,6 +5,7 @@ import { useAccount, usePublicClient } from "wagmi";
 import { baseErc721Abi, useReadBaseErc721BalanceOf } from "../generated";
 import { ERC721_INTERFACES } from "../lib/constants";
 import { ERC721_ABI_FRAGMENTS } from "../lib/contract-utils";
+import { logger } from "../lib/logger";
 import type {
 	UserOwnedNFTMultiCollection,
 	UseUserOwnedNFTsMultiResult,
@@ -91,7 +92,7 @@ export function useUserOwnedNFTs(
 						.map((result) => result.value),
 				);
 			} else {
-				console.warn(
+				logger.network.warn(
 					`Collection ${collectionAddress} does not support ERC721Enumerable, cannot efficiently enumerate tokens`,
 				);
 				setError("Collection does not support token enumeration");
@@ -99,7 +100,7 @@ export function useUserOwnedNFTs(
 
 			setTokens(ownedTokenIds);
 		} catch (err) {
-			console.error("Error fetching user NFTs:", err);
+			logger.network.error("Error fetching user NFTs:", err);
 			setError(err instanceof Error ? err.message : "Failed to fetch NFTs");
 			setTokens([]);
 		} finally {
@@ -215,7 +216,7 @@ export function useUserOwnedNFTsMultipleCollections(
 						}
 					}
 				} catch (collectionError) {
-					console.warn(
+					logger.network.warn(
 						`Error processing collection ${collectionAddress}:`,
 						collectionError,
 					);
@@ -224,7 +225,7 @@ export function useUserOwnedNFTsMultipleCollections(
 
 			setNfts(allUserNFTs);
 		} catch (err) {
-			console.error("Error fetching user NFTs from multiple collections:", err);
+			logger.network.error("Error fetching user NFTs from multiple collections:", err);
 			setError(err instanceof Error ? err.message : "Failed to fetch NFTs");
 			setNfts([]);
 		} finally {

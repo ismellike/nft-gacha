@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { PublicClient } from "viem";
+import { logger } from "../lib/logger";
 import type { UserOwnedNFTMultiCollection } from "../types/hooks";
 
 const createNFTKey = (collection: string, tokenId: string | bigint): string =>
@@ -83,7 +84,7 @@ export function useAppraisalChecker(
 					});
 				} catch (multicallError) {
 					// Fallback to sequential calls if multicall isn't supported (e.g., local Anvil chain)
-					console.warn(
+					logger.contracts.warn(
 						"Multicall not supported, falling back to sequential calls:",
 						multicallError,
 					);
@@ -119,7 +120,7 @@ export function useAppraisalChecker(
 										(statusAsNumber === 1 || statusAsNumber === 2);
 									priceUSD = appraisedPrice;
 								} catch (priceError) {
-									console.warn(
+									logger.contracts.warn(
 										`Failed to fetch appraisal details for ${createNFTKey(nft.collection, nft.tokenId)}:`,
 										priceError,
 									);
@@ -134,7 +135,7 @@ export function useAppraisalChecker(
 							);
 							return null;
 						} catch (error) {
-							console.error(
+							logger.contracts.error(
 								`Error checking appraisal for ${createNFTKey(nft.collection, nft.tokenId)}:`,
 								error,
 							);
@@ -192,7 +193,7 @@ export function useAppraisalChecker(
 				}
 			} catch (error) {
 				if (!signal.aborted) {
-					console.error("Error in batch appraisal check:", error);
+					logger.contracts.error("Error in batch appraisal check:", error);
 				}
 			}
 		};

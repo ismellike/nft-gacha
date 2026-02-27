@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "../logger";
 import type { CourtyardMetadata } from "./types";
 
 /**
@@ -9,7 +10,7 @@ export function processCourtyardImageUrl(
 	metadata: CourtyardMetadata,
 ): string | null {
 	if (!metadata) {
-		console.warn("No metadata provided to processCourtyardImageUrl");
+		logger.nftMetadata.warn("No metadata provided to processCourtyardImageUrl");
 		return null;
 	}
 
@@ -90,7 +91,7 @@ export function processCourtyardImageUrl(
 		return allValues[0] as string;
 	}
 
-	console.warn(
+	logger.nftMetadata.warn(
 		"No valid image URL found in Courtyard metadata. Available fields:",
 		{
 			metadataKeys: Object.keys(metadata),

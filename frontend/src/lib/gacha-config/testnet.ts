@@ -1,3 +1,4 @@
+import { logger } from "../logger";
 import { createGachaConfig } from "./factory";
 import type { GachaConfig } from "./types";
 
@@ -134,7 +135,7 @@ export function validateTestnetConfig(
 		const missing = getMissingTestnetAddresses(config);
 		if (missing.length > 0) {
 			allValid = false;
-			console.warn(
+			logger.contracts.warn(
 				`[gacha-config/testnet] Gacha "${id}" is missing ${missing.length} required address(es).\n` +
 				"  Set the following env vars before deploying to testnet:\n" +
 				missing.map((v) => `    ${v}`).join("\n"),
@@ -143,7 +144,7 @@ export function validateTestnetConfig(
 
 		const optional = getOptionalMissingAddresses(config);
 		if (optional.length > 0) {
-			console.info(
+			logger.contracts.info(
 				`[gacha-config/testnet] Gacha "${id}" has ${optional.length} optional address(es) not configured.\n` +
 				"  These features will be disabled until set:\n" +
 				optional.map((v) => `    ${v}`).join("\n"),

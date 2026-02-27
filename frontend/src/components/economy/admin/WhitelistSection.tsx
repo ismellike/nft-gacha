@@ -7,6 +7,7 @@ import {
 	useWriteGachaTreasuryAddToWhitelist,
 	useWriteGachaTreasuryRemoveFromWhitelist,
 } from "@/generated";
+import { logger } from "@/lib/logger";
 import { Button, Card, Input } from "../../../ui";
 
 export function WhitelistSection() {
@@ -37,7 +38,7 @@ export function WhitelistSection() {
 			setNewCollectionAddress("");
 			await refetchWhitelist();
 		} catch (error) {
-			console.error("Error adding collection to whitelist:", error);
+			logger.contracts.error("Error adding collection to whitelist:", error);
 		} finally {
 			setIsLoading(false);
 		}
@@ -52,7 +53,7 @@ export function WhitelistSection() {
 			});
 			await refetchWhitelist();
 		} catch (error) {
-			console.error("Error removing collection from whitelist:", error);
+			logger.contracts.error("Error removing collection from whitelist:", error);
 		} finally {
 			setIsLoading(false);
 		}

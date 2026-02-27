@@ -5,6 +5,7 @@ import { memo } from "react";
 import { useChainId } from "wagmi";
 import BuybackComponent from "@/components/economy/BuybackComponent";
 import { NFTCard, type NFTCardData } from "@/components/nft";
+import { logger } from "@/lib/logger";
 import { getRarityConfig, rarityFromNumber } from "@/lib/rarityConfig";
 import {
 	formatAddress,
@@ -37,7 +38,7 @@ function validateAppraisalAddress(address?: string): `0x${string}` | undefined {
 		return address as `0x${string}`;
 	}
 	// Log warning but don't crash
-	console.warn(
+	logger.general.warn(
 		"[SpinHistoryCard] Invalid appraisal contract address:",
 		address,
 	);

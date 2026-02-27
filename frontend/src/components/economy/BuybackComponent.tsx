@@ -14,6 +14,7 @@ import {
 	type UseNFTInteractionParams,
 	useNFTInteraction,
 } from "@/hooks/useNFTInteraction";
+import { logger } from "@/lib/logger";
 import { useRedemptionWindow } from "@/hooks/useRedemptionWindow";
 import { getRarityConfig } from "@/lib/rarityConfig";
 import { formatCurrency, getBlockExplorerTxUrl } from "@/lib/utils";
@@ -345,7 +346,7 @@ export default function BuybackComponent({
 		try {
 			await startInteraction(collection, tokenId, "buyback", interactionConfig);
 		} catch (error) {
-			console.error("Buyback interaction failed:", error);
+			logger.contracts.error("Buyback interaction failed:", error);
 		}
 	}, [
 		collection,
@@ -408,7 +409,7 @@ export default function BuybackComponent({
 					(actionInfo.action as () => Promise<void> | void)(),
 				);
 			} catch (error) {
-				console.error("BuybackComponent action failed:", error);
+				logger.contracts.error("BuybackComponent action failed:", error);
 			}
 			return;
 		}

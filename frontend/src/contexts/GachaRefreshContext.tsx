@@ -9,6 +9,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
+import { logger } from "../lib/logger";
 
 /**
  * GachaRefreshContext provides a centralized mechanism for refetching data
@@ -52,8 +53,8 @@ export function GachaRefreshProvider({ children }: GachaRefreshProviderProps) {
 	}, []);
 
 	const triggerRefresh = useCallback(async () => {
-		console.log(
-			`🔄 [GachaRefresh] Triggering refresh for ${refetchFunctionsRef.current.size} registered functions`,
+		logger.general.log(
+			`[GachaRefresh] Triggering refresh for ${refetchFunctionsRef.current.size} registered functions`,
 		);
 
 		// Execute all registered refetch functions
@@ -62,13 +63,13 @@ export function GachaRefreshProvider({ children }: GachaRefreshProviderProps) {
 				try {
 					await fn();
 				} catch (error) {
-					console.error("Error in refetch function:", error);
+					logger.general.error("Error in refetch function:", error);
 				}
 			},
 		);
 
 		await Promise.all(refetchPromises);
-		console.log("✅ [GachaRefresh] All refetch functions completed");
+		logger.general.log("[GachaRefresh] All refetch functions completed");
 	}, []);
 
 	// Memoize context value to prevent unnecessary rerenders

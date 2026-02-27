@@ -36,6 +36,7 @@ import { useGachaId } from "../../hooks/useGachaId";
 import { useGachaSections } from "../../hooks/useGachaSections";
 import { useRewardsData } from "../../hooks/useRewardsData";
 import { getGachaConfig } from "../../lib/gacha-config";
+import { logger } from "../../lib/logger";
 import { Button, Card, CardSkeleton, Chip } from "../../ui";
 
 // Lazy-load non-default sections to reduce initial bundle size.
@@ -210,7 +211,7 @@ function GachaDetailPageContent() {
 				try {
 					await rewardsDataRef.current.refetchAllRewardsData();
 				} catch (error) {
-					console.warn("Some rewards data failed to refetch:", error);
+					logger.general.warn("Some rewards data failed to refetch:", error);
 				}
 			};
 

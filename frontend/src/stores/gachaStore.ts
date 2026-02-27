@@ -2,6 +2,7 @@ import type { PublicClient } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { gachaAbi } from "../generated";
+import { logger } from "../lib/logger";
 import { getSpinKey } from "./storeUtils";
 
 export interface PendingSpin {
@@ -97,7 +98,7 @@ export const useGachaStore = create<GachaStore>()(
 							validatedSpins[key] = spin;
 						}
 					} catch (error) {
-						console.warn(`Failed to validate pending spin for ${key}:`, error);
+						logger.state.warn(`Failed to validate pending spin for ${key}:`, error);
 						// Keep the spin if we can't validate (network issues, etc.)
 						validatedSpins[key] = spin;
 					}

@@ -9,6 +9,7 @@ import {
 	useRef,
 } from "react";
 import { useAccount } from "wagmi";
+import { logger } from "../lib/logger";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 
@@ -60,7 +61,7 @@ export function RewardsRefetchProvider({ children }: { children: ReactNode }) {
 							await result;
 						}
 					} catch (error) {
-						console.warn(`❌ Refetch callback ${index} failed:`, error);
+						logger.general.warn(`Refetch callback ${index} failed:`, error);
 					}
 				}
 			},

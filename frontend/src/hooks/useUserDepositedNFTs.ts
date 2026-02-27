@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import type { Address } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
+import { logger } from "../lib/logger";
 
 export interface DepositedNFT {
 	collection: Address;
@@ -116,7 +117,7 @@ export function useUserDepositedNFTs(treasury?: Address) {
 				return depositedNFT;
 			});
 		} catch (error) {
-			console.error("Error fetching deposited NFTs:", error);
+			logger.contracts.error("Error fetching deposited NFTs:", error);
 			return [];
 		}
 	}, [publicClient, treasury, user]);

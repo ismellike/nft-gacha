@@ -10,7 +10,7 @@ import {
 	validatePendingSpins,
 } from "../async-utils/gachaSpinMachine";
 import { gachaAbi } from "../generated";
-import { createDebugLogger, DEBUG_FLAGS } from "../lib/logger";
+import { createDebugLogger, DEBUG_FLAGS, logger } from "../lib/logger";
 import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
 import { useGachaContracts } from "./useGachaContracts";
@@ -219,7 +219,7 @@ export function useGachaSpinMachine(
 					const result = buildSpinResult(resultArgs);
 
 					if (!result) {
-						console.warn(
+						logger.gachaSpin.warn(
 							"[useWatchContractEvent] SpinCompleted log missing fields",
 						);
 						continue;
@@ -299,7 +299,7 @@ export function useGachaSpinMachine(
 				}
 			})
 			.catch((error) => {
-				console.warn("Failed to validate pending spins:", error);
+				logger.gachaSpin.warn("Failed to validate pending spins:", error);
 				// Continue with normal operation even if validation fails
 				const storedTriggerId = gachaAddress
 					? loadFromStorage(userAddress, gachaAddress)

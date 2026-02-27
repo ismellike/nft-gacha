@@ -1,6 +1,7 @@
 "use client";
 
 import { useWatchProtocolTreasuryRedemptionExecuted } from "../generated";
+import { logger } from "../lib/logger";
 import { toastError, toastInfo, toastSuccess } from "../lib/toast";
 
 export function useRedemptionNotifications(
@@ -47,7 +48,7 @@ export function useRedemptionNotifications(
 			});
 		},
 		onError: (error) => {
-			console.error("Redemption event subscription error:", error);
+			logger.network.error("Redemption event subscription error:", error);
 			toastError("Failed to track redemption events");
 		},
 	});

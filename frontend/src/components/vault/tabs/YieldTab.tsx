@@ -7,6 +7,7 @@ import {
 	type UserCardGroupedData,
 	useClaimYield,
 } from "../../../hooks/useCardGroupedVault";
+import { logger } from "../../../lib/logger";
 import { formatTokenAmount } from "../../../lib/utils";
 import { Button } from "../../../ui";
 
@@ -25,7 +26,7 @@ export function YieldTab({
 
 	const handleClaimYield = async () => {
 		if (!treasuryAddress) {
-			console.error("Treasury address not available");
+			logger.contracts.error("Treasury address not available");
 			return;
 		}
 		try {
@@ -34,7 +35,7 @@ export function YieldTab({
 				args: [treasuryAddress],
 			});
 		} catch (error) {
-			console.error("Error claiming yield:", error);
+			logger.contracts.error("Error claiming yield:", error);
 		}
 	};
 

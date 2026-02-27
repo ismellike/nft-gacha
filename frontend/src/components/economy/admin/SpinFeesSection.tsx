@@ -10,6 +10,7 @@ import {
 	useWriteGachaSetPricingConfig,
 } from "@/generated";
 import type { GachaConfig } from "@/lib/gacha-config";
+import { logger } from "@/lib/logger";
 import { formatPercentage, formatTokenAmount } from "@/lib/utils";
 import { Button, Card, Input } from "../../../ui";
 
@@ -50,7 +51,7 @@ export function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 				args: [premiumBps, minFeeInWei, maxFeeInWei],
 			});
 		} catch (error) {
-			console.error("Invalid pricing config:", error);
+			logger.contracts.error("Invalid pricing config:", error);
 		}
 	};
 
