@@ -50,8 +50,8 @@ const Tabs = function Tabs({ tabs, activeTab, onChange, className, tabListClassN
 								"disabled:opacity-40 disabled:cursor-not-allowed",
 								isActive
 									? [
-											"bg-content1/40 backdrop-blur-xl border border-white/20 text-foreground",
-											"shadow-[0_0_8px_rgba(255,255,255,0.06)]",
+											"bg-content1/40 backdrop-blur-xl border border-white/20 border-b-2 border-b-warning/70 text-warning",
+											"shadow-[0_0_12px_rgba(201,168,108,0.15)]",
 										]
 									: [
 											"text-foreground/60",

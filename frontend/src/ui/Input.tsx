@@ -10,14 +10,14 @@ const inputVariants = cva(
 		"transition-all duration-200 outline-none",
 		"placeholder:text-foreground/40",
 		"disabled:opacity-50 disabled:cursor-not-allowed",
-		"focus:bg-content1/30 focus:shadow-[0_0_0_2px_rgba(255,191,0,0.2)]",
+		"focus:bg-content1/30 focus:shadow-[0_0_0_2px_rgba(201,168,108,0.25)]",
 	],
 	{
 		variants: {
 			variant: {
 				default: [
 					"border-white/20",
-					"hover:border-white/30",
+					"hover:border-white/30 hover:bg-content1/25",
 					"focus:border-warning/50",
 				],
 				ghost: [

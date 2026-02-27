@@ -34,7 +34,7 @@ function DifferentiatorCard({
 							"h-full rounded-3xl hover:border-warning/40 transition-all duration-300 bg-gradient-to-br from-content1/30 to-warning/5",
 					})}
 				>
-					<div className="w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br from-warning/20 to-orange-400/20 flex items-center justify-center text-warning">
+					<div className="w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br from-primary/15 to-warning/15 flex items-center justify-center text-warning">
 						{icon}
 					</div>
 					<h3 className="text-2xl font-bold mb-3 text-foreground">{title}</h3>

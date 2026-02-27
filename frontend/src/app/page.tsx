@@ -151,9 +151,9 @@ export default function LandingPage() {
 								})}
 							>
 								{/* Icon */}
-								<div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-r from-warning via-orange-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-warning/40">
+								<div className="w-20 h-20 mx-auto mb-8 bg-warning/15 border-2 border-warning/40 rounded-2xl flex items-center justify-center shadow-2xl shadow-warning/40">
 									<BoltIcon
-										className="w-10 h-10 text-black"
+										className="w-10 h-10 text-warning"
 										aria-hidden="true"
 									/>
 								</div>
@@ -162,7 +162,7 @@ export default function LandingPage() {
 									id="cta-heading"
 									className="text-3xl sm:text-4xl md:text-6xl font-black mb-6 font-orbitron"
 								>
-									<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
+									<span className="bg-gradient-to-r from-primary via-warning to-primary-300 bg-clip-text text-transparent">
 										Be Among the First
 									</span>
 								</h2>
@@ -209,14 +209,14 @@ export default function LandingPage() {
 									className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-foreground/60"
 									aria-label="Security features"
 								>
-									<li className="flex items-center gap-2">
+									<li className="flex items-center gap-2 transition-all duration-200 hover:text-foreground/80">
 										<ShieldCheckIcon
 											className="w-5 h-5 text-success-400"
 											aria-hidden="true"
 										/>
 										<span className="text-sm font-medium">WAVS Secured</span>
 									</li>
-									<li className="flex items-center gap-2">
+									<li className="flex items-center gap-2 transition-all duration-200 hover:text-foreground/80">
 										<BoltIcon
 											className="w-5 h-5 text-warning"
 											aria-hidden="true"

@@ -56,12 +56,12 @@ export function SpinVisual({
 					isWaitingForFulfillment || isSpinning
 						? "spin-wobble"
 						: isError
-							? "animate-bounce"
-							: "hover:shadow-3xl hover:shadow-warning/30 transition-all duration-300",
+							? "border-danger/50 shadow-danger/20"
+							: "shadow-gold-glow hover:shadow-3xl hover:shadow-warning/30 transition-all duration-300",
 				)}
 			>
 				{/* Inner glass surface */}
-				<div className="w-full h-full rounded-full bg-gradient-to-br from-background to-background/80 backdrop-blur-xl flex items-center justify-center border border-warning/30 relative overflow-hidden">
+				<div className="w-full h-full rounded-full bg-gradient-to-br from-background to-background/80 backdrop-blur-xl flex items-center justify-center border border-warning/40 relative overflow-hidden">
 					{/* Shimmer effect */}
 					<div className="absolute inset-0 bg-gradient-to-r from-transparent via-warning/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms]"></div>
 

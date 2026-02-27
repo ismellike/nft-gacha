@@ -5,11 +5,11 @@ import { tv, type VariantProps } from "tailwind-variants";
 import { cn } from "../lib/theme-config";
 
 const skeleton = tv({
-	base: "animate-pulse rounded-xl bg-white/5",
+	base: "animate-pulse rounded-xl bg-gradient-to-r from-content1/15 via-content1/10 to-content1/15",
 	variants: {
 		variant: {
-			default: "bg-white/5",
-			card: "bg-content1/20 border border-white/10",
+			default: "bg-gradient-to-r from-content1/15 via-content1/10 to-content1/15",
+			card: "bg-content1/20 border border-warning/5",
 			text: "bg-white/10",
 			button: "bg-white/10",
 			image: "bg-white/5",

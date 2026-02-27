@@ -25,7 +25,7 @@ export const glassButton = tv({
 				"data-[pressed=true]:scale-[0.97]",
 			],
 			secondary: [
-				"bg-content1/20 backdrop-blur-xl border border-white/20 text-foreground font-medium",
+				"bg-content1/15 backdrop-blur-xl border border-white/20 text-foreground font-medium",
 				"shadow-[0_0_6px_rgba(255,255,255,0.06),0_0_12px_rgba(255,255,255,0.03)]",
 				"hover:bg-content1/30 hover:border-white/30",
 				"hover:shadow-[0_0_8px_rgba(255,255,255,0.08),0_0_16px_rgba(255,255,255,0.04)]",
@@ -85,7 +85,7 @@ export const glassCard = tv({
 			base: "",
 			interactive: [
 				"cursor-pointer",
-				"hover:bg-content1/30 hover:border-white/20 hover:shadow-3xl",
+				"hover:bg-content1/25 hover:border-white/20 hover:shadow-3xl",
 				"focus:outline-none focus-visible:ring-2 focus-visible:ring-warning/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
 				"data-[pressed=true]:scale-[0.98]",
 			],
@@ -197,7 +197,7 @@ export const glassModal = tv({
 			"data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
 		],
 		base: [
-			"relative bg-white/5 backdrop-blur-2xl border border-white/20",
+			"relative bg-content1/30 backdrop-blur-2xl border border-white/15",
 			"shadow-2xl rounded-2xl max-h-[90vh] overflow-hidden",
 			"data-[state=open]:animate-in data-[state=open]:zoom-in-95 data-[state=open]:fade-in-0",
 			"data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=closed]:fade-out-0",
@@ -263,7 +263,7 @@ export const glassBreadcrumb = tv({
 		],
 		current: [
 			"flex items-center gap-2 px-3 py-2 rounded-lg",
-			"bg-gradient-to-r from-warning/20 to-orange-400/20 border border-warning/30",
+			"bg-gradient-to-r from-warning/15 to-primary/15 border border-warning/30",
 			"text-warning font-semibold",
 		],
 		separator: "text-foreground/40 mx-1",
@@ -285,7 +285,7 @@ export const glassNavigation = tv({
 		],
 		logoText: [
 			"text-2xl font-bold tracking-tight transition-all duration-200",
-			"bg-gradient-to-r from-foreground via-warning to-orange-400 bg-clip-text text-transparent",
+			"bg-gradient-to-r from-foreground to-warning bg-clip-text text-transparent",
 			"group-hover:from-warning group-hover:to-orange-400",
 		],
 		navItems: "hidden md:flex items-center space-x-2",
@@ -381,7 +381,7 @@ export const glassGradients = {
 	primaryGlow: "bg-gradient-to-r from-warning/20 to-orange-400/20",
 	secondary: "bg-gradient-to-r from-primary to-warning",
 	secondaryText:
-		"bg-gradient-to-r from-foreground via-warning to-orange-400 bg-clip-text text-transparent",
+		"bg-gradient-to-r from-foreground to-warning bg-clip-text text-transparent",
 	background: "bg-gradient-to-br from-background/95 to-background/80",
 	content: "bg-gradient-to-r from-content1/40 via-background/95 to-content1/30",
 } as const;

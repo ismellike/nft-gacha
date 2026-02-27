@@ -22,7 +22,7 @@ function Step({ stepNumber, title, description, delay }: StepProps) {
 				transition={{ duration: 0.5, delay }}
 			>
 				{/* Step Number Badge */}
-				<div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-warning to-orange-400 flex items-center justify-center mb-6 shadow-lg shadow-warning/30">
+				<div className="w-16 h-16 rounded-2xl bg-warning flex items-center justify-center mb-6 shadow-lg shadow-warning/30">
 					<span className="text-2xl font-black text-black">{stepNumber}</span>
 				</div>
 
