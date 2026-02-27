@@ -43,8 +43,47 @@ tasks:
                 forge script script/DeployLocal.s.sol:DeployLocal \
                   --rpc-url {{.DEPLOY_RPC_URL}} \
                   --broadcast \
+                  --slow \
                   --private-key $DEPLOYER_PRIVATE_KEY
         preconditions:
             - sh: '[ -n "$DEPLOYER_PRIVATE_KEY" ]'
               msg: "DEPLOYER_PRIVATE_KEY environment variable is required"
+        deps: [build]
+
+    deploy-testnet:
+        desc: Deploy Gacha system contracts to a public testnet
+        dir: "{{.CONTRACTS_DIR}}"
+        vars:
+            DEPLOY_RPC_URL:
+                sh: task backend:get-evm-rpc-url-1
+            DEPLOY_CHAIN_ID:
+                sh: cast chain-id --rpc-url $(task backend:get-evm-rpc-url-1)
+        requires:
+            vars: [WAVS_SERVICE_MANAGER_ADDRESS]
+        env:
+            WAVS_SERVICE_MANAGER_ADDRESS: "{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
+            DEPLOY_ENV: TESTNET
+            CHAIN_ID: "{{.DEPLOY_CHAIN_ID}}"
+            RPC_URL: "{{.DEPLOY_RPC_URL}}"
+            USDC_TOKEN_ADDRESS: "{{.USDC_TOKEN_ADDRESS}}"
+            SPIN_FEE: "{{.SPIN_FEE}}"
+        cmds:
+            - |
+                VERIFY_FLAGS=""
+                if [ -n "$ETHERSCAN_API_KEY" ]; then
+                  VERIFY_FLAGS="--verify --etherscan-api-key $ETHERSCAN_API_KEY"
+                  echo "Contract verification enabled"
+                else
+                  echo "Warning: ETHERSCAN_API_KEY not set, skipping contract verification"
+                fi
+                forge script script/DeployTestnet.s.sol:DeployTestnet \
+                  --rpc-url {{.DEPLOY_RPC_URL}} \
+                  --broadcast \
+                  --private-key $DEPLOYER_PRIVATE_KEY \
+                  $VERIFY_FLAGS
+        preconditions:
+            - sh: '[ -n "$DEPLOYER_PRIVATE_KEY" ]'
+              msg: "DEPLOYER_PRIVATE_KEY environment variable is required"
+            - sh: '[ "{{.DEPLOY_ENV}}" = "TESTNET" ]'
+              msg: "DEPLOY_ENV must be set to TESTNET (current: {{.DEPLOY_ENV}})"
         deps: [build]
