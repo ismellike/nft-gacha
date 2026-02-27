@@ -4,10 +4,8 @@ import { DEFAULT_RARITY_CONFIG, getRarityConfig } from "@/lib/rarityConfig";
 import { Card, Skeleton } from "@/ui";
 
 interface RarityDistributionChartProps {
-	/** Win counts per rarity tier [common, uncommon, rare, epic, legendary] */
-	rarityWinCounts: readonly bigint[] | bigint[];
-	/** Treasury item counts per rarity tier */
-	rarityCounts?: readonly bigint[] | undefined;
+	/** Win counts per rarity tier (as numbers, converted from BigInt at page level) */
+	rarityWinCounts: readonly number[] | number[];
 	title?: string | undefined;
 	isLoading: boolean;
 }
@@ -21,13 +19,12 @@ const RARITY_BAR_COLORS: string[] = DEFAULT_RARITY_CONFIG.map(
 
 export function RarityDistributionChart({
 	rarityWinCounts,
-	rarityCounts,
 	title = "Rarity Win Distribution",
 	isLoading,
 }: RarityDistributionChartProps) {
 	const totalWins = RARITIES.reduce(
-		(sum, r) => sum + (rarityWinCounts[r] ?? 0n),
-		0n,
+		(sum, r) => sum + (rarityWinCounts[r] ?? 0),
+		0,
 	);
 
 	if (isLoading) {
@@ -56,11 +53,10 @@ export function RarityDistributionChart({
 			<div className="space-y-4">
 				{RARITIES.map((rarity) => {
 					const config = getRarityConfig(rarity);
-					const wins = rarityWinCounts[rarity] ?? 0n;
-					const available = rarityCounts ? (rarityCounts[rarity] ?? 0n) : null;
+					const wins = rarityWinCounts[rarity] ?? 0;
 					const pct =
-						totalWins > 0n
-							? Number((wins * 10000n) / totalWins) / 100
+						totalWins > 0
+							? (wins / totalWins) * 100
 							: 0;
 					const barColor = RARITY_BAR_COLORS[rarity];
 
@@ -73,13 +69,8 @@ export function RarityDistributionChart({
 								</span>
 								<div className="flex items-center gap-3 text-foreground/60 text-xs">
 									<span className="font-mono">
-										{Number(wins).toLocaleString()} wins
+										{wins.toLocaleString()} wins
 									</span>
-									{available !== null && (
-										<span className="font-mono text-foreground/40">
-											/ {Number(available).toLocaleString()} avail.
-										</span>
-									)}
 									<span
 										className="font-semibold min-w-[3.5rem] text-right"
 										style={{ color: barColor }}
@@ -105,7 +96,7 @@ export function RarityDistributionChart({
 				})}
 			</div>
 
-			{totalWins === 0n && (
+			{totalWins === 0 && (
 				<p className="text-center text-sm text-foreground/40 mt-4">
 					No wins recorded yet. Be the first to spin!
 				</p>

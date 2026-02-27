@@ -6,7 +6,6 @@ import {
 	FireIcon,
 	TrophyIcon,
 } from "@heroicons/react/24/outline";
-import type { AggregatedAnalytics } from "@/hooks/useLeaderboardAnalytics";
 import { Card, Skeleton } from "@/ui";
 
 interface StatCardProps {
@@ -58,23 +57,32 @@ function StatCard({
 	);
 }
 
-interface GlobalStatsBarProps {
-	analytics: AggregatedAnalytics;
+export interface GlobalStats {
+	totalSpins: number;
+	totalNftsWon: number;
+	totalItems: number;
+	activeGachas: number;
+	isLoading: boolean;
 }
 
-export function GlobalStatsBar({ analytics }: GlobalStatsBarProps) {
-	const { totalSpins, totalNftsWon, totalItems, isLoading } = analytics;
+interface GlobalStatsBarProps {
+	stats: GlobalStats;
+}
+
+export function GlobalStatsBar({ stats }: GlobalStatsBarProps) {
+	const { totalSpins, totalNftsWon, totalItems, activeGachas, isLoading } =
+		stats;
 
 	const winRate =
-		totalSpins > 0n
-			? ((Number(totalNftsWon) / Number(totalSpins)) * 100).toFixed(1)
+		totalSpins > 0
+			? ((totalNftsWon / totalSpins) * 100).toFixed(1)
 			: "0.0";
 
-	const stats: StatCardProps[] = [
+	const statCards: StatCardProps[] = [
 		{
 			icon: BoltIcon,
 			label: "Total Spins",
-			value: Number(totalSpins).toLocaleString(),
+			value: totalSpins.toLocaleString(),
 			sublabel: "All-time across all gachas",
 			iconColor: "text-warning",
 			borderColor: "border-warning/20",
@@ -83,7 +91,7 @@ export function GlobalStatsBar({ analytics }: GlobalStatsBarProps) {
 		{
 			icon: TrophyIcon,
 			label: "NFTs Won",
-			value: Number(totalNftsWon).toLocaleString(),
+			value: totalNftsWon.toLocaleString(),
 			sublabel: `${winRate}% win rate`,
 			iconColor: "text-success",
 			borderColor: "border-success/20",
@@ -92,7 +100,7 @@ export function GlobalStatsBar({ analytics }: GlobalStatsBarProps) {
 		{
 			icon: CubeIcon,
 			label: "Treasury Items",
-			value: Number(totalItems).toLocaleString(),
+			value: totalItems.toLocaleString(),
 			sublabel: "Available for spins",
 			iconColor: "text-primary",
 			borderColor: "border-primary/20",
@@ -101,7 +109,7 @@ export function GlobalStatsBar({ analytics }: GlobalStatsBarProps) {
 		{
 			icon: FireIcon,
 			label: "Active Gachas",
-			value: analytics.perGacha.length.toLocaleString(),
+			value: activeGachas.toLocaleString(),
 			sublabel: "Live collections",
 			iconColor: "text-danger",
 			borderColor: "border-danger/20",
@@ -111,7 +119,7 @@ export function GlobalStatsBar({ analytics }: GlobalStatsBarProps) {
 
 	return (
 		<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-			{stats.map((stat) => (
+			{statCards.map((stat) => (
 				<StatCard key={stat.label} {...stat} />
 			))}
 		</div>

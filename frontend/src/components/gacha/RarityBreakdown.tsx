@@ -169,7 +169,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 							key={rarity.name}
 							type="button"
 							onClick={() => handleRarityClick(rarity.rarity)}
-							className="group relative flex items-center justify-between gap-2 sm:gap-4 rounded-2xl border border-white/5 bg-gradient-to-r from-content1/40 via-content1/20 to-content1/30 px-3 sm:px-4 py-3 sm:py-4 text-left transition-transform duration-200 hover:-translate-y-0.5 hover:border-white/20"
+							className="group relative flex items-center justify-between gap-2 sm:gap-4 rounded-2xl border border-white/5 bg-gradient-to-r from-content1/40 via-content1/20 to-content1/30 px-3 sm:px-4 py-3 sm:py-4 text-left transition-transform duration-200 hover:-translate-y-0.5 hover:border-white/20 overflow-hidden w-full"
 						>
 							<div className="flex items-center gap-2 sm:gap-4 min-w-0">
 								<div

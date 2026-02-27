@@ -2,19 +2,15 @@
 
 import {
 	ChartBarIcon,
-	CubeTransparentIcon,
 	RocketLaunchIcon,
 	TrophyIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useMemo } from "react";
 import {
-	GachaLeaderboardTable,
 	GlobalStatsBar,
 	RarityDistributionChart,
 	RecentActivityFeed,
-	TreasuryStatsGrid,
-	UserStatsCard,
 } from "../../components/leaderboard";
 import { useLeaderboardAnalytics } from "../../hooks/useLeaderboardAnalytics";
 import { getAllActiveGachas } from "../../lib/gacha-config";
@@ -50,8 +46,30 @@ export default function LeaderboardPage() {
 	const analytics = useLeaderboardAnalytics();
 	const allGachas = useMemo(() => getAllActiveGachas(), []);
 
-	// Use the first gacha for user stats when multiple exist
-	const primaryGacha = allGachas[0];
+	// Convert BigInt values to numbers at the page boundary to prevent
+	// "Do not know how to serialize a BigInt" errors from JSON.stringify
+	// (triggered by Next.js HMR, React DevTools, or internal serialization).
+	const globalStats = useMemo(
+		() => ({
+			totalSpins: Number(analytics.totalSpins),
+			totalNftsWon: Number(analytics.totalNftsWon),
+			totalItems: Number(analytics.totalItems),
+			activeGachas: analytics.perGacha.length,
+			isLoading: analytics.isLoading,
+		}),
+		[
+			analytics.totalSpins,
+			analytics.totalNftsWon,
+			analytics.totalItems,
+			analytics.perGacha.length,
+			analytics.isLoading,
+		],
+	);
+
+	const globalRarityWinCounts = useMemo(
+		() => analytics.globalRarityWinCounts.map(Number),
+		[analytics.globalRarityWinCounts],
+	);
 
 	return (
 		<div className="min-h-screen bg-transparent">
@@ -78,8 +96,8 @@ export default function LeaderboardPage() {
 					</h1>
 
 					<p className="text-lg text-foreground/70 max-w-2xl mx-auto leading-relaxed">
-						Live protocol statistics, rarity distributions, and treasury health
-						across all SPINFI gacha collections.
+						Live protocol statistics and rarity distributions across all
+						SPINFI gacha collections.
 					</p>
 				</motion.div>
 
@@ -97,7 +115,7 @@ export default function LeaderboardPage() {
 							title="Global Protocol Stats"
 							description="Aggregated metrics across all active gacha collections"
 						/>
-						<GlobalStatsBar analytics={analytics} />
+						<GlobalStatsBar stats={globalStats} />
 					</motion.section>
 
 					{/* ─── Rarity Distribution + Activity Feed ─── */}
@@ -116,12 +134,7 @@ export default function LeaderboardPage() {
 						<div className="grid gap-6 lg:grid-cols-5">
 							<div className="lg:col-span-3">
 								<RarityDistributionChart
-									rarityWinCounts={analytics.globalRarityWinCounts}
-									rarityCounts={
-										analytics.perGacha.length > 0
-											? analytics.perGacha[0]?.rarityCounts
-											: undefined
-									}
+									rarityWinCounts={globalRarityWinCounts}
 									isLoading={analytics.isLoading}
 								/>
 							</div>
@@ -133,71 +146,6 @@ export default function LeaderboardPage() {
 							</div>
 						</div>
 					</motion.section>
-
-					{/* ─── Collection Performance ─── */}
-					<motion.section
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.5, delay: 0.3 }}
-						aria-label="Collection Performance"
-					>
-						<SectionHeader
-							icon={TrophyIcon}
-							label="Collections"
-							title="Collection Performance"
-							description="Spin activity and NFT win rates per gacha collection"
-						/>
-						<GachaLeaderboardTable
-							gachas={analytics.perGacha}
-							isLoading={analytics.isLoading}
-						/>
-					</motion.section>
-
-					{/* ─── Treasury Health ─── */}
-					<motion.section
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.5, delay: 0.4 }}
-						aria-label="Treasury Health"
-					>
-						<SectionHeader
-							icon={CubeTransparentIcon}
-							label="Treasury"
-							title="Treasury Health"
-							description="NFT pool availability and deposit stats per collection"
-						/>
-						<TreasuryStatsGrid
-							gachas={analytics.perGacha}
-							isLoading={analytics.isLoading}
-						/>
-					</motion.section>
-
-					{/* ─── Your Stats ─── */}
-					{primaryGacha && (
-						<motion.section
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.5, delay: 0.5 }}
-							aria-label="Your Personal Statistics"
-						>
-							<SectionHeader
-								icon={TrophyIcon}
-								label="Personal"
-								title="Your Statistics"
-								description="Your personal spin history and rarity win breakdown"
-							/>
-							<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-								{allGachas.map((gacha) => (
-									<UserStatsCard
-										key={gacha.id}
-										gachaAddress={gacha.address}
-										gachaId={gacha.id}
-										gachaTitle={gacha.title}
-									/>
-								))}
-							</div>
-						</motion.section>
-					)}
 				</div>
 			</div>
 		</div>
