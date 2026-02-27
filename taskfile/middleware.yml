@@ -206,14 +206,26 @@ tasks:
                   echo "Error: RPC_URL is empty" >&2
                   exit 1
                 fi
-                RPC_PORT=$(echo "{{.RPC_URL}}" | sed 's|.*:||; s|/.*||')
-                for i in $(seq 1 {{.HEALTH_CHECK_TIMEOUT}}); do
-                  if nc -z 127.0.0.1 "$RPC_PORT"; then
-                    break
-                  fi
-                  echo "Waiting for RPC at {{.RPC_URL}}..."
-                  sleep 1
-                done
+                # For local URLs, use nc port check; for remote URLs, use curl
+                if echo "{{.RPC_URL}}" | grep -q "localhost\|127\.0\.0\.1"; then
+                  RPC_PORT=$(echo "{{.RPC_URL}}" | sed 's|.*:||; s|/.*||')
+                  for i in $(seq 1 {{.HEALTH_CHECK_TIMEOUT}}); do
+                    if nc -z 127.0.0.1 "$RPC_PORT"; then
+                      break
+                    fi
+                    echo "Waiting for RPC at {{.RPC_URL}}..."
+                    sleep 1
+                  done
+                else
+                  for i in $(seq 1 {{.HEALTH_CHECK_TIMEOUT}}); do
+                    if curl -sf -X POST "{{.RPC_URL}}" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' >/dev/null 2>&1; then
+                      echo "RPC at {{.RPC_URL}} is reachable"
+                      break
+                    fi
+                    echo "Waiting for RPC at {{.RPC_URL}}..."
+                    sleep 1
+                  done
+                fi
                 if [ "{{.DEPLOY_ENV}}" = "LOCAL" ]; then
                   if ! cast call "{{.SERVICE_MANAGER_ADDRESS}}" "getServiceURI()" --rpc-url "{{.RPC_URL}}" >/dev/null 2>&1; then
                     echo "Service manager does not support getServiceURI; skipping set-service-uri in LOCAL"

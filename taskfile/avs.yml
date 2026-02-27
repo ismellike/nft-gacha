@@ -25,6 +25,8 @@ vars:
     SERVICE_OUTPUT_DIR: '{{joinPath .PROJECT_OUTPUT_DIR "services"}}'
     SERVICE_JSON_PATH: "{{.SERVICE_OUTPUT_DIR}}/{{.AVS_SERVICE_NAME}}.json"
     TEMP_SERVICE_HASH_JSON_PATH: "{{.SERVICE_OUTPUT_DIR}}/hash.json"
+    # Contract addresses env file: .env.local for LOCAL, .env.testnet for TESTNET
+    CONTRACT_ENV_FILE: '{{ternary ".env.local" ".env.testnet" (ne .DEPLOY_ENV "TESTNET")}}'
 
 tasks:
     bootstrap:
@@ -411,8 +413,9 @@ tasks:
             OUTPUT_DIR: "{{.PROJECT_OUTPUT_DIR}}/{{.CHAIN_DIRNAME}}/{{.AVS_PROJECT}}"
             WAVS_SERVICE_MANAGER_ADDRESS:
                 sh: task avs:get-service-manager-address
+            DEPLOY_TASK: '{{ternary "contracts:deploy" "contracts:deploy-testnet" (ne .DEPLOY_ENV "TESTNET")}}'
         cmds:
-            - cd "{{.REPO_ROOT}}" && task contracts:deploy WAVS_SERVICE_MANAGER_ADDRESS="{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
+            - cd "{{.REPO_ROOT}}" && task {{.DEPLOY_TASK}} WAVS_SERVICE_MANAGER_ADDRESS="{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
 
     build-service:
         desc: "Build service configuration"
@@ -442,7 +445,7 @@ tasks:
             TRIGGER_CHAIN:
                 sh: task backend:get-chain-name-1
             GACHA_ADDRESS:
-                sh: awk -F= '/^GACHA_ADDRESS=/{print $2}' .env.local
+                sh: awk -F= '/^GACHA_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
             WAVS_DRAND_COMPONENT_CID:
                 sh: jq -r '.cid' "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/wavs_drand-cid.json"
             RANDOMNESS_REQUESTED_EVENT_HASH:
@@ -453,10 +456,10 @@ tasks:
             AGGREGATOR_COMPONENT_CONFIG:
                 sh: task avs:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}" WORKFLOW_ID="{{.WORKFLOW_ID}}"
         preconditions:
-            - sh: '[ -f ".env.local" ]'
-              msg: ".env.local not found; run task contracts:deploy first"
+            - sh: '[ -f "{{.CONTRACT_ENV_FILE}}" ]'
+              msg: "{{.CONTRACT_ENV_FILE}} not found; run task contracts:deploy first"
             - sh: '[ -n "{{.GACHA_ADDRESS}}" ]'
-              msg: "GACHA_ADDRESS not set; re-run task contracts:deploy to generate .env.local"
+              msg: "GACHA_ADDRESS not set; re-run task contracts:deploy to generate {{.CONTRACT_ENV_FILE}}"
             - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/wavs_drand-cid.json" ]'
               msg: "wavs_drand CID not found; run task avs:components-upload first"
             - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/aggregator_simple-cid.json" ]'
@@ -481,7 +484,7 @@ tasks:
             TRIGGER_CHAIN:
                 sh: task backend:get-chain-name-1
             NFT_APPRAISAL_ADDRESS:
-                sh: awk -F= '/^NFT_APPRAISAL_ADDRESS=/{print $2}' .env.local
+                sh: awk -F= '/^NFT_APPRAISAL_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
             NFT_APPRAISAL_COMPONENT_CID:
                 sh: jq -r '.cid' "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/nft_appraisal-cid.json"
             APPRAISAL_REQUESTED_EVENT_HASH:
@@ -492,10 +495,10 @@ tasks:
             AGGREGATOR_COMPONENT_CONFIG:
                 sh: task avs:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}" WORKFLOW_ID="{{.WORKFLOW_ID}}"
         preconditions:
-            - sh: '[ -f ".env.local" ]'
-              msg: ".env.local not found; run task contracts:deploy first"
+            - sh: '[ -f "{{.CONTRACT_ENV_FILE}}" ]'
+              msg: "{{.CONTRACT_ENV_FILE}} not found; run task contracts:deploy first"
             - sh: '[ -n "{{.NFT_APPRAISAL_ADDRESS}}" ]'
-              msg: "NFT_APPRAISAL_ADDRESS not set; re-run task contracts:deploy to generate .env.local"
+              msg: "NFT_APPRAISAL_ADDRESS not set; re-run task contracts:deploy to generate {{.CONTRACT_ENV_FILE}}"
             - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/nft_appraisal-cid.json" ]'
               msg: "nft_appraisal CID not found; run task avs:components-upload first"
             - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/aggregator_simple-cid.json" ]'
@@ -657,12 +660,12 @@ tasks:
             vars: [WORKFLOW_ID]
         vars:
             GACHA_SERVICE_HANDLER_ADDRESS:
-                sh: awk -F= '/^GACHA_SERVICE_HANDLER_ADDRESS=/{print $2}' .env.local
+                sh: awk -F= '/^GACHA_SERVICE_HANDLER_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
             APPRAISAL_SERVICE_HANDLER_ADDRESS:
-                sh: awk -F= '/^APPRAISAL_SERVICE_HANDLER_ADDRESS=/{print $2}' .env.local
+                sh: awk -F= '/^APPRAISAL_SERVICE_HANDLER_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
         preconditions:
-            - sh: '[ -f ".env.local" ]'
-              msg: ".env.local not found; run task contracts:deploy first"
+            - sh: '[ -f "{{.CONTRACT_ENV_FILE}}" ]'
+              msg: "{{.CONTRACT_ENV_FILE}} not found; run task contracts:deploy first"
         cmds:
             - |
                 case "{{.WORKFLOW_ID}}" in

@@ -78,6 +78,7 @@ function isPlaceholder(addr: string): boolean {
 export function getMissingTestnetAddresses(config: GachaConfig): string[] {
 	const missing: string[] = [];
 
+	// Required addresses — deployed by DeployTestnet.s.sol
 	if (isPlaceholder(config.address)) missing.push("NEXT_PUBLIC_GACHA_ADDRESS");
 	if (isPlaceholder(config.treasuryAddress)) missing.push("NEXT_PUBLIC_GACHA_TREASURY_ADDRESS");
 	if (isPlaceholder(config.appraisalAddress)) missing.push("NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS");
@@ -85,8 +86,22 @@ export function getMissingTestnetAddresses(config: GachaConfig): string[] {
 	if (isPlaceholder(config.gachaServiceHandlerAddress)) missing.push("NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS");
 	if (isPlaceholder(config.appraisalServiceHandlerAddress)) missing.push("NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS");
 	if (isPlaceholder(config.cardGroupedVaultAddress)) missing.push("NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS");
-	if (isPlaceholder(config.buybackVaultAddress)) missing.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
 	if (isPlaceholder(config.protocolTreasuryAddress)) missing.push("NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS");
+
+	// Optional addresses — not deployed by DeployTestnet.s.sol yet
+	// Buyback vault and tracker contracts are logged as warnings, not blockers
+	return missing;
+}
+
+/**
+ * Returns the list of optional address fields that are not yet configured.
+ * These are non-critical for initial testnet operation.
+ */
+export function getOptionalMissingAddresses(config: GachaConfig): string[] {
+	const optional: string[] = [];
+
+	if (isPlaceholder(config.buybackVaultAddress)) optional.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
+
 	const trackerEnvNames = [
 		"NEXT_PUBLIC_COMMON_TRACKER_ADDRESS",
 		"NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS",
@@ -96,11 +111,11 @@ export function getMissingTestnetAddresses(config: GachaConfig): string[] {
 	];
 	for (let i = 0; i < config.trackerAddresses.length; i++) {
 		if (isPlaceholder(config.trackerAddresses[i]) && trackerEnvNames[i]) {
-			missing.push(trackerEnvNames[i]);
+			optional.push(trackerEnvNames[i]);
 		}
 	}
 
-	return missing;
+	return optional;
 }
 
 /**
@@ -120,9 +135,18 @@ export function validateTestnetConfig(
 		if (missing.length > 0) {
 			allValid = false;
 			console.warn(
-				`[gacha-config/testnet] Gacha "${id}" is missing ${missing.length} address(es).\n` +
+				`[gacha-config/testnet] Gacha "${id}" is missing ${missing.length} required address(es).\n` +
 				"  Set the following env vars before deploying to testnet:\n" +
 				missing.map((v) => `    ${v}`).join("\n"),
+			);
+		}
+
+		const optional = getOptionalMissingAddresses(config);
+		if (optional.length > 0) {
+			console.info(
+				`[gacha-config/testnet] Gacha "${id}" has ${optional.length} optional address(es) not configured.\n` +
+				"  These features will be disabled until set:\n" +
+				optional.map((v) => `    ${v}`).join("\n"),
 			);
 		}
 	}

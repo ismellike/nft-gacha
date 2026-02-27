@@ -47,6 +47,12 @@ sender = "0x1804c8AB1F12E6bbf3894d4083f33e07309d1F38"
 tx_origin = "0x1804c8AB1F12E6bbf3894d4083f33e07309d1F38"
 initial_balance = "0xffffffffffffffffffffffff"
 
+# Etherscan / block explorer verification
+# Set ETHERSCAN_API_KEY env var before running forge verify-contract
+[etherscan]
+polygon_amoy = { key = "${ETHERSCAN_API_KEY}", url = "https://api-amoy.polygonscan.com/api", chain = 80002 }
+polygon = { key = "${ETHERSCAN_API_KEY}", url = "https://api.polygonscan.com/api", chain = 137 }
+
 # Coverage profile for detailed analysis
 [profile.coverage]
 out = "coverage"

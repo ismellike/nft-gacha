@@ -35,8 +35,12 @@ cors_allowed_origins = [
     "https://lay3rlabs.github.io/*",
     "http://localhost:*",
     "http://127.0.0.1:*",
+    # TESTNET/MAINNET: Add your frontend's production URL here, e.g.:
+    # "https://your-app.vercel.app/*",
 ]
 dev_endpoints_enabled = true
+# TESTNET: Change to a public IPFS gateway (e.g. https://gateway.pinata.cloud/ipfs/)
+# when running operators on a public server
 ipfs_gateway = "http://localhost:8301/ipfs/"
 
 # ----------------------------
@@ -45,6 +49,7 @@ ipfs_gateway = "http://localhost:8301/ipfs/"
 [cli]
 # The directory to store the data.
 data = "~/wavs/cli"
+# TESTNET: Change to a public IPFS gateway when deploying remotely
 ipfs_gateway = "http://localhost:8301/ipfs/"
 
 # ----------------------------
@@ -55,10 +60,12 @@ ipfs_gateway = "http://localhost:8301/ipfs/"
 data = "~/wavs/aggregator"
 
 dev_endpoints_enabled = true
+# TESTNET: Change to a public IPFS gateway when deploying remotely
 ipfs_gateway = "http://localhost:8301/ipfs/"
 
 cors_allowed_origins = [
     "https://lay3rlabs.github.io/*",
     "http://localhost:*",
     "http://127.0.0.1:*",
+    # TESTNET/MAINNET: Add your frontend's production URL here
 ]

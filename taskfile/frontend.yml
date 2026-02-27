@@ -62,3 +62,34 @@ tasks:
         done < <(cat .env.local | sed 's/\\n/\n/g')
 
         echo "✅ Environment variables synced to frontend/.env.local"
+
+  sync-env-testnet:
+    desc: Port .env.testnet (from DeployTestnet.s.sol) to frontend/.env.local with NEXT_PUBLIC_ prefixes
+    cmds:
+      - |
+        if [ ! -f ".env.testnet" ]; then
+          echo "❌ No .env.testnet found in root directory"
+          echo "   Run 'task contracts:deploy-testnet' to generate it"
+          exit 1
+        fi
+        echo "🔄 Porting testnet environment variables to frontend/.env.local..."
+
+        # Create frontend/.env.local if it doesn't exist
+        touch "{{.FRONTEND_DIR}}/.env.local"
+
+        # Process the .env.testnet file and merge into frontend/.env.local
+        while IFS='=' read -r key value; do
+          # Skip empty lines and comments
+          if [[ -z "$key" || "$key" == \#* ]]; then
+            continue
+          fi
+          PREFIXED_KEY="NEXT_PUBLIC_${key}"
+          # Remove existing entry if present, then append
+          if grep -q "^${PREFIXED_KEY}=" "{{.FRONTEND_DIR}}/.env.local" 2>/dev/null; then
+            sed -i "s|^${PREFIXED_KEY}=.*|${PREFIXED_KEY}=${value}|" "{{.FRONTEND_DIR}}/.env.local"
+          else
+            echo "${PREFIXED_KEY}=${value}" >> "{{.FRONTEND_DIR}}/.env.local"
+          fi
+        done < .env.testnet
+
+        echo "✅ Testnet environment variables synced to frontend/.env.local"
