@@ -22,6 +22,30 @@ tasks:
         cmds:
             - forge test
 
+    test:unit:
+        desc: Run only unit tests (excludes fuzz, invariant, integration, stress)
+        dir: "{{.CONTRACTS_DIR}}"
+        cmds:
+            - forge test --match-path "test/unit/*"
+
+    test:fuzz:
+        desc: Run only fuzz tests
+        dir: "{{.CONTRACTS_DIR}}"
+        cmds:
+            - forge test --match-path "test/fuzz/*"
+
+    test:integration:
+        desc: Run only integration tests
+        dir: "{{.CONTRACTS_DIR}}"
+        cmds:
+            - forge test --match-path "test/integration/*"
+
+    snapshot:
+        desc: Generate gas snapshots
+        dir: "{{.CONTRACTS_DIR}}"
+        cmds:
+            - forge snapshot
+
     deploy:
         desc: Deploy Gacha system contracts using Forge script
         dir: "{{.CONTRACTS_DIR}}"
