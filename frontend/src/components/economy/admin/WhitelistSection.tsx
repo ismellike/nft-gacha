@@ -2,8 +2,9 @@
 
 import { ShieldCheckIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
+import { useReadContract } from "wagmi";
 import {
-	useReadGachaTreasuryGetWhitelistedCollections,
+	gachaTreasuryAbi,
 	useWriteGachaTreasuryAddToWhitelist,
 	useWriteGachaTreasuryRemoveFromWhitelist,
 } from "@/generated";
@@ -16,10 +17,13 @@ export function WhitelistSection() {
 
 	const treasuryAddress = process.env
 		.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
+	// Use useReadContract directly to avoid deep type instantiation with generated hook
 	const { data: whitelistedCollections, refetch: refetchWhitelist } =
-		useReadGachaTreasuryGetWhitelistedCollections({
+		useReadContract({
+			abi: gachaTreasuryAbi,
 			address: treasuryAddress,
-		} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
+			functionName: "getWhitelistedCollections",
+		});
 
 	const { writeContract: addToWhitelist } =
 		useWriteGachaTreasuryAddToWhitelist();

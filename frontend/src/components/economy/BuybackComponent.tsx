@@ -14,7 +14,6 @@ import {
 	type UseNFTInteractionParams,
 	useNFTInteraction,
 } from "@/hooks/useNFTInteraction";
-import { logger } from "@/lib/logger";
 import { useRedemptionWindow } from "@/hooks/useRedemptionWindow";
 import { getRarityConfig } from "@/lib/rarityConfig";
 import { formatCurrency } from "@/lib/utils";

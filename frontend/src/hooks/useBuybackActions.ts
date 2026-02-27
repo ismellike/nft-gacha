@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import type { InteractionMode } from "../stores/nftInteractionStore";
 
 type InteractionStatus =
 	| "idle"
@@ -21,10 +22,10 @@ type ActionInfo = {
 
 interface StartInteractionConfig {
 	treasuryAddress: string;
-	protocolTreasuryAddress?: string | undefined;
-	hasAppraisal?: boolean | undefined;
-	appraisalPrice?: bigint | undefined;
-	payoutAmount?: bigint | undefined;
+	protocolTreasuryAddress?: string;
+	hasAppraisal?: boolean;
+	appraisalPrice?: bigint;
+	payoutAmount?: bigint;
 }
 
 interface UseBuybackActionsParams {
@@ -37,13 +38,13 @@ interface UseBuybackActionsParams {
 	startInteraction: (
 		collection: string,
 		tokenId: string,
-		mode: "buyback",
+		mode: InteractionMode,
 		config: StartInteractionConfig,
 	) => void;
 	status: InteractionStatus;
 	isSuccessState: boolean;
 	isCompletedOtherNFT: boolean;
-	error: string | undefined;
+	error: string | null | undefined;
 	actionInfo: ActionInfo;
 	reset: () => void;
 	redemptionWindowIsExpired: boolean;

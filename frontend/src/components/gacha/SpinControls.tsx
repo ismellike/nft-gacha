@@ -25,6 +25,7 @@ import { usePermitSpin } from "../../hooks/usePermitSpin";
 import { useSpinCountdown } from "../../hooks/useSpinCountdown";
 import { useSpinFee } from "../../hooks/useSpinFee";
 import {
+	type UserFriendlyError,
 	mapTransactionError,
 } from "../../lib/transactionErrors";
 import { formatTokenAmount } from "../../lib/utils";
@@ -66,12 +67,8 @@ const SpinControls = memo(function SpinControls({
 	const sound = useSoundEffects();
 
 	// User-friendly error state
-	const [userFriendlyError, setUserFriendlyError] = useState<{
-		title: string;
-		message: string;
-		action?: string | undefined;
-		canRetry: boolean;
-	} | null>(null);
+	const [userFriendlyError, setUserFriendlyError] =
+		useState<UserFriendlyError | null>(null);
 
 	// Get gacha ID and contract addresses
 	const gachaId = useGachaId();

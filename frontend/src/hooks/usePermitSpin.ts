@@ -251,7 +251,7 @@ export function usePermitSpin({
 						s,
 						maxFee as bigint,
 					] as const,
-					functionName: "spinWithPermit",
+					functionName: "spinWithPermit" as const,
 				};
 
 				logger.gachaSpin.log("Submitting spinWithPermit transaction:", {

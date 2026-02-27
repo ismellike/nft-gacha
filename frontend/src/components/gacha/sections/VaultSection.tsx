@@ -12,8 +12,8 @@ import { motion } from "framer-motion";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
-import { useReadGachaTreasuryGetWhitelistedCollections } from "../../../generated";
+import { useAccount, usePublicClient, useReadContract } from "wagmi";
+import { gachaTreasuryAbi } from "../../../generated";
 import {
 	type UserCardGroupedData,
 	useClaimYield,
@@ -191,12 +191,13 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const { getUserDepositedNFTs, getCanonicalNFTData } =
 		useUserDepositedNFTs(treasury);
 
-	// Whitelisted collections
-	const whitelistedCollectionsQuery =
-		useReadGachaTreasuryGetWhitelistedCollections({
-			address: treasury,
-			query: { enabled: !!treasury },
-		});
+	// Whitelisted collections - use useReadContract directly to avoid deep type instantiation
+	const whitelistedCollectionsQuery = useReadContract({
+		abi: gachaTreasuryAbi,
+		address: treasury,
+		functionName: "getWhitelistedCollections",
+		query: { enabled: !!treasury },
+	});
 	const whitelistedCollections: `0x${string}`[] =
 		(whitelistedCollectionsQuery.data as `0x${string}`[]) || [];
 
