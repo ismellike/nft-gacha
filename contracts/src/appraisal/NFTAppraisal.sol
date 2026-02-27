@@ -342,6 +342,15 @@ contract NFTAppraisal is
         _setAppraisalForTokenWithCard(collection, tokenId, cardId, priceUSD, true);
     }
 
+    /// @dev Internal implementation for setting a card-level appraisal and linking a token.
+    ///      Verifies the token exists, links it to the card (or validates existing linkage),
+    ///      updates the card appraisal price and status, creates/updates the token request record,
+    ///      and triggers auto-migration to whitelisted treasuries if the price changed.
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID being appraised
+    /// @param cardId Card identifier to link the token to
+    /// @param priceUSD Appraised price in USD (scaled by 1e18)
+    /// @param isOwnerOverride If true, sets status to OwnerOverride instead of Completed
     function _setAppraisalForTokenWithCard(
         address collection,
         uint256 tokenId,
@@ -516,15 +525,24 @@ contract NFTAppraisal is
         }
     }
 
-    /// Convenience getters for card-first reads
+    /// @notice Gets the card ID that a specific token is linked to
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID to query
+    /// @return The card ID (bytes32(0) if token has not been linked to a card)
     function getTokenCardId(address collection, uint256 tokenId) external view returns (bytes32) {
         return tokenCardIds[collection][tokenId];
     }
 
+    /// @notice Gets the full appraisal record for a card ID
+    /// @param cardId Card identifier to query
+    /// @return The card appraisal struct (price, status, timestamps, canonical token)
     function getCardAppraisal(bytes32 cardId) external view returns (CardAppraisal memory) {
         return cardAppraisals[cardId];
     }
 
+    /// @notice Batch retrieves card appraisal records for multiple card IDs
+    /// @param cardIds Array of card identifiers to query
+    /// @return appraisals Array of card appraisal structs in the same order as input
     function getCardAppraisals(bytes32[] calldata cardIds) external view returns (CardAppraisal[] memory appraisals) {
         appraisals = new CardAppraisal[](cardIds.length);
         for (uint256 i = 0; i < cardIds.length; i++) {

@@ -476,6 +476,8 @@ contract CardGroupedVault is
 
     // ─── Admin ──────────────────────────────────────────────────────────
 
+    /// @notice Updates the treasury address authorized to manage card positions
+    /// @param newTreasury New treasury contract address (must be non-zero)
     function setTreasury(address newTreasury) external onlyOwner {
         if (newTreasury == address(0)) revert ZeroAddress();
         address previous = treasury;
@@ -483,6 +485,8 @@ contract CardGroupedVault is
         emit TreasuryUpdated(previous, newTreasury);
     }
 
+    /// @notice Updates the economy manager address authorized to distribute yield
+    /// @param newManager New economy manager contract address (must be non-zero)
     function setEconomyManager(address newManager) external onlyOwner {
         if (newManager == address(0)) revert ZeroAddress();
         address previous = economyManager;
@@ -490,10 +494,12 @@ contract CardGroupedVault is
         emit EconomyManagerUpdated(previous, newManager);
     }
 
+    /// @notice Pauses all vault operations (deposits, removals, claims, yield distribution)
     function pause() external onlyOwner {
         _pause();
     }
 
+    /// @notice Unpauses vault operations
     function unpause() external onlyOwner {
         _unpause();
     }
@@ -547,7 +553,17 @@ contract CardGroupedVault is
     }
 
     /**
-     * @dev Accrues pending yield for a position (no-op, just for API consistency).
+     * @dev Accrues pending yield for a single card position before modifying it.
+     *
+     *      This function is intentionally a no-op because yield is computed lazily from
+     *      current accumulator state via `_pendingForCard()` rather than being materialized
+     *      into a separate balance. Debt snapshots are reset independently via `_resetDebts()`.
+     *
+     *      It exists for API consistency so callers like `registerCardDeposit()`,
+     *      `removeCardDeposit()`, and `claimYieldForCards()` have a clear accrual step
+     *      before mutating position state, making the intent explicit in the code flow.
+     *
+     *      Parameters (unnamed): bytes32 cardId, address depositor -- both unused.
      */
     function _accruePosition(bytes32, address) internal pure {
         // No-op: pending is computed from current state. Debt reset happens separately.
@@ -555,7 +571,10 @@ contract CardGroupedVault is
 
     /**
      * @dev Accrues all pending yield across all cards for a depositor.
-     *      Returns total pending and resets all debts.
+     *      Iterates the depositor's card list, sums pending yield from each card
+     *      via `_pendingForCard()`, and resets all debts so pending becomes zero.
+     * @param depositor Address of the depositor to accrue for
+     * @return total Aggregate pending yield across all cards (in USDC)
      */
     function _accrueAll(address depositor) internal returns (uint256 total) {
         bytes32[] storage cards = _depositorCards[depositor];
@@ -569,7 +588,29 @@ contract CardGroupedVault is
     }
 
     /**
-     * @dev Reset position debts to current accumulator values so pending becomes 0.
+     * @dev Snapshots all three debt fields to match the current accumulator state, effectively
+     *      "zeroing out" any pending yield so it is not double-counted after a position change.
+     *
+     *      The three debts mirror the three terms in the pending yield formula:
+     *
+     *        rewardDebt     = count * price * (accYieldPerUSD[rarity] - baseAcc) / PRECISION
+     *                         Captures the main accumulator yield already owed.
+     *
+     *        correctionDebt = count * correctionPerUnit   (int256, in USDC-precision units)
+     *                         Captures the price-change correction already owed. Signed because
+     *                         price decreases produce negative corrections.
+     *
+     *        settledDebt    = count * settledYieldPerUnit  (uint256, in USDC-precision units)
+     *                         Captures yield from previous rarity stints already owed.
+     *
+     *      When `pos.count == 0` (empty position), all debts are cleared to zero to avoid
+     *      stale values persisting from a previous deposit.
+     *
+     *      Called after every position mutation (register, remove, claim) to keep the
+     *      pending yield calculation consistent.
+     *
+     * @param cardId    Identifier of the card whose position debts are being reset
+     * @param depositor Address of the depositor whose debts are being reset
      */
     function _resetDebts(bytes32 cardId, address depositor) internal {
         CardNode storage card = cardNodes[cardId];
@@ -595,7 +636,10 @@ contract CardGroupedVault is
     }
 
     /**
-     * @dev Transfer USDC to account and record analytics
+     * @dev Transfers USDC yield to the account, updates global claimed counter,
+     *      and records analytics in GachaTreasury (best-effort, swallows failures).
+     * @param account Recipient of the USDC payout
+     * @param amount Amount of USDC to transfer
      */
     function _payOut(address account, uint256 amount) internal {
         totalYieldClaimed += amount;
@@ -613,6 +657,10 @@ contract CardGroupedVault is
 
     // ─── Internal: depositor card list management ───────────────────────
 
+    /// @dev Adds a cardId to the depositor's tracked card list if not already present.
+    ///      Uses a 1-based index mapping for O(1) membership checks.
+    /// @param depositor Address of the depositor
+    /// @param cardId Card identifier to add
     function _addDepositorCard(address depositor, bytes32 cardId) internal {
         if (_depositorCardIndex[depositor][cardId] == 0) {
             _depositorCards[depositor].push(cardId);
@@ -620,6 +668,10 @@ contract CardGroupedVault is
         }
     }
 
+    /// @dev Removes a cardId from the depositor's tracked card list using swap-and-pop.
+    ///      No-op if the cardId is not present. Updates the index mapping for the swapped element.
+    /// @param depositor Address of the depositor
+    /// @param cardId Card identifier to remove
     function _removeDepositorCard(address depositor, bytes32 cardId) internal {
         uint256 idxPlus = _depositorCardIndex[depositor][cardId];
         if (idxPlus == 0) return;

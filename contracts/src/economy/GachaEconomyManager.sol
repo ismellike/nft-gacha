@@ -187,14 +187,18 @@ contract GachaEconomyManager is
     }
 
     /**
-     * @notice Returns the sum of all per-rarity queued yield
+     * @notice Returns the sum of all per-rarity queued yield awaiting distribution
+     * @return total Aggregate queued USDC across all rarity tiers
      */
     function totalQueuedYield() external view returns (uint256 total) {
         for (uint8 i; i < numRarities; i++) total += queuedYieldByRarity[i];
     }
 
     /**
-     * @notice Updates the fee split (BPS must sum to <= 10_000)
+     * @notice Updates the depositor/protocol revenue split
+     * @dev Both values must sum to exactly BPS_DENOMINATOR (10,000).
+     * @param depositorBps Basis points allocated to depositor yield (e.g. 9500 = 95%)
+     * @param protocolBps Basis points allocated to protocol treasury (e.g. 500 = 5%)
      */
     function setRevenueSplit(uint256 depositorBps, uint256 protocolBps) external onlyOwner {
         if (depositorBps + protocolBps != BPS_DENOMINATOR) revert InvalidRevenueSplit();
@@ -206,7 +210,8 @@ contract GachaEconomyManager is
     }
 
     /**
-     * @notice Updates the fee token
+     * @notice Updates the fee token contract address
+     * @param newToken New ERC20 token address (must be non-zero)
      */
     function setFeeToken(address newToken) external onlyOwner {
         if (newToken == address(0)) revert ZeroAddress();
@@ -216,7 +221,8 @@ contract GachaEconomyManager is
     }
 
     /**
-     * @notice Updates the gacha contract address
+     * @notice Updates the authorized gacha contract address
+     * @param newGacha New gacha contract address (must be non-zero)
      */
     function setGacha(address newGacha) external onlyOwner {
         if (newGacha == address(0)) revert ZeroAddress();
@@ -226,7 +232,10 @@ contract GachaEconomyManager is
     }
 
     /**
-     * @notice Updates downstream vault addresses
+     * @notice Updates downstream vault addresses for yield routing
+     * @dev Pass address(0) for either parameter to skip updating that vault.
+     * @param cardGroupedVault_ New card-grouped vault address (or address(0) to skip)
+     * @param protocolTreasury_ New protocol treasury address (or address(0) to skip)
      */
     function setVaults(address cardGroupedVault_, address protocolTreasury_) external onlyOwner {
         if (cardGroupedVault_ != address(0)) {

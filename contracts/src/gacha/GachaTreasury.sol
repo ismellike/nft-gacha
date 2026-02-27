@@ -259,6 +259,12 @@ contract GachaTreasury is
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
+    /// @dev Validates and stores the initial price ranges for all rarity tiers.
+    ///      Requires: lowest tier starts at $0, highest tier is open-ended (type(uint256).max),
+    ///      ranges are contiguous with 1-cent (PRICE_STEP) gaps, and min < max for all but the last.
+    /// @param n Number of rarity tiers
+    /// @param minPrices Array of minimum prices per rarity (scaled by 1e18)
+    /// @param maxPrices Array of maximum prices per rarity (scaled by 1e18)
     function _setInitialPriceRanges(uint8 n, uint256[] memory minPrices, uint256[] memory maxPrices) private {
         // Lowest rarity must start at $0
         if (minPrices[0] != 0) revert InvalidPriceRange();
@@ -363,7 +369,27 @@ contract GachaTreasury is
         }
     }
 
-    /// @dev Internal function to migrate NFT rarity
+    /// @dev Migrates a single deposited NFT to the correct rarity tier based on its current appraisal.
+    ///
+    ///      Validation logic:
+    ///      1. The NFT must already be deposited in the treasury (`depositedNFTs` check).
+    ///      2. The appraisal must exist and be in Completed or OwnerOverride status with a
+    ///         non-zero price; otherwise reverts with `NFTNotAppraised`.
+    ///      3. The new price is mapped to a rarity tier via `getRarityByPrice()`, which searches
+    ///         the contiguous price ranges configured at initialization. Each rarity tier i has
+    ///         `[minPriceUSD[i], maxPriceUSD[i]]` and ranges are contiguous with 1-cent gaps.
+    ///         If the price falls outside all ranges, `PriceOutOfBounds` is reverted.
+    ///      4. If the computed rarity matches the current rarity, the function is a no-op (early return).
+    ///
+    ///      Migration steps (when rarity changes):
+    ///      - Removes the NFT from the old rarity array using swap-and-pop (O(1) removal).
+    ///      - Updates the index mapping for the swapped item.
+    ///      - Pushes the NFT (with updated price and rarity) into the new rarity array.
+    ///      - Updates all deposit counts, value-weighted tracking, and rarity counters.
+    ///      - Note: vault-level sync is handled separately by `onCardPriceUpdated` at the card level.
+    ///
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID to migrate
     function _migrateNFTRarity(address collection, uint256 tokenId) internal {
         if (!depositedNFTs[collection][tokenId]) revert NFTNotDeposited();
 
@@ -489,6 +515,9 @@ contract GachaTreasury is
         emit NFTWithdrawn(collection, tokenId, rarity, msg.sender);
     }
 
+    /// @notice Gets all NFT items stored in a specific rarity tier
+    /// @param rarity Rarity tier index to query
+    /// @return Array of NFT items in the specified rarity pool
     function getTreasuryItems(uint8 rarity) external view returns (NFTItem[] memory) {
         return treasury[rarity];
     }
@@ -502,6 +531,9 @@ contract GachaTreasury is
         return treasury[rarity][index];
     }
 
+    /// @notice Gets the number of NFTs in a specific rarity tier
+    /// @param rarity Rarity tier index to query
+    /// @return Number of NFTs in the specified rarity pool
     function getRarityCount(uint8 rarity) external view returns (uint256) {
         return rarityCount[rarity];
     }
@@ -582,6 +614,8 @@ contract GachaTreasury is
         }
     }
 
+    /// @notice Gets the total number of NFTs across all rarity tiers
+    /// @return Total count of NFTs in the treasury
     function getTotalItemsCount() external view returns (uint256) {
         uint256 total;
         for (uint8 i = 0; i < numRarities; i++) {
@@ -590,6 +624,8 @@ contract GachaTreasury is
         return total;
     }
 
+    /// @notice Updates the authorized gacha contract address
+    /// @param _gachaContract New gacha contract address (must be non-zero)
     function setGachaContract(address _gachaContract) external onlyOwner {
         if (_gachaContract == address(0)) revert InvalidGachaContract();
         address oldGacha = gachaContract;
@@ -597,6 +633,8 @@ contract GachaTreasury is
         emit GachaContractUpdated(oldGacha, _gachaContract);
     }
 
+    /// @notice Updates the NFT appraisal contract address used for price lookups
+    /// @param _appraisalContract New appraisal contract address (must be non-zero)
     function setAppraisalContract(address _appraisalContract) external onlyOwner {
         if (_appraisalContract == address(0)) revert InvalidAppraisalContract();
         address oldAppraisal = address(appraisalContract);
@@ -604,6 +642,8 @@ contract GachaTreasury is
         emit AppraisalContractUpdated(oldAppraisal, _appraisalContract);
     }
 
+    /// @notice Updates the card-grouped yield vault contract address
+    /// @param _cardGroupedVault New vault contract address (must be non-zero)
     function setCardGroupedVault(address _cardGroupedVault) external onlyOwner {
         if (_cardGroupedVault == address(0)) revert InvalidCardGroupedVault();
         address previous = address(cardGroupedVault);
@@ -618,6 +658,10 @@ contract GachaTreasury is
         maxDepositsPerCard = _maxDepositsPerCard;
     }
 
+    /// @notice Updates the protocol treasury address
+    /// @dev Blocks rotation if the current treasury still has active deposits or vault shares
+    ///      to prevent stranding unclaimed yield. Skips the guard on first-time configuration.
+    /// @param _protocolTreasury New protocol treasury address (must be non-zero)
     function setProtocolTreasury(address _protocolTreasury) external onlyOwner {
         if (_protocolTreasury == address(0)) revert InvalidProtocolTreasury();
 
@@ -855,10 +899,18 @@ contract GachaTreasury is
         }
     }
 
+    /// @notice Checks if a specific NFT is currently deposited in the treasury
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID to check
+    /// @return True if the NFT is deposited
     function isNFTDeposited(address collection, uint256 tokenId) external view returns (bool) {
         return depositedNFTs[collection][tokenId];
     }
 
+    /// @notice Gets the current rarity tier assigned to a deposited NFT
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID to query
+    /// @return Current rarity tier index (0 if not deposited or rarity 0)
     function getNFTCurrentRarity(address collection, uint256 tokenId) external view returns (uint8) {
         return nftCurrentRarity[collection][tokenId];
     }
@@ -1014,6 +1066,14 @@ contract GachaTreasury is
         emit NFTWithdrawn(item.collection, item.tokenId, rarity, winner);
     }
 
+    /// @notice Re-stocks a redeemed NFT back into the treasury after protocol buyback
+    /// @dev Only callable by the protocol treasury. The NFT must not already be deposited.
+    ///      Assigns rarity based on the provided appraisal price and registers it as a
+    ///      protocol-owned deposit. Clears any previous receive time and redemption deadline.
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID being returned
+    /// @param seller Address of the user who redeemed (for event tracking)
+    /// @param appraisalUSD Appraised price in USD (scaled by 1e18, must be > 0)
     function handleRedemptionReturn(address collection, uint256 tokenId, address seller, uint256 appraisalUSD)
         external
         onlyProtocolTreasury
@@ -1056,7 +1116,13 @@ contract GachaTreasury is
         emit RedemptionRestocked(collection, tokenId, seller, rarity, appraisalUSD);
     }
 
-    /// @dev Shared deposit tracking: counters, values, card vault registration
+    /// @dev Updates all deposit-related counters, value-weighted tracking, lifetime stats,
+    ///      and registers the card deposit in the CardGroupedVault for yield eligibility.
+    /// @param depositor Address of the user depositing the NFT
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID being deposited
+    /// @param rarity Assigned rarity tier
+    /// @param priceUSD Appraised price in USD (scaled by 1e18)
     function _trackDeposit(address depositor, address collection, uint256 tokenId, uint8 rarity, uint256 priceUSD)
         internal
     {
@@ -1079,7 +1145,13 @@ contract GachaTreasury is
         }
     }
 
-    /// @dev Shared removal tracking: counters, values, card vault deregistration
+    /// @dev Decrements all deposit-related counters, value-weighted tracking, and
+    ///      deregisters the card deposit from the CardGroupedVault (triggers auto-claim if last token).
+    /// @param depositor Address of the user whose NFT is being removed
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID being removed
+    /// @param rarity Current rarity tier of the NFT
+    /// @param priceUSD Appraised price in USD (scaled by 1e18)
     function _trackRemoval(address depositor, address collection, uint256 tokenId, uint8 rarity, uint256 priceUSD)
         internal
     {

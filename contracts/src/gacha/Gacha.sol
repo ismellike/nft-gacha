@@ -364,6 +364,24 @@ contract Gacha is
         emit SpinStatusUpdate(triggerId, request.requester, "completed", block.timestamp);
     }
 
+    /// @notice Selects a rarity tier using weighted cumulative probability
+    /// @dev Algorithm:
+    ///      1. Compute dynamic weights from `_getCurrentRarityWeights()` which adjusts
+    ///         target basis points by current pool inventory (scarcer pools get higher weight).
+    ///      2. Derive a uniform roll in [0, TOTAL_WEIGHT) from the randomness hash.
+    ///      3. Walk through rarities accumulating weights into a running `cumulative` sum.
+    ///         The first rarity whose cumulative sum exceeds the roll is selected.
+    ///         Example with weights [7000, 2000, 600, 300, 100]:
+    ///           roll in [0, 7000)     -> rarity 0 (Common)
+    ///           roll in [7000, 9000)  -> rarity 1 (Uncommon)
+    ///           roll in [9000, 9600)  -> rarity 2 (Rare)
+    ///           roll in [9600, 9900)  -> rarity 3 (Epic)
+    ///           roll in [9900, 10000) -> rarity 4 (Legendary)
+    ///      4. Falls back to the highest rarity if no earlier match (guards against rounding).
+    /// @param randomness Random bytes32 from the WAVS DRAND service
+    /// @param counts Current NFT counts per rarity tier in the treasury
+    /// @param totalCount Sum of all counts across rarity tiers
+    /// @return The selected rarity tier index
     function _selectRarity(bytes32 randomness, uint256[] memory counts, uint256 totalCount) private view returns (uint8) {
         uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
         uint256 roll = uint256(randomness) % TOTAL_WEIGHT;
@@ -377,6 +395,9 @@ contract Gacha is
         return numRarities - 1;
     }
 
+    /// @notice Overrides the cached fee token decimal count (for non-standard tokens)
+    /// @dev Re-computes `feeTokenScalar` as 10^decimals. Maximum 18 decimals.
+    /// @param decimals New decimal count to use for USD-to-token conversion
     function setFeeTokenDecimals(uint8 decimals) external onlyOwner {
         if (address(feeToken) == address(0)) revert InvalidFeeToken();
         if (decimals > 18) revert InvalidFeeTokenDecimals();
@@ -386,6 +407,13 @@ contract Gacha is
         emit FeeTokenDecimalsUpdated(previous, decimals);
     }
 
+    /// @notice Gets the details of a spin request
+    /// @param triggerId The spin request identifier to query
+    /// @return requester Address that initiated the spin
+    /// @return fulfilled Whether the spin has been completed or reclaimed
+    /// @return reclaimed Whether the user has reclaimed their fee
+    /// @return feePaid Amount of fee tokens paid for the spin
+    /// @return requestTime Timestamp when the spin was requested
     function getSpinRequest(uint256 triggerId)
         external
         view
@@ -416,6 +444,12 @@ contract Gacha is
         }
     }
 
+    /// @notice Updates the dynamic pricing configuration for spin fees
+    /// @dev premiumBps is added on top of the expected value to calculate the spin fee.
+    ///      If maxFee > 0, the computed fee is clamped to [minFee, maxFee].
+    /// @param premiumBps Premium over expected value in basis points (e.g. 500 = 5%)
+    /// @param minFee Minimum fee floor in fee token units (must be > 0 for no free spins)
+    /// @param maxFee Maximum fee cap in fee token units (0 = no cap)
     function setPricingConfig(uint256 premiumBps, uint256 minFee, uint256 maxFee) external onlyOwner {
         if (premiumBps > TOTAL_WEIGHT) revert InvalidPricingConfig();
         if (address(feeToken) == address(0)) revert InvalidFeeToken();
@@ -429,6 +463,10 @@ contract Gacha is
         emit PricingConfigUpdated(premiumBps, minFee, maxFee);
     }
 
+    /// @notice Updates the target rarity weight distribution used for dynamic weight calculation
+    /// @dev Weights must sum to exactly TOTAL_WEIGHT (10,000 basis points).
+    ///      These targets are adjusted at spin time based on pool inventory scarcity.
+    /// @param targetBps Array of target weights in basis points, one per rarity tier
     function setDynamicWeightsConfig(uint256[] calldata targetBps) external onlyOwner {
         if (targetBps.length != numRarities) revert InvalidWeightsLength();
         uint256 total;
@@ -451,10 +489,14 @@ contract Gacha is
         emit DynamicWeightsUpdated(targetBps);
     }
 
+    /// @notice Returns the current spin fee based on expected value, premium, and min/max bounds
+    /// @return fee The fee amount in fee token units
     function getCurrentSpinFee() public view returns (uint256 fee) {
         return _getSpinFeeToCharge();
     }
 
+    /// @notice Returns the current dynamic rarity weights adjusted for pool inventory scarcity
+    /// @return weights Array of weights in basis points (sums to TOTAL_WEIGHT when treasury is non-empty)
     function getCurrentRarityWeights() public view returns (uint256[] memory weights) {
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
@@ -468,6 +510,8 @@ contract Gacha is
         return _getCurrentRarityWeights(counts, totalCount);
     }
 
+    /// @notice Returns the configured target rarity basis points (before inventory adjustment)
+    /// @return targetBps Array of target weights in basis points, one per rarity tier
     function getTargetRarityBps() external view returns (uint256[] memory targetBps) {
         targetBps = new uint256[](numRarities);
         for (uint256 i = 0; i < numRarities; i++) {
@@ -475,6 +519,9 @@ contract Gacha is
         }
     }
 
+    /// @notice Computes the weighted expected value of a spin in USD (scaled by 1e18)
+    /// @dev For each rarity: EV += weight[i] * (totalValue[i] / count[i]) / TOTAL_WEIGHT
+    /// @return expectedValueUSD Probability-weighted average value of an NFT from a single spin
     function getExpectedValueUSD() public view returns (uint256 expectedValueUSD) {
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
@@ -502,7 +549,9 @@ contract Gacha is
         emit GachaServiceHandlerUpdated(oldHandler, _gachaServiceHandler);
     }
 
-    /// @notice Internal function to distribute spin rewards
+    /// @notice Approves and forwards the spin fee to the economy manager for revenue splitting
+    /// @param hitRarity The rarity tier that was hit on this spin (routes depositor yield)
+    /// @param feeAmount Amount of fee tokens to distribute
     function _distributeSpinRewards(uint8 hitRarity, uint256 feeAmount) private {
         if (feeAmount == 0) return;
 
@@ -515,6 +564,8 @@ contract Gacha is
         emit SpinRevenueForwarded(feeAmount);
     }
 
+    /// @notice Returns the address of the GachaTreasury contract
+    /// @return The treasury contract address
     function getTreasuryAddress() external view returns (address) {
         return address(treasury);
     }
@@ -624,11 +675,14 @@ contract Gacha is
     }
 
     // Emergency functions
+
+    /// @notice Pauses all gacha operations (spins, fulfillments) in case of emergency
     function emergencyPause() external onlyOwner {
         _pause();
         emit EmergencyPause(msg.sender);
     }
 
+    /// @notice Unpauses gacha operations after an emergency
     function emergencyUnpause() external onlyOwner {
         _unpause();
         emit EmergencyUnpause(msg.sender);
@@ -749,6 +803,9 @@ contract Gacha is
         spinCount = totalSpins; // Same value for compatibility
     }
 
+    /// @dev Computes the spin fee: EV * (1 + premiumBps/10000), converted to fee token units,
+    ///      then clamped to [minSpinFee, maxSpinFee]. Returns minSpinFee if EV is zero.
+    /// @return fee The fee in fee token units
     function _getSpinFeeToCharge() private view returns (uint256 fee) {
         if (address(feeToken) == address(0)) revert InvalidFeeToken();
 
@@ -766,11 +823,23 @@ contract Gacha is
         return converted;
     }
 
+    /// @dev Converts a USD amount (18 decimals) to fee token units using the cached decimal scalar
+    /// @param amountUSD Amount in USD scaled by 1e18
+    /// @return Amount in fee token units (e.g. 6 decimals for USDC)
     function _usdToFeeToken(uint256 amountUSD) private view returns (uint256) {
         if (feeTokenScalar == 0) return 0;
         return Math.mulDiv(amountUSD, feeTokenScalar, 1e18);
     }
 
+    /// @dev Computes dynamic rarity weights adjusted for inventory scarcity.
+    ///      For each rarity with non-zero count and target weight:
+    ///        raw[i] = targetBps[i] * totalCount / counts[i]
+    ///      Then normalizes so the weights sum to TOTAL_WEIGHT (10,000 bps).
+    ///      Assigns any rounding remainder to the first non-zero weight to avoid
+    ///      routing probability to an empty pool.
+    /// @param counts Current NFT counts per rarity tier
+    /// @param totalCount Sum of all counts
+    /// @return weights Normalized weights in basis points
     function _getCurrentRarityWeights(uint256[] memory counts, uint256 totalCount)
         private
         view
