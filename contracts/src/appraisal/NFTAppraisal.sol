@@ -526,8 +526,9 @@ contract NFTAppraisal is
     }
 
     function getCardAppraisals(bytes32[] calldata cardIds) external view returns (CardAppraisal[] memory appraisals) {
-        appraisals = new CardAppraisal[](cardIds.length);
-        for (uint256 i = 0; i < cardIds.length; i++) {
+        uint256 len = cardIds.length;
+        appraisals = new CardAppraisal[](len);
+        for (uint256 i = 0; i < len; i++) {
             appraisals[i] = cardAppraisals[cardIds[i]];
         }
     }
@@ -680,9 +681,10 @@ contract NFTAppraisal is
         whitelistedTreasuries[treasury] = false;
 
         // Remove from treasuryList array
-        for (uint256 i = 0; i < treasuryList.length; i++) {
+        uint256 len = treasuryList.length;
+        for (uint256 i = 0; i < len; i++) {
             if (treasuryList[i] == treasury) {
-                treasuryList[i] = treasuryList[treasuryList.length - 1];
+                treasuryList[i] = treasuryList[len - 1];
                 treasuryList.pop();
                 break;
             }

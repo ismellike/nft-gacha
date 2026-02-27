@@ -401,6 +401,7 @@ contract CardGroupedVault is
         if (withdrawn == 0) revert NothingToClaim();
 
         _payOut(account, withdrawn);
+        return withdrawn;
     }
 
     /**
@@ -432,6 +433,7 @@ contract CardGroupedVault is
 
         if (withdrawn == 0) revert NothingToClaim();
         _payOut(account, withdrawn);
+        return withdrawn;
     }
 
     /// @inheritdoc ICardGroupedVault

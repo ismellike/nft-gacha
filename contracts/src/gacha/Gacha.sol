@@ -281,13 +281,14 @@ contract Gacha is
     function _validateTreasuryHasItems() private view {
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
-        for (uint256 i = 0; i < numRarities; i++) {
+        uint8 _numRarities = numRarities;
+        for (uint256 i = 0; i < _numRarities; i++) {
             totalCount += counts[i];
         }
         if (totalCount == 0) revert NoTreasuryInventory();
 
         uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
-        for (uint8 i = 0; i < numRarities; i++) {
+        for (uint8 i = 0; i < _numRarities; i++) {
             if (weights[i] > 0 && counts[i] == 0) {
                 revert NoNFTsAvailable(i);
             }
@@ -318,7 +319,8 @@ contract Gacha is
         // Select rarity based on randomness using cached counts
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
-        for (uint256 i = 0; i < numRarities; i++) {
+        uint8 _numRarities = numRarities;
+        for (uint256 i = 0; i < _numRarities; i++) {
             totalCount += counts[i];
         }
         uint8 selectedRarity = _selectRarity(randomness, counts, totalCount);
@@ -367,14 +369,15 @@ contract Gacha is
     function _selectRarity(bytes32 randomness, uint256[] memory counts, uint256 totalCount) private view returns (uint8) {
         uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
         uint256 roll = uint256(randomness) % TOTAL_WEIGHT;
+        uint8 _numRarities = numRarities;
 
         // Select rarity using cumulative probabilities
         uint256 cumulative = 0;
-        for (uint8 i = 0; i < numRarities; i++) {
+        for (uint8 i = 0; i < _numRarities; i++) {
             cumulative += weights[i];
             if (roll < cumulative) return i;
         }
-        return numRarities - 1;
+        return _numRarities - 1;
     }
 
     function setFeeTokenDecimals(uint8 decimals) external onlyOwner {
@@ -432,16 +435,17 @@ contract Gacha is
     function setDynamicWeightsConfig(uint256[] calldata targetBps) external onlyOwner {
         if (targetBps.length != numRarities) revert InvalidWeightsLength();
         uint256 total;
-        for (uint256 i = 0; i < numRarities; i++) {
+        uint8 _numRarities = numRarities;
+        for (uint256 i = 0; i < _numRarities; i++) {
             total += targetBps[i];
         }
         if (total != TOTAL_WEIGHT) revert WeightsMustSumToTotal();
 
         // Resize if needed and copy
-        while (targetRarityBps.length > numRarities) {
+        while (targetRarityBps.length > _numRarities) {
             targetRarityBps.pop();
         }
-        for (uint256 i = 0; i < numRarities; i++) {
+        for (uint256 i = 0; i < _numRarities; i++) {
             if (i < targetRarityBps.length) {
                 targetRarityBps[i] = targetBps[i];
             } else {
@@ -458,11 +462,12 @@ contract Gacha is
     function getCurrentRarityWeights() public view returns (uint256[] memory weights) {
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
-        for (uint256 i = 0; i < numRarities; i++) {
+        uint8 _numRarities = numRarities;
+        for (uint256 i = 0; i < _numRarities; i++) {
             totalCount += counts[i];
         }
         if (totalCount == 0) {
-            weights = new uint256[](numRarities);
+            weights = new uint256[](_numRarities);
             return weights;
         }
         return _getCurrentRarityWeights(counts, totalCount);
@@ -478,7 +483,8 @@ contract Gacha is
     function getExpectedValueUSD() public view returns (uint256 expectedValueUSD) {
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
-        for (uint256 i = 0; i < numRarities; i++) {
+        uint8 _numRarities = numRarities;
+        for (uint256 i = 0; i < _numRarities; i++) {
             totalCount += counts[i];
         }
         if (totalCount == 0) return 0;
@@ -486,7 +492,7 @@ contract Gacha is
         uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
         uint256[] memory totals = treasury.getAllRarityTotalValues();
 
-        for (uint256 i = 0; i < numRarities; i++) {
+        for (uint256 i = 0; i < _numRarities; i++) {
             if (counts[i] == 0 || weights[i] == 0) continue;
             uint256 averageValue = totals[i] / counts[i];
             expectedValueUSD += Math.mulDiv(weights[i], averageValue, TOTAL_WEIGHT);
