@@ -4,6 +4,7 @@ import {
 	HomeIcon,
 	MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { logger } from "@/lib/logger";
 
 /**
  * Shared helper that maps a nav icon name to a Heroicons component.
@@ -20,7 +21,7 @@ export function getNavIcon(iconName: string, className: string) {
 		case "chart":
 			return <ChartBarIcon className={className} aria-hidden="true" />;
 		default:
-			console.warn(`Nav icon "${iconName}" not found`);
+			logger.general.warn(`Nav icon "${iconName}" not found`);
 			return null;
 	}
 }

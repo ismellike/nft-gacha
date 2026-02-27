@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 // ============================================================================
 // ADDRESS FORMATTING
 // ============================================================================
@@ -117,7 +119,7 @@ export function formatTokenAmount(
 
 		return `${prefix}${wholeNumber}.${decimalPart}${suffix}`;
 	} catch (error) {
-		console.warn("Error formatting token amount:", error);
+		logger.general.warn("Error formatting token amount:", error);
 		return "0";
 	}
 }

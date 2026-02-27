@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "../lib/logger";
 import { DEFAULT_GACHA_ID } from "../lib/gacha-config/contracts";
 import { useClientSearchParam } from "./useClientSearchParams";
 
@@ -14,7 +15,7 @@ export function useGachaId(): string {
 
 	// Validate that we have a valid gacha ID
 	if (!gachaId) {
-		console.warn("No valid gacha ID found, using default");
+		logger.general.warn("No valid gacha ID found, using default");
 		return DEFAULT_GACHA_ID;
 	}
 

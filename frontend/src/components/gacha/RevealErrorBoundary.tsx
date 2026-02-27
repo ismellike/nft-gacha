@@ -7,6 +7,7 @@
 
 import { motion } from "framer-motion";
 import { Component, type ReactNode } from "react";
+import { logger } from "@/lib/logger";
 
 interface Props {
 	children: ReactNode;
@@ -30,7 +31,7 @@ export class RevealErrorBoundary extends Component<Props, State> {
 	}
 
 	componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-		console.error(
+		logger.general.error(
 			"NFT Reveal Error Boundary caught an error:",
 			error,
 			errorInfo,

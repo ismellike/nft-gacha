@@ -1,7 +1,7 @@
 "use client";
 
 import type { PublicClient } from "viem";
-import { createDebugLogger, DEBUG_FLAGS } from "../lib/logger";
+import { createDebugLogger, DEBUG_FLAGS, logger } from "../lib/logger";
 import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
 // Gacha contract address is now passed as context rather than imported
@@ -272,7 +272,7 @@ export const pollForSpinFulfillment = async ({
 					errorMsg.includes("invalid opcode") ||
 					errorMsg.includes("out of gas");
 
-				console.error(
+				logger.gachaSpin.error(
 					`[GachaSpinMachine] Polling error (attempt ${attempts}):`,
 					error,
 				);

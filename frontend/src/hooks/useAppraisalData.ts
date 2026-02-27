@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAccount } from "wagmi";
+import { logger } from "../lib/logger";
 import {
 	useReadNftAppraisalAppraisalFee,
 	useReadNftAppraisalGetBatchAppraisals,
@@ -172,7 +173,7 @@ export const useAppraisalData = (
 					prices.length !== allKnownNFTs.length ||
 					statuses.length !== allKnownNFTs.length
 				) {
-					console.warn("Batch results length mismatch with NFTs array");
+					logger.contracts.warn("Batch results length mismatch with NFTs array");
 					return;
 				}
 
@@ -236,7 +237,7 @@ export const useAppraisalData = (
 				});
 			}
 		} catch (error) {
-			console.error("Failed to process batch results:", error);
+			logger.contracts.error("Failed to process batch results:", error);
 			setError(
 				address,
 				error instanceof Error ? error.message : "Failed to process appraisals",

@@ -32,6 +32,7 @@ import {
 import { useUserOwnedNFTsMultipleCollections } from "../../../hooks/useUserOwnedNFTs";
 import { useVaultState } from "../../../hooks/useVaultState";
 import { getGachaConfig } from "../../../lib/gacha-config";
+import { logger } from "../../../lib/logger";
 import { toastError, toastSuccess } from "../../../lib/toast";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
 import { Button } from "../../../ui";
@@ -362,7 +363,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			const nftsWithCanonicalData = await Promise.all(
 				nfts.map(async (nft) => {
 					if (!appraisal) {
-						console.warn("No appraisal contract available");
+						logger.contracts.warn("No appraisal contract available");
 						return { ...nft };
 					}
 
@@ -384,7 +385,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 			updateStateRef.current("depositedNFTs", nftsWithCollections);
 			setOptimisticDepositedNFTs([]);
 		} catch (error) {
-			console.error("Error loading deposited NFTs:", error);
+			logger.contracts.error("Error loading deposited NFTs:", error);
 			toastError("Failed to load deposited NFTs");
 			updateStateRef.current("depositedNFTs", []);
 		} finally {
@@ -560,7 +561,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				refetchCardGroupedVault();
 			}
 		} catch (error) {
-			console.error("Error claiming yield:", error);
+			logger.contracts.error("Error claiming yield:", error);
 			toastError(
 				error instanceof Error ? error.message : "Failed to claim yield",
 			);
@@ -627,7 +628,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 					loadDepositedNFTs(),
 				]);
 			} catch (error) {
-				console.error("Error withdrawing NFT:", error);
+				logger.contracts.error("Error withdrawing NFT:", error);
 				const errorMessage =
 					error instanceof Error ? error.message : "Unknown error occurred";
 				toastError(`Failed to withdraw NFT: ${errorMessage}`);
@@ -697,7 +698,7 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 					hasAppraisal,
 				});
 			} catch (error) {
-				console.error("Error depositing NFT:", error);
+				logger.contracts.error("Error depositing NFT:", error);
 				toastError("Failed to deposit NFT");
 				setPendingDepositKey(null);
 			}

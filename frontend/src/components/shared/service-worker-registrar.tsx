@@ -13,7 +13,7 @@ export function ServiceWorkerRegistrar() {
 		// Register service worker
 		const handleSWUpdate = () => {
 			if (isMounted) {
-				console.log("[SW] New version available");
+				logger.general.log("[SW] New version available");
 				// You could show a toast notification here
 			}
 		};

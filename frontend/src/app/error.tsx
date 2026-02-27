@@ -2,6 +2,7 @@
 
 import { ExclamationTriangleIcon, HomeIcon } from "@heroicons/react/24/outline";
 import { useEffect } from "react";
+import { logger } from "../lib/logger";
 import { Button, Card } from "../ui";
 
 interface WindowWithSentry extends Window {
@@ -19,7 +20,7 @@ export default function ErrorPage({
 }) {
 	useEffect(() => {
 		// Log the error to an error reporting service
-		console.error("Error boundary caught:", error);
+		logger.general.error("Error boundary caught:", error);
 
 		// Optional: Log to external service like Sentry
 		if (typeof window !== "undefined") {

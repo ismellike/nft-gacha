@@ -1,3 +1,4 @@
+import { logger } from "../logger";
 import { createGachaConfig } from "./factory";
 import type { GachaConfig } from "./types";
 
@@ -121,8 +122,8 @@ export function validateMainnetConfig(
 		const missing = getMissingMainnetAddresses(config);
 		if (missing.length > 0) {
 			allValid = false;
-			// Use console.error on mainnet — this is a blocking deployment issue.
-			console.error(
+			// Use logger.contracts.error on mainnet — this is a blocking deployment issue.
+			logger.contracts.error(
 				`[gacha-config/mainnet] DEPLOYMENT BLOCKED: Gacha "${id}" is missing ${missing.length} mainnet address(es).\n` +
 				"  The following env vars must be set to real mainnet contract addresses:\n" +
 				missing.map((v) => `    ${v}`).join("\n"),

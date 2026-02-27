@@ -14,6 +14,7 @@ import { useReadNftAppraisalGetAppraisal } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useNFTInteraction } from "../../hooks/useNFTInteraction";
+import { logger } from "../../lib/logger";
 import { Button } from "../../ui";
 import { NFTCard } from "../nft/NFTCard";
 
@@ -109,7 +110,7 @@ export const DepositableNFTCard = ({
 	// Handle deposit flow using the unified hook
 	const handleDeposit = useCallback(async () => {
 		if (!userAddress || !publicClient || !contracts.treasury) {
-			console.error("Missing required data for deposit");
+			logger.contracts.error("Missing required data for deposit");
 			return;
 		}
 
@@ -120,7 +121,7 @@ export const DepositableNFTCard = ({
 				hasAppraisal: hasValidAppraisal,
 			});
 		} catch (error) {
-			console.error("Deposit interaction failed:", error);
+			logger.contracts.error("Deposit interaction failed:", error);
 		}
 	}, [
 		userAddress,

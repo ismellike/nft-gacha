@@ -6,6 +6,7 @@ import {
 	HomeIcon,
 } from "@heroicons/react/24/outline";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { logger } from "../../lib/logger";
 import { Button, Card } from "../../ui";
 
 interface WindowWithSentry extends Window {
@@ -36,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
 	}
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-		console.error("ErrorBoundary caught an error:", error, errorInfo);
+		logger.general.error("ErrorBoundary caught an error:", error, errorInfo);
 
 		// Log to error reporting service (e.g., Sentry)
 		if (typeof window !== "undefined") {

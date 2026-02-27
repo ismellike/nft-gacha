@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { isValidContractAddress } from "../lib/contract-utils";
 import { getGachaContracts } from "../lib/gacha-config/contracts";
+import { logger } from "../lib/logger";
 
 type Address = `0x${string}`;
 
@@ -28,7 +29,7 @@ export interface GachaContracts {
 export function useGachaContracts(gachaId: string): GachaContracts {
 	const contracts = useMemo(() => {
 		if (!gachaId) {
-			console.warn("No gacha ID provided to useGachaContracts");
+			logger.contracts.warn("No gacha ID provided to useGachaContracts");
 			return getEmptyContracts();
 		}
 
@@ -56,7 +57,7 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 					for (let i = 0; i < value.length; i++) {
 						const address = value[i] as string | undefined;
 						if (address && !isValidContractAddress(address)) {
-							console.warn(
+							logger.contracts.warn(
 								`Invalid tracker[${i}] address: ${address}`,
 							);
 						}
@@ -66,13 +67,13 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 					value &&
 					!isValidContractAddress(value)
 				) {
-					console.warn(`Invalid ${key} contract address: ${value}`);
+					logger.contracts.warn(`Invalid ${key} contract address: ${value}`);
 				}
 			}
 
 			return validatedContracts;
 		} catch (error) {
-			console.error(`Failed to get contracts for gacha ${gachaId}:`, error);
+			logger.contracts.error(`Failed to get contracts for gacha ${gachaId}:`, error);
 			return getEmptyContracts();
 		}
 	}, [gachaId]);

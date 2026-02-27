@@ -7,6 +7,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { logger } from "../../lib/logger";
 import { Button, Card } from "../../ui";
 
 interface ErrorProps {
@@ -19,7 +20,7 @@ export default function GachaError({ error, reset }: ErrorProps) {
 
 	// Log error to monitoring service
 	useEffect(() => {
-		console.error("Gacha route error:", error);
+		logger.general.error("Gacha route error:", error);
 	}, [error]);
 
 	const isWalletError =
