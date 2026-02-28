@@ -135,7 +135,6 @@ tasks:
               cmd: |
                   cd "{{.REPO_ROOT}}"
                   task component:upload-to-ipfs COMPONENT_NAME="{{.ITEM}}"
-            - cd "{{.REPO_ROOT}}" && task component:upload-to-aggregator-ipfs COMPONENT_NAME="{{.AGGREGATOR_COMPONENT_NAME}}"
 
     components-test:
         desc: "Test WASI components"
@@ -302,7 +301,7 @@ tasks:
                 sh: cd "{{.REPO_ROOT}}" && task backend:get-chain-name-{{.SOURCE_CHAIN_NUMBER}} 2>/dev/null
         cmds:
             - |
-                RESPONSE=$(curl -s -w "%{http_code}" -X POST "{{.WAVS_AGGREGATOR_ENDPOINT}}/services" \
+                RESPONSE=$(curl -s -w "%{http_code}" -X POST "{{.WAVS_ENDPOINT}}/services" \
                   -H "Content-Type: application/json" \
                   -d '{
                     "service_manager": {
@@ -473,7 +472,7 @@ tasks:
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow component --id {{.WORKFLOW_ID}} set-source-uri --uri "ipfs://{{.WAVS_DRAND_COMPONENT_CID}}"
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
 
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} set-aggregator --url {{.WAVS_AGGREGATOR_ENDPOINT}}
+                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} set-aggregator
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component set-source-uri --uri "ipfs://{{.AGGREGATOR_COMPONENT_CID}}"
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component permissions --http-hosts '*' --file-system true
@@ -512,7 +511,7 @@ tasks:
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow component --id {{.WORKFLOW_ID}} set-source-uri --uri "ipfs://{{.NFT_APPRAISAL_COMPONENT_CID}}"
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
 
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} set-aggregator --url {{.WAVS_AGGREGATOR_ENDPOINT}}
+                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} set-aggregator
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component set-source-uri --uri "ipfs://{{.AGGREGATOR_COMPONENT_CID}}"
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
                 task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component permissions --http-hosts '*' --file-system true

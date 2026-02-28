@@ -1,17 +1,11 @@
 [default]
 log_level = ["debug"]
-
-# Those configs are global and shared between wavs and aggregator
 jaeger = "http://localhost:4317"
 prometheus = "http://localhost:9090"
+# TESTNET: Change to a public IPFS gateway (e.g. https://gateway.pinata.cloud/ipfs/)
+ipfs_gateway = "http://localhost:8301/ipfs/"
 
-
-# ----------------------------
 # Chain configurations
-# ----------------------------
-
-# == Ethereum chains ==
-
 [default.chains.evm.31337] # Local: anvil
 ws_endpoints = ["ws://localhost:8548"]
 http_endpoint = "http://localhost:8548"
@@ -27,9 +21,7 @@ ws_endpoints = ["wss://polygon-bor-rpc.publicnode.com"]
 http_endpoint = "https://polygon-bor-rpc.publicnode.com"
 poll_interval_ms = 7000
 
-# ----------------------------
 # WAVS specific settings
-# ----------------------------
 [wavs]
 cors_allowed_origins = [
     "https://lay3rlabs.github.io/*",
@@ -38,34 +30,13 @@ cors_allowed_origins = [
     # TESTNET/MAINNET: Add your frontend's production URL here, e.g.:
     # "https://your-app.vercel.app/*",
 ]
-dev_endpoints_enabled = true
-# TESTNET: Change to a public IPFS gateway (e.g. https://gateway.pinata.cloud/ipfs/)
-# when running operators on a public server
-ipfs_gateway = "http://localhost:8301/ipfs/"
 
-# ----------------------------
+dev_endpoints_enabled = true
+
+# The port is overridden per-instance via docker-compose COMPOSE_WAVS_PORT.
+# Default for single-operator local dev:
+port = 8123
+
 # CLI specific settings
-# ----------------------------
 [cli]
-# The directory to store the data.
 data = "~/wavs/cli"
-# TESTNET: Change to a public IPFS gateway when deploying remotely
-ipfs_gateway = "http://localhost:8301/ipfs/"
-
-# ----------------------------
-# Aggregator specific settings
-# ----------------------------
-[aggregator]
-# The directory to store the data.
-data = "~/wavs/aggregator"
-
-dev_endpoints_enabled = true
-# TESTNET: Change to a public IPFS gateway when deploying remotely
-ipfs_gateway = "http://localhost:8301/ipfs/"
-
-cors_allowed_origins = [
-    "https://lay3rlabs.github.io/*",
-    "http://localhost:*",
-    "http://127.0.0.1:*",
-    # TESTNET/MAINNET: Add your frontend's production URL here
-]

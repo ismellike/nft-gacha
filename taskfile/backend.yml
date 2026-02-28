@@ -173,9 +173,8 @@ tasks:
     ######################## WAVS #####################################
     ###################################################################
     start-wavs:
-        desc: "Start WAVS operator instances and aggregator"
+        desc: "Start WAVS operator instances"
         preconditions:
-            - test -f "{{.BACKEND_DIR}}/docker-compose-wavs-aggregator.yml"
             - test -f "{{.BACKEND_DIR}}/docker-compose-wavs-instance.yml"
             - sh: "command -v docker"
               msg: "Docker is required but not installed"
@@ -190,7 +189,6 @@ tasks:
     docker-pull-wavs:
         internal: true
         cmds:
-            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml pull
             - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-instance.yml pull
 
     start-wavs-inner:
@@ -201,26 +199,8 @@ tasks:
         requires:
             vars: [OPERATORS]
         deps:
-            - task: start-wavs-aggregator
             - for: { var: OPERATORS_RANGE }
               task: start-wavs-{{.ITEM}}
-
-    start-wavs-aggregator:
-        internal: true
-        deps:
-            - task: docker-start-wavs-aggregator
-        cmds:
-            - |
-                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-                  if nc -z 127.0.0.1 {{.WAVS_AGGREGATOR_PORT}} 2>/dev/null; then
-                    echo "Aggregator is up!"
-                    exit 0
-                  fi
-                  echo "Waiting for Aggregator on port {{.WAVS_AGGREGATOR_PORT}}..."
-                  sleep 1
-                done
-                echo "Error: Aggregator did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
-                exit 1
 
     start-wavs-*:
         internal: true
@@ -243,14 +223,6 @@ tasks:
                 echo "Error: WAVS #{{.WAVS_INSTANCE}} did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
                 exit 1
 
-    docker-start-wavs-aggregator:
-        internal: true
-        env:
-            COMPOSE_WAVS_AGGREGATOR_PORT: "{{.WAVS_AGGREGATOR_PORT}}"
-        cmds:
-            - echo "Starting WAVS Aggregator on port {{.WAVS_AGGREGATOR_PORT}}"
-            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml up --force-recreate -d
-
     docker-start-wavs-*:
         internal: true
         vars:
@@ -261,7 +233,8 @@ tasks:
             COMPOSE_PROJECT_NAME: "wavs-operator-{{.WAVS_INSTANCE}}"
             COMPOSE_WAVS_PORT:
                 sh: task backend:get-wavs-port-{{.WAVS_INSTANCE}}
-            WAVS_OPERATOR_MNEMONIC: "{{.OPERATOR_MNEMONIC}}"
+            WAVS_SIGNING_MNEMONIC: "{{.OPERATOR_MNEMONIC}}"
+            WAVS_AGGREGATOR_EVM_CREDENTIAL: "{{.WAVS_AGGREGATOR_EVM_CREDENTIAL}}"
             WAVS_ENV_SCRYDEX_API_KEY: "{{.WAVS_ENV_SCRYDEX_API_KEY}}"
             WAVS_ENV_SCRYDEX_TEAM_ID: "{{.WAVS_ENV_SCRYDEX_TEAM_ID}}"
         cmds:
@@ -270,7 +243,7 @@ tasks:
             - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-instance.yml up --force-recreate -d
 
     clean-wavs-data:
-        desc: "Delete WAVS data directory (operator + aggregator state)"
+        desc: "Delete WAVS data directory (operator state)"
         cmds:
             - rm -rf "{{.WAVS_HOME_DIR}}"
 
@@ -283,16 +256,9 @@ tasks:
             - cp "{{.BACKEND_DIR}}/wavs.toml" "{{.WAVS_HOME_DIR}}/wavs.toml"
 
     stop-wavs:
-        desc: "Stop all WAVS instances and aggregator"
+        desc: "Stop all WAVS operator instances"
         cmds:
             - task: stop-wavs-instances
-            - task: stop-wavs-aggregator
-
-    stop-wavs-aggregator:
-        desc: "Stop WAVS aggregator service"
-        cmds:
-            - echo "Stopping WAVS Aggregator"
-            - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-wavs-aggregator.yml down --remove-orphans --volumes
 
     stop-wavs-instances:
         desc: "Stop all WAVS operator instances"

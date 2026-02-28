@@ -1,32 +1,25 @@
 mod gas_oracle;
 mod utils;
+mod world;
 
 use wavs_wasi_utils::impl_u128_conversions;
 
-use crate::wavs::{
-    aggregator::aggregator::{EvmAddress, EvmSubmitAction, SubmitAction, TimerAction, U128},
-    types::{
-        core::{Duration, LogLevel},
-        service::Submit,
-    },
+use world::{
+    host,
+    wavs::aggregator::input::AggregatorInput,
+    wavs::aggregator::output::{AggregatorAction, EvmSubmitAction, SubmitAction, TimerAction},
+    wavs::types::chain::{AnyTxHash, EvmAddress},
+    wavs::types::core::{Duration, LogLevel, U128},
+    wavs::types::service::Submit,
+    Guest,
 };
 
 impl_u128_conversions!(U128);
 
-wit_bindgen::generate!({
-    path: "../../wit-definitions/aggregator/wit",
-    world: "aggregator-world",
-    generate_all,
-    with: {
-        "wasi:io/poll@0.2.0": wasip2::io::poll
-    },
-    features: ["tls"]
-});
-
 struct Component;
 
 impl Guest for Component {
-    fn process_packet(packet: Packet) -> Result<Vec<AggregatorAction>, String> {
+    fn process_input(input: AggregatorInput) -> Result<Vec<AggregatorAction>, String> {
         let timer_delay_secs = host::config_var("timer_delay_secs")
             .map(|delay_str| {
                 delay_str
@@ -45,17 +38,17 @@ impl Guest for Component {
             }
             None => {
                 // No timer delay - process immediately (skip tx validation)
-                process_submission(packet, false)
+                process_submission(input, false)
             }
         }
     }
 
-    fn handle_timer_callback(packet: Packet) -> Result<Vec<AggregatorAction>, String> {
-        process_submission(packet, true)
+    fn handle_timer_callback(input: AggregatorInput) -> Result<Vec<AggregatorAction>, String> {
+        process_submission(input, true)
     }
 
     fn handle_submit_callback(
-        _packet: Packet,
+        _input: AggregatorInput,
         tx_result: Result<AnyTxHash, String>,
     ) -> Result<(), String> {
         match tx_result {
@@ -85,7 +78,7 @@ impl Guest for Component {
     }
 }
 
-fn process_submission(packet: Packet, validate_tx: bool) -> Result<Vec<AggregatorAction>, String> {
+fn process_submission(input: AggregatorInput, validate_tx: bool) -> Result<Vec<AggregatorAction>, String> {
     let workflow = host::get_workflow().workflow;
 
     let submit_config = match workflow.submit {
@@ -101,7 +94,7 @@ fn process_submission(packet: Packet, validate_tx: bool) -> Result<Vec<Aggregato
 
     let mut actions = Vec::new();
 
-    if validate_tx && !utils::is_valid_tx(packet.trigger_data)? {
+    if validate_tx && !utils::is_valid_tx(input.trigger_action.data)? {
         return Ok(actions);
     }
 
@@ -140,4 +133,4 @@ fn process_submission(packet: Packet, validate_tx: bool) -> Result<Vec<Aggregato
     Ok(actions)
 }
 
-export!(Component);
+export_aggregator_world!(Component);

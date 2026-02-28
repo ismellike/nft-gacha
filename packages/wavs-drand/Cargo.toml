@@ -18,7 +18,6 @@ serde_json = { workspace = true }
 anyhow = { workspace = true }
 wstd = { workspace = true }
 wasi = { workspace = true }
-wit-bindgen-rt = { workspace = true }
 alloy-primitives = { workspace = true }
 alloy-sol-types = { workspace = true }
 alloy-provider = { workspace = true }

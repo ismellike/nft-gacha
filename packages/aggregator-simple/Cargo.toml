@@ -14,7 +14,6 @@ crate-type = ["cdylib"]
 alloy-primitives = { workspace = true }
 alloy-network = { workspace = true }
 alloy-provider = { workspace = true }
-wit-bindgen-rt = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 wavs-wasi-utils = { workspace = true }

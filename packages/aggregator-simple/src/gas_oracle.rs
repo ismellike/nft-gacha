@@ -2,7 +2,7 @@ use serde::Deserialize;
 use wavs_wasi_utils::http::{fetch_json, http_request_get};
 use wstd::runtime::block_on;
 
-use crate::host::{self, LogLevel};
+use crate::world::host::{self, LogLevel};
 
 pub const ETHERSCAN_API_KEY_ENV: &str = "WAVS_ENV_ETHERSCAN_API_KEY";
 

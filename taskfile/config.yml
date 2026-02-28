@@ -12,12 +12,10 @@ vars:
     # Network Configuration
     ANVIL_BASE_PORT: 8547 # First chain on 8548 (base + chain_number)
     WAVS_BASE_PORT: 8122 # First instance on 8123 (base + instance_number)
-    WAVS_AGGREGATOR_PORT: 8200
 
     # Timeout Configuration
     HEALTH_CHECK_TIMEOUT: 30 # seconds to wait for service health checks
     WAVS_HOME_DIR: '{{joinPath .BACKEND_DIR "wavs-home"}}'
-    WAVS_AGGREGATOR_ENDPOINT: '{{env "WAVS_AGGREGATOR_ENDPOINT" | default (printf "http://localhost:%d" .WAVS_AGGREGATOR_PORT)}}'
     MIDDLEWARE_CHAIN_ID: 17000
     MIDDLEWARE_METADATA_URI: "https://raw.githubusercontent.com/Lay3rLabs/wavs-foundry-template/refs/heads/main/metadata.json"
     MIDDLEWARE_LST_CONTRACT_ADDRESS: "0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034"
