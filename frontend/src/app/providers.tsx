@@ -5,6 +5,7 @@ import { useState } from "react";
 import { WagmiProvider } from "wagmi";
 import { ErrorBoundary } from "../components/shared/ErrorBoundary";
 import { Toaster } from "../components/shared/Toaster";
+import { WrongChainBanner } from "../components/shared/WrongChainBanner";
 import { RewardsRefetchProvider } from "../hooks/useRewardsData";
 import { config } from "../wagmi";
 
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
 				<ErrorBoundary>
+					<WrongChainBanner />
 					<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
 					<Toaster />
 				</ErrorBoundary>

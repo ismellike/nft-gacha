@@ -5,7 +5,15 @@ import { useAccount } from "wagmi";
 
 export function WalletButton() {
 	const { open } = useAppKit();
-	const { address, isConnected } = useAccount();
+	const { address, isConnected, isReconnecting } = useAccount();
+
+	if (isReconnecting) {
+		return (
+			<div className="px-4 py-2.5 rounded-xl bg-content1/30 border border-white/10 text-sm font-medium text-foreground/50 animate-pulse">
+				Connecting...
+			</div>
+		);
+	}
 
 	if (isConnected && address) {
 		return (

@@ -119,6 +119,10 @@ export function usePermitSpin({
 	const [permitFailed, setPermitFailed] = useState(false);
 	const [feeMismatchError, setFeeMismatchError] = useState(false);
 
+	// Chain ID captured at permit sign time — used to detect chain switches
+	// before submitting the signed transaction.
+	const signedChainIdRef = useRef<number | null>(null);
+
 	// Track processed errors to prevent duplicate handling
 	const processedPermitErrorRef = useRef<string | null>(null);
 	const processedSpinErrorRef = useRef<string | null>(null);
@@ -204,6 +208,17 @@ export function usePermitSpin({
 			signature !== usedSignature
 		) {
 			try {
+				// Verify the chain hasn't changed since the permit was signed
+				if (signedChainIdRef.current !== null && chainId !== signedChainIdRef.current) {
+					logger.gachaSpin.warn(
+						"Chain changed since permit was signed, aborting transaction",
+						{ signedChainId: signedChainIdRef.current, currentChainId: chainId },
+					);
+					signedChainIdRef.current = null;
+					gachaSpin.setError("Network changed since permit was signed. Please try again.");
+					return;
+				}
+
 				logger.gachaSpin.log(
 					"Permit signature received, submitting transaction",
 				);
@@ -279,7 +294,9 @@ export function usePermitSpin({
 		usedSignature,
 		spinWithPermit,
 		gachaSpin.reset,
+		gachaSpin.setError,
 		gachaAddress,
+		chainId,
 	]);
 
 	// Handle signature errors (user canceled or signing failed)
@@ -733,6 +750,7 @@ export function usePermitSpin({
 				Math.floor(Date.now() / 1000) + PERMIT_DEADLINE_SECONDS,
 			);
 			setPermitDeadline(deadline);
+			signedChainIdRef.current = chainId;
 
 			const domain = {
 				name: tokenName || "Token",

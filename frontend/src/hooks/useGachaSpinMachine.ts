@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAccount, usePublicClient, useWatchContractEvent } from "wagmi";
+import {
+	useAccount,
+	useAccountEffect,
+	usePublicClient,
+	useWatchContractEvent,
+} from "wagmi";
 import type { RefundResult, SpinResult } from "../async-utils/gachaSpinMachine";
 import {
 	loadFromStorage,
@@ -390,6 +395,38 @@ export function useGachaSpinMachine(
 			retryCount: 0,
 		});
 	};
+
+	// Reset spin state on account switch or disconnect mid-spin.
+	// Uses a ref to access current state without adding it as a dependency,
+	// since useAccountEffect fires on account lifecycle events only.
+	const stateRef = useRef(state);
+	stateRef.current = state;
+
+	useAccountEffect({
+		onConnect({ address: newAddress }) {
+			const prev = stateRef.current;
+			// Account switched while a spin was in progress for a different address
+			if (
+				prev.context.userAddress &&
+				prev.value !== "idle" &&
+				prev.context.userAddress.toLowerCase() !== newAddress.toLowerCase()
+			) {
+				logger.gachaSpin.warn(
+					"Account switched during active spin, resetting state machine",
+				);
+				reset();
+			}
+		},
+		onDisconnect() {
+			if (stateRef.current.value !== "idle") {
+				logger.gachaSpin.warn(
+					"Wallet disconnected during active spin, resetting state machine",
+				);
+				reset();
+			}
+		},
+	});
+
 	const timeout = () =>
 		updateState("timeout", {
 			error:
