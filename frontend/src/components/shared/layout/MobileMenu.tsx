@@ -1,7 +1,7 @@
 "use client";
 
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WalletButton } from "../WalletButton";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -179,7 +179,7 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
 
 						{/* Wallet Connect */}
 						<div className="p-4 border-t border-white/10 mt-auto">
-							<ConnectButton />
+							<WalletButton />
 						</div>
 					</motion.div>
 				)}

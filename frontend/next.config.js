@@ -74,6 +74,12 @@ const nextConfig = {
 		ppr: false, // Set to true if using app router with SSG
 	},
 
+	// Externalize Node.js-only libraries used by AppKit
+	webpack: (config) => {
+		config.externals.push("pino-pretty", "lokijs", "encoding");
+		return config;
+	},
+
 	// Compiler options (SWC is now default, no need to specify swcMinify)
 	compiler: {
 		removeConsole:

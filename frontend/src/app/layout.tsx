@@ -1,5 +1,4 @@
 import "../styles/globals.css";
-import "@rainbow-me/rainbowkit/styles.css";
 import {
 	DM_Serif_Display,
 	IBM_Plex_Mono,

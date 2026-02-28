@@ -1,6 +1,6 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WalletButton } from "../WalletButton";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -110,7 +110,7 @@ export const Header = memo(() => {
 
 							{/* Desktop connect button */}
 							<div className="hidden md:block">
-								<ConnectButton />
+								<WalletButton />
 							</div>
 						</div>
 					</div>

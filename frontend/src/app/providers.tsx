@@ -1,6 +1,5 @@
 "use client";
 
-import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { WagmiProvider } from "wagmi";
@@ -8,14 +7,6 @@ import { ErrorBoundary } from "../components/shared/ErrorBoundary";
 import { Toaster } from "../components/shared/Toaster";
 import { RewardsRefetchProvider } from "../hooks/useRewardsData";
 import { config } from "../wagmi";
-
-const customDarkTheme = darkTheme({
-	accentColor: "#eab308",
-	accentColorForeground: "#422006",
-	borderRadius: "large",
-	fontStack: "system",
-	overlayBlur: "large",
-});
 
 export function Providers({ children }: { children: React.ReactNode }) {
 	// Create QueryClient lazily to prevent cross-session cache sharing
@@ -40,9 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		<WagmiProvider config={config}>
 			<QueryClientProvider client={queryClient}>
 				<ErrorBoundary>
-					<RainbowKitProvider theme={customDarkTheme} modalSize="compact">
-						<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
-					</RainbowKitProvider>
+					<RewardsRefetchProvider>{children}</RewardsRefetchProvider>
 					<Toaster />
 				</ErrorBoundary>
 			</QueryClientProvider>

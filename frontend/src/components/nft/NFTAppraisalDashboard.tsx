@@ -9,7 +9,7 @@ import {
 	SparklesIcon,
 	TrophyIcon,
 } from "@heroicons/react/24/outline";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WalletButton } from "../shared/WalletButton";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
@@ -126,7 +126,7 @@ export function NFTAppraisalDashboard({
 							fee, and see the valuation show up in seconds.
 						</p>
 						<div className="flex justify-center">
-							<ConnectButton />
+							<WalletButton />
 						</div>
 					</div>
 				</Card>
