@@ -179,12 +179,17 @@ contract CardGroupedVaultFuzz is Test {
 
     /**
      * @dev Compute a safe minimum yield amount for a given total pool value (18-dec USD),
-     *      ensuring distributeYield does not revert with YieldTooSmall.
-     *      The contract requires: mulDiv(amount, PRECISION, totalValueUSD) > 0
-     *      i.e., amount > totalValueUSD / PRECISION
+     *      ensuring both:
+     *        1. distributeYield does not revert with YieldTooSmall
+     *           (increment = mulDiv(amount, PRECISION, totalValueUSD) > 0)
+     *        2. The resulting pending yield rounds to at least 1
+     *           (mulDiv(totalValueUSD, increment, PRECISION) > 0)
+     *
+     *      Double rounding analysis: increment = floor(amount * P / V), pending = floor(V * increment / P).
+     *      Worst case floor error: V * (amount * P / V - 1) >= P → amount >= (P + V) / P = ceil(V/P) + 1.
      */
     function _safeMinYield(uint256 totalValueUSD) internal pure returns (uint256) {
-        return totalValueUSD / PRECISION + 1;
+        return (totalValueUSD + PRECISION - 1) / PRECISION + 1;
     }
 
     // ========================================================================
