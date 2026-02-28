@@ -23,6 +23,13 @@ jobs:
 
       - uses: foundry-rs/foundry-toolchain@v1
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install contract dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Build contracts
         run: forge build
 
@@ -45,10 +52,6 @@ jobs:
 
       - uses: foundry-rs/foundry-toolchain@v1
 
-      - name: Build contracts
-        run: forge build
-        working-directory: contracts
-
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -57,7 +60,17 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: |
+            contracts/pnpm-lock.yaml
+            frontend/pnpm-lock.yaml
+
+      - name: Install contract dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: contracts
+
+      - name: Build contracts
+        run: forge build
+        working-directory: contracts
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -84,6 +97,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
