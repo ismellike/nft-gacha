@@ -1,4 +1,4 @@
-# 🎲 SPINFI
+# SPINFI
 
 <div align="center">
 
@@ -16,7 +16,7 @@ SPINFI is a provably fair NFT gacha platform where every spin is backed by decen
 
 **What is gacha?** Gacha is a popular game mechanic where you pay to spin for random rewards. Traditional gacha games hide their odds and use secret algorithms—but SPINFI is different.
 
-Unlike traditional gacha games with hidden algorithms, SPINFI makes all odds visible on-chain and powers every spin with WAVS-DRAND—a decentralized randomness beacon used by major protocols like EigenLayer. This makes manipulation mathematically impossible.
+Unlike traditional gacha games with hidden algorithms, SPINFI makes all odds visible on-chain and powers every spin with [WAVS](https://github.com/Lay3rLabs/wavs)-DRAND—a decentralized randomness beacon. This makes manipulation mathematically impossible.
 
 Whether you're spinning for NFTs or earning yield by contributing NFTs to pools, SPINFI guarantees fairness you can verify.
 
@@ -26,8 +26,8 @@ Whether you're spinning for NFTs or earning yield by contributing NFTs to pools,
 
 <table>
 <tr>
-<th width="50%" align="center">❌ Traditional Gacha</th>
-<th width="50%" align="center">✅ SPINFI</th>
+<th width="50%" align="center">Traditional Gacha</th>
+<th width="50%" align="center">SPINFI</th>
 </tr>
 <tr>
 <td valign="top">
@@ -40,7 +40,7 @@ Whether you're spinning for NFTs or earning yield by contributing NFTs to pools,
 </td>
 <td valign="top">
 
-- All rarity weights public
+- All rarity weights public on-chain
 - Cryptographic randomness (WAVS-DRAND)
 - Verify any spin on-chain
 - **95% of revenue to contributors**
@@ -56,9 +56,9 @@ Whether you're spinning for NFTs or earning yield by contributing NFTs to pools,
 
 <table>
 <tr>
-<th width="33%" align="center">🎲 Players</th>
-<th width="33%" align="center">💎 Contributors</th>
-<th width="33%" align="center">⚙️ Protocol</th>
+<th width="33%" align="center">Players</th>
+<th width="33%" align="center">Contributors</th>
+<th width="33%" align="center">Protocol</th>
 </tr>
 <tr>
 <td valign="top">
@@ -72,7 +72,7 @@ Whether you're spinning for NFTs or earning yield by contributing NFTs to pools,
 </td>
 <td valign="top">
 
-**Earn **95%** of all spin fees**
+**Earn 95% of all spin fees**
 - Build passive income with your NFTs
 - Rarity multipliers boost your rewards
 - Withdraw anytime, no lock-ups
@@ -93,53 +93,12 @@ Whether you're spinning for NFTs or earning yield by contributing NFTs to pools,
 
 ---
 
-## ✨ Core Features
+## Transparent Economics
 
 <table>
 <tr>
-<td width="50%">
-
-**🎲 Pure Randomness**
-WAVS-DRAND powered cryptographic randomness makes manipulation mathematically impossible—verify any spin on-chain.
-
-</td>
-<td width="50%">
-
-**⚡ Instant Reveals**
-Smooth glassmorphism animations create an engaging, game-fi experience with immediate NFT reveals.
-
-</td>
-</tr>
-<tr>
-<td>
-
-**💎 Transparent Odds**
-All rarity weights and probabilities are publicly visible—no hidden mechanics or manipulation possible.
-
-</td>
-<td>
-
-**🔄 Automatic Refunds**
-Empty rarity pools? Automatic refund. No hassle, no waiting.
-
-</td>
-</tr>
-</table>
-
----
-
-## 📊 Transparent Economics
-
-<div align="center">
-
-**Mathematically Balanced • Cryptographically Fair • **95% to Contributors****
-
-</div>
-
-<table>
-<tr>
-<th width="50%" align="center">🎲 Rarity Weights</th>
-<th width="50%" align="center">💰 Reward Distribution</th>
+<th width="50%" align="center">Rarity Weights</th>
+<th width="50%" align="center">Reward Distribution</th>
 </tr>
 <tr>
 <td valign="top">
@@ -147,11 +106,11 @@ Empty rarity pools? Automatic refund. No hassle, no waiting.
 ```
 Every spin (0-9999):
 
-💚  0-6999  (70%)  Common
-💙  7000-8999 (20%)  Uncommon
-💜  9000-9599 (6%)   Rare
-🧡  9600-9899 (3%)   Epic
-⭐  9900-9999 (1%)   Legendary
+  0-6999  (70%)  Common
+  7000-8999 (20%)  Uncommon
+  9000-9599 (6%)   Rare
+  9600-9899 (3%)   Epic
+  9900-9999 (1%)   Legendary
 ```
 
 </td>
@@ -160,14 +119,14 @@ Every spin (0-9999):
 ```
 Per 100 token spin:
 
-95 tokens → Contributors
-├─ 1.0x  Common holders
-├─ 1.2x  Uncommon holders
-├─ 1.5x  Rare holders
-├─ 2.0x  Epic holders
-└─ 3.0x  Legendary holders
+95 tokens -> Contributors
+  1.0x  Common holders
+  1.2x  Uncommon holders
+  1.5x  Rare holders
+  2.0x  Epic holders
+  3.0x  Legendary holders
 
-5 tokens → Protocol
+5 tokens -> Protocol
 ```
 
 </td>
@@ -176,121 +135,179 @@ Per 100 token spin:
 
 ---
 
-## 🚀 Quick Start
+## Architecture
 
-<div align="center">
+```
+                          SPINFI System
+ ┌──────────────────────────────────────────────────────┐
+ │                     Frontend                         │
+ │         Next.js · Reown AppKit · Zustand             │
+ └──────────────┬──────────────────────┬────────────────┘
+                │                      │
+        wagmi hooks              polling / events
+                │                      │
+ ┌──────────────▼──────────────────────▼────────────────┐
+ │                  Smart Contracts                      │
+ │                                                       │
+ │  Gacha.sol ──────► GachaTreasury.sol                  │
+ │    │                  (NFT pools by rarity)           │
+ │    │                                                  │
+ │    ├──► GachaEconomyManager.sol                       │
+ │    │      (95/5 fee split)                            │
+ │    │        └──► CardGroupedVault.sol                  │
+ │    │              (per-card yield tracking)            │
+ │    │                                                  │
+ │    └──► NFTAppraisal.sol                              │
+ │           (price-based rarity assignment)              │
+ └──────────────┬───────────────────────────────────────┘
+                │
+        WAVS Service Handlers
+                │
+ ┌──────────────▼───────────────────────────────────────┐
+ │              WAVS AVS Infrastructure                  │
+ │                                                       │
+ │  wavs-drand ──── Cryptographic randomness (Rust/WASI) │
+ │  nft-appraisal ─ Off-chain price oracle   (Rust/WASI) │
+ │  aggregator ──── Batch operator submissions           │
+ └───────────────────────────────────────────────────────┘
+```
 
-### **Launch the complete gacha system in 3 steps**
+### Spin Flow
 
-</div>
+```
+User clicks spin
+       │
+       ▼
+Frontend: writeContract(spinGacha)
+       │
+       ▼
+Gacha contract emits RandomnessRequested
+       │
+       ▼
+WAVS Operator detects trigger
+       │
+       ▼
+wavs-drand component: fetch DRAND + derive VRF
+       │
+       ▼
+Aggregator: batch operator submissions
+       │
+       ▼
+Gacha contract: fulfill randomness, select rarity, transfer NFT
+       │
+       ▼
+Frontend: poll for SpinCompleted event, reveal NFT
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Frontend** | Next.js, React, TypeScript, Tailwind CSS, Reown AppKit, wagmi v3, Zustand, Framer Motion |
+| **Smart Contracts** | Solidity, Foundry, OpenZeppelin |
+| **Off-chain Compute** | Rust, WebAssembly (WASI), WAVS operators |
+| **Randomness** | DRAND beacon via WAVS-DRAND |
+| **Task Automation** | [Task](https://taskfile.dev) runner |
+
+---
+
+## Project Structure
+
+```
+nft-gacha/
+├── contracts/              # Solidity smart contracts (Foundry)
+│   ├── src/
+│   │   ├── gacha/          # Gacha.sol, GachaTreasury.sol, service handler
+│   │   ├── economy/        # CardGroupedVault, EconomyManager, ProtocolTreasury
+│   │   ├── appraisal/      # NFTAppraisal.sol, service handler
+│   │   ├── tokens/         # Base ERC20/ERC721 implementations
+│   │   └── interfaces/     # Contract interfaces
+│   └── test/               # Foundry tests + mocks
+├── frontend/               # Next.js application
+│   └── src/
+│       ├── components/     # Gacha UI (spin controls, history, reveal)
+│       ├── ui/             # Glassmorphism design system
+│       ├── stores/         # Zustand state management
+│       ├── hooks/          # Custom React + contract hooks
+│       ├── async-utils/    # Spin flow state machine utilities
+│       └── lib/            # Config, helpers
+├── packages/               # Rust/WASI off-chain components
+│   ├── wavs-drand/         # Cryptographic randomness from DRAND
+│   ├── nft-appraisal/      # Off-chain NFT price oracle
+│   └── aggregator-simple/  # Operator submission aggregator
+├── Taskfile.yml            # Task runner automation
+└── DESIGN.md               # Detailed technical design document
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (forge, anvil)
+- [Rust](https://rustup.rs/) with `wasm32-wasip2` target
+- [Node.js](https://nodejs.org/) (v18+) and [pnpm](https://pnpm.io/)
+- [Task](https://taskfile.dev/installation/) runner
+- [Docker](https://docs.docker.com/get-docker/) (for WAVS backend services)
+
+### Setup
 
 ```bash
-# 1. Clone and setup
-git clone <repo-url> && cd nft-gacha
+# 1. Clone
+git clone https://github.com/Lay3rLabs/nft-gacha.git && cd nft-gacha
 
-# 2. Configure environment (important!)
-cp .env.example .env
-# Edit .env with your wallet keys and settings
-# This configures wallets, RPC endpoints, and contract addresses
+# 2. First-time setup (installs deps, creates .env)
+task setup
 
-# 3. Bootstrap everything (backend + AVS + frontend)
+# 3. Edit .env with your wallet keys, RPC endpoints, and contract addresses
+
+# 4. Bootstrap everything (backend + AVS + contracts + frontend)
 task bootstrap
-# This builds contracts, generates types, starts WAVS services, and prepares frontend
 ```
 
-<div align="center">
+Navigate to `http://localhost:3000` to start spinning.
 
-**🎯 Complete System Ready** • **⚡ WAVS Infrastructure** • **🌐 Game-Fi Interface**
+### Common Commands
 
-*Navigate to `http://localhost:3000` to start spinning*
+```bash
+# Contracts
+task contracts:build          # Compile contracts
+task contracts:test           # Run all tests
+task contracts:deploy         # Deploy to local chain
 
-**⚠️ Don't forget to update your `.env` file before running `task bootstrap`**
+# Frontend
+task frontend:codegen         # Generate TypeScript types from contracts
+task frontend:dev             # Start dev server
+task frontend:build           # Production build
 
-</div>
-
----
-
-## 🎮 System Architecture
-
-<div align="center">
-
-### **Three-Layer Architecture**
-
-</div>
-
-<table>
-<tr>
-<th width="33%" align="center">🎲 Players</th>
-<th width="33%" align="center">💎 Contributors</th>
-<th width="33%" align="center">⚙️ Protocol Curators</th>
-</tr>
-<tr>
-<td valign="top">
-
-**Connect & Spin**
-- Link wallet via RainbowKit
-- Approve token spending
-- Pay entry fee & spin
-- Receive random NFT
-- Get refunds if pools empty
-
-</td>
-<td valign="top">
-
-**Earn Dividends**
-- Deposit NFTs into rarity pools
-- Receive **95%** of spin fees
-- Benefit from rarity multipliers
-- Build passive income streams
-- Withdraw rewards anytime
-
-</td>
-<td valign="top">
-
-**Curate & Configure**
-- Curate NFT submissions
-- Adjust economic parameters
-- Monitor treasury health
-- Emergency pause controls
-- Analytics dashboard
-
-</td>
-</tr>
-</table>
+# Backend
+task avs:backend:start        # Start WAVS + Anvil + IPFS
+task avs:backend:stop         # Stop all backend services
+task status                   # Check service status
+```
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-SPINFI is open source and community-driven. Whether you're fixing bugs, improving documentation, or suggesting features, we welcome contributions.
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on:
-- Development workflow
-- Code style and testing
-- Pull request process
+SPINFI is open source and community-driven. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on development workflow, code style, testing, and the pull request process.
 
 ---
 
-## 📚 Learn More
+## Learn More
 
-### Technical Documentation
-- **Technical Architecture**: See [DESIGN.md](./DESIGN.md) for deep-dive on WAVS-DRAND integration
-- **Smart Contracts**: Explore contracts in [`/contracts`](./contracts) with Foundry tests
-- **Frontend Development**: Visit [`/frontend/README.md`](./frontend/README.md) for Next.js setup
-- **Development Guide**: Check [CLAUDE.md](./CLAUDE.md) for project overview and command reference
-
-### Transparency Verification
-
-- **Open Source**: All code publicly available on GitHub
-- **On-Chain Verifiable**: Every spin can be verified on-chain
-- **No Secrets**: Everything is transparent by design
+- [DESIGN.md](./DESIGN.md) — Detailed technical architecture and WAVS-DRAND integration
+- [`/contracts`](./contracts) — Smart contracts with Foundry tests
+- [`/frontend`](./frontend) — Next.js frontend application
+- [`/packages`](./packages) — Rust/WASI off-chain compute components
 
 ---
 
 <div align="center">
 
-**Built with Game-Fi Elegance • Powered by Cryptographic Truth**
-
-*Experience the future of fair NFT distribution*
+**Built with Game-Fi Elegance · Powered by Cryptographic Truth**
 
 </div>
