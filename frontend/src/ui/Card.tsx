@@ -13,7 +13,17 @@ export interface CardProps
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
 	(
-		{ className, variant, padding, animate, color, isPressable, children, onKeyDown, ...props },
+		{
+			className,
+			variant,
+			padding,
+			animate,
+			color,
+			isPressable,
+			children,
+			onKeyDown,
+			...props
+		},
 		ref,
 	) => {
 		const resolvedVariant =

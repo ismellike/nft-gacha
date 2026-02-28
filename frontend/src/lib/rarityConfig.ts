@@ -354,22 +354,10 @@ const PALETTE_COLOR_SHADES: Record<number, Record<number, string>> = {
  */
 export const getRarityColorHex = (
 	rarityIndex: number,
-	shade:
-		| 50
-		| 100
-		| 200
-		| 300
-		| 400
-		| 500
-		| 600
-		| 700
-		| 800
-		| 900
-		| 950 = 500,
+	shade: 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950 = 500,
 ): string => {
 	const paletteIndex = rarityIndex % RARITY_PALETTE.length;
 	return (
-		PALETTE_COLOR_SHADES[paletteIndex]?.[shade] ??
-		PALETTE_COLOR_SHADES[0][500]
+		PALETTE_COLOR_SHADES[paletteIndex]?.[shade] ?? PALETTE_COLOR_SHADES[0][500]
 	);
 };

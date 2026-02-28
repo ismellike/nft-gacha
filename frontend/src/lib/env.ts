@@ -24,10 +24,7 @@ import { z } from "zod";
  */
 const hexAddress = z
 	.string()
-	.regex(
-		/^0x[0-9a-fA-F]{40}$/,
-		"Must be a valid 0x-prefixed Ethereum address",
-	);
+	.regex(/^0x[0-9a-fA-F]{40}$/, "Must be a valid 0x-prefixed Ethereum address");
 
 /**
  * Coerces "true"/"false" strings (or undefined) to a boolean,

@@ -7,14 +7,10 @@ import {
 	useWaitForTransactionReceipt,
 	useWriteContract,
 } from "wagmi";
-import {
-	useWriteGachaReclaimFailedSpin,
-} from "../generated";
+import { useWriteGachaReclaimFailedSpin } from "../generated";
 import type { UseGachaSpinMachineReturn } from "./useGachaSpinMachine";
 import { logger } from "../lib/logger";
-import {
-	isUserRejectedError,
-} from "../lib/transactionErrors";
+import { isUserRejectedError } from "../lib/transactionErrors";
 
 const PERMIT_DEADLINE_SECONDS = 3600; // 1 hour
 
@@ -383,7 +379,9 @@ export function usePermitSpin({
 					errorMessage.includes("insufficient funds") ||
 					(errorMessage.includes("revert") && spinFee)
 				) {
-					logger.gachaSpin.warn("Possible fee mismatch - refetching current fee");
+					logger.gachaSpin.warn(
+						"Possible fee mismatch - refetching current fee",
+					);
 					setFeeMismatchError(true);
 					refetchFee();
 					setTimeout(() => setFeeMismatchError(false), 5000);
@@ -457,7 +455,9 @@ export function usePermitSpin({
 					errorMessage.includes("insufficient funds") ||
 					(errorMessage.includes("revert") && spinFee)
 				) {
-					logger.gachaSpin.warn("Possible fee mismatch - refetching current fee");
+					logger.gachaSpin.warn(
+						"Possible fee mismatch - refetching current fee",
+					);
 					setFeeMismatchError(true);
 					refetchFee();
 					setTimeout(() => setFeeMismatchError(false), 5000);
@@ -466,7 +466,13 @@ export function usePermitSpin({
 				gachaSpin.setError(spinError.message || "Transaction failed");
 			}
 		}
-	}, [spinWait.error, gachaSpin.reset, gachaSpin.setError, refetchFee, spinFee]);
+	}, [
+		spinWait.error,
+		gachaSpin.reset,
+		gachaSpin.setError,
+		refetchFee,
+		spinFee,
+	]);
 
 	// Handle successful transaction receipt – extract triggerId from logs
 	useEffect(() => {

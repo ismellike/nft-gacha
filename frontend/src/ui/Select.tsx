@@ -117,7 +117,9 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 			size === "sm" ? "right-2" : size === "lg" ? "right-3.5" : "right-3";
 
 		return (
-			<div className={cn("relative flex w-full flex-col gap-1", wrapperClassName)}>
+			<div
+				className={cn("relative flex w-full flex-col gap-1", wrapperClassName)}
+			>
 				{label ? (
 					<label
 						htmlFor={selectId}

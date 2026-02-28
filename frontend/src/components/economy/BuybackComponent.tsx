@@ -274,24 +274,25 @@ export default function BuybackComponent({
 	const shouldShowPayout = hasAppraisalData;
 
 	// Extract button handlers and label derivation into a dedicated hook
-	const { handleInteractionButtonClick, primaryButtonLabel } = useBuybackActions({
-		collection,
-		tokenId,
-		protocolTreasuryAddress,
-		hasAppraisal,
-		appraisalPrice,
-		payoutAmount,
-		startInteraction,
-		status,
-		isSuccessState,
-		isCompletedOtherNFT,
-		error,
-		actionInfo,
-		reset,
-		redemptionWindowIsExpired: redemptionWindow.isExpired,
-		needsApproval,
-		isNotOwned,
-	});
+	const { handleInteractionButtonClick, primaryButtonLabel } =
+		useBuybackActions({
+			collection,
+			tokenId,
+			protocolTreasuryAddress,
+			hasAppraisal,
+			appraisalPrice,
+			payoutAmount,
+			startInteraction,
+			status,
+			isSuccessState,
+			isCompletedOtherNFT,
+			error,
+			actionInfo,
+			reset,
+			redemptionWindowIsExpired: redemptionWindow.isExpired,
+			needsApproval,
+			isNotOwned,
+		});
 
 	// Treasury status helper
 	const getTreasuryStatus = () => {
@@ -340,7 +341,7 @@ export default function BuybackComponent({
 
 	// Full variant - comprehensive buyback interface
 	if (variant === "full") {
-		const resultRarity = rarity ? (Number.parseInt(rarity, 10) || 0) : 0;
+		const resultRarity = rarity ? Number.parseInt(rarity, 10) || 0 : 0;
 		const rarityConfig = getRarityConfig(resultRarity);
 
 		return (

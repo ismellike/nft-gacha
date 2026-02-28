@@ -57,7 +57,10 @@ export function WhitelistSection() {
 			});
 			await refetchWhitelist();
 		} catch (error) {
-			logger.contracts.error("Error removing collection from whitelist:", error);
+			logger.contracts.error(
+				"Error removing collection from whitelist:",
+				error,
+			);
 		} finally {
 			setIsLoading(false);
 		}

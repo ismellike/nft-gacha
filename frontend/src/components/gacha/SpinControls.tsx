@@ -1,11 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-import {
-	useAccount,
-	useChainId,
-	useReadContract,
-} from "wagmi";
+import { useAccount, useChainId, useReadContract } from "wagmi";
 import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { useSoundEffects } from "../../hooks/useSoundEffects";
 import {
@@ -34,11 +30,7 @@ import { SpinErrorModal } from "./SpinErrorModal";
 import { SpinRefundModal } from "./SpinRefundModal";
 import { SpinTimeoutModal } from "./SpinTimeoutModal";
 import { SpinVisual } from "./SpinVisual";
-import {
-	SpinButton,
-	SpinErrorDisplay,
-	SpinFeeDisplay,
-} from "./spin-controls";
+import { SpinButton, SpinErrorDisplay, SpinFeeDisplay } from "./spin-controls";
 
 interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
@@ -76,7 +68,12 @@ const SpinControls = memo(function SpinControls({
 	const { registerRefetch } = useGachaRefresh();
 
 	// Fee polling + stale detection
-	const { spinFee, feeStale, isFetching: isFeesFetching, refetch: refetchFee } = useSpinFee({
+	const {
+		spinFee,
+		feeStale,
+		isFetching: isFeesFetching,
+		refetch: refetchFee,
+	} = useSpinFee({
 		gachaAddress: contracts.gacha,
 		registerRefetch,
 	});
@@ -368,7 +365,10 @@ const SpinControls = memo(function SpinControls({
 							{/* Minimalist Countdown Display */}
 							{gachaSpin.isWaitingForFulfillment && (
 								<div className="flex items-center justify-center gap-3">
-									<div aria-hidden="true" className="w-4 h-4 border border-warning/50 border-t-warning rounded-full animate-spin"></div>
+									<div
+										aria-hidden="true"
+										className="w-4 h-4 border border-warning/50 border-t-warning rounded-full animate-spin"
+									></div>
 									<p className="text-sm text-warning/80 font-medium">
 										Awaiting randomness • {countdown}s
 									</p>

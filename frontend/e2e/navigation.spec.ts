@@ -106,9 +106,7 @@ test.describe("Header - Mobile Menu", () => {
 	});
 
 	test("desktop nav links are hidden on mobile", async ({ page }) => {
-		const desktopNav = page.locator(
-			"header nav[aria-label='Main navigation']",
-		);
+		const desktopNav = page.locator("header nav[aria-label='Main navigation']");
 		// On mobile the desktop nav has class 'hidden md:flex'
 		await expect(desktopNav).toBeHidden();
 	});
@@ -140,9 +138,7 @@ test.describe("Header - Mobile Menu", () => {
 		});
 		await expect(mobileNav).toBeVisible();
 
-		await expect(
-			mobileNav.getByRole("link", { name: /Home/i }),
-		).toBeVisible();
+		await expect(mobileNav.getByRole("link", { name: /Home/i })).toBeVisible();
 		await expect(
 			mobileNav.getByRole("link", { name: /Discover/i }),
 		).toBeVisible();
@@ -284,10 +280,7 @@ test.describe("Cross-page Navigation Flow", () => {
 		await expect(page).toHaveURL(/.*appraisal/);
 
 		// Return home
-		await page
-			.locator("header")
-			.getByRole("link", { name: /Home/i })
-			.click();
+		await page.locator("header").getByRole("link", { name: /Home/i }).click();
 		await expect(page).toHaveURL(/^http:\/\/localhost:\d+\/$/);
 	});
 });

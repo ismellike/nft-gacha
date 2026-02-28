@@ -178,10 +178,13 @@ export function NFTLoadingPlaceholder({
 						<div
 							className={cn(
 								"rounded-xl border-2 border-dashed overflow-hidden relative",
-								rarityConfig
-									? `border-[${rarityConfig.hexColor}/60]`
-									: "border-white/20",
+								!rarityConfig && "border-white/20",
 							)}
+							style={
+								rarityConfig
+									? { borderColor: `${rarityConfig.hexColor}99` }
+									: undefined
+							}
 						>
 							{/* Shimmer effect */}
 							{shimmer}

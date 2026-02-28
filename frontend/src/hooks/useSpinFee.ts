@@ -69,7 +69,10 @@ export function useSpinFee({
 
 	useEffect(() => {
 		const interval = setInterval(() => {
-			if (Date.now() - lastFeeUpdateRef.current > 15000 && !isFetchingRef.current) {
+			if (
+				Date.now() - lastFeeUpdateRef.current > 15000 &&
+				!isFetchingRef.current
+			) {
 				setFeeStale(true);
 			} else if (isFetchingRef.current && feeStaleRef.current) {
 				// Clear stale flag if we're actively fetching fresh data

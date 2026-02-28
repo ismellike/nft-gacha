@@ -10,7 +10,9 @@ describe("Badge", () => {
 				<button type="button">Notifications</button>
 			</Badge>,
 		);
-		expect(screen.getByRole("button", { name: "Notifications" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Notifications" }),
+		).toBeInTheDocument();
 	});
 
 	it("renders count badge when count > 0", () => {

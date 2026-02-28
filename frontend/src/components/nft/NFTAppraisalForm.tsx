@@ -218,25 +218,30 @@ export function NFTAppraisalForm({
 	});
 
 	// Approval + submission hook
-	const { submitAppraisal, isApproving, isRequestingAppraisal } = useNFTApproval({
-		publicClient,
-		appraisalContractAddress: contracts.appraisal as `0x${string}` | undefined,
-		feeTokenAddress: feeToken as `0x${string}` | undefined,
-		appraisalFee,
-		currentAllowance,
-		userAddress,
-		lastSubmittedRef,
-		onStatusChange: setStatus,
-		onApprovalTxHash: setApprovalTxHash,
-		onSubmissionTxHash: setSubmissionTxHash,
-		onOutcomeChange: setSubmissionOutcome,
-		onError: (message) => setAppraisalError(message),
-		onClearError: () => setAppraisalError(null),
-	});
+	const { submitAppraisal, isApproving, isRequestingAppraisal } =
+		useNFTApproval({
+			publicClient,
+			appraisalContractAddress: contracts.appraisal as
+				| `0x${string}`
+				| undefined,
+			feeTokenAddress: feeToken as `0x${string}` | undefined,
+			appraisalFee,
+			currentAllowance,
+			userAddress,
+			lastSubmittedRef,
+			onStatusChange: setStatus,
+			onApprovalTxHash: setApprovalTxHash,
+			onSubmissionTxHash: setSubmissionTxHash,
+			onOutcomeChange: setSubmissionOutcome,
+			onError: (message) => setAppraisalError(message),
+			onClearError: () => setAppraisalError(null),
+		});
 
 	// Event watchers
 	useAppraisalEvents({
-		appraisalServiceHandlerAddress: contracts.appraisalServiceHandler as `0x${string}` | undefined,
+		appraisalServiceHandlerAddress: contracts.appraisalServiceHandler as
+			| `0x${string}`
+			| undefined,
 		appraisalContractAddress: contracts.appraisal as `0x${string}` | undefined,
 		lastSubmittedRef,
 		appraisalFee,
@@ -496,13 +501,13 @@ export function NFTAppraisalForm({
 				<div className="text-center p-8 pb-4">
 					<AnimatePresence mode="wait">
 						{state.matches("completed") ? (
-						<AppraisalResultView key="success" onReset={resetForm} />
+							<AppraisalResultView key="success" onReset={resetForm} />
 						) : state.matches("waitingForCompletion") ? (
-						<AppraisalProgress
-							key="processing"
-							appraisalElapsed={appraisalElapsed}
-							currentStage={currentStage}
-						/>
+							<AppraisalProgress
+								key="processing"
+								appraisalElapsed={appraisalElapsed}
+								currentStage={currentStage}
+							/>
 						) : (
 							<motion.div key="default" className="space-y-4">
 								<div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto">

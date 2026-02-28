@@ -37,7 +37,8 @@ export interface AggregatedAnalytics {
 	isError: boolean;
 }
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as `0x${string}`;
+const ZERO_ADDRESS =
+	"0x0000000000000000000000000000000000000000" as `0x${string}`;
 
 const PLACEHOLDER_CONFIG: GachaConfig = {
 	id: "",
@@ -126,8 +127,7 @@ function useGachaAnalyticsSingle(
 	const rarityTotalValues =
 		(rarityValuesRaw as unknown as readonly bigint[]) ?? [];
 	const totalItems = rarityCounts.reduce((sum, c) => sum + c, 0n);
-	const globalRarityWinCounts =
-		analyticsData?.[3] ?? ([] as readonly bigint[]);
+	const globalRarityWinCounts = analyticsData?.[3] ?? ([] as readonly bigint[]);
 
 	return {
 		config,
@@ -200,15 +200,11 @@ export function useLeaderboardAnalytics(): AggregatedAnalytics {
 		for (const g of perGacha) {
 			for (let i = 0; i < 5; i++) {
 				globalRarityWinCounts[i] =
-					(globalRarityWinCounts[i] ?? 0n) +
-					(g.globalRarityWinCounts[i] ?? 0n);
+					(globalRarityWinCounts[i] ?? 0n) + (g.globalRarityWinCounts[i] ?? 0n);
 			}
 		}
 
-		const totalNftsWon = globalRarityWinCounts.reduce(
-			(sum, c) => sum + c,
-			0n,
-		);
+		const totalNftsWon = globalRarityWinCounts.reduce((sum, c) => sum + c, 0n);
 
 		const isLoading = perGacha.some((g) => g.isLoading);
 		const isError = perGacha.some((g) => g.isError);
@@ -225,7 +221,7 @@ export function useLeaderboardAnalytics(): AggregatedAnalytics {
 			isLoading,
 			isError,
 		};
-	// biome-ignore lint/correctness/useExhaustiveDependencies: slots spread intentionally
+		// biome-ignore lint/correctness/useExhaustiveDependencies: slots spread intentionally
 	}, [g0, g1, g2, g3, g4, allGachas]);
 }
 

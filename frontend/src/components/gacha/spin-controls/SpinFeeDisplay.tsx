@@ -39,9 +39,7 @@ export function SpinFeeDisplay({
 						type="button"
 						onClick={onToggleMute}
 						className="p-2 rounded-xl bg-content1/30 hover:bg-content1/50 border border-white/10 backdrop-blur-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
-						aria-label={
-							isMuted ? "Unmute sound effects" : "Mute sound effects"
-						}
+						aria-label={isMuted ? "Unmute sound effects" : "Mute sound effects"}
 						title={isMuted ? "Unmute sounds" : "Mute sounds"}
 					>
 						{isMuted ? (
@@ -88,72 +86,69 @@ export function SpinFeeDisplay({
 			</div>
 
 			{/* Enhanced Entry Fee Display */}
-			<Badge
-				dot={feeStale}
-				color="danger"
-				pulse={feeStale}
-				className="w-full"
-				>
-			<div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 shadow-inner w-full">
-				<div className="flex items-center gap-3">
-					<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/30 bg-warning/10">
-						<svg
-							className="w-5 h-5 text-warning"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-							strokeWidth={2}
-						>
-							<title>Entry Fee</title>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
-						</svg>
-					</div>
-					<div className="flex-1">
-						<div className="flex items-center gap-2">
-							<p className="text-xs uppercase tracking-wide text-warning/70 font-medium">
-								Entry Fee
-							</p>
-							<button
-								type="button"
-								onClick={onRefresh}
-								disabled={isFetching}
-								className="p-1 rounded hover:bg-warning/20 transition-colors disabled:opacity-50"
-								aria-label="Refresh spin fee"
-								title="Refresh spin fee"
+			<Badge dot={feeStale} color="danger" pulse={feeStale} className="w-full">
+				<div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 shadow-inner w-full">
+					<div className="flex items-center gap-3">
+						<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/30 bg-warning/10">
+							<svg
+								className="w-5 h-5 text-warning"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+								strokeWidth={2}
 							>
-								<svg
-									className={`w-3.5 h-3.5 text-warning/70 hover:text-warning ${
-										isFetching ? "animate-spin" : ""
-									}`}
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-									strokeWidth={2}
-								>
-									<title>Refresh</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-									/>
-								</svg>
-							</button>
+								<title>Entry Fee</title>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
 						</div>
-						<p className="text-xl font-bold text-warning">{formatSpinFee()}</p>
+						<div className="flex-1">
+							<div className="flex items-center gap-2">
+								<p className="text-xs uppercase tracking-wide text-warning/70 font-medium">
+									Entry Fee
+								</p>
+								<button
+									type="button"
+									onClick={onRefresh}
+									disabled={isFetching}
+									className="p-1 rounded hover:bg-warning/20 transition-colors disabled:opacity-50"
+									aria-label="Refresh spin fee"
+									title="Refresh spin fee"
+								>
+									<svg
+										className={`w-3.5 h-3.5 text-warning/70 hover:text-warning ${
+											isFetching ? "animate-spin" : ""
+										}`}
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										strokeWidth={2}
+									>
+										<title>Refresh</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+										/>
+									</svg>
+								</button>
+							</div>
+							<p className="text-xl font-bold text-warning">
+								{formatSpinFee()}
+							</p>
+						</div>
 					</div>
+					{tokenSymbol && (
+						<p className="text-xs text-warning/60">
+							Per spin in {tokenSymbol}
+							{feeStale && " • Updating..."}
+						</p>
+					)}
 				</div>
-				{tokenSymbol && (
-					<p className="text-xs text-warning/60">
-						Per spin in {tokenSymbol}
-						{feeStale && " • Updating..."}
-					</p>
-				)}
-			</div>
-		</Badge>
+			</Badge>
 		</div>
 	);
 }

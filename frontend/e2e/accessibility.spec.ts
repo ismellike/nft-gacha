@@ -204,7 +204,9 @@ test.describe("Accessibility - Keyboard Navigation", () => {
 		for (let i = 0; i < 10; i++) {
 			await page.keyboard.press("Tab");
 			const focused = page.locator(":focus");
-			const ariaLabel = await focused.getAttribute("aria-label").catch(() => null);
+			const ariaLabel = await focused
+				.getAttribute("aria-label")
+				.catch(() => null);
 			if (ariaLabel === "Open menu") {
 				found = true;
 				break;

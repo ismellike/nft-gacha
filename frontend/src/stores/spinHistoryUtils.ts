@@ -16,10 +16,7 @@ interface CacheEntry<T> {
 export class MemoizedCache<T> {
 	private cache: Map<string, CacheEntry<T>> = new Map();
 
-	private entriesMatch(
-		a: SpinHistoryEntry[],
-		b: SpinHistoryEntry[],
-	): boolean {
+	private entriesMatch(a: SpinHistoryEntry[], b: SpinHistoryEntry[]): boolean {
 		if (a === b) return true;
 		if (a.length !== b.length) return false;
 		if (a.length === 0) return true;
@@ -27,10 +24,7 @@ export class MemoizedCache<T> {
 		return a[0] === b[0] && a[a.length - 1] === b[b.length - 1];
 	}
 
-	private filtersMatch(
-		a: SpinHistoryFilters,
-		b: SpinHistoryFilters,
-	): boolean {
+	private filtersMatch(a: SpinHistoryFilters, b: SpinHistoryFilters): boolean {
 		if (a === b) return true;
 		return (
 			a.status === b.status &&

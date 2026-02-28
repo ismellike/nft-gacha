@@ -148,13 +148,7 @@ export function useBuybackActions({
 			await new Promise((resolve) => setTimeout(resolve, 150));
 			await handleStartBuyback();
 		}
-	}, [
-		status,
-		isSuccessState,
-		isCompletedOtherNFT,
-		reset,
-		handleStartBuyback,
-	]);
+	}, [status, isSuccessState, isCompletedOtherNFT, reset, handleStartBuyback]);
 
 	// -------------------------------------------------------------------------
 	// handleButtonPress — dispatches to actionInfo.action when present, else handleAction
@@ -185,8 +179,10 @@ export function useBuybackActions({
 		if (redemptionWindowIsExpired) return "Window Expired";
 		if (error) return "Retry Buyback";
 		if (isNotOwned) return "Sold";
-		if (status === "idle") return needsApproval ? "Approve NFT" : "Accept Buyback";
-		if (status === "awaitingInteractionSignature") return "Awaiting Approval...";
+		if (status === "idle")
+			return needsApproval ? "Approve NFT" : "Accept Buyback";
+		if (status === "awaitingInteractionSignature")
+			return "Awaiting Approval...";
 		if (isSuccessState) return "Buyback Completed";
 		if (actionInfo.label) return actionInfo.label;
 		return "Accept Buyback";

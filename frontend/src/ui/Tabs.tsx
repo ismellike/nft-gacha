@@ -18,7 +18,13 @@ export interface TabsProps {
 	tabListClassName?: string | undefined;
 }
 
-const Tabs = function Tabs({ tabs, activeTab, onChange, className, tabListClassName }: TabsProps) {
+const Tabs = function Tabs({
+	tabs,
+	activeTab,
+	onChange,
+	className,
+	tabListClassName,
+}: TabsProps) {
 	return (
 		<div className={cn("w-full", className)} role="tablist" aria-label="Tabs">
 			<div

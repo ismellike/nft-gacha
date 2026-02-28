@@ -23,7 +23,10 @@ interface UseNFTApprovalParams {
 	appraisalFee: bigint | undefined;
 	currentAllowance: bigint | undefined;
 	userAddress: `0x${string}` | undefined;
-	lastSubmittedRef: MutableRefObject<{ collection: string; tokenId: string } | null>;
+	lastSubmittedRef: MutableRefObject<{
+		collection: string;
+		tokenId: string;
+	} | null>;
 	onStatusChange: (status: AppraisalStatus) => void;
 	onApprovalTxHash: (hash: string) => void;
 	onSubmissionTxHash: (hash: string) => void;

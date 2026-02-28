@@ -102,7 +102,7 @@ export function MonetaryRevealSection({
 
 				{/* Sparkle Effects for Value Reveal */}
 				{/* Sparkle effects for rare+ (index 2 = Rare in the default 5-rarity system) */}
-			{resultRarity >= 2 && (
+				{resultRarity >= 2 && (
 					<motion.div
 						className="absolute inset-0 pointer-events-none -z-10"
 						initial={{ opacity: 0 }}

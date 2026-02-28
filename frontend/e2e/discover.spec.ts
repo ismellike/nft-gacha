@@ -85,7 +85,9 @@ test.describe("Discover Page - Gacha Cards", () => {
 	}) => {
 		// Cards may show loading skeleton initially; wait for any explore button or card
 		// The GachaCard renders with data-testid="explore-gacha-{id}"
-		const exploreButton = page.locator('[data-testid^="explore-gacha-"]').first();
+		const exploreButton = page
+			.locator('[data-testid^="explore-gacha-"]')
+			.first();
 
 		// If no contracts are configured (local dev), cards might stay in skeleton state.
 		// We check with a soft assertion — test is valid if cards load OR skeleton is shown.
@@ -125,9 +127,7 @@ test.describe("Discover Page - Gacha Cards", () => {
 	});
 
 	test("gacha card shows Live or Offline status", async ({ page }) => {
-		const statusLabel = page
-			.getByText(/^(Live|Offline)$/)
-			.first();
+		const statusLabel = page.getByText(/^(Live|Offline)$/).first();
 
 		if ((await statusLabel.count()) > 0) {
 			await expect(statusLabel).toBeVisible();

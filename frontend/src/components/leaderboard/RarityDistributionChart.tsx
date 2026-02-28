@@ -38,7 +38,11 @@ export function RarityDistributionChart({
 								<Skeleton variant="text" size="h4" className="w-20" />
 								<Skeleton variant="text" size="h4" className="w-12" />
 							</div>
-							<Skeleton variant="default" size="h6" className="w-full rounded-full" />
+							<Skeleton
+								variant="default"
+								size="h6"
+								className="w-full rounded-full"
+							/>
 						</div>
 					))}
 				</div>
@@ -54,10 +58,7 @@ export function RarityDistributionChart({
 				{RARITIES.map((rarity) => {
 					const config = getRarityConfig(rarity);
 					const wins = rarityWinCounts[rarity] ?? 0;
-					const pct =
-						totalWins > 0
-							? (wins / totalWins) * 100
-							: 0;
+					const pct = totalWins > 0 ? (wins / totalWins) * 100 : 0;
 					const barColor = RARITY_BAR_COLORS[rarity];
 
 					return (

@@ -98,7 +98,10 @@ export const useGachaStore = create<GachaStore>()(
 							validatedSpins[key] = spin;
 						}
 					} catch (error) {
-						logger.state.warn(`Failed to validate pending spin for ${key}:`, error);
+						logger.state.warn(
+							`Failed to validate pending spin for ${key}:`,
+							error,
+						);
 						// Keep the spin if we can't validate (network issues, etc.)
 						validatedSpins[key] = spin;
 					}
@@ -111,9 +114,7 @@ export const useGachaStore = create<GachaStore>()(
 			name: "gacha-store",
 			storage: createJSONStorage(() => localStorage, {
 				replacer: (_key, value) =>
-					typeof value === "bigint"
-						? { __bigint: value.toString() }
-						: value,
+					typeof value === "bigint" ? { __bigint: value.toString() } : value,
 				reviver: (_key, value) => {
 					if (
 						value !== null &&

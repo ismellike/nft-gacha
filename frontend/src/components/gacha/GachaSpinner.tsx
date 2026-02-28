@@ -22,12 +22,16 @@ const GachaSpinner = memo(() => {
 	const gachaSpin = useGachaSpinMachine(
 		() => {
 			// onSpinComplete - trigger refresh for all data
-			logger.gachaSpin.log("[GachaSpinner] Spin completed, refreshing all data");
+			logger.gachaSpin.log(
+				"[GachaSpinner] Spin completed, refreshing all data",
+			);
 			triggerRefresh();
 		},
 		() => {
 			// onRefund - trigger refresh for all data
-			logger.gachaSpin.log("[GachaSpinner] Refund detected, refreshing all data");
+			logger.gachaSpin.log(
+				"[GachaSpinner] Refund detected, refreshing all data",
+			);
 			triggerRefresh();
 		},
 	);
@@ -40,7 +44,9 @@ const GachaSpinner = memo(() => {
 	}, [gachaSpin, triggerRefresh]);
 
 	const handleRefund = useCallback(() => {
-		logger.gachaSpin.log("[GachaSpinner] SpinControls refund callback triggered");
+		logger.gachaSpin.log(
+			"[GachaSpinner] SpinControls refund callback triggered",
+		);
 		triggerRefresh();
 	}, [triggerRefresh]);
 

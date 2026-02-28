@@ -268,8 +268,7 @@ export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 			const cleaned: Record<string, InteractionState> = {};
 			for (const [key, interaction] of Object.entries(state.interactions)) {
 				const isTerminal =
-					interaction.status === "completed" ||
-					interaction.status === "error";
+					interaction.status === "completed" || interaction.status === "error";
 				const completedAt = interaction.context?.success?.completedAt;
 				const isStale =
 					isTerminal && completedAt && now - completedAt > STALE_INTERACTION_MS;

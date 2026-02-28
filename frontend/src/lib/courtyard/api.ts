@@ -49,11 +49,17 @@ export async function fetchCourtyardMetadata(
 
 			if (!response.ok) {
 				if (response.status === 404) {
-					logger.nftMetadata.error("Courtyard metadata not found (404):", tokenURI);
+					logger.nftMetadata.error(
+						"Courtyard metadata not found (404):",
+						tokenURI,
+					);
 					throw new Error(`Courtyard metadata not found: ${tokenURI}`);
 				}
 				if (response.status === 403) {
-					logger.nftMetadata.error("Courtyard access forbidden (403):", tokenURI);
+					logger.nftMetadata.error(
+						"Courtyard access forbidden (403):",
+						tokenURI,
+					);
 					throw new Error("Access to Courtyard metadata forbidden");
 				}
 				if (response.status >= 500) {
@@ -102,7 +108,10 @@ export async function fetchCourtyardMetadata(
 				}
 			}
 
-			logger.nftMetadata.warn(`Courtyard fetch attempt ${attempt} failed:`, error);
+			logger.nftMetadata.warn(
+				`Courtyard fetch attempt ${attempt} failed:`,
+				error,
+			);
 
 			// Wait before retry (exponential backoff)
 			if (attempt < maxRetries) {

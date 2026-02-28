@@ -19,7 +19,11 @@ import {
 	useReadGachaGetGachaConfigBatch,
 } from "../../generated";
 import type { GachaConfig } from "../../lib/gacha-config";
-import { getAllRarities, getRarityConfig, getRarityEmoji } from "../../lib/rarityConfig";
+import {
+	getAllRarities,
+	getRarityConfig,
+	getRarityEmoji,
+} from "../../lib/rarityConfig";
 import { formatTokenAmount } from "../../lib/utils";
 import { Button, Card } from "../../ui";
 import { GachaCardSkeleton } from "../shared/loading/SkeletonLoader";
@@ -195,10 +199,10 @@ export function GachaCard({ gacha }: GachaCardProps) {
 										<div
 											key={rarity}
 											className={`text-center p-1.5 rounded-lg border ${
-											hasCards
-												? `bg-gradient-to-br ${getRarityConfig(rarity).bgGradient} bg-opacity-10 border-white/10`
-												: "bg-content1/10 border-white/5"
-										}`}
+												hasCards
+													? `bg-gradient-to-br ${getRarityConfig(rarity).bgGradient} bg-opacity-10 border-white/10`
+													: "bg-content1/10 border-white/5"
+											}`}
 											aria-label={`${rarity}: ${Number(count)}`}
 										>
 											<div
@@ -207,7 +211,10 @@ export function GachaCard({ gacha }: GachaCardProps) {
 											>
 												{getRarityEmoji(rarity)}
 											</div>
-											<div aria-hidden="true" className="text-xs text-foreground/60 font-medium">
+											<div
+												aria-hidden="true"
+												className="text-xs text-foreground/60 font-medium"
+											>
 												{Number(count)}
 											</div>
 										</div>

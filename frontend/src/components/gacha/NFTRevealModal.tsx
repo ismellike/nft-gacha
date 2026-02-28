@@ -532,8 +532,7 @@ export default function NFTRevealModal({
 									cardData={{
 										collection: nftResult.collection,
 										tokenId: nftResult.tokenId,
-										imageUrl:
-											enhancedResult?.imageUrl || nftResult.imageUrl,
+										imageUrl: enhancedResult?.imageUrl || nftResult.imageUrl,
 										rarity: resultRarity,
 										metadata: enhancedResult?.metadata ?? null,
 										tokenURI: enhancedResult?.tokenURI ?? null,

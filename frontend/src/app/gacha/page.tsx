@@ -15,10 +15,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { BuybackNotificationProvider } from "../../components/economy";
-import {
-	FlowSwitcher,
-	SpinSection,
-} from "../../components/gacha";
+import { FlowSwitcher, SpinSection } from "../../components/gacha";
 import {
 	ContractStatusAnnouncer,
 	InlineRetryMessage,

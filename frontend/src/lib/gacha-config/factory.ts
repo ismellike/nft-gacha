@@ -10,10 +10,7 @@ import type { GachaConfig } from "./types";
  * valid `0x…` string or `undefined`.  The `fallback` flag preserves the
  * original behaviour of returning `""` for absent addresses in non-local modes.
  */
-function addr(
-	key: keyof typeof env,
-	fallback: boolean,
-): `0x${string}` {
+function addr(key: keyof typeof env, fallback: boolean): `0x${string}` {
 	const value = env[key] as `0x${string}` | undefined;
 	return (fallback ? (value ?? "") : value) as `0x${string}`;
 }
@@ -43,10 +40,7 @@ export function createGachaConfig(
 			isActive: true,
 			createdAt: "2024-01-01",
 			appraisalAddress: addr("NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS", fb),
-			economyManagerAddress: addr(
-				"NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS",
-				fb,
-			),
+			economyManagerAddress: addr("NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS", fb),
 			gachaServiceHandlerAddress: addr(
 				"NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS",
 				fb,
@@ -71,13 +65,7 @@ export function createGachaConfig(
 				addr("NEXT_PUBLIC_EPIC_TRACKER_ADDRESS", fb),
 				addr("NEXT_PUBLIC_LEGENDARY_TRACKER_ADDRESS", fb),
 			],
-			rarityNames: [
-				"Common",
-				"Uncommon",
-				"Rare",
-				"Epic",
-				"Legendary",
-			],
+			rarityNames: ["Common", "Uncommon", "Rare", "Epic", "Legendary"],
 		},
 	};
 }

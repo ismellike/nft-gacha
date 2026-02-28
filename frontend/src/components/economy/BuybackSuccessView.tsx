@@ -50,9 +50,7 @@ function resolvedPayout(
 	payoutAmount: bigint | null,
 ): string {
 	return formatCurrency(
-		successData?.payoutAmount?.toString() ||
-			payoutAmount?.toString() ||
-			"0",
+		successData?.payoutAmount?.toString() || payoutAmount?.toString() || "0",
 		6,
 		"USDC",
 	);

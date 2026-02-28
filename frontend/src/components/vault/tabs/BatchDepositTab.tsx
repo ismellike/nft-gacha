@@ -9,7 +9,11 @@ import {
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAccount, usePublicClient, useWaitForTransactionReceipt } from "wagmi";
+import {
+	useAccount,
+	usePublicClient,
+	useWaitForTransactionReceipt,
+} from "wagmi";
 import {
 	erc721Abi,
 	useWriteErc721SetApprovalForAll,
@@ -125,9 +129,7 @@ function SelectableNFTCard({
 								: undefined,
 					}}
 					size="sm"
-					{...(appraisalContractAddress
-						? { appraisalContractAddress }
-						: {})}
+					{...(appraisalContractAddress ? { appraisalContractAddress } : {})}
 				/>
 			</div>
 		</motion.div>
@@ -146,16 +148,16 @@ export function BatchDepositTab({
 	const publicClient = usePublicClient();
 
 	const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-	const [depositStatus, setDepositStatus] = useState<BatchDepositStatus>("idle");
+	const [depositStatus, setDepositStatus] =
+		useState<BatchDepositStatus>("idle");
 	const [statusMessage, setStatusMessage] = useState<string>("");
 	// Ref to track selected count at deposit time (avoids stale closures in effect)
 	const depositedCountRef = useRef<number>(0);
 
-	const { writeContractAsync: approveForAll } = useWriteErc721SetApprovalForAll();
-	const {
-		writeContractAsync: batchDeposit,
-		data: batchDepositTxHash,
-	} = useWriteGachaTreasuryBatchDepositNft();
+	const { writeContractAsync: approveForAll } =
+		useWriteErc721SetApprovalForAll();
+	const { writeContractAsync: batchDeposit, data: batchDepositTxHash } =
+		useWriteGachaTreasuryBatchDepositNft();
 
 	const { data: batchReceipt } = useWaitForTransactionReceipt({
 		hash: batchDepositTxHash,
@@ -299,7 +301,9 @@ export function BatchDepositTab({
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Batch deposit failed";
-			toastError(message.includes("User rejected") ? "Transaction rejected" : message);
+			toastError(
+				message.includes("User rejected") ? "Transaction rejected" : message,
+			);
 			setDepositStatus("idle");
 			setStatusMessage("");
 		}
@@ -435,9 +439,7 @@ export function BatchDepositTab({
 							isSelected={selectedKeys.has(nftKey)}
 							isAppraised={isAppraised}
 							appraisalValue={appraisalInfo?.priceUSD}
-							appraisalContractAddress={
-								appraisal as `0x${string}` | undefined
-							}
+							appraisalContractAddress={appraisal as `0x${string}` | undefined}
 							onToggle={toggleNFT}
 						/>
 					);

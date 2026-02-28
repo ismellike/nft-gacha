@@ -96,8 +96,8 @@ export default function LeaderboardPage() {
 					</h1>
 
 					<p className="text-lg text-foreground/70 max-w-2xl mx-auto leading-relaxed">
-						Live protocol statistics and rarity distributions across all
-						SPINFI gacha collections.
+						Live protocol statistics and rarity distributions across all SPINFI
+						gacha collections.
 					</p>
 				</motion.div>
 
@@ -139,10 +139,7 @@ export default function LeaderboardPage() {
 								/>
 							</div>
 							<div className="lg:col-span-2">
-								<RecentActivityFeed
-									gachas={allGachas}
-									maxItems={8}
-								/>
+								<RecentActivityFeed gachas={allGachas} maxItems={8} />
 							</div>
 						</div>
 					</motion.section>

@@ -52,24 +52,40 @@ test.describe("Landing Page", () => {
 	});
 
 	test("user type cards are rendered", async ({ page }) => {
-		await expect(page.getByRole("heading", { name: /For Players/i })).toBeVisible();
-		await expect(page.getByRole("heading", { name: /For Contributors/i })).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: /For Players/i }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: /For Contributors/i }),
+		).toBeVisible();
 	});
 
 	test("HowItWorks section is rendered", async ({ page }) => {
-		const howItWorksHeading = page.getByRole("heading", { name: /How It Works/i });
+		const howItWorksHeading = page.getByRole("heading", {
+			name: /How It Works/i,
+		});
 		await expect(howItWorksHeading).toBeVisible();
 	});
 
 	test("HowItWorks section shows For Players steps", async ({ page }) => {
-		await expect(page.getByRole("heading", { name: /For Players/i }).first()).toBeVisible();
-		await expect(page.getByRole("heading", { name: /Connect Wallet/i })).toBeVisible();
-		await expect(page.getByRole("heading", { name: /Spin & Win/i })).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: /For Players/i }).first(),
+		).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: /Connect Wallet/i }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: /Spin & Win/i }),
+		).toBeVisible();
 	});
 
 	test("HowItWorks section shows For Contributors steps", async ({ page }) => {
-		await expect(page.getByRole("heading", { name: /For Contributors/i }).first()).toBeVisible();
-		await expect(page.getByRole("heading", { name: /Deposit NFTs/i })).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: /For Contributors/i }).first(),
+		).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: /Deposit NFTs/i }),
+		).toBeVisible();
 	});
 
 	test("footer is rendered", async ({ page }) => {
@@ -154,21 +170,29 @@ test.describe("Landing Page - Navigation", () => {
 
 	test("clicking logo navigates to home", async ({ page }) => {
 		await page.goto("/discover");
-		const logoLink = page.locator("header").getByRole("link", { name: /SPINFI/i });
+		const logoLink = page
+			.locator("header")
+			.getByRole("link", { name: /SPINFI/i });
 		await logoLink.click();
 		await expect(page).toHaveURL(/^http:\/\/localhost:\d+\/$/);
 	});
 
 	test("For Players card links to gacha spin", async ({ page }) => {
 		await page.goto("/");
-		const playersCard = page.getByRole("link").filter({ hasText: /For Players/i }).first();
+		const playersCard = page
+			.getByRole("link")
+			.filter({ hasText: /For Players/i })
+			.first();
 		const href = await playersCard.getAttribute("href");
 		expect(href).toContain("/gacha");
 	});
 
 	test("For Contributors card links to appraisal", async ({ page }) => {
 		await page.goto("/");
-		const contributorsCard = page.getByRole("link").filter({ hasText: /For Contributors/i }).first();
+		const contributorsCard = page
+			.getByRole("link")
+			.filter({ hasText: /For Contributors/i })
+			.first();
 		const href = await contributorsCard.getAttribute("href");
 		expect(href).toContain("/appraisal");
 	});

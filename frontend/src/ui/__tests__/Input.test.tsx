@@ -23,7 +23,9 @@ describe("Input", () => {
 
 	it("renders helperText below the input", () => {
 		render(<Input helperText="Must be at least 8 characters" />);
-		expect(screen.getByText("Must be at least 8 characters")).toBeInTheDocument();
+		expect(
+			screen.getByText("Must be at least 8 characters"),
+		).toBeInTheDocument();
 	});
 
 	it("renders errorMessage and sets aria-invalid", () => {
@@ -33,24 +35,18 @@ describe("Input", () => {
 	});
 
 	it("errorMessage overrides helperText", () => {
-		render(
-			<Input helperText="Helper" errorMessage="Error occurred" />,
-		);
+		render(<Input helperText="Helper" errorMessage="Error occurred" />);
 		expect(screen.getByText("Error occurred")).toBeInTheDocument();
 		expect(screen.queryByText("Helper")).not.toBeInTheDocument();
 	});
 
 	it("renders leftIcon", () => {
-		render(
-			<Input leftIcon={<span data-testid="left-icon">$</span>} />,
-		);
+		render(<Input leftIcon={<span data-testid="left-icon">$</span>} />);
 		expect(screen.getByTestId("left-icon")).toBeInTheDocument();
 	});
 
 	it("renders rightIcon", () => {
-		render(
-			<Input rightIcon={<span data-testid="right-icon">@</span>} />,
-		);
+		render(<Input rightIcon={<span data-testid="right-icon">@</span>} />);
 		expect(screen.getByTestId("right-icon")).toBeInTheDocument();
 	});
 
@@ -105,9 +101,7 @@ describe("Input", () => {
 	it("renders with each size", () => {
 		const sizes = ["sm", "md", "lg"] as const;
 		for (const size of sizes) {
-			const { unmount } = render(
-				<Input size={size} placeholder={size} />,
-			);
+			const { unmount } = render(<Input size={size} placeholder={size} />);
 			expect(screen.getByPlaceholderText(size)).toBeInTheDocument();
 			unmount();
 		}

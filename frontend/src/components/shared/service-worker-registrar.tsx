@@ -24,7 +24,10 @@ export function ServiceWorkerRegistrar() {
 		// Register service worker
 		registerSW().then((result) => {
 			if (isMounted && !result.success) {
-				logger.general.warn("[SW] Service worker registration failed:", result.error);
+				logger.general.warn(
+					"[SW] Service worker registration failed:",
+					result.error,
+				);
 			}
 		});
 

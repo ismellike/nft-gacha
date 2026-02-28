@@ -105,18 +105,16 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 							</div>
 
 							<Input
-							type="number"
-							value={weight}
-							onChange={(e) => handleWeightChange(index, e.target.value)}
-							placeholder="Weight (0-10000)"
-							min="0"
-							max="10000"
-							rightIcon={
-								<span className="text-sm text-foreground/60">
-									/ 10,000
-								</span>
-							}
-						/>
+								type="number"
+								value={weight}
+								onChange={(e) => handleWeightChange(index, e.target.value)}
+								placeholder="Weight (0-10000)"
+								min="0"
+								max="10000"
+								rightIcon={
+									<span className="text-sm text-foreground/60">/ 10,000</span>
+								}
+							/>
 						</div>
 					);
 				})}

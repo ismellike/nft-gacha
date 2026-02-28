@@ -117,7 +117,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 		const displayedHelper = errorMessage ?? helperText;
 
 		return (
-			<div className={cn("relative flex w-full flex-col gap-1", wrapperClassName)}>
+			<div
+				className={cn("relative flex w-full flex-col gap-1", wrapperClassName)}
+			>
 				{label ? (
 					<label
 						htmlFor={inputId}

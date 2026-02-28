@@ -12,24 +12,22 @@ const defaultTabs = [
 
 describe("Tabs", () => {
 	it("renders all tabs", () => {
-		render(
-			<Tabs tabs={defaultTabs} activeTab="overview" onChange={vi.fn()} />,
-		);
+		render(<Tabs tabs={defaultTabs} activeTab="overview" onChange={vi.fn()} />);
 		expect(screen.getByRole("tab", { name: "Overview" })).toBeInTheDocument();
 		expect(screen.getByRole("tab", { name: "History" })).toBeInTheDocument();
 		expect(screen.getByRole("tab", { name: "Settings" })).toBeInTheDocument();
 	});
 
 	it("marks activeTab as aria-selected", () => {
-		render(
-			<Tabs tabs={defaultTabs} activeTab="history" onChange={vi.fn()} />,
+		render(<Tabs tabs={defaultTabs} activeTab="history" onChange={vi.fn()} />);
+		expect(screen.getByRole("tab", { name: "History" })).toHaveAttribute(
+			"aria-selected",
+			"true",
 		);
-		expect(
-			screen.getByRole("tab", { name: "History" }),
-		).toHaveAttribute("aria-selected", "true");
-		expect(
-			screen.getByRole("tab", { name: "Overview" }),
-		).toHaveAttribute("aria-selected", "false");
+		expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute(
+			"aria-selected",
+			"false",
+		);
 	});
 
 	it("calls onChange with correct value when tab is clicked", async () => {
@@ -48,9 +46,7 @@ describe("Tabs", () => {
 			...defaultTabs,
 			{ label: "Locked", value: "locked", disabled: true },
 		];
-		render(
-			<Tabs tabs={tabs} activeTab="overview" onChange={handleChange} />,
-		);
+		render(<Tabs tabs={tabs} activeTab="overview" onChange={handleChange} />);
 
 		await userEvent.click(screen.getByRole("tab", { name: "Locked" }));
 		expect(handleChange).not.toHaveBeenCalledWith("locked");
@@ -61,12 +57,11 @@ describe("Tabs", () => {
 			...defaultTabs,
 			{ label: "Disabled", value: "disabled", disabled: true },
 		];
-		render(
-			<Tabs tabs={tabs} activeTab="overview" onChange={vi.fn()} />,
+		render(<Tabs tabs={tabs} activeTab="overview" onChange={vi.fn()} />);
+		expect(screen.getByRole("tab", { name: "Disabled" })).toHaveAttribute(
+			"aria-disabled",
+			"true",
 		);
-		expect(
-			screen.getByRole("tab", { name: "Disabled" }),
-		).toHaveAttribute("aria-disabled", "true");
 	});
 
 	it("renders icon when provided", () => {
@@ -94,9 +89,7 @@ describe("Tabs", () => {
 	});
 
 	it("has tablist role with aria-label", () => {
-		render(
-			<Tabs tabs={defaultTabs} activeTab="overview" onChange={vi.fn()} />,
-		);
+		render(<Tabs tabs={defaultTabs} activeTab="overview" onChange={vi.fn()} />);
 		expect(screen.getByRole("tablist")).toBeInTheDocument();
 	});
 

@@ -18,21 +18,11 @@ const badgeVariants = cva(
 				primary: [
 					"bg-gradient-to-r from-warning/80 to-orange-400/80 border-warning/40 text-black",
 				],
-				secondary: [
-					"bg-content1/60 border-white/20 text-foreground/80",
-				],
-				danger: [
-					"bg-danger/80 border-danger/40 text-white",
-				],
-				success: [
-					"bg-success/80 border-success/40 text-white",
-				],
-				warning: [
-					"bg-warning/80 border-warning/40 text-black",
-				],
-				ghost: [
-					"bg-content1/20 border-white/10 text-foreground/70",
-				],
+				secondary: ["bg-content1/60 border-white/20 text-foreground/80"],
+				danger: ["bg-danger/80 border-danger/40 text-white"],
+				success: ["bg-success/80 border-success/40 text-white"],
+				warning: ["bg-warning/80 border-warning/40 text-black"],
+				ghost: ["bg-content1/20 border-white/10 text-foreground/70"],
 			},
 			dot: {
 				true: "h-2.5 w-2.5 p-0",
@@ -56,7 +46,14 @@ export interface BadgeProps {
 	max?: number | undefined;
 	dot?: boolean | undefined;
 	pulse?: boolean | undefined;
-	color?: "primary" | "secondary" | "danger" | "success" | "warning" | "ghost" | undefined;
+	color?:
+		| "primary"
+		| "secondary"
+		| "danger"
+		| "success"
+		| "warning"
+		| "ghost"
+		| undefined;
 	children: React.ReactNode;
 	className?: string | undefined;
 	badgeClassName?: string | undefined;
@@ -90,7 +87,13 @@ const Badge = function Badge({
 						badgeVariants({ color, dot: dot ? true : false, pulse }),
 						badgeClassName,
 					)}
-					aria-label={dot ? "Notification" : count !== undefined ? `${count} notifications` : undefined}
+					aria-label={
+						dot
+							? "Notification"
+							: count !== undefined
+								? `${count} notifications`
+								: undefined
+					}
 				>
 					{displayCount}
 				</span>

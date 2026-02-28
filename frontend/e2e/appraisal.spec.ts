@@ -119,9 +119,7 @@ test.describe("Appraisal Page - How Appraisal Works Info Banner", () => {
 
 	test("info banner with How Appraisal Works is visible", async ({ page }) => {
 		// There are two instances - one in WorkflowGuide (heading) and one in info banner (paragraph)
-		const infoBanner = page
-			.getByText(/How Appraisal Works/i)
-			.first();
+		const infoBanner = page.getByText(/How Appraisal Works/i).first();
 		await expect(infoBanner).toBeVisible();
 	});
 

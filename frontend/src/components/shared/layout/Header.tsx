@@ -31,7 +31,10 @@ export const Header = memo(() => {
 				<Card className="shadow-lg" isPressable={false}>
 					<div className="flex items-center justify-between px-4 py-3 sm:px-8 sm:py-5">
 						{/* Logo */}
-						<Link href="/" className="flex items-center space-x-2 sm:space-x-4 group">
+						<Link
+							href="/"
+							className="flex items-center space-x-2 sm:space-x-4 group"
+						>
 							<div className="relative">
 								{/* Subtle glow effect behind logo */}
 								<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-orange-400/20 to-warning/30 rounded-2xl blur-md animate-pulse opacity-60" />

@@ -88,15 +88,13 @@ export function GachaLeaderboardTable({
 						) : (
 							gachas.map((gacha, index) => {
 								const totalWins = RARITIES.reduce(
-									(sum, r) =>
-										sum + (gacha.globalRarityWinCounts[r] ?? 0n),
+									(sum, r) => sum + (gacha.globalRarityWinCounts[r] ?? 0n),
 									0n,
 								);
 								const winRate =
 									gacha.totalSpins > 0n
 										? (
-												(Number(totalWins) /
-													Number(gacha.totalSpins)) *
+												(Number(totalWins) / Number(gacha.totalSpins)) *
 												100
 											).toFixed(1)
 										: "—";
@@ -105,9 +103,7 @@ export function GachaLeaderboardTable({
 									<tr
 										key={gacha.config.id}
 										className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors ${
-											index % 2 === 0
-												? "bg-transparent"
-												: "bg-white/[0.01]"
+											index % 2 === 0 ? "bg-transparent" : "bg-white/[0.01]"
 										}`}
 									>
 										{/* Collection name */}

@@ -71,7 +71,11 @@ Rarity tiers with transparent on-chain weights:
  * zero address.
  */
 function isPlaceholder(addr: string): boolean {
-	return addr === "" || addr === "0x0" || addr === "0x0000000000000000000000000000000000000000";
+	return (
+		addr === "" ||
+		addr === "0x0" ||
+		addr === "0x0000000000000000000000000000000000000000"
+	);
 }
 
 /**
@@ -82,14 +86,22 @@ export function getMissingMainnetAddresses(config: GachaConfig): string[] {
 	const missing: string[] = [];
 
 	if (isPlaceholder(config.address)) missing.push("NEXT_PUBLIC_GACHA_ADDRESS");
-	if (isPlaceholder(config.treasuryAddress)) missing.push("NEXT_PUBLIC_GACHA_TREASURY_ADDRESS");
-	if (isPlaceholder(config.appraisalAddress)) missing.push("NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS");
-	if (isPlaceholder(config.economyManagerAddress)) missing.push("NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS");
-	if (isPlaceholder(config.gachaServiceHandlerAddress)) missing.push("NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS");
-	if (isPlaceholder(config.appraisalServiceHandlerAddress)) missing.push("NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS");
-	if (isPlaceholder(config.cardGroupedVaultAddress)) missing.push("NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS");
-	if (isPlaceholder(config.buybackVaultAddress)) missing.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
-	if (isPlaceholder(config.protocolTreasuryAddress)) missing.push("NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS");
+	if (isPlaceholder(config.treasuryAddress))
+		missing.push("NEXT_PUBLIC_GACHA_TREASURY_ADDRESS");
+	if (isPlaceholder(config.appraisalAddress))
+		missing.push("NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS");
+	if (isPlaceholder(config.economyManagerAddress))
+		missing.push("NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS");
+	if (isPlaceholder(config.gachaServiceHandlerAddress))
+		missing.push("NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS");
+	if (isPlaceholder(config.appraisalServiceHandlerAddress))
+		missing.push("NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS");
+	if (isPlaceholder(config.cardGroupedVaultAddress))
+		missing.push("NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS");
+	if (isPlaceholder(config.buybackVaultAddress))
+		missing.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
+	if (isPlaceholder(config.protocolTreasuryAddress))
+		missing.push("NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS");
 	const trackerEnvNames = [
 		"NEXT_PUBLIC_COMMON_TRACKER_ADDRESS",
 		"NEXT_PUBLIC_UNCOMMON_TRACKER_ADDRESS",
@@ -125,8 +137,8 @@ export function validateMainnetConfig(
 			// Use logger.contracts.error on mainnet — this is a blocking deployment issue.
 			logger.contracts.error(
 				`[gacha-config/mainnet] DEPLOYMENT BLOCKED: Gacha "${id}" is missing ${missing.length} mainnet address(es).\n` +
-				"  The following env vars must be set to real mainnet contract addresses:\n" +
-				missing.map((v) => `    ${v}`).join("\n"),
+					"  The following env vars must be set to real mainnet contract addresses:\n" +
+					missing.map((v) => `    ${v}`).join("\n"),
 			);
 		}
 	}

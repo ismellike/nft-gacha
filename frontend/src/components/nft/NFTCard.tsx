@@ -44,7 +44,7 @@
 
 import { type MotionStyle, motion } from "framer-motion";
 import NextImage from "next/image";
-import { lazy, memo, startTransition, useMemo, useState } from "react";
+import { memo, startTransition, useMemo, useState } from "react";
 import {
 	useReadErc721Name,
 	useReadNftAppraisalGetAppraisedPrice,
@@ -66,13 +66,7 @@ import {
 	isValidAddress,
 } from "../../lib/utils";
 import type { NFTMetadata } from "../../types/hooks";
-
-// Lazy load heavy components
-const NFTLoadingPlaceholder = lazy(() =>
-	import("./NFTLoadingPlaceholder").then((module) => ({
-		default: module.NFTLoadingPlaceholder,
-	})),
-);
+import { NFTLoadingPlaceholder } from "./NFTLoadingPlaceholder";
 
 // Core Types - Flexible for all use cases
 export interface NFTCardData {
@@ -95,9 +89,8 @@ export interface NFTCardProps {
 	onClick?: () => void;
 	// Appraisal
 	appraisalContractAddress?: `0x${string}`;
-	protocolTreasuryAddress?: string;
-	gachaId?: string;
-	onBuybackSuccess?: (txHash: string) => void;
+	// Image loading
+	priority?: boolean;
 	// Styling
 	className?: string;
 	style?: MotionStyle;
@@ -276,7 +269,8 @@ const NFTImage = memo<{
 	metadata: NFTMetadata | null;
 	tokenURI: string | null;
 	size: "xs" | "sm" | "md" | "lg" | "xl";
-}>(({ data, metadata, tokenURI, size }) => {
+	priority?: boolean;
+}>(({ data, metadata, tokenURI, size, priority = false }) => {
 	const [isLoaded, setIsLoaded] = useState(false);
 	const [hasError, setHasError] = useState(false);
 
@@ -299,14 +293,22 @@ const NFTImage = memo<{
 	if (!imageUrl || hasError) {
 		return (
 			<div
+				role="img"
+				aria-label={
+					hasError
+						? `Failed to load image for NFT ${data.tokenId}`
+						: `No image available for NFT ${data.tokenId}`
+				}
 				className={cn(
-					sizeStyles.container,
+					"w-full aspect-square",
 					sizeStyles.radius,
 					"flex items-center justify-center border-2 border-dashed bg-content1/25",
 					"border-white/15 text-foreground/60",
 				)}
 			>
-				<span className={cn(sizeStyles.text)}>No Image</span>
+				<span className={cn(sizeStyles.text)}>
+					{hasError ? "Image failed" : "No Image"}
+				</span>
 			</div>
 		);
 	}
@@ -319,7 +321,6 @@ const NFTImage = memo<{
 					sizeStyles.radius,
 					themeStyles.background,
 					themeStyles.border,
-					rarityConfig && `border-[${rarityConfig.borderColor}/40]`,
 				)}
 				whileHover={{
 					scale: 1.05,
@@ -330,46 +331,33 @@ const NFTImage = memo<{
 				transition={{ duration: 0.2 }}
 				style={{
 					...(rarityConfig && {
+						borderColor: `${rarityConfig.hexColor}66`,
 						boxShadow: "none",
-						transition: "box-shadow 0.3s ease",
+						transition: "box-shadow 0.3s ease, border-color 0.3s ease",
 					}),
 				}}
 			>
-				{/* Enhanced loading overlay with blur effect */}
-				<motion.div
-					className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-md"
-					initial={{ opacity: 1 }}
-					animate={{ opacity: isLoaded ? 0 : 1 }}
-					transition={{ duration: 0.5 }}
-				>
-					{!isLoaded && (
-						<>
-							{/* Rarity-themed loading spinner */}
-							<motion.div
-								className={cn(
-									"border-2 border-t-transparent rounded-full",
-									size === "xs" || size === "sm" ? "w-6 h-6" : "w-8 h-8",
-								)}
-								style={{
-									borderColor: rarityConfig
-										? `${rarityConfig.hexColor}40`
-										: "rgba(255,255,255,0.2)",
-									borderTopColor: rarityConfig
-										? rarityConfig.hexColor
-										: "#f59e0b",
-								}}
-								animate={{ rotate: 360 }}
-								transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-							/>
-
-							{/* Blur preview effect */}
-							<div
-								className="absolute inset-0 bg-cover bg-center opacity-30 blur-xl"
-								style={{ backgroundImage: `url(${imageUrl})` }}
-							/>
-						</>
-					)}
-				</motion.div>
+				{/* Loading overlay */}
+				{!isLoaded && (
+					<div className="absolute inset-0 z-10 flex items-center justify-center bg-white/10 backdrop-blur-md">
+						<motion.div
+							className={cn(
+								"border-2 border-t-transparent rounded-full",
+								size === "xs" || size === "sm" ? "w-6 h-6" : "w-8 h-8",
+							)}
+							style={{
+								borderColor: rarityConfig
+									? `${rarityConfig.hexColor}40`
+									: "rgba(255,255,255,0.2)",
+								borderTopColor: rarityConfig
+									? rarityConfig.hexColor
+									: "#f59e0b",
+							}}
+							animate={{ rotate: 360 }}
+							transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+						/>
+					</div>
+				)}
 
 				<div
 					className={cn(
@@ -387,13 +375,10 @@ const NFTImage = memo<{
 								? "opacity-100 scale-100 blur-0"
 								: "opacity-0 scale-105 blur-xl",
 						)}
-						priority={true}
+						priority={priority}
 						unoptimized={imageUrl.includes("courtyard.io")}
 						onLoad={() => {
 							startTransition(() => setIsLoaded(true));
-						}}
-						onLoadingComplete={() => {
-							setIsLoaded(true);
 						}}
 						onError={() => {
 							setHasError(true);
@@ -424,6 +409,7 @@ export const NFTCard = memo<NFTCardProps>(
 		showCollectionName = true,
 		onClick,
 		appraisalContractAddress,
+		priority = false,
 		className,
 		style,
 	}) => {
@@ -440,7 +426,6 @@ export const NFTCard = memo<NFTCardProps>(
 		const isLoading = shouldSkipFetch ? false : nftData.isLoading;
 		const error = nftData.error;
 		const tokenURI = prefetchedTokenURI || nftData.tokenURI;
-
 
 		// Collection name fetching with caching
 		const { data: collectionName } = useReadErc721Name({
@@ -500,6 +485,7 @@ export const NFTCard = memo<NFTCardProps>(
 		if (error) {
 			return (
 				<motion.div
+					role="alert"
 					className={cn(
 						sizeStyles.container,
 						sizeStyles.radius,
@@ -528,7 +514,7 @@ export const NFTCard = memo<NFTCardProps>(
 					sizeStyles.padding,
 					className,
 				)}
-				style={style || {}}
+				{...(style && { style })}
 				onClick={onClick}
 				initial={{ opacity: 0, scale: 0.95, y: 10 }}
 				animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -536,43 +522,42 @@ export const NFTCard = memo<NFTCardProps>(
 				transition={{ duration: 0.3, ease: "easeOut" }}
 				layout={true}
 			>
-				{/* Rarity indicator */}
-				{rarityConfig && (
-					<motion.div
-						className={cn(
-							"absolute top-2 left-2 w-3 h-3 rounded-full",
-							`bg-gradient-to-r ${rarityConfig.bgGradient}`,
-						)}
-						animate={{
-							scale: [1, 1.2, 1],
-							opacity: [0.7, 1, 0.7],
-						}}
-						transition={{
-							duration: 2,
-							repeat: Infinity,
-							ease: "easeInOut",
-						}}
-					/>
-				)}
-
 				<div className={cn("flex flex-col", sizeStyles.gap)}>
 					{/* Collection name */}
 					{showCollectionName && (
-						<div className="flex items-center justify-between">
-							<span
-								className={cn(
-									sizeStyles.text,
-									"font-medium uppercase tracking-wide truncate flex-1",
-									themeStyles.textSecondary,
-									rarityConfig ? "pl-6" : "", // Add left padding when rarity indicator is present
+						<div className="flex items-center justify-between gap-2">
+							<span className="flex items-center gap-2 min-w-0 flex-1">
+								{rarityConfig && (
+									<motion.span
+										className={cn(
+											"w-2.5 h-2.5 shrink-0 rounded-full",
+											`bg-gradient-to-r ${rarityConfig.bgGradient}`,
+										)}
+										animate={{
+											scale: [1, 1.2, 1],
+											opacity: [0.7, 1, 0.7],
+										}}
+										transition={{
+											duration: 2,
+											repeat: Infinity,
+											ease: "easeInOut",
+										}}
+									/>
 								)}
-							>
-								{collectionName || formatAddress(collection)}
+								<span
+									className={cn(
+										sizeStyles.text,
+										"font-medium uppercase tracking-wide truncate",
+										themeStyles.textSecondary,
+									)}
+								>
+									{collectionName || formatAddress(collection)}
+								</span>
 							</span>
 							<span
 								className={cn(
 									sizeStyles.text,
-									"font-bold ml-2",
+									"font-bold shrink-0",
 									themeStyles.text,
 								)}
 							>
@@ -588,6 +573,7 @@ export const NFTCard = memo<NFTCardProps>(
 							metadata={metadata}
 							tokenURI={tokenURI ?? null}
 							size={size}
+							priority={priority}
 						/>
 					</div>
 

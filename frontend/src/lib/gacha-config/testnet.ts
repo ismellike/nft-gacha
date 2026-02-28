@@ -69,7 +69,11 @@ Each Pokemon card belongs to one of five rarity tiers mirroring the mainnet dist
  * zero address.
  */
 function isPlaceholder(addr: string): boolean {
-	return addr === "" || addr === "0x0" || addr === "0x0000000000000000000000000000000000000000";
+	return (
+		addr === "" ||
+		addr === "0x0" ||
+		addr === "0x0000000000000000000000000000000000000000"
+	);
 }
 
 /**
@@ -81,13 +85,20 @@ export function getMissingTestnetAddresses(config: GachaConfig): string[] {
 
 	// Required addresses — deployed by DeployTestnet.s.sol
 	if (isPlaceholder(config.address)) missing.push("NEXT_PUBLIC_GACHA_ADDRESS");
-	if (isPlaceholder(config.treasuryAddress)) missing.push("NEXT_PUBLIC_GACHA_TREASURY_ADDRESS");
-	if (isPlaceholder(config.appraisalAddress)) missing.push("NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS");
-	if (isPlaceholder(config.economyManagerAddress)) missing.push("NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS");
-	if (isPlaceholder(config.gachaServiceHandlerAddress)) missing.push("NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS");
-	if (isPlaceholder(config.appraisalServiceHandlerAddress)) missing.push("NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS");
-	if (isPlaceholder(config.cardGroupedVaultAddress)) missing.push("NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS");
-	if (isPlaceholder(config.protocolTreasuryAddress)) missing.push("NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS");
+	if (isPlaceholder(config.treasuryAddress))
+		missing.push("NEXT_PUBLIC_GACHA_TREASURY_ADDRESS");
+	if (isPlaceholder(config.appraisalAddress))
+		missing.push("NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS");
+	if (isPlaceholder(config.economyManagerAddress))
+		missing.push("NEXT_PUBLIC_ECONOMY_MANAGER_ADDRESS");
+	if (isPlaceholder(config.gachaServiceHandlerAddress))
+		missing.push("NEXT_PUBLIC_GACHA_SERVICE_HANDLER_ADDRESS");
+	if (isPlaceholder(config.appraisalServiceHandlerAddress))
+		missing.push("NEXT_PUBLIC_APPRAISAL_SERVICE_HANDLER_ADDRESS");
+	if (isPlaceholder(config.cardGroupedVaultAddress))
+		missing.push("NEXT_PUBLIC_CARD_GROUPED_VAULT_ADDRESS");
+	if (isPlaceholder(config.protocolTreasuryAddress))
+		missing.push("NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS");
 
 	// Optional addresses — not deployed by DeployTestnet.s.sol yet
 	// Buyback vault and tracker contracts are logged as warnings, not blockers
@@ -101,7 +112,8 @@ export function getMissingTestnetAddresses(config: GachaConfig): string[] {
 export function getOptionalMissingAddresses(config: GachaConfig): string[] {
 	const optional: string[] = [];
 
-	if (isPlaceholder(config.buybackVaultAddress)) optional.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
+	if (isPlaceholder(config.buybackVaultAddress))
+		optional.push("NEXT_PUBLIC_BUYBACK_VAULT_ADDRESS");
 
 	const trackerEnvNames = [
 		"NEXT_PUBLIC_COMMON_TRACKER_ADDRESS",
@@ -137,8 +149,8 @@ export function validateTestnetConfig(
 			allValid = false;
 			logger.contracts.warn(
 				`[gacha-config/testnet] Gacha "${id}" is missing ${missing.length} required address(es).\n` +
-				"  Set the following env vars before deploying to testnet:\n" +
-				missing.map((v) => `    ${v}`).join("\n"),
+					"  Set the following env vars before deploying to testnet:\n" +
+					missing.map((v) => `    ${v}`).join("\n"),
 			);
 		}
 
@@ -146,8 +158,8 @@ export function validateTestnetConfig(
 		if (optional.length > 0) {
 			logger.contracts.info(
 				`[gacha-config/testnet] Gacha "${id}" has ${optional.length} optional address(es) not configured.\n` +
-				"  These features will be disabled until set:\n" +
-				optional.map((v) => `    ${v}`).join("\n"),
+					"  These features will be disabled until set:\n" +
+					optional.map((v) => `    ${v}`).join("\n"),
 			);
 		}
 	}

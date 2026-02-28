@@ -139,8 +139,7 @@ export function AppraisalFormFields({
 							<p className="text-sm text-foreground/80">
 								Appraisal fee:{" "}
 								<span className="font-semibold text-info">
-									{formatFeeAmount(appraisalFee)}{" "}
-									{tokenSymbol || "TOKENS"}
+									{formatFeeAmount(appraisalFee)} {tokenSymbol || "TOKENS"}
 								</span>
 							</p>
 							<p className="text-xs text-foreground/60 mt-1">

@@ -537,13 +537,13 @@ export function AppraisedNFTsList({
 							value={sort}
 							onChange={(e) => setSort(e.target.value as AppraisalSort)}
 							options={[
-							{ value: "newest", label: "Newest First" },
-							{ value: "oldest", label: "Oldest First" },
-							{ value: "highestValue", label: "Highest Value" },
-							{ value: "lowestValue", label: "Lowest Value" },
-							{ value: "recentlyUpdated", label: "Recently Updated" },
-						]}
-					/>
+								{ value: "newest", label: "Newest First" },
+								{ value: "oldest", label: "Oldest First" },
+								{ value: "highestValue", label: "Highest Value" },
+								{ value: "lowestValue", label: "Lowest Value" },
+								{ value: "recentlyUpdated", label: "Recently Updated" },
+							]}
+						/>
 					</div>
 				</div>
 

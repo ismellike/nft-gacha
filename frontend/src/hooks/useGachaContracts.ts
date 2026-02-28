@@ -73,7 +73,10 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 
 			return validatedContracts;
 		} catch (error) {
-			logger.contracts.error(`Failed to get contracts for gacha ${gachaId}:`, error);
+			logger.contracts.error(
+				`Failed to get contracts for gacha ${gachaId}:`,
+				error,
+			);
 			return getEmptyContracts();
 		}
 	}, [gachaId]);

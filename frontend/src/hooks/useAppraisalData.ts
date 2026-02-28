@@ -173,7 +173,9 @@ export const useAppraisalData = (
 					prices.length !== allKnownNFTs.length ||
 					statuses.length !== allKnownNFTs.length
 				) {
-					logger.contracts.warn("Batch results length mismatch with NFTs array");
+					logger.contracts.warn(
+						"Batch results length mismatch with NFTs array",
+					);
 					return;
 				}
 

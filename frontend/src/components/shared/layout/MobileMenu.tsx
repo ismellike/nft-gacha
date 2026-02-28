@@ -142,7 +142,10 @@ export function MobileMenu({ navItems }: MobileMenuProps) {
 						</div>
 
 						{/* Navigation Links */}
-						<nav className="p-4 space-y-2 flex-1 overflow-y-auto" aria-label="Mobile navigation">
+						<nav
+							className="p-4 space-y-2 flex-1 overflow-y-auto"
+							aria-label="Mobile navigation"
+						>
 							{navItems.map((item) => {
 								const isActive =
 									item.href === "/"

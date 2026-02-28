@@ -78,7 +78,9 @@ test.describe("Gacha Detail Page - Section Tabs (FlowSwitcher)", () => {
 	});
 
 	test("all four main tabs are visible simultaneously", async ({ page }) => {
-		const tabs = page.getByRole("button", { name: /Navigate to (Spin|Vault|Economy|History)/i });
+		const tabs = page.getByRole("button", {
+			name: /Navigate to (Spin|Vault|Economy|History)/i,
+		});
 		await expect(tabs).toHaveCount(4);
 	});
 
@@ -152,9 +154,9 @@ test.describe("Gacha Detail Page - Spin Section (No Wallet)", () => {
 	test("rarity breakdown section renders", async ({ page }) => {
 		// RarityBreakdown is rendered inside the GachaSpinner
 		// It shows rarity categories - wait for it to load or show skeleton
-		const rarityBreakdown = page.locator(
-			"[class*='space-y'], [class*='grid']",
-		).first();
+		const rarityBreakdown = page
+			.locator("[class*='space-y'], [class*='grid']")
+			.first();
 		await expect(rarityBreakdown).toBeVisible();
 	});
 });
@@ -165,8 +167,7 @@ test.describe("Gacha Detail Page - Invalid Gacha ID", () => {
 		await page.goto("/gacha");
 		// With DEFAULT_GACHA_ID fallback, it will load the default gacha
 		// So check that it either loads a gacha or shows error
-		const hasContent =
-			(await page.locator("h1, h2").count()) > 0;
+		const hasContent = (await page.locator("h1, h2").count()) > 0;
 		expect(hasContent).toBeTruthy();
 	});
 

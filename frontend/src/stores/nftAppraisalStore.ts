@@ -53,165 +53,165 @@ const getNFTKey = (collection: string, tokenId: string) =>
 	`${collection.toLowerCase()}:${tokenId}`;
 
 export const useNFTAppraisalStore = create<NFTAppraisalStore>()((set, get) => ({
-		appraisals: {},
-		optimisticSubmissions: {},
-		loading: {},
-		error: {},
-		lastFetched: {},
+	appraisals: {},
+	optimisticSubmissions: {},
+	loading: {},
+	error: {},
+	lastFetched: {},
 
-		setAppraisals: (userAddress, appraisals) => {
-			set((state) => ({
-				appraisals: {
-					...state.appraisals,
-					[userAddress.toLowerCase()]: appraisals,
-				},
-				lastFetched: {
-					...state.lastFetched,
-					[userAddress.toLowerCase()]: Date.now(),
-				},
-				loading: {
-					...state.loading,
-					[userAddress.toLowerCase()]: false,
-				},
-				error: {
-					...state.error,
-					[userAddress.toLowerCase()]: null,
-				},
-			}));
-		},
+	setAppraisals: (userAddress, appraisals) => {
+		set((state) => ({
+			appraisals: {
+				...state.appraisals,
+				[userAddress.toLowerCase()]: appraisals,
+			},
+			lastFetched: {
+				...state.lastFetched,
+				[userAddress.toLowerCase()]: Date.now(),
+			},
+			loading: {
+				...state.loading,
+				[userAddress.toLowerCase()]: false,
+			},
+			error: {
+				...state.error,
+				[userAddress.toLowerCase()]: null,
+			},
+		}));
+	},
 
-		addOptimisticSubmission: (userAddress, collection, tokenId) => {
-			const address = userAddress.toLowerCase();
-			const nftKey = getNFTKey(collection, tokenId);
+	addOptimisticSubmission: (userAddress, collection, tokenId) => {
+		const address = userAddress.toLowerCase();
+		const nftKey = getNFTKey(collection, tokenId);
 
-			set((state) => {
-				const existingOptimistic = state.optimisticSubmissions[address] || [];
-				const nftExists = existingOptimistic.some(
-					(nft) => getNFTKey(nft.collection, nft.tokenId) === nftKey,
-				);
-
-				if (nftExists) return state; // Don't add duplicates
-
-				return {
-					optimisticSubmissions: {
-						...state.optimisticSubmissions,
-						[address]: [
-							...existingOptimistic,
-							{
-								collection,
-								tokenId,
-								timestamp: Date.now(),
-								isOptimistic: true,
-							},
-						],
-					},
-				};
-			});
-		},
-
-		removeOptimisticSubmission: (userAddress, collection, tokenId) => {
-			const address = userAddress.toLowerCase();
-			const nftKey = getNFTKey(collection, tokenId);
-
-			set((state) => {
-				const existingOptimistic = state.optimisticSubmissions[address] || [];
-				const filtered = existingOptimistic.filter(
-					(nft) => getNFTKey(nft.collection, nft.tokenId) !== nftKey,
-				);
-
-				return {
-					optimisticSubmissions: {
-						...state.optimisticSubmissions,
-						[address]: filtered,
-					},
-				};
-			});
-		},
-
-		setLoading: (userAddress, loading) => {
-			set((state) => ({
-				loading: {
-					...state.loading,
-					[userAddress.toLowerCase()]: loading,
-				},
-			}));
-		},
-
-		setError: (userAddress, error) => {
-			set((state) => ({
-				error: {
-					...state.error,
-					[userAddress.toLowerCase()]: error,
-				},
-				loading: {
-					...state.loading,
-					[userAddress.toLowerCase()]: false,
-				},
-			}));
-		},
-
-		clearUserError: (userAddress) => {
-			set((state) => ({
-				error: {
-					...state.error,
-					[userAddress.toLowerCase()]: null,
-				},
-			}));
-		},
-
-		getUserAppraisals: (userAddress) => {
-			return get().appraisals[userAddress.toLowerCase()] || [];
-		},
-
-		getUserOptimisticSubmissions: (userAddress) => {
-			return get().optimisticSubmissions[userAddress.toLowerCase()] || [];
-		},
-
-		getCombinedAppraisals: (userAddress) => {
-			const confirmedAppraisals = get().getUserAppraisals(userAddress);
-			const optimisticSubmissions =
-				get().getUserOptimisticSubmissions(userAddress);
-
-			// Remove any optimistic submissions that already exist in confirmed appraisals
-			const filteredOptimistic = optimisticSubmissions.filter((optimistic) => {
-				const nftKey = getNFTKey(optimistic.collection, optimistic.tokenId);
-				return !confirmedAppraisals.some(
-					(confirmed) =>
-						getNFTKey(confirmed.collection, confirmed.tokenId) === nftKey,
-				);
-			});
-
-			// Combine confirmed appraisals with optimistic submissions
-			const combined = [...confirmedAppraisals, ...filteredOptimistic];
-
-			// Sort by timestamp (newest first)
-			return combined.sort(
-				(
-					a: AppraisedNFT | OptimisticAppraisal,
-					b: AppraisedNFT | OptimisticAppraisal,
-				) => {
-					const timeA =
-						"timestamp" in a
-							? Number(a.timestamp)
-							: (a as OptimisticAppraisal).timestamp;
-					const timeB =
-						"timestamp" in b
-							? Number(b.timestamp)
-							: (b as OptimisticAppraisal).timestamp;
-					return timeB - timeA;
-				},
+		set((state) => {
+			const existingOptimistic = state.optimisticSubmissions[address] || [];
+			const nftExists = existingOptimistic.some(
+				(nft) => getNFTKey(nft.collection, nft.tokenId) === nftKey,
 			);
-		},
 
-		refreshUserAppraisals: (userAddress) => {
-			set((state) => ({
-				lastFetched: {
-					...state.lastFetched,
-					[userAddress.toLowerCase()]: 0, // Reset to force refresh
+			if (nftExists) return state; // Don't add duplicates
+
+			return {
+				optimisticSubmissions: {
+					...state.optimisticSubmissions,
+					[address]: [
+						...existingOptimistic,
+						{
+							collection,
+							tokenId,
+							timestamp: Date.now(),
+							isOptimistic: true,
+						},
+					],
 				},
-			}));
-		},
-	}));
+			};
+		});
+	},
+
+	removeOptimisticSubmission: (userAddress, collection, tokenId) => {
+		const address = userAddress.toLowerCase();
+		const nftKey = getNFTKey(collection, tokenId);
+
+		set((state) => {
+			const existingOptimistic = state.optimisticSubmissions[address] || [];
+			const filtered = existingOptimistic.filter(
+				(nft) => getNFTKey(nft.collection, nft.tokenId) !== nftKey,
+			);
+
+			return {
+				optimisticSubmissions: {
+					...state.optimisticSubmissions,
+					[address]: filtered,
+				},
+			};
+		});
+	},
+
+	setLoading: (userAddress, loading) => {
+		set((state) => ({
+			loading: {
+				...state.loading,
+				[userAddress.toLowerCase()]: loading,
+			},
+		}));
+	},
+
+	setError: (userAddress, error) => {
+		set((state) => ({
+			error: {
+				...state.error,
+				[userAddress.toLowerCase()]: error,
+			},
+			loading: {
+				...state.loading,
+				[userAddress.toLowerCase()]: false,
+			},
+		}));
+	},
+
+	clearUserError: (userAddress) => {
+		set((state) => ({
+			error: {
+				...state.error,
+				[userAddress.toLowerCase()]: null,
+			},
+		}));
+	},
+
+	getUserAppraisals: (userAddress) => {
+		return get().appraisals[userAddress.toLowerCase()] || [];
+	},
+
+	getUserOptimisticSubmissions: (userAddress) => {
+		return get().optimisticSubmissions[userAddress.toLowerCase()] || [];
+	},
+
+	getCombinedAppraisals: (userAddress) => {
+		const confirmedAppraisals = get().getUserAppraisals(userAddress);
+		const optimisticSubmissions =
+			get().getUserOptimisticSubmissions(userAddress);
+
+		// Remove any optimistic submissions that already exist in confirmed appraisals
+		const filteredOptimistic = optimisticSubmissions.filter((optimistic) => {
+			const nftKey = getNFTKey(optimistic.collection, optimistic.tokenId);
+			return !confirmedAppraisals.some(
+				(confirmed) =>
+					getNFTKey(confirmed.collection, confirmed.tokenId) === nftKey,
+			);
+		});
+
+		// Combine confirmed appraisals with optimistic submissions
+		const combined = [...confirmedAppraisals, ...filteredOptimistic];
+
+		// Sort by timestamp (newest first)
+		return combined.sort(
+			(
+				a: AppraisedNFT | OptimisticAppraisal,
+				b: AppraisedNFT | OptimisticAppraisal,
+			) => {
+				const timeA =
+					"timestamp" in a
+						? Number(a.timestamp)
+						: (a as OptimisticAppraisal).timestamp;
+				const timeB =
+					"timestamp" in b
+						? Number(b.timestamp)
+						: (b as OptimisticAppraisal).timestamp;
+				return timeB - timeA;
+			},
+		);
+	},
+
+	refreshUserAppraisals: (userAddress) => {
+		set((state) => ({
+			lastFetched: {
+				...state.lastFetched,
+				[userAddress.toLowerCase()]: 0, // Reset to force refresh
+			},
+		}));
+	},
+}));
 
 // Selectors for common use cases
 export const useUserAppraisals = (userAddress: string | undefined) => {
@@ -242,6 +242,6 @@ export const useAppraisalLoading = (userAddress: string | undefined) => {
 
 export const useAppraisalError = (userAddress: string | undefined) => {
 	return useNFTAppraisalStore((state) =>
-		userAddress ? state.error[userAddress.toLowerCase()] ?? null : null,
+		userAddress ? (state.error[userAddress.toLowerCase()] ?? null) : null,
 	);
 };

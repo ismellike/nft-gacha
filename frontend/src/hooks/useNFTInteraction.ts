@@ -193,13 +193,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 
 			storeStart(startConfig);
 		},
-		[
-			publicClient,
-			setError,
-			storeStart,
-			userAddress,
-			params.uniqueId,
-		],
+		[publicClient, setError, storeStart, userAddress, params.uniqueId],
 	);
 
 	// Kick off approval automatically when entering checkingApprovals

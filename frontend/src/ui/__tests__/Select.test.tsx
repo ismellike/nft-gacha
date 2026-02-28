@@ -17,9 +17,15 @@ describe("Select", () => {
 
 	it("renders all options", () => {
 		render(<Select options={defaultOptions} />);
-		expect(screen.getByRole("option", { name: "Option A" })).toBeInTheDocument();
-		expect(screen.getByRole("option", { name: "Option B" })).toBeInTheDocument();
-		expect(screen.getByRole("option", { name: "Option C" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("option", { name: "Option A" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("option", { name: "Option B" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("option", { name: "Option C" }),
+		).toBeInTheDocument();
 	});
 
 	it("renders placeholder as first disabled option", () => {
@@ -41,14 +47,21 @@ describe("Select", () => {
 	});
 
 	it("renders helperText below the select", () => {
-		render(<Select options={defaultOptions} helperText="Select your preference" />);
+		render(
+			<Select options={defaultOptions} helperText="Select your preference" />,
+		);
 		expect(screen.getByText("Select your preference")).toBeInTheDocument();
 	});
 
 	it("renders errorMessage and sets aria-invalid", () => {
-		render(<Select options={defaultOptions} errorMessage="Selection required" />);
+		render(
+			<Select options={defaultOptions} errorMessage="Selection required" />,
+		);
 		expect(screen.getByText("Selection required")).toBeInTheDocument();
-		expect(screen.getByRole("combobox")).toHaveAttribute("aria-invalid", "true");
+		expect(screen.getByRole("combobox")).toHaveAttribute(
+			"aria-invalid",
+			"true",
+		);
 	});
 
 	it("errorMessage overrides helperText", () => {
@@ -103,7 +116,11 @@ describe("Select", () => {
 		const variants = ["default", "ghost", "error"] as const;
 		for (const variant of variants) {
 			const { unmount } = render(
-				<Select options={defaultOptions} variant={variant} aria-label={variant} />,
+				<Select
+					options={defaultOptions}
+					variant={variant}
+					aria-label={variant}
+				/>,
 			);
 			expect(screen.getByRole("combobox")).toBeInTheDocument();
 			unmount();

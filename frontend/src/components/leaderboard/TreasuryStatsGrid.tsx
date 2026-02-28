@@ -26,9 +26,7 @@ function TreasuryCard({ gacha }: TreasuryCardProps) {
 		},
 	});
 
-	const globalStats = globalStatsRaw as
-		| [bigint, bigint, bigint]
-		| undefined;
+	const globalStats = globalStatsRaw as [bigint, bigint, bigint] | undefined;
 	const totalDeposited = globalStats?.[0] ?? 0n;
 	const totalClaimed = globalStats?.[1] ?? 0n;
 
@@ -59,8 +57,7 @@ function TreasuryCard({ gacha }: TreasuryCardProps) {
 					const config = getRarityConfig(rarity);
 					const count = gacha.rarityCounts[rarity] ?? 0n;
 					const total = gacha.totalItems;
-					const pct =
-						total > 0n ? Number((count * 100n) / total) : 0;
+					const pct = total > 0n ? Number((count * 100n) / total) : 0;
 
 					return (
 						<div key={rarity} className="flex items-center gap-2">
@@ -80,9 +77,7 @@ function TreasuryCard({ gacha }: TreasuryCardProps) {
 							<span
 								className={cn(
 									"text-xs font-mono w-8 text-right",
-									count === 0n
-										? "text-foreground/20"
-										: "text-foreground/60",
+									count === 0n ? "text-foreground/20" : "text-foreground/60",
 								)}
 							>
 								{Number(count)}
@@ -128,7 +123,10 @@ interface TreasuryStatsGridProps {
 	isLoading: boolean;
 }
 
-export function TreasuryStatsGrid({ gachas, isLoading }: TreasuryStatsGridProps) {
+export function TreasuryStatsGrid({
+	gachas,
+	isLoading,
+}: TreasuryStatsGridProps) {
 	if (isLoading) {
 		return (
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -140,7 +138,12 @@ export function TreasuryStatsGrid({ gachas, isLoading }: TreasuryStatsGridProps)
 						<Skeleton variant="text" size="h6" className="w-36 mb-4" />
 						<div className="space-y-2 mb-4">
 							{RARITIES.map((r) => (
-								<Skeleton key={r} variant="default" size="h4" className="w-full" />
+								<Skeleton
+									key={r}
+									variant="default"
+									size="h4"
+									className="w-full"
+								/>
 							))}
 						</div>
 						<div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/10">

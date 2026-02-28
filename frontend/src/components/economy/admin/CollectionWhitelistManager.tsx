@@ -138,7 +138,9 @@ export function CollectionWhitelistManager({
 		isPending: isRemovePending,
 	} = useWriteGachaTreasuryRemoveFromWhitelist();
 
-	const { data: addReceipt } = useWaitForTransactionReceipt({ hash: addTxHash });
+	const { data: addReceipt } = useWaitForTransactionReceipt({
+		hash: addTxHash,
+	});
 	const { data: removeReceipt } = useWaitForTransactionReceipt({
 		hash: removeTxHash,
 	});

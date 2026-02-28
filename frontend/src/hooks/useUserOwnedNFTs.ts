@@ -225,7 +225,10 @@ export function useUserOwnedNFTsMultipleCollections(
 
 			setNfts(allUserNFTs);
 		} catch (err) {
-			logger.network.error("Error fetching user NFTs from multiple collections:", err);
+			logger.network.error(
+				"Error fetching user NFTs from multiple collections:",
+				err,
+			);
 			setError(err instanceof Error ? err.message : "Failed to fetch NFTs");
 			setNfts([]);
 		} finally {

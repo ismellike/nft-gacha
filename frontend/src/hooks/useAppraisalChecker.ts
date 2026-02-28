@@ -52,7 +52,6 @@ export function useAppraisalChecker(
 		const signal = abortController.signal;
 
 		const checkAppraisals = async () => {
-
 			try {
 				// Try batch multicall first
 				const contracts = userOwnedNFTs.flatMap((nft) => [

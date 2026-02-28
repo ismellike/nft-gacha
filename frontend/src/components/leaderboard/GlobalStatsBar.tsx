@@ -74,9 +74,7 @@ export function GlobalStatsBar({ stats }: GlobalStatsBarProps) {
 		stats;
 
 	const winRate =
-		totalSpins > 0
-			? ((totalNftsWon / totalSpins) * 100).toFixed(1)
-			: "0.0";
+		totalSpins > 0 ? ((totalNftsWon / totalSpins) * 100).toFixed(1) : "0.0";
 
 	const statCards: StatCardProps[] = [
 		{

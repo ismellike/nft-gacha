@@ -8,7 +8,8 @@ const skeleton = tv({
 	base: "animate-pulse rounded-xl bg-gradient-to-r from-content1/15 via-content1/10 to-content1/15",
 	variants: {
 		variant: {
-			default: "bg-gradient-to-r from-content1/15 via-content1/10 to-content1/15",
+			default:
+				"bg-gradient-to-r from-content1/15 via-content1/10 to-content1/15",
 			card: "bg-content1/20 border border-warning/5",
 			text: "bg-white/10",
 			button: "bg-white/10",
@@ -102,8 +103,7 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
 						variant: variantProp,
 						size: sizeVariant,
 					}),
-					sizeProp &&
-						!(VALID_SIZES as readonly string[]).includes(sizeProp)
+					sizeProp && !(VALID_SIZES as readonly string[]).includes(sizeProp)
 						? sizeProp
 						: "",
 					className,
@@ -136,12 +136,32 @@ export const CardSkeleton: React.FC<{
 	>
 		{children || (
 			<div className="space-y-4">
-				<Skeleton variant="text" size="h8" className="w-1/3" aria-hidden="true" />
-				<Skeleton variant="text" size="h6" className="w-2/3" aria-hidden="true" />
-				<Skeleton variant="text" size="h6" className="w-1/2" aria-hidden="true" />
+				<Skeleton
+					variant="text"
+					size="h8"
+					className="w-1/3"
+					aria-hidden="true"
+				/>
+				<Skeleton
+					variant="text"
+					size="h6"
+					className="w-2/3"
+					aria-hidden="true"
+				/>
+				<Skeleton
+					variant="text"
+					size="h6"
+					className="w-1/2"
+					aria-hidden="true"
+				/>
 				<div className="pt-4 space-y-3">
 					<Skeleton variant="button" size="h12" aria-hidden="true" />
-					<Skeleton variant="button" size="h12" className="w-2/3" aria-hidden="true" />
+					<Skeleton
+						variant="button"
+						size="h12"
+						className="w-2/3"
+						aria-hidden="true"
+					/>
 				</div>
 			</div>
 		)}
@@ -160,7 +180,12 @@ export const ListSkeleton: React.FC<{
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
-		<div role="status" aria-busy="true" aria-label="Loading list" className={cn("space-y-3", className)}>
+		<div
+			role="status"
+			aria-busy="true"
+			aria-label="Loading list"
+			className={cn("space-y-3", className)}
+		>
 			{skeletonItems.map((itemKey) => (
 				<div
 					key={itemKey}
@@ -169,8 +194,18 @@ export const ListSkeleton: React.FC<{
 				>
 					<Skeleton variant="circle" size="w12 h12" aria-hidden="true" />
 					<div className="flex-1 space-y-2">
-						<Skeleton variant="text" size="h6" className="w-1/3" aria-hidden="true" />
-						<Skeleton variant="text" size="h4" className="w-2/3" aria-hidden="true" />
+						<Skeleton
+							variant="text"
+							size="h6"
+							className="w-1/3"
+							aria-hidden="true"
+						/>
+						<Skeleton
+							variant="text"
+							size="h4"
+							className="w-2/3"
+							aria-hidden="true"
+						/>
 					</div>
 					<Skeleton variant="button" size="h8 w20" aria-hidden="true" />
 				</div>
@@ -190,7 +225,12 @@ export const StatsSkeleton: React.FC<{ className?: string }> = ({
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
-		<div role="status" aria-busy="true" aria-label="Loading stats" className={cn("grid gap-4", className)}>
+		<div
+			role="status"
+			aria-busy="true"
+			aria-label="Loading stats"
+			className={cn("grid gap-4", className)}
+		>
 			{statsSkeletons.map((skeletonKey) => (
 				<div
 					key={skeletonKey}
@@ -199,8 +239,18 @@ export const StatsSkeleton: React.FC<{ className?: string }> = ({
 				>
 					<Skeleton variant="circle" size="w10 h10" aria-hidden="true" />
 					<div className="flex-1">
-						<Skeleton variant="text" size="h4" className="w-1/2" aria-hidden="true" />
-						<Skeleton variant="text" size="h6" className="w-1/3" aria-hidden="true" />
+						<Skeleton
+							variant="text"
+							size="h4"
+							className="w-1/2"
+							aria-hidden="true"
+						/>
+						<Skeleton
+							variant="text"
+							size="h6"
+							className="w-1/3"
+							aria-hidden="true"
+						/>
 					</div>
 				</div>
 			))}
@@ -213,7 +263,12 @@ export const FormSkeleton: React.FC<{ className?: string }> = ({
 	className,
 }) => (
 	// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
-	<div role="status" aria-busy="true" aria-label="Loading form" className={cn("space-y-4", className)}>
+	<div
+		role="status"
+		aria-busy="true"
+		aria-label="Loading form"
+		className={cn("space-y-4", className)}
+	>
 		<div className="space-y-2">
 			<Skeleton variant="text" size="h4" className="w-1/4" aria-hidden="true" />
 			<Skeleton variant="button" size="h12" aria-hidden="true" />
@@ -222,7 +277,12 @@ export const FormSkeleton: React.FC<{ className?: string }> = ({
 			<Skeleton variant="text" size="h4" className="w-1/3" aria-hidden="true" />
 			<Skeleton variant="button" size="h12" aria-hidden="true" />
 		</div>
-		<Skeleton variant="button" size="h12" className="w-1/2" aria-hidden="true" />
+		<Skeleton
+			variant="button"
+			size="h12"
+			className="w-1/2"
+			aria-hidden="true"
+		/>
 	</div>
 );
 

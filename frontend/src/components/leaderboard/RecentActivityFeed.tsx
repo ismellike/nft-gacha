@@ -71,8 +71,7 @@ export function RecentActivityFeed({
 
 		try {
 			const currentBlock = await publicClient.getBlockNumber();
-			const fromBlock =
-				currentBlock > 2000n ? currentBlock - 2000n : 0n;
+			const fromBlock = currentBlock > 2000n ? currentBlock - 2000n : 0n;
 
 			// Fetch recent SpinCompleted events from all gachas in parallel
 			const results = await Promise.allSettled(
@@ -157,9 +156,7 @@ export function RecentActivityFeed({
 	return (
 		<Card className="p-6 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl">
 			<div className="flex items-center justify-between mb-5">
-				<h3 className="text-base font-semibold text-foreground">
-					Recent Wins
-				</h3>
+				<h3 className="text-base font-semibold text-foreground">Recent Wins</h3>
 				{!isLoading && activities.length > 0 && (
 					<button
 						type="button"
@@ -174,10 +171,7 @@ export function RecentActivityFeed({
 			{isLoading && (
 				<div className="space-y-3">
 					{Array.from({ length: 5 }, (_, i) => `skeleton-${i}`).map((key) => (
-						<div
-							key={key}
-							className="flex items-center gap-3 py-2"
-						>
+						<div key={key} className="flex items-center gap-3 py-2">
 							<Skeleton variant="circle" className="w-10 h-10" />
 							<div className="flex-1 space-y-1">
 								<Skeleton variant="text" size="h4" className="w-32" />
