@@ -66,7 +66,6 @@ import {
 	isValidAddress,
 } from "../../lib/utils";
 import type { NFTMetadata } from "../../types/hooks";
-import { NFTLoadingPlaceholder } from "./NFTLoadingPlaceholder";
 
 // Core Types - Flexible for all use cases
 export interface NFTCardData {
@@ -449,34 +448,43 @@ export const NFTCard = memo<NFTCardProps>(
 		const themeStyles = GLASS_THEME;
 		const sizeStyles = SIZE_CONFIG[size];
 
-		// Loading state with better UX - pass rarity for themed loading
-		// Fixed: Removed Suspense wrapper that could cause blank fallback
-		// Added explicit min-height to ensure placeholder is always visible
+		// Loading skeleton — mirrors loaded card structure to prevent layout shift
 		if (isLoading && !metadata?.tokenURI) {
 			return (
 				<div
 					className={cn(
-						sizeStyles.container,
 						sizeStyles.radius,
 						themeStyles.background,
 						themeStyles.border,
+						themeStyles.shadow,
+						sizeStyles.padding,
+						"animate-pulse",
 						className,
 					)}
-					style={{
-						minHeight:
-							size === "sm" ? "200px" : size === "xs" ? "150px" : "250px",
-					}}
 				>
-					<NFTLoadingPlaceholder
-						{...(rarity !== undefined && { rarity })}
-						size={
-							size === "xs" || size === "sm"
-								? "sm"
-								: size === "xl"
-									? "lg"
-									: "md"
-						}
-					/>
+					<div className={cn("flex flex-col", sizeStyles.gap)}>
+						{/* Collection name skeleton */}
+						{showCollectionName && (
+							<div className="flex items-center justify-between gap-2">
+								<div className="h-3 w-2/3 rounded bg-white/10" />
+								<div className="h-3 w-8 rounded bg-white/10" />
+							</div>
+						)}
+						{/* Image skeleton — matches NFTImage's sizeStyles.container */}
+					<div className="flex justify-center">
+						<div
+							className={cn(
+								sizeStyles.container,
+								sizeStyles.radius,
+								"bg-white/[0.06]",
+							)}
+						/>
+					</div>
+						{/* Title skeleton */}
+						<div className="flex justify-center">
+							<div className="h-4 w-3/4 rounded bg-white/10" />
+						</div>
+					</div>
 				</div>
 			);
 		}
