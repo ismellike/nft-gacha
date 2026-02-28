@@ -28,7 +28,7 @@ interface NFTAppraisalDashboardProps {
 
 type ViewMode = "form" | "list" | "overview";
 
-export function NFTAppraisalDashboard({
+function _NFTAppraisalDashboard({
 	className,
 	variant = "full",
 }: NFTAppraisalDashboardProps) {

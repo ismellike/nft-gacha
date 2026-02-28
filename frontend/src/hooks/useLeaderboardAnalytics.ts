@@ -10,7 +10,7 @@ import {
 import { getAllActiveGachas } from "@/lib/gacha-config";
 import type { GachaConfig } from "@/lib/gacha-config/types";
 
-export interface GachaAnalytics {
+interface GachaAnalytics {
 	config: GachaConfig;
 	totalSpins: bigint;
 	totalRefunds: bigint;
@@ -24,7 +24,7 @@ export interface GachaAnalytics {
 	isError: boolean;
 }
 
-export interface AggregatedAnalytics {
+interface AggregatedAnalytics {
 	totalSpins: bigint;
 	totalRefunds: bigint;
 	totalReclaims: bigint;
@@ -180,6 +180,7 @@ export function useLeaderboardAnalytics(): AggregatedAnalytics {
 
 	const slots = [g0, g1, g2, g3, g4];
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: slots is derived from g0-g4 already in deps
 	return useMemo(() => {
 		const perGacha = slots.slice(0, allGachas.length);
 
@@ -221,27 +222,6 @@ export function useLeaderboardAnalytics(): AggregatedAnalytics {
 			isLoading,
 			isError,
 		};
-		// biome-ignore lint/correctness/useExhaustiveDependencies: slots spread intentionally
 	}, [g0, g1, g2, g3, g4, allGachas]);
 }
 
-/**
- * Fetch per-user batch analytics for a specific gacha.
- * Returns totalSpins, totalRefunds, totalReclaims, rarityWins, spinCount.
- */
-export function useUserLeaderboardStats(
-	gachaAddress: string | undefined,
-	userAddress: `0x${string}` | undefined,
-) {
-	const gachaAddr = gachaAddress as `0x${string}` | undefined;
-	return useReadContract({
-		address: gachaAddr,
-		abi: gachaAbi,
-		functionName: "getUserGachaBatch",
-		args: userAddress ? [userAddress] : undefined,
-		query: {
-			enabled: !!gachaAddr && !!userAddress,
-			refetchInterval: 60000,
-		},
-	});
-}

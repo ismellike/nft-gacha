@@ -13,7 +13,7 @@ interface CacheEntry<T> {
 	result: T;
 }
 
-export class MemoizedCache<T> {
+class MemoizedCache<T> {
 	private cache: Map<string, CacheEntry<T>> = new Map();
 
 	private entriesMatch(a: SpinHistoryEntry[], b: SpinHistoryEntry[]): boolean {

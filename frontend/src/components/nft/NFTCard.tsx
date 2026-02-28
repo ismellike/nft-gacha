@@ -80,7 +80,7 @@ export interface NFTCardData {
 	tokenURI?: string | null;
 }
 
-export interface NFTCardProps {
+interface NFTCardProps {
 	data: NFTCardData;
 	// Basic options
 	size?: "xs" | "sm" | "md" | "lg" | "xl";

@@ -32,7 +32,7 @@ const chipVariants = cva(
 	},
 );
 
-export interface ChipProps
+interface ChipProps
 	extends React.HTMLAttributes<HTMLSpanElement>,
 		VariantProps<typeof chipVariants> {
 	color?:

@@ -14,13 +14,13 @@ import {
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 
-export type AppraisalFilter =
+type AppraisalFilter =
 	| "all"
 	| "pending"
 	| "completed"
 	| "recent"
 	| "highValue";
-export type AppraisalSort =
+type AppraisalSort =
 	| "newest"
 	| "oldest"
 	| "highestValue"

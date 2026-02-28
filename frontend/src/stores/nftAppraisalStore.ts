@@ -10,7 +10,7 @@ export interface AppraisedNFT {
 	lastUpdated: bigint;
 }
 
-export interface OptimisticAppraisal {
+interface OptimisticAppraisal {
 	collection: string;
 	tokenId: string;
 	timestamp: number;
@@ -213,35 +213,3 @@ export const useNFTAppraisalStore = create<NFTAppraisalStore>()((set, get) => ({
 	},
 }));
 
-// Selectors for common use cases
-export const useUserAppraisals = (userAddress: string | undefined) => {
-	return useNFTAppraisalStore((state) =>
-		userAddress ? state.getUserAppraisals(userAddress) : [],
-	);
-};
-
-export const useUserOptimisticSubmissions = (
-	userAddress: string | undefined,
-) => {
-	return useNFTAppraisalStore((state) =>
-		userAddress ? state.getUserOptimisticSubmissions(userAddress) : [],
-	);
-};
-
-export const useCombinedAppraisals = (userAddress: string | undefined) => {
-	return useNFTAppraisalStore((state) =>
-		userAddress ? state.getCombinedAppraisals(userAddress) : [],
-	);
-};
-
-export const useAppraisalLoading = (userAddress: string | undefined) => {
-	return useNFTAppraisalStore((state) =>
-		userAddress ? state.loading[userAddress.toLowerCase()] || false : false,
-	);
-};
-
-export const useAppraisalError = (userAddress: string | undefined) => {
-	return useNFTAppraisalStore((state) =>
-		userAddress ? (state.error[userAddress.toLowerCase()] ?? null) : null,
-	);
-};

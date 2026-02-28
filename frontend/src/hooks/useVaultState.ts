@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import type { Address } from "viem";
 import type { DepositedNFT } from "./useUserDepositedNFTs";
 
-export interface AppraisalInfo {
+interface AppraisalInfo {
 	hasAppraisal: boolean;
 	priceUSD: bigint;
 }
@@ -13,7 +13,7 @@ interface NFTWithCollection extends DepositedNFT {
 	collectionName?: string;
 }
 
-export interface VaultState {
+interface VaultState {
 	appraisedNFTs: Set<string>;
 	appraisalData: Map<string, AppraisalInfo>;
 	depositedNFTs: NFTWithCollection[];

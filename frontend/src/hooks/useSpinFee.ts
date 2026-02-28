@@ -19,11 +19,11 @@ interface UseSpinFeeParams {
 	registerRefetch: (fn: () => void | Promise<void>) => () => void;
 }
 
-export interface UseSpinFeeReturn {
+interface UseSpinFeeReturn {
 	spinFee: bigint | undefined;
 	feeStale: boolean;
 	isFetching: boolean;
-	refetch: () => void | Promise<unknown>;
+	refetch: () => Promise<unknown> | undefined;
 }
 
 /**

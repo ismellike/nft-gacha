@@ -18,7 +18,7 @@ const treasuryAbi = [
 	},
 ] as const;
 
-export interface WithdrawalRequest {
+interface WithdrawalRequest {
 	collection: Address;
 	tokenId: bigint;
 }

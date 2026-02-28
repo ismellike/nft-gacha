@@ -82,7 +82,7 @@ function isPlaceholder(addr: string): boolean {
  * Returns the list of address fields that still contain placeholder values for
  * the given config.  An empty array means the config is deployment-ready.
  */
-export function getMissingMainnetAddresses(config: GachaConfig): string[] {
+function getMissingMainnetAddresses(config: GachaConfig): string[] {
 	const missing: string[] = [];
 
 	if (isPlaceholder(config.address)) missing.push("NEXT_PUBLIC_GACHA_ADDRESS");

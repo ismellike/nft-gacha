@@ -80,7 +80,7 @@ function isPlaceholder(addr: string): boolean {
  * Returns the list of address fields that still contain placeholder values for
  * the given config.  An empty array means the config is deployment-ready.
  */
-export function getMissingTestnetAddresses(config: GachaConfig): string[] {
+function getMissingTestnetAddresses(config: GachaConfig): string[] {
 	const missing: string[] = [];
 
 	// Required addresses — deployed by DeployTestnet.s.sol
@@ -109,7 +109,7 @@ export function getMissingTestnetAddresses(config: GachaConfig): string[] {
  * Returns the list of optional address fields that are not yet configured.
  * These are non-critical for initial testnet operation.
  */
-export function getOptionalMissingAddresses(config: GachaConfig): string[] {
+function getOptionalMissingAddresses(config: GachaConfig): string[] {
 	const optional: string[] = [];
 
 	if (isPlaceholder(config.buybackVaultAddress))

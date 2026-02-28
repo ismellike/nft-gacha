@@ -4,7 +4,7 @@ import * as React from "react";
 import type { VariantProps } from "tailwind-variants";
 import { cn, glassCard } from "../lib/theme-config";
 
-export interface CardProps
+interface CardProps
 	extends React.HTMLAttributes<HTMLDivElement>,
 		VariantProps<typeof glassCard> {
 	color?: "glass" | "glassInteractive";

@@ -52,7 +52,7 @@ interface UseBuybackActionsParams {
 	isNotOwned: boolean;
 }
 
-export interface UseBuybackActionsReturn {
+interface UseBuybackActionsReturn {
 	handleInteractionButtonClick: () => void;
 	primaryButtonLabel: string;
 }

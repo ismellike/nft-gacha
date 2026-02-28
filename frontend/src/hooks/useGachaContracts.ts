@@ -7,7 +7,7 @@ import { logger } from "../lib/logger";
 
 type Address = `0x${string}`;
 
-export interface GachaContracts {
+interface GachaContracts {
 	gacha: Address | undefined;
 	treasury: Address | undefined;
 	appraisal: Address | undefined;

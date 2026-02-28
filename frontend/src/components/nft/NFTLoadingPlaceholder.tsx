@@ -14,7 +14,7 @@ interface NFTLoadingPlaceholderProps {
 	progress?: number; // 0-100
 }
 
-export function NFTLoadingPlaceholder({
+function _NFTLoadingPlaceholder({
 	size = "md",
 	animate = true,
 	className,

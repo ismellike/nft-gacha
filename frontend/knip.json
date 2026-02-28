@@ -8,6 +8,17 @@
 		"wagmi.config.*"
 	],
 	"project": ["src/**/*.{ts,tsx}", "src/**/*.css"],
-	"ignoreDependencies": ["tailwind-variants", "zod", "zustand"],
-	"ignore": ["src/generated.ts", "src/**/*.d.ts", "src/examples/**"]
+	"ignore": [
+		"src/generated.ts",
+		"src/components/economy/admin/CollectionWhitelistManager.tsx",
+		"src/components/leaderboard/GachaLeaderboardTable.tsx",
+		"src/components/leaderboard/TreasuryStatsGrid.tsx",
+		"src/components/leaderboard/UserStatsCard.tsx",
+		"src/components/nft/AppraisedNFTsList.tsx",
+		"src/components/nft/NFTAppraisalDashboard.tsx",
+		"src/components/nft/NFTLoadingPlaceholder.tsx",
+		"src/components/shared/feedback/LoadingState.tsx",
+		"src/components/vault/DepositableNFTCard.tsx",
+		"src/components/vault/tabs/BatchDepositTab.tsx"
+	]
 }

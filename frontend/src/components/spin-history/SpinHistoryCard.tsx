@@ -195,7 +195,7 @@ const SpinHistoryCard = memo(
 						</div>
 						{getBlockExplorerTxUrl(chainId, entry.transactionHash) && (
 							<a
-								href={getBlockExplorerTxUrl(chainId, entry.transactionHash)!}
+								href={getBlockExplorerTxUrl(chainId, entry.transactionHash) ?? "#"}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="text-[11px] !text-white/80 hover:!text-white hover:underline transition-colors"

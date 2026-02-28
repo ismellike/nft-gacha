@@ -9,7 +9,7 @@ import {
 import { useRef, useState } from "react";
 import { cn } from "../../../lib/theme-config";
 
-export type ContractStatusType = "success" | "error" | "pending" | "info";
+type ContractStatusType = "success" | "error" | "pending" | "info";
 
 interface ContractStatusUpdate {
 	type: ContractStatusType;

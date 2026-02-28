@@ -73,7 +73,7 @@ interface UsePermitSpinParams {
 	onSpinSound: () => void;
 }
 
-export interface UsePermitSpinReturn {
+interface UsePermitSpinReturn {
 	isSignaturePending: boolean;
 	isProcessingTransaction: boolean;
 	userCancelledMessage: boolean;

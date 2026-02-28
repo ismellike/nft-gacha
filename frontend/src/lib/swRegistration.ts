@@ -5,7 +5,7 @@
 
 const SW_URL = "/sw.js";
 
-export interface ServiceWorkerRegisterResult {
+interface ServiceWorkerRegisterResult {
 	success: boolean;
 	error?: string;
 }

@@ -2,7 +2,8 @@
 
 import { FolderOpenIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
-import { useReadGachaTreasuryGetUserCardDepositsPage } from "@/generated";
+import { useReadContract } from "wagmi";
+import { gachaTreasuryAbi } from "@/generated";
 import { Button, Card, Chip, Input } from "../../../ui";
 
 export function DepositsSection() {
@@ -10,14 +11,15 @@ export function DepositsSection() {
 
 	const treasuryAddress = process.env
 		.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
-	const { data: userDeposits, refetch: refetchDeposits } =
-		useReadGachaTreasuryGetUserCardDepositsPage({
-			address: treasuryAddress,
-			args: userAddress?.startsWith("0x")
-				? [userAddress as `0x${string}`, 0n, 10n]
-				: undefined,
-			query: { enabled: !!userAddress && userAddress.startsWith("0x") },
-		} as Parameters<typeof useReadGachaTreasuryGetUserCardDepositsPage>[0]);
+	const { data: userDeposits, refetch: refetchDeposits } = useReadContract({
+		abi: gachaTreasuryAbi,
+		address: treasuryAddress,
+		functionName: "getUserCardDepositsPage",
+		args: userAddress?.startsWith("0x")
+			? [userAddress as `0x${string}`, 0n, 10n]
+			: undefined,
+		query: { enabled: !!userAddress && userAddress.startsWith("0x") },
+	});
 
 	const handleSearchDeposits = () => {
 		if (userAddress?.startsWith("0x")) {

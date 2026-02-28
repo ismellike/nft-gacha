@@ -40,7 +40,7 @@ interface FormData {
 	tokenId: string;
 }
 
-export interface UseNFTApprovalReturn {
+interface UseNFTApprovalReturn {
 	/** Call to approve the fee token (if needed) and submit the appraisal request */
 	submitAppraisal: (formData: FormData) => Promise<void>;
 	isApproving: boolean;

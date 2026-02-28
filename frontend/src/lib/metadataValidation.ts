@@ -37,7 +37,7 @@ export interface NFTMetadata {
 /**
  * Validation result type
  */
-export interface ValidationResult<T> {
+interface ValidationResult<T> {
 	success: boolean;
 	data?: T;
 	errors?: string[];
@@ -111,7 +111,7 @@ export function getCardName(metadata: NFTMetadata | null): string {
 /**
  * Get grading information from metadata
  */
-export interface GradingInfo {
+interface GradingInfo {
 	company?: string;
 	grade?: string;
 	displayString: string;

@@ -15,7 +15,7 @@ interface LoadingStateProps {
 	fullScreen?: boolean;
 }
 
-export function LoadingState({
+function _LoadingState({
 	size = "md",
 	text,
 	className,
@@ -97,7 +97,7 @@ export function LoadingState({
 	};
 
 	return (
-		<div role="status" aria-live="polite" className={containerClasses}>
+		<output aria-live="polite" className={containerClasses}>
 			<span className="sr-only">{text ?? "Loading..."}</span>
 			{renderVariant()}
 			{text && (
@@ -114,6 +114,6 @@ export function LoadingState({
 					{text}
 				</motion.p>
 			)}
-		</div>
+		</output>
 	);
 }

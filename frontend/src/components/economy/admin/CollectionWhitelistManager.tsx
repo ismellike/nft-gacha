@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useReadContract, useWaitForTransactionReceipt } from "wagmi";
 import {
 	erc721Abi,
-	useReadGachaTreasuryGetWhitelistedCollections,
+	gachaTreasuryAbi,
 	useWriteGachaTreasuryAddToWhitelist,
 	useWriteGachaTreasuryRemoveFromWhitelist,
 } from "@/generated";
@@ -109,7 +109,7 @@ function CollectionRow({
 	);
 }
 
-export function CollectionWhitelistManager({
+function _CollectionWhitelistManager({
 	treasuryAddress,
 }: CollectionWhitelistManagerProps) {
 	const [newCollectionAddress, setNewCollectionAddress] = useState("");
@@ -122,9 +122,11 @@ export function CollectionWhitelistManager({
 		data: whitelistedCollections,
 		refetch: refetchWhitelist,
 		isLoading: isLoadingWhitelist,
-	} = useReadGachaTreasuryGetWhitelistedCollections({
+	} = useReadContract({
+		abi: gachaTreasuryAbi,
+		functionName: "getWhitelistedCollections",
 		address: treasuryAddress,
-	} as Parameters<typeof useReadGachaTreasuryGetWhitelistedCollections>[0]);
+	});
 
 	const {
 		writeContractAsync: addToWhitelist,

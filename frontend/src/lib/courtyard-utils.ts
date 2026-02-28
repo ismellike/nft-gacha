@@ -17,7 +17,6 @@ export {
 export {
 	processCourtyardImageUrl,
 	parseCourtyardMetadata,
-	extractCourtyardGroupDisplay,
 	formatCardTitle,
 	formatGradeDisplay,
 	getGradeColorScheme,

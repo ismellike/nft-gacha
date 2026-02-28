@@ -238,45 +238,6 @@ export function parseCourtyardMetadata(metadata: CourtyardMetadata) {
 	};
 }
 
-/**
- * Build deterministic grouping components from Courtyard metadata.
- * Includes grader and grade since they dictate price.
- * Excludes unique identifiers (e.g., Serial, images). Normalizes values.
- */
-
-/**
- * Return a human-readable breakdown of group components for display.
- */
-export function extractCourtyardGroupDisplay(metadata: CourtyardMetadata) {
-	const attrs = metadata.attributes ?? [];
-	const get = (name: string) =>
-		attrs
-			.find((a) => a.trait_type === name)
-			?.value?.toString()
-			.trim();
-	const tags = attrs
-		.filter(
-			(a) =>
-				!a.trait_type &&
-				typeof a.value === "string" &&
-				a.value.trim().length > 0,
-		)
-		.map((a) => (a.value as string).trim())
-		.sort() as string[];
-
-	return {
-		grader: get("Grader") || "",
-		grade: get("Grade") || "",
-		set: get("Set") || "",
-		title: get("Title/Subject") || metadata.name || "",
-		language: get("Language") || "English",
-		cardNumber: get("Card Number") || "",
-		year: get("Year") || "",
-		category: get("Category") || "",
-		event: get("Event") || "",
-		tags,
-	};
-}
 
 /**
  * Formats the card title to be concise and avoid duplication with other sections

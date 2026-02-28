@@ -31,7 +31,7 @@ const DEFAULT_FILTERS: SpinHistoryFilters = {
 	status: "all",
 };
 
-export interface SpinHistoryStore {
+interface SpinHistoryStore {
 	// State per user+gacha combination
 	entries: Record<string, SpinHistoryEntry[]>;
 	filters: Record<string, SpinHistoryFilters>;

@@ -9,15 +9,6 @@ export interface FieldValidation {
 	isTouched: boolean;
 }
 
-export interface UseFormValidationReturn {
-	fields: Record<string, FieldValidation>;
-	validateField: (name: string, value: string) => boolean;
-	validateAll: (data: Record<string, string>) => boolean;
-	touchField: (name: string) => void;
-	reset: () => void;
-	isFormValid: boolean;
-}
-
 // Validation rules library
 export const validationRules = {
 	required: (message = "This field is required"): ValidationRule => ({

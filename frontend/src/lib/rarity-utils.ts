@@ -4,8 +4,6 @@
 
 import { DEFAULT_RARITY_NAMES } from "./rarityConfig";
 
-export type RarityName = string;
-
 /**
  * Convert rarity index to readable name
  */

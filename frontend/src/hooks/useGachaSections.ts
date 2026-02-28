@@ -6,7 +6,7 @@ import {
 	useUpdateSearchParams,
 } from "./useClientSearchParams";
 
-export type GachaSection = "spin" | "vault" | "economy" | "history" | "admin";
+type GachaSection = "spin" | "vault" | "economy" | "history" | "admin";
 
 const VALID_SECTIONS: GachaSection[] = [
 	"spin",

@@ -19,12 +19,22 @@ vi.mock("@/stores/gachaStore", () => ({
 	},
 }));
 
-vi.mock("@/lib/logger", () => ({
-	createDebugLogger: () => vi.fn(),
-	DEBUG_FLAGS: {
-		GACHA_SPIN: true,
-	},
-}));
+vi.mock("@/lib/logger", () => {
+	const noop = vi.fn();
+	const category = { log: noop, info: noop, warn: noop, error: noop, debug: noop };
+	return {
+		createDebugLogger: () => vi.fn(),
+		DEBUG_FLAGS: { GACHA_SPIN: true },
+		logger: {
+			general: category,
+			gachaSpin: category,
+			nftMetadata: category,
+			contracts: category,
+			state: category,
+			network: category,
+		},
+	};
+});
 
 vi.mock("@/lib/rarity-utils", () => ({
 	rarityBigIntToName: (rarity: bigint) => {

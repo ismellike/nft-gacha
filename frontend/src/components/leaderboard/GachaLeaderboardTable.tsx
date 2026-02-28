@@ -37,7 +37,7 @@ function LoadingRow() {
 	);
 }
 
-export function GachaLeaderboardTable({
+function _GachaLeaderboardTable({
 	gachas,
 	isLoading,
 }: GachaLeaderboardTableProps) {

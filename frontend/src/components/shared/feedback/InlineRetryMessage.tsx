@@ -10,7 +10,7 @@ import { useState } from "react";
 import { cn } from "../../../lib/theme-config";
 import { Button } from "../../../ui";
 
-export type RetryMessageType = "wallet" | "network" | "contract" | "general";
+type RetryMessageType = "wallet" | "network" | "contract" | "general";
 
 interface InlineRetryMessageProps {
 	type: RetryMessageType;

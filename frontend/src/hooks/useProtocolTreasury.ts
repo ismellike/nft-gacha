@@ -6,13 +6,13 @@ import {
 	useReadProtocolTreasuryPaused,
 } from "@/generated";
 
-export interface ProtocolTreasuryData {
+interface ProtocolTreasuryData {
 	asset: string | undefined;
 	owner: string | undefined;
 	paused: boolean | undefined;
 }
 
-export interface UseProtocolTreasuryProps {
+interface UseProtocolTreasuryProps {
 	contractAddress?: string;
 	enabled?: boolean;
 }
@@ -71,11 +71,3 @@ export function getTreasuryStatus(
 	return paused === true ? "paused" : "active";
 }
 
-// Helper function to check if address is the owner
-export function isOwner(
-	owner: string | undefined,
-	userAddress: string | undefined,
-): boolean {
-	if (!owner || !userAddress) return false;
-	return owner.toLowerCase() === userAddress.toLowerCase();
-}

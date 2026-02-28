@@ -3,14 +3,14 @@
 import type * as React from "react";
 import { cn } from "../lib/theme-config";
 
-export interface TabItem {
+interface TabItem {
 	label: string;
 	value: string;
 	icon?: React.ReactNode | undefined;
 	disabled?: boolean | undefined;
 }
 
-export interface TabsProps {
+interface TabsProps {
 	tabs: TabItem[];
 	activeTab: string;
 	onChange: (value: string) => void;

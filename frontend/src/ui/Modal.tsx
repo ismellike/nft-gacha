@@ -23,7 +23,7 @@ const useModalContext = () => {
 	return context;
 };
 
-export interface ModalProps
+interface ModalProps
 	extends Omit<
 			React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>,
 			"open" | "defaultOpen" | "onOpenChange"
@@ -65,7 +65,7 @@ export function Modal({
 	);
 }
 
-export interface ModalContentProps
+interface ModalContentProps
 	extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {}
 
 const ModalContent = React.forwardRef<
@@ -155,4 +155,4 @@ const DialogDescription = React.forwardRef<
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
-export { ModalContent, ModalBody, DialogTitle, DialogDescription };
+export { ModalContent, ModalBody, DialogTitle };

@@ -57,7 +57,7 @@ function StatCard({
 	);
 }
 
-export interface GlobalStats {
+interface GlobalStats {
 	totalSpins: number;
 	totalNftsWon: number;
 	totalItems: number;

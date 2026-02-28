@@ -5,14 +5,14 @@ import { gachaAbi } from "../generated";
 import { logger } from "../lib/logger";
 import { getSpinKey } from "./storeUtils";
 
-export interface PendingSpin {
+interface PendingSpin {
 	triggerId: bigint;
 	timestamp: number;
 	userAddress: string;
 	gachaAddress: string;
 }
 
-export interface GachaStore {
+interface GachaStore {
 	// State
 	pendingSpins: Record<string, PendingSpin>;
 

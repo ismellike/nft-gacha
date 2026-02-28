@@ -157,50 +157,6 @@ export function formatPercentage(
 // DATE & TIME FORMATTING
 // ============================================================================
 
-/**
- * Format timestamps for blockchain data.
- * Uses `toLocaleString`/`toLocaleDateString` which display in the user's local timezone.
- */
-export function formatTimestamp(
-	timestamp: number | bigint,
-	options: {
-		format?: "relative" | "absolute" | "both";
-		showTime?: boolean;
-	} = {},
-): string {
-	const { format = "relative", showTime = true } = options;
-	const date = new Date(Number(timestamp) * 1000);
-
-	if (format === "relative") {
-		return formatRelativeTime(date);
-	}
-
-	if (format === "absolute") {
-		return showTime
-			? date.toLocaleString("en-US", {
-					year: "numeric",
-					month: "short",
-					day: "numeric",
-					hour: "2-digit",
-					minute: "2-digit",
-				})
-			: date.toLocaleDateString("en-US", {
-					year: "numeric",
-					month: "short",
-					day: "numeric",
-				});
-	}
-
-	// Both format
-	const relative = formatRelativeTime(date);
-	const absolute = date.toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
-	return `${relative} (${absolute})`;
-}
-
 function formatRelativeTime(date: Date): string {
 	const now = new Date();
 	const diffMs = now.getTime() - date.getTime();

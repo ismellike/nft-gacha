@@ -123,7 +123,7 @@ interface TreasuryStatsGridProps {
 	isLoading: boolean;
 }
 
-export function TreasuryStatsGrid({
+function _TreasuryStatsGrid({
 	gachas,
 	isLoading,
 }: TreasuryStatsGridProps) {

@@ -46,7 +46,7 @@ export type RevealPhase =
 	| "card"
 	| "monetary";
 
-export interface PhaseTimingConfig {
+interface PhaseTimingConfig {
 	phase: RevealPhase;
 	duration: number;
 	animationDuration: number;
@@ -64,10 +64,8 @@ const DURATION_STEP_CARD = 2.5; // Longest for the dramatic card reveal
 // Trait animation timing (in seconds)
 export const STAGGER_DELAY_PER_TRAIT = 0.08; // 80ms stagger between traits for smooth cascade
 export const CARD_FADE_OUT_DURATION = 0.2; // 200ms fade for trait cards
-export const CARD_ENTRANCE_DELAY = 0.05; // 50ms delay before card appears (reduced for faster feel)
-
 // Spring animation configurations
-export const SPRING_CONFIGS = {
+const SPRING_CONFIGS = {
 	soft: {
 		type: "spring" as const,
 		stiffness: 100,

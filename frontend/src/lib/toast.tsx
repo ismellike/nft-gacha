@@ -1,9 +1,9 @@
 import type { ToastOptions } from "react-hot-toast";
 import toast from "react-hot-toast";
 
-export type ToastType = "success" | "error" | "warning" | "info";
+type ToastType = "success" | "error" | "warning" | "info";
 
-export interface ToastConfig {
+interface ToastConfig {
 	title?: string;
 	message: string;
 	type?: ToastType;
@@ -92,7 +92,7 @@ const toastIcons: Record<ToastType, React.ReactNode> = {
 	),
 };
 
-export function showToast({
+function showToast({
 	title,
 	message,
 	type = "info",
@@ -200,11 +200,5 @@ export const toastError = (message: string, title?: string) =>
 		duration: 6000,
 	});
 
-export const toastWarning = (message: string, title?: string) =>
-	showToast({ message, ...(title && { title }), type: "warning" });
-
 export const toastInfo = (message: string, title?: string) =>
 	showToast({ message, ...(title && { title }), type: "info" });
-
-// Dismiss all toasts
-export const dismissAllToasts = () => toast.dismiss();

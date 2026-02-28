@@ -35,7 +35,7 @@ interface DepositableNFTCardProps {
 	) => void;
 }
 
-export const DepositableNFTCard = ({
+const _DepositableNFTCard = ({
 	collection,
 	tokenId,
 	rarity,

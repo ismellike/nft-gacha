@@ -203,7 +203,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 													? `bg-gradient-to-br ${getRarityConfig(rarity).bgGradient} bg-opacity-10 border-white/10`
 													: "bg-content1/10 border-white/5"
 											}`}
-											aria-label={`${rarity}: ${Number(count)}`}
+											title={`${rarity}: ${Number(count)}`}
 										>
 											<div
 												aria-hidden="true"

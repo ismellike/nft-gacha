@@ -79,7 +79,7 @@ export function RewardsRefetchProvider({ children }: { children: ReactNode }) {
 	);
 }
 
-export function useRewardsRefetchContext() {
+function useRewardsRefetchContext() {
 	const context = useContext(RewardsRefetchContext);
 	if (!context) {
 		throw new Error(
@@ -89,7 +89,7 @@ export function useRewardsRefetchContext() {
 	return context;
 }
 
-export interface RewardsData {
+interface RewardsData {
 	// Refetch functions for rewards data
 	refetchAllRewardsData: () => Promise<void>;
 	// Helper to register individual refetch functions

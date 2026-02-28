@@ -23,7 +23,7 @@ export interface UserCardGroupedData {
 	pendingYield: bigint | undefined;
 }
 
-export interface UseCardGroupedVaultProps {
+interface UseCardGroupedVaultProps {
 	contractAddress?: string;
 	userAddress?: string;
 	enabled?: boolean;

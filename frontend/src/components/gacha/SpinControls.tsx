@@ -257,7 +257,7 @@ const SpinControls = memo(function SpinControls({
 		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-4 sm:p-8 backdrop-blur-2xl">
 			{/* Loading skeleton during SSR */}
 			{!mounted && (
-				<div role="status" aria-label="Loading" className="space-y-6">
+				<output aria-label="Loading" className="space-y-6">
 					<div className="flex justify-between">
 						<div className="space-y-2">
 							<div className="h-8 bg-content1/30 rounded-lg animate-pulse w-48" />
@@ -271,7 +271,7 @@ const SpinControls = memo(function SpinControls({
 					<div className="flex justify-center">
 						<div className="h-14 bg-content1/30 rounded-xl animate-pulse w-full max-w-xs" />
 					</div>
-				</div>
+				</output>
 			)}
 
 			{/* Main content - only render when mounted */}

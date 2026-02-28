@@ -36,7 +36,7 @@ function hasCollectionAndTokenId(nft: unknown): nft is HasCollectionAndTokenId {
 	);
 }
 
-export interface NFTGridProps<T> {
+interface NFTGridProps<T> {
 	nfts: T[];
 	renderItem: (nft: T, index: number) => React.ReactNode;
 	loading?: boolean;

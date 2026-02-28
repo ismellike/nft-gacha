@@ -69,13 +69,13 @@ const helperVariants = cva("text-xs", {
 	},
 });
 
-export interface SelectOption {
+interface SelectOption {
 	value: string;
 	label: string;
 	disabled?: boolean | undefined;
 }
 
-export interface SelectProps
+interface SelectProps
 	extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size">,
 		VariantProps<typeof selectVariants> {
 	options: SelectOption[];

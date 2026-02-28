@@ -2,124 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount, usePublicClient } from "wagmi";
-import { baseErc721Abi, useReadBaseErc721BalanceOf } from "../generated";
-import { ERC721_INTERFACES } from "../lib/constants";
-import { ERC721_ABI_FRAGMENTS } from "../lib/contract-utils";
+import { baseErc721Abi } from "../generated";
 import { logger } from "../lib/logger";
 import type {
 	UserOwnedNFTMultiCollection,
 	UseUserOwnedNFTsMultiResult,
-	UseUserOwnedNFTsResult,
 } from "../types/hooks";
 
-export interface UserOwnedNFT {
-	tokenId: bigint;
-	contractAddress: string;
-}
-
-/**
- * Hook to fetch all NFTs owned by the current user from a specific collection
- * Uses standard ERC721 methods (balanceOf, totalSupply, ownerOf) for efficient ownership tracking
- */
-export function useUserOwnedNFTs(
-	collectionAddress: string,
-): UseUserOwnedNFTsResult {
-	const { address: userAddress } = useAccount();
-	const publicClient = usePublicClient();
-	const [tokens, setTokens] = useState<bigint[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-
-	// Get user's balance to optimize the search
-	const { data: userBalance } = useReadBaseErc721BalanceOf({
-		address: collectionAddress as `0x${string}`,
-		args: userAddress ? [userAddress] : undefined,
-		query: { enabled: !!userAddress && !!collectionAddress },
-	});
-
-	const fetchUserTokens = useCallback(async () => {
-		if (
-			!userAddress ||
-			!collectionAddress ||
-			!publicClient ||
-			userBalance === undefined
-		) {
-			setTokens([]);
-			return;
-		}
-
-		// Early return if user has no tokens
-		if (userBalance === 0n) {
-			setTokens([]);
-			return;
-		}
-
-		setIsLoading(true);
-		setError(null);
-
-		try {
-			const ownedTokenIds: bigint[] = [];
-
-			// Check if contract supports ERC721Enumerable for efficient enumeration
-			const enumerable = (await publicClient.readContract({
-				address: collectionAddress as `0x${string}`,
-				abi: [ERC721_ABI_FRAGMENTS.SUPPORTS_INTERFACE],
-				functionName: "supportsInterface",
-				args: [ERC721_INTERFACES.ENUMERABLE],
-			})) as boolean;
-
-			if (enumerable) {
-				// Use tokenOfOwnerByIndex for efficient enumeration
-				const tokenPromises = [];
-				for (let i = 0n; i < userBalance; i++) {
-					tokenPromises.push(
-						publicClient.readContract({
-							address: collectionAddress as `0x${string}`,
-							abi: [ERC721_ABI_FRAGMENTS.TOKEN_OF_OWNER_BY_INDEX],
-							functionName: "tokenOfOwnerByIndex",
-							args: [userAddress as `0x${string}`, i],
-						}) as Promise<bigint>,
-					);
-				}
-
-				const tokenIds = await Promise.allSettled(tokenPromises);
-				ownedTokenIds.push(
-					...tokenIds
-						.filter(
-							(result): result is PromiseFulfilledResult<bigint> =>
-								result.status === "fulfilled",
-						)
-						.map((result) => result.value),
-				);
-			} else {
-				logger.network.warn(
-					`Collection ${collectionAddress} does not support ERC721Enumerable, cannot efficiently enumerate tokens`,
-				);
-				setError("Collection does not support token enumeration");
-			}
-
-			setTokens(ownedTokenIds);
-		} catch (err) {
-			logger.network.error("Error fetching user NFTs:", err);
-			setError(err instanceof Error ? err.message : "Failed to fetch NFTs");
-			setTokens([]);
-		} finally {
-			setIsLoading(false);
-		}
-	}, [userAddress, collectionAddress, publicClient, userBalance]);
-
-	// Fetch tokens when dependencies change
-	useEffect(() => {
-		fetchUserTokens();
-	}, [fetchUserTokens]);
-
-	return {
-		tokens,
-		isLoading,
-		error,
-		refetch: fetchUserTokens,
-	};
-}
 
 /**
  * Hook to fetch all NFTs owned by the current user from multiple collections

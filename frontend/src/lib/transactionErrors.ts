@@ -27,16 +27,6 @@ export function isUserRejectedError(error: unknown): boolean {
 	return false;
 }
 
-export type TransactionErrorType =
-	| "user_rejected"
-	| "insufficient_funds"
-	| "insufficient_allowance"
-	| "fee_mismatch"
-	| "network_error"
-	| "contract_paused"
-	| "invalid_signature"
-	| "timeout"
-	| "unknown";
 
 export interface UserFriendlyError {
 	title: string;

@@ -38,5 +38,17 @@
 		"dist/types/**/*.ts",
 		"dist/dev/types/**/*.ts"
 	],
-	"exclude": ["node_modules"]
+	"exclude": [
+		"node_modules",
+		"src/components/economy/admin/CollectionWhitelistManager.tsx",
+		"src/components/leaderboard/GachaLeaderboardTable.tsx",
+		"src/components/leaderboard/TreasuryStatsGrid.tsx",
+		"src/components/leaderboard/UserStatsCard.tsx",
+		"src/components/nft/AppraisedNFTsList.tsx",
+		"src/components/nft/NFTAppraisalDashboard.tsx",
+		"src/components/nft/NFTLoadingPlaceholder.tsx",
+		"src/components/shared/feedback/LoadingState.tsx",
+		"src/components/vault/DepositableNFTCard.tsx",
+		"src/components/vault/tabs/BatchDepositTab.tsx"
+	]
 }

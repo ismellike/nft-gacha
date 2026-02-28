@@ -136,7 +136,7 @@ function SelectableNFTCard({
 	);
 }
 
-export function BatchDepositTab({
+function _BatchDepositTab({
 	treasuryAddress,
 	sortedUserOwnedNFTs,
 	appraisedNFTs,
@@ -216,7 +216,7 @@ export function BatchDepositTab({
 				return next;
 			});
 		},
-		[setSelectedKeys],
+		[],
 	);
 
 	const selectAll = useCallback(() => {

@@ -8,7 +8,7 @@ interface UseSpinCountdownParams {
 	timeoutSeconds: number;
 }
 
-export interface UseSpinCountdownReturn {
+interface UseSpinCountdownReturn {
 	countdown: number;
 }
 

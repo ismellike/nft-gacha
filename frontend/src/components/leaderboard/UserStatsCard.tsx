@@ -15,7 +15,7 @@ interface UserStatsCardProps {
 
 const RARITIES = DEFAULT_RARITY_CONFIG.map((_, i) => i);
 
-export function UserStatsCard({
+function _UserStatsCard({
 	gachaAddress,
 	gachaId,
 	gachaTitle,

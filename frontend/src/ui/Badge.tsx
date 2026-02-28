@@ -41,7 +41,7 @@ const badgeVariants = cva(
 	},
 );
 
-export interface BadgeProps {
+interface BadgeProps {
 	count?: number | undefined;
 	max?: number | undefined;
 	dot?: boolean | undefined;
@@ -81,10 +81,9 @@ const Badge = function Badge({
 		<div className={cn("relative inline-flex", className)}>
 			{children}
 			{shouldShowBadge ? (
-				<span
-					role="status"
+				<output
 					className={cn(
-						badgeVariants({ color, dot: dot ? true : false, pulse }),
+						badgeVariants({ color, dot: !!dot, pulse }),
 						badgeClassName,
 					)}
 					aria-label={
@@ -96,7 +95,7 @@ const Badge = function Badge({
 					}
 				>
 					{displayCount}
-				</span>
+				</output>
 			) : null}
 		</div>
 	);

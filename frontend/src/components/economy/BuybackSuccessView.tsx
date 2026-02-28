@@ -6,7 +6,7 @@ import { formatCurrency, getBlockExplorerTxUrl } from "@/lib/utils";
 import { Button } from "../../ui/Button";
 import { Chip } from "../../ui/Chip";
 
-export interface BuybackSuccessData {
+interface BuybackSuccessData {
 	txHash: string;
 	payoutAmount?: bigint | undefined;
 	completedAt?: number | undefined;
@@ -112,7 +112,7 @@ export function BuybackSuccessView({
 								color="glassPrimary"
 								onPress={() =>
 									window.open(
-										getBlockExplorerTxUrl(chainId, successData.txHash)!,
+										getBlockExplorerTxUrl(chainId, successData.txHash) ?? "",
 										"_blank",
 									)
 								}

@@ -6,7 +6,7 @@ import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 import { useNFTInteraction } from "./useNFTInteraction";
 
-export interface UseNFTDepositParams {
+interface UseNFTDepositParams {
 	onSuccess?: (txHash: string) => void;
 	onAction?: (
 		collection: string,

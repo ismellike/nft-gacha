@@ -57,15 +57,6 @@ export interface SpinHistoryPagination {
 }
 
 /**
- * Error types for spin history operations
- */
-export type SpinHistoryError =
-	| { type: "network_error"; message: string }
-	| { type: "rpc_error"; message: string }
-	| { type: "validation_error"; message: string }
-	| { type: "unknown_error"; message: string };
-
-/**
  * Statistics derived from spin history entries
  */
 export interface SpinHistoryStats {

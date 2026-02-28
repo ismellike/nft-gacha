@@ -1,12 +1,5 @@
 "use client";
 
-import {
-	ChartBarIcon,
-	ClockIcon,
-	GiftIcon,
-	SparklesIcon,
-	WalletIcon,
-} from "@heroicons/react/24/outline";
 import { Button, Card } from "../../ui";
 
 interface EmptyStateProps {
@@ -73,11 +66,3 @@ export function EmptyState({
 	);
 }
 
-// Export icon convenience helpers
-export const EmptyStateIcons = {
-	Wallet: WalletIcon,
-	Gift: GiftIcon,
-	Clock: ClockIcon,
-	Sparkles: SparklesIcon,
-	Chart: ChartBarIcon,
-};

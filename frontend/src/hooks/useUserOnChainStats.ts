@@ -8,21 +8,21 @@ import {
 	useReadGachaGetUserAnalytics,
 } from "@/generated";
 
-export interface UserSpinAnalytics {
+interface UserSpinAnalytics {
 	totalSpins: bigint;
 	totalRefunds: bigint;
 	totalReclaims: bigint;
 	rarityWins: readonly bigint[];
 }
 
-export interface GlobalAnalytics {
+interface GlobalAnalytics {
 	totalSpins: bigint;
 	totalRefunds: bigint;
 	totalReclaims: bigint;
 	globalRarityWinCounts: readonly bigint[];
 }
 
-export interface UserDepositProfile {
+interface UserDepositProfile {
 	depositCounts: readonly bigint[];
 	totalDeposits: bigint;
 	lifetimeClaimed: bigint;
@@ -31,7 +31,7 @@ export interface UserDepositProfile {
 	netContribution: bigint;
 }
 
-export interface UseUserOnChainStatsResult {
+interface UseUserOnChainStatsResult {
 	spinAnalytics: UserSpinAnalytics | null;
 	globalAnalytics: GlobalAnalytics | null;
 	depositProfile: UserDepositProfile | null;

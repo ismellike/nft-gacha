@@ -80,7 +80,7 @@ const helperVariants = cva("text-xs", {
 	},
 });
 
-export interface InputProps
+interface InputProps
 	extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size">,
 		Omit<VariantProps<typeof inputVariants>, "hasLeftIcon" | "hasRightIcon"> {
 	label?: string | undefined;

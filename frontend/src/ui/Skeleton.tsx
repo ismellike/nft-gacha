@@ -68,7 +68,7 @@ const VALID_SIZES = [
 	"w24",
 ] as const;
 
-export interface SkeletonProps
+interface SkeletonProps
 	extends React.HTMLAttributes<HTMLDivElement>,
 		Omit<VariantProps<typeof skeleton>, "size"> {
 	/** Optional children to render inside the skeleton */
@@ -284,22 +284,6 @@ export const FormSkeleton: React.FC<{ className?: string }> = ({
 			aria-hidden="true"
 		/>
 	</div>
-);
-
-// Spinner button skeleton for gacha spin button
-export const SpinnerButtonSkeleton: React.FC<{ className?: string }> = ({
-	className,
-}) => (
-	// biome-ignore lint/a11y/useSemanticElements: role="status" is correct for loading indicators
-	<div
-		role="status"
-		aria-busy="true"
-		aria-label="Loading spin button"
-		className={cn(
-			"h-14 bg-content1/30 rounded-xl animate-pulse w-full max-w-xs mx-auto",
-			className,
-		)}
-	/>
 );
 
 export { Skeleton };

@@ -5,7 +5,7 @@ import * as React from "react";
 import type { VariantProps } from "tailwind-variants";
 import { cn, glassButton } from "../lib/theme-config";
 
-export interface ButtonProps
+interface ButtonProps
 	extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color">,
 		VariantProps<typeof glassButton> {
 	asChild?: boolean;

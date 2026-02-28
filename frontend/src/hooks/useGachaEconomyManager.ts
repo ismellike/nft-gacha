@@ -3,7 +3,7 @@
 import { gachaEconomyManagerAbi } from "@/generated";
 import { useReadContracts } from "wagmi";
 
-export interface EconomyManagerData {
+interface EconomyManagerData {
 	feeToken: string | undefined;
 	depositorShareBps: bigint | undefined;
 	protocolShareBps: bigint | undefined;
@@ -13,7 +13,7 @@ export interface EconomyManagerData {
 	revenueByRarity: bigint[] | undefined;
 }
 
-export interface UseGachaEconomyManagerProps {
+interface UseGachaEconomyManagerProps {
 	contractAddress?: `0x${string}`;
 	enabled?: boolean;
 }

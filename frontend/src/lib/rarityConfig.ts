@@ -1,6 +1,6 @@
 // Shared rarity configuration for consistent styling across components
 
-export interface RarityConfigItem {
+interface RarityConfigItem {
 	index: number;
 	name: string;
 	percentage: number;
@@ -152,7 +152,7 @@ const DEFAULT_PERCENTAGES = [70, 20, 6, 3, 1];
 /**
  * Build rarity config array from on-chain names and optional weights
  */
-export function buildRarityConfig(
+function buildRarityConfig(
 	names: string[],
 	weights?: number[],
 ): RarityConfigItem[] {

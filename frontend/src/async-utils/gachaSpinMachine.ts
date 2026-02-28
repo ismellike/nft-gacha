@@ -18,37 +18,10 @@ export interface RefundResult {
 	refundAmount: bigint;
 }
 
-export type PollingResult =
+type PollingResult =
 	| { type: "completed"; result: SpinResult }
 	| { type: "refunded"; refundResult: RefundResult };
 
-export interface GachaSpinContext {
-	triggerId: bigint | null;
-	spinResult: SpinResult | null;
-	refundResult: RefundResult | null;
-	userAddress: string | null;
-	publicClient: PublicClient | null;
-	gachaAddress: string | null;
-	error: string | null;
-	retryCount: number;
-}
-
-export type GachaSpinEvent =
-	| {
-			type: "START_SPIN";
-			userAddress: string;
-			publicClient: PublicClient;
-			gachaAddress: string;
-	  }
-	| { type: "TRANSACTION_CONFIRMED"; triggerId: bigint }
-	| { type: "SPIN_FULFILLED"; result: SpinResult }
-	| { type: "SPIN_REFUNDED"; refundResult: RefundResult }
-	| { type: "CLOSE_REVEAL" }
-	| { type: "RESET" }
-	| { type: "RETRY" }
-	| { type: "ERROR"; error: string }
-	| { type: "TIMEOUT" }
-	| { type: "TRANSACTION_CANCELED" };
 
 export const MAX_RETRIES = 5;
 const POLLING_INTERVAL = 3000; // 3 seconds

@@ -212,8 +212,3 @@ if (!parsed.success) {
  */
 export const env = parsed.data;
 
-/**
- * Inferred type of the validated env object.
- * Useful when typing a function that receives individual env values.
- */
-export type Env = typeof env;
