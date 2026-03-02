@@ -11,6 +11,7 @@ import {
 	type AppraisedNFT,
 	useNFTAppraisalStore,
 } from "../stores/nftAppraisalStore";
+import { HIGH_VALUE_THRESHOLD } from "../lib/constants";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 
@@ -122,7 +123,9 @@ export const useAppraisalData = (
 
 	// Get appraisal fee information
 	const { data: appraisalFee } = useReadNftAppraisalAppraisalFee({
+		address: contracts.appraisal as `0x${string}` | undefined,
 		query: {
+			enabled: !!contracts.appraisal,
 			staleTime: 300000, // 5 minutes cache
 		},
 	});
@@ -372,7 +375,7 @@ export const useAppraisalData = (
 			case "highValue":
 				filtered = filtered.filter((appraisal) => {
 					if ("isOptimistic" in appraisal) return false;
-					return appraisal.priceUSD > BigInt(1000 * 10 ** 18); // > $1000
+					return appraisal.priceUSD > HIGH_VALUE_THRESHOLD; // > $1000
 				});
 				break;
 		}
@@ -407,14 +410,14 @@ export const useAppraisalData = (
 				sorted.sort((a, b) => {
 					if ("isOptimistic" in a) return 1;
 					if ("isOptimistic" in b) return -1;
-					return Number(b.priceUSD - a.priceUSD);
+					return b.priceUSD > a.priceUSD ? -1 : b.priceUSD < a.priceUSD ? 1 : 0;
 				});
 				break;
 			case "lowestValue":
 				sorted.sort((a, b) => {
 					if ("isOptimistic" in a) return 1;
 					if ("isOptimistic" in b) return -1;
-					return Number(a.priceUSD - b.priceUSD);
+					return a.priceUSD > b.priceUSD ? -1 : a.priceUSD < b.priceUSD ? 1 : 0;
 				});
 				break;
 			case "recentlyUpdated":
@@ -473,7 +476,7 @@ export const useAppraisalData = (
 			totalValue,
 			averageValue,
 			highValue: confirmedAppraisals.filter(
-				(a) => a.priceUSD > BigInt(1000 * 10 ** 18),
+				(a) => a.priceUSD > HIGH_VALUE_THRESHOLD,
 			).length,
 		};
 	}, [rawAppraisals, confirmedAppraisals]);

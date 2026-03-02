@@ -1,6 +1,7 @@
 "use client";
 
 import type { PublicClient } from "viem";
+import { BASE_SPIN_POLLING_TIMEOUT_MS, BLOCK_LOOKBACK, POLLING_INTERVAL_MS } from "../lib/constants";
 import { createDebugLogger, DEBUG_FLAGS, logger } from "../lib/logger";
 import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
@@ -24,19 +25,17 @@ type PollingResult =
 
 
 export const MAX_RETRIES = 5;
-const POLLING_INTERVAL = 3000; // 3 seconds
-const BASE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-const MAX_POLLING_TIME = BASE_TIMEOUT_MS; // 10 minutes at 3-second intervals
+const MAX_POLLING_TIME = BASE_SPIN_POLLING_TIMEOUT_MS;
 
 const debugLog = createDebugLogger(DEBUG_FLAGS.GACHA_SPIN);
 
 // Utility function for exponential backoff with jitter
 export const getPollingDelay = (
 	attempt: number,
-	baseInterval: number,
+	baseIntervalMs: number,
 ): number => {
 	const exponentialDelay =
-		baseInterval * 2 ** Math.min(Math.floor(attempt / 3), 5);
+		baseIntervalMs * 2 ** Math.min(Math.floor(attempt / 3), 5);
 	const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
 	return Math.min(exponentialDelay + jitter, 30000); // Max 30 seconds
 };
@@ -110,7 +109,7 @@ export const pollForSpinFulfillment = async ({
 
 				const currentBlock = await publicClient.getBlockNumber();
 				const fromBlock =
-					currentBlock > BigInt(1000) ? currentBlock - BigInt(1000) : BigInt(0);
+					currentBlock > BLOCK_LOOKBACK ? currentBlock - BLOCK_LOOKBACK : 0n;
 
 				debugLog(`🔍 [pollForSpinFulfillment] Polling attempt ${attempts}:`, {
 					currentBlock: currentBlock.toString(),
@@ -227,7 +226,7 @@ export const pollForSpinFulfillment = async ({
 				}
 
 				if (!isDestroyed && !signal?.aborted) {
-					const delay = getPollingDelay(attempts, POLLING_INTERVAL);
+					const delay = getPollingDelay(attempts, POLLING_INTERVAL_MS);
 					timeoutId = setTimeout(poll, delay);
 				}
 			} catch (error) {
@@ -256,7 +255,7 @@ export const pollForSpinFulfillment = async ({
 					!isDestroyed &&
 					!signal?.aborted
 				) {
-					const delay = getPollingDelay(attempts, POLLING_INTERVAL);
+					const delay = getPollingDelay(attempts, POLLING_INTERVAL_MS);
 					timeoutId = setTimeout(poll, delay);
 				} else {
 					cleanup();

@@ -2,6 +2,7 @@ import type { PublicClient } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { gachaAbi } from "../generated";
+import { PENDING_SPIN_TIMEOUT_MS } from "../lib/constants";
 import { logger } from "../lib/logger";
 import { getSpinKey } from "./storeUtils";
 
@@ -26,7 +27,6 @@ interface GachaStore {
 	validateAndCleanPendingSpins: (publicClient: PublicClient) => Promise<void>;
 }
 
-const PENDING_SPIN_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 
 export const useGachaStore = create<GachaStore>()(
 	persist(
@@ -62,7 +62,7 @@ export const useGachaStore = create<GachaStore>()(
 
 				// Check if expired
 				const age = Date.now() - spin.timestamp;
-				if (age >= PENDING_SPIN_TIMEOUT) {
+				if (age >= PENDING_SPIN_TIMEOUT_MS) {
 					get().removePendingSpin(userAddress, gachaAddress);
 					return null;
 				}

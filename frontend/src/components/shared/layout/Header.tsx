@@ -37,7 +37,7 @@ export const Header = memo(() => {
 						>
 							<div className="relative">
 								{/* Subtle glow effect behind logo */}
-								<div className="absolute inset-0 bg-gradient-to-r from-warning/30 via-orange-400/20 to-warning/30 rounded-2xl blur-md animate-pulse opacity-60" />
+								<div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-warning/30 via-orange-400/20 to-warning/30 rounded-2xl blur-md animate-pulse opacity-60" />
 
 								<motion.div
 									className="relative w-9 h-9 sm:w-12 sm:h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105"

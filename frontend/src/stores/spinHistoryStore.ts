@@ -49,7 +49,7 @@ interface SpinHistoryStore {
 		userAddress: string,
 		gachaAddress: string,
 		entries: SpinHistoryEntry[],
-	) => Promise<void>;
+	) => void;
 	setPagination: (
 		userAddress: string,
 		gachaAddress: string,
@@ -110,7 +110,7 @@ export const useSpinHistoryStore = create<SpinHistoryStore>((set, get) => ({
 		}));
 	},
 
-	appendEntries: async (userAddress, gachaAddress, newEntries) => {
+	appendEntries: (userAddress, gachaAddress, newEntries) => {
 		const key = getSpinKey(userAddress, gachaAddress);
 		invalidateCache(key);
 		set((state) => {

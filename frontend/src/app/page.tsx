@@ -23,13 +23,6 @@ import { Button, Card } from "../ui";
 export default function LandingPage() {
 	return (
 		<div className="min-h-screen bg-transparent">
-			{/* Skip navigation link for accessibility */}
-			<a
-				href="#main-content"
-				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-warning text-black px-4 py-2 rounded-md z-50 focus:outline-none focus:ring-2 focus:ring-warning/50 focus:ring-offset-2 focus:ring-offset-background"
-			>
-				Skip to main content
-			</a>
 			<main id="main-content">
 				{/* ============================================ */}
 				{/* SECTION 1: Simplified Hero */}

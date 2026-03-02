@@ -26,7 +26,9 @@ interface ImportedMetadata {
 	[key: string]: unknown;
 }
 
-// Global cache shared across all hook instances
+// Global cache shared across all hook instances (LRU-capped at 200 entries)
+const MAX_CACHE_SIZE = 200;
+
 const METADATA_CACHE = new Map<
 	string,
 	{
@@ -35,6 +37,24 @@ const METADATA_CACHE = new Map<
 	}
 >();
 
+/** Set with LRU eviction: re-inserts on access to keep recently-used entries last. */
+const cacheSet = (
+	key: string,
+	value: { data: NFTWithMetadata; timestamp: number },
+) => {
+	// Delete first to move existing key to end (Map preserves insertion order)
+	METADATA_CACHE.delete(key);
+	METADATA_CACHE.set(key, value);
+
+	// Evict oldest entries if over capacity
+	if (METADATA_CACHE.size > MAX_CACHE_SIZE) {
+		const firstKey = METADATA_CACHE.keys().next().value;
+		if (firstKey !== undefined) {
+			METADATA_CACHE.delete(firstKey);
+		}
+	}
+};
+
 const CACHE_KEY = (collection: string, tokenId: string) =>
 	`${collection}-${tokenId}`;
 
@@ -42,7 +62,6 @@ const isCacheValid = (timestamp: number) =>
 	Date.now() - timestamp < CACHE_DURATIONS.MEDIUM;
 
 const cleanupExpiredCache = () => {
-	// Clean metadata cache
 	for (const [key, entry] of METADATA_CACHE.entries()) {
 		if (!isCacheValid(entry.timestamp)) {
 			METADATA_CACHE.delete(key);
@@ -294,7 +313,7 @@ export function useNFTMetadata(
 				};
 
 				// Cache the result
-				METADATA_CACHE.set(cacheKey, {
+				cacheSet(cacheKey, {
 					data: result,
 					timestamp: Date.now(),
 				});

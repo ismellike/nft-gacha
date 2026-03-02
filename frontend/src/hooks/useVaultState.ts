@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { Address } from "viem";
+import { createNFTKey } from "../stores/storeUtils";
 import type { DepositedNFT } from "./useUserDepositedNFTs";
 
 interface AppraisalInfo {
@@ -21,9 +22,6 @@ interface VaultState {
 	selectedForWithdrawal: Set<string>;
 	isBatchWithdrawing: boolean;
 }
-
-const createNFTKey = (collection: string, tokenId: string | bigint): string =>
-	`${collection.toLowerCase()}:${tokenId.toString()}`;
 
 export function useVaultState(initialState: Partial<VaultState> = {}) {
 	const [state, setState] = useState<VaultState>({

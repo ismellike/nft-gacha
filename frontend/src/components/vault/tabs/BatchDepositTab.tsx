@@ -21,6 +21,7 @@ import {
 } from "../../../generated";
 import { cn } from "../../../lib/theme-config";
 import { toastError, toastSuccess } from "../../../lib/toast";
+import { createNFTKey } from "../../../stores/storeUtils";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
 import { Button, Card } from "../../../ui";
 import { NFTCard } from "../../nft";
@@ -46,9 +47,6 @@ type BatchDepositStatus =
 	| "depositing"
 	| "confirming"
 	| "done";
-
-const createNFTKey = (collection: string, tokenId: string | bigint): string =>
-	`${collection.toLowerCase()}:${tokenId.toString()}`;
 
 // Individual selectable NFT card in the batch grid
 interface SelectableNFTCardProps {

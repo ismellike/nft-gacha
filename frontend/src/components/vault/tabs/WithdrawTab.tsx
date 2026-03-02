@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { createNFTKey } from "../../../stores/storeUtils";
 import { Button } from "../../../ui";
 import NFTGrid from "../cards/NFTGrid";
 import WithdrawNFTCard from "../cards/WithdrawNFTCard";
@@ -21,9 +22,6 @@ interface WithdrawTabProps {
 	onWithdrawNFT: (collection: `0x${string}`, tokenId: bigint) => void;
 	onSwitchToDeposit?: () => void;
 }
-
-const createNFTKey = (collection: string, tokenId: string | bigint): string =>
-	`${collection.toLowerCase()}:${tokenId.toString()}`;
 
 export function WithdrawTab({
 	filteredWithdrawableNFTs,

@@ -1,5 +1,6 @@
 "use client";
 
+import { createNFTKey } from "../../../stores/storeUtils";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
 import DepositNFTCard from "../cards/DepositNFTCard";
 import NFTGrid from "../cards/NFTGrid";
@@ -29,9 +30,6 @@ interface DepositTabProps {
 		hasAppraisal?: boolean,
 	) => void;
 }
-
-const createNFTKey = (collection: string, tokenId: string | bigint): string =>
-	`${collection.toLowerCase()}:${tokenId.toString()}`;
 
 export function DepositTab({
 	sortedUserOwnedNFTs,

@@ -101,7 +101,6 @@ const envSchema = z.object({
 	// ------------------------------------------------------------------
 
 	NEXT_PUBLIC_USDC_ADDRESS: hexAddress.optional(),
-	NEXT_PUBLIC_COLLECTION_ADDRESS: hexAddress.optional(),
 
 	// ------------------------------------------------------------------
 	// Admin / rewards (optional – only needed in admin UIs)
@@ -173,7 +172,6 @@ const rawEnv = {
 
 	// Token contracts
 	NEXT_PUBLIC_USDC_ADDRESS: process.env.NEXT_PUBLIC_USDC_ADDRESS,
-	NEXT_PUBLIC_COLLECTION_ADDRESS: process.env.NEXT_PUBLIC_COLLECTION_ADDRESS,
 
 	// Admin
 	NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS:

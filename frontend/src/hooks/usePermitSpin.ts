@@ -416,6 +416,9 @@ export function usePermitSpin({
 					logger.gachaSpin.warn(
 						"Trying direct spin as fallback. Make sure you've approved the gacha contract to spend your tokens.",
 					);
+					// Reset spin state so button is re-enabled for direct approval fallback
+					gachaSpin.reset();
+					return;
 				}
 
 				gachaSpin.setError(spinWithPermitError.message || "Transaction failed");
@@ -574,6 +577,9 @@ export function usePermitSpin({
 						txHash: isSpinWithPermitSuccess ? spinWithPermitTxHash : spinTxHash,
 					},
 				);
+				gachaSpin.setError(
+					"Spin transaction succeeded but no randomness request was found. Please try again.",
+				);
 			}
 
 			refetchBalance();
@@ -588,6 +594,7 @@ export function usePermitSpin({
 		refetchBalance,
 		refetchNonce,
 		gachaSpin.confirmTransaction,
+		gachaSpin.setError,
 		gachaSpin.state,
 		gachaSpin.isRevealing,
 		gachaSpin.isIdle,

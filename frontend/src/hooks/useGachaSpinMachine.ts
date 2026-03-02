@@ -15,6 +15,7 @@ import {
 	validatePendingSpins,
 } from "../async-utils/gachaSpinMachine";
 import { gachaAbi } from "../generated";
+import { POLLING_INTERVAL_MS } from "../lib/constants";
 import { createDebugLogger, DEBUG_FLAGS, logger } from "../lib/logger";
 import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
@@ -137,11 +138,13 @@ export function useGachaSpinMachine(
 	const hasHandledRefundRef = useRef(false);
 
 	// Atomic claim helper — returns true only for the first caller
+	// Also rejects if already timed out (prevents late poll resolve after timeout modal)
 	const claimRevealTransition = useCallback(() => {
 		if (hasTransitionedToRevealRef.current) return false;
+		if (state.value === "timeout") return false;
 		hasTransitionedToRevealRef.current = true;
 		return true;
-	}, []);
+	}, [state.value]);
 
 	const updateState = useCallback(
 		(
@@ -185,8 +188,8 @@ export function useGachaSpinMachine(
 	// Watch for SpinCompleted events from the contract
 	useWatchContractEvent({
 		address: contracts.gacha as `0x${string}` | undefined,
-		enabled: !!contracts.gacha && Boolean(userAddress),
-		pollingInterval: 3000, // Poll every 3 seconds - more frequent for active spins
+		enabled: !!contracts.gacha && Boolean(userAddress) && state.value === "waitingForFulfillment",
+		pollingInterval: POLLING_INTERVAL_MS,
 		abi: gachaAbi,
 		eventName: "SpinCompleted",
 		args: userAddress ? { requester: userAddress } : undefined,

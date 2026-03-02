@@ -3,7 +3,6 @@
  * Provides better UX with content-aware loading states
  */
 
-import { motion } from "framer-motion";
 import { cn } from "../../../lib/theme-config";
 
 interface SkeletonProps {
@@ -12,22 +11,10 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className, animate = true }: SkeletonProps) {
-	const baseClasses = "bg-content1/20 rounded animate-pulse";
-
-	if (animate) {
-		return (
-			<motion.div
-				className={cn(baseClasses, className)}
-				initial={{ opacity: 0.6 }}
-				animate={{ opacity: [0.6, 1, 0.6] }}
-				transition={{
-					duration: 1.5,
-					repeat: Infinity,
-					ease: "easeInOut",
-				}}
-			/>
-		);
-	}
+	const baseClasses = cn(
+		"bg-content1/20 rounded",
+		animate && "animate-pulse",
+	);
 
 	return <div className={cn(baseClasses, className)} />;
 }

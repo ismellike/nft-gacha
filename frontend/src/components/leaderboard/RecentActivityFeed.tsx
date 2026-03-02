@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { parseAbiItem } from "viem";
 import { usePublicClient } from "wagmi";
 import type { GachaConfig } from "@/lib/gacha-config/types";
+import { getBlockTimestamps } from "@/lib/blockTimestampCache";
 import { getRarityConfig } from "@/lib/rarityConfig";
 import { Card, Skeleton } from "@/ui";
 
@@ -109,19 +110,9 @@ export function RecentActivityFeed({
 			});
 			const top = rawEntries.slice(0, maxItemsRef.current);
 
-			// Fetch timestamps for unique blocks
+			// Fetch timestamps for unique blocks (shared cache)
 			const uniqueBlocks = [...new Set(top.map((e) => e.blockNumber))];
-			const timestampMap: Record<string, number> = {};
-			await Promise.all(
-				uniqueBlocks.map(async (blockNumber) => {
-					try {
-						const block = await publicClient.getBlock({ blockNumber });
-						timestampMap[blockNumber.toString()] = Number(block.timestamp);
-					} catch {
-						timestampMap[blockNumber.toString()] = Date.now() / 1000;
-					}
-				}),
-			);
+			const timestampMap = await getBlockTimestamps(publicClient, uniqueBlocks);
 
 			const entries: ActivityEntry[] = top
 				.map(({ gacha, blockNumber, args }): ActivityEntry | null => {

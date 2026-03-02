@@ -3,10 +3,8 @@
 import { useEffect } from "react";
 import type { PublicClient } from "viem";
 import { logger } from "../lib/logger";
+import { createNFTKey } from "../stores/storeUtils";
 import type { UserOwnedNFTMultiCollection } from "../types/hooks";
-
-const createNFTKey = (collection: string, tokenId: string | bigint): string =>
-	`${collection.toLowerCase()}:${tokenId.toString()}`;
 
 const appraisalABI = [
 	{

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useReadContract } from "wagmi";
+import { FEE_STALENESS_MS } from "../lib/constants";
 import { logger } from "../lib/logger";
 
 const SPIN_FEE_ABI = [
@@ -70,7 +71,7 @@ export function useSpinFee({
 	useEffect(() => {
 		const interval = setInterval(() => {
 			if (
-				Date.now() - lastFeeUpdateRef.current > 15000 &&
+				Date.now() - lastFeeUpdateRef.current > FEE_STALENESS_MS &&
 				!isFetchingRef.current
 			) {
 				setFeeStale(true);

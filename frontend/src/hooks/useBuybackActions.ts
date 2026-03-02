@@ -1,17 +1,11 @@
 "use client";
 
 import { useCallback } from "react";
-import type { InteractionMode } from "../stores/nftInteractionStore";
-
-type InteractionStatus =
-	| "idle"
-	| "checkingApprovals"
-	| "awaitingNFTApprovalSignature"
-	| "awaitingNFTApprovalReceipt"
-	| "awaitingInteractionSignature"
-	| "awaitingInteractionReceipt"
-	| "completed"
-	| "error";
+import { logger } from "../lib/logger";
+import type {
+	InteractionMode,
+	InteractionStatus,
+} from "../stores/nftInteractionStore";
 
 type ActionInfo = {
 	type: string;
@@ -110,7 +104,7 @@ export function useBuybackActions({
 		try {
 			startInteraction(collection, tokenId, "buyback", interactionConfig);
 		} catch (err) {
-			console.error("Buyback interaction failed:", err);
+			logger.contracts.error("Buyback interaction failed:", err);
 		}
 	}, [
 		collection,
@@ -158,7 +152,7 @@ export function useBuybackActions({
 			try {
 				await Promise.resolve(actionInfo.action());
 			} catch (err) {
-				console.error("BuybackComponent action failed:", err);
+				logger.contracts.error("BuybackComponent action failed:", err);
 			}
 			return;
 		}

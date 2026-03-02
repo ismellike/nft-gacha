@@ -3,7 +3,7 @@ import { create } from "zustand";
 
 export type InteractionMode = "deposit" | "buyback";
 
-type InteractionStatus =
+export type InteractionStatus =
 	| "idle"
 	| "checkingApprovals"
 	| "awaitingNFTApprovalSignature"

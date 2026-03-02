@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { parseAbiItem } from "viem";
 import { usePublicClient } from "wagmi";
+import { getBlockTimestamps } from "../lib/blockTimestampCache";
 import { logger } from "../lib/logger";
 import { useSpinHistoryStore } from "../stores/spinHistoryStore";
 import type { SpinHistoryEntry } from "../types/spin-history";
@@ -84,32 +85,12 @@ export function useSpinHistoryFetcher() {
 	} = useSpinHistoryStore();
 
 	/**
-	 * Fetch block timestamps in batch for better performance
+	 * Fetch block timestamps in batch using shared cache for better performance
 	 */
 	const fetchBlockTimestamps = useCallback(
 		async (blockNumbers: bigint[]): Promise<Record<string, number>> => {
 			if (!publicClient) return {};
-
-			const results: [string, number][] = await Promise.all(
-				blockNumbers.map(async (blockNumber): Promise<[string, number]> => {
-					try {
-						const block = await publicClient.getBlock({ blockNumber });
-						return [blockNumber.toString(), Number(block.timestamp)];
-					} catch (error) {
-						logger.network.error(
-							`Failed to fetch timestamp for block ${blockNumber}:`,
-							error,
-						);
-						return [blockNumber.toString(), Date.now() / 1000];
-					}
-				}),
-			);
-
-			const timestamps: Record<string, number> = {};
-			for (const [key, value] of results) {
-				timestamps[key] = value;
-			}
-			return timestamps;
+			return getBlockTimestamps(publicClient, blockNumbers);
 		},
 		[publicClient],
 	);

@@ -6,7 +6,7 @@ import {
 	ExclamationTriangleIcon,
 	InformationCircleIcon,
 } from "@heroicons/react/24/outline";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "../../../lib/theme-config";
 
 type ContractStatusType = "success" | "error" | "pending" | "info";
@@ -96,8 +96,15 @@ export function ContractStatusAnnouncer({
 // Hook for managing contract status announcements
 export function useContractStatusAnnouncer() {
 	const [status, setStatus] = useState<ContractStatusUpdate | null>(null);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const announceStatus = (update: Omit<ContractStatusUpdate, "timestamp">) => {
+		// Clear any previous auto-clear timer
+		if (timerRef.current) {
+			clearTimeout(timerRef.current);
+			timerRef.current = null;
+		}
+
 		setStatus({
 			...update,
 			timestamp: Date.now(),
@@ -105,13 +112,29 @@ export function useContractStatusAnnouncer() {
 
 		// Auto-clear non-persistent messages after 5 seconds
 		if (!update.persistent) {
-			setTimeout(() => {
+			timerRef.current = setTimeout(() => {
 				setStatus(null);
+				timerRef.current = null;
 			}, 5000);
 		}
 	};
 
-	const clearStatus = () => setStatus(null);
+	const clearStatus = () => {
+		if (timerRef.current) {
+			clearTimeout(timerRef.current);
+			timerRef.current = null;
+		}
+		setStatus(null);
+	};
+
+	// Cleanup on unmount
+	useEffect(() => {
+		return () => {
+			if (timerRef.current) {
+				clearTimeout(timerRef.current);
+			}
+		};
+	}, []);
 
 	return {
 		status,

@@ -34,6 +34,7 @@ import { useVaultState } from "../../../hooks/useVaultState";
 import { getGachaConfig } from "../../../lib/gacha-config";
 import { logger } from "../../../lib/logger";
 import { toastError, toastSuccess } from "../../../lib/toast";
+import { createNFTKey } from "../../../stores/storeUtils";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
 import { Button } from "../../../ui";
 import { EmptyState } from "../../shared/EmptyState";
@@ -56,10 +57,6 @@ type VaultTab = "deposit" | "withdraw" | "yield";
 interface NFTWithCollection extends DepositedNFT {
 	collectionName?: string;
 }
-
-// Helper functions
-const createNFTKey = (collection: string, tokenId: string | bigint): string =>
-	`${collection.toLowerCase()}:${tokenId.toString()}`;
 
 // Components
 const WalletConnectPrompt: React.FC = () => (

@@ -26,6 +26,7 @@ import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { useNFTApproval } from "../../hooks/useNFTApproval";
 import { useRewardsData } from "../../hooks/useRewardsData";
+import { APPRAISAL_TIMEOUT_MS } from "../../lib/constants";
 import { validationRules } from "../../lib/formValidation";
 import { formatTokenAmount } from "../../lib/utils";
 import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
@@ -133,7 +134,6 @@ export function NFTAppraisalForm({
 	>(null);
 
 	// Appraisal timeout and progress tracking
-	const APPRAISAL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 	const [appraisalStartTime, setAppraisalStartTime] = useState<number | null>(
 		null,
 	);
@@ -358,9 +358,11 @@ export function NFTAppraisalForm({
 
 		advanceStage(); // Start first stage immediately
 
-		const timeouts = timeline.map((delay, i) =>
-			setTimeout(() => advanceStage(), delay + (timeline[i - 1] || 0)),
-		);
+		let cumulative = 0;
+		const timeouts = timeline.map((delay) => {
+			cumulative += delay;
+			return setTimeout(() => advanceStage(), cumulative);
+		});
 
 		return () => timeouts.forEach(clearTimeout);
 	}, [status]);

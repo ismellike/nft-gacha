@@ -42,8 +42,7 @@ export function SpinButton({
 						? "bg-gradient-to-r from-danger via-danger/90 to-red-600 border-danger/40 shadow-danger/30"
 						: undefined,
 				)}
-				aria-label={buttonText}
-			>
+				>
 				<div className="flex items-center justify-center gap-3">
 					{isWaitingForFulfillment && (
 						<svg

@@ -24,6 +24,7 @@ import {
 	type UserFriendlyError,
 	mapTransactionError,
 } from "../../lib/transactionErrors";
+import { MAX_FEE_SLIPPAGE_BPS, SPIN_TIMEOUT_SECONDS } from "../../lib/constants";
 import { formatTokenAmount } from "../../lib/utils";
 import { Card } from "../../ui";
 import { SpinErrorModal } from "./SpinErrorModal";
@@ -36,10 +37,6 @@ interface SpinControlsProps {
 	gachaSpin: UseGachaSpinMachineReturn;
 	onRefund?: () => void;
 }
-
-// Constants for spin configuration
-const SPIN_TIMEOUT_SECONDS = 300;
-const MAX_FEE_SLIPPAGE_BPS = 200; // 2% max-fee buffer for UI
 
 const SpinControls = memo(function SpinControls({
 	gachaSpin,
@@ -232,7 +229,9 @@ const SpinControls = memo(function SpinControls({
 
 		// Validation checks
 		if (!hasSufficientBalance) return "Insufficient Balance";
-		if (hasPermitSupport && tokenNonce === undefined) return "Loading...";
+		if (hasPermitSupport && tokenNonce === undefined) {
+			return noncesError ? "SPIN (Direct Approval)" : "Loading...";
+		}
 
 		return "SPIN NOW";
 	};
@@ -249,7 +248,7 @@ const SpinControls = memo(function SpinControls({
 			isProcessingTransaction ||
 			gachaSpin.isSpinning ||
 			gachaSpin.isWaitingForFulfillment ||
-			(hasPermitSupport && tokenNonce === undefined)
+			(hasPermitSupport && tokenNonce === undefined && !noncesError)
 		);
 	};
 
@@ -257,7 +256,7 @@ const SpinControls = memo(function SpinControls({
 		<Card className="relative overflow-hidden border border-white/10 bg-content1/30 p-4 sm:p-8 backdrop-blur-2xl">
 			{/* Loading skeleton during SSR */}
 			{!mounted && (
-				<output aria-label="Loading" className="space-y-6">
+				<div aria-busy="true" className="space-y-6">
 					<div className="flex justify-between">
 						<div className="space-y-2">
 							<div className="h-8 bg-content1/30 rounded-lg animate-pulse w-48" />
@@ -271,7 +270,7 @@ const SpinControls = memo(function SpinControls({
 					<div className="flex justify-center">
 						<div className="h-14 bg-content1/30 rounded-xl animate-pulse w-full max-w-xs" />
 					</div>
-				</output>
+				</div>
 			)}
 
 			{/* Main content - only render when mounted */}
