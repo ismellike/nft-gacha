@@ -295,7 +295,7 @@ contract CardGroupedVaultTest is Test {
         assertEq(cards.length, 0);
     }
 
-    function test_removeDeposit_autoClaimsYield() public {
+    function test_removeDeposit_accruesYield() public {
         vm.prank(treasury);
         vault.registerCardDeposit(CARD_A, alice, 100e18, COMMON, 1);
 
@@ -305,12 +305,21 @@ contract CardGroupedVaultTest is Test {
 
         uint256 balBefore = usdc.balanceOf(alice);
 
-        // Remove all tokens — should auto-claim
+        // Remove all tokens — should accrue, not auto-transfer
         vm.prank(treasury);
         vault.removeCardDeposit(CARD_A, alice, 1);
 
-        uint256 balAfter = usdc.balanceOf(alice);
-        assertApproxEqAbs(balAfter - balBefore, 50e6, 1);
+        // No USDC transfer on removal
+        assertEq(usdc.balanceOf(alice), balBefore, "removal must not transfer USDC");
+
+        // Yield is still claimable
+        assertApproxEqAbs(vault.pendingYield(alice), 50e6, 1);
+
+        // Explicit claim transfers it
+        vm.prank(alice);
+        uint256 claimed = vault.claimYield(alice);
+        assertApproxEqAbs(claimed, 50e6, 1);
+        assertApproxEqAbs(usdc.balanceOf(alice) - balBefore, 50e6, 1);
     }
 
     // ================================================================
@@ -403,6 +412,129 @@ contract CardGroupedVaultTest is Test {
         // Bob: 10 + 1/3 * 60 = 10 + 20 = 30
         assertApproxEqAbs(vault.pendingYield(alice), 60e6, 2);
         assertApproxEqAbs(vault.pendingYield(bob), 30e6, 2);
+    }
+
+    // ================================================================
+    // Partial removal / deposit must harvest yield (regression tests)
+    // ================================================================
+
+    /// @notice Reproduces the bug where partial removal silently destroyed
+    ///         accumulated yield. Before the fix, _accruePosition was a no-op
+    ///         and _resetDebts zeroed out pending yield without paying it.
+    ///         Now yield is materialized into accruedYield, claimable explicitly.
+    function test_partialRemoval_preservesYield() public {
+        uint256 price = 100e18;
+
+        // Alice deposits 3 copies of CARD_A
+        vm.prank(treasury);
+        vault.registerCardDeposit(CARD_A, alice, price, COMMON, 3);
+
+        // Distribute 90 USDC → Alice is sole depositor, should earn all 90
+        vm.prank(economyManager);
+        vault.distributeYield(90e6, COMMON);
+
+        assertApproxEqAbs(vault.pendingYield(alice), 90e6, 1);
+
+        uint256 balBefore = usdc.balanceOf(alice);
+
+        // Partial removal: remove 1 of 3 tokens
+        vm.prank(treasury);
+        vault.removeCardDeposit(CARD_A, alice, 1);
+
+        // No USDC transfer on removal
+        assertEq(usdc.balanceOf(alice), balBefore, "removal must not transfer USDC");
+
+        // All 90 USDC still visible as pending (materialized into accruedYield)
+        assertApproxEqAbs(vault.pendingYield(alice), 90e6, 1, "partial removal must preserve yield");
+
+        // Future yield should still accrue for the remaining 2 tokens
+        vm.prank(economyManager);
+        vault.distributeYield(60e6, COMMON);
+
+        assertApproxEqAbs(vault.pendingYield(alice), 150e6, 1, "remaining tokens must earn future yield");
+
+        // Explicit claim pays out everything
+        vm.prank(alice);
+        uint256 claimed = vault.claimYield(alice);
+        assertApproxEqAbs(claimed, 150e6, 1);
+    }
+
+    /// @notice Verifies that depositing additional tokens into an existing
+    ///         position materializes yield into accruedYield (not auto-transferred).
+    function test_additionalDeposit_preservesYield() public {
+        uint256 price = 100e18;
+
+        // Alice deposits 2 copies
+        vm.prank(treasury);
+        vault.registerCardDeposit(CARD_A, alice, price, COMMON, 2);
+
+        // Distribute 50 USDC
+        vm.prank(economyManager);
+        vault.distributeYield(50e6, COMMON);
+
+        assertApproxEqAbs(vault.pendingYield(alice), 50e6, 1);
+
+        uint256 balBefore = usdc.balanceOf(alice);
+
+        // Add 1 more token — should materialize the 50 USDC, not transfer
+        vm.prank(treasury);
+        vault.registerCardDeposit(CARD_A, alice, price, COMMON, 1);
+
+        // No USDC transfer on deposit
+        assertEq(usdc.balanceOf(alice), balBefore, "deposit must not transfer USDC");
+
+        // 50 USDC still visible as pending
+        assertApproxEqAbs(vault.pendingYield(alice), 50e6, 1);
+
+        // Future yield accrues for all 3 tokens on top of the materialized amount
+        vm.prank(economyManager);
+        vault.distributeYield(30e6, COMMON);
+
+        assertApproxEqAbs(vault.pendingYield(alice), 80e6, 1);
+
+        // Explicit claim gets it all
+        vm.prank(alice);
+        uint256 claimed = vault.claimYield(alice);
+        assertApproxEqAbs(claimed, 80e6, 1);
+    }
+
+    /// @notice End-to-end simulation of the reported bug scenario:
+    ///         depositor spins multiple times, winning their own NFTs back.
+    ///         Each partial removal materializes yield; explicit claim pays out.
+    function test_repeatedPartialRemovals_accumulateYield() public {
+        uint256 price = 50e18; // $50 each
+
+        // Alice deposits 5 copies of CARD_A
+        vm.prank(treasury);
+        vault.registerCardDeposit(CARD_A, alice, price, COMMON, 5);
+
+        // Simulate 4 spins where Alice wins her own NFTs back each time
+        for (uint256 i = 0; i < 4; i++) {
+            // Each spin distributes 76 USDC (95% of ~$80 fee) to Common
+            vm.prank(economyManager);
+            vault.distributeYield(76e6, COMMON);
+
+            // Partial removal: 1 NFT won from Alice's position
+            vm.prank(treasury);
+            vault.removeCardDeposit(CARD_A, alice, 1);
+        }
+
+        // No USDC transferred yet — only accrued
+        assertEq(usdc.balanceOf(alice), 0, "no auto-transfer during removals");
+
+        // After 4 spins at 76 USDC each = 304 USDC total distributed
+        // Alice is the sole depositor so pendingYield should reflect all of it
+        assertApproxEqAbs(vault.pendingYield(alice), 304e6, 200, "all yield must be claimable");
+
+        // 1 token remaining
+        assertEq(vault.sharesOf(alice), price);
+
+        // Explicit claim pays out
+        uint256 balBefore = usdc.balanceOf(alice);
+        vm.prank(alice);
+        uint256 claimed = vault.claimYield(alice);
+        assertApproxEqAbs(claimed, 304e6, 200);
+        assertApproxEqAbs(usdc.balanceOf(alice) - balBefore, 304e6, 200);
     }
 
     // ================================================================

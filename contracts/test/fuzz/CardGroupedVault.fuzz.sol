@@ -689,33 +689,15 @@ contract CardGroupedVaultFuzz is Test {
         _deposit(CARD_A, alice, price, COMMON, initialCount);
         _distribute(y1, COMMON);
 
-        // Partial remove does NOT auto-claim; debts are reset to snapshot pending
+        // Partial remove materializes y1 into accruedYield (no USDC transfer)
         _remove(CARD_A, alice, removeCount);
 
-        // After partial remove, pendingYield SHOULD be 0 because _resetDebts
-        // snapshots the accrued yield into the debt fields.
-        // The y1 yield is "locked in" — it will show up again only when new yield accrues
-        // OR when we read the position raw. Actually: _resetDebts re-snapshots debts so
-        // that the already-accrued yield (y1) is captured in the debt offset.
-        // The pending formula: mainYield - rewardDebt = 0 right after reset.
-        // But wait: the accrued y1 is NOT paid out on partial remove. The user still holds
-        // tokens, so it remains claimable. Let's verify by checking what the contract does:
-        //
-        // _resetDebts sets rewardDebt = count * price * (acc - baseAcc) / PRECISION
-        // This means pending = 0 immediately after partial remove.
-        // The "un-paid" y1 is now zeroed out in pending, but NOT transferred.
-        // This means y1 is LOST on partial remove? No — let's re-read the code.
-        //
-        // Looking at removeCardDeposit: auto-claim only happens when pos.count == count
-        // (i.e., removing ALL tokens). For partial remove, _resetDebts is called but
-        // no payment is made. The rewardDebt snapshot means previously-accrued yield
-        // becomes UNREACHABLE after partial remove.
-        //
-        // This is the actual contract behavior: partial remove forfeits accrued yield.
-        // So the correct assertion is: pending after partial remove is 0 for prior yield,
-        // and only y2 is claimable.
+        // y1 still visible as pending (materialized in accruedYield)
+        uint256 tol1 = _tolerance(initialCount, price, 1);
+        assertApproxEqAbs(vault.pendingYield(alice), y1, tol1, "partial remove: y1 must be preserved");
 
-        assertEq(vault.pendingYield(alice), 0, "partial remove: expected 0 pending after debt reset");
+        // No USDC transferred
+        assertEq(usdc.balanceOf(alice), 0, "partial remove: no auto-transfer");
 
         uint256 remainingCount = initialCount - removeCount;
         uint256 safeMin2 = _safeMinYield(remainingCount * price);
@@ -723,17 +705,18 @@ contract CardGroupedVaultFuzz is Test {
         _distribute(y2, COMMON);
 
         uint256 pending = vault.pendingYield(alice);
-        uint256 tol = _tolerance(remainingCount, price, 1);
-        // Only y2 is claimable (y1 yield was forfeited by partial remove + debt reset)
-        assertApproxEqAbs(pending, y2, tol, "partial remove: future yield from y2 wrong");
+        uint256 tol = tol1 + _tolerance(remainingCount, price, 1);
+        // Both y1 (accrued) and y2 (accumulator) are claimable
+        assertApproxEqAbs(pending, y1 + y2, tol, "partial remove: total yield wrong");
 
         assertEq(vault.sharesOf(alice), remainingCount * price, "partial remove: shares wrong");
     }
 
     /**
-     * @notice Fuzz: Removing all tokens auto-claims yield.
+     * @notice Fuzz: Removing all tokens materializes yield into accruedYield (no auto-transfer).
+     *         Yield is only paid out on explicit claimYield.
      */
-    function testFuzz_FullRemove_AutoClaims(
+    function testFuzz_FullRemove_AccruesYield(
         uint256 price,
         uint256 count,
         uint256 yieldAmount
@@ -747,26 +730,32 @@ contract CardGroupedVaultFuzz is Test {
         _deposit(CARD_A, alice, price, COMMON, count);
         _distribute(yieldAmount, COMMON);
 
-        uint256 balanceBefore = usdc.balanceOf(alice);
         _remove(CARD_A, alice, count);
-        uint256 balanceAfter = usdc.balanceOf(alice);
 
-        uint256 received = balanceAfter - balanceBefore;
+        // No USDC transferred on removal
+        assertEq(usdc.balanceOf(alice), 0, "full remove: no auto-transfer");
+
+        // Yield is still claimable
         uint256 tol = _tolerance(count, price, 1);
-        assertApproxEqAbs(received, yieldAmount, tol, "full remove: auto-claim amount wrong");
+        assertApproxEqAbs(vault.pendingYield(alice), yieldAmount, tol, "full remove: yield must be claimable");
 
         assertEq(vault.sharesOf(alice), 0, "full remove: shares still nonzero");
         assertEq(vault.getDepositorCards(alice).length, 0, "full remove: card list not cleared");
+
+        // Explicit claim pays out
+        vm.prank(alice);
+        uint256 claimed = vault.claimYield(alice);
+        assertApproxEqAbs(claimed, yieldAmount, tol, "full remove: claim amount wrong");
+        assertApproxEqAbs(usdc.balanceOf(alice), yieldAmount, tol, "full remove: balance wrong after claim");
     }
 
     /**
-     * @notice Fuzz: Second deposit on same card preserves zero pending right after deposit.
+     * @notice Fuzz: Second deposit on same card materializes y1 into accruedYield.
      *
-     * When a second deposit is made, _resetDebts is called which snapshots current debts,
-     * making pendingYield = 0 immediately. The accrued pre-deposit yield is forfeited
-     * (same as partial-remove behavior). New yield after the second deposit is claimable.
+     * When a second deposit is made, pending yield is moved to accruedYield (no transfer),
+     * then _resetDebts zeroes the accumulator-based pending. The user can claim y1+y2 later.
      */
-    function testFuzz_AdditionalDeposit_ZeroPendingAfterDeposit(
+    function testFuzz_AdditionalDeposit_PreservesYield(
         uint256 price,
         uint256 count1,
         uint256 count2,
@@ -784,23 +773,22 @@ contract CardGroupedVaultFuzz is Test {
         _deposit(CARD_A, alice, price, COMMON, count1);
         _distribute(y1, COMMON);
 
-        // Note: pendingYield can be 0 even after distribution due to mulDiv rounding
-        // when count1 * price < PRECISION and increment is small.
-        uint256 pendingAfterFirstDist = vault.pendingYield(alice);
-
-        // Second deposit triggers _accruePosition + _resetDebts, zeroing out pending
+        // Second deposit materializes y1 into accruedYield (no transfer)
         _deposit(CARD_A, alice, price, COMMON, count2);
-        assertEq(vault.pendingYield(alice), 0, "second deposit should zero pending via debt reset");
 
-        // New distribution is claimable
+        uint256 tol1 = _tolerance(count1, price, 1);
+        assertApproxEqAbs(vault.pendingYield(alice), y1, tol1, "second deposit must preserve y1");
+        assertEq(usdc.balanceOf(alice), 0, "second deposit: no auto-transfer");
+
+        // New distribution is claimable on top of accrued y1
         uint256 totalCount = count1 + count2;
         uint256 safeMin2 = _safeMinYield(totalCount * price);
         y2 = bound(y2, safeMin2, MAX_YIELD / 2);
         _distribute(y2, COMMON);
 
         uint256 pending = vault.pendingYield(alice);
-        uint256 tol = _tolerance(totalCount, price, 1);
-        assertApproxEqAbs(pending, y2, tol, "additional deposit: new yield wrong");
+        uint256 tol = tol1 + _tolerance(totalCount, price, 1);
+        assertApproxEqAbs(pending, y1 + y2, tol, "additional deposit: total yield wrong");
     }
 
     // ========================================================================

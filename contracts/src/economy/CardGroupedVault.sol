@@ -134,6 +134,9 @@ contract CardGroupedVault is
     /// @dev depositor => cardId => index+1 in _depositorCards (0 means absent)
     mapping(address => mapping(bytes32 => uint256)) private _depositorCardIndex;
 
+    /// @dev Yield materialized during position changes, claimable via claimYield
+    mapping(address => uint256) public accruedYield;
+
     // ─── Events ─────────────────────────────────────────────────────────
 
     event TreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
@@ -202,9 +205,12 @@ contract CardGroupedVault is
             card.baseAcc = rarityPools[rarity].accYieldPerUSD;
         }
 
-        // Accrue pending yield for this position before modifying
+        // Materialize pending yield before modifying position
         if (pos.count > 0) {
-            _accruePosition(cardId, depositor);
+            uint256 unclaimed = _unclaimedOf(cardId, depositor);
+            if (unclaimed > 0) {
+                accruedYield[depositor] += unclaimed;
+            }
         }
 
         // Update card totals
@@ -239,13 +245,10 @@ contract CardGroupedVault is
         DepositorPosition storage pos = positions[cardId][depositor];
         if (pos.count < count) revert InsufficientPosition();
 
-        // Accrue before modifying
-        _accruePosition(cardId, depositor);
-
-        // If removing all tokens, auto-claim unclaimed yield
+        // Materialize pending yield before modifying position
         uint256 unclaimed = _unclaimedOf(cardId, depositor);
-        if (pos.count == count && unclaimed > 0) {
-            _payOut(depositor, unclaimed);
+        if (unclaimed > 0) {
+            accruedYield[depositor] += unclaimed;
         }
 
         // Update totals
@@ -420,11 +423,16 @@ contract CardGroupedVault is
         if (account == address(0)) revert ZeroAddress();
         if (msg.sender != account && msg.sender != economyManager) revert UnauthorizedClaim();
 
+        // Include any yield materialized during prior position changes
+        withdrawn = accruedYield[account];
+        if (withdrawn > 0) {
+            accruedYield[account] = 0;
+        }
+
         for (uint256 i; i < cardIds.length; ++i) {
             DepositorPosition storage pos = positions[cardIds[i]][account];
             if (pos.count == 0) continue;
 
-            _accruePosition(cardIds[i], account);
             uint256 unclaimed = _unclaimedOf(cardIds[i], account);
             if (unclaimed > 0) {
                 _resetDebts(cardIds[i], account);
@@ -439,6 +447,7 @@ contract CardGroupedVault is
 
     /// @inheritdoc ICardGroupedVault
     function pendingYield(address account) external view override returns (uint256 total) {
+        total = accruedYield[account];
         bytes32[] storage cards = _depositorCards[account];
         for (uint256 i; i < cards.length; ++i) {
             total += _pendingForCard(cards[i], account);
@@ -556,23 +565,6 @@ contract CardGroupedVault is
     }
 
     /**
-     * @dev Accrues pending yield for a single card position before modifying it.
-     *
-     *      This function is intentionally a no-op because yield is computed lazily from
-     *      current accumulator state via `_pendingForCard()` rather than being materialized
-     *      into a separate balance. Debt snapshots are reset independently via `_resetDebts()`.
-     *
-     *      It exists for API consistency so callers like `registerCardDeposit()`,
-     *      `removeCardDeposit()`, and `claimYieldForCards()` have a clear accrual step
-     *      before mutating position state, making the intent explicit in the code flow.
-     *
-     *      Parameters (unnamed): bytes32 cardId, address depositor -- both unused.
-     */
-    function _accruePosition(bytes32, address) internal pure {
-        // No-op: pending is computed from current state. Debt reset happens separately.
-    }
-
-    /**
      * @dev Accrues all pending yield across all cards for a depositor.
      *      Iterates the depositor's card list, sums pending yield from each card
      *      via `_pendingForCard()`, and resets all debts so pending becomes zero.
@@ -580,6 +572,11 @@ contract CardGroupedVault is
      * @return total Aggregate pending yield across all cards (in USDC)
      */
     function _accrueAll(address depositor) internal returns (uint256 total) {
+        total = accruedYield[depositor];
+        if (total > 0) {
+            accruedYield[depositor] = 0;
+        }
+
         bytes32[] storage cards = _depositorCards[depositor];
         for (uint256 i; i < cards.length; ++i) {
             uint256 pending = _pendingForCard(cards[i], depositor);
