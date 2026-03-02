@@ -21,6 +21,32 @@ env:
     COMPOSE_WAVS_HOME: "{{.WAVS_HOME_DIR}}"
 
 tasks:
+    ###################################################################
+    ######################## Helpers ###################################
+    ###################################################################
+
+    wait-for-port:
+        desc: "Wait for a TCP port to become available"
+        internal: true
+        requires:
+            vars: [PORT, SERVICE_NAME]
+        cmds:
+            - |
+                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
+                  if nc -z 127.0.0.1 {{.PORT}} 2>/dev/null; then
+                    echo "{{.SERVICE_NAME}} is up!"
+                    exit 0
+                  fi
+                  echo "Waiting for {{.SERVICE_NAME}} on port {{.PORT}}..."
+                  sleep 1
+                done
+                echo "Error: {{.SERVICE_NAME}} did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
+                exit 1
+
+    ###################################################################
+    ######################## Lifecycle #################################
+    ###################################################################
+
     start:
         desc: "Starts all backend services"
         deps:
@@ -93,17 +119,10 @@ tasks:
         deps:
             - task: docker-start-chain-{{index .MATCH 0}}
         cmds:
-            - |
-                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-                  if nc -z 127.0.0.1 {{.ANVIL_PORT}} 2>/dev/null; then
-                    echo "Anvil chain #{{.CHAIN_NUMBER}} is up!"
-                    exit 0
-                  fi
-                  echo "Waiting for Anvil chain #{{.CHAIN_NUMBER}} on port {{.ANVIL_PORT}}..."
-                  sleep 1
-                done
-                echo "Error: Anvil chain #{{.CHAIN_NUMBER}} did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
-                exit 1
+            - task: wait-for-port
+              vars:
+                  PORT: "{{.ANVIL_PORT}}"
+                  SERVICE_NAME: "Anvil chain #{{.CHAIN_NUMBER}}"
 
     docker-pull-chains:
         status:
@@ -211,17 +230,10 @@ tasks:
         deps:
             - task: docker-start-wavs-{{.WAVS_INSTANCE}}
         cmds:
-            - |
-                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-                  if nc -z 127.0.0.1 {{.WAVS_PORT}} 2>/dev/null; then
-                    echo "WAVS #{{.WAVS_INSTANCE}} is up!"
-                    exit 0
-                  fi
-                  echo "Waiting for WAVS #{{.WAVS_INSTANCE}} on port {{.WAVS_PORT}}..."
-                  sleep 1
-                done
-                echo "Error: WAVS #{{.WAVS_INSTANCE}} did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
-                exit 1
+            - task: wait-for-port
+              vars:
+                  PORT: "{{.WAVS_PORT}}"
+                  SERVICE_NAME: "WAVS #{{.WAVS_INSTANCE}}"
 
     docker-start-wavs-*:
         internal: true
@@ -256,11 +268,6 @@ tasks:
             - cp "{{.BACKEND_DIR}}/wavs.toml" "{{.WAVS_HOME_DIR}}/wavs.toml"
 
     stop-wavs:
-        desc: "Stop all WAVS operator instances"
-        cmds:
-            - task: stop-wavs-instances
-
-    stop-wavs-instances:
         desc: "Stop all WAVS operator instances"
         cmds:
             - |
@@ -303,27 +310,15 @@ tasks:
             - >
                 {{.DOCKER_SUDO}} docker compose -f {{.BACKEND_DIR}}/docker-compose-ipfs.yml
                 -p ipfs up -d
-            - |
-                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-                  if nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null; then
-                    echo "IPFS API is ready!"
-                    break
-                  fi
-                  echo "Waiting for IPFS API..."
-                  sleep 1
-                done
+            - task: wait-for-port
+              vars:
+                  PORT: "{{.IPFS_API_PORT}}"
+                  SERVICE_NAME: "IPFS API"
             - task: configure-ipfs-gateway
-            - |
-                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-                  if nc -z 127.0.0.1 {{.IPFS_GATEWAY_PORT}} 2>/dev/null; then
-                    echo "IPFS gateway is ready!"
-                    exit 0
-                  fi
-                  echo "Waiting for IPFS gateway..."
-                  sleep 1
-                done
-                echo "Error: IPFS gateway did not start after {{.HEALTH_CHECK_TIMEOUT}} seconds" >&2
-                exit 1
+            - task: wait-for-port
+              vars:
+                  PORT: "{{.IPFS_GATEWAY_PORT}}"
+                  SERVICE_NAME: "IPFS gateway"
 
     stop-ipfs:
         desc: "Stop IPFS Kubo node"
@@ -357,7 +352,6 @@ tasks:
             - echo "Restarting IPFS to apply config..."
             - >
                 {{.DOCKER_SUDO}} docker restart ipfs-ipfs-1
-            - sleep 5
 
     ###################################################################
     ##################### TELEMETRY ###################################
@@ -377,26 +371,23 @@ tasks:
 
     start-telemetry-inner:
         internal: true
-        deps: [docker-start-telemetry]
+        deps:
+            - task: docker-start-telemetry
         cmds:
-            - |
-                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-                  if nc -z 127.0.0.1 16686 2>/dev/null; then
-                    echo "Jaeger is up!"
-                    break
-                  fi
-                  echo "Waiting for Jaeger on port 16686..."
-                  sleep 1
-                done
-            - |
-                for ((i=0; i<{{.HEALTH_CHECK_TIMEOUT}}; i++)); do
-                  if nc -z 127.0.0.1 9090 2>/dev/null; then
-                    echo "Prometheus is up!"
-                    exit 0
-                  fi
-                  echo "Waiting for Prometheus on port 9090..."
-                  sleep 1
-                done
+            - task: wait-for-telemetry
+
+    wait-for-telemetry:
+        internal: true
+        # Check Jaeger and Prometheus in parallel
+        deps:
+            - task: wait-for-port
+              vars:
+                  PORT: "16686"
+                  SERVICE_NAME: "Jaeger"
+            - task: wait-for-port
+              vars:
+                  PORT: "9090"
+                  SERVICE_NAME: "Prometheus"
 
     docker-start-telemetry:
         internal: true
@@ -406,12 +397,6 @@ tasks:
 
     stop-telemetry:
         desc: "Stop telemetry services (Jaeger and Prometheus)"
-        cmds:
-            - task: docker-stop-telemetry
-
-
-    docker-stop-telemetry:
-        internal: true
         cmds:
             - echo "Stopping Telemetry"
             - cd "{{.BACKEND_DIR}}" && {{.DOCKER_SUDO}} docker compose --file docker-compose-telemetry.yml down --remove-orphans --volumes

@@ -82,42 +82,6 @@ tasks:
           echo "{\"cid\":\"$CID\",\"ipfs_url\":\"ipfs://$CID\",\"gateway_url\":\"http://localhost:{{.IPFS_GATEWAY_PORT}}/ipfs/$CID\"}" > "{{.OUTPUT_FILE}}"
       - echo "✅ CID saved to {{.OUTPUT_FILE}}"
 
-  upload-to-wavs:
-    desc: "[DEPRECATED] Upload a WASI component to the WAVS endpoint"
-    requires:
-      vars: [COMPONENT_NAME, WAVS_ENDPOINT]
-    vars:
-      # here it's relative to docker volume mount, where /nft-gacha is the root of this repo
-      COMPONENT_BINARY: "/nft-gacha/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}.wasm"
-      DATA_DIR: "/nft-gacha/{{.PROJECT_OUTPUT_DIRNAME}}/.wavs-cli-data"
-      COMPONENT_DIGEST_FILE:
-        sh: task component:get-digest-filepath COMPONENT_NAME={{.COMPONENT_NAME}}
-    cmds:
-      # unfortunately, the wavs-cli upload-component command doesn't write to JSON
-      # but, fortunately, the last line of the output is the digest
-      - |
-        OUTPUT=$(task component:docker-upload WAVS_ENDPOINT="{{.WAVS_ENDPOINT}}" -- "{{.COMPONENT_BINARY}}" --data "{{.DATA_DIR}}")
-        DIGEST=$(echo "$OUTPUT" | tail -n 1)
-        if [[ "$OUTPUT" == *"Digest"* ]]; then
-          echo "Component uploaded successfully, digest is $DIGEST"
-          echo "$DIGEST" > "{{.COMPONENT_DIGEST_FILE}}"
-        else
-          echo "Failed to upload component."
-          exit 1
-        fi
-
-  docker-upload:
-    desc: "Upload component via Docker container"
-    requires:
-      vars: [WAVS_ENDPOINT]
-    cmds:
-      - >
-        {{.DOCKER_SUDO}} docker run --rm --network host
-        -v {{.REPO_ROOT}}:/nft-gacha
-        -v {{.WAVS_HOME_DIR}}:/wavs-home 
-        {{.WAVS_DOCKER_IMAGE}}
-        wavs-cli upload-component {{.CLI_ARGS}} --json true --home /wavs-home --wavs-endpoint {{.WAVS_ENDPOINT}}
-
   get-output-dir:
     desc: "Get the path to the component output directory"
     vars:

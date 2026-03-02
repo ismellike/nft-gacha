@@ -82,9 +82,9 @@ tasks:
         desc: "Show all available tasks with descriptions"
         cmds:
             - |
-                echo "╔═══════════════════════════════════════════════════════════════╗"
-                echo "║           NFT Gacha System - Task Runner                      ║"
-                echo "╚═══════════════════════════════════════════════════════════════╝"
+                echo "╔══════════════════════════════════════════════════╗"
+                echo "║        NFT Gacha System - Task Runner            ║"
+                echo "╚══════════════════════════════════════════════════╝"
                 echo ""
                 echo "Quick Start:"
                 echo "   task setup          - First-time setup"

@@ -21,6 +21,8 @@ vars:
         - wavs_drand
         - aggregator_simple
     WAVS_CLI_SERVICE_JSON_PATH: "/nft-gacha/.project-output/services/{{.AVS_SERVICE_NAME}}.json"
+    # Common prefix for all WAVS CLI service commands
+    WAVS_SERVICE_CMD: 'service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}"'
     PROJECT_OUTPUT_DIR: '{{joinPath .REPO_ROOT ".project-output"}}'
     SERVICE_OUTPUT_DIR: '{{joinPath .PROJECT_OUTPUT_DIR "services"}}'
     SERVICE_JSON_PATH: "{{.SERVICE_OUTPUT_DIR}}/{{.AVS_SERVICE_NAME}}.json"
@@ -47,16 +49,22 @@ tasks:
             - task: build-service
             - task: upload-service
             - task: set-service-uri
+            - task: deploy-service-to-all-operators
+            - task: register-operators
+            - task: update-quorum
+            - task: register-service
+            - echo "Bootstrap complete!"
+
+    deploy-service-to-all-operators:
+        desc: "Deploy service to all running WAVS operators"
+        internal: true
+        cmds:
             - |
                 # Deploy service to ALL operators (required before registration)
                 for i in $(docker ps --format '{{"{{"}}.Names{{"}}"}}' | grep '^wavs-operator-' | grep -oE '[0-9]+$' | sort -n); do
                   echo "Deploying service to operator #$i..."
                   task avs:deploy-service WAVS_INSTANCE="$i"
                 done
-            - task: register-operators
-            - task: update-quorum
-            - task: register-service
-            - echo "Bootstrap complete!"
 
     prerequisites:
         desc: "Ensure backend infrastructure is running before deployment"
@@ -108,16 +116,34 @@ tasks:
         cmds:
             - task: contracts:test
 
+    ###################################################################
+    #################### WASI Components ##############################
+    ###################################################################
+
     components-build:
-        desc: "Build WASI components"
+        desc: "Build WASI components (parallel)"
         deps: [components-clean]
         requires:
             vars: [REPO_ROOT]
         cmds:
+            - task: components-build-parallel
+
+    components-build-parallel:
+        internal: true
+        deps:
             - for: { var: WASI_COMPONENTS }
-              cmd: |
-                  COMPONENT_DIR="{{joinPath .COMPONENTS_DIR (.ITEM | replace "_" "-")}}"
-                  cd "{{.REPO_ROOT}}" && task component:build COMPONENT_NAME="{{.ITEM}}" COMPONENT_SOURCE_DIR="$COMPONENT_DIR"
+              task: build-single-component
+              vars:
+                  COMPONENT_NAME: "{{.ITEM}}"
+
+    build-single-component:
+        internal: true
+        requires:
+            vars: [COMPONENT_NAME]
+        vars:
+            COMPONENT_DIR: '{{joinPath .COMPONENTS_DIR (.COMPONENT_NAME | replace "_" "-")}}'
+        cmds:
+            - cd "{{.REPO_ROOT}}" && task component:build COMPONENT_NAME="{{.COMPONENT_NAME}}" COMPONENT_SOURCE_DIR="{{.COMPONENT_DIR}}"
 
     components-clean:
         desc: "Delete WASI component build outputs"
@@ -127,24 +153,54 @@ tasks:
             - cd "{{.REPO_ROOT}}" && task component:clean-all
 
     components-upload:
-        desc: "Upload WASI components to IPFS"
+        desc: "Upload WASI components to IPFS (parallel)"
         requires:
             vars: [REPO_ROOT]
         cmds:
+            - task: components-upload-parallel
+
+    components-upload-parallel:
+        internal: true
+        deps:
             - for: { var: WASI_COMPONENTS }
-              cmd: |
-                  cd "{{.REPO_ROOT}}"
-                  task component:upload-to-ipfs COMPONENT_NAME="{{.ITEM}}"
+              task: upload-single-component
+              vars:
+                  COMPONENT_NAME: "{{.ITEM}}"
+
+    upload-single-component:
+        internal: true
+        requires:
+            vars: [COMPONENT_NAME]
+        cmds:
+            - cd "{{.REPO_ROOT}}" && task component:upload-to-ipfs COMPONENT_NAME="{{.COMPONENT_NAME}}"
 
     components-test:
-        desc: "Test WASI components"
+        desc: "Test WASI components (parallel)"
         requires:
             vars: [REPO_ROOT]
         cmds:
+            - task: components-test-parallel
+
+    components-test-parallel:
+        internal: true
+        deps:
             - for: { var: WASI_COMPONENTS }
-              cmd: |
-                  COMPONENT_DIR="{{joinPath .COMPONENTS_DIR (.ITEM | replace "_" "-")}}"
-                  cd "$COMPONENT_DIR" && cargo test
+              task: test-single-component
+              vars:
+                  COMPONENT_NAME: "{{.ITEM}}"
+
+    test-single-component:
+        internal: true
+        requires:
+            vars: [COMPONENT_NAME]
+        vars:
+            COMPONENT_DIR: '{{joinPath .COMPONENTS_DIR (.COMPONENT_NAME | replace "_" "-")}}'
+        cmds:
+            - cd "{{.COMPONENT_DIR}}" && cargo test
+
+    ###################################################################
+    #################### Middleware ####################################
+    ###################################################################
 
     middleware-deploy:
         desc: "Deploy POA middleware"
@@ -166,6 +222,10 @@ tasks:
             - '[ "{{.TRANSFER_OWNERSHIP}}" != "true" ]'
         cmds:
             - cd "{{.REPO_ROOT}}" && task middleware:transfer-ownership PROXY_OWNER="{{.PROXY_OWNER}}" AVS_OWNER="{{.AVS_OWNER}}" {{.CHAIN_ARG}}
+
+    ###################################################################
+    #################### Service Configuration ########################
+    ###################################################################
 
     build-empty-service:
         desc: "Build the empty service configuration"
@@ -192,8 +252,8 @@ tasks:
                 cd "{{.REPO_ROOT}}"
                 mkdir -p {{.SERVICE_OUTPUT_DIR}}
 
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" init --name {{.AVS_SERVICE_NAME}}
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" manager set-evm --chain {{.SOURCE_CHAIN}} --address {{.SERVICE_MANAGER_ADDRESS}}
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} init --name {{.AVS_SERVICE_NAME}}
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} manager set-evm --chain {{.SOURCE_CHAIN}} --address {{.SERVICE_MANAGER_ADDRESS}}
 
                 echo "Service configuration built successfully"
 
@@ -365,6 +425,116 @@ tasks:
         cmds:
             - task cli:wavs WAVS_INSTANCE={{.WAVS_INSTANCE}} -- deploy-service --home /wavs-home --service-uri {{.SERVICE_URI}} --wavs-endpoint {{.WAVS_ENDPOINT}}
 
+    ###################################################################
+    #################### Contract Deployment ###########################
+    ###################################################################
+
+    contracts-deploy:
+        desc: "Deploy contracts with WAVS service manager address"
+        vars:
+            CHAIN_NUMBER: "1"
+            CHAIN_DIRNAME: "chain-1"
+            OUTPUT_DIR: "{{.PROJECT_OUTPUT_DIR}}/{{.CHAIN_DIRNAME}}/{{.AVS_PROJECT}}"
+            WAVS_SERVICE_MANAGER_ADDRESS:
+                sh: task avs:get-service-manager-address
+            DEPLOY_TASK: '{{ternary "contracts:deploy" "contracts:deploy-testnet" (ne .DEPLOY_ENV "TESTNET")}}'
+        cmds:
+            - cd "{{.REPO_ROOT}}" && task {{.DEPLOY_TASK}} WAVS_SERVICE_MANAGER_ADDRESS="{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
+
+    ###################################################################
+    #################### Service Build ################################
+    ###################################################################
+
+    build-service:
+        desc: "Build service configuration"
+        deps: [clean-service]
+        vars:
+            CHAIN_NUMBER: "1"
+            CHAIN_DIRNAME: "chain-1"
+            OUTPUT_DIR: "{{.PROJECT_OUTPUT_DIR}}/{{.CHAIN_DIRNAME}}/{{.AVS_PROJECT}}"
+            SUBMIT_CHAIN:
+                sh: task backend:get-chain-name-1
+            SERVICE_MANAGER_ADDRESS:
+                sh: task avs:get-service-manager-address
+        cmds:
+            - |
+                cd "{{.REPO_ROOT}}"
+                mkdir -p {{.SERVICE_OUTPUT_DIR}}
+
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} init --name {{.AVS_SERVICE_NAME}}
+
+            - task: setup-workflow
+              vars:
+                  WORKFLOW_ID: "wavs_drand"
+                  CONTRACT_ADDRESS_KEY: "GACHA_ADDRESS"
+                  EVENT_SIGNATURE: "RandomnessRequested(uint256)"
+                  COMPONENT_CID_NAME: "wavs_drand"
+            - task: setup-workflow
+              vars:
+                  WORKFLOW_ID: "nft_appraisals"
+                  CONTRACT_ADDRESS_KEY: "NFT_APPRAISAL_ADDRESS"
+                  EVENT_SIGNATURE: "AppraisalRequested(address,uint256)"
+                  COMPONENT_CID_NAME: "nft_appraisal"
+            - task: setup-service-manager
+
+    setup-workflow:
+        desc: "Configure a WAVS workflow (trigger, component, aggregator)"
+        internal: true
+        requires:
+            vars: [WORKFLOW_ID, CONTRACT_ADDRESS_KEY, EVENT_SIGNATURE, COMPONENT_CID_NAME]
+        vars:
+            TRIGGER_CHAIN:
+                sh: task backend:get-chain-name-1
+            CONTRACT_ADDRESS:
+                sh: awk -F= '/^{{.CONTRACT_ADDRESS_KEY}}=/{print $2}' {{.CONTRACT_ENV_FILE}}
+            COMPONENT_CID:
+                sh: jq -r '.cid' "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_CID_NAME}}-cid.json"
+            EVENT_HASH:
+                sh: cast keccak "{{.EVENT_SIGNATURE}}"
+            AGGREGATOR_COMPONENT_CID:
+                sh: jq -r '.cid' "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/aggregator_simple-cid.json"
+            AGGREGATOR_COMPONENT_CONFIG:
+                sh: task avs:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}" WORKFLOW_ID="{{.WORKFLOW_ID}}"
+        preconditions:
+            - sh: '[ -f "{{.CONTRACT_ENV_FILE}}" ]'
+              msg: "{{.CONTRACT_ENV_FILE}} not found; run task contracts:deploy first"
+            - sh: '[ -n "{{.CONTRACT_ADDRESS}}" ]'
+              msg: "{{.CONTRACT_ADDRESS_KEY}} not set; re-run task contracts:deploy to generate {{.CONTRACT_ENV_FILE}}"
+            - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_CID_NAME}}-cid.json" ]'
+              msg: "{{.COMPONENT_CID_NAME}} CID not found; run task avs:components-upload first"
+            - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/aggregator_simple-cid.json" ]'
+              msg: "aggregator_simple CID not found; run task avs:components-upload first"
+        cmds:
+            - |
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} workflow add --id {{.WORKFLOW_ID}}
+
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address {{.CONTRACT_ADDRESS}} --event-hash {{.EVENT_HASH}}
+
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} workflow component --id {{.WORKFLOW_ID}} set-source-uri --uri "ipfs://{{.COMPONENT_CID}}"
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
+
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} workflow submit --id {{.WORKFLOW_ID}} set-aggregator
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} workflow submit --id {{.WORKFLOW_ID}} component set-source-uri --uri "ipfs://{{.AGGREGATOR_COMPONENT_CID}}"
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} workflow submit --id {{.WORKFLOW_ID}} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
+                task cli:wavs -- {{.WAVS_SERVICE_CMD}} workflow submit --id {{.WORKFLOW_ID}} component permissions --http-hosts '*' --file-system true
+
+    setup-service-manager:
+        desc: "Configure service manager"
+        vars:
+            CHAIN_NUMBER: "1"
+            CHAIN_DIRNAME: "chain-1"
+            OUTPUT_DIR: "{{.PROJECT_OUTPUT_DIR}}/{{.CHAIN_DIRNAME}}/{{.AVS_PROJECT}}"
+            SUBMIT_CHAIN:
+                sh: task backend:get-chain-name-1
+            SERVICE_MANAGER_ADDRESS:
+                sh: task avs:get-service-manager-address
+        cmds:
+            - task cli:wavs -- {{.WAVS_SERVICE_CMD}} manager set-evm --chain {{.SUBMIT_CHAIN}} --address {{.SERVICE_MANAGER_ADDRESS}}
+
+    ###################################################################
+    #################### Aggregator Config ############################
+    ###################################################################
+
     get-aggregator-config-values:
         desc: "Get the aggregator config values"
         requires:
@@ -383,6 +553,10 @@ tasks:
                     exit 1
                     ;;
                 esac
+
+    ###################################################################
+    #################### Multi-operator ###############################
+    ###################################################################
 
     wavs-*:
         vars:
@@ -404,130 +578,9 @@ tasks:
                   fi
                 done
 
-    contracts-deploy:
-        desc: "Deploy contracts with WAVS service manager address"
-        vars:
-            CHAIN_NUMBER: "1"
-            CHAIN_DIRNAME: "chain-1"
-            OUTPUT_DIR: "{{.PROJECT_OUTPUT_DIR}}/{{.CHAIN_DIRNAME}}/{{.AVS_PROJECT}}"
-            WAVS_SERVICE_MANAGER_ADDRESS:
-                sh: task avs:get-service-manager-address
-            DEPLOY_TASK: '{{ternary "contracts:deploy" "contracts:deploy-testnet" (ne .DEPLOY_ENV "TESTNET")}}'
-        cmds:
-            - cd "{{.REPO_ROOT}}" && task {{.DEPLOY_TASK}} WAVS_SERVICE_MANAGER_ADDRESS="{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
-
-    build-service:
-        desc: "Build service configuration"
-        deps: [clean-service]
-        vars:
-            CHAIN_NUMBER: "1"
-            CHAIN_DIRNAME: "chain-1"
-            OUTPUT_DIR: "{{.PROJECT_OUTPUT_DIR}}/{{.CHAIN_DIRNAME}}/{{.AVS_PROJECT}}"
-            SUBMIT_CHAIN:
-                sh: task backend:get-chain-name-1
-            SERVICE_MANAGER_ADDRESS:
-                sh: task avs:get-service-manager-address
-        cmds:
-            - |
-                cd "{{.REPO_ROOT}}"
-                mkdir -p {{.SERVICE_OUTPUT_DIR}}
-
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" init --name {{.AVS_SERVICE_NAME}}
-
-            - task: setup-drand-workflow
-            - task: setup-appraisal-workflow
-            - task: setup-service-manager
-
-    setup-drand-workflow:
-        desc: "Configure wavs-drand workflow"
-        vars:
-            TRIGGER_CHAIN:
-                sh: task backend:get-chain-name-1
-            GACHA_ADDRESS:
-                sh: awk -F= '/^GACHA_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
-            WAVS_DRAND_COMPONENT_CID:
-                sh: jq -r '.cid' "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/wavs_drand-cid.json"
-            RANDOMNESS_REQUESTED_EVENT_HASH:
-                sh: cast keccak "RandomnessRequested(uint256)"
-            AGGREGATOR_COMPONENT_CID:
-                sh: jq -r '.cid' "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/aggregator_simple-cid.json"
-            WORKFLOW_ID: "wavs_drand"
-            AGGREGATOR_COMPONENT_CONFIG:
-                sh: task avs:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}" WORKFLOW_ID="{{.WORKFLOW_ID}}"
-        preconditions:
-            - sh: '[ -f "{{.CONTRACT_ENV_FILE}}" ]'
-              msg: "{{.CONTRACT_ENV_FILE}} not found; run task contracts:deploy first"
-            - sh: '[ -n "{{.GACHA_ADDRESS}}" ]'
-              msg: "GACHA_ADDRESS not set; re-run task contracts:deploy to generate {{.CONTRACT_ENV_FILE}}"
-            - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/wavs_drand-cid.json" ]'
-              msg: "wavs_drand CID not found; run task avs:components-upload first"
-            - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/aggregator_simple-cid.json" ]'
-              msg: "aggregator_simple CID not found; run task avs:components-upload first"
-        cmds:
-            - |
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow add --id {{.WORKFLOW_ID}}
-
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address {{.GACHA_ADDRESS}} --event-hash {{.RANDOMNESS_REQUESTED_EVENT_HASH}}
-
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow component --id {{.WORKFLOW_ID}} set-source-uri --uri "ipfs://{{.WAVS_DRAND_COMPONENT_CID}}"
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
-
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} set-aggregator
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component set-source-uri --uri "ipfs://{{.AGGREGATOR_COMPONENT_CID}}"
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component permissions --http-hosts '*' --file-system true
-
-    setup-appraisal-workflow:
-        desc: "Configure nft-appraisal workflow"
-        vars:
-            TRIGGER_CHAIN:
-                sh: task backend:get-chain-name-1
-            NFT_APPRAISAL_ADDRESS:
-                sh: awk -F= '/^NFT_APPRAISAL_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
-            NFT_APPRAISAL_COMPONENT_CID:
-                sh: jq -r '.cid' "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/nft_appraisal-cid.json"
-            APPRAISAL_REQUESTED_EVENT_HASH:
-                sh: cast keccak "AppraisalRequested(address,uint256)"
-            AGGREGATOR_COMPONENT_CID:
-                sh: jq -r '.cid' "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/aggregator_simple-cid.json"
-            WORKFLOW_ID: "nft_appraisals"
-            AGGREGATOR_COMPONENT_CONFIG:
-                sh: task avs:get-aggregator-config-values AGGREGATOR_PROJECT="{{.AGGREGATOR_PROJECT}}" WORKFLOW_ID="{{.WORKFLOW_ID}}"
-        preconditions:
-            - sh: '[ -f "{{.CONTRACT_ENV_FILE}}" ]'
-              msg: "{{.CONTRACT_ENV_FILE}} not found; run task contracts:deploy first"
-            - sh: '[ -n "{{.NFT_APPRAISAL_ADDRESS}}" ]'
-              msg: "NFT_APPRAISAL_ADDRESS not set; re-run task contracts:deploy to generate {{.CONTRACT_ENV_FILE}}"
-            - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/nft_appraisal-cid.json" ]'
-              msg: "nft_appraisal CID not found; run task avs:components-upload first"
-            - sh: '[ -f "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/aggregator_simple-cid.json" ]'
-              msg: "aggregator_simple CID not found; run task avs:components-upload first"
-        cmds:
-            - |
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow add --id {{.WORKFLOW_ID}}
-
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow trigger --id {{.WORKFLOW_ID}} set-evm --chain {{.TRIGGER_CHAIN}} --address {{.NFT_APPRAISAL_ADDRESS}} --event-hash {{.APPRAISAL_REQUESTED_EVENT_HASH}}
-
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow component --id {{.WORKFLOW_ID}} set-source-uri --uri "ipfs://{{.NFT_APPRAISAL_COMPONENT_CID}}"
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow component --id {{.WORKFLOW_ID}} permissions --http-hosts '*' --file-system true
-
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} set-aggregator
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component set-source-uri --uri "ipfs://{{.AGGREGATOR_COMPONENT_CID}}"
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component config {{.AGGREGATOR_COMPONENT_CONFIG}}
-                task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" workflow submit --id {{.WORKFLOW_ID}} component permissions --http-hosts '*' --file-system true
-
-    setup-service-manager:
-        desc: "Configure service manager"
-        vars:
-            CHAIN_NUMBER: "1"
-            CHAIN_DIRNAME: "chain-1"
-            OUTPUT_DIR: "{{.PROJECT_OUTPUT_DIR}}/{{.CHAIN_DIRNAME}}/{{.AVS_PROJECT}}"
-            SUBMIT_CHAIN:
-                sh: task backend:get-chain-name-1
-            SERVICE_MANAGER_ADDRESS:
-                sh: task avs:get-service-manager-address
-        cmds:
-            - task cli:wavs -- service --json true --home /wavs-home --file "{{.WAVS_CLI_SERVICE_JSON_PATH}}" manager set-evm --chain {{.SUBMIT_CHAIN}} --address {{.SERVICE_MANAGER_ADDRESS}}
+    ###################################################################
+    #################### Helpers ######################################
+    ###################################################################
 
     get-component-digest:
         desc: "Get component digest from build artifacts"
