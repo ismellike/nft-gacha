@@ -136,15 +136,19 @@ export function useGachaSpinMachine(
 	const pollingAbortRef = useRef<AbortController | null>(null);
 	const hasTransitionedToRevealRef = useRef(false);
 	const hasHandledRefundRef = useRef(false);
+	// Keep current state value in a ref so claimRevealTransition always sees
+	// the latest value — not a stale closure captured when the polling effect started.
+	const stateValueRef = useRef(state.value);
+	stateValueRef.current = state.value;
 
 	// Atomic claim helper — returns true only for the first caller
 	// Also rejects if already timed out (prevents late poll resolve after timeout modal)
 	const claimRevealTransition = useCallback(() => {
 		if (hasTransitionedToRevealRef.current) return false;
-		if (state.value === "timeout") return false;
+		if (stateValueRef.current === "timeout") return false;
 		hasTransitionedToRevealRef.current = true;
 		return true;
-	}, [state.value]);
+	}, []);
 
 	const updateState = useCallback(
 		(
@@ -286,45 +290,46 @@ export function useGachaSpinMachine(
 		)
 			return;
 
+		// Track whether this effect instance is still current.
+		// If the user starts a new spin while validation is in flight,
+		// the cleanup sets stale=true so the async callback is a no-op.
+		let stale = false;
+
+		const tryRestore = () => {
+			if (stale) return;
+			// Double-check state via ref — the user may have started a
+			// new spin between the await and this callback.
+			if (stateValueRef.current !== "idle") return;
+
+			const storedTriggerId = gachaAddress
+				? loadFromStorage(userAddress, gachaAddress)
+				: null;
+			if (storedTriggerId) {
+				debugLog(
+					"🔄 [useGachaSpinMachine] Restoring pending spin:",
+					storedTriggerId,
+				);
+				updateState("waitingForFulfillment", {
+					userAddress,
+					publicClient,
+					gachaAddress,
+					triggerId: storedTriggerId,
+				});
+			}
+		};
+
 		// First, validate and clean expired/invalid pending spins
 		validatePendingSpins(publicClient)
-			.then(() => {
-				const storedTriggerId = gachaAddress
-					? loadFromStorage(userAddress, gachaAddress)
-					: null;
-				if (storedTriggerId) {
-					// Only restore if we have a valid stored trigger ID
-					debugLog(
-						"🔄 [useGachaSpinMachine] Restoring pending spin:",
-						storedTriggerId,
-					);
-					updateState("waitingForFulfillment", {
-						userAddress,
-						publicClient,
-						gachaAddress,
-						triggerId: storedTriggerId,
-					});
-				}
-			})
+			.then(tryRestore)
 			.catch((error) => {
 				logger.gachaSpin.warn("Failed to validate pending spins:", error);
 				// Continue with normal operation even if validation fails
-				const storedTriggerId = gachaAddress
-					? loadFromStorage(userAddress, gachaAddress)
-					: null;
-				if (storedTriggerId) {
-					debugLog(
-						"🔄 [useGachaSpinMachine] Restoring pending spin (validation failed):",
-						storedTriggerId,
-					);
-					updateState("waitingForFulfillment", {
-						userAddress,
-						publicClient,
-						gachaAddress,
-						triggerId: storedTriggerId,
-					});
-				}
+				tryRestore();
 			});
+
+		return () => {
+			stale = true;
+		};
 	}, [userAddress, publicClient, gachaAddress, state.value, updateState]);
 
 	// Actions

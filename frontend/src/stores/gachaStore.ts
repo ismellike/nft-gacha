@@ -71,31 +71,30 @@ export const useGachaStore = create<GachaStore>()(
 			},
 
 			validateAndCleanPendingSpins: async (publicClient) => {
-				const { pendingSpins } = get();
-				const validatedSpins: Record<string, PendingSpin> = {};
+				// Snapshot the keys to validate. We only REMOVE stale entries
+				// rather than replacing the entire store, so concurrent
+				// addPendingSpin calls for new spins are never lost.
+				const snapshot = get().pendingSpins;
+				const keysToRemove: string[] = [];
 
-				// Check each pending spin against the contract
-				for (const [key, spin] of Object.entries(pendingSpins)) {
+				for (const [key, spin] of Object.entries(snapshot)) {
 					try {
-						// Query the contract spinRequests mapping to see if this spin is still pending
 						const spinRequest = (await publicClient.readContract({
 							address: spin.gachaAddress as `0x${string}`,
 							abi: gachaAbi,
 							functionName: "spinRequests",
 							args: [spin.triggerId],
-						})) as readonly [bigint, bigint, string, number]; // [feePaid, requestTime, requester, statusFlags]
+						})) as readonly [bigint, bigint, string, number];
 
 						const [, , requester, statusFlags] = spinRequest;
-						const fulfilled = (statusFlags & 1) === 1; // bit 0 = fulfilled
-
-						// Keep the spin if it exists and isn't fulfilled and belongs to the right user
+						const fulfilled = (statusFlags & 1) === 1;
 						const requesterLower = String(requester).toLowerCase();
 
 						if (
-							requesterLower === spin.userAddress.toLowerCase() &&
-							!fulfilled
+							requesterLower !== spin.userAddress.toLowerCase() ||
+							fulfilled
 						) {
-							validatedSpins[key] = spin;
+							keysToRemove.push(key);
 						}
 					} catch (error) {
 						logger.state.warn(
@@ -103,11 +102,25 @@ export const useGachaStore = create<GachaStore>()(
 							error,
 						);
 						// Keep the spin if we can't validate (network issues, etc.)
-						validatedSpins[key] = spin;
 					}
 				}
 
-				set({ pendingSpins: validatedSpins });
+				if (keysToRemove.length > 0) {
+					set((state) => {
+						const updated = { ...state.pendingSpins };
+						for (const key of keysToRemove) {
+							// Only remove if the entry hasn't been replaced by a newer spin
+							if (
+								updated[key] &&
+								snapshot[key] &&
+								updated[key].triggerId === snapshot[key].triggerId
+							) {
+								delete updated[key];
+							}
+						}
+						return { pendingSpins: updated };
+					});
+				}
 			},
 		}),
 		{

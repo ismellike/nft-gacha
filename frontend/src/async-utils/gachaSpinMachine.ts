@@ -75,6 +75,23 @@ export const pollForSpinFulfillment = async ({
 			isDestroyed = true;
 		};
 
+		// Listen for abort signal so the promise settles immediately
+		// and the internal timeout is cancelled (no zombie promises).
+		if (signal) {
+			const onAbort = () => {
+				if (!isDestroyed) {
+					cleanup();
+					reject(new DOMException("Polling aborted", "AbortError"));
+				}
+			};
+			if (signal.aborted) {
+				cleanup();
+				reject(new DOMException("Polling aborted", "AbortError"));
+				return;
+			}
+			signal.addEventListener("abort", onAbort, { once: true });
+		}
+
 		timeoutId = setTimeout(() => {
 			if (!isDestroyed) {
 				cleanup();
