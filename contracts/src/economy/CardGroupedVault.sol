@@ -73,6 +73,7 @@ contract CardGroupedVault is
     error NoValueInPool();
     error YieldTooSmall();
     error InvalidNumRarities();
+    error Int256Overflow();
 
     // ─── Constants ──────────────────────────────────────────────────────
 
@@ -535,14 +536,14 @@ contract CardGroupedVault is
         }
 
         // Settled yield from previous rarity stints (already in USDC units per token)
-        int256 settledYield = int256(pos.count) * int256(card.settledYieldPerUnit);
+        int256 settledYield = _safeToInt256(pos.count) * _safeToInt256(card.settledYieldPerUnit);
 
         // Correction (signed, already in USDC units per token)
-        int256 correction = int256(pos.count) * card.correctionPerUnit;
+        int256 correction = _safeToInt256(pos.count) * card.correctionPerUnit;
 
         // Total raw = mainYield + settledYield - correction - rewardDebt - settledDebt + correctionDebt
         int256 raw = mainYield + settledYield - correction
-            - int256(pos.rewardDebt) - int256(pos.settledDebt) + pos.correctionDebt;
+            - _safeToInt256(pos.rewardDebt) - _safeToInt256(pos.settledDebt) + pos.correctionDebt;
 
         return raw > 0 ? uint256(raw) : 0;
     }
@@ -631,7 +632,7 @@ contract CardGroupedVault is
         pos.rewardDebt = Math.mulDiv(pos.count * card.cardPriceUSD, accDelta, PRECISION);
 
         // correctionDebt = count × correctionPerUnit (already USDC per token)
-        pos.correctionDebt = int256(pos.count) * card.correctionPerUnit;
+        pos.correctionDebt = _safeToInt256(pos.count) * card.correctionPerUnit;
 
         // settledDebt = count × settledYieldPerUnit (already USDC per token)
         pos.settledDebt = pos.count * card.settledYieldPerUnit;
@@ -690,6 +691,14 @@ contract CardGroupedVault is
 
         list.pop();
         delete _depositorCardIndex[depositor][cardId];
+    }
+
+    // ─── Safe cast ────────────────────────────────────────────────────
+
+    /// @dev Safely casts uint256 to int256, reverting on overflow
+    function _safeToInt256(uint256 value) internal pure returns (int256) {
+        if (value > uint256(type(int256).max)) revert Int256Overflow();
+        return int256(value);
     }
 
     // ─── Upgrade auth ───────────────────────────────────────────────────

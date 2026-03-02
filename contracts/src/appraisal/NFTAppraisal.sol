@@ -80,6 +80,8 @@ contract NFTAppraisal is
     /// @notice Treasury management for automatic migration
     mapping(address => bool) public whitelistedTreasuries;
     address[] public treasuryList;
+    /// @dev treasury => index+1 in treasuryList for O(1) removal
+    mapping(address => uint256) private treasuryListIndex;
 
     /// @notice Token -> Card linkage and storage
     mapping(address => mapping(uint256 => bytes32)) public tokenCardIds; // (collection, tokenId) -> cardId
@@ -686,6 +688,7 @@ contract NFTAppraisal is
 
         whitelistedTreasuries[treasury] = true;
         treasuryList.push(treasury);
+        treasuryListIndex[treasury] = treasuryList.length; // 1-based
         emit TreasuryWhitelisted(treasury);
     }
 
@@ -698,14 +701,18 @@ contract NFTAppraisal is
 
         whitelistedTreasuries[treasury] = false;
 
-        // Remove from treasuryList array
-        uint256 len = treasuryList.length;
-        for (uint256 i = 0; i < len; i++) {
-            if (treasuryList[i] == treasury) {
-                treasuryList[i] = treasuryList[len - 1];
-                treasuryList.pop();
-                break;
+        // O(1) swap-and-pop removal using index mapping
+        uint256 idxPlus = treasuryListIndex[treasury];
+        if (idxPlus > 0) {
+            uint256 idx = idxPlus - 1;
+            uint256 lastIndex = treasuryList.length - 1;
+            if (idx != lastIndex) {
+                address last = treasuryList[lastIndex];
+                treasuryList[idx] = last;
+                treasuryListIndex[last] = idx + 1;
             }
+            treasuryList.pop();
+            delete treasuryListIndex[treasury];
         }
 
         emit TreasuryUnwhitelisted(treasury);
@@ -795,6 +802,6 @@ contract NFTAppraisal is
         _unpause();
     }
 
-    /// @notice Custom gap for future storage variables (50 slots)
+    /// @notice Custom gap for future storage variables
     uint256[50] private __gap;
 }

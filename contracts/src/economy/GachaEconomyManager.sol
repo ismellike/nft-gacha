@@ -179,7 +179,7 @@ contract GachaEconomyManager is
 
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
-        totalToDepositors += actualDistributed;
+        totalToDepositors += actualDistributed + totalFlushed;
         if (totalFlushed > 0) totalQueuedYieldReleased += totalFlushed;
         totalToProtocol += protocolShare;
 
