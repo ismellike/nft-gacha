@@ -238,7 +238,6 @@ export function parseCourtyardMetadata(metadata: CourtyardMetadata) {
 	};
 }
 
-
 /**
  * Formats the card title to be concise and avoid duplication with other sections
  * Examples: "Enamorus #180", "Charizard #4", "Babe Ruth"

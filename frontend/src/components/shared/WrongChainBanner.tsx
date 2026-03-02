@@ -28,8 +28,7 @@ export function WrongChainBanner() {
 			className="sticky top-0 z-50 flex items-center justify-center gap-3 bg-danger/90 px-4 py-2.5 text-sm font-medium text-white backdrop-blur-sm"
 		>
 			<span>
-				Wrong network — please switch to{" "}
-				<strong>{expectedNetworkName}</strong>
+				Wrong network — please switch to <strong>{expectedNetworkName}</strong>
 			</span>
 			<button
 				type="button"

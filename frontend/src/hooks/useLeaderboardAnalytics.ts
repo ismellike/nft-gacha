@@ -224,4 +224,3 @@ export function useLeaderboardAnalytics(): AggregatedAnalytics {
 		};
 	}, [g0, g1, g2, g3, g4, allGachas]);
 }
-

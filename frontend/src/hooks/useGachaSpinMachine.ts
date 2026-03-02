@@ -192,7 +192,10 @@ export function useGachaSpinMachine(
 	// Watch for SpinCompleted events from the contract
 	useWatchContractEvent({
 		address: contracts.gacha as `0x${string}` | undefined,
-		enabled: !!contracts.gacha && Boolean(userAddress) && state.value === "waitingForFulfillment",
+		enabled:
+			!!contracts.gacha &&
+			Boolean(userAddress) &&
+			state.value === "waitingForFulfillment",
 		pollingInterval: POLLING_INTERVAL_MS,
 		abi: gachaAbi,
 		eventName: "SpinCompleted",

@@ -202,20 +202,17 @@ function _BatchDepositTab({
 		};
 	}, [selectedKeys.size, selectedNFTs]);
 
-	const toggleNFT = useCallback(
-		(key: string) => {
-			setSelectedKeys((prev) => {
-				const next = new Set(prev);
-				if (next.has(key)) {
-					next.delete(key);
-				} else {
-					next.add(key);
-				}
-				return next;
-			});
-		},
-		[],
-	);
+	const toggleNFT = useCallback((key: string) => {
+		setSelectedKeys((prev) => {
+			const next = new Set(prev);
+			if (next.has(key)) {
+				next.delete(key);
+			} else {
+				next.add(key);
+			}
+			return next;
+		});
+	}, []);
 
 	const selectAll = useCallback(() => {
 		setSelectedKeys(

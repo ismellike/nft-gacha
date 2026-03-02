@@ -11,7 +11,9 @@ export function isCourtyardTokenURI(tokenURI: string): boolean {
 	if (!tokenURI) return false;
 	try {
 		const hostname = new URL(tokenURI).hostname;
-		return hostname === "api.courtyard.io" || hostname.endsWith(".courtyard.io");
+		return (
+			hostname === "api.courtyard.io" || hostname.endsWith(".courtyard.io")
+		);
 	} catch {
 		return false;
 	}

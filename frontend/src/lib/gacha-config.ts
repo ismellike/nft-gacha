@@ -47,4 +47,3 @@ export function getGachaConfig(id: string) {
 export function getAllActiveGachas() {
 	return getAllActiveGachasUtil(GACHA_CONFIGS);
 }
-

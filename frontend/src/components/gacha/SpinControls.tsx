@@ -24,7 +24,10 @@ import {
 	type UserFriendlyError,
 	mapTransactionError,
 } from "../../lib/transactionErrors";
-import { MAX_FEE_SLIPPAGE_BPS, SPIN_TIMEOUT_SECONDS } from "../../lib/constants";
+import {
+	MAX_FEE_SLIPPAGE_BPS,
+	SPIN_TIMEOUT_SECONDS,
+} from "../../lib/constants";
 import { formatTokenAmount } from "../../lib/utils";
 import { Card } from "../../ui";
 import { SpinErrorModal } from "./SpinErrorModal";

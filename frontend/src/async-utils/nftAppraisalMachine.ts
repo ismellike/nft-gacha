@@ -6,4 +6,3 @@ export interface AppraisalResult {
 	tokenId: string;
 	appraisalData: readonly [boolean, bigint, bigint, string, bigint];
 }
-

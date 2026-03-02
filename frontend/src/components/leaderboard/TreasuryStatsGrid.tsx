@@ -123,10 +123,7 @@ interface TreasuryStatsGridProps {
 	isLoading: boolean;
 }
 
-function _TreasuryStatsGrid({
-	gachas,
-	isLoading,
-}: TreasuryStatsGridProps) {
+function _TreasuryStatsGrid({ gachas, isLoading }: TreasuryStatsGridProps) {
 	if (isLoading) {
 		return (
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

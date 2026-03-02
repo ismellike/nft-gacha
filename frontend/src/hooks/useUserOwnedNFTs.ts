@@ -9,7 +9,6 @@ import type {
 	UseUserOwnedNFTsMultiResult,
 } from "../types/hooks";
 
-
 /**
  * Hook to fetch all NFTs owned by the current user from multiple collections
  * Efficiently queries each collection to find all owned tokens

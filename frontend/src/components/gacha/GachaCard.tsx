@@ -211,9 +211,7 @@ export function GachaCard({ gacha }: GachaCardProps) {
 											>
 												{getRarityEmoji(rarity)}
 											</div>
-											<div
-												className="text-xs text-foreground/60 font-medium"
-											>
+											<div className="text-xs text-foreground/60 font-medium">
 												{Number(count)}
 											</div>
 										</div>

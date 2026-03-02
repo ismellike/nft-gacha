@@ -15,12 +15,7 @@ import { HIGH_VALUE_THRESHOLD } from "../lib/constants";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
 
-type AppraisalFilter =
-	| "all"
-	| "pending"
-	| "completed"
-	| "recent"
-	| "highValue";
+type AppraisalFilter = "all" | "pending" | "completed" | "recent" | "highValue";
 type AppraisalSort =
 	| "newest"
 	| "oldest"

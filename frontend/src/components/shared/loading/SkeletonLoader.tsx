@@ -11,10 +11,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className, animate = true }: SkeletonProps) {
-	const baseClasses = cn(
-		"bg-content1/20 rounded",
-		animate && "animate-pulse",
-	);
+	const baseClasses = cn("bg-content1/20 rounded", animate && "animate-pulse");
 
 	return <div className={cn(baseClasses, className)} />;
 }

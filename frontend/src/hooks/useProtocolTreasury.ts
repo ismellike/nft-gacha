@@ -70,4 +70,3 @@ export function getTreasuryStatus(
 ): "active" | "paused" {
 	return paused === true ? "paused" : "active";
 }
-

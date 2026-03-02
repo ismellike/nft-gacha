@@ -27,7 +27,6 @@ interface GachaStore {
 	validateAndCleanPendingSpins: (publicClient: PublicClient) => Promise<void>;
 }
 
-
 export const useGachaStore = create<GachaStore>()(
 	persist(
 		(set, get) => ({

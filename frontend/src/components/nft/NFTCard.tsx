@@ -471,15 +471,15 @@ export const NFTCard = memo<NFTCardProps>(
 							</div>
 						)}
 						{/* Image skeleton — matches NFTImage's sizeStyles.container */}
-					<div className="flex justify-center">
-						<div
-							className={cn(
-								sizeStyles.container,
-								sizeStyles.radius,
-								"bg-white/[0.06]",
-							)}
-						/>
-					</div>
+						<div className="flex justify-center">
+							<div
+								className={cn(
+									sizeStyles.container,
+									sizeStyles.radius,
+									"bg-white/[0.06]",
+								)}
+							/>
+						</div>
 						{/* Title skeleton */}
 						<div className="flex justify-center">
 							<div className="h-4 w-3/4 rounded bg-white/10" />

@@ -1,7 +1,11 @@
 "use client";
 
 import type { PublicClient } from "viem";
-import { BASE_SPIN_POLLING_TIMEOUT_MS, BLOCK_LOOKBACK, POLLING_INTERVAL_MS } from "../lib/constants";
+import {
+	BASE_SPIN_POLLING_TIMEOUT_MS,
+	BLOCK_LOOKBACK,
+	POLLING_INTERVAL_MS,
+} from "../lib/constants";
 import { createDebugLogger, DEBUG_FLAGS, logger } from "../lib/logger";
 import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
@@ -22,7 +26,6 @@ export interface RefundResult {
 type PollingResult =
 	| { type: "completed"; result: SpinResult }
 	| { type: "refunded"; refundResult: RefundResult };
-
 
 export const MAX_RETRIES = 5;
 const MAX_POLLING_TIME = BASE_SPIN_POLLING_TIMEOUT_MS;

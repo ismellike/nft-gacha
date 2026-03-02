@@ -27,7 +27,6 @@ export function isUserRejectedError(error: unknown): boolean {
 	return false;
 }
 
-
 export interface UserFriendlyError {
 	title: string;
 	message: string;

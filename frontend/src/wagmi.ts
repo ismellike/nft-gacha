@@ -58,7 +58,8 @@ const network = getNetwork();
 export const expectedChainId = network.id as number;
 
 /** The human-readable name of the expected network. */
-export const expectedNetworkName = "name" in network ? (network.name as string) : `Chain ${expectedChainId}`;
+export const expectedNetworkName =
+	"name" in network ? (network.name as string) : `Chain ${expectedChainId}`;
 
 const wagmiAdapter = new WagmiAdapter({
 	projectId: env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,

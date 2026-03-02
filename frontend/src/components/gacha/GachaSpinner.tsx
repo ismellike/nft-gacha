@@ -21,16 +21,12 @@ const GachaSpinner = memo(() => {
 	// Stable callbacks — avoid inline arrows that change every render
 	// and cause the polling effect to restart (aborting in-flight polls).
 	const handleSpinComplete = useCallback(() => {
-		logger.gachaSpin.log(
-			"[GachaSpinner] Spin completed, refreshing all data",
-		);
+		logger.gachaSpin.log("[GachaSpinner] Spin completed, refreshing all data");
 		triggerRefresh();
 	}, [triggerRefresh]);
 
 	const handleRefundComplete = useCallback(() => {
-		logger.gachaSpin.log(
-			"[GachaSpinner] Refund detected, refreshing all data",
-		);
+		logger.gachaSpin.log("[GachaSpinner] Refund detected, refreshing all data");
 		triggerRefresh();
 	}, [triggerRefresh]);
 

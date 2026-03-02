@@ -21,7 +21,13 @@ vi.mock("@/stores/gachaStore", () => ({
 
 vi.mock("@/lib/logger", () => {
 	const noop = vi.fn();
-	const category = { log: noop, info: noop, warn: noop, error: noop, debug: noop };
+	const category = {
+		log: noop,
+		info: noop,
+		warn: noop,
+		error: noop,
+		debug: noop,
+	};
 	return {
 		createDebugLogger: () => vi.fn(),
 		DEBUG_FLAGS: { GACHA_SPIN: true },

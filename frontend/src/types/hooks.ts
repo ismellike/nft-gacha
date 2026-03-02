@@ -50,4 +50,3 @@ export interface UserOwnedNFTMultiCollection {
 	tokenId: bigint;
 	collectionName?: string;
 }
-

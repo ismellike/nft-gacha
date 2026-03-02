@@ -209,13 +209,21 @@ export function usePermitSpin({
 		) {
 			try {
 				// Verify the chain hasn't changed since the permit was signed
-				if (signedChainIdRef.current !== null && chainId !== signedChainIdRef.current) {
+				if (
+					signedChainIdRef.current !== null &&
+					chainId !== signedChainIdRef.current
+				) {
 					logger.gachaSpin.warn(
 						"Chain changed since permit was signed, aborting transaction",
-						{ signedChainId: signedChainIdRef.current, currentChainId: chainId },
+						{
+							signedChainId: signedChainIdRef.current,
+							currentChainId: chainId,
+						},
 					);
 					signedChainIdRef.current = null;
-					gachaSpin.setError("Network changed since permit was signed. Please try again.");
+					gachaSpin.setError(
+						"Network changed since permit was signed. Please try again.",
+					);
 					return;
 				}
 
