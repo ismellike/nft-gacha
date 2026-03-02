@@ -20,6 +20,7 @@ import {
 	useCardGroupedVaultData,
 } from "../../../hooks/useCardGroupedVault";
 import { formatTokenAmount } from "../../../lib/utils";
+import { useGachaRefetch } from "../../../contexts/GachaRefreshContext";
 import { useAppraisalChecker } from "../../../hooks/useAppraisalChecker";
 import { useGachaContracts } from "../../../hooks/useGachaContracts";
 import { useGachaId } from "../../../hooks/useGachaId";
@@ -177,6 +178,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 		userData: depositorUserData,
 		refetch: refetchCardGroupedVault,
 	} = useCardGroupedVaultData(cardGroupedVaultProps);
+
+	// Register vault refetch so yield updates after spins
+	useGachaRefetch(refetchCardGroupedVault);
 
 	// Yield functionality
 	const { claimYield, isClaiming } = useClaimYield();

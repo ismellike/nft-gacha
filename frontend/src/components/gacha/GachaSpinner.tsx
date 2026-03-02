@@ -18,22 +18,26 @@ const GachaSpinner = memo(() => {
 	const contracts = useGachaContracts(gachaId);
 	const { triggerRefresh } = useGachaRefresh();
 
+	// Stable callbacks — avoid inline arrows that change every render
+	// and cause the polling effect to restart (aborting in-flight polls).
+	const handleSpinComplete = useCallback(() => {
+		logger.gachaSpin.log(
+			"[GachaSpinner] Spin completed, refreshing all data",
+		);
+		triggerRefresh();
+	}, [triggerRefresh]);
+
+	const handleRefundComplete = useCallback(() => {
+		logger.gachaSpin.log(
+			"[GachaSpinner] Refund detected, refreshing all data",
+		);
+		triggerRefresh();
+	}, [triggerRefresh]);
+
 	// Use the new state machine hook
 	const gachaSpin = useGachaSpinMachine(
-		() => {
-			// onSpinComplete - trigger refresh for all data
-			logger.gachaSpin.log(
-				"[GachaSpinner] Spin completed, refreshing all data",
-			);
-			triggerRefresh();
-		},
-		() => {
-			// onRefund - trigger refresh for all data
-			logger.gachaSpin.log(
-				"[GachaSpinner] Refund detected, refreshing all data",
-			);
-			triggerRefresh();
-		},
+		handleSpinComplete,
+		handleRefundComplete,
 	);
 
 	const handleCloseReveal = useCallback(() => {
