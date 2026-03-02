@@ -26,7 +26,7 @@ vars:
     PROJECT_OUTPUT_DIR: '{{joinPath .REPO_ROOT ".project-output"}}'
     SERVICE_OUTPUT_DIR: '{{joinPath .PROJECT_OUTPUT_DIR "services"}}'
     SERVICE_JSON_PATH: "{{.SERVICE_OUTPUT_DIR}}/{{.AVS_SERVICE_NAME}}.json"
-    TEMP_SERVICE_HASH_JSON_PATH: "{{.SERVICE_OUTPUT_DIR}}/hash.json"
+    SERVICE_CID_JSON_PATH: "{{.SERVICE_OUTPUT_DIR}}/service-cid.json"
     # Contract addresses env file: .env.local for LOCAL, .env.testnet for TESTNET
     CONTRACT_ENV_FILE: '{{ternary ".env.local" ".env.testnet" (ne .DEPLOY_ENV "TESTNET")}}'
 
@@ -265,19 +265,27 @@ tasks:
             - rm -rf "{{.SERVICE_OUTPUT_DIR}}"
 
     upload-service:
-        desc: "Upload service configuration to WAVS endpoint"
-        vars:
-            WAVS_INSTANCE: "{{.WAVS_INSTANCE | default 1}}"
-            WAVS_ENDPOINT:
-                sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
+        desc: "Upload service configuration to IPFS"
         requires:
-            vars: [REPO_ROOT, SERVICE_JSON_PATH, TEMP_SERVICE_HASH_JSON_PATH]
+            vars: [REPO_ROOT, SERVICE_JSON_PATH, SERVICE_CID_JSON_PATH]
+        preconditions:
+            - test -f "{{.SERVICE_JSON_PATH}}"
+            - sh: "nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null"
+              msg: "IPFS node is not running. Start it with: task backend:start-ipfs"
         cmds:
-            - >
-                curl --fail-with-body -X POST "{{.WAVS_ENDPOINT}}/dev/services"
-                -H "Content-Type: application/json"
-                --data-binary "@{{.SERVICE_JSON_PATH}}"
-                -o "{{.TEMP_SERVICE_HASH_JSON_PATH}}"
+            - echo "Uploading service configuration to IPFS..."
+            - |
+                CID=$(curl -s -X POST "{{.IPFS_API_URL}}/api/v0/add?pin=true" \
+                  -F file=@{{.SERVICE_JSON_PATH}} | jq -r '.Hash')
+
+                if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+                  echo "Failed to upload service configuration to IPFS"
+                  exit 1
+                fi
+
+                echo "Service CID: $CID"
+                echo "{\"cid\":\"$CID\",\"ipfs_url\":\"ipfs://$CID\",\"gateway_url\":\"http://localhost:{{.IPFS_GATEWAY_PORT}}/ipfs/$CID\"}" > "{{.SERVICE_CID_JSON_PATH}}"
+            - echo "Service CID saved to {{.SERVICE_CID_JSON_PATH}}"
 
     dev-clear-services:
         desc: "Remove all registered services from WAVS operator (dev endpoint)"
@@ -305,44 +313,12 @@ tasks:
                 cat /tmp/dev-delete-services.txt >&2
                 exit 1
 
-    dev-add-service:
-        desc: "Register service with local WAVS dispatcher (dev endpoint)"
-        vars:
-            WAVS_INSTANCE: "{{.WAVS_INSTANCE | default 1}}"
-            WAVS_ENDPOINT:
-                sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
-            TEMP_SERVICE_HASH:
-                sh: task avs:get-temp-service-hash
-        requires:
-            vars: [REPO_ROOT, TEMP_SERVICE_HASH]
-        cmds:
-            - |
-                for i in $(seq 1 {{.HEALTH_CHECK_TIMEOUT}}); do
-                  response=$(curl -s -w "%{http_code}" -X POST "{{.WAVS_ENDPOINT}}/dev/services/{{.TEMP_SERVICE_HASH}}" -o /tmp/dev-add-service.txt)
-                  if [ "$response" = "204" ] || [ "$response" = "409" ]; then
-                    echo "Service registered with WAVS operator"
-                    exit 0
-                  fi
-                  if [ "$response" = "500" ] && grep -qi "already registered" /tmp/dev-add-service.txt; then
-                    echo "Service already registered with WAVS operator"
-                    exit 0
-                  fi
-                  echo "Waiting for WAVS operator to accept service (HTTP $response)..."
-                  sleep 1
-                done
-                echo "Error: Failed to register service with WAVS operator" >&2
-                cat /tmp/dev-add-service.txt >&2
-                exit 1
-
     set-service-uri:
         vars:
-            WAVS_INSTANCE: "{{.WAVS_INSTANCE | default 1}}"
-            WAVS_ENDPOINT:
-                sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
             CHAIN_NUMBER: "{{.SOURCE_CHAIN_NUMBER | default 1}}"
-            TEMP_SERVICE_HASH:
-                sh: task avs:get-temp-service-hash
-            SERVICE_URI: "{{.WAVS_ENDPOINT}}/dev/services/{{.TEMP_SERVICE_HASH}}"
+            SERVICE_CID:
+                sh: task avs:get-service-cid
+            SERVICE_URI: "ipfs://{{.SERVICE_CID}}"
         cmds:
             - cd "{{.REPO_ROOT}}" && task middleware:set-service-uri CHAIN_NUMBER="{{.CHAIN_NUMBER}}" SERVICE_URI="{{.SERVICE_URI}}"
 
@@ -384,14 +360,14 @@ tasks:
                 fi
 
     deploy-service:
-        desc: "Deploy service to operators using /dev/services endpoint for LOCAL"
+        desc: "Deploy service to operators using IPFS service URI"
         vars:
             WAVS_INSTANCE: '{{.WAVS_INSTANCE | default 1}}'
             WAVS_ENDPOINT:
                 sh: cd '{{.REPO_ROOT}}' && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
-            TEMP_SERVICE_HASH:
-                sh: task avs:get-temp-service-hash
-            SERVICE_URI: '{{.WAVS_ENDPOINT}}/dev/services/{{.TEMP_SERVICE_HASH}}'
+            SERVICE_CID:
+                sh: task avs:get-service-cid
+            SERVICE_URI: 'ipfs://{{.SERVICE_CID}}'
         cmds:
             - 'echo "Deploying service to operator #{{.WAVS_INSTANCE}}..."'
             - 'echo "Service URI: {{.SERVICE_URI}}"'
@@ -413,15 +389,12 @@ tasks:
 
     deploy-service-*:
         vars:
-            FIRST_OPERATOR: "{{.FIRST_OPERATOR | default 1}}"
             WAVS_INSTANCE: "{{index .MATCH 0}}"
             WAVS_ENDPOINT:
                 sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.WAVS_INSTANCE}}
-            TEMP_SERVICE_HASH:
-                sh: task avs:get-temp-service-hash
-            SOURCE_WAVS_ENDPOINT:
-                sh: cd "{{.REPO_ROOT}}" && task backend:get-wavs-endpoint-{{.FIRST_OPERATOR}}
-            SERVICE_URI: "{{.SOURCE_WAVS_ENDPOINT}}/dev/services/{{.TEMP_SERVICE_HASH}}"
+            SERVICE_CID:
+                sh: task avs:get-service-cid
+            SERVICE_URI: "ipfs://{{.SERVICE_CID}}"
         cmds:
             - task cli:wavs WAVS_INSTANCE={{.WAVS_INSTANCE}} -- deploy-service --home /wavs-home --service-uri {{.SERVICE_URI}} --wavs-endpoint {{.WAVS_ENDPOINT}}
 
@@ -592,12 +565,15 @@ tasks:
         cmds:
             - sha256sum "{{.COMPONENT_WASM_PATH}}" | cut -d' ' -f1
 
-    get-temp-service-hash:
-        desc: "Get temp service hash from upload response"
+    get-service-cid:
+        desc: "Get service CID from IPFS upload"
         requires:
-            vars: [TEMP_SERVICE_HASH_JSON_PATH]
+            vars: [SERVICE_CID_JSON_PATH]
+        preconditions:
+            - sh: '[ -f "{{.SERVICE_CID_JSON_PATH}}" ]'
+              msg: "Service CID not found; run task avs:upload-service first"
         cmds:
-            - jq -r '.hash' "{{.TEMP_SERVICE_HASH_JSON_PATH}}"
+            - jq -r '.cid' "{{.SERVICE_CID_JSON_PATH}}"
 
     get-service-manager-address:
         desc: "Get service manager address"
