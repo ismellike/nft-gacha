@@ -87,6 +87,11 @@ contract Gacha is
     /// @notice Total weight constant for rarity calculations (basis points)
     uint256 public constant TOTAL_WEIGHT = 10_000;
 
+    /// @notice Default spin timeout (5 minutes)
+    uint256 public constant DEFAULT_SPIN_TIMEOUT = 300;
+    /// @notice Default pricing premium over EV (5%)
+    uint256 public constant DEFAULT_PRICING_PREMIUM_BPS = 500;
+
     /// @notice Dynamic pricing and weights configuration
     uint8 public feeTokenDecimals;
     uint256 public feeTokenScalar;
@@ -176,9 +181,9 @@ contract Gacha is
 
         // Initialize trigger ID to start from 1 instead of 0
         _nextTriggerId = 1;
-        spinTimeout = 300; // 5 minutes
+        spinTimeout = DEFAULT_SPIN_TIMEOUT;
 
-        pricingPremiumBps = 500; // 5% premium over EV
+        pricingPremiumBps = DEFAULT_PRICING_PREMIUM_BPS;
         minSpinFee = _minSpinFee;
         maxSpinFee = 0;
 

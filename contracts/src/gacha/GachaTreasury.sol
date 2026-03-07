@@ -198,6 +198,8 @@ contract GachaTreasury is
     event CollectionRemovedFromWhitelist(address indexed collection);
     event CardGroupedVaultUpdated(address indexed oldVault, address indexed newVault);
     event ProtocolTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event MaxDepositsPerCardUpdated(uint256 oldMax, uint256 newMax);
+    event YieldClaimDecimalScalarUpdated(uint256 oldScalar, uint256 newScalar);
     event RedemptionRestocked(
         address indexed collection,
         uint256 indexed tokenId,
@@ -652,7 +654,9 @@ contract GachaTreasury is
     /// @param _maxDepositsPerCard New maximum (must be > 0)
     function setMaxDepositsPerCard(uint256 _maxDepositsPerCard) external onlyOwner {
         if (_maxDepositsPerCard == 0) revert InvalidLimit();
+        uint256 oldMax = maxDepositsPerCard;
         maxDepositsPerCard = _maxDepositsPerCard;
+        emit MaxDepositsPerCardUpdated(oldMax, _maxDepositsPerCard);
     }
 
     /// @notice Sets the decimal scalar for yield claim analytics conversion
@@ -660,7 +664,9 @@ contract GachaTreasury is
     ///      Set to 0 to use the default (1e12 for USDC).
     /// @param scalar New scalar value
     function setYieldClaimDecimalScalar(uint256 scalar) external onlyOwner {
+        uint256 oldScalar = yieldClaimDecimalScalar;
         yieldClaimDecimalScalar = scalar;
+        emit YieldClaimDecimalScalarUpdated(oldScalar, scalar);
     }
 
     /// @notice Updates the protocol treasury address

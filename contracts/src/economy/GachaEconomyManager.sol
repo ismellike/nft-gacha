@@ -29,6 +29,10 @@ contract GachaEconomyManager is
 
     /// @notice Basis points denominator
     uint256 public constant BPS_DENOMINATOR = 10_000;
+    /// @notice Default depositor share (95%)
+    uint256 public constant DEFAULT_DEPOSITOR_SHARE_BPS = 9_500;
+    /// @notice Default protocol share (5%)
+    uint256 public constant DEFAULT_PROTOCOL_SHARE_BPS = 500;
 
     /// @notice USDC token used for all accounting
     IERC20 public feeToken;
@@ -117,8 +121,8 @@ contract GachaEconomyManager is
         protocolTreasury = IProtocolTreasury(protocolTreasury_);
         numRarities = numRarities_;
 
-        depositorShareBps = 9_500;
-        protocolShareBps = 500;
+        depositorShareBps = DEFAULT_DEPOSITOR_SHARE_BPS;
+        protocolShareBps = DEFAULT_PROTOCOL_SHARE_BPS;
         emit RevenueSplitUpdated(depositorShareBps, protocolShareBps);
     }
 

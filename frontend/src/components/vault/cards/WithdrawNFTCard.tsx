@@ -14,7 +14,7 @@ interface NFTWithCollection {
 	tokenId: bigint;
 	appraisedPrice: bigint;
 	currentRarity?: number | string;
-	collectionName?: string;
+	collectionName?: string | undefined;
 }
 
 interface WithdrawNFTCardProps {
