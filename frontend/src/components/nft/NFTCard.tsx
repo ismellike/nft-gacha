@@ -524,6 +524,16 @@ export const NFTCard = memo<NFTCardProps>(
 				)}
 				{...(style && { style })}
 				onClick={onClick}
+				{...(onClick && {
+					role: "button" as const,
+					tabIndex: 0,
+					onKeyDown: (e: React.KeyboardEvent) => {
+						if (e.key === "Enter" || e.key === " ") {
+							e.preventDefault();
+							onClick();
+						}
+					},
+				})}
 				initial={{ opacity: 0, scale: 0.95, y: 10 }}
 				animate={{ opacity: 1, scale: 1, y: 0 }}
 				exit={{ opacity: 0, scale: 0.95, y: -10 }}

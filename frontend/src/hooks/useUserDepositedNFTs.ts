@@ -18,6 +18,8 @@ export interface DepositedNFT {
 	canonicalTokenId?: bigint; // Canonical token ID if different from deposited
 }
 
+export type NFTWithCollection = DepositedNFT;
+
 const depositedNFTsAbi = [
 	{
 		type: "function",

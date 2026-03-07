@@ -4,18 +4,11 @@ import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { memo } from "react";
 import type { Address } from "viem";
+import type { NFTWithCollection } from "../../../hooks/useUserDepositedNFTs";
 import { cn } from "../../../lib/theme-config";
 import { formatCurrency } from "../../../lib/utils";
 import { Button } from "../../../ui";
 import { NFTCard } from "../../nft";
-
-interface NFTWithCollection {
-	collection: Address;
-	tokenId: bigint;
-	appraisedPrice: bigint;
-	currentRarity?: number | string;
-	collectionName?: string | undefined;
-}
 
 interface WithdrawNFTCardProps {
 	nft: NFTWithCollection;
@@ -66,10 +59,7 @@ function WithdrawNFTCard({
 					data={{
 						collection: nft.collection,
 						tokenId: nft.tokenId.toString(),
-						rarity:
-							typeof nft.currentRarity === "number"
-								? nft.currentRarity
-								: undefined,
+						rarity: nft.currentRarity,
 						appraisedValue: nft.appraisedPrice,
 					}}
 					size="sm"

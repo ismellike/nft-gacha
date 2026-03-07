@@ -20,7 +20,7 @@ import { useGachaId } from "../../../hooks/useGachaId";
 import { useNFTDeposit } from "../../../hooks/useNFTDeposit";
 import { useNFTWithdrawal } from "../../../hooks/useNFTWithdrawal";
 import {
-	type DepositedNFT,
+	type NFTWithCollection,
 	useUserDepositedNFTs,
 } from "../../../hooks/useUserDepositedNFTs";
 import { useUserOwnedNFTsMultipleCollections } from "../../../hooks/useUserOwnedNFTs";
@@ -43,10 +43,6 @@ interface VaultSectionProps {
 }
 
 type VaultTab = "deposit" | "withdraw" | "yield";
-
-interface NFTWithCollection extends DepositedNFT {
-	collectionName?: string;
-}
 
 export function VaultSection({ title, description }: VaultSectionProps) {
 	const { address } = useAccount();

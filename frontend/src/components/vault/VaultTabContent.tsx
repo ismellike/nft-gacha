@@ -5,6 +5,7 @@ import type {
 	CardGroupedVaultData,
 	UserCardGroupedData,
 } from "../../hooks/useCardGroupedVault";
+import type { NFTWithCollection } from "../../hooks/useUserDepositedNFTs";
 import type { UserOwnedNFTMultiCollection } from "../../types/hooks";
 import { DepositTab } from "./tabs/DepositTab";
 import { VaultTabNavigation } from "./tabs/VaultTabNavigation";
@@ -12,14 +13,6 @@ import { WithdrawTab } from "./tabs/WithdrawTab";
 import { YieldTab } from "./tabs/YieldTab";
 
 type VaultTab = "deposit" | "withdraw" | "yield";
-
-interface NFTWithCollection {
-	collection: `0x${string}`;
-	tokenId: bigint;
-	appraisedPrice: bigint;
-	currentRarity?: number | string;
-	collectionName?: string | undefined;
-}
 
 interface AppraisalInfo {
 	hasAppraisal: boolean;
