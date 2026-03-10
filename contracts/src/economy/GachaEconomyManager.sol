@@ -157,6 +157,7 @@ contract GachaEconomyManager is
             } catch {
                 // Rarity pool is empty — queue for that specific rarity
                 queuedYieldByRarity[hitRarity] += depositShare;
+                feeToken.forceApprove(address(cardGroupedVault), 0); // Clean up leftover approval
                 emit DepositorYieldQueued(depositShare, hitRarity);
             }
         }
@@ -181,6 +182,8 @@ contract GachaEconomyManager is
             protocolTreasury.onRevenueReceived(protocolShare);
         }
 
+        // totalRevenueProcessed counts all revenue accepted, including any depositor share that was
+        // queued rather than immediately distributed. Therefore: totalRevenueProcessed >= totalToDepositors + totalToProtocol.
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
         totalToDepositors += actualDistributed + totalFlushed;

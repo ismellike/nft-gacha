@@ -188,19 +188,22 @@ contract NFTAppraisal is
             feeToken.safeTransferFrom(msg.sender, protocolAddress, appraisalFee);
         }
 
-        // Create or update token request (supporting re-appraisals)
-        bool isReAppraisal = tokenRequests[collection][tokenId].timestamp != 0;
+        // Read existing request before overwriting (to get accurate old status for event)
+        TokenRequest memory existing = tokenRequests[collection][tokenId];
+        bool isReAppraisal = existing.timestamp != 0;
+        AppraisalStatus oldStatus = isReAppraisal ? existing.status : AppraisalStatus.Pending;
 
         tokenRequests[collection][tokenId] = TokenRequest({
             requester: msg.sender,
             status: AppraisalStatus.Pending,
             timestamp: block.timestamp,
-            lastUpdated: isReAppraisal ? block.timestamp : 0
+            // Preserve lastUpdated for re-appraisals: it reflects when price was last set, not when re-requested
+            lastUpdated: isReAppraisal ? existing.lastUpdated : 0
         });
 
         emit AppraisalRequested(collection, tokenId);
         emit AppraisalStatusChanged(
-            collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp
+            collection, tokenId, oldStatus, AppraisalStatus.Pending, block.timestamp
         );
     }
 
@@ -240,20 +243,23 @@ contract NFTAppraisal is
                 revert InvalidTokenId();
             }
 
-            // Allow re-appraisals matching single-request path
-            bool isReAppraisal = tokenRequests[collection][tokenId].timestamp != 0;
+            // Read existing request before overwriting (to get accurate old status for event)
+            TokenRequest memory existing = tokenRequests[collection][tokenId];
+            bool isReAppraisal = existing.timestamp != 0;
+            AppraisalStatus oldStatus = isReAppraisal ? existing.status : AppraisalStatus.Pending;
 
             tokenRequests[collection][tokenId] = TokenRequest({
                 requester: msg.sender,
                 status: AppraisalStatus.Pending,
                 timestamp: block.timestamp,
-                lastUpdated: isReAppraisal ? block.timestamp : 0
+                // Preserve lastUpdated for re-appraisals: it reflects when price was last set, not when re-requested
+                lastUpdated: isReAppraisal ? existing.lastUpdated : 0
             });
 
             // Emit events for external service integration
             emit AppraisalRequested(collection, tokenId);
             emit AppraisalStatusChanged(
-                collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp
+                collection, tokenId, oldStatus, AppraisalStatus.Pending, block.timestamp
             );
         }
     }
