@@ -317,10 +317,6 @@ contract Gacha is
 
         request.statusFlags = _setFulfilled(request.statusFlags);
 
-        // Increment spin counters
-        userSpinCount[request.requester]++;
-        totalSpinCount++;
-
         // Select rarity based on randomness using cached counts
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
@@ -355,6 +351,10 @@ contract Gacha is
         // Send NFT from treasury to requester using optimized random selection
         GachaTreasury.NFTItem memory selectedNFT =
             treasury.sendRandomNFTToWinner(selectedRarity, uint256(randomness), request.requester);
+
+        // Increment spin counters only after a successful NFT transfer (refunded spins must not inflate counters)
+        userSpinCount[request.requester]++;
+        totalSpinCount++;
 
         // Track win statistics
         userRarityWins[request.requester][selectedRarity]++;

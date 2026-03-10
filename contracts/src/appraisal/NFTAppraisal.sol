@@ -719,38 +719,36 @@ contract NFTAppraisal is
     }
 
     /**
-     * @notice Internal function to trigger automatic migration if NFT is in whitelisted treasury
-     * @param collection NFT collection address
-     * @param tokenId Token ID to check and migrate
+     * @notice Internal function to trigger automatic migration for all whitelisted treasuries
+     * @dev Iterates all whitelisted treasuries and calls onCardPriceUpdated for each, so that
+     *      treasuries holding any token of this card (not just the specific tokenId) are updated.
+     *      The treasury's onCardPriceUpdated returns early if it has no deposits for this card.
+     * @param collection NFT collection address (used for event emission/traceability)
+     * @param tokenId Token ID whose card price was updated (used for event emission/traceability)
      */
     function _triggerAutoMigration(address collection, uint256 tokenId) internal {
-        // Check if the NFT owner is a whitelisted treasury
-        address nftOwner;
+        // Get card-level info shared across all treasury calls
+        bytes32 cardId = tokenCardIds[collection][tokenId];
+        uint256 newPrice = cardAppraisals[cardId].priceUSD;
 
-        try IERC721(collection).ownerOf(tokenId) returns (address owner) {
-            nftOwner = owner;
-        } catch {
-            // If we can't get the owner, skip migration
-            return;
-        }
+        // Iterate every whitelisted treasury and notify it of the card price update.
+        // Each treasury returns early if it has no deposits for this card, so the call
+        // is safe even when the treasury does not hold any token of this card.
+        address[] storage list = treasuryList;
+        uint256 len = list.length;
+        for (uint256 i = 0; i < len; i++) {
+            address treas = list[i];
 
-        if (whitelistedTreasuries[nftOwner]) {
-            // Get card-level info for the O(1) vault update path
-            bytes32 cardId = tokenCardIds[collection][tokenId];
-            uint256 newPrice = cardAppraisals[cardId].priceUSD;
-
-            // Call the treasury's card-level price update (O(1) vault + O(tokens) treasury array)
-            // Use low-level call to prevent revert from failing this transaction
-            (bool success, bytes memory data) = nftOwner.call{gas: 500_000}(
+            // Use low-level call to prevent any single treasury revert from aborting the loop
+            (bool success, bytes memory data) = treas.call{gas: 500_000}(
                 abi.encodeWithSignature("onCardPriceUpdated(bytes32,uint256)", cardId, newPrice)
             );
 
             if (success) {
-                emit AutoMigrationTriggered(nftOwner, collection, tokenId);
+                emit AutoMigrationTriggered(treas, collection, tokenId);
             } else {
-                emit AutoMigrationFailed(nftOwner, collection, tokenId, data);
+                emit AutoMigrationFailed(treas, collection, tokenId, data);
             }
-            // If migration fails, we don't revert - the price update still happened
         }
     }
 

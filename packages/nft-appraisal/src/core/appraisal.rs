@@ -126,7 +126,11 @@ fn scale_to_usdc6(p: f64) -> Option<U256> {
     if !p.is_finite() || p <= 0.0 {
         return None;
     }
-    Some(U256::from((p * 1_000_000.0).round() as u128))
+    let scaled = (p * 1_000_000.0).round();
+    if scaled > u128::MAX as f64 {
+        return None;
+    }
+    Some(U256::from(scaled as u128))
 }
 
 #[cfg(test)]
@@ -144,6 +148,23 @@ mod tests {
         assert_eq!(scale_to_usdc6(-1.0), None);
         assert_eq!(scale_to_usdc6(f64::NAN), None);
         assert_eq!(scale_to_usdc6(f64::INFINITY), None);
+    }
+
+    #[test]
+    fn test_scale_to_usdc6_extreme_values() {
+        // f64::MAX * 1_000_000 far exceeds u128::MAX, must return None
+        assert_eq!(
+            scale_to_usdc6(f64::MAX),
+            None,
+            "f64::MAX should overflow u128 and return None"
+        );
+
+        // Negative infinity is not finite, must return None
+        assert_eq!(scale_to_usdc6(f64::NEG_INFINITY), None);
+
+        // Normal prices still work after the overflow guard is present
+        assert_eq!(scale_to_usdc6(9.99), Some(U256::from(9_990_000u32)));
+        assert_eq!(scale_to_usdc6(0.000001), Some(U256::from(1u32)));
     }
 
     #[test]

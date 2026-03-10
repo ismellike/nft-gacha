@@ -54,11 +54,56 @@ pub fn extract_tx_hash(tx_hash_bytes: &[u8]) -> B256 {
     let mut hash_bytes = [0u8; 32];
     if tx_hash_bytes.len() == 32 {
         hash_bytes.copy_from_slice(tx_hash_bytes);
+    } else if tx_hash_bytes.len() < 32 {
+        // Left-align: copy into beginning, zero-pad on the right
+        hash_bytes[..tx_hash_bytes.len()].copy_from_slice(tx_hash_bytes);
     } else {
-        let copy_len = tx_hash_bytes.len().min(32);
-        hash_bytes[32 - copy_len..].copy_from_slice(&tx_hash_bytes[tx_hash_bytes.len() - copy_len..]);
+        // Truncate: take first 32 bytes
+        hash_bytes.copy_from_slice(&tx_hash_bytes[..32]);
     }
     B256::from(hash_bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_tx_hash_exact_32_bytes() {
+        let input: Vec<u8> = (1u8..=32).collect();
+        let result = extract_tx_hash(&input);
+        assert_eq!(result.as_slice(), input.as_slice());
+    }
+
+    #[test]
+    fn test_extract_tx_hash_short_input_left_aligned() {
+        // 20-byte input: bytes should appear at the start; the remaining 12 bytes must be zero.
+        let input: Vec<u8> = (1u8..=20).collect();
+        let result = extract_tx_hash(&input);
+        let bytes = result.as_slice();
+
+        assert_eq!(&bytes[..20], input.as_slice(), "first 20 bytes must match input");
+        assert_eq!(
+            &bytes[20..],
+            &[0u8; 12],
+            "trailing bytes must be zero-padded"
+        );
+    }
+
+    #[test]
+    fn test_extract_tx_hash_long_input_truncated() {
+        // 40-byte input: only the first 32 bytes should be kept.
+        let input: Vec<u8> = (1u8..=40).collect();
+        let result = extract_tx_hash(&input);
+        assert_eq!(result.as_slice(), &input[..32]);
+    }
+
+    #[test]
+    fn test_extract_tx_hash_empty_input() {
+        // Empty slice should produce all-zero hash (left-aligned with nothing to copy).
+        let result = extract_tx_hash(&[]);
+        assert_eq!(result, B256::ZERO);
+    }
 }
 
 pub fn encode_success(identity: &AppraisalIdentity, price: U256) -> Vec<u8> {

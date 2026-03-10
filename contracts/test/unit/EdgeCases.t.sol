@@ -1191,3 +1191,488 @@ contract QueuedYieldProcessingTest is Test {
         assertApproxEqAbs(bobPending,   totalDistributed / 4,        10, "Bob should have ~25% of total");
     }
 }
+
+// ============================================================================
+// Edge Case 1: Gacha — refunded spins must NOT inflate spin counters
+// ============================================================================
+
+/**
+ * @title GachaRefundedSpinCounterTest
+ * @notice Verifies that when fulfillRandomness triggers a refund because the selected
+ *         rarity pool is empty, neither userSpinCount nor totalSpinCount are incremented.
+ *
+ * Bug context (Gacha.sol): counters are incremented only after a successful NFT transfer.
+ * A refund path returns early without incrementing, so counters must stay at zero.
+ */
+contract GachaRefundedSpinCounterTest is Test {
+    Gacha gacha;
+    GachaServiceHandler serviceHandler;
+    GachaTreasury treasury;
+    BaseERC721 nft;
+    BaseERC20 feeToken;
+    MockNFTAppraisal mockAppraisal;
+    MockWavsServiceManager mockWavsManager;
+    MockGachaEconomyManager mockEconomyManager;
+
+    address gachaOwner   = makeAddr("gachaOwner");
+    address treasuryOwner = makeAddr("treasuryOwner");
+    address spinner      = makeAddr("spinner");
+
+    uint256 constant MIN_SPIN_FEE  = 0.01e6; // 0.01 USDC (6 decimals)
+    uint256 constant MAX_SPIN_FEE  = 1e9;
+
+    uint8 constant COMMON    = 0;
+    uint8 constant UNCOMMON  = 1;
+    uint8 constant RARE      = 2;
+    uint8 constant EPIC      = 3;
+    uint8 constant LEGENDARY = 4;
+
+    function setUp() public {
+        mockWavsManager   = new MockWavsServiceManager();
+        mockEconomyManager = new MockGachaEconomyManager();
+        feeToken          = new BaseERC20("USDC", "USDC", gachaOwner);
+        mockAppraisal     = new MockNFTAppraisal();
+
+        // Deploy treasury
+        vm.startPrank(treasuryOwner);
+        GachaTreasury treasuryImpl = new GachaTreasury();
+        uint256[] memory minPrices = _getMinPrices();
+        uint256[] memory maxPrices = _getMaxPrices();
+        string[] memory rarityNames = _getRarityNames();
+        bytes memory initData = abi.encodeWithSelector(
+            GachaTreasury.initialize.selector,
+            treasuryOwner,
+            address(0xDEAD),
+            address(mockAppraisal),
+            uint8(5),
+            rarityNames,
+            minPrices,
+            maxPrices
+        );
+        ERC1967Proxy treasuryProxy = new ERC1967Proxy(address(treasuryImpl), initData);
+        treasury = GachaTreasury(address(treasuryProxy));
+        vm.stopPrank();
+
+        // Deploy Gacha
+        Gacha gachaImpl = new Gacha();
+        serviceHandler = new GachaServiceHandler(
+            IWavsServiceManager(address(mockWavsManager)),
+            address(gachaImpl)
+        );
+        vm.prank(gachaOwner);
+        initData = abi.encodeWithSelector(
+            Gacha.initialize.selector,
+            gachaOwner,
+            address(serviceHandler),
+            address(feeToken),
+            MIN_SPIN_FEE,
+            address(treasury),
+            address(mockEconomyManager)
+        );
+        ERC1967Proxy gachaProxy = new ERC1967Proxy(address(gachaImpl), initData);
+        gacha = Gacha(address(gachaProxy));
+
+        vm.prank(gachaOwner);
+        gacha.setFeeTokenDecimals(6);
+
+        vm.prank(treasuryOwner);
+        treasury.setGachaContract(address(gacha));
+
+        nft = new BaseERC721("Test NFT", "TNFT", treasuryOwner);
+
+        vm.prank(gachaOwner);
+        feeToken.mint(spinner, 100e6);
+    }
+
+    /**
+     * @notice Refunded spin must not increment userSpinCount or totalSpinCount.
+     *
+     * Setup:
+     *   - Only a Common NFT is deposited so the treasury is non-empty (spin allowed).
+     *   - Weights are set to 100% Common (10000 bps) so the spin validation passes.
+     *   - After the spin is created, the depositor withdraws the NFT, leaving Common empty.
+     *   - fulfillRandomness is called with randomness that selects Common (roll = 0).
+     *   - The treasury has 0 Common NFTs → refund path is taken.
+     *   - Neither userSpinCount[spinner] nor totalSpinCount must have increased.
+     */
+    function test_refundedSpin_doesNotInflateSpinCounters() public {
+        // Set all weight on Common so the spin validation passes when Common is non-empty
+        vm.startPrank(gachaOwner);
+        uint256[] memory weights = new uint256[](5);
+        weights[0] = 10_000; // 100% Common
+        weights[1] = 0;
+        weights[2] = 0;
+        weights[3] = 0;
+        weights[4] = 0;
+        gacha.setDynamicWeightsConfig(weights);
+        vm.stopPrank();
+
+        // Deposit one Common NFT so spin validation passes
+        vm.startPrank(treasuryOwner);
+        treasury.addToWhitelist(address(nft));
+        uint256 tokenId = nft.mint(treasuryOwner);
+        nft.approve(address(treasury), tokenId);
+        mockAppraisal.setMockAppraisal(address(nft), tokenId, 10e18); // $10 → Common
+        treasury.depositNFT(address(nft), tokenId);
+        vm.stopPrank();
+
+        // Spin is created while Common has 1 NFT
+        uint256 fee = gacha.getCurrentSpinFee();
+        vm.prank(spinner);
+        feeToken.approve(address(gacha), fee);
+        vm.prank(spinner);
+        uint256 triggerId = gacha.spin(MAX_SPIN_FEE);
+
+        // Record counters before fulfillment
+        uint256 userCountBefore  = gacha.userSpinCount(spinner);
+        uint256 totalCountBefore = gacha.totalSpinCount();
+
+        // Withdraw the Common NFT so the pool is now empty when fulfillment arrives
+        vm.prank(treasuryOwner);
+        treasury.withdrawMyNFT(address(nft), tokenId);
+
+        // Verify treasury is empty for Common
+        assertEq(treasury.getRarityCount(COMMON), 0, "Common pool should be empty after withdrawal");
+
+        // Fulfill with randomness that rolls 0 → selects Common (0 % 10000 = 0 < 10000)
+        bytes32 randomness = bytes32(uint256(0)); // roll = 0 → Common
+        vm.prank(address(serviceHandler));
+        gacha.fulfillRandomness(triggerId, randomness);
+
+        // Counters must be unchanged — refund path must NOT increment them
+        assertEq(gacha.userSpinCount(spinner), userCountBefore,  "userSpinCount must not increase on refund");
+        assertEq(gacha.totalSpinCount(),       totalCountBefore, "totalSpinCount must not increase on refund");
+
+        // Refund counters should have incremented
+        assertEq(gacha.userRefundCount(spinner), 1, "userRefundCount should be 1");
+        assertEq(gacha.totalRefundCount(),       1, "totalRefundCount should be 1");
+    }
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    function _getMinPrices() internal pure returns (uint256[] memory m) {
+        m = new uint256[](5);
+        m[0] = 0;
+        m[1] = 15e18 + 1e16;
+        m[2] = 60e18 + 1e16;
+        m[3] = 250e18 + 1e16;
+        m[4] = 1_200e18 + 1e16;
+    }
+
+    function _getMaxPrices() internal pure returns (uint256[] memory m) {
+        m = new uint256[](5);
+        m[0] = 15e18;
+        m[1] = 60e18;
+        m[2] = 250e18;
+        m[3] = 1_200e18;
+        m[4] = type(uint256).max;
+    }
+
+    function _getRarityNames() internal pure returns (string[] memory n) {
+        n = new string[](5);
+        n[0] = "Common";
+        n[1] = "Uncommon";
+        n[2] = "Rare";
+        n[3] = "Epic";
+        n[4] = "Legendary";
+    }
+}
+
+// ============================================================================
+// Edge Case 2: CardGroupedVault — re-deposit after full removal uses fresh values
+// ============================================================================
+
+/**
+ * @title CardGroupedVaultReDepositTest
+ * @notice Verifies that after all copies of a card are removed (totalCount → 0),
+ *         re-depositing that card initializes fresh price and rarity from the new call,
+ *         not from any stale values left behind.
+ *
+ * Bug context (CardGroupedVault.sol): when the last token is removed the card node is
+ * zeroed out (cardPriceUSD = 0, rarity = 0, etc.).  A subsequent registerCardDeposit
+ * must treat this as a brand-new card and use the caller-supplied price/rarity.
+ */
+contract CardGroupedVaultReDepositTest is Test {
+    CardGroupedVault vault;
+    BaseERC20 usdc;
+
+    address owner        = address(0x1);
+    address treasury     = address(0x2);
+    address economyMgr   = address(0x3);
+    address alice        = address(0xA);
+
+    bytes32 constant CARD_X = keccak256("card-X");
+
+    uint8 constant COMMON    = 0;
+    uint8 constant EPIC      = 3;
+
+    function setUp() public {
+        usdc = new BaseERC20("USDC", "USDC", address(this));
+        vault = new CardGroupedVault();
+        vault.initialize(owner, address(usdc), treasury, economyMgr, uint8(5));
+
+        usdc.mint(economyMgr, 1_000_000e6);
+        vm.prank(economyMgr);
+        usdc.approve(address(vault), type(uint256).max);
+    }
+
+    /**
+     * @notice After removing all deposits for a card, re-depositing must use the new
+     *         price and rarity, not the old zeroed-out stale values.
+     *
+     * Steps:
+     *   1. Register CARD_X at price $10 (Common).
+     *   2. Remove all 2 deposits → card node is zeroed.
+     *   3. Distribute yield to Common — should be a no-op (nobody in Common pool).
+     *   4. Re-deposit CARD_X at price $500 (Epic).
+     *   5. Distribute yield to Epic — alice must receive it (correct pool).
+     *   6. Distribute yield to Common — alice must NOT receive it (wrong pool).
+     */
+    function test_reDeposit_afterFullRemoval_usesFreshPriceAndRarity() public {
+        uint256 oldPrice = 10e18;   // $10 — Common
+        uint256 newPrice = 500e18;  // $500 — Epic
+
+        // Step 1: initial deposit
+        vm.prank(treasury);
+        vault.registerCardDeposit(CARD_X, alice, oldPrice, COMMON, 2);
+
+        assertEq(vault.sharesOf(alice), 2 * oldPrice, "initial shares correct");
+        assertEq(vault.rarityTotalValue(COMMON), 2 * oldPrice, "Common value correct");
+        assertEq(vault.rarityTotalValue(EPIC),   0,            "Epic value zero initially");
+
+        // Step 2: remove all deposits → totalCount reaches 0
+        vm.prank(treasury);
+        vault.removeCardDeposit(CARD_X, alice, 2);
+
+        assertEq(vault.sharesOf(alice), 0, "shares zeroed after full removal");
+        assertEq(vault.rarityTotalValue(COMMON), 0, "Common value zeroed");
+
+        // Step 3: re-deposit at new price / new rarity
+        vm.prank(treasury);
+        vault.registerCardDeposit(CARD_X, alice, newPrice, EPIC, 1);
+
+        assertEq(vault.sharesOf(alice), newPrice,         "shares reflect new price");
+        assertEq(vault.rarityTotalValue(EPIC),   newPrice, "Epic value reflects new deposit");
+        assertEq(vault.rarityTotalValue(COMMON), 0,        "Common value unchanged");
+
+        // Step 4: distribute yield to Epic — alice must receive it all
+        vm.prank(economyMgr);
+        vault.distributeYield(100e6, EPIC);
+
+        assertApproxEqAbs(vault.pendingYield(alice), 100e6, 1,
+            "alice should receive Epic yield after re-deposit");
+
+        // Step 5: distribute yield to Common — alice must NOT receive it
+        // (Common pool is empty, so distributeYield would revert with NoValueInPool)
+        vm.prank(economyMgr);
+        vm.expectRevert(CardGroupedVault.NoValueInPool.selector);
+        vault.distributeYield(50e6, COMMON);
+    }
+
+    /**
+     * @notice Verify that the new rarity is stored correctly after re-deposit.
+     *         Old accumulated yield from before the full removal does not bleed
+     *         into the new stint at the Epic rarity.
+     */
+    function test_reDeposit_noYieldBleedFromPreviousStint() public {
+        uint256 price1 = 10e18;   // $10 — Common
+        uint256 price2 = 500e18;  // $500 — Epic
+
+        // First stint: deposit, earn yield, remove all
+        vm.prank(treasury);
+        vault.registerCardDeposit(CARD_X, alice, price1, COMMON, 1);
+
+        vm.prank(economyMgr);
+        vault.distributeYield(30e6, COMMON);
+
+        // Remove all — yield is materialized into accruedYield but not yet claimed
+        vm.prank(treasury);
+        vault.removeCardDeposit(CARD_X, alice, 1);
+
+        assertApproxEqAbs(vault.pendingYield(alice), 30e6, 1,
+            "accrued yield from first stint visible");
+
+        // Second stint: re-deposit at different rarity
+        vm.prank(treasury);
+        vault.registerCardDeposit(CARD_X, alice, price2, EPIC, 1);
+
+        // Distribute yield to Epic — alice gets 50 USDC new yield
+        vm.prank(economyMgr);
+        vault.distributeYield(50e6, EPIC);
+
+        // Total pending = 30 (old settled) + 50 (new Epic yield) = 80
+        assertApproxEqAbs(vault.pendingYield(alice), 80e6, 2,
+            "total pending should be old + new yield");
+
+        // Claiming should pay out exactly 80 USDC
+        vm.prank(alice);
+        uint256 claimed = vault.claimYield(alice);
+        assertApproxEqAbs(claimed, 80e6, 2, "claim pays old + new yield");
+    }
+}
+
+// ============================================================================
+// Edge Case 3: NFTAppraisal — _triggerAutoMigration notifies treasuries even
+//              when the appraised tokenId is not in any treasury
+// ============================================================================
+
+/// @dev Minimal mock treasury that records onCardPriceUpdated calls.
+contract MockTreasuryForMigration {
+    /// @dev Number of times onCardPriceUpdated was called
+    uint256 public callCount;
+    /// @dev Last cardId received
+    bytes32 public lastCardId;
+    /// @dev Last price received
+    uint256 public lastPrice;
+
+    // Signature must match what _triggerAutoMigration calls via low-level call
+    function onCardPriceUpdated(bytes32 cardId, uint256 newPriceUSD) external {
+        callCount++;
+        lastCardId = cardId;
+        lastPrice  = newPriceUSD;
+    }
+}
+
+/**
+ * @title NFTAppraisalNonDepositedTokenMigrationTest
+ * @notice Verifies _triggerAutoMigration notifies whitelisted treasuries for a card
+ *         even when the specific tokenId that was appraised is NOT deposited in any
+ *         treasury, as long as some other token of the same card IS deposited.
+ *
+ * Bug context (NFTAppraisal.sol): _triggerAutoMigration iterates ALL whitelisted
+ * treasuries and calls onCardPriceUpdated(cardId, newPrice).  It must notify
+ * based on the card identifier, not on the specific token that triggered the update.
+ */
+contract NFTAppraisalNonDepositedTokenMigrationTest is Test {
+    NFTAppraisal appraisal;
+    MockTreasuryForMigration mockTreasury;
+    BaseERC721 nft;
+    BaseERC20 feeToken;
+
+    address appraisalOwner = makeAddr("appraisalOwner");
+    address protocol       = makeAddr("protocol");
+    address serviceHandler = makeAddr("serviceHandler");
+    address user           = makeAddr("user");
+
+    uint256 constant APPRAISAL_FEE = 10e18;
+
+    // Two tokens belonging to the same card
+    uint256 TOKEN_A; // will be deposited into the mock treasury
+    uint256 TOKEN_B; // will be appraised — NOT in any treasury
+
+    bytes32 SHARED_CARD_ID = keccak256("shared-card");
+
+    function setUp() public {
+        feeToken = new BaseERC20("FEE", "FEE", appraisalOwner);
+        nft      = new BaseERC721("NFT", "NFT", appraisalOwner);
+
+        // Deploy NFTAppraisal proxy
+        NFTAppraisal appraisalImpl = new NFTAppraisal();
+        bytes memory initData = abi.encodeWithSelector(
+            NFTAppraisal.initialize.selector,
+            appraisalOwner,
+            address(feeToken),
+            APPRAISAL_FEE,
+            protocol
+        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), initData);
+        appraisal = NFTAppraisal(address(proxy));
+
+        // Set service handler
+        vm.prank(appraisalOwner);
+        appraisal.setServiceHandler(serviceHandler);
+
+        // Mint two NFT tokens; TOKEN_A simulates a deposited token (same card as TOKEN_B)
+        vm.prank(appraisalOwner);
+        TOKEN_A = nft.mint(appraisalOwner); // deposited token (not appraised here)
+        vm.prank(appraisalOwner);
+        TOKEN_B = nft.mint(appraisalOwner); // the token whose appraisal changes price
+
+        // Fund user for appraisal fees
+        vm.prank(appraisalOwner);
+        feeToken.mint(user, 1000e18);
+        vm.prank(user);
+        feeToken.approve(address(appraisal), type(uint256).max);
+
+        // Establish initial card appraisal BEFORE whitelisting the spy treasury.
+        // This ensures the initial 0→10e18 price transition does not register on the spy.
+        vm.prank(appraisalOwner);
+        nft.transferFrom(appraisalOwner, user, TOKEN_A);
+        vm.prank(user);
+        appraisal.requestAppraisal(address(nft), TOKEN_A);
+        vm.prank(serviceHandler);
+        appraisal.setAppraisalForTokenWithCard(address(nft), TOKEN_A, SHARED_CARD_ID, 10e18);
+
+        // Also link TOKEN_B to the same card at the same price (no price change → no migration)
+        vm.prank(appraisalOwner);
+        nft.transferFrom(appraisalOwner, user, TOKEN_B);
+        vm.prank(user);
+        appraisal.requestAppraisal(address(nft), TOKEN_B);
+        vm.prank(serviceHandler);
+        appraisal.setAppraisalForTokenWithCard(address(nft), TOKEN_B, SHARED_CARD_ID, 10e18);
+
+        // Deploy the spy treasury mock and whitelist it AFTER the initial appraisals.
+        // From this point on, any price change on SHARED_CARD_ID will notify the spy.
+        mockTreasury = new MockTreasuryForMigration();
+        vm.prank(appraisalOwner);
+        appraisal.whitelistTreasury(address(mockTreasury));
+    }
+
+    /**
+     * @notice Appraising TOKEN_B (not in any treasury) at a new price triggers
+     *         onCardPriceUpdated on the mock treasury, which holds TOKEN_A of the same card.
+     *
+     * Flow:
+     *   - TOKEN_A was linked to SHARED_CARD_ID at $10 (initial price).
+     *   - TOKEN_B is appraised at $200 (price change).
+     *   - _triggerAutoMigration iterates treasuryList → calls mockTreasury.onCardPriceUpdated.
+     *   - mockTreasury.callCount must equal 1 and lastCardId must equal SHARED_CARD_ID.
+     */
+    function test_autoMigration_notifiesTreasury_evenWhenAppraisedTokenNotDeposited() public {
+        // callCount should be 0 at this point (setup prices were identical)
+        assertEq(mockTreasury.callCount(), 0, "no migration during setup (same price)");
+
+        // Re-appraise TOKEN_B at a higher price — this causes a price change on SHARED_CARD_ID
+        vm.prank(user);
+        appraisal.requestAppraisal(address(nft), TOKEN_B);
+
+        uint256 newPrice = 200e18; // $200 — price changed from $10
+        vm.prank(serviceHandler);
+        appraisal.setAppraisalForTokenWithCard(address(nft), TOKEN_B, SHARED_CARD_ID, newPrice);
+
+        // The mock treasury must have been notified exactly once
+        assertEq(mockTreasury.callCount(), 1,
+            "treasury must receive onCardPriceUpdated when card price changes");
+        assertEq(mockTreasury.lastCardId(), SHARED_CARD_ID,
+            "treasury must receive the correct card ID");
+        assertEq(mockTreasury.lastPrice(),  newPrice,
+            "treasury must receive the new price");
+    }
+
+    /**
+     * @notice Multiple price updates on the same card each trigger a migration notification.
+     *         TOKEN_A (the non-appraised token of the card) is never directly appraised here.
+     */
+    function test_autoMigration_firesOnEachPriceChange() public {
+        uint256 price1 = 50e18;
+        uint256 price2 = 300e18;
+
+        // First price change on TOKEN_B
+        vm.prank(user);
+        appraisal.requestAppraisal(address(nft), TOKEN_B);
+        vm.prank(serviceHandler);
+        appraisal.setAppraisalForTokenWithCard(address(nft), TOKEN_B, SHARED_CARD_ID, price1);
+
+        assertEq(mockTreasury.callCount(), 1, "first migration fired");
+        assertEq(mockTreasury.lastPrice(),  price1, "first migration price correct");
+
+        // Second price change on TOKEN_B
+        vm.prank(user);
+        appraisal.requestAppraisal(address(nft), TOKEN_B);
+        vm.prank(serviceHandler);
+        appraisal.setAppraisalForTokenWithCard(address(nft), TOKEN_B, SHARED_CARD_ID, price2);
+
+        assertEq(mockTreasury.callCount(), 2, "second migration fired");
+        assertEq(mockTreasury.lastPrice(),  price2, "second migration price correct");
+    }
+}
