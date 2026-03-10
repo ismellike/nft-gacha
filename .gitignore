@@ -25,5 +25,8 @@ target
 Cargo-component.lock
 .project-output/*
 skills/
-.claude/
+# Claude Code - ignore user-specific, keep shared config
+.claude/*
+!.claude/skills/
+!.claude/agents/
 DEPLOYMENT.md
