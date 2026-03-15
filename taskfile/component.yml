@@ -7,6 +7,9 @@ includes:
   docker:
     taskfile: ./docker.yml
     flatten: true
+  ipfs:
+    taskfile: ./ipfs.yml
+    internal: true
 
 tasks:
   build:
@@ -55,31 +58,20 @@ tasks:
       - rm -rf "{{.COMPONENT_OUTPUT_DIR}}"
 
   upload-to-ipfs:
-    desc: "Upload a WASI component to IPFS"
+    desc: "Upload a WASI component to IPFS (local Kubo for LOCAL, Pinata for TESTNET/MAINNET)"
     requires:
       vars: [COMPONENT_NAME]
     vars:
       COMPONENT_WASM: "{{.COMPONENTS_CARGO_RELEASE_DIR}}/{{.COMPONENT_NAME}}.wasm"
-      OUTPUT_DIR: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components"
       OUTPUT_FILE: "{{.REPO_ROOT}}/{{.PROJECT_OUTPUT_DIRNAME}}/components/{{.COMPONENT_NAME}}-cid.json"
     preconditions:
       - test -f "{{.COMPONENT_WASM}}"
-      - sh: "nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null"
-        msg: "IPFS node is not running. Start it with: task backend:start-ipfs"
     cmds:
       - echo "📤 Uploading {{.COMPONENT_NAME}} to IPFS..."
-      - mkdir -p "{{.OUTPUT_DIR}}"
-      - |
-          CID=$(curl -s -X POST "{{.IPFS_API_URL}}/api/v0/add?pin=true" \
-            -F file=@{{.COMPONENT_WASM}} | jq -r '.Hash')
-
-          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
-            echo "❌ Failed to upload component to IPFS"
-            exit 1
-          fi
-
-          echo "✅ Component CID: $CID"
-          echo "{\"cid\":\"$CID\",\"ipfs_url\":\"ipfs://$CID\",\"gateway_url\":\"http://localhost:{{.IPFS_GATEWAY_PORT}}/ipfs/$CID\"}" > "{{.OUTPUT_FILE}}"
+      - task: ipfs:upload
+        vars:
+          UPLOAD_FILE: "{{.COMPONENT_WASM}}"
+          OUTPUT_FILE: "{{.OUTPUT_FILE}}"
       - echo "✅ CID saved to {{.OUTPUT_FILE}}"
 
   get-output-dir:

@@ -260,12 +260,18 @@ tasks:
             - rm -rf "{{.WAVS_HOME_DIR}}"
 
     seed-wavs-config:
-        desc: "Seed WAVS home config"
+        desc: "Seed WAVS home config (substitutes IPFS gateway for testnet/mainnet)"
         vars:
             WAVS_CONFIG_TEMPLATE: "{{.BACKEND_DIR}}/wavs.toml"
         cmds:
             - mkdir -p "{{.WAVS_HOME_DIR}}"
             - cp "{{.BACKEND_DIR}}/wavs.toml" "{{.WAVS_HOME_DIR}}/wavs.toml"
+            - |
+                # For testnet/mainnet, replace local IPFS gateway with public gateway
+                if [ "{{.DEPLOY_ENV}}" != "LOCAL" ] && [ -n "{{.WAVS_IPFS_GATEWAY}}" ]; then
+                  sed -i 's|ipfs_gateway = "http://localhost:8301/ipfs/"|ipfs_gateway = "{{.WAVS_IPFS_GATEWAY}}"|' "{{.WAVS_HOME_DIR}}/wavs.toml"
+                  echo "WAVS IPFS gateway set to: {{.WAVS_IPFS_GATEWAY}}"
+                fi
 
     stop-wavs:
         desc: "Stop all WAVS operator instances"

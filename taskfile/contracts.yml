@@ -103,6 +103,7 @@ tasks:
                 forge script script/DeployTestnet.s.sol:DeployTestnet \
                   --rpc-url {{.DEPLOY_RPC_URL}} \
                   --broadcast \
+                  --slow \
                   --private-key $DEPLOYER_PRIVATE_KEY \
                   $VERIFY_FLAGS
         preconditions:
