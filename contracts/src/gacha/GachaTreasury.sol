@@ -474,20 +474,17 @@ contract GachaTreasury is
         }
         treasury[rarity].pop();
 
-        // Update counts
+        // Update counts and clean up mappings (effects before interactions)
         unchecked {
             --rarityCount[rarity];
         }
-
-        _trackRemoval(depositor, collection, tokenId, rarity, appraisedPrice);
         userLifetimeWithdrawn[depositor] += appraisedPrice;
-
-        // Clean up mappings
         depositedNFTs[collection][tokenId] = false;
         delete nftToTreasuryIndex[collection][tokenId];
         delete nftCurrentRarity[collection][tokenId];
 
-        // Transfer NFT back to the user
+        // External calls (interactions)
+        _trackRemoval(depositor, collection, tokenId, rarity, appraisedPrice);
         IERC721(collection).safeTransferFrom(address(this), msg.sender, tokenId);
 
         emit NFTWithdrawn(collection, tokenId, rarity, msg.sender);
@@ -878,8 +875,7 @@ contract GachaTreasury is
 
         uint8 rarity = getRarityByPrice(priceUSD);
 
-        IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
-
+        // Effects before interactions (CEI pattern)
         depositedNFTs[collection][tokenId] = true;
         nftCurrentRarity[collection][tokenId] = rarity;
 
@@ -901,6 +897,9 @@ contract GachaTreasury is
         _trackDeposit(msg.sender, collection, tokenId, rarity, priceUSD);
 
         emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
+
+        // Interaction last — safeTransferFrom may call onERC721Received
+        IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
     }
 
     // Helper functions
