@@ -154,6 +154,8 @@ contract GachaTreasury is
     /// @notice Card-level deposit tracking for enhanced rewards
     mapping(address => mapping(bytes32 => uint256)) public userCardDeposits; // user => cardId => count
     mapping(bytes32 => uint256) public cardTotalDeposits; // cardId => total count
+    /// @notice Cached rarity per card so onCardPriceUpdated doesn't depend on any specific token
+    mapping(bytes32 => uint8) public cardCurrentRarity;
 
     /// @notice Per-user list of active groupIds (bytes32 hashes) for pagination and batching
     mapping(address => bytes32[]) private userGroupIds; // user => groupIds
@@ -709,19 +711,8 @@ contract GachaTreasury is
 
         uint8 newRarity = getRarityByPrice(newPriceUSD);
 
-        // Get current rarity from the canonical token for this card
-        NFTAppraisal.CardAppraisal memory ca = appraisalContract.getCardAppraisal(cardId);
-        (address canonCollection, uint256 canonTokenId) = (ca.canonicalContractAddress, ca.canonicalTokenId);
-
-        // If the canonical token isn't deposited, try to determine current rarity from any deposited token
-        if (!depositedNFTs[canonCollection][canonTokenId]) {
-            // Card has deposits but canonical isn't in treasury; use price-based lookup
-            // The vault handles its own rarity tracking per card, so just inform it
-            cardGroupedVault.updateCardPrice(cardId, newPriceUSD);
-            return;
-        }
-
-        uint8 currentRarity = nftCurrentRarity[canonCollection][canonTokenId];
+        // O(1) lookup of the card's current rarity from the cached mapping
+        uint8 currentRarity = cardCurrentRarity[cardId];
 
         if (currentRarity == newRarity) {
             // Same rarity — O(1) vault price update
@@ -799,6 +790,9 @@ contract GachaTreasury is
 
             emit RarityMigrated(collection, tokenId, fromRarity, toRarity, newPriceUSD);
         }
+
+        // Update the cached card-level rarity
+        cardCurrentRarity[cardId] = toRarity;
     }
 
     /**
@@ -1157,6 +1151,7 @@ contract GachaTreasury is
             if (cardTotalDeposits[cardId] >= maxDepositsPerCard) revert MaxCardDepositsReached();
             userCardDeposits[depositor][cardId]++;
             cardTotalDeposits[cardId]++;
+            cardCurrentRarity[cardId] = rarity;
             _addUserGroupId(depositor, cardId);
             _addCardTokenRef(cardId, collection, tokenId);
             if (address(cardGroupedVault) != address(0)) {
