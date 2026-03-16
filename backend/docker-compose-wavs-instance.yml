@@ -1,7 +1,7 @@
 services:
   wavs:
-    image: "${COMPOSE_WAVS_DOCKER_IMAGE:?COMPOSE_WAVS_DOCKER_IMAGE is required}"
-    container_name: "${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME is required}"
+    image: "${COMPOSE_WAVS_DOCKER_IMAGE:?COMPOSE_WAVS_DOCKER_IMAGE is required - set via Taskfile}"
+    container_name: "${COMPOSE_PROJECT_NAME:-wavs}"
     stop_signal: SIGTERM
     stop_grace_period: 10s
     healthcheck:
@@ -16,8 +16,8 @@ services:
         max-size: "10m"
         max-file: "3"
     environment:
-      - WAVS_SIGNING_MNEMONIC=${WAVS_SIGNING_MNEMONIC:?WAVS_SIGNING_MNEMONIC is required}
-      - WAVS_AGGREGATOR_EVM_CREDENTIAL=${WAVS_AGGREGATOR_EVM_CREDENTIAL:?WAVS_AGGREGATOR_EVM_CREDENTIAL is required}
+      - WAVS_SIGNING_MNEMONIC=${WAVS_SIGNING_MNEMONIC:-}
+      - WAVS_AGGREGATOR_EVM_CREDENTIAL=${WAVS_AGGREGATOR_EVM_CREDENTIAL:-}
       - WAVS_ENV_SCRYDEX_API_KEY=${WAVS_ENV_SCRYDEX_API_KEY:-}
       - WAVS_ENV_SCRYDEX_TEAM_ID=${WAVS_ENV_SCRYDEX_TEAM_ID:-}
     command:
