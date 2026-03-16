@@ -1,5 +1,6 @@
 "use client";
 
+import { MAX_RETRIES } from "../../async-utils/gachaSpinMachine";
 import type { UserFriendlyError } from "../../lib/transactionErrors";
 import { Button, DialogTitle, Modal, ModalContent } from "../../ui";
 
@@ -42,7 +43,7 @@ export function SpinErrorModal({
 						<p className="text-sm mb-2">{error}</p>
 					)}
 					<p className="text-xs text-foreground/60">
-						Retry attempts: {retryCount}/5
+						Retry attempts: {retryCount}/{MAX_RETRIES}
 					</p>
 					{/* Show retry button if applicable */}
 					{userFriendlyError?.canRetry && (

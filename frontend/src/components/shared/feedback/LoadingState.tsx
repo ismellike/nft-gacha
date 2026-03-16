@@ -15,7 +15,7 @@ interface LoadingStateProps {
 	fullScreen?: boolean;
 }
 
-function _LoadingState({
+export function LoadingState({
 	size = "md",
 	text,
 	className,
