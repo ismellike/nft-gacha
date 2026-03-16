@@ -2,7 +2,8 @@ name: "ipfs"
 services:
   ipfs:
     image: "${COMPOSE_IPFS_DOCKER_IMAGE:-}"
-    stop_signal: SIGKILL
+    stop_signal: SIGTERM
+    stop_grace_period: 5s
     command: daemon --offline
     ports:
       - "${COMPOSE_IPFS_GATEWAY_PORT:-8080}:8080"

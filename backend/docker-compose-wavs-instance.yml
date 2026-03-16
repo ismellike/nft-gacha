@@ -2,7 +2,8 @@ services:
   wavs:
     image: "${COMPOSE_WAVS_DOCKER_IMAGE:-}"
     container_name: "${COMPOSE_PROJECT_NAME:-}"
-    stop_signal: SIGKILL
+    stop_signal: SIGTERM
+    stop_grace_period: 10s
     environment:
       - WAVS_SIGNING_MNEMONIC=${WAVS_SIGNING_MNEMONIC:-}
       - WAVS_AGGREGATOR_EVM_CREDENTIAL=${WAVS_AGGREGATOR_EVM_CREDENTIAL:-}
