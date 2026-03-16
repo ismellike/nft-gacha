@@ -34,6 +34,8 @@ includes:
         taskfile: ./taskfile/component.yml
     cli:
         taskfile: ./taskfile/cli.yml
+    indexer:
+        taskfile: ./taskfile/indexer.yml
 
 #####################################################################
 # PROJECT VARIABLES
@@ -100,6 +102,7 @@ tasks:
                 echo "   task middleware:*   - POA middleware operations"
                 echo "   task component:*    - WASI component build/upload"
                 echo "   task cli:*          - WAVS CLI commands"
+                echo "   task indexer:*      - Event indexer (start, stop, status)"
                 echo ""
                 echo "🌐 Testnet Deployment:"
                 echo "   task testnet:preflight     - Validate env, RPC, balances for Polygon Amoy"

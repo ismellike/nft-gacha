@@ -109,6 +109,12 @@ const envSchema = z.object({
 	NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS: hexAddress.optional(),
 
 	// ------------------------------------------------------------------
+	// Indexer API (optional — enables faster spin history via self-hosted indexer)
+	// ------------------------------------------------------------------
+
+	NEXT_PUBLIC_INDEXER_URL: z.string().url().optional(),
+
+	// ------------------------------------------------------------------
 	// Debug flags (all default to false)
 	// ------------------------------------------------------------------
 
@@ -176,6 +182,9 @@ const rawEnv = {
 	// Admin
 	NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS:
 		process.env.NEXT_PUBLIC_REWARDS_MANAGER_ADDRESS,
+
+	// Indexer
+	NEXT_PUBLIC_INDEXER_URL: process.env.NEXT_PUBLIC_INDEXER_URL,
 
 	// Debug flags
 	NEXT_PUBLIC_DEBUG_GENERAL: process.env.NEXT_PUBLIC_DEBUG_GENERAL,

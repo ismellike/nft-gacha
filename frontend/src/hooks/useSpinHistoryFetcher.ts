@@ -4,6 +4,10 @@ import { useCallback } from "react";
 import { parseAbiItem } from "viem";
 import { usePublicClient } from "wagmi";
 import { getBlockTimestamps } from "../lib/blockTimestampCache";
+import {
+	fetchSpinHistory as fetchFromIndexer,
+	isIndexerEnabled,
+} from "../lib/indexer-client";
 import { logger } from "../lib/logger";
 import { useSpinHistoryStore } from "../stores/spinHistoryStore";
 import type { SpinHistoryEntry } from "../types/spin-history";
@@ -104,15 +108,102 @@ export function useSpinHistoryFetcher() {
 			gachaAddress: string,
 			page = 1,
 		): Promise<SpinHistoryEntry[]> => {
+			setLoading(userAddress, gachaAddress, true);
+			setError(userAddress, gachaAddress, null);
+
+			// ── Indexer-first path ──────────────────────────────────
+			// When the self-hosted indexer is configured, fetch from it
+			// instead of scanning chain logs. Falls back to RPC on failure.
+			if (isIndexerEnabled()) {
+				try {
+					const pageSize = PAGE_SIZE;
+					const offset = (page - 1) * pageSize;
+					const data = await fetchFromIndexer(
+						userAddress,
+						pageSize,
+						offset,
+					);
+
+					if (data) {
+						const entries: SpinHistoryEntry[] = [];
+
+						for (const s of data.completed) {
+							entries.push({
+								triggerId: BigInt(s.trigger_id),
+								timestamp: s.timestamp,
+								blockNumber: BigInt(s.block_number),
+								transactionHash: s.tx_hash as `0x${string}`,
+								status: "completed",
+								requester: s.requester as `0x${string}`,
+								rarity: s.rarity,
+								collection: s.collection as `0x${string}`,
+								tokenId: s.token_id,
+								appraisedPrice: BigInt(s.appraised_price),
+								gachaAddress,
+							});
+						}
+
+						for (const s of data.refunded) {
+							entries.push({
+								triggerId: BigInt(s.trigger_id),
+								timestamp: s.timestamp,
+								blockNumber: BigInt(s.block_number),
+								transactionHash: s.tx_hash as `0x${string}`,
+								status: "refunded",
+								requester: s.requester as `0x${string}`,
+								selectedRarity: s.selected_rarity,
+								refundAmount: BigInt(s.refund_amount),
+								gachaAddress,
+							});
+						}
+
+						for (const s of data.reclaimed) {
+							entries.push({
+								triggerId: BigInt(s.trigger_id),
+								timestamp: s.timestamp,
+								blockNumber: BigInt(s.block_number),
+								transactionHash: s.tx_hash as `0x${string}`,
+								status: "reclaimed",
+								requester: s.requester as `0x${string}`,
+								refundAmount: BigInt(s.refund_amount),
+								gachaAddress,
+							});
+						}
+
+						entries.sort((a, b) => b.timestamp - a.timestamp);
+
+						if (page === 1) {
+							setEntries(userAddress, gachaAddress, entries);
+						} else {
+							await appendEntries(userAddress, gachaAddress, entries);
+						}
+
+						const totalEntries = getEntries(userAddress, gachaAddress).length;
+						setPagination(userAddress, gachaAddress, {
+							page,
+							pageSize,
+							totalItems: totalEntries,
+							hasMore: entries.length === pageSize,
+							lastFetchedBlock: 0n,
+						});
+
+						setLoading(userAddress, gachaAddress, false);
+						return entries;
+					}
+					// data was null — indexer unavailable, fall through to RPC
+				} catch (err) {
+					logger.network.warn("Indexer fetch failed, falling back to RPC:", err);
+				}
+			}
+
+			// ── RPC fallback path ──────────────────────────────────
 			// Handle missing public client gracefully
 			if (!publicClient) {
 				logger.network.warn("Public client not available for fetchHistory");
 				setError(userAddress, gachaAddress, "Public client not available");
+				setLoading(userAddress, gachaAddress, false);
 				return [];
 			}
-
-			setLoading(userAddress, gachaAddress, true);
-			setError(userAddress, gachaAddress, null);
 
 			try {
 				// Get current block number with retry
