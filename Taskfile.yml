@@ -314,7 +314,7 @@ tasks:
                 echo ""
                 echo "Deployed contract addresses saved to .env.testnet"
                 echo "Frontend env synced to frontend/.env.local"
-                echo "Event indexer running at http://localhost:${API_PORT:-3001}"
+                echo "Event indexer running at http://localhost:${PORT:-42069}"
                 echo ""
                 echo "Next steps:"
                 echo "  1. Verify contracts:  task testnet:verify"

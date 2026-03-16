@@ -14,25 +14,12 @@ tasks:
     generates:
       - node_modules/.package-lock.json
 
-  build:
-    desc: Build indexer TypeScript
-    dir: "{{.INDEXER_DIR}}"
-    cmds:
-      - npx tsc
-    deps: [install]
-    sources:
-      - src/**/*.ts
-      - tsconfig.json
-    generates:
-      - dist/**/*.js
-
-  start:
-    desc: "Start the event indexer (requires GACHA_ADDRESS and TREASURY_ADDRESS)"
+  dev:
+    desc: "Start Ponder indexer in dev mode (hot reload)"
     dir: "{{.INDEXER_DIR}}"
     cmds:
       - |
         if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
-          # Try to read from .env.local or .env.testnet
           for envfile in ../.env.local ../.env.testnet; do
             if [ -f "$envfile" ]; then
               echo "Reading contract addresses from $envfile..."
@@ -49,16 +36,46 @@ tasks:
           exit 1
         fi
 
-        echo "Starting event indexer..."
+        echo "Starting Ponder indexer (dev mode)..."
         echo "  Gacha:    $GACHA_ADDRESS"
         echo "  Treasury: $TREASURY_ADDRESS"
         echo "  RPC:      ${RPC_URL:-http://localhost:8545}"
-        echo "  API port: ${API_PORT:-3001}"
-        npx tsx src/index.ts
+        echo "  Port:     ${PORT:-42069}"
+        npx ponder dev
+    deps: [install]
+
+  start:
+    desc: "Start Ponder indexer in production mode"
+    dir: "{{.INDEXER_DIR}}"
+    cmds:
+      - |
+        if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
+          for envfile in ../.env.local ../.env.testnet; do
+            if [ -f "$envfile" ]; then
+              echo "Reading contract addresses from $envfile..."
+              export GACHA_ADDRESS=$(grep '^GACHA_ADDRESS=' "$envfile" | cut -d= -f2)
+              export TREASURY_ADDRESS=$(grep '^GACHA_TREASURY_ADDRESS=' "$envfile" | cut -d= -f2)
+              break
+            fi
+          done
+        fi
+
+        if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
+          echo "GACHA_ADDRESS and TREASURY_ADDRESS are required."
+          echo "Either set them in .env or deploy contracts first."
+          exit 1
+        fi
+
+        echo "Starting Ponder indexer..."
+        echo "  Gacha:    $GACHA_ADDRESS"
+        echo "  Treasury: $TREASURY_ADDRESS"
+        echo "  RPC:      ${RPC_URL:-http://localhost:8545}"
+        echo "  Port:     ${PORT:-42069}"
+        npx ponder start
     deps: [install]
 
   start:docker:
-    desc: "Start the event indexer via Docker Compose"
+    desc: "Start the Ponder indexer via Docker Compose"
     dir: "{{.INDEXER_DIR}}"
     cmds:
       - |
@@ -78,19 +95,19 @@ tasks:
         fi
 
         docker compose up -d --build
-        echo "Indexer started. API at http://localhost:${API_PORT:-3001}"
+        echo "Indexer started. API at http://localhost:${PORT:-42069}"
 
   stop:docker:
-    desc: "Stop the Docker event indexer"
+    desc: "Stop the Docker Ponder indexer"
     dir: "{{.INDEXER_DIR}}"
     cmds:
       - docker compose down
 
   status:
-    desc: "Check indexer health and last indexed block"
+    desc: "Check indexer health"
     cmds:
       - |
-        PORT=${API_PORT:-3001}
+        PORT=${PORT:-42069}
         RESPONSE=$(curl -sf "http://localhost:$PORT/health" 2>/dev/null)
         if [ $? -eq 0 ]; then
           echo "Indexer status: $RESPONSE"
@@ -98,9 +115,9 @@ tasks:
           echo "Indexer is not running on port $PORT"
         fi
 
-  tsc:
-    desc: Type-check the indexer
+  codegen:
+    desc: "Run Ponder codegen for type safety"
     dir: "{{.INDEXER_DIR}}"
     cmds:
-      - npx tsc --noEmit
+      - npx ponder codegen
     deps: [install]

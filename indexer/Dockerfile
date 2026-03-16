@@ -1,23 +1,16 @@
-FROM node:22-alpine AS builder
-
-WORKDIR /app
-COPY package.json ./
-RUN npm install
-COPY tsconfig.json ./
-COPY src/ ./src/
-RUN npx tsc
-
 FROM node:22-alpine
 
 RUN apk add --no-cache tini
 WORKDIR /app
+
 COPY package.json ./
-RUN npm install --omit=dev
-COPY --from=builder /app/dist ./dist
+RUN npm install
 
-RUN mkdir -p /app/data
+COPY tsconfig.json ponder.config.ts ponder.schema.ts ./
+COPY abis/ ./abis/
+COPY src/ ./src/
 
-EXPOSE 3001
+EXPOSE 42069
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "dist/index.js"]
+CMD ["npx", "ponder", "start"]
