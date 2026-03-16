@@ -352,9 +352,13 @@ contract Gacha is
             _distributeSpinRewards(selectedRarity, request.feePaid);
         }
 
+        // Derive independent randomness for NFT index selection to prevent correlation
+        // between rarity selection and token selection within that rarity
+        uint256 indexSeed = uint256(keccak256(abi.encode(randomness, triggerId, selectedRarity)));
+
         // Send NFT from treasury to requester using optimized random selection
         GachaTreasury.NFTItem memory selectedNFT =
-            treasury.sendRandomNFTToWinner(selectedRarity, uint256(randomness), request.requester);
+            treasury.sendRandomNFTToWinner(selectedRarity, indexSeed, request.requester);
 
         // Increment spin counters only after a successful NFT transfer (refunded spins must not inflate counters)
         userSpinCount[request.requester]++;

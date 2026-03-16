@@ -174,7 +174,8 @@ contract GachaEconomyManager is
                 queuedYieldByRarity[i] = 0;
                 emit QueuedDepositorYieldProcessed(queued, i);
             } catch {
-                // Pool still empty — leave queued
+                // Pool still empty — leave queued; clean up dangling approval
+                feeToken.forceApprove(address(cardGroupedVault), 0);
             }
         }
 
