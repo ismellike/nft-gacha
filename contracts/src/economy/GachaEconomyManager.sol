@@ -70,6 +70,7 @@ contract GachaEconomyManager is
     error InvalidRevenueSplit();
     error InvalidNumRarities();
     error InvalidImplementation();
+    error InvalidConfiguration();
 
     /// @notice Events for admin changes
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
@@ -247,6 +248,8 @@ contract GachaEconomyManager is
      * @param protocolTreasury_ New protocol treasury address (or address(0) to skip)
      */
     function setVaults(address cardGroupedVault_, address protocolTreasury_) external onlyOwner {
+        if (cardGroupedVault_ == address(0) && protocolTreasury_ == address(0)) revert InvalidConfiguration();
+
         if (cardGroupedVault_ != address(0)) {
             address previous = address(cardGroupedVault);
             cardGroupedVault = ICardGroupedVault(cardGroupedVault_);

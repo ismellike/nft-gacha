@@ -69,6 +69,8 @@ contract CardGroupedVault is
     error InsufficientPosition();
     error NothingToClaim();
     error InsufficientVaultBalance();
+
+    event YieldTrackingFailed(address indexed account, uint256 amount, bytes reason);
     error UnauthorizedClaim();
     error NoValueInPool();
     error YieldTooSmall();
@@ -655,9 +657,12 @@ contract CardGroupedVault is
     function _payOut(address account, uint256 amount) internal {
         totalYieldClaimed += amount;
 
-        // Record analytics in GachaTreasury
+        // Record analytics in GachaTreasury (best-effort)
         if (treasury != address(0) && treasury.code.length > 0) {
-            try IGachaTreasuryYieldTracker(treasury).recordYieldClaim(account, amount) {} catch {}
+            try IGachaTreasuryYieldTracker(treasury).recordYieldClaim(account, amount) {}
+            catch (bytes memory reason) {
+                emit YieldTrackingFailed(account, amount, reason);
+            }
         }
 
         if (asset.balanceOf(address(this)) < amount) revert InsufficientVaultBalance();

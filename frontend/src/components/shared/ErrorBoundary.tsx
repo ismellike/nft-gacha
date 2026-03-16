@@ -69,10 +69,18 @@ export class ErrorBoundary extends Component<Props, State> {
 						<h2 className="text-2xl font-bold text-foreground mb-2">
 							Something went wrong
 						</h2>
-						<p className="text-foreground/70 mb-6">
-							{this.state.error?.message ||
-								"An unexpected error occurred. Please try again."}
+						<p className="text-foreground/70 mb-4">
+							{process.env.NODE_ENV === "development"
+								? this.state.error?.message ||
+									"An unexpected error occurred."
+								: "Something unexpected happened. Please try refreshing the page or clearing your browser cache."}
 						</p>
+						{process.env.NODE_ENV !== "development" && (
+							<p className="text-foreground/50 text-sm mb-6">
+								If this keeps happening, try disconnecting and reconnecting
+								your wallet, or contact support.
+							</p>
+						)}
 
 						{/* Error details in development */}
 						{process.env.NODE_ENV === "development" && (

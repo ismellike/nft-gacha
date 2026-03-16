@@ -1,12 +1,23 @@
 services:
   wavs:
-    image: "${COMPOSE_WAVS_DOCKER_IMAGE:-}"
-    container_name: "${COMPOSE_PROJECT_NAME:-}"
+    image: "${COMPOSE_WAVS_DOCKER_IMAGE:?COMPOSE_WAVS_DOCKER_IMAGE is required}"
+    container_name: "${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME is required}"
     stop_signal: SIGTERM
     stop_grace_period: 10s
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${COMPOSE_WAVS_PORT:-9090}/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
-      - WAVS_SIGNING_MNEMONIC=${WAVS_SIGNING_MNEMONIC:-}
-      - WAVS_AGGREGATOR_EVM_CREDENTIAL=${WAVS_AGGREGATOR_EVM_CREDENTIAL:-}
+      - WAVS_SIGNING_MNEMONIC=${WAVS_SIGNING_MNEMONIC:?WAVS_SIGNING_MNEMONIC is required}
+      - WAVS_AGGREGATOR_EVM_CREDENTIAL=${WAVS_AGGREGATOR_EVM_CREDENTIAL:?WAVS_AGGREGATOR_EVM_CREDENTIAL is required}
       - WAVS_ENV_SCRYDEX_API_KEY=${WAVS_ENV_SCRYDEX_API_KEY:-}
       - WAVS_ENV_SCRYDEX_TEAM_ID=${WAVS_ENV_SCRYDEX_TEAM_ID:-}
     command:
@@ -15,9 +26,9 @@ services:
         "--home",
         "/wavs-home",
         "--data",
-        "/var/${COMPOSE_PROJECT_NAME:-}",
+        "/var/${COMPOSE_PROJECT_NAME:-wavs}",
         "--port",
-        "${COMPOSE_WAVS_PORT:-}",
+        "${COMPOSE_WAVS_PORT:-9090}",
       ]
     volumes:
       - "${COMPOSE_WAVS_HOME:-}:/wavs-home"
