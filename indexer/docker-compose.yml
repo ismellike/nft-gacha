@@ -1,0 +1,32 @@
+services:
+  indexer:
+    build: .
+    container_name: gacha-indexer
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3001}:3001"
+    environment:
+      - RPC_URL=${RPC_URL:-http://host.docker.internal:8545}
+      - GACHA_ADDRESS=${GACHA_ADDRESS:?GACHA_ADDRESS is required}
+      - TREASURY_ADDRESS=${TREASURY_ADDRESS:?TREASURY_ADDRESS is required}
+      - CHAIN_ID=${CHAIN_ID:-31337}
+      - DB_PATH=/app/data/indexer.db
+      - API_PORT=3001
+      - POLL_INTERVAL_MS=${POLL_INTERVAL_MS:-5000}
+      - BATCH_SIZE=${BATCH_SIZE:-2000}
+    volumes:
+      - indexer-data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  indexer-data:
