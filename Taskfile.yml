@@ -126,11 +126,12 @@ tasks:
     # MAIN WORKFLOWS
     # =================================================================
     bootstrap:
-        desc: "Complete system deployment: backend + AVS + contracts + frontend"
+        desc: "Complete system deployment: backend + AVS + contracts + frontend + indexer"
         cmds:
             - echo "Starting full bootstrap..."
             - task avs:bootstrap
             - task frontend:sync-env
+            - task indexer:start:docker
             - task frontend:dev
             - echo "Bootstrap complete!"
 
@@ -297,13 +298,14 @@ tasks:
                 fi
 
     testnet:bootstrap:
-        desc: "Full testnet deployment: preflight + backend + middleware + components + contracts + service + frontend"
+        desc: "Full testnet deployment: preflight + backend + middleware + components + contracts + service + indexer + frontend"
         cmds:
             - task: testnet:preflight
             - echo ""
             - echo "Starting testnet bootstrap..."
             - task avs:bootstrap
             - task frontend:sync-env-testnet
+            - task indexer:start:docker
             - |
                 echo ""
                 echo "╔══════════════════════════════════════════════════╗"
@@ -312,6 +314,7 @@ tasks:
                 echo ""
                 echo "Deployed contract addresses saved to .env.testnet"
                 echo "Frontend env synced to frontend/.env.local"
+                echo "Event indexer running at http://localhost:${API_PORT:-3001}"
                 echo ""
                 echo "Next steps:"
                 echo "  1. Verify contracts:  task testnet:verify"
