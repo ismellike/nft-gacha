@@ -14,8 +14,16 @@ impl CourtyardClient {
         Self
     }
 
-    /// Fetch NFT metadata directly from a URI (for Courtyard URIs)
+    /// Fetch NFT metadata directly from a URI (for Courtyard URIs).
+    /// Only HTTPS URIs are accepted to prevent MITM attacks on metadata.
     pub async fn get_nft_metadata_from_uri(&self, uri: &str) -> Result<NFTMetadata> {
+        if !uri.starts_with("https://") {
+            return Err(anyhow!(
+                "Refusing to fetch metadata over insecure transport: {}. Only HTTPS is allowed.",
+                uri
+            ));
+        }
+
         let request = http_request_get(uri)
             .map_err(|e| anyhow!("Failed to create HTTP request for URI {}: {}", uri, e))?;
 
