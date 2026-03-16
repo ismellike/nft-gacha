@@ -46,7 +46,7 @@ import { type MotionStyle, motion } from "framer-motion";
 import NextImage from "next/image";
 import { memo, startTransition, useMemo, useState } from "react";
 import {
-	useReadErc721Name,
+	useReadBaseErc721Name,
 	useReadNftAppraisalGetAppraisedPrice,
 	useReadNftAppraisalHasAppraisal,
 } from "../../generated";
@@ -427,7 +427,7 @@ export const NFTCard = memo<NFTCardProps>(
 		const tokenURI = prefetchedTokenURI || nftData.tokenURI;
 
 		// Collection name fetching with caching
-		const { data: collectionName } = useReadErc721Name({
+		const { data: collectionName } = useReadBaseErc721Name({
 			address: collection as `0x${string}`,
 			query: { staleTime: 300_000, gcTime: 600_000 },
 		});

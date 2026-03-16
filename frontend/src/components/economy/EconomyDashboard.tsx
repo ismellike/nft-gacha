@@ -1,8 +1,8 @@
 "use client";
 import {
-	useReadErc20BalanceOf,
-	useReadErc20Decimals,
-	useReadErc20Symbol,
+	useReadBaseErc20BalanceOf,
+	useReadBaseErc20Decimals,
+	useReadBaseErc20Symbol,
 } from "@/generated";
 import {
 	calculateRevenueShares,
@@ -42,14 +42,14 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 	});
 
 	// Token information for revenue display
-	const { data: tokenDecimals } = useReadErc20Decimals({
+	const { data: tokenDecimals } = useReadBaseErc20Decimals({
 		address: economyData.feeToken as `0x${string}`,
 		query: {
 			enabled: !!economyData.feeToken,
 		},
 	});
 
-	const { data: tokenSymbol } = useReadErc20Symbol({
+	const { data: tokenSymbol } = useReadBaseErc20Symbol({
 		address: economyData.feeToken as `0x${string}`,
 		query: {
 			enabled: !!economyData.feeToken,
@@ -57,7 +57,7 @@ export function EconomyDashboard({ gachaConfig }: EconomyDashboardProps) {
 	});
 
 	// Protocol Treasury Balance
-	const { data: treasuryBalance } = useReadErc20BalanceOf({
+	const { data: treasuryBalance } = useReadBaseErc20BalanceOf({
 		address: economyData.feeToken as `0x${string}`,
 		args: [gachaConfig.protocolTreasuryAddress as `0x${string}`],
 		query: {

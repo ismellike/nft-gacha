@@ -40,6 +40,12 @@ tasks:
         cmds:
             - forge test --match-path "test/integration/*"
 
+    slither:
+        desc: Run Slither static analysis on contracts
+        dir: "{{.CONTRACTS_DIR}}"
+        cmds:
+            - slither .
+
     snapshot:
         desc: Generate gas snapshots
         dir: "{{.CONTRACTS_DIR}}"

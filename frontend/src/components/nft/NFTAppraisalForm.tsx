@@ -12,10 +12,10 @@ import { isAddress } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import type { AppraisalResult } from "../../async-utils/nftAppraisalMachine";
 import {
-	useReadErc20Allowance,
-	useReadErc20BalanceOf,
-	useReadErc20Decimals,
-	useReadErc20Symbol,
+	useReadBaseErc20Allowance,
+	useReadBaseErc20BalanceOf,
+	useReadBaseErc20Decimals,
+	useReadBaseErc20Symbol,
 	useReadNftAppraisalAppraisalFee,
 	useReadNftAppraisalFeeToken,
 } from "../../generated";
@@ -192,23 +192,23 @@ export function NFTAppraisalForm({
 		query: { enabled: !!contracts.appraisal },
 	});
 
-	const { data: tokenSymbol } = useReadErc20Symbol({
+	const { data: tokenSymbol } = useReadBaseErc20Symbol({
 		address: feeToken as `0x${string}` | undefined,
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: tokenDecimals } = useReadErc20Decimals({
+	const { data: tokenDecimals } = useReadBaseErc20Decimals({
 		address: feeToken as `0x${string}` | undefined,
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: userBalance } = useReadErc20BalanceOf({
+	const { data: userBalance } = useReadBaseErc20BalanceOf({
 		address: feeToken as `0x${string}` | undefined,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!feeToken && !!userAddress },
 	});
 
-	const { data: currentAllowance } = useReadErc20Allowance({
+	const { data: currentAllowance } = useReadBaseErc20Allowance({
 		address: feeToken as `0x${string}` | undefined,
 		args:
 			userAddress && contracts.appraisal

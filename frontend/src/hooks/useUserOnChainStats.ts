@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount } from "wagmi";
 import {
-	gachaTreasuryAbi,
 	useReadGachaGetGlobalAnalytics,
 	useReadGachaGetUserAnalytics,
+	useReadGachaTreasuryGetUserProfileBatch,
 } from "@/generated";
 
 interface UserSpinAnalytics {
@@ -82,22 +82,19 @@ export function useUserOnChainStats({
 		},
 	} as Parameters<typeof useReadGachaGetGlobalAnalytics>[0]);
 
-	// Use useReadContract directly to avoid deep type instantiation with generated hook
 	const {
 		data: profileRaw,
 		isLoading: isLoadingProfile,
 		isError: isProfileError,
 		refetch: refetchProfile,
-	} = useReadContract({
-		abi: gachaTreasuryAbi,
+	} = useReadGachaTreasuryGetUserProfileBatch({
 		address: treasuryAddr,
-		functionName: "getUserProfileBatch",
 		args: userAddr ? [userAddr] : undefined,
 		query: {
 			enabled: !!address && !!treasuryAddress,
 			refetchInterval: 60000,
 		},
-	});
+	} as Parameters<typeof useReadGachaTreasuryGetUserProfileBatch>[0]);
 
 	const spinAnalytics = useMemo<UserSpinAnalytics | null>(() => {
 		if (!userAnalyticsRaw) return null;

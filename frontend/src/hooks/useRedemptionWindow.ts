@@ -50,7 +50,7 @@ export function useRedemptionWindow({
 
 	// Fetch the fixed on-chain receiveTime (when the NFT was won).
 	// This value never changes so caching is fine.
-	// Use useReadContract directly to avoid "Type instantiation is excessively deep" error.
+	// useReadContract with ABI import — generated hook exceeds TS depth limit for GachaTreasury
 	const { data: receiveTime, isLoading: isLoadingReceiveTime } =
 		useReadContract({
 			address: gachaTreasuryAddress as `0x${string}`,
