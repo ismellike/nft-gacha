@@ -43,6 +43,7 @@ contract NFTAppraisal is
     error ArrayLengthMismatch();
     error EmptyArrays();
     error TooManyItems();
+    error InvalidImplementation();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
@@ -161,7 +162,10 @@ contract NFTAppraisal is
      * @notice Authorizes upgrade to new implementation
      * @dev Only owner can upgrade the contract
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     /**
      * @notice Requests an appraisal for an NFT
@@ -220,6 +224,7 @@ contract NFTAppraisal is
     {
         if (collections.length != tokenIds.length) revert ArrayLengthMismatch();
         if (collections.length == 0) revert EmptyArrays();
+        if (collections.length > 50) revert TooManyItems();
 
         uint256 totalFee = appraisalFee * collections.length;
 

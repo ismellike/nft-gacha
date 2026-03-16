@@ -69,6 +69,7 @@ contract GachaEconomyManager is
     error ZeroRevenue();
     error InvalidRevenueSplit();
     error InvalidNumRarities();
+    error InvalidImplementation();
 
     /// @notice Events for admin changes
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
@@ -275,7 +276,10 @@ contract GachaEconomyManager is
     /**
      * @notice Authorizes UUPS upgrades
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     uint256[40] private __gap;
 }

@@ -74,6 +74,7 @@ contract CardGroupedVault is
     error YieldTooSmall();
     error InvalidNumRarities();
     error Int256Overflow();
+    error InvalidImplementation();
 
     // ─── Constants ──────────────────────────────────────────────────────
 
@@ -710,7 +711,10 @@ contract CardGroupedVault is
 
     // ─── Upgrade auth ───────────────────────────────────────────────────
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     uint256[40] private __gap;
 }

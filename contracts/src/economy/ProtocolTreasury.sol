@@ -36,6 +36,7 @@ contract ProtocolTreasury is
     error AppraisalMissing();
     error RedemptionWindowExpired();
     error InvalidArrayLength();
+    error InvalidImplementation();
 
     /// @notice Payout percentage (in basis points) for NFT redemptions (80%)
     uint256 public constant REDEMPTION_PAYOUT_BPS = 8_000;
@@ -256,7 +257,10 @@ contract ProtocolTreasury is
     /**
      * @notice Authorizes UUPS upgrades
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     uint256[44] private __gap;
 }

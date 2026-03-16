@@ -54,6 +54,7 @@ contract Gacha is
     error MaxFeeExceeded(uint256 currentFee, uint256 maxFee);
     error InvalidSpinTimeout();
     error InvalidWeightsLength();
+    error InvalidImplementation();
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
@@ -216,7 +217,10 @@ contract Gacha is
      * @notice Authorizes upgrade to new implementation
      * @dev Only owner can upgrade the contract
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     /// @notice Initiates a gacha spin with a max fee guard
     /// @param maxFee Maximum fee the caller is willing to pay

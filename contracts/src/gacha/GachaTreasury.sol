@@ -65,6 +65,7 @@ contract GachaTreasury is
     error InvalidLimit();
     error MaxCardDepositsReached();
     error InvalidNumRarities();
+    error InvalidImplementation();
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -278,7 +279,10 @@ contract GachaTreasury is
      * @notice Authorizes upgrade to new implementation
      * @dev Only owner can upgrade the contract
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     /// @dev Validates and stores the initial price ranges for all rarity tiers.
     ///      Requires: lowest tier starts at $0, highest tier is open-ended (type(uint256).max),
@@ -697,7 +701,7 @@ contract GachaTreasury is
      * @param newPriceUSD New appraised USD price (18 decimals)
      * @dev Determines if rarity changes and routes to updateCardPrice or migrateCardRarity
      */
-    function onCardPriceUpdated(bytes32 cardId, uint256 newPriceUSD) external whenNotPaused {
+    function onCardPriceUpdated(bytes32 cardId, uint256 newPriceUSD) external whenNotPaused nonReentrant {
         // Only callable by appraisal contract
         if (msg.sender != address(appraisalContract)) revert InvalidAppraisalContract();
         if (address(cardGroupedVault) == address(0)) return;
