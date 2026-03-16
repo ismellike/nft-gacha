@@ -56,10 +56,12 @@ impl Config {
 
         let drand_genesis_time = host::config_var("DRAND_GENESIS_TIME")
             .and_then(|s| s.parse().ok())
+            .filter(|&v: &u64| v > 0)
             .unwrap_or(defaults.drand_genesis_time);
 
         let drand_period = host::config_var("DRAND_PERIOD")
             .and_then(|s| s.parse().ok())
+            .filter(|&v: &u64| v > 0)
             .unwrap_or(defaults.drand_period);
 
         // Resolve the public key: explicit env var takes precedence, then
