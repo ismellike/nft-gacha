@@ -46,6 +46,8 @@ interface VaultTabContentProps {
 	depositorUserData: UserCardGroupedData;
 	depositorData: CardGroupedVaultData;
 	treasuryAddress: `0x${string}` | undefined;
+	vaultAddress?: `0x${string}` | undefined;
+	userAddress?: `0x${string}` | undefined;
 }
 
 export function VaultTabContent({
@@ -63,7 +65,8 @@ export function VaultTabContent({
 	onWithdrawNFT,
 	depositorUserData,
 	depositorData,
-	treasuryAddress,
+	vaultAddress,
+	userAddress,
 }: VaultTabContentProps) {
 	return (
 		<>
@@ -101,7 +104,8 @@ export function VaultTabContent({
 					<YieldTab
 						depositorUserData={depositorUserData}
 						depositorData={depositorData}
-						treasuryAddress={treasuryAddress}
+						vaultAddress={vaultAddress}
+						userAddress={userAddress}
 					/>
 				)}
 			</motion.div>

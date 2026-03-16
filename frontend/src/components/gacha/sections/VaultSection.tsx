@@ -679,6 +679,8 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				depositorUserData={depositorUserData}
 				depositorData={depositorData}
 				treasuryAddress={treasury}
+				vaultAddress={gachaConfig?.cardGroupedVaultAddress as `0x${string}` | undefined}
+				userAddress={address}
 			/>
 		</GachaSectionLayout>
 	);
