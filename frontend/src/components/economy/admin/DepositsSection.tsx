@@ -28,7 +28,7 @@ export function DepositsSection() {
 	};
 
 	return (
-		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+		<Card className="p-4 sm:p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
 					Pending Deposits

@@ -134,7 +134,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 	if (!isConnected) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
-				<Card className="p-12 text-center max-w-md bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+				<Card className="p-6 sm:p-12 text-center max-w-md bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<WalletIcon className="w-8 h-8 mx-auto mb-6 text-warning" />
 					<h2 className="text-2xl font-bold text-foreground mb-4">
 						Connect Your Wallet
@@ -150,7 +150,7 @@ export function AdminControls({ gacha }: AdminControlsProps) {
 	if (isOwnerChecked && !isOwner) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
-				<Card className="p-12 text-center max-w-md bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+				<Card className="p-6 sm:p-12 text-center max-w-md bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 					<ShieldCheckIcon className="w-8 h-8 mx-auto mb-6 text-danger" />
 					<h2 className="text-2xl font-bold text-foreground mb-4">
 						Access Denied

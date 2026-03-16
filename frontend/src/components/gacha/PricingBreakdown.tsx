@@ -103,8 +103,9 @@ const PricingBreakdown = memo(function PricingBreakdown({
 				<button
 					type="button"
 					onClick={() => setShowDetails(!showDetails)}
-					className="text-foreground/50 hover:text-foreground transition-colors"
-					aria-label={showDetails ? "Hide details" : "Show details"}
+					className="p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-foreground/50 hover:text-foreground transition-colors"
+					aria-label={showDetails ? "Hide pricing details" : "Show pricing details"}
+					aria-expanded={showDetails}
 				>
 					<InformationCircleIcon className="w-5 h-5" />
 				</button>

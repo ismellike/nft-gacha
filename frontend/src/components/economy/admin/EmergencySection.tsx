@@ -18,10 +18,24 @@ export function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 		address: gacha.address as `0x${string}`,
 	});
 
-	const { writeContract: pauseContract, isPending: isPausing } =
-		useWriteGachaEmergencyPause();
-	const { writeContract: unpauseContract, isPending: isUnpausing } =
-		useWriteGachaEmergencyUnpause();
+	const {
+		writeContract: pauseContract,
+		isPending: isPausing,
+		isError: isPauseError,
+		error: pauseError,
+	} = useWriteGachaEmergencyPause();
+	const {
+		writeContract: unpauseContract,
+		isPending: isUnpausing,
+		isError: isUnpauseError,
+		error: unpauseError,
+	} = useWriteGachaEmergencyUnpause();
+
+	const txError = isPauseError
+		? pauseError?.message
+		: isUnpauseError
+			? unpauseError?.message
+			: null;
 
 	const handlePause = () => {
 		pauseContract({
@@ -36,7 +50,7 @@ export function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 	};
 
 	return (
-		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+		<Card className="p-4 sm:p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
 					Emergency Controls
@@ -94,7 +108,13 @@ export function EmergencySection({ gacha }: { gacha: GachaConfig }) {
 					)}
 				</div>
 
-				<div className="bg-warning/10 border border-warning/20 rounded-xl p-4">
+				{txError && (
+				<div className="bg-danger/10 border border-danger/20 rounded-xl p-4 text-danger text-sm">
+					Transaction failed: {txError.slice(0, 200)}
+				</div>
+			)}
+
+			<div className="bg-warning/10 border border-warning/20 rounded-xl p-4">
 					<div className="flex items-start gap-3">
 						<ExclamationTriangleIcon className="w-5 h-5 text-warning mt-0.5" />
 						<div>

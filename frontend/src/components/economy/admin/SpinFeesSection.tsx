@@ -35,8 +35,12 @@ export function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 		address: gacha.address as `0x${string}`,
 	});
 
-	const { writeContract: setPricingConfig, isPending } =
-		useWriteGachaSetPricingConfig();
+	const {
+		writeContract: setPricingConfig,
+		isPending,
+		isError,
+		error: writeError,
+	} = useWriteGachaSetPricingConfig();
 
 	const handleSave = () => {
 		if (!newMinFee || !newMaxFee || !newPremiumBps) return;
@@ -56,7 +60,7 @@ export function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 	};
 
 	return (
-		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+		<Card className="p-4 sm:p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="mb-8">
 				<h2 className="text-2xl font-bold text-foreground mb-2">
 					Spin Fee Configuration
@@ -135,6 +139,12 @@ export function SpinFeesSection({ gacha }: { gacha: GachaConfig }) {
 					step="1"
 					min="0"
 				/>
+
+				{isError && (
+					<div className="bg-danger/10 border border-danger/20 rounded-xl p-4 text-danger text-sm">
+						Transaction failed: {writeError?.message?.slice(0, 200)}
+					</div>
+				)}
 
 				<div className="flex justify-end gap-4">
 					<Button

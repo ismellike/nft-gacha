@@ -114,7 +114,7 @@ export function SpinFeeDisplay({
 									type="button"
 									onClick={onRefresh}
 									disabled={isFetching}
-									className="p-1 rounded hover:bg-warning/20 transition-colors disabled:opacity-50"
+									className="p-2 -m-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-warning/20 transition-colors disabled:opacity-50"
 									aria-label="Refresh spin fee"
 									title="Refresh spin fee"
 								>
