@@ -40,25 +40,10 @@ interface IndexerSpinReclaimed {
 	timestamp: number;
 }
 
-export interface IndexerSpinsResponse {
+interface IndexerSpinsResponse {
 	completed: IndexerSpinCompleted[];
 	refunded: IndexerSpinRefunded[];
 	reclaimed: IndexerSpinReclaimed[];
-}
-
-export interface IndexerSpinLookup {
-	status: "completed" | "refunded" | "reclaimed";
-	completed: IndexerSpinCompleted | null;
-	refunded: IndexerSpinRefunded | null;
-	reclaimed: IndexerSpinReclaimed | null;
-}
-
-export interface IndexerStatsResponse {
-	totalSpins: number;
-	totalRefunds: number;
-	totalReclaims: number;
-	totalDeposits: number;
-	rarityBreakdown: { rarity: number; count: number }[];
 }
 
 async function fetchIndexer<T>(path: string): Promise<T | null> {
@@ -95,19 +80,3 @@ export async function fetchSpinHistory(
 	);
 }
 
-/**
- * Look up a single spin by trigger ID.
- * Returns `null` if unavailable.
- */
-export async function fetchSpinByTriggerId(
-	triggerId: string,
-): Promise<IndexerSpinLookup | null> {
-	return fetchIndexer<IndexerSpinLookup>(`/api/spin/${triggerId}`);
-}
-
-/**
- * Fetch global stats from the indexer.
- */
-export async function fetchIndexerStats(): Promise<IndexerStatsResponse | null> {
-	return fetchIndexer<IndexerStatsResponse>("/api/stats");
-}

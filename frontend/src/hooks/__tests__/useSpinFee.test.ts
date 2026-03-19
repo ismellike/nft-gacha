@@ -6,9 +6,9 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useSpinFee } from "../useSpinFee";
 
-// We mock wagmi so useReadContract is under our control
-vi.mock("wagmi", () => ({
-	useReadContract: vi.fn(),
+// We mock the generated hook so it's under our control
+vi.mock("@/generated", () => ({
+	useReadGachaGetCurrentSpinFee: vi.fn(),
 }));
 
 vi.mock("@/lib/logger", () => {
@@ -35,7 +35,7 @@ vi.mock("@/lib/logger", () => {
 const GACHA_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0" as const;
 
 describe("useSpinFee", () => {
-	let useReadContractMock: ReturnType<typeof vi.fn>;
+	let useReadGachaGetCurrentSpinFeeMock: ReturnType<typeof vi.fn>;
 	let mockRefetch: ReturnType<typeof vi.fn>;
 	// registerRefetch must satisfy the hook's parameter type:
 	// (fn: () => void | Promise<void>) => () => void
@@ -48,8 +48,10 @@ describe("useSpinFee", () => {
 		vi.useFakeTimers();
 		vi.clearAllMocks();
 
-		const wagmi = await import("wagmi");
-		useReadContractMock = vi.mocked(wagmi.useReadContract);
+		const generated = await import("@/generated");
+		useReadGachaGetCurrentSpinFeeMock = vi.mocked(
+			generated.useReadGachaGetCurrentSpinFee,
+		);
 
 		mockRefetch = vi.fn().mockResolvedValue(undefined);
 		deregister = vi.fn();
@@ -59,7 +61,7 @@ describe("useSpinFee", () => {
 		) => () => void;
 
 		// Default: fee query returns a value
-		useReadContractMock.mockReturnValue({
+		useReadGachaGetCurrentSpinFeeMock.mockReturnValue({
 			data: BigInt("1000000000000000000"), // 1 ETH in wei
 			isFetching: false,
 			refetch: mockRefetch,
@@ -80,7 +82,7 @@ describe("useSpinFee", () => {
 	});
 
 	it("returns undefined spinFee when contract query has no data", () => {
-		useReadContractMock.mockReturnValue({
+		useReadGachaGetCurrentSpinFeeMock.mockReturnValue({
 			data: undefined,
 			isFetching: false,
 			refetch: mockRefetch,
@@ -95,7 +97,7 @@ describe("useSpinFee", () => {
 	});
 
 	it("reflects isFetching state from contract query", () => {
-		useReadContractMock.mockReturnValue({
+		useReadGachaGetCurrentSpinFeeMock.mockReturnValue({
 			data: undefined,
 			isFetching: true,
 			refetch: mockRefetch,
@@ -129,7 +131,7 @@ describe("useSpinFee", () => {
 	it("marks fee as stale after FEE_STALENESS_MS without update", async () => {
 		// Set dataUpdatedAt to a time in the past (before staleness threshold)
 		const OLD_TIMESTAMP = Date.now() - 20_000; // 20 seconds ago
-		useReadContractMock.mockReturnValue({
+		useReadGachaGetCurrentSpinFeeMock.mockReturnValue({
 			data: BigInt("1000000000000000000"),
 			isFetching: false,
 			refetch: mockRefetch,
@@ -150,7 +152,7 @@ describe("useSpinFee", () => {
 
 	it("clears stale flag when fetching starts", async () => {
 		const OLD_TIMESTAMP = Date.now() - 20_000;
-		useReadContractMock.mockReturnValue({
+		useReadGachaGetCurrentSpinFeeMock.mockReturnValue({
 			data: BigInt("1000000000000000000"),
 			isFetching: false,
 			refetch: mockRefetch,
@@ -168,7 +170,7 @@ describe("useSpinFee", () => {
 		expect(result.current.feeStale).toBe(true);
 
 		// Now simulate a fetch starting
-		useReadContractMock.mockReturnValue({
+		useReadGachaGetCurrentSpinFeeMock.mockReturnValue({
 			data: BigInt("1000000000000000000"),
 			isFetching: true,
 			refetch: mockRefetch,
@@ -209,7 +211,7 @@ describe("useSpinFee", () => {
 		);
 
 		// Check that useReadContract was called with enabled: false
-		const callArgs = useReadContractMock.mock.calls[0][0];
+		const callArgs = useReadGachaGetCurrentSpinFeeMock.mock.calls[0][0];
 		expect(callArgs.query.enabled).toBe(false);
 	});
 
@@ -218,7 +220,7 @@ describe("useSpinFee", () => {
 			useSpinFee({ gachaAddress: GACHA_ADDRESS, registerRefetch }),
 		);
 
-		const callArgs = useReadContractMock.mock.calls[0][0];
+		const callArgs = useReadGachaGetCurrentSpinFeeMock.mock.calls[0][0];
 		expect(callArgs.query.enabled).toBe(true);
 	});
 });

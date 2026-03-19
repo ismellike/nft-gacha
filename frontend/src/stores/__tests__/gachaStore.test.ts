@@ -50,7 +50,7 @@ describe("gachaStore", () => {
 			).toBeNull();
 		});
 
-		it("returns null and removes spin if expired (>10 min)", () => {
+		it("returns null and removes spin if expired (>30 min)", () => {
 			vi.useFakeTimers();
 			const now = Date.now();
 			vi.setSystemTime(now);
@@ -62,8 +62,8 @@ describe("gachaStore", () => {
 				gachaAddress: GACHA,
 			});
 
-			// Advance past 10 minute timeout
-			vi.setSystemTime(now + 10 * 60 * 1000 + 1);
+			// Advance past 30 minute timeout (PENDING_SPIN_TIMEOUT_MS)
+			vi.setSystemTime(now + 30 * 60 * 1000 + 1);
 
 			const spin = useGachaStore.getState().getPendingSpin(USER, GACHA);
 			expect(spin).toBeNull();
