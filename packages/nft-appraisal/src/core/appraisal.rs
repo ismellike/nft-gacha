@@ -138,6 +138,7 @@ mod tests {
     use super::*;
     use crate::resolvers::ResolverRegistry;
     use crate::types::ResolverRoute;
+    use proptest::prelude::*;
 
     #[test]
     fn test_scale_to_usdc6() {
@@ -218,5 +219,44 @@ mod tests {
         let seed = ResolverRegistry::cache_seed(&route);
         let expected_suffix = route.cache_key_fragment();
         assert!(seed.ends_with(&expected_suffix));
+    }
+
+    // -----------------------------------------------------------------------
+    // Proptest fuzz tests
+    // -----------------------------------------------------------------------
+
+    proptest! {
+        #[test]
+        fn fuzz_scale_to_usdc6_never_panics(price in proptest::num::f64::ANY) {
+            let result = scale_to_usdc6(price);
+            // Must return None for non-finite, zero, or negative values
+            if !price.is_finite() || price <= 0.0 {
+                prop_assert!(result.is_none());
+            }
+            // Must return None if scaled value overflows u128
+            if price.is_finite() && price > 0.0 {
+                let scaled = (price * 1_000_000.0).round();
+                if scaled > u128::MAX as f64 {
+                    prop_assert!(result.is_none());
+                } else {
+                    prop_assert!(result.is_some());
+                }
+            }
+        }
+
+        #[test]
+        fn fuzz_scale_to_usdc6_positive_prices(price in 0.000001f64..1_000_000_000.0) {
+            let result = scale_to_usdc6(price);
+            prop_assert!(result.is_some(), "Reasonable positive price should always succeed");
+            let u = result.unwrap();
+            // The scaled value should be approximately price * 1_000_000
+            let expected = (price * 1_000_000.0).round() as u128;
+            prop_assert_eq!(u, U256::from(expected));
+        }
+
+        #[test]
+        fn fuzz_scale_to_usdc6_negative_always_none(price in f64::MIN..=0.0) {
+            prop_assert!(scale_to_usdc6(price).is_none());
+        }
     }
 }

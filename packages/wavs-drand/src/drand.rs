@@ -420,6 +420,7 @@ fn b256_from_bytes(bytes: &[u8]) -> Result<B256> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     fn make_client(chain_hash: &str, pubkey_hex: &str) -> DrandClient {
         let chain_config =
@@ -612,5 +613,117 @@ mod tests {
         let bytes = [0u8; 16];
         let result = b256_from_bytes(&bytes);
         assert!(result.is_err());
+    }
+
+    // -----------------------------------------------------------------------
+    // Proptest fuzz tests
+    // -----------------------------------------------------------------------
+
+    proptest! {
+        #[test]
+        fn fuzz_b256_from_bytes_never_panics(bytes in proptest::collection::vec(any::<u8>(), 0..128)) {
+            let result = b256_from_bytes(&bytes);
+            if bytes.len() == 32 {
+                prop_assert!(result.is_ok());
+            } else {
+                prop_assert!(result.is_err());
+            }
+        }
+
+        #[test]
+        fn fuzz_chain_config_from_arbitrary_pubkey(hex_input in "[0-9a-f]{0,256}") {
+            let result = ChainConfig::from_chain_hash_and_pubkey("test_chain", &hex_input);
+            match hex::decode(&hex_input) {
+                Ok(bytes) if bytes.len() == 48 || bytes.len() == 96 => {
+                    prop_assert!(result.is_ok());
+                    let cfg = result.unwrap();
+                    if bytes.len() == 48 {
+                        prop_assert_eq!(cfg.scheme, DrandScheme::PedersenBls);
+                    } else {
+                        prop_assert_eq!(cfg.scheme, DrandScheme::BlsUnchainedRfc);
+                    }
+                }
+                _ => {
+                    prop_assert!(result.is_err());
+                }
+            }
+        }
+
+        #[test]
+        fn fuzz_chain_config_rejects_invalid_hex(input in ".*") {
+            // If hex decode fails or length is wrong, should return Err
+            let result = ChainConfig::from_chain_hash_and_pubkey("test", &input);
+            // Just assert it never panics - the result depends on the input
+            let _ = result;
+        }
+
+        #[test]
+        fn fuzz_validate_and_verify_rejects_wrong_round(
+            requested_round in 1u64..u64::MAX,
+            response_round in 1u64..u64::MAX,
+        ) {
+            let client = make_client(MAINNET_CHAINED_CHAIN_HASH, MAINNET_CHAINED_PUBKEY_HEX);
+            let round = DrandRound {
+                round: response_round,
+                randomness: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_string(),
+                signature: "aabb".to_string(),
+                previous_signature: None,
+            };
+            let result = client.validate_and_verify(&round, requested_round);
+            if requested_round != response_round {
+                prop_assert!(result.is_err());
+            }
+        }
+
+        #[test]
+        fn fuzz_validate_rejects_bad_randomness_length(
+            randomness_len in 0usize..256,
+        ) {
+            prop_assume!(randomness_len != 64);
+            let client = make_client(MAINNET_CHAINED_CHAIN_HASH, MAINNET_CHAINED_PUBKEY_HEX);
+            let randomness: String = "a".repeat(randomness_len);
+            let round = DrandRound {
+                round: 1,
+                randomness,
+                signature: "aabb".to_string(),
+                previous_signature: None,
+            };
+            let result = client.validate_and_verify(&round, 1);
+            prop_assert!(result.is_err());
+        }
+
+        #[test]
+        fn fuzz_validate_rejects_non_hex_randomness(randomness in "[g-z]{64}") {
+            let client = make_client(MAINNET_CHAINED_CHAIN_HASH, MAINNET_CHAINED_PUBKEY_HEX);
+            let round = DrandRound {
+                round: 1,
+                randomness,
+                signature: "aabb".to_string(),
+                previous_signature: None,
+            };
+            let result = client.validate_and_verify(&round, 1);
+            prop_assert!(result.is_err());
+        }
+
+        #[test]
+        fn fuzz_validate_round_zero_always_rejected(
+            randomness in "[0-9a-f]{64}",
+        ) {
+            let client = make_client(MAINNET_CHAINED_CHAIN_HASH, MAINNET_CHAINED_PUBKEY_HEX);
+            let round = DrandRound {
+                round: 0,
+                randomness,
+                signature: "aabb".to_string(),
+                previous_signature: None,
+            };
+            let result = client.validate_and_verify(&round, 0);
+            prop_assert!(result.is_err());
+        }
+
+        #[test]
+        fn fuzz_drand_round_deserialization_never_panics(json in "\\{.*\\}") {
+            // Arbitrary JSON-like strings should never panic during deserialization
+            let _ = serde_json::from_str::<DrandRound>(&json);
+        }
     }
 }

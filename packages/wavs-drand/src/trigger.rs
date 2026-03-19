@@ -111,6 +111,7 @@ impl TriggerInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
     fn test_cron_unique_id_varies_with_timestamp() {
@@ -168,5 +169,56 @@ mod tests {
         let timestamp = custom_config.drand_genesis_time + 120; // 2 minutes after genesis
         let round = TriggerInfo::calculate_drand_round(timestamp, &custom_config).unwrap();
         assert_eq!(round, 3); // Should be round 3 (0-60s = round 1, 60-120s = round 2, 120+ = round 3)
+    }
+
+    // -----------------------------------------------------------------------
+    // Proptest fuzz tests
+    // -----------------------------------------------------------------------
+
+    proptest! {
+        #[test]
+        fn fuzz_calculate_drand_round_never_panics(
+            timestamp in 0u64..=u64::MAX,
+            genesis_time in 1u64..=u64::MAX / 2,
+            period in 1u64..=86400,
+        ) {
+            let config = Config {
+                drand_genesis_time: genesis_time,
+                drand_period: period,
+                ..Config::default()
+            };
+            let result = TriggerInfo::calculate_drand_round(timestamp, &config);
+            if timestamp < genesis_time {
+                prop_assert!(result.is_err());
+            } else {
+                prop_assert!(result.is_ok());
+                let round = result.unwrap();
+                prop_assert!(round >= 1, "Round must be >= 1, got {}", round);
+            }
+        }
+
+        #[test]
+        fn fuzz_calculate_drand_round_monotonic(
+            base_timestamp in 1595431050u64..=1595431050 + 1_000_000,
+            delta in 0u64..=100_000,
+        ) {
+            let config = Config::default();
+            let t1 = base_timestamp;
+            let t2 = base_timestamp + delta;
+            let r1 = TriggerInfo::calculate_drand_round(t1, &config).unwrap();
+            let r2 = TriggerInfo::calculate_drand_round(t2, &config).unwrap();
+            prop_assert!(r2 >= r1, "Round must be monotonically increasing: r1={}, r2={}", r1, r2);
+        }
+
+        #[test]
+        fn fuzz_calculate_drand_round_formula(
+            offset in 0u64..=1_000_000,
+        ) {
+            let config = Config::default();
+            let timestamp = config.drand_genesis_time + offset;
+            let round = TriggerInfo::calculate_drand_round(timestamp, &config).unwrap();
+            let expected = (offset / config.drand_period) + 1;
+            prop_assert_eq!(round, expected);
+        }
     }
 }

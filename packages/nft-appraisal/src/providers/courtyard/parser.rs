@@ -241,7 +241,9 @@ impl AttributeParser {
             ("NOT PERFECT", "NOT"),
             ("NO PERFECT", "NO"),
             ("NON PRISTINE", "NON"),
+            ("NON PERFECT", "NON"),
             ("WITHOUT PRISTINE", "WITHOUT"),
+            ("WITHOUT PERFECT", "WITHOUT"),
         ];
 
         for (pattern, _) in &negation_patterns {
@@ -391,5 +393,179 @@ impl TryFrom<&NFTMetadata> for ScrydexCardInfo {
             set_id,
             variant,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    // -----------------------------------------------------------------------
+    // Unit tests for parser functions
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_normalize_card_number_basic() {
+        assert_eq!(AttributeParser::normalize_card_number("070/100"), Some("70/100".to_string()));
+        assert_eq!(AttributeParser::normalize_card_number("007"), Some("7".to_string()));
+        assert_eq!(AttributeParser::normalize_card_number("0"), Some("0".to_string()));
+        assert_eq!(AttributeParser::normalize_card_number("000"), Some("0".to_string()));
+        assert_eq!(AttributeParser::normalize_card_number("TG23"), Some("TG23".to_string()));
+        assert_eq!(AttributeParser::normalize_card_number(""), None);
+        assert_eq!(AttributeParser::normalize_card_number("  "), None);
+    }
+
+    #[test]
+    fn test_normalize_grade_value_basic() {
+        assert_eq!(AttributeParser::normalize_grade_value("9.5"), Some("9.5".to_string()));
+        assert_eq!(AttributeParser::normalize_grade_value("10"), Some("10".to_string()));
+        assert_eq!(AttributeParser::normalize_grade_value("RAW"), Some("RAW".to_string()));
+        assert_eq!(AttributeParser::normalize_grade_value("raw"), Some("RAW".to_string()));
+        assert_eq!(AttributeParser::normalize_grade_value(""), None);
+        assert_eq!(AttributeParser::normalize_grade_value("PSA 9"), Some("9".to_string()));
+    }
+
+    #[test]
+    fn test_detect_perfect_grade_basic() {
+        assert!(AttributeParser::detect_perfect_grade("PRISTINE"));
+        assert!(AttributeParser::detect_perfect_grade("Black Label 10"));
+        assert!(AttributeParser::detect_perfect_grade("GEM MINT 10"));
+        assert!(AttributeParser::detect_perfect_grade("PERFECT 10"));
+        assert!(AttributeParser::detect_perfect_grade("This is PERFECT work"));
+        assert!(!AttributeParser::detect_perfect_grade("NOT PRISTINE"));
+        assert!(!AttributeParser::detect_perfect_grade("grade 9"));
+        assert!(!AttributeParser::detect_perfect_grade(""));
+    }
+
+    #[test]
+    fn test_extract_set_id_basic() {
+        assert_eq!(AttributeParser::extract_set_id("Pokémon Base-Set"), Some("base".to_string()));
+        assert_eq!(AttributeParser::extract_set_id("Pokemon Jungle"), Some("jungle".to_string()));
+        assert_eq!(AttributeParser::extract_set_id("SV06"), Some("sv06".to_string()));
+        assert_eq!(AttributeParser::extract_set_id(""), None);
+        assert_eq!(AttributeParser::extract_set_id("   "), None);
+    }
+
+    #[test]
+    fn test_construct_variant_string_basic() {
+        assert_eq!(AttributeParser::construct_variant_string(&[]), "");
+        assert_eq!(
+            AttributeParser::construct_variant_string(&["1st Edition".to_string()]),
+            "firstEdition"
+        );
+        assert_eq!(
+            AttributeParser::construct_variant_string(&["1st Edition".to_string(), "Holo".to_string()]),
+            "firstEditionHolofoil"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Proptest fuzz tests
+    // -----------------------------------------------------------------------
+
+    proptest! {
+        #[test]
+        fn fuzz_normalize_card_number_never_panics(input in ".*") {
+            let result = AttributeParser::normalize_card_number(&input);
+            // Empty/whitespace-only input should return None
+            if input.trim().is_empty() {
+                prop_assert!(result.is_none());
+            } else {
+                prop_assert!(result.is_some());
+                let normalized = result.unwrap();
+                // Result should never be empty when input is non-empty
+                prop_assert!(!normalized.is_empty());
+            }
+        }
+
+        #[test]
+        fn fuzz_normalize_card_number_no_leading_zeros(
+            leading_zeros in 0usize..10,
+            number in 0u32..10000,
+            suffix in proptest::option::of("[a-zA-Z/]{0,5}"),
+        ) {
+            let input = format!("{}{}{}", "0".repeat(leading_zeros), number, suffix.unwrap_or_default());
+            let result = AttributeParser::normalize_card_number(&input).unwrap();
+            // Result should not have unnecessary leading zeros
+            if result.starts_with('0') && result.len() > 1 {
+                // Only valid if the second char is not a digit (e.g., "0/100")
+                let second = result.chars().nth(1).unwrap();
+                prop_assert!(!second.is_ascii_digit(), "Should not have leading zeros: {}", result);
+            }
+        }
+
+        #[test]
+        fn fuzz_normalize_grade_value_never_panics(input in ".*") {
+            let _ = AttributeParser::normalize_grade_value(&input);
+        }
+
+        #[test]
+        fn fuzz_normalize_grade_value_valid_grades(grade in 0.0f64..=10.0) {
+            let input = format!("{:.1}", grade);
+            let result = AttributeParser::normalize_grade_value(&input);
+            prop_assert!(result.is_some(), "Valid grade {} should parse", input);
+        }
+
+        #[test]
+        fn fuzz_normalize_grade_value_out_of_range(grade in 10.1f64..=1000.0) {
+            let input = format!("{:.1}", grade);
+            let result = AttributeParser::normalize_grade_value(&input);
+            // Out-of-range should fall through to returning the original value
+            prop_assert!(result.is_some());
+            // But the result should be the original input since no valid grade was found
+            prop_assert_eq!(result.unwrap(), input.trim().to_string());
+        }
+
+        #[test]
+        fn fuzz_detect_perfect_grade_never_panics(input in ".*") {
+            let _ = AttributeParser::detect_perfect_grade(&input);
+        }
+
+        #[test]
+        fn fuzz_detect_perfect_grade_negation_overrides(
+            prefix in "(NOT|NO|NON|WITHOUT) ",
+            keyword in "(PRISTINE|PERFECT)",
+            suffix in "[a-zA-Z0-9 ]{0,20}",
+        ) {
+            let input = format!("{}{} {}", prefix, keyword, suffix);
+            let result = AttributeParser::detect_perfect_grade(&input);
+            prop_assert!(!result, "Negated keyword should not be detected as perfect: {}", input);
+        }
+
+        #[test]
+        fn fuzz_extract_set_id_never_panics(input in ".*") {
+            let _ = AttributeParser::extract_set_id(&input);
+        }
+
+        #[test]
+        fn fuzz_extract_set_id_strips_pokemon_prefix(set_name in "[A-Z][a-z]{2,10}") {
+            let with_prefix = format!("Pokémon {}", set_name);
+            let without_prefix = &set_name;
+            let result_with = AttributeParser::extract_set_id(&with_prefix);
+            let result_without = AttributeParser::extract_set_id(without_prefix);
+            prop_assert_eq!(result_with, result_without, "Pokemon prefix should be stripped");
+        }
+
+        #[test]
+        fn fuzz_construct_variant_string_never_panics(
+            parts in proptest::collection::vec(".*", 0..10),
+        ) {
+            let _ = AttributeParser::construct_variant_string(&parts);
+        }
+
+        #[test]
+        fn fuzz_construct_variant_string_empty_on_empty_input(
+            count in 0usize..1,
+        ) {
+            let parts: Vec<String> = Vec::with_capacity(count);
+            let result = AttributeParser::construct_variant_string(&parts);
+            prop_assert!(result.is_empty());
+        }
+
+        #[test]
+        fn fuzz_is_valid_variant_never_panics(input in ".*") {
+            let _ = AttributeParser::is_valid_variant(&input);
+        }
     }
 }

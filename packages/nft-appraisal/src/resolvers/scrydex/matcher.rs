@@ -52,3 +52,141 @@ impl PriceMatcher {
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    fn make_price(grade: &str, company: &str, is_perfect: bool) -> ScrydexGradedPrice {
+        ScrydexGradedPrice {
+            grade: grade.to_string(),
+            company: company.to_string(),
+            is_perfect,
+            is_signed: false,
+            is_error: false,
+            r#type: "market".to_string(),
+            low: 1.0,
+            mid: 5.0,
+            high: 10.0,
+            market: 5.0,
+            currency: "USD".to_string(),
+            trends: None,
+        }
+    }
+
+    fn make_card(variants: Vec<(&str, Vec<ScrydexGradedPrice>)>) -> ScrydexCard {
+        ScrydexCard {
+            id: "test".to_string(),
+            name: "Test Card".to_string(),
+            number: Some("1".to_string()),
+            rarity: None,
+            expansion: None,
+            variants: variants
+                .into_iter()
+                .map(|(name, prices)| super::super::types::ScrydexCardVariant {
+                    name: name.to_string(),
+                    prices,
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn test_single_variant_no_variant_specified() {
+        let card = make_card(vec![("normal", vec![make_price("9", "PSA", false)])]);
+        let result = PriceMatcher::find_matching_price(&card, "9", "PSA", false, &None);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_multiple_variants_no_variant_specified_returns_none() {
+        let card = make_card(vec![
+            ("normal", vec![make_price("9", "PSA", false)]),
+            ("holofoil", vec![make_price("9", "PSA", false)]),
+        ]);
+        let result = PriceMatcher::find_matching_price(&card, "9", "PSA", false, &None);
+        assert!(result.is_none());
+    }
+
+    proptest! {
+        #[test]
+        fn fuzz_find_matching_price_never_panics(
+            grade in "[0-9]{1,2}",
+            company in "[A-Z]{2,5}",
+            is_perfect in any::<bool>(),
+            variant in proptest::option::of("[a-zA-Z]{1,20}"),
+            num_variants in 0usize..5,
+        ) {
+            let variants: Vec<_> = (0..num_variants)
+                .map(|i| {
+                    let name = format!("variant_{}", i);
+                    let prices = vec![make_price("9", "PSA", false)];
+                    (name, prices)
+                })
+                .collect();
+            let card = ScrydexCard {
+                id: "test".to_string(),
+                name: "Test Card".to_string(),
+                number: None,
+                rarity: None,
+                expansion: None,
+                variants: variants
+                    .into_iter()
+                    .map(|(name, prices)| super::super::types::ScrydexCardVariant { name, prices })
+                    .collect(),
+            };
+            // Should never panic
+            let _ = PriceMatcher::find_matching_price(&card, &grade, &company, is_perfect, &variant);
+        }
+
+        #[test]
+        fn fuzz_variant_matching_case_insensitive(
+            variant_name in "[a-zA-Z]{3,15}",
+            grade in "[0-9]{1,2}",
+        ) {
+            let prices = vec![make_price(&grade, "PSA", false)];
+            let card = make_card(vec![(&variant_name, prices)]);
+
+            // Search with uppercase variant
+            let upper = Some(variant_name.to_uppercase());
+            let result_upper = PriceMatcher::find_matching_price(&card, &grade, "PSA", false, &upper);
+            // Search with lowercase variant
+            let lower = Some(variant_name.to_lowercase());
+            let result_lower = PriceMatcher::find_matching_price(&card, &grade, "PSA", false, &lower);
+
+            // Both should find the same result (or both None)
+            prop_assert_eq!(result_upper.is_some(), result_lower.is_some(),
+                "Case sensitivity mismatch for variant '{}'", variant_name);
+        }
+
+        #[test]
+        fn fuzz_company_matching_case_insensitive(
+            company in "[a-zA-Z]{2,5}",
+        ) {
+            let card = make_card(vec![("normal", vec![make_price("9", &company, false)])]);
+
+            let result_upper = PriceMatcher::find_matching_price(
+                &card, "9", &company.to_uppercase(), false, &None,
+            );
+            let result_lower = PriceMatcher::find_matching_price(
+                &card, "9", &company.to_lowercase(), false, &None,
+            );
+
+            prop_assert_eq!(result_upper.is_some(), result_lower.is_some(),
+                "Company matching should be case-insensitive");
+        }
+
+        #[test]
+        fn fuzz_empty_card_always_returns_none(
+            grade in ".*",
+            company in ".*",
+            is_perfect in any::<bool>(),
+            variant in proptest::option::of(".*"),
+        ) {
+            let card = make_card(vec![]);
+            let result = PriceMatcher::find_matching_price(&card, &grade, &company, is_perfect, &variant);
+            prop_assert!(result.is_none(), "Empty card should always return None");
+        }
+    }
+}

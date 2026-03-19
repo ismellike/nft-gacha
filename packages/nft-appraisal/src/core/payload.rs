@@ -67,6 +67,7 @@ pub fn extract_tx_hash(tx_hash_bytes: &[u8]) -> B256 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
     fn test_extract_tx_hash_exact_32_bytes() {
@@ -103,6 +104,60 @@ mod tests {
         // Empty slice should produce all-zero hash (left-aligned with nothing to copy).
         let result = extract_tx_hash(&[]);
         assert_eq!(result, B256::ZERO);
+    }
+
+    // -----------------------------------------------------------------------
+    // Proptest fuzz tests
+    // -----------------------------------------------------------------------
+
+    proptest! {
+        #[test]
+        fn fuzz_extract_tx_hash_never_panics(bytes in proptest::collection::vec(any::<u8>(), 0..256)) {
+            let result = extract_tx_hash(&bytes);
+            let result_bytes = result.as_slice();
+
+            if bytes.len() == 32 {
+                prop_assert_eq!(result_bytes, bytes.as_slice());
+            } else if bytes.len() < 32 {
+                // Left-aligned: input bytes at start, zeros at end
+                prop_assert_eq!(&result_bytes[..bytes.len()], bytes.as_slice());
+                for &b in &result_bytes[bytes.len()..] {
+                    prop_assert_eq!(b, 0u8);
+                }
+            } else {
+                // Truncated: only first 32 bytes
+                prop_assert_eq!(result_bytes, &bytes[..32]);
+            }
+        }
+
+        #[test]
+        fn fuzz_compute_group_id_deterministic(
+            chain in "[a-z]{1,20}",
+            addr_bytes in proptest::collection::vec(any::<u8>(), 20..=20),
+            token_val in any::<u128>(),
+            title in proptest::option::of("[a-zA-Z0-9 ]{0,50}"),
+        ) {
+            let addr = Address::from_slice(&addr_bytes);
+            let token_id = U256::from(token_val);
+            let title_ref = title.as_deref();
+
+            let id1 = compute_group_id(&chain, addr, token_id, title_ref);
+            let id2 = compute_group_id(&chain, addr, token_id, title_ref);
+            prop_assert_eq!(id1, id2, "compute_group_id must be deterministic");
+        }
+
+        #[test]
+        fn fuzz_compute_group_id_different_inputs_differ(
+            chain in "[a-z]{1,10}",
+            addr_bytes in proptest::collection::vec(any::<u8>(), 20..=20),
+            token_a in 0u128..u128::MAX / 2,
+            token_b in (u128::MAX / 2 + 1)..u128::MAX,
+        ) {
+            let addr = Address::from_slice(&addr_bytes);
+            let id_a = compute_group_id(&chain, addr, U256::from(token_a), None);
+            let id_b = compute_group_id(&chain, addr, U256::from(token_b), None);
+            prop_assert_ne!(id_a, id_b, "Different token IDs should produce different group IDs");
+        }
     }
 }
 
