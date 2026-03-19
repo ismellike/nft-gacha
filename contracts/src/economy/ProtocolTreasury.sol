@@ -36,13 +36,14 @@ contract ProtocolTreasury is
     error AppraisalMissing();
     error RedemptionWindowExpired();
     error InvalidArrayLength();
+    error InvalidImplementation();
 
     /// @notice Payout percentage (in basis points) for NFT redemptions (80%)
     uint256 public constant REDEMPTION_PAYOUT_BPS = 8_000;
     /// @notice Conversion multiplier between 18-decimal appraisals and 6-decimal USDC
     uint256 private constant USD_TO_USDC_CONVERSION = 1e12;
-    /// @notice Redemption window after winning NFT (configurable by admin)
-    uint256 public redemptionWindow = 1 hours;
+    /// @notice Redemption window after winning NFT (configurable by admin); set in initialize()
+    uint256 public redemptionWindow;
 
     IERC20 private _asset;
     address public economyManager;
@@ -150,6 +151,8 @@ contract ProtocolTreasury is
         }
 
         uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
+        // In normal operation receiveTime is always set alongside deadline, so receiveTime == 0
+        // with deadline > 0 should not occur. The ternary guards against any edge-case state.
         uint256 timeSinceWin = receiveTime > 0 ? block.timestamp - receiveTime : 0;
         emit RedemptionWindowEnforced(collection, tokenId, msg.sender, timeSinceWin);
 
@@ -254,7 +257,10 @@ contract ProtocolTreasury is
     /**
      * @notice Authorizes UUPS upgrades
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     uint256[44] private __gap;
 }

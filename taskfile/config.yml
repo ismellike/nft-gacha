@@ -58,3 +58,7 @@ vars:
     IPFS_GATEWAY_PORT: 8301
     IPFS_DOCKER_IMAGE: "ipfs/kubo:v0.38.1"
     IPFS_API_URL: "http://localhost:{{.IPFS_API_PORT}}"
+    # Pinata IPFS pinning service (for testnet/mainnet deployments)
+    PINATA_JWT: '{{.PINATA_JWT | default ""}}'
+    # Public IPFS gateway for WAVS operators to fetch components/services
+    WAVS_IPFS_GATEWAY: '{{.WAVS_IPFS_GATEWAY | default "http://localhost:8301/ipfs/"}}'

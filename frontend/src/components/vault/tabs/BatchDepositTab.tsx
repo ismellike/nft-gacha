@@ -81,6 +81,13 @@ function SelectableNFTCard({
 			whileHover={isAppraised ? { scale: 1.01 } : {}}
 			whileTap={isAppraised ? { scale: 0.99 } : {}}
 			transition={{ type: "spring", stiffness: 400, damping: 17 }}
+			tabIndex={isAppraised ? 0 : -1}
+			onKeyDown={(e: React.KeyboardEvent) => {
+				if (isAppraised && (e.key === " " || e.key === "Enter")) {
+					e.preventDefault();
+					onToggle(nftKey);
+				}
+			}}
 			onClick={() => {
 				if (isAppraised) onToggle(nftKey);
 			}}

@@ -3,15 +3,13 @@
 import { useCallback, useState } from "react";
 import type { Address } from "viem";
 import { createNFTKey } from "../stores/storeUtils";
-import type { DepositedNFT } from "./useUserDepositedNFTs";
+import type {
+	NFTWithCollection,
+} from "./useUserDepositedNFTs";
 
 interface AppraisalInfo {
 	hasAppraisal: boolean;
 	priceUSD: bigint;
-}
-
-interface NFTWithCollection extends DepositedNFT {
-	collectionName?: string;
 }
 
 interface VaultState {

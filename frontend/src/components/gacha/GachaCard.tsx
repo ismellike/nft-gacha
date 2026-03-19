@@ -14,8 +14,8 @@ import { useCallback } from "react";
 import { useReadContract } from "wagmi";
 import {
 	gachaTreasuryAbi,
-	useReadErc20Decimals,
-	useReadErc20Symbol,
+	useReadBaseErc20Decimals,
+	useReadBaseErc20Symbol,
 	useReadGachaGetGachaConfigBatch,
 } from "../../generated";
 import type { GachaConfig } from "../../lib/gacha-config";
@@ -63,12 +63,12 @@ export function GachaCard({ gacha }: GachaCardProps) {
 	const feeToken = gachaConfig?.[0];
 	const spinFee = gachaConfig?.[1] ?? 0n;
 
-	const { data: feeTokenSymbol } = useReadErc20Symbol({
+	const { data: feeTokenSymbol } = useReadBaseErc20Symbol({
 		address: feeToken,
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: feeTokenDecimals } = useReadErc20Decimals({
+	const { data: feeTokenDecimals } = useReadBaseErc20Decimals({
 		address: feeToken,
 		query: { enabled: !!feeToken },
 	});

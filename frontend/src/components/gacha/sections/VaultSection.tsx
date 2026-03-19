@@ -2,24 +2,17 @@
 
 import {
 	BanknotesIcon,
-	ChartBarIcon,
-	GiftIcon,
 	ShieldCheckIcon,
 	TrophyIcon,
-	WalletIcon,
 } from "@heroicons/react/24/outline";
-import { motion } from "framer-motion";
-import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { gachaTreasuryAbi } from "../../../generated";
 import {
-	type UserCardGroupedData,
 	useClaimYield,
 	useCardGroupedVaultData,
 } from "../../../hooks/useCardGroupedVault";
-import { formatTokenAmount } from "../../../lib/utils";
 import { useGachaRefetch } from "../../../contexts/GachaRefreshContext";
 import { useAppraisalChecker } from "../../../hooks/useAppraisalChecker";
 import { useGachaContracts } from "../../../hooks/useGachaContracts";
@@ -27,7 +20,7 @@ import { useGachaId } from "../../../hooks/useGachaId";
 import { useNFTDeposit } from "../../../hooks/useNFTDeposit";
 import { useNFTWithdrawal } from "../../../hooks/useNFTWithdrawal";
 import {
-	type DepositedNFT,
+	type NFTWithCollection,
 	useUserDepositedNFTs,
 } from "../../../hooks/useUserDepositedNFTs";
 import { useUserOwnedNFTsMultipleCollections } from "../../../hooks/useUserOwnedNFTs";
@@ -37,17 +30,13 @@ import { logger } from "../../../lib/logger";
 import { toastError, toastSuccess } from "../../../lib/toast";
 import { createNFTKey } from "../../../stores/storeUtils";
 import type { UserOwnedNFTMultiCollection } from "../../../types/hooks";
-import { Button } from "../../../ui";
-import { EmptyState } from "../../shared/EmptyState";
 import {
-	DepositTab,
-	VaultTabNavigation,
-	WithdrawTab,
-	YieldTab,
+	BalanceOverview,
+	VaultTabContent,
+	WalletConnectPrompt,
 } from "../../vault";
 import { GachaSectionLayout } from "./GachaSectionLayout";
 
-// Types
 interface VaultSectionProps {
 	title: string;
 	description: string;
@@ -55,103 +44,6 @@ interface VaultSectionProps {
 
 type VaultTab = "deposit" | "withdraw" | "yield";
 
-interface NFTWithCollection extends DepositedNFT {
-	collectionName?: string;
-}
-
-// Components
-const WalletConnectPrompt: React.FC = () => (
-	<section role="alert" aria-live="polite">
-		<EmptyState
-			icon={WalletIcon}
-			title="Connect Your Wallet"
-			description="Connect your wallet to view your vault, deposit NFTs, and earn yield on your assets."
-		/>
-	</section>
-);
-
-const BalanceOverview: React.FC<{
-	depositorUserData: UserCardGroupedData;
-	isClaiming: boolean;
-	onClaimYield: () => void;
-	totalDepositedNFTs: number;
-}> = ({ depositorUserData, isClaiming, onClaimYield, totalDepositedNFTs }) => (
-	<section
-		aria-label="Account Overview"
-		className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
-	>
-		<article className="bg-content1/30 rounded-xl p-4 border border-white/10">
-			<div className="flex items-center gap-3">
-				<div className="p-2 rounded-lg bg-primary/20">
-					<BanknotesIcon className="w-6 h-6 text-primary" aria-hidden="true" />
-				</div>
-				<div>
-					<h3 className="text-sm font-medium text-foreground/60">
-						Pending Yield
-					</h3>
-					<p className="text-xl font-semibold text-foreground">
-						{depositorUserData?.pendingYield
-							? formatTokenAmount(depositorUserData.pendingYield, 6)
-							: "0.000000"}{" "}
-						USDC
-					</p>
-				</div>
-			</div>
-			<Button
-				className="mt-3 w-full"
-				color="glassPrimary"
-				onPress={onClaimYield}
-				isLoading={isClaiming}
-				disabled={
-					isClaiming ||
-					!depositorUserData.pendingYield ||
-					depositorUserData.pendingYield <= 0n
-				}
-				aria-label="Claim pending yield"
-			>
-				Claim Yield
-			</Button>
-		</article>
-
-		<article className="bg-content1/30 rounded-xl p-4 border border-white/10">
-			<div className="flex items-center gap-3">
-				<div className="p-2 rounded-lg bg-success/20">
-					<GiftIcon className="w-6 h-6 text-success" aria-hidden="true" />
-				</div>
-				<div>
-					<h3 className="text-sm font-medium text-foreground/60">
-						Deposited NFTs
-					</h3>
-					<p className="text-xl font-semibold text-foreground">
-						{totalDepositedNFTs} NFT{totalDepositedNFTs !== 1 ? "s" : ""}
-					</p>
-				</div>
-			</div>
-		</article>
-
-		<article className="bg-content1/30 rounded-xl p-4 border border-white/10">
-			<div className="flex items-center gap-3">
-				<div className="p-2 rounded-lg bg-warning/20">
-					<ChartBarIcon className="w-6 h-6 text-warning" aria-hidden="true" />
-				</div>
-				<div>
-					<h3 className="text-sm font-medium text-foreground/60">
-						Total Earned
-					</h3>
-					<p className="text-xl font-semibold text-foreground">
-						{depositorUserData?.pendingYield
-							? formatTokenAmount(depositorUserData.pendingYield, 6)
-							: "0.000000"}{" "}
-						USDC
-					</p>
-				</div>
-			</div>
-			<p className="text-sm text-foreground/60 mt-2">lifetime yield earnings</p>
-		</article>
-	</section>
-);
-
-// Main component
 export function VaultSection({ title, description }: VaultSectionProps) {
 	const { address } = useAccount();
 	const publicClient = usePublicClient();
@@ -771,44 +663,25 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 				totalDepositedNFTs={totalDepositedNFTs}
 			/>
 
-			<VaultTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-			<motion.div
-				key={activeTab}
-				initial={{ opacity: 0, y: 10 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.2 }}
-				className="mt-6"
-			>
-				{activeTab === "deposit" && (
-					<DepositTab
-						sortedUserOwnedNFTs={sortedUserOwnedNFTs}
-						appraisedNFTs={state.appraisedNFTs}
-						appraisalData={state.appraisalData}
-						appraisal={appraisal}
-						getNFTDepositState={getNFTDepositState}
-						onNFTAction={handleNFTAction}
-					/>
-				)}
-
-				{activeTab === "withdraw" && (
-					<WithdrawTab
-						filteredWithdrawableNFTs={filteredWithdrawableNFTs}
-						totalDepositedNFTs={totalDepositedNFTs}
-						withdrawingNFT={state.withdrawingNFT}
-						onWithdrawNFT={handleWithdrawNFT}
-						onSwitchToDeposit={() => setActiveTab("deposit")}
-					/>
-				)}
-
-				{activeTab === "yield" && (
-					<YieldTab
-						depositorUserData={depositorUserData}
-						depositorData={depositorData}
-						treasuryAddress={treasury}
-					/>
-				)}
-			</motion.div>
+			<VaultTabContent
+				activeTab={activeTab}
+				onTabChange={setActiveTab}
+				sortedUserOwnedNFTs={sortedUserOwnedNFTs}
+				appraisedNFTs={state.appraisedNFTs}
+				appraisalData={state.appraisalData}
+				appraisal={appraisal}
+				getNFTDepositState={getNFTDepositState}
+				onNFTAction={handleNFTAction}
+				filteredWithdrawableNFTs={filteredWithdrawableNFTs}
+				totalDepositedNFTs={totalDepositedNFTs}
+				withdrawingNFT={state.withdrawingNFT}
+				onWithdrawNFT={handleWithdrawNFT}
+				depositorUserData={depositorUserData}
+				depositorData={depositorData}
+				treasuryAddress={treasury}
+				vaultAddress={gachaConfig?.cardGroupedVaultAddress as `0x${string}` | undefined}
+				userAddress={address}
+			/>
 		</GachaSectionLayout>
 	);
 }

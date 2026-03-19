@@ -125,6 +125,12 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
             if (successPayload.contractAddress == address(0)) return (true, false, true);
             if (successPayload.price == 0) return (true, false, true);
 
+            // Check that a request exists for this token; if not, this is a permanent failure
+            // (the token was never requested, so retrying will never help)
+            (,, uint256 reqTimestamp,) =
+                _appraisalContract.tokenRequests(successPayload.contractAddress, successPayload.tokenId);
+            if (reqTimestamp == 0) return (true, false, true);
+
             // Emit event for monitoring (exclude chain per interface definition)
             emit AppraisalSuccessReceived(
                 successPayload.contractAddress, successPayload.tokenId, successPayload.price, successPayload.txHash
@@ -134,7 +140,7 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
             uint256 priceUSD18 = successPayload.price * 1e12;
 
             // Link token to card and set the card-level appraised price
-            // Derive a stable bytes32 cardId from the variable-length groupId bytes
+            // Use groupId directly as cardId
             bytes32 derivedCardId = successPayload.groupId;
             try _appraisalContract.setAppraisalForTokenWithCard(
                 successPayload.contractAddress, successPayload.tokenId, derivedCardId, priceUSD18
@@ -214,9 +220,7 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
         view
         returns (bool exists, uint256 priceUSD)
     {
-        NFTAppraisal.AppraisalStatus status;
-        (priceUSD, status) = _appraisalContract.getAppraisedPrice(collection, tokenId);
-        exists = priceUSD > 0
-            && (status == NFTAppraisal.AppraisalStatus.Completed || status == NFTAppraisal.AppraisalStatus.OwnerOverride);
+        exists = _appraisalContract.hasAppraisal(collection, tokenId);
+        (priceUSD,) = _appraisalContract.getAppraisedPrice(collection, tokenId);
     }
 }

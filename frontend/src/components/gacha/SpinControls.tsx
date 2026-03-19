@@ -6,13 +6,13 @@ import { useGachaRefresh } from "../../contexts/GachaRefreshContext";
 import { useSoundEffects } from "../../hooks/useSoundEffects";
 import {
 	gachaTreasuryAbi,
-	useReadErc20BalanceOf,
-	useReadErc20Decimals,
-	useReadErc20Name,
-	useReadErc20Symbol,
+	useReadBaseErc20BalanceOf,
+	useReadBaseErc20Decimals,
+	useReadBaseErc20Name,
+	useReadBaseErc20Symbol,
 	useReadGachaFeeToken,
 	useReadGachaPaused,
-	useReadIerc20PermitNonces,
+	useReadBaseErc20Nonces,
 } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
@@ -96,22 +96,22 @@ const SpinControls = memo(function SpinControls({
 	});
 
 	// ERC20 token data
-	const { data: tokenDecimals } = useReadErc20Decimals({
+	const { data: tokenDecimals } = useReadBaseErc20Decimals({
 		address: feeToken,
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: tokenSymbol } = useReadErc20Symbol({
+	const { data: tokenSymbol } = useReadBaseErc20Symbol({
 		address: feeToken,
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: tokenName } = useReadErc20Name({
+	const { data: tokenName } = useReadBaseErc20Name({
 		address: feeToken,
 		query: { enabled: !!feeToken },
 	});
 
-	const { data: tokenBalance, refetch: refetchBalance } = useReadErc20BalanceOf(
+	const { data: tokenBalance, refetch: refetchBalance } = useReadBaseErc20BalanceOf(
 		{
 			address: feeToken,
 			args: userAddress ? [userAddress] : undefined,
@@ -123,7 +123,7 @@ const SpinControls = memo(function SpinControls({
 		data: tokenNonce,
 		refetch: refetchNonce,
 		error: noncesError,
-	} = useReadIerc20PermitNonces({
+	} = useReadBaseErc20Nonces({
 		address: feeToken,
 		args: userAddress ? [userAddress] : undefined,
 		query: { enabled: !!(feeToken && userAddress) },

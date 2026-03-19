@@ -69,7 +69,7 @@ export class RevealErrorBoundary extends Component<Props, State> {
 							We encountered an error while revealing your NFT. This might be
 							due to missing metadata or a temporary issue.
 						</p>
-						{this.state.error && (
+						{process.env.NODE_ENV === "development" && this.state.error && (
 							<details className="text-left text-sm text-foreground/50 mb-4">
 								<summary className="cursor-pointer hover:text-foreground/70">
 									Error details

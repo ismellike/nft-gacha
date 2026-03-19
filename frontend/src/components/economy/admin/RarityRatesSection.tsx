@@ -28,7 +28,12 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 		| readonly bigint[]
 		| undefined;
 
-	const { writeContract: setRarityWeights, isPending } = useWriteContract();
+	const {
+		writeContract: setRarityWeights,
+		isPending,
+		isError,
+		error: writeError,
+	} = useWriteContract();
 
 	useEffect(() => {
 		if (targetWeights) {
@@ -65,7 +70,7 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 	};
 
 	return (
-		<Card className="p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+		<Card className="p-4 sm:p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="flex items-center justify-between mb-8">
 				<div>
 					<h2 className="text-2xl font-bold text-foreground mb-2">
@@ -120,9 +125,16 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 				})}
 			</div>
 
+			{isError && (
+				<div className="mb-4 bg-danger/10 border border-danger/20 rounded-xl p-4 text-danger text-sm">
+					Transaction failed: {writeError?.message?.slice(0, 200)}
+				</div>
+			)}
+
 			<div className="flex justify-end gap-4">
 				<Button
 					color="glass"
+					isDisabled={isPending}
 					onPress={() =>
 						currentWeights &&
 						setWeights(currentWeights.map((w: bigint) => Number(w)))

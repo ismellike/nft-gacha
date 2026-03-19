@@ -1,3 +1,5 @@
+use anyhow::{anyhow, Result};
+
 use crate::drand::{ChainConfig, MAINNET_CHAINED_CHAIN_HASH, MAINNET_CHAINED_PUBKEY_HEX};
 use crate::host;
 
@@ -46,7 +48,7 @@ impl Config {
     /// *unknown* chain and no `DRAND_PUBLIC_KEY` is provided, `from_host`
     /// panics because operating without signature verification is not
     /// permitted.
-    pub fn from_host() -> Self {
+    pub fn from_host() -> Result<Self> {
         let defaults = Self::default();
 
         let drand_url = host::config_var("DRAND_URL").unwrap_or(defaults.drand_url);
@@ -56,10 +58,12 @@ impl Config {
 
         let drand_genesis_time = host::config_var("DRAND_GENESIS_TIME")
             .and_then(|s| s.parse().ok())
+            .filter(|&v: &u64| v > 0)
             .unwrap_or(defaults.drand_genesis_time);
 
         let drand_period = host::config_var("DRAND_PERIOD")
             .and_then(|s| s.parse().ok())
+            .filter(|&v: &u64| v > 0)
             .unwrap_or(defaults.drand_period);
 
         // Resolve the public key: explicit env var takes precedence, then
@@ -71,20 +75,20 @@ impl Config {
         } else {
             // An unknown chain hash with no public key supplied means we
             // cannot verify signatures. This is a fatal misconfiguration.
-            panic!(
+            return Err(anyhow!(
                 "DRAND_PUBLIC_KEY must be set when using an unrecognised \
                  DRAND_CHAIN_HASH '{}'. BLS signature verification cannot \
                  proceed without a public key.",
                 drand_chain_hash
-            );
+            ));
         };
 
-        Self {
+        Ok(Self {
             drand_url,
             drand_chain_hash,
             drand_public_key,
             drand_genesis_time,
             drand_period,
-        }
+        })
     }
 }

@@ -40,6 +40,12 @@ tasks:
         cmds:
             - forge test --match-path "test/integration/*"
 
+    slither:
+        desc: Run Slither static analysis on contracts
+        dir: "{{.CONTRACTS_DIR}}"
+        cmds:
+            - slither .
+
     snapshot:
         desc: Generate gas snapshots
         dir: "{{.CONTRACTS_DIR}}"
@@ -103,6 +109,7 @@ tasks:
                 forge script script/DeployTestnet.s.sol:DeployTestnet \
                   --rpc-url {{.DEPLOY_RPC_URL}} \
                   --broadcast \
+                  --slow \
                   --private-key $DEPLOYER_PRIVATE_KEY \
                   $VERIFY_FLAGS
         preconditions:

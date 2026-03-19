@@ -1,19 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useReadContract } from "wagmi";
+import { useReadGachaGetCurrentSpinFee } from "@/generated";
 import { FEE_STALENESS_MS } from "../lib/constants";
 import { logger } from "../lib/logger";
-
-const SPIN_FEE_ABI = [
-	{
-		type: "function",
-		name: "getCurrentSpinFee",
-		stateMutability: "view",
-		inputs: [],
-		outputs: [{ name: "fee", type: "uint256" }],
-	},
-] as const;
 
 interface UseSpinFeeParams {
 	gachaAddress: `0x${string}` | undefined;
@@ -41,10 +31,8 @@ export function useSpinFee({
 	const [lastFeeUpdate, setLastFeeUpdate] = useState<number>(Date.now());
 	const [feeStale, setFeeStale] = useState(false);
 
-	const spinFeeQuery = useReadContract({
+	const spinFeeQuery = useReadGachaGetCurrentSpinFee({
 		address: gachaAddress,
-		abi: SPIN_FEE_ABI,
-		functionName: "getCurrentSpinFee",
 		query: {
 			enabled: !!gachaAddress,
 			refetchInterval: 10000, // Poll every 10 seconds

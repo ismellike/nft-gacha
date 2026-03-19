@@ -34,6 +34,8 @@ includes:
         taskfile: ./taskfile/component.yml
     cli:
         taskfile: ./taskfile/cli.yml
+    indexer:
+        taskfile: ./taskfile/indexer.yml
 
 #####################################################################
 # PROJECT VARIABLES
@@ -100,6 +102,13 @@ tasks:
                 echo "   task middleware:*   - POA middleware operations"
                 echo "   task component:*    - WASI component build/upload"
                 echo "   task cli:*          - WAVS CLI commands"
+                echo "   task indexer:*      - Event indexer (start, stop, status)"
+                echo ""
+                echo "🌐 Testnet Deployment:"
+                echo "   task testnet:preflight     - Validate env, RPC, balances for Polygon Amoy"
+                echo "   task testnet:bootstrap     - Full testnet deployment (one command)"
+                echo "   task testnet:status        - Show deployed addresses and wallet balances"
+                echo "   task testnet:verify        - Verify contracts on Polygonscan"
                 echo ""
                 echo "🔍 Common Tasks:"
                 echo "   task backend:status        - Check backend service status"
@@ -117,13 +126,302 @@ tasks:
     # MAIN WORKFLOWS
     # =================================================================
     bootstrap:
-        desc: "Complete system deployment: backend + AVS + contracts + frontend"
+        desc: "Complete system deployment: backend + AVS + contracts + frontend + indexer"
         cmds:
             - echo "Starting full bootstrap..."
             - task avs:bootstrap
             - task frontend:sync-env
+            - task indexer:start:docker
             - task frontend:dev
             - echo "Bootstrap complete!"
+
+    # =================================================================
+    # TESTNET DEPLOYMENT
+    # =================================================================
+    testnet:preflight:
+        desc: "Validate environment and connectivity for Polygon Amoy testnet deployment"
+        cmds:
+            - |
+                echo "╔══════════════════════════════════════════════════╗"
+                echo "║     Testnet Preflight Checks (Polygon Amoy)     ║"
+                echo "╚══════════════════════════════════════════════════╝"
+                echo ""
+                ERRORS=0
+
+                # 1. Check DEPLOY_ENV
+                if [ "$DEPLOY_ENV" != "TESTNET" ]; then
+                  echo "❌ DEPLOY_ENV must be TESTNET (current: '${DEPLOY_ENV:-unset}')"
+                  echo "   Set DEPLOY_ENV=TESTNET in your .env file"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "✅ DEPLOY_ENV=TESTNET"
+                fi
+
+                # 2. Check DEPLOYER_PRIVATE_KEY is set and not the default Anvil key
+                if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then
+                  echo "❌ DEPLOYER_PRIVATE_KEY is not set"
+                  ERRORS=$((ERRORS + 1))
+                elif [ "$DEPLOYER_PRIVATE_KEY" = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" ]; then
+                  echo "❌ DEPLOYER_PRIVATE_KEY is the default Anvil key — use a real funded key for testnet!"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "✅ DEPLOYER_PRIVATE_KEY is set"
+                fi
+
+                # 3. Check operator mnemonic is not the default
+                if [ "$WAVS_OPERATOR_MNEMONIC_1" = "test test test test test test test test test test test junk" ]; then
+                  echo "⚠️  WAVS_OPERATOR_MNEMONIC_1 is the default test mnemonic — generate a unique one for testnet"
+                else
+                  echo "✅ WAVS_OPERATOR_MNEMONIC_1 is set"
+                fi
+
+                # 4. Check aggregator credential is not the default
+                if [ "$WAVS_AGGREGATOR_EVM_CREDENTIAL" = "test test test test test test test test test test test junk" ]; then
+                  echo "⚠️  WAVS_AGGREGATOR_EVM_CREDENTIAL is the default test mnemonic — generate a unique one for testnet"
+                else
+                  echo "✅ WAVS_AGGREGATOR_EVM_CREDENTIAL is set"
+                fi
+
+                # 5. Check RPC connectivity
+                RPC_URL=$(task backend:get-evm-rpc-url-1)
+                echo ""
+                echo "Testing RPC: $RPC_URL"
+                if curl -sf -X POST "$RPC_URL" -H "Content-Type: application/json" \
+                  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' >/dev/null 2>&1; then
+                  CHAIN_ID_HEX=$(curl -sf -X POST "$RPC_URL" -H "Content-Type: application/json" \
+                    -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' | jq -r '.result')
+                  CHAIN_ID=$((CHAIN_ID_HEX))
+                  echo "✅ RPC is reachable (chain ID: $CHAIN_ID)"
+                  if [ "$CHAIN_ID" != "80002" ]; then
+                    echo "⚠️  Expected Polygon Amoy chain ID 80002, got $CHAIN_ID"
+                  fi
+                else
+                  echo "❌ Cannot reach RPC at $RPC_URL"
+                  ERRORS=$((ERRORS + 1))
+                fi
+
+                # 6. Check deployer balance
+                echo ""
+                DEPLOYER_ADDR=$(cast wallet address --private-key "$DEPLOYER_PRIVATE_KEY" 2>/dev/null)
+                if [ -n "$DEPLOYER_ADDR" ]; then
+                  echo "Deployer address: $DEPLOYER_ADDR"
+                  BALANCE_WEI=$(cast balance "$DEPLOYER_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo "0")
+                  BALANCE_ETH=$(cast from-wei "$BALANCE_WEI" 2>/dev/null || echo "0")
+                  echo "Deployer balance: $BALANCE_ETH POL"
+                  # Check if balance is less than 0.1 POL (rough minimum for deployment)
+                  if ! command -v bc >/dev/null 2>&1; then
+                    echo "⚠️  'bc' not installed — cannot verify balance threshold. Please check manually."
+                  elif [ "$(echo "$BALANCE_ETH < 0.1" | bc -l)" = "1" ]; then
+                    echo "⚠️  Balance may be too low for deployment. Fund the deployer with POL from a faucet."
+                    echo "   Faucet: https://faucet.polygon.technology/"
+                  else
+                    echo "✅ Deployer has sufficient balance"
+                  fi
+                fi
+
+                # 7. Check operator wallet balance (needs POL for signing)
+                OPERATOR_ADDR=$(cast wallet address --mnemonic "$WAVS_OPERATOR_MNEMONIC_1" 2>/dev/null)
+                if [ -n "$OPERATOR_ADDR" ]; then
+                  echo ""
+                  echo "Operator address: $OPERATOR_ADDR"
+                  OP_BALANCE_WEI=$(cast balance "$OPERATOR_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo "0")
+                  OP_BALANCE_ETH=$(cast from-wei "$OP_BALANCE_WEI" 2>/dev/null || echo "0")
+                  echo "Operator balance: $OP_BALANCE_ETH POL"
+                fi
+
+                # 8. Check aggregator wallet balance
+                AGG_ADDR=$(cast wallet address --mnemonic "$WAVS_AGGREGATOR_EVM_CREDENTIAL" 2>/dev/null)
+                if [ -n "$AGG_ADDR" ]; then
+                  echo ""
+                  echo "Aggregator address: $AGG_ADDR"
+                  AGG_BALANCE_WEI=$(cast balance "$AGG_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo "0")
+                  AGG_BALANCE_ETH=$(cast from-wei "$AGG_BALANCE_WEI" 2>/dev/null || echo "0")
+                  echo "Aggregator balance: $AGG_BALANCE_ETH POL"
+                  if ! command -v bc >/dev/null 2>&1; then
+                    echo "⚠️  'bc' not installed — cannot verify balance threshold. Please check manually."
+                  elif [ "$(echo "$AGG_BALANCE_ETH < 0.05" | bc -l)" = "1" ]; then
+                    echo "⚠️  Aggregator needs POL to submit transactions on-chain. Fund with testnet POL."
+                  fi
+                fi
+
+                # 9. Check Pinata JWT (required for IPFS uploads)
+                echo ""
+                if [ -n "$PINATA_JWT" ]; then
+                  # Validate JWT by calling Pinata test auth endpoint
+                  PINATA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                    "https://api.pinata.cloud/data/testAuthentication" \
+                    -H "Authorization: Bearer $PINATA_JWT")
+                  if [ "$PINATA_STATUS" = "200" ]; then
+                    echo "✅ PINATA_JWT is valid (authenticated with Pinata)"
+                  else
+                    echo "❌ PINATA_JWT is set but authentication failed (HTTP $PINATA_STATUS)"
+                    ERRORS=$((ERRORS + 1))
+                  fi
+                else
+                  echo "❌ PINATA_JWT is not set (required for uploading components/services to IPFS)"
+                  echo "   Get a free API key at https://app.pinata.cloud/"
+                  ERRORS=$((ERRORS + 1))
+                fi
+
+                # 10. Check WAVS_IPFS_GATEWAY
+                if [ -n "$WAVS_IPFS_GATEWAY" ]; then
+                  echo "✅ WAVS_IPFS_GATEWAY=$WAVS_IPFS_GATEWAY"
+                else
+                  echo "⚠️  WAVS_IPFS_GATEWAY not set — will default to http://localhost:8301/ipfs/"
+                  echo "   For testnet, set to a public gateway (e.g. https://gateway.pinata.cloud/ipfs/)"
+                fi
+
+                # 11. Check Docker
+                echo ""
+                if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+                  echo "✅ Docker is available"
+                else
+                  echo "❌ Docker is not available (required for WAVS operators)"
+                  ERRORS=$((ERRORS + 1))
+                fi
+
+                # 12. Check optional but recommended vars
+                echo ""
+                if [ -n "$ETHERSCAN_API_KEY" ]; then
+                  echo "✅ ETHERSCAN_API_KEY is set (contract verification enabled)"
+                else
+                  echo "ℹ️  ETHERSCAN_API_KEY not set — contract verification will be skipped"
+                fi
+
+                echo ""
+                echo "════════════════════════════════════════════════════"
+                if [ "$ERRORS" -gt 0 ]; then
+                  echo "❌ Preflight failed with $ERRORS error(s). Fix the issues above before deploying."
+                  exit 1
+                else
+                  echo "✅ Preflight passed! Ready to deploy with: task testnet:bootstrap"
+                fi
+
+    testnet:bootstrap:
+        desc: "Full testnet deployment: preflight + backend + middleware + components + contracts + service + indexer + frontend"
+        cmds:
+            - task: testnet:preflight
+            - echo ""
+            - echo "Starting testnet bootstrap..."
+            - task avs:bootstrap
+            - task frontend:sync-env-testnet
+            - task indexer:start:docker
+            - |
+                echo ""
+                echo "╔══════════════════════════════════════════════════╗"
+                echo "║        Testnet Bootstrap Complete!                ║"
+                echo "╚══════════════════════════════════════════════════╝"
+                echo ""
+                echo "Deployed contract addresses saved to .env.testnet"
+                echo "Frontend env synced to frontend/.env.local"
+                echo "Event indexer running at http://localhost:${PORT:-42069}"
+                echo ""
+                echo "Next steps:"
+                echo "  1. Verify contracts:  task testnet:verify"
+                echo "  2. Check deployment:  task testnet:status"
+                echo "  3. Start frontend:    cd frontend && pnpm dev"
+
+    testnet:verify:
+        desc: "Verify deployed testnet contracts on Polygonscan"
+        preconditions:
+            - sh: '[ -f ".env.testnet" ]'
+              msg: ".env.testnet not found — run 'task testnet:bootstrap' first"
+            - sh: '[ -n "$ETHERSCAN_API_KEY" ]'
+              msg: "ETHERSCAN_API_KEY is required for contract verification"
+        cmds:
+            - |
+                RPC_URL=$(task backend:get-evm-rpc-url-1)
+                CHAIN_ID=$(cast chain-id --rpc-url "$RPC_URL")
+                echo "Verifying contracts on chain $CHAIN_ID..."
+                echo ""
+
+                # Read addresses from .env.testnet
+                source <(grep -v '^#' .env.testnet | grep '=')
+
+                # Verify each proxy contract
+                for name_var in \
+                  "NFTAppraisal:$NFT_APPRAISAL_ADDRESS" \
+                  "GachaTreasury:$GACHA_TREASURY_ADDRESS" \
+                  "CardGroupedVault:$CARD_GROUPED_VAULT_ADDRESS" \
+                  "ProtocolTreasury:$PROTOCOL_TREASURY_ADDRESS" \
+                  "GachaEconomyManager:$ECONOMY_MANAGER_ADDRESS" \
+                  "Gacha:$GACHA_ADDRESS"; do
+                  NAME="${name_var%%:*}"
+                  ADDR="${name_var#*:}"
+                  if [ -n "$ADDR" ]; then
+                    echo "Verifying $NAME at $ADDR..."
+                    forge verify-contract "$ADDR" "ERC1967Proxy" \
+                      --chain "$CHAIN_ID" \
+                      --etherscan-api-key "$ETHERSCAN_API_KEY" \
+                      --root contracts/ 2>&1 || echo "  (may already be verified)"
+                    echo ""
+                  fi
+                done
+
+                # Verify non-proxy contracts (explicit paths due to lowercase directory names)
+                for name_dir_var in \
+                  "GachaServiceHandler:gacha:$GACHA_SERVICE_HANDLER_ADDRESS" \
+                  "NFTAppraisalServiceHandler:appraisal:$APPRAISAL_SERVICE_HANDLER_ADDRESS"; do
+                  NAME="${name_dir_var%%:*}"
+                  REST="${name_dir_var#*:}"
+                  DIR="${REST%%:*}"
+                  ADDR="${REST#*:}"
+                  if [ -n "$ADDR" ]; then
+                    echo "Verifying $NAME at $ADDR..."
+                    forge verify-contract "$ADDR" "src/${DIR}/${NAME}.sol:${NAME}" \
+                      --chain "$CHAIN_ID" \
+                      --etherscan-api-key "$ETHERSCAN_API_KEY" \
+                      --root contracts/ 2>&1 || echo "  (may already be verified)"
+                    echo ""
+                  fi
+                done
+
+                echo "Verification complete. Check https://amoy.polygonscan.com for results."
+
+    testnet:status:
+        desc: "Show testnet deployment status: contract addresses, backend services, and wallet balances"
+        cmds:
+            - |
+                echo "╔══════════════════════════════════════════════════╗"
+                echo "║         Testnet Deployment Status                ║"
+                echo "╚══════════════════════════════════════════════════╝"
+                echo ""
+
+                # Contract addresses
+                if [ -f ".env.testnet" ]; then
+                  echo "📋 Deployed Contracts (.env.testnet):"
+                  grep -v '^#' .env.testnet | grep '=' | while IFS='=' read -r key value; do
+                    [ -n "$key" ] && printf "  %-40s %s\n" "$key" "$value"
+                  done
+                  echo ""
+                else
+                  echo "⚠️  No .env.testnet found — contracts not yet deployed"
+                  echo ""
+                fi
+
+                # Backend services
+                echo "🐳 Backend Services:"
+                docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null \
+                  | grep -E "wavs-|ipfs|jaeger|prometheus" || echo "  No running services"
+                echo ""
+
+                # Wallet balances
+                RPC_URL=$(task backend:get-evm-rpc-url-1 2>/dev/null)
+                if [ -n "$RPC_URL" ] && [ -n "$DEPLOYER_PRIVATE_KEY" ]; then
+                  echo "💰 Wallet Balances (Polygon Amoy):"
+                  DEPLOYER_ADDR=$(cast wallet address --private-key "$DEPLOYER_PRIVATE_KEY" 2>/dev/null)
+                  if [ -n "$DEPLOYER_ADDR" ]; then
+                    BAL=$(cast from-wei $(cast balance "$DEPLOYER_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo 0) 2>/dev/null || echo "?")
+                    printf "  %-12s %s (%s POL)\n" "Deployer:" "$DEPLOYER_ADDR" "$BAL"
+                  fi
+                  if [ -n "$WAVS_AGGREGATOR_EVM_CREDENTIAL" ]; then
+                    AGG_ADDR=$(cast wallet address --mnemonic "$WAVS_AGGREGATOR_EVM_CREDENTIAL" 2>/dev/null)
+                    if [ -n "$AGG_ADDR" ]; then
+                      BAL=$(cast from-wei $(cast balance "$AGG_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo 0) 2>/dev/null || echo "?")
+                      printf "  %-12s %s (%s POL)\n" "Aggregator:" "$AGG_ADDR" "$BAL"
+                    fi
+                  fi
+                fi
 
     # =================================================================
     # DEVELOPMENT TASKS

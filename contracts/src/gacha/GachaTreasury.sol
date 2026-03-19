@@ -65,6 +65,7 @@ contract GachaTreasury is
     error InvalidLimit();
     error MaxCardDepositsReached();
     error InvalidNumRarities();
+    error InvalidImplementation();
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -153,6 +154,8 @@ contract GachaTreasury is
     /// @notice Card-level deposit tracking for enhanced rewards
     mapping(address => mapping(bytes32 => uint256)) public userCardDeposits; // user => cardId => count
     mapping(bytes32 => uint256) public cardTotalDeposits; // cardId => total count
+    /// @notice Cached rarity per card so onCardPriceUpdated doesn't depend on any specific token
+    mapping(bytes32 => uint8) public cardCurrentRarity;
 
     /// @notice Per-user list of active groupIds (bytes32 hashes) for pagination and batching
     mapping(address => bytes32[]) private userGroupIds; // user => groupIds
@@ -198,6 +201,8 @@ contract GachaTreasury is
     event CollectionRemovedFromWhitelist(address indexed collection);
     event CardGroupedVaultUpdated(address indexed oldVault, address indexed newVault);
     event ProtocolTreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event MaxDepositsPerCardUpdated(uint256 oldMax, uint256 newMax);
+    event YieldClaimDecimalScalarUpdated(uint256 oldScalar, uint256 newScalar);
     event RedemptionRestocked(
         address indexed collection,
         uint256 indexed tokenId,
@@ -276,7 +281,10 @@ contract GachaTreasury is
      * @notice Authorizes upgrade to new implementation
      * @dev Only owner can upgrade the contract
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     /// @dev Validates and stores the initial price ranges for all rarity tiers.
     ///      Requires: lowest tier starts at $0, highest tier is open-ended (type(uint256).max),
@@ -466,20 +474,17 @@ contract GachaTreasury is
         }
         treasury[rarity].pop();
 
-        // Update counts
+        // Update counts and clean up mappings (effects before interactions)
         unchecked {
             --rarityCount[rarity];
         }
-
-        _trackRemoval(depositor, collection, tokenId, rarity, appraisedPrice);
         userLifetimeWithdrawn[depositor] += appraisedPrice;
-
-        // Clean up mappings
         depositedNFTs[collection][tokenId] = false;
         delete nftToTreasuryIndex[collection][tokenId];
         delete nftCurrentRarity[collection][tokenId];
 
-        // Transfer NFT back to the user
+        // External calls (interactions)
+        _trackRemoval(depositor, collection, tokenId, rarity, appraisedPrice);
         IERC721(collection).safeTransferFrom(address(this), msg.sender, tokenId);
 
         emit NFTWithdrawn(collection, tokenId, rarity, msg.sender);
@@ -652,7 +657,9 @@ contract GachaTreasury is
     /// @param _maxDepositsPerCard New maximum (must be > 0)
     function setMaxDepositsPerCard(uint256 _maxDepositsPerCard) external onlyOwner {
         if (_maxDepositsPerCard == 0) revert InvalidLimit();
+        uint256 oldMax = maxDepositsPerCard;
         maxDepositsPerCard = _maxDepositsPerCard;
+        emit MaxDepositsPerCardUpdated(oldMax, _maxDepositsPerCard);
     }
 
     /// @notice Sets the decimal scalar for yield claim analytics conversion
@@ -660,7 +667,9 @@ contract GachaTreasury is
     ///      Set to 0 to use the default (1e12 for USDC).
     /// @param scalar New scalar value
     function setYieldClaimDecimalScalar(uint256 scalar) external onlyOwner {
+        uint256 oldScalar = yieldClaimDecimalScalar;
         yieldClaimDecimalScalar = scalar;
+        emit YieldClaimDecimalScalarUpdated(oldScalar, scalar);
     }
 
     /// @notice Updates the protocol treasury address
@@ -691,7 +700,7 @@ contract GachaTreasury is
      * @param newPriceUSD New appraised USD price (18 decimals)
      * @dev Determines if rarity changes and routes to updateCardPrice or migrateCardRarity
      */
-    function onCardPriceUpdated(bytes32 cardId, uint256 newPriceUSD) external whenNotPaused {
+    function onCardPriceUpdated(bytes32 cardId, uint256 newPriceUSD) external whenNotPaused nonReentrant {
         // Only callable by appraisal contract
         if (msg.sender != address(appraisalContract)) revert InvalidAppraisalContract();
         if (address(cardGroupedVault) == address(0)) return;
@@ -699,19 +708,8 @@ contract GachaTreasury is
 
         uint8 newRarity = getRarityByPrice(newPriceUSD);
 
-        // Get current rarity from the canonical token for this card
-        NFTAppraisal.CardAppraisal memory ca = appraisalContract.getCardAppraisal(cardId);
-        (address canonCollection, uint256 canonTokenId) = (ca.canonicalContractAddress, ca.canonicalTokenId);
-
-        // If the canonical token isn't deposited, try to determine current rarity from any deposited token
-        if (!depositedNFTs[canonCollection][canonTokenId]) {
-            // Card has deposits but canonical isn't in treasury; use price-based lookup
-            // The vault handles its own rarity tracking per card, so just inform it
-            cardGroupedVault.updateCardPrice(cardId, newPriceUSD);
-            return;
-        }
-
-        uint8 currentRarity = nftCurrentRarity[canonCollection][canonTokenId];
+        // O(1) lookup of the card's current rarity from the cached mapping
+        uint8 currentRarity = cardCurrentRarity[cardId];
 
         if (currentRarity == newRarity) {
             // Same rarity — O(1) vault price update
@@ -789,6 +787,9 @@ contract GachaTreasury is
 
             emit RarityMigrated(collection, tokenId, fromRarity, toRarity, newPriceUSD);
         }
+
+        // Update the cached card-level rarity
+        cardCurrentRarity[cardId] = toRarity;
     }
 
     /**
@@ -874,8 +875,7 @@ contract GachaTreasury is
 
         uint8 rarity = getRarityByPrice(priceUSD);
 
-        IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
-
+        // Effects before interactions (CEI pattern)
         depositedNFTs[collection][tokenId] = true;
         nftCurrentRarity[collection][tokenId] = rarity;
 
@@ -897,6 +897,9 @@ contract GachaTreasury is
         _trackDeposit(msg.sender, collection, tokenId, rarity, priceUSD);
 
         emit NFTDeposited(collection, tokenId, msg.sender, rarity, priceUSD);
+
+        // Interaction last — safeTransferFrom may call onERC721Received
+        IERC721(collection).safeTransferFrom(msg.sender, address(this), tokenId);
     }
 
     // Helper functions
@@ -1147,6 +1150,7 @@ contract GachaTreasury is
             if (cardTotalDeposits[cardId] >= maxDepositsPerCard) revert MaxCardDepositsReached();
             userCardDeposits[depositor][cardId]++;
             cardTotalDeposits[cardId]++;
+            cardCurrentRarity[cardId] = rarity;
             _addUserGroupId(depositor, cardId);
             _addCardTokenRef(cardId, collection, tokenId);
             if (address(cardGroupedVault) != address(0)) {

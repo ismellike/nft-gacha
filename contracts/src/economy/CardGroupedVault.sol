@@ -69,11 +69,14 @@ contract CardGroupedVault is
     error InsufficientPosition();
     error NothingToClaim();
     error InsufficientVaultBalance();
+
+    event YieldTrackingFailed(address indexed account, uint256 amount, bytes reason);
     error UnauthorizedClaim();
     error NoValueInPool();
     error YieldTooSmall();
     error InvalidNumRarities();
     error Int256Overflow();
+    error InvalidImplementation();
 
     // ─── Constants ──────────────────────────────────────────────────────
 
@@ -189,7 +192,7 @@ contract CardGroupedVault is
         uint256 priceUSD,
         uint8 rarity,
         uint256 count
-    ) external override onlyTreasury whenNotPaused {
+    ) external override onlyTreasury whenNotPaused nonReentrant {
         if (depositor == address(0)) revert ZeroAddress();
         if (priceUSD == 0) revert ZeroPrice();
         if (count == 0) revert ZeroAmount();
@@ -263,6 +266,16 @@ contract CardGroupedVault is
         // Remove from depositor's card list if empty
         if (pos.count == 0) {
             _removeDepositorCard(depositor, cardId);
+        }
+
+        // When the last token of this card is removed, zero out the card node so that a
+        // subsequent re-deposit does not inherit a stale price or rarity from a previous stint.
+        if (card.totalCount == 0) {
+            card.cardPriceUSD = 0;
+            card.rarity = 0;
+            card.baseAcc = 0;
+            card.correctionPerUnit = 0;
+            card.settledYieldPerUnit = 0;
         }
 
         emit CardDepositRemoved(cardId, depositor, count);
@@ -544,10 +557,10 @@ contract CardGroupedVault is
             }
         }
 
-        // Settled yield from previous rarity stints (already in USDC units per token)
+        // Settled yield from previous rarity stints (in USDC × PRECISION units per token)
         int256 settledYield = _safeToInt256(pos.count) * _safeToInt256(card.settledYieldPerUnit);
 
-        // Correction (signed, already in USDC units per token)
+        // Correction (signed, in USDC × PRECISION units per token)
         int256 correction = _safeToInt256(pos.count) * card.correctionPerUnit;
 
         // Total raw = mainYield + settledYield - correction - rewardDebt - settledDebt + correctionDebt
@@ -596,11 +609,11 @@ contract CardGroupedVault is
      *        rewardDebt     = count * price * (accYieldPerUSD[rarity] - baseAcc) / PRECISION
      *                         Captures the main accumulator yield already owed.
      *
-     *        correctionDebt = count * correctionPerUnit   (int256, in USDC-precision units)
+     *        correctionDebt = count * correctionPerUnit   (int256, in USDC × PRECISION units per token)
      *                         Captures the price-change correction already owed. Signed because
      *                         price decreases produce negative corrections.
      *
-     *        settledDebt    = count * settledYieldPerUnit  (uint256, in USDC-precision units)
+     *        settledDebt    = count * settledYieldPerUnit  (uint256, in USDC × PRECISION units per token)
      *                         Captures yield from previous rarity stints already owed.
      *
      *      When `pos.count == 0` (empty position), all debts are cleared to zero to avoid
@@ -628,10 +641,10 @@ contract CardGroupedVault is
         uint256 accDelta = pool.accYieldPerUSD - card.baseAcc;
         pos.rewardDebt = Math.mulDiv(pos.count * card.cardPriceUSD, accDelta, PRECISION);
 
-        // correctionDebt = count × correctionPerUnit (already USDC per token)
+        // correctionDebt = count × correctionPerUnit (in USDC × PRECISION units per token)
         pos.correctionDebt = _safeToInt256(pos.count) * card.correctionPerUnit;
 
-        // settledDebt = count × settledYieldPerUnit (already USDC per token)
+        // settledDebt = count × settledYieldPerUnit (in USDC × PRECISION units per token)
         pos.settledDebt = pos.count * card.settledYieldPerUnit;
     }
 
@@ -644,9 +657,12 @@ contract CardGroupedVault is
     function _payOut(address account, uint256 amount) internal {
         totalYieldClaimed += amount;
 
-        // Record analytics in GachaTreasury
+        // Record analytics in GachaTreasury (best-effort)
         if (treasury != address(0) && treasury.code.length > 0) {
-            try IGachaTreasuryYieldTracker(treasury).recordYieldClaim(account, amount) {} catch {}
+            try IGachaTreasuryYieldTracker(treasury).recordYieldClaim(account, amount) {}
+            catch (bytes memory reason) {
+                emit YieldTrackingFailed(account, amount, reason);
+            }
         }
 
         if (asset.balanceOf(address(this)) < amount) revert InsufficientVaultBalance();
@@ -700,7 +716,10 @@ contract CardGroupedVault is
 
     // ─── Upgrade auth ───────────────────────────────────────────────────
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     uint256[40] private __gap;
 }

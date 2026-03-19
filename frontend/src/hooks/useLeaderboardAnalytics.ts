@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { useReadContract } from "wagmi";
 import {
-	gachaAbi,
-	gachaTreasuryAbi,
 	useReadGachaGetGlobalAnalytics,
+	useReadGachaGetTotalValueLocked,
+	useReadGachaTreasuryGetAllRarityCounts,
+	useReadGachaTreasuryGetAllRarityTotalValues,
 } from "@/generated";
 import { getAllActiveGachas } from "@/lib/gacha-config";
 import type { GachaConfig } from "@/lib/gacha-config/types";
@@ -91,34 +91,28 @@ function useGachaAnalyticsSingle(
 		data: rarityCountsRaw,
 		isLoading: isLoadingCounts,
 		isError: isCountsError,
-	} = useReadContract({
+	} = useReadGachaTreasuryGetAllRarityCounts({
 		address: treasuryAddr,
-		abi: gachaTreasuryAbi,
-		functionName: "getAllRarityCounts",
 		query: { enabled, refetchInterval: 60000 },
-	});
+	} as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
 
 	const {
 		data: rarityValuesRaw,
 		isLoading: isLoadingValues,
 		isError: isValuesError,
-	} = useReadContract({
+	} = useReadGachaTreasuryGetAllRarityTotalValues({
 		address: treasuryAddr,
-		abi: gachaTreasuryAbi,
-		functionName: "getAllRarityTotalValues",
 		query: { enabled, refetchInterval: 60000 },
-	});
+	} as Parameters<typeof useReadGachaTreasuryGetAllRarityTotalValues>[0]);
 
 	const {
 		data: tvlRaw,
 		isLoading: isLoadingTvl,
 		isError: isTvlError,
-	} = useReadContract({
+	} = useReadGachaGetTotalValueLocked({
 		address: gachaAddr,
-		abi: gachaAbi,
-		functionName: "getTotalValueLocked",
 		query: { enabled, refetchInterval: 60000 },
-	});
+	} as Parameters<typeof useReadGachaGetTotalValueLocked>[0]);
 
 	const analyticsData = globalAnalyticsRaw as unknown as
 		| [bigint, bigint, bigint, readonly bigint[]]

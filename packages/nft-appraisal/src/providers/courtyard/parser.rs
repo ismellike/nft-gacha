@@ -97,7 +97,7 @@ impl AttributeParser {
             "special illustration rare" => "SpecialIllustrationRare",
 
             // Return original if no mapping (preserves case for unknown variants)
-            _ => part,
+            _ => part.trim(),
         }
     }
 

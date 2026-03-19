@@ -54,6 +54,7 @@ contract Gacha is
     error MaxFeeExceeded(uint256 currentFee, uint256 maxFee);
     error InvalidSpinTimeout();
     error InvalidWeightsLength();
+    error InvalidImplementation();
 
     /// @notice Represents a spin request with requester and fulfillment status
     struct SpinRequest {
@@ -86,6 +87,11 @@ contract Gacha is
 
     /// @notice Total weight constant for rarity calculations (basis points)
     uint256 public constant TOTAL_WEIGHT = 10_000;
+
+    /// @notice Default spin timeout (5 minutes)
+    uint256 public constant DEFAULT_SPIN_TIMEOUT = 300;
+    /// @notice Default pricing premium over EV (5%)
+    uint256 public constant DEFAULT_PRICING_PREMIUM_BPS = 500;
 
     /// @notice Dynamic pricing and weights configuration
     uint8 public feeTokenDecimals;
@@ -176,9 +182,9 @@ contract Gacha is
 
         // Initialize trigger ID to start from 1 instead of 0
         _nextTriggerId = 1;
-        spinTimeout = 300; // 5 minutes
+        spinTimeout = DEFAULT_SPIN_TIMEOUT;
 
-        pricingPremiumBps = 500; // 5% premium over EV
+        pricingPremiumBps = DEFAULT_PRICING_PREMIUM_BPS;
         minSpinFee = _minSpinFee;
         maxSpinFee = 0;
 
@@ -211,7 +217,10 @@ contract Gacha is
      * @notice Authorizes upgrade to new implementation
      * @dev Only owner can upgrade the contract
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     /// @notice Initiates a gacha spin with a max fee guard
     /// @param maxFee Maximum fee the caller is willing to pay
@@ -312,10 +321,6 @@ contract Gacha is
 
         request.statusFlags = _setFulfilled(request.statusFlags);
 
-        // Increment spin counters
-        userSpinCount[request.requester]++;
-        totalSpinCount++;
-
         // Select rarity based on randomness using cached counts
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
@@ -347,9 +352,17 @@ contract Gacha is
             _distributeSpinRewards(selectedRarity, request.feePaid);
         }
 
+        // Derive independent randomness for NFT index selection to prevent correlation
+        // between rarity selection and token selection within that rarity
+        uint256 indexSeed = uint256(keccak256(abi.encode(randomness, triggerId, selectedRarity)));
+
         // Send NFT from treasury to requester using optimized random selection
         GachaTreasury.NFTItem memory selectedNFT =
-            treasury.sendRandomNFTToWinner(selectedRarity, uint256(randomness), request.requester);
+            treasury.sendRandomNFTToWinner(selectedRarity, indexSeed, request.requester);
+
+        // Increment spin counters only after a successful NFT transfer (refunded spins must not inflate counters)
+        userSpinCount[request.requester]++;
+        totalSpinCount++;
 
         // Track win statistics
         userRarityWins[request.requester][selectedRarity]++;

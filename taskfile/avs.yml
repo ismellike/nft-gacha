@@ -11,6 +11,9 @@ includes:
     docker:
         taskfile: ./docker.yml
         flatten: true
+    ipfs:
+        taskfile: ./ipfs.yml
+        internal: true
 
 silent: true
 
@@ -265,26 +268,15 @@ tasks:
             - rm -rf "{{.SERVICE_OUTPUT_DIR}}"
 
     upload-service:
-        desc: "Upload service configuration to IPFS"
+        desc: "Upload service configuration to IPFS (local Kubo for LOCAL, Pinata for TESTNET/MAINNET)"
         requires:
             vars: [REPO_ROOT, SERVICE_JSON_PATH, SERVICE_CID_JSON_PATH]
-        preconditions:
-            - test -f "{{.SERVICE_JSON_PATH}}"
-            - sh: "nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null"
-              msg: "IPFS node is not running. Start it with: task backend:start-ipfs"
         cmds:
             - echo "Uploading service configuration to IPFS..."
-            - |
-                CID=$(curl -s -X POST "{{.IPFS_API_URL}}/api/v0/add?pin=true" \
-                  -F file=@{{.SERVICE_JSON_PATH}} | jq -r '.Hash')
-
-                if [ -z "$CID" ] || [ "$CID" = "null" ]; then
-                  echo "Failed to upload service configuration to IPFS"
-                  exit 1
-                fi
-
-                echo "Service CID: $CID"
-                echo "{\"cid\":\"$CID\",\"ipfs_url\":\"ipfs://$CID\",\"gateway_url\":\"http://localhost:{{.IPFS_GATEWAY_PORT}}/ipfs/$CID\"}" > "{{.SERVICE_CID_JSON_PATH}}"
+            - task: ipfs:upload
+              vars:
+                UPLOAD_FILE: "{{.SERVICE_JSON_PATH}}"
+                OUTPUT_FILE: "{{.SERVICE_CID_JSON_PATH}}"
             - echo "Service CID saved to {{.SERVICE_CID_JSON_PATH}}"
 
     dev-clear-services:

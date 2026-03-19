@@ -1,19 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import type { NFTWithCollection } from "../../../hooks/useUserDepositedNFTs";
 import { createNFTKey } from "../../../stores/storeUtils";
 import { Button } from "../../../ui";
 import NFTGrid from "../cards/NFTGrid";
 import WithdrawNFTCard from "../cards/WithdrawNFTCard";
 import { EmptyWithdrawState } from "../empty-states/EmptyWithdrawState";
-
-interface NFTWithCollection {
-	collection: `0x${string}`;
-	tokenId: bigint;
-	appraisedPrice: bigint;
-	currentRarity?: number | string;
-	collectionName?: string;
-}
 
 interface WithdrawTabProps {
 	filteredWithdrawableNFTs: NFTWithCollection[];

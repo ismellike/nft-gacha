@@ -67,7 +67,7 @@ impl TriggerInfo {
             }
             TriggerData::Cron(cron) => {
                 let timestamp = cron.trigger_time.nanos / 1_000_000_000;
-                let id_data = "cron";
+                let id_data = format!("cron:{}", cron.trigger_time.nanos);
                 let unique_id = keccak256(id_data.as_bytes());
 
                 Ok((U256::ZERO, unique_id, timestamp))
@@ -100,7 +100,7 @@ impl TriggerInfo {
     // https://docs.drand.love/docs/specification/#randomness-generation-period
     fn calculate_drand_round(timestamp: u64, config: &Config) -> Result<u64> {
         if timestamp < config.drand_genesis_time {
-            return Ok(0);
+            return Err(anyhow!("Block timestamp {} is before DRAND genesis time {}", timestamp, config.drand_genesis_time));
         }
 
         let round = ((timestamp - config.drand_genesis_time) / config.drand_period) + 1;
@@ -113,13 +113,33 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_cron_unique_id_varies_with_timestamp() {
+        // Two different nanos values must produce different keccak256 unique_ids,
+        // matching the logic in the Cron branch of extract_trigger_info.
+        let nanos_a: u64 = 1_700_000_000_000_000_000;
+        let nanos_b: u64 = 1_700_000_001_000_000_000;
+
+        let id_data_a = format!("cron:{}", nanos_a);
+        let id_data_b = format!("cron:{}", nanos_b);
+
+        let unique_id_a = keccak256(id_data_a.as_bytes());
+        let unique_id_b = keccak256(id_data_b.as_bytes());
+
+        assert_ne!(
+            unique_id_a, unique_id_b,
+            "cron triggers with different timestamps must produce different unique_ids"
+        );
+    }
+
+    #[test]
     fn test_calculate_drand_round() {
         let config = Config::default();
 
-        // Test before genesis - should return round 0
+        // Test before genesis - should return an error
         let timestamp = 1000000000u64; // Way before genesis
-        let round = TriggerInfo::calculate_drand_round(timestamp, &config).unwrap();
-        assert_eq!(round, 0);
+        let result = TriggerInfo::calculate_drand_round(timestamp, &config);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("before DRAND genesis time"));
 
         // Test exact genesis time - should return round 1
         let timestamp = config.drand_genesis_time;

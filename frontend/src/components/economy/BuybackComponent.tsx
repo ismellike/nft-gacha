@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import {
-	useReadErc721IsApprovedForAll,
+	useReadBaseErc721IsApprovedForAll,
 	useReadNftAppraisalGetAppraisedPrice,
 	useReadNftAppraisalHasAppraisal,
 	useReadProtocolTreasuryPaused,
@@ -182,7 +182,7 @@ export default function BuybackComponent({
 		address: protocolTreasuryAddress as `0x${string}`,
 	});
 
-	const { data: isApprovedForAll } = useReadErc721IsApprovedForAll({
+	const { data: isApprovedForAll } = useReadBaseErc721IsApprovedForAll({
 		address: collection as `0x${string}`,
 		args: [
 			connectedAddress as `0x${string}`,

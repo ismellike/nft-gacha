@@ -42,7 +42,7 @@ impl Guest for Component {
 /// Process a trigger action and generate VRF randomness
 async fn process_trigger(trigger_action: TriggerAction) -> Result<Vec<WasmResponse>> {
     // Load configuration from host
-    let config = Config::from_host();
+    let config = Config::from_host()?;
 
     // Extract trigger information
     let trigger_info = TriggerInfo::from_trigger_action(trigger_action, &config)

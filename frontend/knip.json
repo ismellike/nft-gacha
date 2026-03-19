@@ -19,6 +19,7 @@
 		"src/components/nft/NFTLoadingPlaceholder.tsx",
 		"src/components/shared/feedback/LoadingState.tsx",
 		"src/components/vault/DepositableNFTCard.tsx",
-		"src/components/vault/tabs/BatchDepositTab.tsx"
+		"src/components/vault/tabs/BatchDepositTab.tsx",
+		"src/components/shared/feedback/index.ts"
 	]
 }

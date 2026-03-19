@@ -1,0 +1,20 @@
+{
+  "name": "nft-gacha-indexer",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ponder dev",
+    "start": "ponder start",
+    "serve": "ponder serve",
+    "codegen": "ponder codegen"
+  },
+  "dependencies": {
+    "@ponder/core": "^0.7.17",
+    "hono": "^4.7.0",
+    "viem": "^2.30.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

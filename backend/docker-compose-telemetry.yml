@@ -2,9 +2,21 @@ name: "telemetry"
 services:
   jaeger:
     container_name: jaeger
-    image: "${COMPOSE_JAEGER_DOCKER_IMAGE:-}"
+    image: "${COMPOSE_JAEGER_DOCKER_IMAGE:?COMPOSE_JAEGER_DOCKER_IMAGE is required}"
     network_mode: "host"
-    stop_signal: SIGKILL
+    stop_signal: SIGTERM
+    stop_grace_period: 5s
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:14269/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     # ports managed by host network mode
@@ -12,10 +24,21 @@ services:
   # Prometheus is used to display metrics
   prometheus:
     container_name: prometheus
-    image: "${COMPOSE_PROMETHEUS_DOCKER_IMAGE:-}" 
+    image: "${COMPOSE_PROMETHEUS_DOCKER_IMAGE:?COMPOSE_PROMETHEUS_DOCKER_IMAGE is required}"
     network_mode: "host"
     stop_signal: SIGTERM
     stop_grace_period: 3s
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     # ports managed by host network mode
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml

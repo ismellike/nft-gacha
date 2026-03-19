@@ -43,6 +43,7 @@ contract NFTAppraisal is
     error ArrayLengthMismatch();
     error EmptyArrays();
     error TooManyItems();
+    error InvalidImplementation();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
@@ -161,7 +162,10 @@ contract NFTAppraisal is
      * @notice Authorizes upgrade to new implementation
      * @dev Only owner can upgrade the contract
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     /**
      * @notice Requests an appraisal for an NFT
@@ -188,19 +192,22 @@ contract NFTAppraisal is
             feeToken.safeTransferFrom(msg.sender, protocolAddress, appraisalFee);
         }
 
-        // Create or update token request (supporting re-appraisals)
-        bool isReAppraisal = tokenRequests[collection][tokenId].timestamp != 0;
+        // Read existing request before overwriting (to get accurate old status for event)
+        TokenRequest memory existing = tokenRequests[collection][tokenId];
+        bool isReAppraisal = existing.timestamp != 0;
+        AppraisalStatus oldStatus = isReAppraisal ? existing.status : AppraisalStatus.Pending;
 
         tokenRequests[collection][tokenId] = TokenRequest({
             requester: msg.sender,
             status: AppraisalStatus.Pending,
             timestamp: block.timestamp,
-            lastUpdated: isReAppraisal ? block.timestamp : 0
+            // Preserve lastUpdated for re-appraisals: it reflects when price was last set, not when re-requested
+            lastUpdated: isReAppraisal ? existing.lastUpdated : 0
         });
 
         emit AppraisalRequested(collection, tokenId);
         emit AppraisalStatusChanged(
-            collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp
+            collection, tokenId, oldStatus, AppraisalStatus.Pending, block.timestamp
         );
     }
 
@@ -217,6 +224,7 @@ contract NFTAppraisal is
     {
         if (collections.length != tokenIds.length) revert ArrayLengthMismatch();
         if (collections.length == 0) revert EmptyArrays();
+        if (collections.length > 50) revert TooManyItems();
 
         uint256 totalFee = appraisalFee * collections.length;
 
@@ -240,20 +248,23 @@ contract NFTAppraisal is
                 revert InvalidTokenId();
             }
 
-            // Allow re-appraisals matching single-request path
-            bool isReAppraisal = tokenRequests[collection][tokenId].timestamp != 0;
+            // Read existing request before overwriting (to get accurate old status for event)
+            TokenRequest memory existing = tokenRequests[collection][tokenId];
+            bool isReAppraisal = existing.timestamp != 0;
+            AppraisalStatus oldStatus = isReAppraisal ? existing.status : AppraisalStatus.Pending;
 
             tokenRequests[collection][tokenId] = TokenRequest({
                 requester: msg.sender,
                 status: AppraisalStatus.Pending,
                 timestamp: block.timestamp,
-                lastUpdated: isReAppraisal ? block.timestamp : 0
+                // Preserve lastUpdated for re-appraisals: it reflects when price was last set, not when re-requested
+                lastUpdated: isReAppraisal ? existing.lastUpdated : 0
             });
 
             // Emit events for external service integration
             emit AppraisalRequested(collection, tokenId);
             emit AppraisalStatusChanged(
-                collection, tokenId, AppraisalStatus.Pending, AppraisalStatus.Pending, block.timestamp
+                collection, tokenId, oldStatus, AppraisalStatus.Pending, block.timestamp
             );
         }
     }
@@ -719,38 +730,36 @@ contract NFTAppraisal is
     }
 
     /**
-     * @notice Internal function to trigger automatic migration if NFT is in whitelisted treasury
-     * @param collection NFT collection address
-     * @param tokenId Token ID to check and migrate
+     * @notice Internal function to trigger automatic migration for all whitelisted treasuries
+     * @dev Iterates all whitelisted treasuries and calls onCardPriceUpdated for each, so that
+     *      treasuries holding any token of this card (not just the specific tokenId) are updated.
+     *      The treasury's onCardPriceUpdated returns early if it has no deposits for this card.
+     * @param collection NFT collection address (used for event emission/traceability)
+     * @param tokenId Token ID whose card price was updated (used for event emission/traceability)
      */
     function _triggerAutoMigration(address collection, uint256 tokenId) internal {
-        // Check if the NFT owner is a whitelisted treasury
-        address nftOwner;
+        // Get card-level info shared across all treasury calls
+        bytes32 cardId = tokenCardIds[collection][tokenId];
+        uint256 newPrice = cardAppraisals[cardId].priceUSD;
 
-        try IERC721(collection).ownerOf(tokenId) returns (address owner) {
-            nftOwner = owner;
-        } catch {
-            // If we can't get the owner, skip migration
-            return;
-        }
+        // Iterate every whitelisted treasury and notify it of the card price update.
+        // Each treasury returns early if it has no deposits for this card, so the call
+        // is safe even when the treasury does not hold any token of this card.
+        address[] storage list = treasuryList;
+        uint256 len = list.length;
+        for (uint256 i = 0; i < len; i++) {
+            address treas = list[i];
 
-        if (whitelistedTreasuries[nftOwner]) {
-            // Get card-level info for the O(1) vault update path
-            bytes32 cardId = tokenCardIds[collection][tokenId];
-            uint256 newPrice = cardAppraisals[cardId].priceUSD;
-
-            // Call the treasury's card-level price update (O(1) vault + O(tokens) treasury array)
-            // Use low-level call to prevent revert from failing this transaction
-            (bool success, bytes memory data) = nftOwner.call{gas: 500_000}(
+            // Use low-level call to prevent any single treasury revert from aborting the loop
+            (bool success, bytes memory data) = treas.call{gas: 500_000}(
                 abi.encodeWithSignature("onCardPriceUpdated(bytes32,uint256)", cardId, newPrice)
             );
 
             if (success) {
-                emit AutoMigrationTriggered(nftOwner, collection, tokenId);
+                emit AutoMigrationTriggered(treas, collection, tokenId);
             } else {
-                emit AutoMigrationFailed(nftOwner, collection, tokenId, data);
+                emit AutoMigrationFailed(treas, collection, tokenId, data);
             }
-            // If migration fails, we don't revert - the price update still happened
         }
     }
 

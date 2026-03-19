@@ -1,0 +1,40 @@
+version: "3"
+
+tasks:
+  upload:
+    desc: "Upload a file to IPFS (local Kubo for LOCAL, Pinata for TESTNET/MAINNET)"
+    requires:
+      vars: [UPLOAD_FILE, OUTPUT_FILE]
+    preconditions:
+      - test -f "{{.UPLOAD_FILE}}"
+      - sh: '[ "{{.DEPLOY_ENV}}" != "LOCAL" ] || nc -z 127.0.0.1 {{.IPFS_API_PORT}} 2>/dev/null'
+        msg: "IPFS node is not running. Start it with: task backend:start-ipfs"
+      - sh: '[ "{{.DEPLOY_ENV}}" = "LOCAL" ] || [ -n "$PINATA_JWT" ]'
+        msg: "PINATA_JWT is required for testnet/mainnet IPFS uploads. Get one at https://app.pinata.cloud/"
+    cmds:
+      - mkdir -p "$(dirname "{{.OUTPUT_FILE}}")"
+      - |
+          if [ "{{.DEPLOY_ENV}}" = "LOCAL" ]; then
+            CID=$(curl -s -X POST "{{.IPFS_API_URL}}/api/v0/add?pin=true" \
+              -F file=@{{.UPLOAD_FILE}} | jq -r '.Hash')
+            GATEWAY_URL="http://localhost:{{.IPFS_GATEWAY_PORT}}/ipfs/$CID"
+          else
+            RESPONSE=$(curl -s -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
+              -H "Authorization: Bearer $PINATA_JWT" \
+              -F "file=@{{.UPLOAD_FILE}}")
+            CID=$(echo "$RESPONSE" | jq -r '.IpfsHash')
+            if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+              echo "Pinata upload failed:"
+              echo "$RESPONSE" | jq . 2>/dev/null || echo "$RESPONSE"
+              exit 1
+            fi
+            GATEWAY_URL="{{.WAVS_IPFS_GATEWAY}}$CID"
+          fi
+
+          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+            echo "Failed to upload to IPFS"
+            exit 1
+          fi
+
+          echo "CID: $CID"
+          echo "{\"cid\":\"$CID\",\"ipfs_url\":\"ipfs://$CID\",\"gateway_url\":\"$GATEWAY_URL\"}" > "{{.OUTPUT_FILE}}"

@@ -14,25 +14,27 @@ import { Button } from "../../../ui";
 interface YieldTabProps {
 	depositorUserData: UserCardGroupedData;
 	depositorData: CardGroupedVaultData;
-	treasuryAddress?: `0x${string}` | undefined;
+	vaultAddress?: `0x${string}` | undefined;
+	userAddress?: `0x${string}` | undefined;
 }
 
 export function YieldTab({
 	depositorUserData,
 	depositorData,
-	treasuryAddress,
+	vaultAddress,
+	userAddress,
 }: YieldTabProps) {
 	const { claimYield, isClaiming } = useClaimYield();
 
 	const handleClaimYield = async () => {
-		if (!treasuryAddress) {
-			logger.contracts.error("Treasury address not available");
+		if (!vaultAddress || !userAddress) {
+			logger.contracts.error("Vault or user address not available");
 			return;
 		}
 		try {
 			await claimYield({
-				address: treasuryAddress,
-				args: [treasuryAddress],
+				address: vaultAddress,
+				args: [userAddress],
 			});
 		} catch (error) {
 			logger.contracts.error("Error claiming yield:", error);

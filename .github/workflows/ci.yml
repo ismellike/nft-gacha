@@ -39,6 +39,35 @@ jobs:
       - name: Gas snapshot
         run: forge snapshot --check || forge snapshot
 
+  slither:
+    name: Slither Analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install contract dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts
+        run: forge build
+
+      - uses: crytic/slither-action@v0.4.2
+        with:
+          target: contracts/
+          slither-config: contracts/slither.config.json
+          fail-on: high
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

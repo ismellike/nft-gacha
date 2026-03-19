@@ -1,8 +1,20 @@
 name: "ipfs"
 services:
   ipfs:
-    image: "${COMPOSE_IPFS_DOCKER_IMAGE:-}"
-    stop_signal: SIGKILL
+    image: "${COMPOSE_IPFS_DOCKER_IMAGE:?COMPOSE_IPFS_DOCKER_IMAGE is required}"
+    stop_signal: SIGTERM
+    stop_grace_period: 5s
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5001/api/v0/id || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     command: daemon --offline
     ports:
       - "${COMPOSE_IPFS_GATEWAY_PORT:-8080}:8080"

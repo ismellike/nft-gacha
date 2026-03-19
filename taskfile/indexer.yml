@@ -1,0 +1,123 @@
+version: "3"
+
+vars:
+  INDEXER_DIR: ./indexer
+
+tasks:
+  install:
+    desc: Install indexer dependencies
+    dir: "{{.INDEXER_DIR}}"
+    cmds:
+      - npm install
+    sources:
+      - package.json
+    generates:
+      - node_modules/.package-lock.json
+
+  dev:
+    desc: "Start Ponder indexer in dev mode (hot reload)"
+    dir: "{{.INDEXER_DIR}}"
+    cmds:
+      - |
+        if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
+          for envfile in ../.env.local ../.env.testnet; do
+            if [ -f "$envfile" ]; then
+              echo "Reading contract addresses from $envfile..."
+              export GACHA_ADDRESS=$(grep '^GACHA_ADDRESS=' "$envfile" | cut -d= -f2)
+              export TREASURY_ADDRESS=$(grep '^GACHA_TREASURY_ADDRESS=' "$envfile" | cut -d= -f2)
+              break
+            fi
+          done
+        fi
+
+        if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
+          echo "GACHA_ADDRESS and TREASURY_ADDRESS are required."
+          echo "Either set them in .env or deploy contracts first."
+          exit 1
+        fi
+
+        echo "Starting Ponder indexer (dev mode)..."
+        echo "  Gacha:    $GACHA_ADDRESS"
+        echo "  Treasury: $TREASURY_ADDRESS"
+        echo "  RPC:      ${RPC_URL:-http://localhost:8545}"
+        echo "  Port:     ${PORT:-42069}"
+        npx ponder dev
+    deps: [install]
+
+  start:
+    desc: "Start Ponder indexer in production mode"
+    dir: "{{.INDEXER_DIR}}"
+    cmds:
+      - |
+        if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
+          for envfile in ../.env.local ../.env.testnet; do
+            if [ -f "$envfile" ]; then
+              echo "Reading contract addresses from $envfile..."
+              export GACHA_ADDRESS=$(grep '^GACHA_ADDRESS=' "$envfile" | cut -d= -f2)
+              export TREASURY_ADDRESS=$(grep '^GACHA_TREASURY_ADDRESS=' "$envfile" | cut -d= -f2)
+              break
+            fi
+          done
+        fi
+
+        if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
+          echo "GACHA_ADDRESS and TREASURY_ADDRESS are required."
+          echo "Either set them in .env or deploy contracts first."
+          exit 1
+        fi
+
+        echo "Starting Ponder indexer..."
+        echo "  Gacha:    $GACHA_ADDRESS"
+        echo "  Treasury: $TREASURY_ADDRESS"
+        echo "  RPC:      ${RPC_URL:-http://localhost:8545}"
+        echo "  Port:     ${PORT:-42069}"
+        npx ponder start
+    deps: [install]
+
+  start:docker:
+    desc: "Start the Ponder indexer via Docker Compose"
+    dir: "{{.INDEXER_DIR}}"
+    cmds:
+      - |
+        if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
+          for envfile in ../.env.local ../.env.testnet; do
+            if [ -f "$envfile" ]; then
+              export GACHA_ADDRESS=$(grep '^GACHA_ADDRESS=' "$envfile" | cut -d= -f2)
+              export TREASURY_ADDRESS=$(grep '^GACHA_TREASURY_ADDRESS=' "$envfile" | cut -d= -f2)
+              break
+            fi
+          done
+        fi
+
+        if [ -z "$GACHA_ADDRESS" ] || [ -z "$TREASURY_ADDRESS" ]; then
+          echo "GACHA_ADDRESS and TREASURY_ADDRESS are required."
+          exit 1
+        fi
+
+        docker compose up -d --build
+        echo "Indexer started. API at http://localhost:${PORT:-42069}"
+
+  stop:docker:
+    desc: "Stop the Docker Ponder indexer"
+    dir: "{{.INDEXER_DIR}}"
+    cmds:
+      - docker compose down
+
+  status:
+    desc: "Check indexer health"
+    cmds:
+      - |
+        PORT=${PORT:-42069}
+        RESPONSE=$(curl -sf "http://localhost:$PORT/health" 2>/dev/null)
+        if [ $? -eq 0 ]; then
+          echo "Indexer status: $RESPONSE"
+        else
+          echo "Indexer is not running on port $PORT"
+        fi
+
+  codegen:
+    desc: "Run Ponder codegen for type safety"
+    dir: "{{.INDEXER_DIR}}"
+    cmds:
+      - npx ponder codegen
+    deps: [install]

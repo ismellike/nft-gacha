@@ -98,6 +98,10 @@ fn process_submission(input: AggregatorInput, validate_tx: bool) -> Result<Vec<A
         return Ok(actions);
     }
 
+    // Get gas price from Etherscan if configured once before the loop.
+    // Will fail the entire operation if API key is configured but fetching fails.
+    let gas_price = gas_oracle::get_gas_price()?;
+
     for (chain_key, service_handler_address) in submit_config {
         if host::get_evm_chain_config(&chain_key).is_some() {
             let address: alloy_primitives::Address =
@@ -106,10 +110,6 @@ fn process_submission(input: AggregatorInput, validate_tx: bool) -> Result<Vec<A
                         "Failed to parse address for '{chain_key}': {service_handler_address} {e}"
                     )
                 })?;
-
-            // Get gas price from Etherscan if configured
-            // will fail the entire operation if API key is configured but fetching fails
-            let gas_price = gas_oracle::get_gas_price()?;
 
             let submit_action = SubmitAction::Evm(EvmSubmitAction {
                 chain: chain_key.to_string(),

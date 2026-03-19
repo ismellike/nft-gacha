@@ -38,7 +38,16 @@ impl ScrydexPokemonResolver {
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
 
-        Ok(Self::new(scrydex_api_key, scrydex_team_id))
+        let mut resolver = Self::new(scrydex_api_key, scrydex_team_id);
+
+        if let Ok(endpoint) = env::var("WAVS_ENV_SCRYDEX_ENDPOINT") {
+            let endpoint = endpoint.trim().to_string();
+            if !endpoint.is_empty() {
+                resolver.client = resolver.client.with_endpoint(endpoint);
+            }
+        }
+
+        Ok(resolver)
     }
 }
 

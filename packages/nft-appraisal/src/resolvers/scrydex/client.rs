@@ -9,13 +9,14 @@ use urlencoding::encode;
 
 use super::types::ScrydexCardResponse;
 
-const SCRYDEX_CARDS_ENDPOINT: &str = "https://api.scrydex.com/pokemon/v1/cards";
+const DEFAULT_SCRYDEX_CARDS_ENDPOINT: &str = "https://api.scrydex.com/pokemon/v1/cards";
 
 /// HTTP client for Scrydex API
 #[derive(Debug, Clone)]
 pub struct ScrydexClient {
     api_key: String,
     team_id: Option<String>,
+    cards_endpoint: String,
 }
 
 impl ScrydexClient {
@@ -23,14 +24,21 @@ impl ScrydexClient {
         Self {
             api_key: api_key.into(),
             team_id,
+            cards_endpoint: DEFAULT_SCRYDEX_CARDS_ENDPOINT.to_string(),
         }
+    }
+
+    /// Override the default Scrydex cards endpoint (e.g. for staging/self-hosted).
+    pub fn with_endpoint<S: Into<String>>(mut self, endpoint: S) -> Self {
+        self.cards_endpoint = endpoint.into();
+        self
     }
 
     /// Fetch card data from Scrydex API
     pub async fn get_card(&self, card_identifier: &str) -> Result<ScrydexCardResponse> {
         let url = format!(
             "{}/{}?include=prices",
-            SCRYDEX_CARDS_ENDPOINT,
+            self.cards_endpoint,
             encode(card_identifier)
         );
 

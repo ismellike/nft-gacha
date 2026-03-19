@@ -8,8 +8,8 @@ import {
 	useWaitForTransactionReceipt,
 } from "wagmi";
 import {
-	erc721Abi,
-	useWriteErc721SetApprovalForAll,
+	baseErc721Abi,
+	useWriteBaseErc721SetApprovalForAll,
 	useWriteGachaTreasuryDepositNft,
 	useWriteProtocolTreasuryExecuteRedemption,
 } from "../generated";
@@ -100,7 +100,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		writeContractAsync: approveCollection,
 		reset: resetNFTApproval,
 		data: nftApprovalTxHash,
-	} = useWriteErc721SetApprovalForAll();
+	} = useWriteBaseErc721SetApprovalForAll();
 
 	const {
 		writeContractAsync: depositNFT,
@@ -220,7 +220,7 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		try {
 			const alreadyApproved = await publicClient?.readContract({
 				address: collection as `0x${string}`,
-				abi: erc721Abi,
+				abi: baseErc721Abi,
 				functionName: "isApprovedForAll",
 				args: [userAddress as `0x${string}`, operatorAddress as `0x${string}`],
 			});

@@ -18,6 +18,7 @@ import { useClientSearchParam } from "../../hooks/useClientSearchParams";
 import { formatCurrency } from "../../lib/utils";
 import { useNFTAppraisalStore } from "../../stores/nftAppraisalStore";
 import { Button, Card } from "../../ui";
+import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { AppraisedNFTsList } from "./AppraisedNFTsList";
 import { NFTAppraisalForm } from "./NFTAppraisalForm";
 
@@ -139,7 +140,21 @@ function _NFTAppraisalDashboard({
 		return (
 			<div className={className}>
 				<div className="flex flex-col gap-6">
-					<NFTAppraisalForm onSubmissionSuccess={handleAppraisalSuccess} />
+					<ErrorBoundary
+						fallback={
+							<div className="glass-card p-6 rounded-2xl text-center space-y-3">
+								<MagnifyingGlassIcon className="w-8 h-8 text-danger mx-auto" />
+								<p className="text-foreground/70 text-sm">
+									The appraisal form failed to load. Please refresh the page.
+								</p>
+								<Button color="glass" onPress={() => window.location.reload()}>
+									Refresh
+								</Button>
+							</div>
+						}
+					>
+						<NFTAppraisalForm onSubmissionSuccess={handleAppraisalSuccess} />
+					</ErrorBoundary>
 					<div className="rounded-2xl border border-white/10 bg-content1/20 p-4">
 						<div className="flex items-center justify-between mb-3">
 							<h3 className="text-lg font-semibold text-foreground">
@@ -391,7 +406,24 @@ function _NFTAppraisalDashboard({
 						transition={{ duration: 0.5 }}
 					>
 						<div className="max-w-4xl mx-auto">
-							<NFTAppraisalForm onSubmissionSuccess={handleAppraisalSuccess} />
+							<ErrorBoundary
+								fallback={
+									<div className="glass-card p-8 rounded-2xl text-center space-y-4">
+										<MagnifyingGlassIcon className="w-10 h-10 text-danger mx-auto" />
+										<h3 className="text-lg font-semibold text-foreground">
+											Appraisal form unavailable
+										</h3>
+										<p className="text-foreground/70 text-sm">
+											An error occurred while loading the appraisal form. Please refresh the page to try again.
+										</p>
+										<Button color="glass" onPress={() => window.location.reload()}>
+											Refresh
+										</Button>
+									</div>
+								}
+							>
+								<NFTAppraisalForm onSubmissionSuccess={handleAppraisalSuccess} />
+							</ErrorBoundary>
 						</div>
 					</motion.div>
 				)}

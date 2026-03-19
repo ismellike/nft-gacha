@@ -29,6 +29,10 @@ contract GachaEconomyManager is
 
     /// @notice Basis points denominator
     uint256 public constant BPS_DENOMINATOR = 10_000;
+    /// @notice Default depositor share (95%)
+    uint256 public constant DEFAULT_DEPOSITOR_SHARE_BPS = 9_500;
+    /// @notice Default protocol share (5%)
+    uint256 public constant DEFAULT_PROTOCOL_SHARE_BPS = 500;
 
     /// @notice USDC token used for all accounting
     IERC20 public feeToken;
@@ -65,6 +69,8 @@ contract GachaEconomyManager is
     error ZeroRevenue();
     error InvalidRevenueSplit();
     error InvalidNumRarities();
+    error InvalidImplementation();
+    error InvalidConfiguration();
 
     /// @notice Events for admin changes
     event FeeTokenUpdated(address indexed previousToken, address indexed newToken);
@@ -117,8 +123,8 @@ contract GachaEconomyManager is
         protocolTreasury = IProtocolTreasury(protocolTreasury_);
         numRarities = numRarities_;
 
-        depositorShareBps = 9_500;
-        protocolShareBps = 500;
+        depositorShareBps = DEFAULT_DEPOSITOR_SHARE_BPS;
+        protocolShareBps = DEFAULT_PROTOCOL_SHARE_BPS;
         emit RevenueSplitUpdated(depositorShareBps, protocolShareBps);
     }
 
@@ -153,6 +159,7 @@ contract GachaEconomyManager is
             } catch {
                 // Rarity pool is empty — queue for that specific rarity
                 queuedYieldByRarity[hitRarity] += depositShare;
+                feeToken.forceApprove(address(cardGroupedVault), 0); // Clean up leftover approval
                 emit DepositorYieldQueued(depositShare, hitRarity);
             }
         }
@@ -168,7 +175,8 @@ contract GachaEconomyManager is
                 queuedYieldByRarity[i] = 0;
                 emit QueuedDepositorYieldProcessed(queued, i);
             } catch {
-                // Pool still empty — leave queued
+                // Pool still empty — leave queued; clean up dangling approval
+                feeToken.forceApprove(address(cardGroupedVault), 0);
             }
         }
 
@@ -177,6 +185,8 @@ contract GachaEconomyManager is
             protocolTreasury.onRevenueReceived(protocolShare);
         }
 
+        // totalRevenueProcessed counts all revenue accepted, including any depositor share that was
+        // queued rather than immediately distributed. Therefore: totalRevenueProcessed >= totalToDepositors + totalToProtocol.
         totalRevenueProcessed += usdcAmount;
         revenueByRarity[hitRarity] += usdcAmount;
         totalToDepositors += actualDistributed + totalFlushed;
@@ -238,6 +248,8 @@ contract GachaEconomyManager is
      * @param protocolTreasury_ New protocol treasury address (or address(0) to skip)
      */
     function setVaults(address cardGroupedVault_, address protocolTreasury_) external onlyOwner {
+        if (cardGroupedVault_ == address(0) && protocolTreasury_ == address(0)) revert InvalidConfiguration();
+
         if (cardGroupedVault_ != address(0)) {
             address previous = address(cardGroupedVault);
             cardGroupedVault = ICardGroupedVault(cardGroupedVault_);
@@ -268,7 +280,10 @@ contract GachaEconomyManager is
     /**
      * @notice Authorizes UUPS upgrades
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        if (newImplementation == address(0)) revert InvalidImplementation();
+        if (newImplementation.code.length == 0) revert InvalidImplementation();
+    }
 
     uint256[40] private __gap;
 }

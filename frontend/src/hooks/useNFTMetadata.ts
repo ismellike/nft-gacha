@@ -6,7 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useReadErc721TokenUri } from "../generated";
+import { useReadBaseErc721TokenUri } from "../generated";
 import { CACHE_DURATIONS } from "../lib/constants";
 import {
 	fetchCourtyardMetadata,
@@ -236,7 +236,7 @@ export function useNFTMetadata(
 		data: tokenURI,
 		isLoading: isTokenURILoading,
 		error: tokenURIError,
-	} = useReadErc721TokenUri({
+	} = useReadBaseErc721TokenUri({
 		address: collection as `0x${string}`,
 		args: tokenId ? [BigInt(tokenId)] : undefined,
 		query: {

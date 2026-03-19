@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { BuybackNotificationProvider } from "../../components/economy";
 import { FlowSwitcher, SpinSection } from "../../components/gacha";
+import { ErrorBoundary } from "../../components/shared/ErrorBoundary";
 import {
 	ContractStatusAnnouncer,
 	InlineRetryMessage,
@@ -378,10 +379,32 @@ function GachaDetailPageContent() {
 							)}
 
 							{activeSection === "vault" && (
-								<VaultSection
-									title="Manage vault and withdraw yield"
-									description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
-								/>
+								<ErrorBoundary
+									fallback={
+										<div className="glass-card p-8 rounded-2xl text-center space-y-4">
+											<div className="w-12 h-12 rounded-full bg-danger/20 flex items-center justify-center mx-auto">
+												<XCircleIcon className="w-6 h-6 text-danger" />
+											</div>
+											<h3 className="text-lg font-semibold text-foreground">
+												Vault unavailable
+											</h3>
+											<p className="text-foreground/70 text-sm">
+												An error occurred while loading the vault. Please refresh the page to try again.
+											</p>
+											<Button
+												color="glass"
+												onPress={() => window.location.reload()}
+											>
+												Refresh
+											</Button>
+										</div>
+									}
+								>
+									<VaultSection
+										title="Manage vault and withdraw yield"
+										description="Monitor deposited NFTs, track USDC yield earnings, and withdraw your assets with on-chain receipts for every action."
+									/>
+								</ErrorBoundary>
 							)}
 
 							{activeSection === "economy" && (
