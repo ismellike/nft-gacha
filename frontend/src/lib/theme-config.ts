@@ -3,7 +3,6 @@
  * Defines glassmorphism variants and component customizations
  */
 
-import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { tv } from "tailwind-variants";
 
@@ -237,4 +236,11 @@ export const glassTypography = tv({
 });
 
 // Utility function for combining classes
-export const cn = (...inputs: ClassValue[]): string => twMerge(clsx(inputs));
+type ClassInput =
+	| string
+	| undefined
+	| null
+	| boolean
+	| (string | undefined | null | boolean)[];
+export const cn = (...inputs: ClassInput[]): string =>
+	twMerge(inputs.flat().filter(Boolean).join(" "));

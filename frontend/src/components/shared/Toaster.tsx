@@ -1,24 +1,16 @@
 "use client";
 
-import { Toaster as HotToaster } from "react-hot-toast";
+import { Toaster as SonnerToaster } from "sonner";
 
 export function Toaster() {
 	return (
 		<section aria-label="Notifications">
-			<HotToaster
+			<SonnerToaster
 				position="bottom-right"
-				reverseOrder={false}
+				theme="dark"
 				toastOptions={{
-					className: "!p-0 !bg-transparent !border-none !shadow-none",
-					style: {
-						background: "transparent",
-						padding: "0",
-						margin: "0",
-					},
-				}}
-				containerStyle={{
-					bottom: "24px",
-					right: "24px",
+					className:
+						"!bg-content1/30 !backdrop-blur-xl !border !border-white/20 !text-foreground !rounded-xl !shadow-2xl",
 				}}
 			/>
 		</section>
