@@ -10,6 +10,7 @@ type Address = `0x${string}`;
 interface GachaContracts {
 	gacha: Address | undefined;
 	treasury: Address | undefined;
+	treasuryReader: Address | undefined;
 	appraisal: Address | undefined;
 	economyManager: Address | undefined;
 	gachaServiceHandler: Address | undefined;
@@ -40,6 +41,7 @@ export function useGachaContracts(gachaId: string): GachaContracts {
 			const validatedContracts = {
 				gacha: contractAddresses.gacha,
 				treasury: contractAddresses.treasury,
+				treasuryReader: contractAddresses.treasuryReader,
 				appraisal: contractAddresses.appraisal,
 				economyManager: contractAddresses.economyManager,
 				gachaServiceHandler: contractAddresses.gachaServiceHandler,
@@ -88,6 +90,7 @@ function getEmptyContracts(): GachaContracts {
 	return {
 		gacha: undefined,
 		treasury: undefined,
+		treasuryReader: undefined,
 		appraisal: undefined,
 		economyManager: undefined,
 		gachaServiceHandler: undefined,

@@ -83,20 +83,20 @@ const getCardAppraisalAbi = [
 /**
  * Simple hook to get deposited NFTs - no complex logic, let UnifiedNFTCard handle canonical data
  */
-export function useUserDepositedNFTs(treasury?: Address) {
+export function useUserDepositedNFTs(treasuryReader?: Address) {
 	const { address: user } = useAccount();
 	const publicClient = usePublicClient();
 
 	const getUserDepositedNFTs = useCallback(async (): Promise<
 		DepositedNFT[]
 	> => {
-		if (!publicClient || !treasury || !user) {
+		if (!publicClient || !treasuryReader || !user) {
 			return [];
 		}
 
 		try {
 			const items = await publicClient.readContract({
-				address: treasury,
+				address: treasuryReader,
 				abi: depositedNFTsAbi,
 				functionName: "getUserDepositedNFTs",
 				args: [user],
@@ -122,7 +122,7 @@ export function useUserDepositedNFTs(treasury?: Address) {
 			logger.contracts.error("Error fetching deposited NFTs:", error);
 			return [];
 		}
-	}, [publicClient, treasury, user]);
+	}, [publicClient, treasuryReader, user]);
 
 	/**
 	 * Gets canonical NFT data from appraisal contract for a deposited NFT

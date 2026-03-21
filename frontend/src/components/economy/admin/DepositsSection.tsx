@@ -3,17 +3,17 @@
 import { FolderOpenIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { useReadContract } from "wagmi";
-import { gachaTreasuryAbi } from "@/generated";
+import { gachaTreasuryReaderAbi } from "@/generated";
 import { Button, Card, Chip, Input } from "../../../ui";
 
 export function DepositsSection() {
 	const [userAddress, setUserAddress] = useState("");
 
-	const treasuryAddress = process.env
-		.NEXT_PUBLIC_TREASURY_ADDRESS as `0x${string}`;
+	const treasuryReaderAddress = process.env
+		.NEXT_PUBLIC_GACHA_TREASURY_READER_ADDRESS as `0x${string}`;
 	const { data: userDeposits, refetch: refetchDeposits } = useReadContract({
-		abi: gachaTreasuryAbi,
-		address: treasuryAddress,
+		abi: gachaTreasuryReaderAbi,
+		address: treasuryReaderAddress,
 		functionName: "getUserCardDepositsPage",
 		args: userAddress?.startsWith("0x")
 			? [userAddress as `0x${string}`, 0n, 10n]

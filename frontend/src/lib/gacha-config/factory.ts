@@ -37,6 +37,7 @@ export function createGachaConfig(
 			longDescription: overrides.longDescription,
 			theme: "from-secondary to-warning-500",
 			treasuryAddress: addr("NEXT_PUBLIC_GACHA_TREASURY_ADDRESS", fb),
+			treasuryReaderAddress: addr("NEXT_PUBLIC_GACHA_TREASURY_READER_ADDRESS", fb),
 			isActive: true,
 			createdAt: "2024-01-01",
 			appraisalAddress: addr("NEXT_PUBLIC_NFT_APPRAISAL_ADDRESS", fb),

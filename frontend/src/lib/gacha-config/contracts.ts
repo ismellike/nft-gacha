@@ -30,6 +30,7 @@ const emptyTrackers: (undefined | `0x${string}`)[] = [];
 const emptyContracts = {
 	gacha: undefined,
 	treasury: undefined,
+	treasuryReader: undefined,
 	appraisal: undefined,
 	economyManager: undefined,
 	gachaServiceHandler: undefined,
@@ -52,6 +53,7 @@ export function getGachaContracts(gachaId: string) {
 	return {
 		gacha: config.address,
 		treasury: config.treasuryAddress,
+		treasuryReader: config.treasuryReaderAddress,
 		appraisal: config.appraisalAddress,
 		economyManager: config.economyManagerAddress,
 		gachaServiceHandler: config.gachaServiceHandlerAddress,

@@ -81,8 +81,9 @@ export function VaultSection({ title, description }: VaultSectionProps) {
 	const treasury = contracts.treasury as `0x${string}` | undefined;
 	const appraisal = contracts.appraisal as `0x${string}` | undefined;
 	const { withdrawNFT } = useNFTWithdrawal(treasury);
+	const treasuryReader = contracts.treasuryReader as `0x${string}` | undefined;
 	const { getUserDepositedNFTs, getCanonicalNFTData } =
-		useUserDepositedNFTs(treasury);
+		useUserDepositedNFTs(treasuryReader);
 
 	// Whitelisted collections - use useReadContract directly to avoid deep type instantiation
 	const whitelistedCollectionsQuery = useReadContract({

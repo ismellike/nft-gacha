@@ -423,6 +423,7 @@ function GachaDetailPageContent() {
 										contracts.protocolTreasury ?? undefined
 									}
 									treasuryAddress={contracts.treasury ?? undefined}
+									treasuryReaderAddress={contracts.treasuryReader ?? undefined}
 								/>
 							)}
 

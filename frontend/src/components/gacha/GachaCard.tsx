@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { useReadContract } from "wagmi";
 import {
-	gachaTreasuryAbi,
+	gachaTreasuryReaderAbi,
 	useReadBaseErc20Decimals,
 	useReadBaseErc20Symbol,
 	useReadGachaGetGachaConfigBatch,
@@ -37,11 +37,11 @@ export function GachaCard({ gacha }: GachaCardProps) {
 	const router = useRouter();
 
 	// 🚀 BATCH OPTIMIZED: Get all data in 2 calls instead of 5!
-	const treasuryAddress = gacha.treasuryAddress as `0x${string}`;
+	const treasuryReaderAddress = gacha.treasuryReaderAddress as `0x${string}`;
 
 	const platformResult = useReadContract({
-		address: treasuryAddress,
-		abi: gachaTreasuryAbi,
+		address: treasuryReaderAddress,
+		abi: gachaTreasuryReaderAbi,
 		functionName: "getPlatformOverviewBatch",
 	});
 

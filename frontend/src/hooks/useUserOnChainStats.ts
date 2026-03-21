@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 import {
 	useReadGachaGetGlobalAnalytics,
 	useReadGachaGetUserAnalytics,
-	useReadGachaTreasuryGetUserProfileBatch,
+	useReadGachaTreasuryReaderGetUserProfileBatch,
 } from "@/generated";
 
 interface UserSpinAnalytics {
@@ -42,17 +42,17 @@ interface UseUserOnChainStatsResult {
 
 interface UseUserOnChainStatsParams {
 	gachaAddress?: string | undefined;
-	treasuryAddress?: string | undefined;
+	treasuryReaderAddress?: string | undefined;
 }
 
 export function useUserOnChainStats({
 	gachaAddress,
-	treasuryAddress,
+	treasuryReaderAddress,
 }: UseUserOnChainStatsParams): UseUserOnChainStatsResult {
 	const { address } = useAccount();
 
 	const gachaAddr = gachaAddress as `0x${string}` | undefined;
-	const treasuryAddr = treasuryAddress as `0x${string}` | undefined;
+	const treasuryReaderAddr = treasuryReaderAddress as `0x${string}` | undefined;
 	const userAddr = address as `0x${string}` | undefined;
 
 	const {
@@ -87,14 +87,14 @@ export function useUserOnChainStats({
 		isLoading: isLoadingProfile,
 		isError: isProfileError,
 		refetch: refetchProfile,
-	} = useReadGachaTreasuryGetUserProfileBatch({
-		address: treasuryAddr,
+	} = useReadGachaTreasuryReaderGetUserProfileBatch({
+		address: treasuryReaderAddr,
 		args: userAddr ? [userAddr] : undefined,
 		query: {
-			enabled: !!address && !!treasuryAddress,
+			enabled: !!address && !!treasuryReaderAddress,
 			refetchInterval: 60000,
 		},
-	} as Parameters<typeof useReadGachaTreasuryGetUserProfileBatch>[0]);
+	} as Parameters<typeof useReadGachaTreasuryReaderGetUserProfileBatch>[0]);
 
 	const spinAnalytics = useMemo<UserSpinAnalytics | null>(() => {
 		if (!userAnalyticsRaw) return null;

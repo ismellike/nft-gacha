@@ -8,6 +8,7 @@ export interface GachaConfig {
 	longDescription: string;
 	theme: string;
 	treasuryAddress: Address;
+	treasuryReaderAddress: Address;
 	isActive: boolean;
 	createdAt: string;
 	appraisalAddress: Address;

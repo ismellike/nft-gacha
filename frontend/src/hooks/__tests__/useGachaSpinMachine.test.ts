@@ -119,6 +119,7 @@ async function setupMocks({
 	vi.mocked(useGachaContracts).mockReturnValue({
 		gacha: hasGacha ? GACHA_ADDRESS : undefined,
 		treasury: undefined,
+		treasuryReader: undefined,
 		appraisal: undefined,
 		economyManager: undefined,
 		gachaServiceHandler: undefined,

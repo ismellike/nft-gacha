@@ -9,6 +9,7 @@ export default defineConfig({
 			include: [
 				"Gacha.sol/*.json",
 				"GachaTreasury.sol/*.json",
+			"GachaTreasuryReader.sol/*.json",
 				"GachaServiceHandler.sol/*.json",
 				"NFTAppraisal.sol/*.json",
 				"NFTAppraisalServiceHandler.sol/*.json",

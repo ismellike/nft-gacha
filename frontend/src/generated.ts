@@ -56,6 +56,22 @@ export const baseErc20Abi = [
   {
     type: 'function',
     inputs: [],
+    name: 'cancelOwnershipHandover',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'pendingOwner', internalType: 'address', type: 'address' },
+    ],
+    name: 'completeOwnershipHandover',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'decimals',
     outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
     stateMutability: 'view',
@@ -103,7 +119,16 @@ export const baseErc20Abi = [
     type: 'function',
     inputs: [],
     name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    outputs: [{ name: 'result', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'pendingOwner', internalType: 'address', type: 'address' },
+    ],
+    name: 'ownershipHandoverExpiresAt',
+    outputs: [{ name: 'result', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -126,7 +151,14 @@ export const baseErc20Abi = [
     inputs: [],
     name: 'renounceOwnership',
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'requestOwnershipHandover',
+    outputs: [],
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -168,7 +200,7 @@ export const baseErc20Abi = [
     inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
     name: 'transferOwnership',
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
   },
   {
     type: 'event',
@@ -201,7 +233,33 @@ export const baseErc20Abi = [
     anonymous: false,
     inputs: [
       {
-        name: 'previousOwner',
+        name: 'pendingOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipHandoverCanceled',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'pendingOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipHandoverRequested',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldOwner',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -230,6 +288,7 @@ export const baseErc20Abi = [
     ],
     name: 'Transfer',
   },
+  { type: 'error', inputs: [], name: 'AlreadyInitialized' },
   { type: 'error', inputs: [], name: 'ECDSAInvalidSignature' },
   {
     type: 'error',
@@ -301,21 +360,14 @@ export const baseErc20Abi = [
     name: 'InvalidAccountNonce',
   },
   { type: 'error', inputs: [], name: 'InvalidShortString' },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
+  { type: 'error', inputs: [], name: 'NewOwnerIsZeroAddress' },
+  { type: 'error', inputs: [], name: 'NoHandoverRequest' },
   {
     type: 'error',
     inputs: [{ name: 'str', internalType: 'string', type: 'string' }],
     name: 'StringTooLong',
   },
+  { type: 'error', inputs: [], name: 'Unauthorized' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -375,6 +427,22 @@ export const baseErc721Abi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'cancelOwnershipHandover',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'pendingOwner', internalType: 'address', type: 'address' },
+    ],
+    name: 'completeOwnershipHandover',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
     inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
     name: 'getApproved',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
@@ -418,7 +486,7 @@ export const baseErc721Abi = [
     type: 'function',
     inputs: [],
     name: 'owner',
-    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    outputs: [{ name: 'result', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -430,10 +498,26 @@ export const baseErc721Abi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'pendingOwner', internalType: 'address', type: 'address' },
+    ],
+    name: 'ownershipHandoverExpiresAt',
+    outputs: [{ name: 'result', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'renounceOwnership',
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'requestOwnershipHandover',
+    outputs: [],
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -546,7 +630,7 @@ export const baseErc721Abi = [
     inputs: [{ name: 'newOwner', internalType: 'address', type: 'address' }],
     name: 'transferOwnership',
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
   },
   {
     type: 'event',
@@ -598,7 +682,33 @@ export const baseErc721Abi = [
     anonymous: false,
     inputs: [
       {
-        name: 'previousOwner',
+        name: 'pendingOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipHandoverCanceled',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'pendingOwner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+    ],
+    name: 'OwnershipHandoverRequested',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldOwner',
         internalType: 'address',
         type: 'address',
         indexed: true,
@@ -627,6 +737,7 @@ export const baseErc721Abi = [
     ],
     name: 'Transfer',
   },
+  { type: 'error', inputs: [], name: 'AlreadyInitialized' },
   { type: 'error', inputs: [], name: 'ERC721EnumerableForbiddenBatchMint' },
   {
     type: 'error',
@@ -684,21 +795,14 @@ export const baseErc721Abi = [
     name: 'ERC721OutOfBoundsIndex',
   },
   { type: 'error', inputs: [], name: 'InvalidCount' },
-  {
-    type: 'error',
-    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
-    name: 'OwnableInvalidOwner',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
-    name: 'OwnableUnauthorizedAccount',
-  },
+  { type: 'error', inputs: [], name: 'NewOwnerIsZeroAddress' },
+  { type: 'error', inputs: [], name: 'NoHandoverRequest' },
   {
     type: 'error',
     inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
     name: 'TokenDoesNotExist',
   },
+  { type: 'error', inputs: [], name: 'Unauthorized' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1314,12 +1418,7 @@ export const cardGroupedVaultAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
+  { type: 'error', inputs: [], name: 'Reentrancy' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
   {
     type: 'error',
@@ -2349,12 +2448,7 @@ export const gachaAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
+  { type: 'error', inputs: [], name: 'Reentrancy' },
   { type: 'error', inputs: [], name: 'SpinAlreadyReclaimed' },
   { type: 'error', inputs: [], name: 'SpinRequestNotExpired' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
@@ -2871,12 +2965,7 @@ export const gachaEconomyManagerAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
+  { type: 'error', inputs: [], name: 'Reentrancy' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
   {
     type: 'error',
@@ -3692,16 +3781,6 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
-    inputs: [],
-    name: 'getGlobalStats',
-    outputs: [
-      { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
-      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
@@ -3737,19 +3816,6 @@ export const gachaTreasuryAbi = [
     inputs: [],
     name: 'getNumRarities',
     outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'getPlatformOverviewBatch',
-    outputs: [
-      { name: 'rarityCounts', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'totalItems', internalType: 'uint256', type: 'uint256' },
-      { name: 'gachaAvailable', internalType: 'bool', type: 'bool' },
-      { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
-      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
-    ],
     stateMutability: 'view',
   },
   {
@@ -3872,34 +3938,6 @@ export const gachaTreasuryAbi = [
       { name: 'offset', internalType: 'uint256', type: 'uint256' },
       { name: 'limit', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'getUserCardDepositsPage',
-    outputs: [
-      {
-        name: 'deposits',
-        internalType: 'struct GachaTreasury.UserCardDeposit[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
-          { name: 'depositCount', internalType: 'uint256', type: 'uint256' },
-          {
-            name: 'totalCardDeposits',
-            internalType: 'uint256',
-            type: 'uint256',
-          },
-        ],
-      },
-      { name: 'total', internalType: 'uint256', type: 'uint256' },
-      { name: 'hasMore', internalType: 'bool', type: 'bool' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'offset', internalType: 'uint256', type: 'uint256' },
-      { name: 'limit', internalType: 'uint256', type: 'uint256' },
-    ],
     name: 'getUserCardIds',
     outputs: [
       { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
@@ -3933,120 +3971,6 @@ export const gachaTreasuryAbi = [
     ],
     name: 'getUserDepositValue',
     outputs: [{ name: 'value', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserDepositedNFTs',
-    outputs: [
-      {
-        name: 'items',
-        internalType: 'struct GachaTreasury.NFTItem[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'collection', internalType: 'address', type: 'address' },
-          { name: 'depositor', internalType: 'address', type: 'address' },
-          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
-          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
-          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
-        ],
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
-      { name: 'offset', internalType: 'uint256', type: 'uint256' },
-      { name: 'limit', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'getUserDepositedNFTsByCardIdPaginated',
-    outputs: [
-      {
-        name: 'items',
-        internalType: 'struct GachaTreasury.NFTItem[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'collection', internalType: 'address', type: 'address' },
-          { name: 'depositor', internalType: 'address', type: 'address' },
-          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
-          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
-          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
-        ],
-      },
-      { name: 'total', internalType: 'uint256', type: 'uint256' },
-      { name: 'hasMore', internalType: 'bool', type: 'bool' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'user', internalType: 'address', type: 'address' },
-      { name: 'offset', internalType: 'uint256', type: 'uint256' },
-      { name: 'limit', internalType: 'uint256', type: 'uint256' },
-    ],
-    name: 'getUserDepositedNFTsPaginated',
-    outputs: [
-      {
-        name: 'items',
-        internalType: 'struct GachaTreasury.NFTItem[]',
-        type: 'tuple[]',
-        components: [
-          { name: 'collection', internalType: 'address', type: 'address' },
-          { name: 'depositor', internalType: 'address', type: 'address' },
-          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
-          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
-          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
-          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
-          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
-        ],
-      },
-      { name: 'total', internalType: 'uint256', type: 'uint256' },
-      { name: 'hasMore', internalType: 'bool', type: 'bool' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserLifetimeClaimed',
-    outputs: [{ name: 'claimed', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserLifetimeDeposited',
-    outputs: [{ name: 'deposited', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserLifetimeWithdrawn',
-    outputs: [{ name: 'withdrawn', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
-    name: 'getUserProfileBatch',
-    outputs: [
-      { name: 'depositCounts', internalType: 'uint256[]', type: 'uint256[]' },
-      { name: 'totalDeposits', internalType: 'uint256', type: 'uint256' },
-      { name: 'lifetimeClaimed', internalType: 'uint256', type: 'uint256' },
-      { name: 'lifetimeDeposited', internalType: 'uint256', type: 'uint256' },
-      { name: 'lifetimeWithdrawn', internalType: 'uint256', type: 'uint256' },
-      { name: 'netContribution', internalType: 'uint256', type: 'uint256' },
-    ],
     stateMutability: 'view',
   },
   {
@@ -4939,7 +4863,7 @@ export const gachaTreasuryAbi = [
     name: 'PriceOutOfBounds',
   },
   { type: 'error', inputs: [], name: 'PriceRangesAlreadySet' },
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  { type: 'error', inputs: [], name: 'Reentrancy' },
   { type: 'error', inputs: [], name: 'TooManyItems' },
   { type: 'error', inputs: [], name: 'TreasuryRotationBlocked' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
@@ -4950,6 +4874,326 @@ export const gachaTreasuryAbi = [
   },
   { type: 'error', inputs: [], name: 'UnauthorizedGachaContract' },
   { type: 'error', inputs: [], name: 'UnauthorizedProtocolTreasury' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// GachaTreasuryReader
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const gachaTreasuryReaderAbi = [
+  {
+    type: 'constructor',
+    inputs: [{ name: '_treasury', internalType: 'address', type: 'address' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getGlobalStats',
+    outputs: [
+      { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getPlatformOverviewBatch',
+    outputs: [
+      { name: 'rarityCounts', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'totalItems', internalType: 'uint256', type: 'uint256' },
+      { name: 'gachaAvailable', internalType: 'bool', type: 'bool' },
+      { name: 'totalDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'totalClaimed', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getUserCardDepositsPage',
+    outputs: [
+      {
+        name: 'deposits',
+        internalType: 'struct IGachaTreasuryRead.UserCardDeposit[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'depositCount', internalType: 'uint256', type: 'uint256' },
+          {
+            name: 'totalCardDeposits',
+            internalType: 'uint256',
+            type: 'uint256',
+          },
+        ],
+      },
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'hasMore', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserDepositedNFTs',
+    outputs: [
+      {
+        name: 'items',
+        internalType: 'struct IGachaTreasuryRead.NFTItem[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getUserDepositedNFTsByCardIdPaginated',
+    outputs: [
+      {
+        name: 'items',
+        internalType: 'struct IGachaTreasuryRead.NFTItem[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'hasMore', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getUserDepositedNFTsPaginated',
+    outputs: [
+      {
+        name: 'items',
+        internalType: 'struct IGachaTreasuryRead.NFTItem[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'hasMore', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserProfileBatch',
+    outputs: [
+      { name: 'depositCounts', internalType: 'uint256[]', type: 'uint256[]' },
+      { name: 'totalDeposits', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeClaimed', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeDeposited', internalType: 'uint256', type: 'uint256' },
+      { name: 'lifetimeWithdrawn', internalType: 'uint256', type: 'uint256' },
+      { name: 'netContribution', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'treasury',
+    outputs: [
+      {
+        name: '',
+        internalType: 'contract IGachaTreasuryRead',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  { type: 'error', inputs: [], name: 'InvalidLimit' },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IGachaTreasuryRead
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const iGachaTreasuryReadAbi = [
+  {
+    type: 'function',
+    inputs: [],
+    name: 'appraisalContract',
+    outputs: [
+      { name: '', internalType: 'contract NFTAppraisal', type: 'address' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'cardId', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'cardTotalDeposits',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getNumRarities',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
+    name: 'getRarityCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'rarity', internalType: 'uint8', type: 'uint8' }],
+    name: 'getTreasuryItems',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct IGachaTreasuryRead.NFTItem[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'collection', internalType: 'address', type: 'address' },
+          { name: 'depositor', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'appraisedPrice', internalType: 'uint256', type: 'uint256' },
+          { name: 'rarity', internalType: 'uint8', type: 'uint8' },
+          { name: 'depositTime', internalType: 'uint256', type: 'uint256' },
+          { name: 'receiveTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getUserCardIds',
+    outputs: [
+      { name: 'cardIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'hasMore', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserCardIdsLength',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'rarity', internalType: 'uint8', type: 'uint8' },
+    ],
+    name: 'getUserDepositCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getWhitelistLength',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'globalLifetimeClaimed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'globalLifetimeDeposited',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'user', internalType: 'address', type: 'address' },
+      { name: 'cardId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'userCardDeposits',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeClaimed',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeDeposited',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'userLifetimeWithdrawn',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'userTotalDeposits',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -5946,12 +6190,7 @@ export const nftAppraisalAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
+  { type: 'error', inputs: [], name: 'Reentrancy' },
   { type: 'error', inputs: [], name: 'TooManyItems' },
   { type: 'error', inputs: [], name: 'TreasuryAlreadyWhitelisted' },
   { type: 'error', inputs: [], name: 'TreasuryNotWhitelisted' },
@@ -6689,12 +6928,7 @@ export const protocolTreasuryAbi = [
     name: 'OwnableUnauthorizedAccount',
   },
   { type: 'error', inputs: [], name: 'RedemptionWindowExpired' },
-  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
-  {
-    type: 'error',
-    inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
-    name: 'SafeERC20FailedOperation',
-  },
+  { type: 'error', inputs: [], name: 'Reentrancy' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
   {
     type: 'error',
@@ -6785,6 +7019,15 @@ export const useReadBaseErc20Owner = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"ownershipHandoverExpiresAt"`
+ */
+export const useReadBaseErc20OwnershipHandoverExpiresAt =
+  /*#__PURE__*/ createUseReadContract({
+    abi: baseErc20Abi,
+    functionName: 'ownershipHandoverExpiresAt',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"symbol"`
  */
 export const useReadBaseErc20Symbol = /*#__PURE__*/ createUseReadContract({
@@ -6816,6 +7059,24 @@ export const useWriteBaseErc20Approve = /*#__PURE__*/ createUseWriteContract({
 })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"cancelOwnershipHandover"`
+ */
+export const useWriteBaseErc20CancelOwnershipHandover =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc20Abi,
+    functionName: 'cancelOwnershipHandover',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"completeOwnershipHandover"`
+ */
+export const useWriteBaseErc20CompleteOwnershipHandover =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc20Abi,
+    functionName: 'completeOwnershipHandover',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"mint"`
  */
 export const useWriteBaseErc20Mint = /*#__PURE__*/ createUseWriteContract({
@@ -6838,6 +7099,15 @@ export const useWriteBaseErc20RenounceOwnership =
   /*#__PURE__*/ createUseWriteContract({
     abi: baseErc20Abi,
     functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"requestOwnershipHandover"`
+ */
+export const useWriteBaseErc20RequestOwnershipHandover =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc20Abi,
+    functionName: 'requestOwnershipHandover',
   })
 
 /**
@@ -6882,6 +7152,24 @@ export const useSimulateBaseErc20Approve =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"cancelOwnershipHandover"`
+ */
+export const useSimulateBaseErc20CancelOwnershipHandover =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'cancelOwnershipHandover',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"completeOwnershipHandover"`
+ */
+export const useSimulateBaseErc20CompleteOwnershipHandover =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'completeOwnershipHandover',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"mint"`
  */
 export const useSimulateBaseErc20Mint = /*#__PURE__*/ createUseSimulateContract(
@@ -6904,6 +7192,15 @@ export const useSimulateBaseErc20RenounceOwnership =
   /*#__PURE__*/ createUseSimulateContract({
     abi: baseErc20Abi,
     functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc20Abi}__ and `functionName` set to `"requestOwnershipHandover"`
+ */
+export const useSimulateBaseErc20RequestOwnershipHandover =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc20Abi,
+    functionName: 'requestOwnershipHandover',
   })
 
 /**
@@ -6955,6 +7252,24 @@ export const useWatchBaseErc20Eip712DomainChanged =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: baseErc20Abi,
     eventName: 'EIP712DomainChanged',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc20Abi}__ and `eventName` set to `"OwnershipHandoverCanceled"`
+ */
+export const useWatchBaseErc20OwnershipHandoverCanceled =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc20Abi,
+    eventName: 'OwnershipHandoverCanceled',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc20Abi}__ and `eventName` set to `"OwnershipHandoverRequested"`
+ */
+export const useWatchBaseErc20OwnershipHandoverRequested =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc20Abi,
+    eventName: 'OwnershipHandoverRequested',
   })
 
 /**
@@ -7029,6 +7344,15 @@ export const useReadBaseErc721OwnerOf = /*#__PURE__*/ createUseReadContract({
   abi: baseErc721Abi,
   functionName: 'ownerOf',
 })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"ownershipHandoverExpiresAt"`
+ */
+export const useReadBaseErc721OwnershipHandoverExpiresAt =
+  /*#__PURE__*/ createUseReadContract({
+    abi: baseErc721Abi,
+    functionName: 'ownershipHandoverExpiresAt',
+  })
 
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"supportsInterface"`
@@ -7112,6 +7436,24 @@ export const useWriteBaseErc721BatchMintWithUrIs =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"cancelOwnershipHandover"`
+ */
+export const useWriteBaseErc721CancelOwnershipHandover =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'cancelOwnershipHandover',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"completeOwnershipHandover"`
+ */
+export const useWriteBaseErc721CompleteOwnershipHandover =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'completeOwnershipHandover',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"mint"`
  */
 export const useWriteBaseErc721Mint = /*#__PURE__*/ createUseWriteContract({
@@ -7135,6 +7477,15 @@ export const useWriteBaseErc721RenounceOwnership =
   /*#__PURE__*/ createUseWriteContract({
     abi: baseErc721Abi,
     functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"requestOwnershipHandover"`
+ */
+export const useWriteBaseErc721RequestOwnershipHandover =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: baseErc721Abi,
+    functionName: 'requestOwnershipHandover',
   })
 
 /**
@@ -7225,6 +7576,24 @@ export const useSimulateBaseErc721BatchMintWithUrIs =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"cancelOwnershipHandover"`
+ */
+export const useSimulateBaseErc721CancelOwnershipHandover =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'cancelOwnershipHandover',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"completeOwnershipHandover"`
+ */
+export const useSimulateBaseErc721CompleteOwnershipHandover =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'completeOwnershipHandover',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"mint"`
  */
 export const useSimulateBaseErc721Mint =
@@ -7249,6 +7618,15 @@ export const useSimulateBaseErc721RenounceOwnership =
   /*#__PURE__*/ createUseSimulateContract({
     abi: baseErc721Abi,
     functionName: 'renounceOwnership',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link baseErc721Abi}__ and `functionName` set to `"requestOwnershipHandover"`
+ */
+export const useSimulateBaseErc721RequestOwnershipHandover =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: baseErc721Abi,
+    functionName: 'requestOwnershipHandover',
   })
 
 /**
@@ -7327,6 +7705,24 @@ export const useWatchBaseErc721ApprovalForAll =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: baseErc721Abi,
     eventName: 'ApprovalForAll',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc721Abi}__ and `eventName` set to `"OwnershipHandoverCanceled"`
+ */
+export const useWatchBaseErc721OwnershipHandoverCanceled =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc721Abi,
+    eventName: 'OwnershipHandoverCanceled',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link baseErc721Abi}__ and `eventName` set to `"OwnershipHandoverRequested"`
+ */
+export const useWatchBaseErc721OwnershipHandoverRequested =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: baseErc721Abi,
+    eventName: 'OwnershipHandoverRequested',
   })
 
 /**
@@ -10062,15 +10458,6 @@ export const useReadGachaTreasuryGetCardTotalDeposits =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getGlobalStats"`
- */
-export const useReadGachaTreasuryGetGlobalStats =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getGlobalStats',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getNFTCurrentRarity"`
  */
 export const useReadGachaTreasuryGetNftCurrentRarity =
@@ -10104,15 +10491,6 @@ export const useReadGachaTreasuryGetNumRarities =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getNumRarities',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getPlatformOverviewBatch"`
- */
-export const useReadGachaTreasuryGetPlatformOverviewBatch =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getPlatformOverviewBatch',
   })
 
 /**
@@ -10215,15 +10593,6 @@ export const useReadGachaTreasuryGetUserAllDepositValues =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardDepositsPage"`
- */
-export const useReadGachaTreasuryGetUserCardDepositsPage =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserCardDepositsPage',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserCardIds"`
  */
 export const useReadGachaTreasuryGetUserCardIds =
@@ -10257,69 +10626,6 @@ export const useReadGachaTreasuryGetUserDepositValue =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'getUserDepositValue',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserDepositedNFTs"`
- */
-export const useReadGachaTreasuryGetUserDepositedNfTs =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserDepositedNFTs',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserDepositedNFTsByCardIdPaginated"`
- */
-export const useReadGachaTreasuryGetUserDepositedNfTsByCardIdPaginated =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserDepositedNFTsByCardIdPaginated',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserDepositedNFTsPaginated"`
- */
-export const useReadGachaTreasuryGetUserDepositedNfTsPaginated =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserDepositedNFTsPaginated',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeClaimed"`
- */
-export const useReadGachaTreasuryGetUserLifetimeClaimed =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserLifetimeClaimed',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeDeposited"`
- */
-export const useReadGachaTreasuryGetUserLifetimeDeposited =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserLifetimeDeposited',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserLifetimeWithdrawn"`
- */
-export const useReadGachaTreasuryGetUserLifetimeWithdrawn =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserLifetimeWithdrawn',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getUserProfileBatch"`
- */
-export const useReadGachaTreasuryGetUserProfileBatch =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaTreasuryAbi,
-    functionName: 'getUserProfileBatch',
   })
 
 /**
@@ -11234,6 +11540,234 @@ export const useWatchGachaTreasuryYieldClaimRecorded =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
     eventName: 'YieldClaimRecorded',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__
+ */
+export const useReadGachaTreasuryReaderContract =
+  /*#__PURE__*/ createUseReadContract({ abi: gachaTreasuryReaderAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__ and `functionName` set to `"getGlobalStats"`
+ */
+export const useReadGachaTreasuryReaderGetGlobalStats =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryReaderAbi,
+    functionName: 'getGlobalStats',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__ and `functionName` set to `"getPlatformOverviewBatch"`
+ */
+export const useReadGachaTreasuryReaderGetPlatformOverviewBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryReaderAbi,
+    functionName: 'getPlatformOverviewBatch',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__ and `functionName` set to `"getUserCardDepositsPage"`
+ */
+export const useReadGachaTreasuryReaderGetUserCardDepositsPage =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryReaderAbi,
+    functionName: 'getUserCardDepositsPage',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__ and `functionName` set to `"getUserDepositedNFTs"`
+ */
+export const useReadGachaTreasuryReaderGetUserDepositedNfTs =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryReaderAbi,
+    functionName: 'getUserDepositedNFTs',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__ and `functionName` set to `"getUserDepositedNFTsByCardIdPaginated"`
+ */
+export const useReadGachaTreasuryReaderGetUserDepositedNfTsByCardIdPaginated =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryReaderAbi,
+    functionName: 'getUserDepositedNFTsByCardIdPaginated',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__ and `functionName` set to `"getUserDepositedNFTsPaginated"`
+ */
+export const useReadGachaTreasuryReaderGetUserDepositedNfTsPaginated =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryReaderAbi,
+    functionName: 'getUserDepositedNFTsPaginated',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__ and `functionName` set to `"getUserProfileBatch"`
+ */
+export const useReadGachaTreasuryReaderGetUserProfileBatch =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryReaderAbi,
+    functionName: 'getUserProfileBatch',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryReaderAbi}__ and `functionName` set to `"treasury"`
+ */
+export const useReadGachaTreasuryReaderTreasury =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryReaderAbi,
+    functionName: 'treasury',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__
+ */
+export const useReadIGachaTreasuryReadContract =
+  /*#__PURE__*/ createUseReadContract({ abi: iGachaTreasuryReadAbi })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"appraisalContract"`
+ */
+export const useReadIGachaTreasuryReadAppraisalContract =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'appraisalContract',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"cardTotalDeposits"`
+ */
+export const useReadIGachaTreasuryReadCardTotalDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'cardTotalDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"getNumRarities"`
+ */
+export const useReadIGachaTreasuryReadGetNumRarities =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'getNumRarities',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"getRarityCount"`
+ */
+export const useReadIGachaTreasuryReadGetRarityCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'getRarityCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"getTreasuryItems"`
+ */
+export const useReadIGachaTreasuryReadGetTreasuryItems =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'getTreasuryItems',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"getUserCardIds"`
+ */
+export const useReadIGachaTreasuryReadGetUserCardIds =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'getUserCardIds',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"getUserCardIdsLength"`
+ */
+export const useReadIGachaTreasuryReadGetUserCardIdsLength =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'getUserCardIdsLength',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"getUserDepositCount"`
+ */
+export const useReadIGachaTreasuryReadGetUserDepositCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'getUserDepositCount',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"getWhitelistLength"`
+ */
+export const useReadIGachaTreasuryReadGetWhitelistLength =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'getWhitelistLength',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"globalLifetimeClaimed"`
+ */
+export const useReadIGachaTreasuryReadGlobalLifetimeClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'globalLifetimeClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"globalLifetimeDeposited"`
+ */
+export const useReadIGachaTreasuryReadGlobalLifetimeDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'globalLifetimeDeposited',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"userCardDeposits"`
+ */
+export const useReadIGachaTreasuryReadUserCardDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'userCardDeposits',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"userLifetimeClaimed"`
+ */
+export const useReadIGachaTreasuryReadUserLifetimeClaimed =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'userLifetimeClaimed',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"userLifetimeDeposited"`
+ */
+export const useReadIGachaTreasuryReadUserLifetimeDeposited =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'userLifetimeDeposited',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"userLifetimeWithdrawn"`
+ */
+export const useReadIGachaTreasuryReadUserLifetimeWithdrawn =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'userLifetimeWithdrawn',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link iGachaTreasuryReadAbi}__ and `functionName` set to `"userTotalDeposits"`
+ */
+export const useReadIGachaTreasuryReadUserTotalDeposits =
+  /*#__PURE__*/ createUseReadContract({
+    abi: iGachaTreasuryReadAbi,
+    functionName: 'userTotalDeposits',
   })
 
 /**

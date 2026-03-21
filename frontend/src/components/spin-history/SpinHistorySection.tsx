@@ -20,6 +20,7 @@ interface SpinHistorySectionProps {
 	appraisalContractAddress?: string | undefined;
 	protocolTreasuryAddress?: string | undefined;
 	treasuryAddress?: string | undefined;
+	treasuryReaderAddress?: string | undefined;
 }
 
 const SpinHistorySection = ({
@@ -28,6 +29,7 @@ const SpinHistorySection = ({
 	appraisalContractAddress,
 	protocolTreasuryAddress,
 	treasuryAddress,
+	treasuryReaderAddress,
 }: SpinHistorySectionProps) => {
 	const { address } = useAccount();
 	const { fetchHistory, loadMore } = useSpinHistoryFetcher();
@@ -164,7 +166,7 @@ const SpinHistorySection = ({
 			{/* On-Chain Analytics */}
 			<OnChainStats
 				gachaAddress={gachaAddress}
-				treasuryAddress={treasuryAddress}
+				treasuryReaderAddress={treasuryReaderAddress}
 			/>
 
 			{/* History Grid */}

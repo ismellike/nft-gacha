@@ -8,7 +8,7 @@ import { useAccount } from "wagmi";
 
 interface OnChainStatsProps {
 	gachaAddress?: string | undefined;
-	treasuryAddress?: string | undefined;
+	treasuryReaderAddress?: string | undefined;
 }
 
 function RarityBar({ rarityWins }: { rarityWins: readonly bigint[] }) {
@@ -91,11 +91,11 @@ function StatCard({
 
 export function OnChainStats({
 	gachaAddress,
-	treasuryAddress,
+	treasuryReaderAddress,
 }: OnChainStatsProps) {
 	const { address } = useAccount();
 	const { spinAnalytics, globalAnalytics, depositProfile, isLoading, isError } =
-		useUserOnChainStats({ gachaAddress, treasuryAddress });
+		useUserOnChainStats({ gachaAddress, treasuryReaderAddress });
 
 	if (!address) return null;
 	if (isError) return null;
@@ -172,7 +172,7 @@ export function OnChainStats({
 			</div>
 
 			{/* Deposit Profile */}
-			{treasuryAddress && depositProfile && (
+			{treasuryReaderAddress && depositProfile && (
 				<div className="space-y-3">
 					<h4 className="text-white/60 text-xs uppercase tracking-wide">
 						Deposit Profile

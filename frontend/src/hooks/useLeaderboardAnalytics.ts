@@ -48,6 +48,7 @@ const PLACEHOLDER_CONFIG: GachaConfig = {
 	longDescription: "",
 	theme: "",
 	treasuryAddress: ZERO_ADDRESS,
+	treasuryReaderAddress: ZERO_ADDRESS,
 	isActive: false,
 	createdAt: "",
 	appraisalAddress: ZERO_ADDRESS,
