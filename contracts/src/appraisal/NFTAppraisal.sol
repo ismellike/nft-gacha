@@ -4,12 +4,12 @@ pragma solidity ^0.8.27;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {AppraisalRequested} from "../interfaces/NFTAppraisalTypes.sol";
 
 /**
@@ -26,7 +26,7 @@ contract NFTAppraisal is
     ReentrancyGuardTransient,
     UUPSUpgradeable
 {
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for address;
 
     /// @notice Custom errors for gas efficiency and clarity
     error InvalidFeeToken();
@@ -189,7 +189,7 @@ contract NFTAppraisal is
 
         // Collect appraisal fee
         if (appraisalFee > 0) {
-            feeToken.safeTransferFrom(msg.sender, protocolAddress, appraisalFee);
+            address(feeToken).safeTransferFrom(msg.sender, protocolAddress, appraisalFee);
         }
 
         // Read existing request before overwriting (to get accurate old status for event)
@@ -230,7 +230,7 @@ contract NFTAppraisal is
 
         // Collect total appraisal fee upfront
         if (totalFee > 0) {
-            feeToken.safeTransferFrom(msg.sender, protocolAddress, totalFee);
+            address(feeToken).safeTransferFrom(msg.sender, protocolAddress, totalFee);
         }
 
         // Process each appraisal request

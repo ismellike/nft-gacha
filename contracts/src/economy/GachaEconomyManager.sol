@@ -4,11 +4,11 @@ pragma solidity ^0.8.27;
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
 import {ICardGroupedVault} from "../interfaces/ICardGroupedVault.sol";
 import {IProtocolTreasury} from "../interfaces/IProtocolTreasury.sol";
@@ -25,7 +25,7 @@ contract GachaEconomyManager is
     ReentrancyGuardTransient,
     UUPSUpgradeable
 {
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for address;
 
     /// @notice Basis points denominator
     uint256 public constant BPS_DENOMINATOR = 10_000;
@@ -139,10 +139,10 @@ contract GachaEconomyManager is
         if (usdcAmount == 0) revert ZeroRevenue();
 
         // Pull funds from Gacha
-        feeToken.safeTransferFrom(msg.sender, address(this), usdcAmount);
+        address(feeToken).safeTransferFrom(msg.sender, address(this), usdcAmount);
 
-        uint256 depositShare = Math.mulDiv(usdcAmount, depositorShareBps, BPS_DENOMINATOR);
-        uint256 protocolShare = Math.mulDiv(usdcAmount, protocolShareBps, BPS_DENOMINATOR);
+        uint256 depositShare = FixedPointMathLib.mulDiv(usdcAmount, depositorShareBps, BPS_DENOMINATOR);
+        uint256 protocolShare = FixedPointMathLib.mulDiv(usdcAmount, protocolShareBps, BPS_DENOMINATOR);
 
         // Ensure rounding remainder is given to protocol treasury
         uint256 distributed = depositShare + protocolShare;
@@ -153,13 +153,13 @@ contract GachaEconomyManager is
         // Try to distribute this spin's depositor share to the hit rarity
         uint256 actualDistributed = 0;
         if (depositShare > 0) {
-            feeToken.forceApprove(address(cardGroupedVault), depositShare);
+            address(feeToken).safeApprove(address(cardGroupedVault), depositShare);
             try cardGroupedVault.distributeYield(depositShare, hitRarity) {
                 actualDistributed += depositShare;
             } catch {
                 // Rarity pool is empty — queue for that specific rarity
                 queuedYieldByRarity[hitRarity] += depositShare;
-                feeToken.forceApprove(address(cardGroupedVault), 0); // Clean up leftover approval
+                address(feeToken).safeApprove(address(cardGroupedVault), 0); // Clean up leftover approval
                 emit DepositorYieldQueued(depositShare, hitRarity);
             }
         }
@@ -169,19 +169,19 @@ contract GachaEconomyManager is
         for (uint8 i; i < numRarities; i++) {
             uint256 queued = queuedYieldByRarity[i];
             if (queued == 0) continue;
-            feeToken.forceApprove(address(cardGroupedVault), queued);
+            address(feeToken).safeApprove(address(cardGroupedVault), queued);
             try cardGroupedVault.distributeYield(queued, i) {
                 totalFlushed += queued;
                 queuedYieldByRarity[i] = 0;
                 emit QueuedDepositorYieldProcessed(queued, i);
             } catch {
                 // Pool still empty — leave queued; clean up dangling approval
-                feeToken.forceApprove(address(cardGroupedVault), 0);
+                address(feeToken).safeApprove(address(cardGroupedVault), 0);
             }
         }
 
         if (protocolShare > 0) {
-            feeToken.forceApprove(address(protocolTreasury), protocolShare);
+            address(feeToken).safeApprove(address(protocolTreasury), protocolShare);
             protocolTreasury.onRevenueReceived(protocolShare);
         }
 

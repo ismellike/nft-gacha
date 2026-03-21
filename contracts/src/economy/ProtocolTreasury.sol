@@ -5,11 +5,11 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {IProtocolTreasury} from "../interfaces/IProtocolTreasury.sol";
 import {GachaTreasury} from "../gacha/GachaTreasury.sol";
 import {NFTAppraisal} from "../appraisal/NFTAppraisal.sol";
@@ -26,7 +26,7 @@ contract ProtocolTreasury is
     ReentrancyGuardTransient,
     UUPSUpgradeable
 {
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for address;
 
     /// @notice Custom errors for gas efficiency
     error UnauthorizedEconomyManager();
@@ -112,7 +112,7 @@ contract ProtocolTreasury is
     /// @inheritdoc IProtocolTreasury
     function onRevenueReceived(uint256 amount) external override onlyEconomyManager whenNotPaused {
         if (amount == 0) revert InvalidAmount();
-        _asset.safeTransferFrom(msg.sender, address(this), amount);
+        address(_asset).safeTransferFrom(msg.sender, address(this), amount);
         emit ProtocolRevenueReceived(amount);
     }
 
@@ -141,7 +141,7 @@ contract ProtocolTreasury is
             revert AppraisalMissing();
         }
 
-        payout = Math.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
+        payout = FixedPointMathLib.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
         if (payout == 0) revert InvalidAmount();
 
         // Check redemption window using snapshot deadline
@@ -156,12 +156,12 @@ contract ProtocolTreasury is
         uint256 timeSinceWin = receiveTime > 0 ? block.timestamp - receiveTime : 0;
         emit RedemptionWindowEnforced(collection, tokenId, msg.sender, timeSinceWin);
 
-        if (_asset.balanceOf(address(this)) < payout) revert InsufficientLiquidity();
+        if (IERC20(_asset).balanceOf(address(this)) < payout) revert InsufficientLiquidity();
 
         IERC721(collection).safeTransferFrom(msg.sender, address(_treasury), tokenId);
         _treasury.handleRedemptionReturn(collection, tokenId, msg.sender, appraisalUSD);
 
-        _asset.safeTransfer(msg.sender, payout);
+        address(_asset).safeTransfer(msg.sender, payout);
 
         emit RedemptionExecuted(msg.sender, collection, tokenId, payout);
         return payout;
@@ -171,7 +171,7 @@ contract ProtocolTreasury is
     function transferOut(address to, uint256 amount) external override onlyOwner whenNotPaused {
         if (to == address(0)) revert ZeroAddress("recipient");
         if (amount == 0) revert InvalidAmount();
-        _asset.safeTransfer(to, amount);
+        address(_asset).safeTransfer(to, amount);
         emit ProtocolTransfer(to, amount);
     }
 

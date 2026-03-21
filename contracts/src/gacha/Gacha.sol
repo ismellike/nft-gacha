@@ -4,13 +4,13 @@ pragma solidity ^0.8.27;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {GachaTreasury} from "./GachaTreasury.sol";
 import {IGachaEconomyManager} from "../interfaces/IGachaEconomyManager.sol";
 import {RandomnessRequested} from "../interfaces/WavsDrandTypes.sol";
@@ -31,7 +31,7 @@ contract Gacha is
     UUPSUpgradeable,
     IGacha
 {
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for address;
 
     /// @notice Custom errors for gas efficiency and clarity
     error InvalidFeeToken();
@@ -233,7 +233,7 @@ contract Gacha is
         _validateTreasuryHasItems();
 
         if (feeToCharge > 0) {
-            feeToken.safeTransferFrom(msg.sender, address(this), feeToCharge);
+            address(feeToken).safeTransferFrom(msg.sender, address(this), feeToCharge);
         }
 
         triggerId = _nextTriggerId++;
@@ -270,7 +270,7 @@ contract Gacha is
         if (feeToCharge > 0) {
             // Use permit to approve the fee transfer (permit maxFee, transfer feeToCharge)
             IERC20Permit(address(feeToken)).permit(msg.sender, address(this), maxFee, deadline, v, r, s);
-            feeToken.safeTransferFrom(msg.sender, address(this), feeToCharge);
+            address(feeToken).safeTransferFrom(msg.sender, address(this), feeToCharge);
         }
 
         triggerId = _nextTriggerId++;
@@ -340,7 +340,7 @@ contract Gacha is
 
             // Refund the user if selected rarity is empty
             if (request.feePaid > 0) {
-                feeToken.safeTransfer(request.requester, request.feePaid);
+                address(feeToken).safeTransfer(request.requester, request.feePaid);
             }
             emit SpinRefunded(triggerId, request.requester, selectedRarity, request.feePaid);
             emit SpinStatusUpdate(triggerId, request.requester, "refunded", block.timestamp);
@@ -555,7 +555,7 @@ contract Gacha is
         for (uint256 i = 0; i < _numRarities; i++) {
             if (counts[i] == 0 || weights[i] == 0) continue;
             uint256 averageValue = totals[i] / counts[i];
-            expectedValueUSD += Math.mulDiv(weights[i], averageValue, TOTAL_WEIGHT);
+            expectedValueUSD += FixedPointMathLib.mulDiv(weights[i], averageValue, TOTAL_WEIGHT);
         }
     }
 
@@ -577,7 +577,7 @@ contract Gacha is
         IGachaEconomyManager manager = economyManager;
         if (address(manager) == address(0)) revert InvalidEconomyManager();
 
-        feeToken.forceApprove(address(manager), feeAmount);
+        address(feeToken).safeApprove(address(manager), feeAmount);
         manager.onSpinRevenue(feeAmount, hitRarity);
 
         emit SpinRevenueForwarded(feeAmount);
@@ -686,7 +686,7 @@ contract Gacha is
 
         // Refund the spin fee if one was paid
         if (request.feePaid > 0) {
-            feeToken.safeTransfer(request.requester, request.feePaid);
+            address(feeToken).safeTransfer(request.requester, request.feePaid);
         }
 
         emit SpinReclaimed(triggerId, request.requester, request.feePaid);
@@ -831,7 +831,7 @@ contract Gacha is
         uint256 expectedValueUSD = getExpectedValueUSD();
         if (expectedValueUSD == 0) return minSpinFee;
 
-        uint256 priceUSD = Math.mulDiv(expectedValueUSD, TOTAL_WEIGHT + pricingPremiumBps, TOTAL_WEIGHT);
+        uint256 priceUSD = FixedPointMathLib.mulDiv(expectedValueUSD, TOTAL_WEIGHT + pricingPremiumBps, TOTAL_WEIGHT);
         uint256 converted = _usdToFeeToken(priceUSD);
         if (minSpinFee > 0 && converted < minSpinFee) {
             converted = minSpinFee;
@@ -847,7 +847,7 @@ contract Gacha is
     /// @return Amount in fee token units (e.g. 6 decimals for USDC)
     function _usdToFeeToken(uint256 amountUSD) private view returns (uint256) {
         if (feeTokenScalar == 0) return 0;
-        return Math.mulDiv(amountUSD, feeTokenScalar, 1e18);
+        return FixedPointMathLib.mulDiv(amountUSD, feeTokenScalar, 1e18);
     }
 
     /// @dev Computes dynamic rarity weights adjusted for inventory scarcity.
@@ -869,7 +869,7 @@ contract Gacha is
         uint256 rawSum;
         for (uint256 i = 0; i < numRarities; i++) {
             if (counts[i] == 0 || targetRarityBps[i] == 0) continue;
-            raw[i] = Math.mulDiv(targetRarityBps[i], totalCount, counts[i]);
+            raw[i] = FixedPointMathLib.mulDiv(targetRarityBps[i], totalCount, counts[i]);
             rawSum += raw[i];
         }
 
@@ -878,7 +878,7 @@ contract Gacha is
         uint256 assigned;
         for (uint256 i = 0; i < numRarities; i++) {
             if (raw[i] == 0) continue;
-            weights[i] = Math.mulDiv(raw[i], TOTAL_WEIGHT, rawSum);
+            weights[i] = FixedPointMathLib.mulDiv(raw[i], TOTAL_WEIGHT, rawSum);
             assigned += weights[i];
         }
 

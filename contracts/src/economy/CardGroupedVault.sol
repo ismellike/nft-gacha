@@ -5,10 +5,10 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {ICardGroupedVault} from "../interfaces/ICardGroupedVault.sol";
 
 /// @notice Interface for GachaTreasury to record claimed analytics
@@ -55,7 +55,7 @@ contract CardGroupedVault is
     ReentrancyGuardTransient,
     UUPSUpgradeable
 {
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for address;
 
     // ─── Errors ─────────────────────────────────────────────────────────
 
@@ -309,7 +309,7 @@ contract CardGroupedVault is
             bool negative = (priceDelta < 0) != (accDelta < 0);
             uint256 absPriceDelta = priceDelta < 0 ? uint256(-priceDelta) : uint256(priceDelta);
             uint256 absAccDelta = accDelta < 0 ? uint256(-accDelta) : uint256(accDelta);
-            uint256 absCorrectionInc = Math.mulDiv(absPriceDelta, absAccDelta, PRECISION);
+            uint256 absCorrectionInc = FixedPointMathLib.mulDiv(absPriceDelta, absAccDelta, PRECISION);
             card.correctionPerUnit += negative ? -int256(absCorrectionInc) : int256(absCorrectionInc);
         }
 
@@ -346,7 +346,7 @@ contract CardGroupedVault is
             int256 accDelta = int256(oldPool.accYieldPerUSD) - int256(card.baseAcc);
             int256 mainYield = 0;
             if (accDelta > 0) {
-                mainYield = int256(Math.mulDiv(oldPrice, uint256(accDelta), PRECISION));
+                mainYield = int256(FixedPointMathLib.mulDiv(oldPrice, uint256(accDelta), PRECISION));
             }
             int256 settled = mainYield - card.correctionPerUnit;
             if (settled > 0) {
@@ -390,10 +390,10 @@ contract CardGroupedVault is
         if (pool.totalValueUSD == 0) revert NoValueInPool();
 
         // increment = amount × PRECISION / totalValueUSD
-        uint256 increment = Math.mulDiv(amount, PRECISION, pool.totalValueUSD);
+        uint256 increment = FixedPointMathLib.mulDiv(amount, PRECISION, pool.totalValueUSD);
         if (increment == 0) revert YieldTooSmall();
 
-        asset.safeTransferFrom(msg.sender, address(this), amount);
+        address(asset).safeTransferFrom(msg.sender, address(this), amount);
 
         pool.accYieldPerUSD += increment;
         totalYieldDistributed += amount;
@@ -553,7 +553,7 @@ contract CardGroupedVault is
         {
             uint256 accDelta = pool.accYieldPerUSD - card.baseAcc;
             if (accDelta > 0) {
-                mainYield = int256(Math.mulDiv(pos.count * card.cardPriceUSD, accDelta, PRECISION));
+                mainYield = int256(FixedPointMathLib.mulDiv(pos.count * card.cardPriceUSD, accDelta, PRECISION));
             }
         }
 
@@ -639,7 +639,7 @@ contract CardGroupedVault is
 
         // rewardDebt = count × price × (accYieldPerUSD - baseAcc) / PRECISION
         uint256 accDelta = pool.accYieldPerUSD - card.baseAcc;
-        pos.rewardDebt = Math.mulDiv(pos.count * card.cardPriceUSD, accDelta, PRECISION);
+        pos.rewardDebt = FixedPointMathLib.mulDiv(pos.count * card.cardPriceUSD, accDelta, PRECISION);
 
         // correctionDebt = count × correctionPerUnit (in USDC × PRECISION units per token)
         pos.correctionDebt = _safeToInt256(pos.count) * card.correctionPerUnit;
@@ -665,8 +665,8 @@ contract CardGroupedVault is
             }
         }
 
-        if (asset.balanceOf(address(this)) < amount) revert InsufficientVaultBalance();
-        asset.safeTransfer(account, amount);
+        if (IERC20(asset).balanceOf(address(this)) < amount) revert InsufficientVaultBalance();
+        address(asset).safeTransfer(account, amount);
 
         emit YieldClaimed(account, amount);
     }
