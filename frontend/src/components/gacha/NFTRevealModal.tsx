@@ -40,9 +40,10 @@ interface SpinResult {
 interface NFTRevealModalProps {
 	isVisible: boolean;
 	nftResult: SpinResult;
+	triggerId?: bigint | null | undefined;
 	onClose: () => void;
 	appraisalContractAddress: `0x${string}`;
-	gachaId?: string;
+	gachaId?: string | undefined;
 }
 
 // Determine which metadata fields are available for reveal
@@ -64,6 +65,7 @@ const getAvailableRevealPhases = (
 export default function NFTRevealModal({
 	isVisible,
 	nftResult,
+	triggerId,
 	onClose,
 	appraisalContractAddress,
 	gachaId,
@@ -551,6 +553,7 @@ export default function NFTRevealModal({
 										rarityName={nftResult.rarity}
 										nftCollection={nftResult.collection}
 										nftTokenId={nftResult.tokenId}
+										uniqueId={triggerId?.toString()}
 										enhancedMetadata={enhancedResult?.metadata ?? null}
 										appraisalContractAddress={appraisalContractAddress}
 										protocolTreasuryAddress={protocolTreasuryAddress}

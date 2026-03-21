@@ -75,6 +75,7 @@ type InteractionStore = {
 	markInteractionSuccess: (txHash: string) => void;
 	setError: (message: string) => void;
 	resetInteraction: () => void;
+	removeInteraction: (key: InteractionKey) => void;
 	cleanupStaleInteractions: () => void;
 	getActiveInteraction: () => InteractionState | null;
 	getInteraction: (
@@ -261,6 +262,17 @@ export const useNFTInteractionStore = create<InteractionStore>((set, get) => ({
 			};
 		});
 	},
+
+	removeInteraction: (key) =>
+		set((state) => {
+			if (!(key in state.interactions)) return state;
+			const { [key]: _removed, ...remaining } = state.interactions;
+			return {
+				interactions: remaining,
+				activeInteraction:
+					state.activeInteraction === key ? null : state.activeInteraction,
+			};
+		}),
 
 	cleanupStaleInteractions: () =>
 		set((state) => {

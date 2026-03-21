@@ -10,6 +10,7 @@ interface SellToTreasuryProps {
 	appraisalContractAddress: string;
 	protocolTreasuryAddress: string;
 	gachaTreasuryAddress: string;
+	uniqueId?: string | undefined;
 	onSuccess?: (txHash: string) => void;
 	size?: "sm" | "md" | "lg";
 	variant?: "button" | "card";

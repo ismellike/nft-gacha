@@ -11,6 +11,7 @@ interface MonetaryRevealSectionProps {
 	rarityName: string;
 	nftCollection: string;
 	nftTokenId: string;
+	uniqueId?: string | undefined;
 	enhancedMetadata: NFTMetadata | null;
 	appraisalContractAddress: `0x${string}`;
 	protocolTreasuryAddress: string;
@@ -24,6 +25,7 @@ export function MonetaryRevealSection({
 	rarityName,
 	nftCollection,
 	nftTokenId,
+	uniqueId,
 	enhancedMetadata,
 	appraisalContractAddress,
 	protocolTreasuryAddress,
@@ -86,6 +88,7 @@ export function MonetaryRevealSection({
 							appraisalContractAddress={appraisalContractAddress}
 							protocolTreasuryAddress={protocolTreasuryAddress}
 							gachaTreasuryAddress={gachaTreasuryAddress}
+							uniqueId={uniqueId}
 							size="lg"
 							variant="button"
 						/>

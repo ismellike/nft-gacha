@@ -64,6 +64,7 @@ const GachaSpinner = memo(() => {
 					<NFTRevealModal
 						isVisible={true}
 						nftResult={gachaSpin.spinResult}
+						triggerId={gachaSpin.triggerId}
 						onClose={handleCloseReveal}
 						appraisalContractAddress={contracts.appraisal as `0x${string}`}
 						gachaId={gachaId}

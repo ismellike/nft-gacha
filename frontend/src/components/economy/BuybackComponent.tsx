@@ -33,7 +33,7 @@ interface BuybackComponentProps {
 	gachaTreasuryAddress?: string | undefined;
 	rarity?: string;
 	historicalAppraisedPrice?: bigint | undefined; // Historical price from spin history
-	uniqueId?: string; // Unique identifier (e.g., triggerId) to distinguish duplicates
+	uniqueId?: string | undefined; // Unique identifier (e.g., triggerId) to distinguish duplicates
 	onSuccess?: (txHash: string) => void;
 	onBuybackSuccess?: (txHash: string, payoutAmount: bigint) => void;
 	size?: "sm" | "md" | "lg";

@@ -86,7 +86,8 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		markInteractionSubmitted,
 		markInteractionSuccess,
 		setError,
-		resetInteraction: reset,
+		resetInteraction: resetActive,
+		removeInteraction,
 	} = useNFTInteractionStore();
 
 	// Stable ref for context to avoid recreating callbacks on every context change
@@ -457,7 +458,12 @@ export const useNFTInteraction = (params: UseNFTInteractionParams = {}) => {
 		// actions
 		startInteraction,
 		reset: () => {
-			reset();
+			// Remove this specific interaction if we have a key, otherwise reset active
+			if (interactionKey) {
+				removeInteraction(interactionKey as InteractionKey);
+			} else {
+				resetActive();
+			}
 			resetDeposit();
 			resetRedemption();
 			resetNFTApproval();
