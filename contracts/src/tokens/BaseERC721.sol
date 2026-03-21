@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "solady/auth/Ownable.sol";
 
 /// @title BaseERC721
 /// @notice Minimal owner-mintable ERC721 for local deploys and tests with tokenURI support
@@ -22,8 +22,14 @@ contract BaseERC721 is ERC721Enumerable, Ownable {
 
     constructor(string memory name_, string memory symbol_, address initialOwner)
         ERC721(name_, symbol_)
-        Ownable(initialOwner)
-    {}
+    {
+        require(initialOwner != address(0), "Owner cannot be zero address");
+        _initializeOwner(initialOwner);
+    }
+
+    function _guardInitializeOwner() internal pure override returns (bool) {
+        return true;
+    }
 
     function mint(address to) external onlyOwner returns (uint256 tokenId) {
         tokenId = _nextId;
