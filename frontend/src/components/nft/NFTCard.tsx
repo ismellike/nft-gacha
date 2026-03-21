@@ -66,6 +66,7 @@ import {
 	isValidAddress,
 } from "../../lib/utils";
 import type { NFTMetadata } from "../../types/hooks";
+import { NFTImageViewer } from "./NFTImageViewer";
 
 // Core Types - Flexible for all use cases
 export interface NFTCardData {
@@ -272,6 +273,7 @@ const NFTImage = memo<{
 }>(({ data, metadata, tokenURI, size, priority = false }) => {
 	const [isLoaded, setIsLoaded] = useState(false);
 	const [hasError, setHasError] = useState(false);
+	const [isViewerOpen, setIsViewerOpen] = useState(false);
 
 	const rarityConfig =
 		data.rarity !== undefined ? getRarityConfig(data.rarity) : null;
@@ -384,8 +386,36 @@ const NFTImage = memo<{
 						}}
 						sizes="(max-width: 640px) 80vw, (max-width: 1024px) 60vw, 40vw"
 					/>
+
+					{/* Zoom button overlay */}
+					{isLoaded && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								setIsViewerOpen(true);
+							}}
+							className="absolute bottom-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity hover:text-white hover:bg-black/70"
+							aria-label="View full size"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+								<title>Zoom</title>
+								<path d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" />
+								<path d="M10.75 8.25h-1v-1a.75.75 0 0 0-1.5 0v1h-1a.75.75 0 0 0 0 1.5h1v1a.75.75 0 0 0 1.5 0v-1h1a.75.75 0 0 0 0-1.5Z" />
+							</svg>
+						</button>
+					)}
 				</div>
 			</motion.div>
+
+			{/* Full-size image viewer modal */}
+			<NFTImageViewer
+				src={imageUrl}
+				alt={metadata?.name || `NFT ${data.tokenId}`}
+				isOpen={isViewerOpen}
+				onClose={() => setIsViewerOpen(false)}
+				unoptimized={imageUrl.includes("courtyard.io")}
+			/>
 		</div>
 	);
 });
