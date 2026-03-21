@@ -12,6 +12,7 @@ import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
 import {NFTAppraisalServiceHandler} from "../src/appraisal/NFTAppraisalServiceHandler.sol";
 import {Gacha} from "../src/gacha/Gacha.sol";
 import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
+import {GachaTreasuryReader} from "../src/gacha/GachaTreasuryReader.sol";
 import {GachaServiceHandler} from "../src/gacha/GachaServiceHandler.sol";
 import {CardGroupedVault} from "../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
@@ -84,6 +85,7 @@ contract DeployTestnet is Script {
         address usdc;
         address appraisalProxy;
         address treasuryProxy;
+        address treasuryReader;
         address cardGroupedVaultProxy;
         address protocolTreasuryProxy;
         address economyManagerProxy;
@@ -232,6 +234,12 @@ contract DeployTestnet is Script {
                 )
             );
             console.log("GachaTreasury proxy:    ", d.treasuryProxy);
+        }
+
+        // GachaTreasuryReader (non-upgradeable, reads from treasury)
+        {
+            d.treasuryReader = address(new GachaTreasuryReader(d.treasuryProxy));
+            console.log("GachaTreasuryReader:    ", d.treasuryReader);
         }
 
         // CardGroupedVault
@@ -387,6 +395,7 @@ contract DeployTestnet is Script {
                 _envLine("USDC_ADDRESS", vm.toString(d.usdc)),
                 _envLine("NFT_APPRAISAL_ADDRESS", vm.toString(d.appraisalProxy)),
                 _envLine("GACHA_TREASURY_ADDRESS", vm.toString(d.treasuryProxy)),
+                _envLine("GACHA_TREASURY_READER_ADDRESS", vm.toString(d.treasuryReader)),
                 _envLine("CARD_GROUPED_VAULT_ADDRESS", vm.toString(d.cardGroupedVaultProxy)),
                 _envLine("PROTOCOL_TREASURY_ADDRESS", vm.toString(d.protocolTreasuryProxy)),
                 _envLine("ECONOMY_MANAGER_ADDRESS", vm.toString(d.economyManagerProxy)),
@@ -416,6 +425,7 @@ contract DeployTestnet is Script {
         console.log("USDC:                   ", d.usdc);
         console.log("NFTAppraisal Proxy:     ", d.appraisalProxy);
         console.log("GachaTreasury Proxy:    ", d.treasuryProxy);
+        console.log("GachaTreasuryReader:    ", d.treasuryReader);
         console.log("CardGroupedVault Proxy: ", d.cardGroupedVaultProxy);
         console.log("ProtocolTreasury Proxy: ", d.protocolTreasuryProxy);
         console.log("EconomyManager Proxy:   ", d.economyManagerProxy);
