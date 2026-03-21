@@ -16,6 +16,7 @@ remappings = [
     "@wavs=node_modules/.pnpm/@wavs+solidity@0.5.0-beta.5/node_modules/@wavs/solidity/contracts/src/",
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
     "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "solady/=lib/solady/src/",
 ]
 
 # Suppress naming convention lints for standard Solidity acronyms (USD, NFT, URI)
@@ -52,6 +53,13 @@ initial_balance = "0xffffffffffffffffffffffff"
 [etherscan]
 polygon_amoy = { key = "${ETHERSCAN_API_KEY}", url = "https://api-amoy.polygonscan.com/api", chain = 80002 }
 polygon = { key = "${ETHERSCAN_API_KEY}", url = "https://api.polygonscan.com/api", chain = 137 }
+
+# Soldeer migration (run these commands to migrate from git submodules to soldeer):
+#   forge soldeer install forge-std~1.9.6
+#   forge soldeer install @openzeppelin-contracts~5.5.0
+#   forge soldeer install @openzeppelin-contracts-upgradeable~5.5.0
+#   forge soldeer install solady~0.1.9
+# Then update remappings to point to dependencies/ instead of lib/
 
 # Coverage profile for detailed analysis
 [profile.coverage]
