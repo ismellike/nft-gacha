@@ -26,11 +26,8 @@ export function useSpinCountdown({
 	timeoutSeconds,
 }: UseSpinCountdownParams): UseSpinCountdownReturn {
 	const [countdown, setCountdown] = useState(timeoutSeconds);
-	const [timeoutStarted, setTimeoutStarted] = useState<number | null>(null);
 
 	// Keep refs for values read inside setInterval to satisfy Biome exhaustive-deps
-	const timeoutStartedRef = useRef(timeoutStarted);
-	timeoutStartedRef.current = timeoutStarted;
 	const onTimeoutRef = useRef(onTimeout);
 	onTimeoutRef.current = onTimeout;
 	const timeoutSecondsRef = useRef(timeoutSeconds);
@@ -38,32 +35,26 @@ export function useSpinCountdown({
 
 	useEffect(() => {
 		if (isWaitingForFulfillment) {
-			if (!timeoutStarted) {
-				setTimeoutStarted(Date.now());
-				setCountdown(timeoutSeconds);
-			}
+			const started = Date.now();
+			setCountdown(timeoutSeconds);
 
 			const timer = setInterval(() => {
-				const started = timeoutStartedRef.current;
-				if (started) {
-					const elapsed = Math.floor((Date.now() - started) / 1000);
-					const remaining = Math.max(0, timeoutSecondsRef.current - elapsed);
-					setCountdown(remaining);
+				const elapsed = Math.floor((Date.now() - started) / 1000);
+				const remaining = Math.max(0, timeoutSecondsRef.current - elapsed);
+				setCountdown(remaining);
 
-					if (remaining === 0) {
-						onTimeoutRef.current();
-						clearInterval(timer);
-					}
+				if (remaining === 0) {
+					onTimeoutRef.current();
+					clearInterval(timer);
 				}
 			}, 1000);
 
 			return () => clearInterval(timer);
 		}
 
-		setTimeoutStarted(null);
 		setCountdown(timeoutSeconds);
 		return undefined;
-	}, [isWaitingForFulfillment, timeoutStarted, timeoutSeconds]);
+	}, [isWaitingForFulfillment, timeoutSeconds]);
 
 	return { countdown };
 }

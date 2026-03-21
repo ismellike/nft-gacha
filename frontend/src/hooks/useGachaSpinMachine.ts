@@ -140,6 +140,9 @@ export function useGachaSpinMachine(
 	// the latest value — not a stale closure captured when the polling effect started.
 	const stateValueRef = useRef(state.value);
 	stateValueRef.current = state.value;
+	// Stable ref for onSpinComplete so the polling effect doesn't restart on callback change
+	const onSpinCompleteRef = useRef(onSpinComplete);
+	onSpinCompleteRef.current = onSpinComplete;
 
 	// Atomic claim helper — returns true only for the first caller
 	// Also rejects if already timed out (prevents late poll resolve after timeout modal)
@@ -337,6 +340,7 @@ export function useGachaSpinMachine(
 
 	// Actions
 	const startSpin = () => {
+		if (state.value !== "idle") return;
 		if (userAddress && publicClient && contracts.gacha) {
 			hasTransitionedToRevealRef.current = false;
 			updateState("spinning", {
@@ -393,6 +397,10 @@ export function useGachaSpinMachine(
 			updateState("waitingForFulfillment", {
 				retryCount: state.context.retryCount + 1,
 				error: null,
+				// Re-validate context with current values in case of network/account change
+				userAddress: userAddress ?? state.context.userAddress,
+				publicClient: publicClient ?? state.context.publicClient,
+				gachaAddress: gachaAddress ?? state.context.gachaAddress,
 			});
 		}
 	};
@@ -438,13 +446,33 @@ export function useGachaSpinMachine(
 		},
 	});
 
-	const timeout = () =>
+	const timeout = () => {
 		updateState("timeout", {
 			error:
 				"Randomness generation timed out. You can reclaim your funds or try again.",
 		});
-	const setError = (errorMessage: string) =>
+		// Clear the pending spin so it isn't restored on page reload
+		if (state.context.userAddress && state.context.gachaAddress) {
+			useGachaStore
+				.getState()
+				.removePendingSpin(
+					state.context.userAddress,
+					state.context.gachaAddress,
+				);
+		}
+	};
+	const setError = (errorMessage: string) => {
 		updateState("error", { error: errorMessage });
+		// Clear the pending spin so it isn't restored on page reload
+		if (state.context.userAddress && state.context.gachaAddress) {
+			useGachaStore
+				.getState()
+				.removePendingSpin(
+					state.context.userAddress,
+					state.context.gachaAddress,
+				);
+		}
+	};
 	const clearPendingSpins = () => {
 		// Clear just this gacha's pending spins, not all
 		if (userAddress && contracts.gacha) {
@@ -498,8 +526,16 @@ export function useGachaSpinMachine(
 							refundResult: null,
 							error: null,
 						});
-						onSpinComplete?.();
+						onSpinCompleteRef.current?.();
 					} else {
+						// Guard: don't override timeout state with refund
+						if (
+							stateValueRef.current === "timeout" ||
+							stateValueRef.current === "error" ||
+							stateValueRef.current === "idle"
+						) {
+							return;
+						}
 						updateState("refunded", {
 							refundResult: pollingResult.refundResult,
 							error: null,
@@ -522,7 +558,7 @@ export function useGachaSpinMachine(
 				}
 			})
 			.finally(() => {
-				// Only clear polling ref if this is still the active polling session
+				// Always clear polling ref if this is still the active polling session
 				if (pollingAbortRef.current === abortController) {
 					isPollingRef.current = false;
 				}
@@ -543,7 +579,6 @@ export function useGachaSpinMachine(
 		state.context.userAddress,
 		state.context.publicClient,
 		state.context.gachaAddress,
-		onSpinComplete,
 		updateState,
 		claimRevealTransition,
 	]);

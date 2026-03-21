@@ -41,7 +41,7 @@ const GachaSpinner = memo(() => {
 		// Refresh all data after reveal closes
 		logger.gachaSpin.log("[GachaSpinner] Reveal closed, refreshing all data");
 		triggerRefresh();
-	}, [gachaSpin, triggerRefresh]);
+	}, [gachaSpin.closeReveal, triggerRefresh]);
 
 	const handleRefund = useCallback(() => {
 		logger.gachaSpin.log(

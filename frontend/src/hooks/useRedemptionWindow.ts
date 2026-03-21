@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useReadContract } from "wagmi";
 import {
-	useReadGachaTreasuryGetNftReceiveTime,
+	gachaTreasuryAbi,
 	useReadProtocolTreasuryRedemptionWindow,
 } from "@/generated";
 
@@ -50,9 +51,10 @@ export function useRedemptionWindow({
 	// Fetch the fixed on-chain receiveTime (when the NFT was won).
 	// This value never changes so caching is fine.
 	const { data: receiveTime, isLoading: isLoadingReceiveTime } =
-		// @ts-expect-error — GachaTreasury ABI triggers TS2589 "excessively deep" on this hook
-		useReadGachaTreasuryGetNftReceiveTime({
+		useReadContract({
 			address: gachaTreasuryAddress as `0x${string}`,
+			abi: gachaTreasuryAbi,
+			functionName: "getNFTReceiveTime",
 			args: [collectionAddr, tokenIdBigInt],
 			query: {
 				enabled: enabled && !!gachaTreasuryAddress,

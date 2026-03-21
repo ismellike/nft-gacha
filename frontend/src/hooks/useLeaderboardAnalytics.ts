@@ -1,12 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-	useReadGachaGetGlobalAnalytics,
-	useReadGachaGetTotalValueLocked,
-	useReadGachaTreasuryGetAllRarityCounts,
-	useReadGachaTreasuryGetAllRarityTotalValues,
-} from "@/generated";
+import { useReadContract } from "wagmi";
+import { gachaAbi, gachaTreasuryAbi } from "@/generated";
 import { getAllActiveGachas } from "@/lib/gacha-config";
 import type { GachaConfig } from "@/lib/gacha-config/types";
 
@@ -83,37 +79,45 @@ function useGachaAnalyticsSingle(
 		data: globalAnalyticsRaw,
 		isLoading: isLoadingGlobal,
 		isError: isGlobalError,
-	} = useReadGachaGetGlobalAnalytics({
+	} = useReadContract({
 		address: gachaAddr,
+		abi: gachaAbi,
+		functionName: "getGlobalAnalytics",
 		query: { enabled, refetchInterval: 60000 },
-	} as Parameters<typeof useReadGachaGetGlobalAnalytics>[0]);
+	});
 
 	const {
 		data: rarityCountsRaw,
 		isLoading: isLoadingCounts,
 		isError: isCountsError,
-	} = useReadGachaTreasuryGetAllRarityCounts({
+	} = useReadContract({
 		address: treasuryAddr,
+		abi: gachaTreasuryAbi,
+		functionName: "getAllRarityCounts",
 		query: { enabled, refetchInterval: 60000 },
-	} as Parameters<typeof useReadGachaTreasuryGetAllRarityCounts>[0]);
+	});
 
 	const {
 		data: rarityValuesRaw,
 		isLoading: isLoadingValues,
 		isError: isValuesError,
-	} = useReadGachaTreasuryGetAllRarityTotalValues({
+	} = useReadContract({
 		address: treasuryAddr,
+		abi: gachaTreasuryAbi,
+		functionName: "getAllRarityTotalValues",
 		query: { enabled, refetchInterval: 60000 },
-	} as Parameters<typeof useReadGachaTreasuryGetAllRarityTotalValues>[0]);
+	});
 
 	const {
 		data: tvlRaw,
 		isLoading: isLoadingTvl,
 		isError: isTvlError,
-	} = useReadGachaGetTotalValueLocked({
+	} = useReadContract({
 		address: gachaAddr,
+		abi: gachaAbi,
+		functionName: "getTotalValueLocked",
 		query: { enabled, refetchInterval: 60000 },
-	} as Parameters<typeof useReadGachaGetTotalValueLocked>[0]);
+	});
 
 	const analyticsData = globalAnalyticsRaw as unknown as
 		| [bigint, bigint, bigint, readonly bigint[]]

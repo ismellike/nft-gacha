@@ -133,6 +133,7 @@ export function usePermitSpin({
 		writeContract: spin,
 		data: spinTxHash,
 		isPending: isSpinPending,
+		error: spinSubmitError,
 	} = useWriteContract();
 
 	// Permit-based spin
@@ -461,7 +462,31 @@ export function usePermitSpin({
 		}
 	}, [spinWithPermitReceiptError, gachaSpin.setError]);
 
-	// Handle direct spin transaction errors (fallback path)
+	// Handle direct spin submission errors (user rejection / wallet error)
+	useEffect(() => {
+		if (spinSubmitError) {
+			const errorId = `${spinSubmitError.name}-${spinSubmitError.message}`;
+			if (processedSpinErrorRef.current === errorId) return;
+			processedSpinErrorRef.current = errorId;
+
+			if (isUserRejectedError(spinSubmitError)) {
+				logger.gachaSpin.log("User cancelled direct spin transaction");
+				gachaSpin.reset();
+				setUserCancelledMessage(true);
+				setTimeout(() => setUserCancelledMessage(false), 2000);
+			} else {
+				logger.gachaSpin.error(
+					"Direct spin submission error:",
+					spinSubmitError,
+				);
+				gachaSpin.setError(
+					spinSubmitError.message || "Transaction submission failed",
+				);
+			}
+		}
+	}, [spinSubmitError, gachaSpin.reset, gachaSpin.setError]);
+
+	// Handle direct spin transaction receipt errors (on-chain revert)
 	useEffect(() => {
 		const spinError = spinWait.error;
 		if (spinError) {
