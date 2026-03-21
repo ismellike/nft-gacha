@@ -1,45 +1,43 @@
 "use client";
 
 import type * as React from "react";
-import { cva } from "class-variance-authority";
+import { tv } from "tailwind-variants";
 import { cn } from "../lib/theme-config";
 
-const badgeVariants = cva(
-	[
+const badgeVariants = tv({
+	base: [
 		"absolute -top-1.5 -right-1.5 z-10",
 		"inline-flex items-center justify-center",
 		"rounded-full border backdrop-blur-xl",
 		"text-[10px] font-bold leading-none",
 		"transition-all duration-200",
 	],
-	{
-		variants: {
-			color: {
-				primary: [
-					"bg-gradient-to-r from-warning/80 to-orange-400/80 border-warning/40 text-black",
-				],
-				secondary: ["bg-content1/60 border-white/20 text-foreground/80"],
-				danger: ["bg-danger/80 border-danger/40 text-white"],
-				success: ["bg-success/80 border-success/40 text-white"],
-				warning: ["bg-warning/80 border-warning/40 text-black"],
-				ghost: ["bg-content1/20 border-white/10 text-foreground/70"],
-			},
-			dot: {
-				true: "h-2.5 w-2.5 p-0",
-				false: "min-w-[18px] h-[18px] px-1",
-			},
-			pulse: {
-				true: "animate-pulse",
-				false: "",
-			},
+	variants: {
+		color: {
+			primary: [
+				"bg-gradient-to-r from-warning/80 to-orange-400/80 border-warning/40 text-black",
+			],
+			secondary: ["bg-content1/60 border-white/20 text-foreground/80"],
+			danger: ["bg-danger/80 border-danger/40 text-white"],
+			success: ["bg-success/80 border-success/40 text-white"],
+			warning: ["bg-warning/80 border-warning/40 text-black"],
+			ghost: ["bg-content1/20 border-white/10 text-foreground/70"],
 		},
-		defaultVariants: {
-			color: "primary",
-			dot: false,
-			pulse: false,
+		dot: {
+			true: "h-2.5 w-2.5 p-0",
+			false: "min-w-[18px] h-[18px] px-1",
+		},
+		pulse: {
+			true: "animate-pulse",
+			false: "",
 		},
 	},
-);
+	defaultVariants: {
+		color: "primary",
+		dot: false,
+		pulse: false,
+	},
+});
 
 interface BadgeProps {
 	count?: number | undefined;

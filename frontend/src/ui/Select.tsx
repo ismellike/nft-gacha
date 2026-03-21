@@ -1,49 +1,48 @@
 "use client";
 
 import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import { tv, type VariantProps } from "tailwind-variants";
 import { cn } from "../lib/theme-config";
 
-const selectVariants = cva(
-	[
+const selectVariants = tv({
+	base: [
 		"w-full appearance-none rounded-xl border bg-content1/20 backdrop-blur-xl text-foreground",
 		"transition-all duration-200 outline-none cursor-pointer",
 		"disabled:opacity-50 disabled:cursor-not-allowed",
 		"focus:bg-content1/30 focus:shadow-[0_0_0_2px_rgba(201,168,108,0.25)]",
 	],
-	{
-		variants: {
-			variant: {
-				default: [
-					"border-white/20",
-					"hover:border-white/30 hover:bg-content1/25",
-					"focus:border-warning/50",
-				],
-				ghost: [
-					"border-transparent bg-transparent",
-					"hover:border-white/10 hover:bg-content1/10",
-					"focus:border-warning/30 focus:bg-content1/20",
-				],
-				error: [
-					"border-danger/40 bg-danger/5",
-					"hover:border-danger/50",
-					"focus:border-danger/60 focus:shadow-[0_0_0_2px_rgba(239,68,68,0.15)]",
-				],
-			},
-			size: {
-				sm: "pl-3 pr-9 py-2 text-sm min-h-[36px]",
-				md: "pl-4 pr-10 py-3 text-base min-h-[44px]",
-				lg: "pl-5 pr-11 py-4 text-lg min-h-[52px]",
-			},
+	variants: {
+		variant: {
+			default: [
+				"border-white/20",
+				"hover:border-white/30 hover:bg-content1/25",
+				"focus:border-warning/50",
+			],
+			ghost: [
+				"border-transparent bg-transparent",
+				"hover:border-white/10 hover:bg-content1/10",
+				"focus:border-warning/30 focus:bg-content1/20",
+			],
+			error: [
+				"border-danger/40 bg-danger/5",
+				"hover:border-danger/50",
+				"focus:border-danger/60 focus:shadow-[0_0_0_2px_rgba(239,68,68,0.15)]",
+			],
 		},
-		defaultVariants: {
-			variant: "default",
-			size: "md",
+		size: {
+			sm: "pl-3 pr-9 py-2 text-sm min-h-[36px]",
+			md: "pl-4 pr-10 py-3 text-base min-h-[44px]",
+			lg: "pl-5 pr-11 py-4 text-lg min-h-[52px]",
 		},
 	},
-);
+	defaultVariants: {
+		variant: "default",
+		size: "md",
+	},
+});
 
-const labelVariants = cva("text-sm font-medium text-foreground/70", {
+const labelVariants = tv({
+	base: "text-sm font-medium text-foreground/70",
 	variants: {
 		variant: {
 			default: "",
@@ -56,7 +55,8 @@ const labelVariants = cva("text-sm font-medium text-foreground/70", {
 	},
 });
 
-const helperVariants = cva("text-xs", {
+const helperVariants = tv({
+	base: "text-xs",
 	variants: {
 		variant: {
 			default: "text-foreground/50",
