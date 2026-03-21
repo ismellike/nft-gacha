@@ -27,6 +27,11 @@ tasks:
   codegen:
     desc: Generate TypeScript types from smart contracts
     dir: "{{.FRONTEND_DIR}}"
+    sources:
+      - "../contracts/out/**/*.json"
+      - "wagmi.config.ts"
+    generates:
+      - "src/generated.ts"
     cmds:
       - |
         if [ ! -d "../contracts/out" ]; then

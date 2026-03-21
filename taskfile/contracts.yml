@@ -13,6 +13,11 @@ tasks:
     build:
         desc: Build smart contracts
         dir: "{{.CONTRACTS_DIR}}"
+        sources:
+            - "src/**/*.sol"
+            - "foundry.toml"
+        generates:
+            - "out/**/*.json"
         cmds:
             - forge build
 
@@ -49,6 +54,12 @@ tasks:
     snapshot:
         desc: Generate gas snapshots
         dir: "{{.CONTRACTS_DIR}}"
+        sources:
+            - "src/**/*.sol"
+            - "test/**/*.sol"
+            - "foundry.toml"
+        generates:
+            - ".gas-snapshot"
         cmds:
             - forge snapshot
 
