@@ -22,22 +22,30 @@ interface NFTImageViewerProps {
 	isOpen: boolean;
 	onClose: () => void;
 	unoptimized?: boolean;
+	backSrc?: string | null | undefined;
 }
 
 export const NFTImageViewer = memo<NFTImageViewerProps>(
-	({ src, alt, isOpen, onClose, unoptimized = false }) => {
+	({ src, alt, isOpen, onClose, unoptimized = false, backSrc }) => {
 		const [scale, setScale] = useState(1);
 		const [translate, setTranslate] = useState({ x: 0, y: 0 });
 		const [isDragging, setIsDragging] = useState(false);
 		const [isLoaded, setIsLoaded] = useState(false);
+		const [showBack, setShowBack] = useState(false);
 		const containerRef = useRef<HTMLDivElement>(null);
 		const dragStart = useRef({ x: 0, y: 0 });
 		const translateStart = useRef({ x: 0, y: 0 });
 
+		const activeSrc = showBack && backSrc ? backSrc : src;
+
 		const reset = useCallback(() => {
 			setScale(1);
 			setTranslate({ x: 0, y: 0 });
-			setIsLoaded(false);
+			setShowBack((prev) => {
+				// Only reset loaded state if we're switching back to front (image source changes)
+				if (prev) setIsLoaded(false);
+				return false;
+			});
 		}, []);
 
 		// Reset on close
@@ -93,9 +101,9 @@ export const NFTImageViewer = memo<NFTImageViewerProps>(
 				if (!container) return;
 				const rect = container.getBoundingClientRect();
 				const dx =
-					((e.clientX - dragStart.current.x) / rect.width) * 100 * scale;
+					((e.clientX - dragStart.current.x) / rect.width) * 50;
 				const dy =
-					((e.clientY - dragStart.current.y) / rect.height) * 100 * scale;
+					((e.clientY - dragStart.current.y) / rect.height) * 50;
 				setTranslate(
 					clampTranslate(
 						translateStart.current.x + dx,
@@ -182,11 +190,33 @@ export const NFTImageViewer = memo<NFTImageViewerProps>(
 								<path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
 							</svg>
 						</button>
+						{backSrc && (
+							<>
+								<div className="w-px h-4 bg-white/20" />
+								<button
+									type="button"
+									onClick={() => {
+										setIsLoaded(false);
+										setShowBack((prev) => !prev);
+									}}
+									className="text-white/70 hover:text-white transition p-1"
+									aria-label={showBack ? "Show front" : "Show back"}
+								>
+									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+										<title>{showBack ? "Show front" : "Show back"}</title>
+										<path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H4.598a.75.75 0 0 0-.75.75v3.634a.75.75 0 0 0 1.5 0v-2.033l.312.311a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm-11.23-3.15a.75.75 0 0 0 1.449.39A5.5 5.5 0 0 1 14.7 6.2l.312.311H12.58a.75.75 0 0 0 0 1.5h3.634a.75.75 0 0 0 .75-.75V3.627a.75.75 0 0 0-1.5 0v2.033l-.312-.311A7 7 0 0 0 3.694 8.462l.388-.188Z" clipRule="evenodd" />
+									</svg>
+								</button>
+								<span className="text-white/50 text-xs select-none">
+									{showBack ? "Back" : "Front"}
+								</span>
+							</>
+						)}
 						<div className="w-px h-4 bg-white/20" />
 						<button
 							type="button"
 							onClick={reset}
-							disabled={scale === 1}
+							disabled={scale === 1 && !showBack}
 							className="text-white/70 hover:text-white disabled:text-white/30 transition p-1"
 							aria-label="Reset zoom"
 						>
@@ -237,8 +267,9 @@ export const NFTImageViewer = memo<NFTImageViewerProps>(
 							}}
 						>
 							<NextImage
-								src={src}
-								alt={alt}
+								key={activeSrc}
+								src={activeSrc}
+								alt={showBack ? `${alt} (back)` : alt}
 								fill
 								className={cn(
 									"object-contain transition-opacity duration-300",

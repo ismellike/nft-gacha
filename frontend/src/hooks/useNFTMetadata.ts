@@ -174,6 +174,12 @@ const fetchMetadataFromURI = async (
 				}
 			});
 
+			// Preserve item_info for Courtyard slab back images
+			if (importedMetadata.item_info) {
+				(baseMetadata as Record<string, unknown>).item_info =
+					importedMetadata.item_info;
+			}
+
 			metadata = baseMetadata;
 
 			imageUrl = isCourtyard

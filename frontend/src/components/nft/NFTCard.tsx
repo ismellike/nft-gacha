@@ -53,6 +53,7 @@ import {
 import { useNFTMetadata } from "../../hooks/useNFTMetadata";
 import {
 	type CourtyardMetadata,
+	getCourtyardSlabBackUrl,
 	isCourtyardTokenURI,
 	processCourtyardImageUrl,
 } from "../../lib/courtyard-utils";
@@ -291,6 +292,12 @@ const NFTImage = memo<{
 		return processImageUrl(metadata.image, metadata);
 	}, [data.imageUrl, metadata, tokenURI]);
 
+	// Extract slab back URL for Courtyard NFTs
+	const slabBackUrl = useMemo(() => {
+		if (!metadata || !isCourtyardTokenURI(tokenURI || "")) return null;
+		return getCourtyardSlabBackUrl(metadata as CourtyardMetadata);
+	}, [metadata, tokenURI]);
+
 	if (!imageUrl || hasError) {
 		return (
 			<div
@@ -415,6 +422,7 @@ const NFTImage = memo<{
 				isOpen={isViewerOpen}
 				onClose={() => setIsViewerOpen(false)}
 				unoptimized={imageUrl.includes("courtyard.io")}
+				backSrc={slabBackUrl}
 			/>
 		</div>
 	);

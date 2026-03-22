@@ -4,6 +4,28 @@ import { logger } from "../logger";
 import type { CourtyardMetadata } from "./types";
 
 /**
+ * Extracts the slab back image URL from Courtyard metadata.
+ * Courtyard stores asset pictures in `item_info.asset_pictures` array,
+ * with slab_back typically being the second entry.
+ */
+export function getCourtyardSlabBackUrl(
+	metadata: CourtyardMetadata,
+): string | null {
+	if (!metadata) return null;
+
+	const itemInfo = (metadata as Record<string, unknown>).item_info as
+		| { asset_pictures?: string[] }
+		| undefined;
+	const pictures = itemInfo?.asset_pictures;
+	if (!Array.isArray(pictures)) return null;
+
+	const backUrl = pictures.find((url) =>
+		typeof url === "string" && url.includes("slab_back"),
+	);
+	return backUrl ?? null;
+}
+
+/**
  * Processes and validates Courtyard image URL with comprehensive fallbacks
  */
 export function processCourtyardImageUrl(

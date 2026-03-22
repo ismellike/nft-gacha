@@ -15,6 +15,7 @@ export {
 	fetchCourtyardMetadata,
 } from "./courtyard/api";
 export {
+	getCourtyardSlabBackUrl,
 	processCourtyardImageUrl,
 	parseCourtyardMetadata,
 	formatCardTitle,
