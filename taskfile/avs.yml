@@ -30,8 +30,8 @@ vars:
     SERVICE_OUTPUT_DIR: '{{joinPath .PROJECT_OUTPUT_DIR "services"}}'
     SERVICE_JSON_PATH: "{{.SERVICE_OUTPUT_DIR}}/{{.AVS_SERVICE_NAME}}.json"
     SERVICE_CID_JSON_PATH: "{{.SERVICE_OUTPUT_DIR}}/service-cid.json"
-    # Contract addresses env file: .env.local for LOCAL, .env.testnet for TESTNET
-    CONTRACT_ENV_FILE: '{{ternary ".env.local" ".env.testnet" (ne .DEPLOY_ENV "TESTNET")}}'
+    # Contract addresses env file: .env.local for LOCAL, .env.testnet for TESTNET, .env.mainnet for MAINNET
+    CONTRACT_ENV_FILE: '{{if eq .DEPLOY_ENV "MAINNET"}}.env.mainnet{{else if eq .DEPLOY_ENV "TESTNET"}}.env.testnet{{else}}.env.local{{end}}'
 
 tasks:
     bootstrap:
@@ -402,7 +402,7 @@ tasks:
             OUTPUT_DIR: "{{.PROJECT_OUTPUT_DIR}}/{{.CHAIN_DIRNAME}}/{{.AVS_PROJECT}}"
             WAVS_SERVICE_MANAGER_ADDRESS:
                 sh: task avs:get-service-manager-address
-            DEPLOY_TASK: '{{ternary "contracts:deploy" "contracts:deploy-testnet" (ne .DEPLOY_ENV "TESTNET")}}'
+            DEPLOY_TASK: '{{if eq .DEPLOY_ENV "MAINNET"}}contracts:deploy-mainnet{{else if eq .DEPLOY_ENV "TESTNET"}}contracts:deploy-testnet{{else}}contracts:deploy{{end}}'
         cmds:
             - cd "{{.REPO_ROOT}}" && task {{.DEPLOY_TASK}} WAVS_SERVICE_MANAGER_ADDRESS="{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
 

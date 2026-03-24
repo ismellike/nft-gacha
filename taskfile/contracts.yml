@@ -129,3 +129,43 @@ tasks:
             - sh: '[ "{{.DEPLOY_ENV}}" = "TESTNET" ]'
               msg: "DEPLOY_ENV must be set to TESTNET (current: {{.DEPLOY_ENV}})"
         deps: [build]
+
+    deploy-mainnet:
+        desc: Deploy Gacha system contracts to Polygon mainnet
+        dir: "{{.CONTRACTS_DIR}}"
+        vars:
+            DEPLOY_RPC_URL:
+                sh: task backend:get-evm-rpc-url-1
+        requires:
+            vars: [WAVS_SERVICE_MANAGER_ADDRESS]
+        env:
+            WAVS_SERVICE_MANAGER_ADDRESS: "{{.WAVS_SERVICE_MANAGER_ADDRESS}}"
+            USDC_TOKEN_ADDRESS: "{{.USDC_TOKEN_ADDRESS}}"
+            PROTOCOL_OWNER: "{{.PROTOCOL_OWNER}}"
+            SPIN_FEE: "{{.SPIN_FEE}}"
+            APPRAISAL_FEE: "{{.APPRAISAL_FEE}}"
+        cmds:
+            - |
+                VERIFY_FLAGS=""
+                if [ -n "$ETHERSCAN_API_KEY" ]; then
+                  VERIFY_FLAGS="--verify --etherscan-api-key $ETHERSCAN_API_KEY"
+                  echo "Contract verification enabled"
+                else
+                  echo "Warning: ETHERSCAN_API_KEY not set, skipping contract verification"
+                fi
+                forge script script/DeployMainnet.s.sol:DeployMainnet \
+                  --rpc-url {{.DEPLOY_RPC_URL}} \
+                  --broadcast \
+                  --slow \
+                  --private-key $DEPLOYER_PRIVATE_KEY \
+                  $VERIFY_FLAGS
+        preconditions:
+            - sh: '[ -n "$DEPLOYER_PRIVATE_KEY" ]'
+              msg: "DEPLOYER_PRIVATE_KEY environment variable is required"
+            - sh: '[ "{{.DEPLOY_ENV}}" = "MAINNET" ]'
+              msg: "DEPLOY_ENV must be set to MAINNET (current: {{.DEPLOY_ENV}})"
+            - sh: '[ -n "$USDC_TOKEN_ADDRESS" ]'
+              msg: "USDC_TOKEN_ADDRESS is required for mainnet (Polygon USDC: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359)"
+            - sh: '[ -n "$PROTOCOL_OWNER" ]'
+              msg: "PROTOCOL_OWNER is required (multisig address that will own all contracts)"
+        deps: [build]

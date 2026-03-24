@@ -104,11 +104,17 @@ tasks:
                 echo "   task cli:*          - WAVS CLI commands"
                 echo "   task indexer:*      - Event indexer (start, stop, status)"
                 echo ""
-                echo "🌐 Testnet Deployment:"
+                echo "🌐 Testnet Deployment (Polygon Amoy):"
                 echo "   task testnet:preflight     - Validate env, RPC, balances for Polygon Amoy"
                 echo "   task testnet:bootstrap     - Full testnet deployment (one command)"
                 echo "   task testnet:status        - Show deployed addresses and wallet balances"
                 echo "   task testnet:verify        - Verify contracts on Polygonscan"
+                echo ""
+                echo "🚀 Mainnet Deployment (Polygon):"
+                echo "   task mainnet:preflight     - Validate env, RPC, balances, multisig for Polygon"
+                echo "   task mainnet:bootstrap     - Full mainnet deployment (one command)"
+                echo "   task mainnet:status        - Show deployed addresses and wallet balances"
+                echo "   task mainnet:verify        - Verify contracts on Polygonscan"
                 echo ""
                 echo "🔍 Common Tasks:"
                 echo "   task backend:status        - Check backend service status"
@@ -409,6 +415,323 @@ tasks:
                 RPC_URL=$(task backend:get-evm-rpc-url-1 2>/dev/null)
                 if [ -n "$RPC_URL" ] && [ -n "$DEPLOYER_PRIVATE_KEY" ]; then
                   echo "💰 Wallet Balances (Polygon Amoy):"
+                  DEPLOYER_ADDR=$(cast wallet address --private-key "$DEPLOYER_PRIVATE_KEY" 2>/dev/null)
+                  if [ -n "$DEPLOYER_ADDR" ]; then
+                    BAL=$(cast from-wei $(cast balance "$DEPLOYER_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo 0) 2>/dev/null || echo "?")
+                    printf "  %-12s %s (%s POL)\n" "Deployer:" "$DEPLOYER_ADDR" "$BAL"
+                  fi
+                  if [ -n "$WAVS_AGGREGATOR_EVM_CREDENTIAL" ]; then
+                    AGG_ADDR=$(cast wallet address --mnemonic "$WAVS_AGGREGATOR_EVM_CREDENTIAL" 2>/dev/null)
+                    if [ -n "$AGG_ADDR" ]; then
+                      BAL=$(cast from-wei $(cast balance "$AGG_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo 0) 2>/dev/null || echo "?")
+                      printf "  %-12s %s (%s POL)\n" "Aggregator:" "$AGG_ADDR" "$BAL"
+                    fi
+                  fi
+                fi
+
+    # =================================================================
+    # MAINNET DEPLOYMENT
+    # =================================================================
+    mainnet:preflight:
+        desc: "Validate environment and connectivity for Polygon mainnet deployment"
+        cmds:
+            - |
+                echo "╔══════════════════════════════════════════════════╗"
+                echo "║     Mainnet Preflight Checks (Polygon 137)       ║"
+                echo "╚══════════════════════════════════════════════════╝"
+                echo ""
+                ERRORS=0
+                WARNINGS=0
+
+                # 1. Check DEPLOY_ENV
+                if [ "$DEPLOY_ENV" != "MAINNET" ]; then
+                  echo "❌ DEPLOY_ENV must be MAINNET (current: '${DEPLOY_ENV:-unset}')"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "✅ DEPLOY_ENV=MAINNET"
+                fi
+
+                # 2. Check DEPLOYER_PRIVATE_KEY
+                if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then
+                  echo "❌ DEPLOYER_PRIVATE_KEY is not set"
+                  ERRORS=$((ERRORS + 1))
+                elif [ "$DEPLOYER_PRIVATE_KEY" = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" ]; then
+                  echo "❌ DEPLOYER_PRIVATE_KEY is the default Anvil key — NEVER use this on mainnet!"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "✅ DEPLOYER_PRIVATE_KEY is set"
+                fi
+
+                # 3. Check PROTOCOL_OWNER (multisig)
+                if [ -z "$PROTOCOL_OWNER" ]; then
+                  echo "❌ PROTOCOL_OWNER is not set (should be a multisig address)"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "✅ PROTOCOL_OWNER=$PROTOCOL_OWNER"
+                fi
+
+                # 4. Check USDC_TOKEN_ADDRESS
+                if [ -z "$USDC_TOKEN_ADDRESS" ]; then
+                  echo "❌ USDC_TOKEN_ADDRESS is not set"
+                  echo "   Polygon USDC: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "✅ USDC_TOKEN_ADDRESS=$USDC_TOKEN_ADDRESS"
+                fi
+
+                # 5. Check operator mnemonics are not defaults
+                if [ "$WAVS_OPERATOR_MNEMONIC_1" = "test test test test test test test test test test test junk" ]; then
+                  echo "❌ WAVS_OPERATOR_MNEMONIC_1 is the default test mnemonic — NEVER use this on mainnet!"
+                  ERRORS=$((ERRORS + 1))
+                elif [ -z "$WAVS_OPERATOR_MNEMONIC_1" ]; then
+                  echo "❌ WAVS_OPERATOR_MNEMONIC_1 is not set"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "✅ WAVS_OPERATOR_MNEMONIC_1 is set"
+                fi
+
+                if [ "$WAVS_AGGREGATOR_EVM_CREDENTIAL" = "test test test test test test test test test test test junk" ]; then
+                  echo "❌ WAVS_AGGREGATOR_EVM_CREDENTIAL is the default test mnemonic — NEVER use this on mainnet!"
+                  ERRORS=$((ERRORS + 1))
+                elif [ -z "$WAVS_AGGREGATOR_EVM_CREDENTIAL" ]; then
+                  echo "❌ WAVS_AGGREGATOR_EVM_CREDENTIAL is not set"
+                  ERRORS=$((ERRORS + 1))
+                else
+                  echo "✅ WAVS_AGGREGATOR_EVM_CREDENTIAL is set"
+                fi
+
+                # 6. Check RPC connectivity and chain ID
+                RPC_URL=$(task backend:get-evm-rpc-url-1)
+                echo ""
+                echo "Testing RPC: $RPC_URL"
+                if curl -sf -X POST "$RPC_URL" -H "Content-Type: application/json" \
+                  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' >/dev/null 2>&1; then
+                  CHAIN_ID_HEX=$(curl -sf -X POST "$RPC_URL" -H "Content-Type: application/json" \
+                    -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' | jq -r '.result')
+                  CHAIN_ID=$((CHAIN_ID_HEX))
+                  echo "✅ RPC is reachable (chain ID: $CHAIN_ID)"
+                  if [ "$CHAIN_ID" != "137" ]; then
+                    echo "❌ Expected Polygon mainnet chain ID 137, got $CHAIN_ID"
+                    ERRORS=$((ERRORS + 1))
+                  fi
+                else
+                  echo "❌ Cannot reach RPC at $RPC_URL"
+                  ERRORS=$((ERRORS + 1))
+                fi
+
+                # 7. Check deployer balance
+                echo ""
+                DEPLOYER_ADDR=$(cast wallet address --private-key "$DEPLOYER_PRIVATE_KEY" 2>/dev/null)
+                if [ -n "$DEPLOYER_ADDR" ]; then
+                  echo "Deployer address: $DEPLOYER_ADDR"
+                  BALANCE_WEI=$(cast balance "$DEPLOYER_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo "0")
+                  BALANCE_ETH=$(cast from-wei "$BALANCE_WEI" 2>/dev/null || echo "0")
+                  echo "Deployer balance: $BALANCE_ETH POL"
+                  if ! command -v bc >/dev/null 2>&1; then
+                    echo "⚠️  'bc' not installed — cannot verify balance threshold"
+                  elif [ "$(echo "$BALANCE_ETH < 1.0" | bc -l)" = "1" ]; then
+                    echo "⚠️  Balance may be too low for mainnet deployment. Recommend at least 1 POL."
+                    WARNINGS=$((WARNINGS + 1))
+                  else
+                    echo "✅ Deployer has sufficient balance"
+                  fi
+                fi
+
+                # 8. Check operator wallet balance
+                OPERATOR_ADDR=$(cast wallet address --mnemonic "$WAVS_OPERATOR_MNEMONIC_1" 2>/dev/null)
+                if [ -n "$OPERATOR_ADDR" ]; then
+                  echo ""
+                  echo "Operator address: $OPERATOR_ADDR"
+                  OP_BALANCE_WEI=$(cast balance "$OPERATOR_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo "0")
+                  OP_BALANCE_ETH=$(cast from-wei "$OP_BALANCE_WEI" 2>/dev/null || echo "0")
+                  echo "Operator balance: $OP_BALANCE_ETH POL"
+                fi
+
+                # 9. Check aggregator wallet balance
+                AGG_ADDR=$(cast wallet address --mnemonic "$WAVS_AGGREGATOR_EVM_CREDENTIAL" 2>/dev/null)
+                if [ -n "$AGG_ADDR" ]; then
+                  echo ""
+                  echo "Aggregator address: $AGG_ADDR"
+                  AGG_BALANCE_WEI=$(cast balance "$AGG_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo "0")
+                  AGG_BALANCE_ETH=$(cast from-wei "$AGG_BALANCE_WEI" 2>/dev/null || echo "0")
+                  echo "Aggregator balance: $AGG_BALANCE_ETH POL"
+                  if ! command -v bc >/dev/null 2>&1; then
+                    echo "⚠️  'bc' not installed — cannot verify balance threshold"
+                  elif [ "$(echo "$AGG_BALANCE_ETH < 0.5" | bc -l)" = "1" ]; then
+                    echo "⚠️  Aggregator needs POL to submit transactions. Recommend at least 0.5 POL."
+                    WARNINGS=$((WARNINGS + 1))
+                  fi
+                fi
+
+                # 10. Check Pinata JWT
+                echo ""
+                if [ -n "$PINATA_JWT" ]; then
+                  PINATA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                    "https://api.pinata.cloud/data/testAuthentication" \
+                    -H "Authorization: Bearer $PINATA_JWT")
+                  if [ "$PINATA_STATUS" = "200" ]; then
+                    echo "✅ PINATA_JWT is valid"
+                  else
+                    echo "❌ PINATA_JWT authentication failed (HTTP $PINATA_STATUS)"
+                    ERRORS=$((ERRORS + 1))
+                  fi
+                else
+                  echo "❌ PINATA_JWT is not set (required for IPFS uploads)"
+                  ERRORS=$((ERRORS + 1))
+                fi
+
+                # 11. Check WAVS_IPFS_GATEWAY (should NOT be localhost for mainnet)
+                if [ -n "$WAVS_IPFS_GATEWAY" ]; then
+                  if echo "$WAVS_IPFS_GATEWAY" | grep -q "localhost"; then
+                    echo "⚠️  WAVS_IPFS_GATEWAY points to localhost — use a public gateway for mainnet"
+                    WARNINGS=$((WARNINGS + 1))
+                  else
+                    echo "✅ WAVS_IPFS_GATEWAY=$WAVS_IPFS_GATEWAY"
+                  fi
+                else
+                  echo "⚠️  WAVS_IPFS_GATEWAY not set — will default to localhost (not suitable for mainnet)"
+                  WARNINGS=$((WARNINGS + 1))
+                fi
+
+                # 12. Check Docker
+                echo ""
+                if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+                  echo "✅ Docker is available"
+                else
+                  echo "❌ Docker is not available (required for WAVS operators)"
+                  ERRORS=$((ERRORS + 1))
+                fi
+
+                # 13. Check Etherscan API key
+                if [ -n "$ETHERSCAN_API_KEY" ]; then
+                  echo "✅ ETHERSCAN_API_KEY is set (contract verification enabled)"
+                else
+                  echo "⚠️  ETHERSCAN_API_KEY not set — contract verification will be skipped"
+                  WARNINGS=$((WARNINGS + 1))
+                fi
+
+                echo ""
+                echo "════════════════════════════════════════════════════"
+                if [ "$ERRORS" -gt 0 ]; then
+                  echo "❌ Preflight failed with $ERRORS error(s). Fix the issues above before deploying."
+                  exit 1
+                elif [ "$WARNINGS" -gt 0 ]; then
+                  echo "⚠️  Preflight passed with $WARNINGS warning(s). Review warnings before deploying."
+                  echo "   Deploy with: task mainnet:bootstrap"
+                else
+                  echo "✅ Preflight passed! Ready to deploy with: task mainnet:bootstrap"
+                fi
+
+    mainnet:bootstrap:
+        desc: "Full mainnet deployment: preflight + backend + middleware + components + contracts + service + frontend"
+        cmds:
+            - task: mainnet:preflight
+            - echo ""
+            - echo "Starting mainnet bootstrap..."
+            - task avs:bootstrap
+            - task frontend:sync-env-mainnet
+            - |
+                echo ""
+                echo "╔══════════════════════════════════════════════════╗"
+                echo "║        Mainnet Bootstrap Complete!                ║"
+                echo "╚══════════════════════════════════════════════════╝"
+                echo ""
+                echo "Deployed contract addresses saved to .env.mainnet"
+                echo "Frontend env synced to frontend/.env.local"
+                echo ""
+                echo "Post-deploy checklist:"
+                echo "  1. Verify contracts:        task mainnet:verify"
+                echo "  2. Check deployment:         task mainnet:status"
+                echo "  3. Whitelist NFT collections via multisig"
+                echo "  4. Fund ProtocolTreasury with USDC for buybacks"
+                echo "  5. Start frontend:           cd frontend && pnpm dev"
+
+    mainnet:verify:
+        desc: "Verify deployed mainnet contracts on Polygonscan"
+        preconditions:
+            - sh: '[ -f ".env.mainnet" ]'
+              msg: ".env.mainnet not found — run 'task mainnet:bootstrap' first"
+            - sh: '[ -n "$ETHERSCAN_API_KEY" ]'
+              msg: "ETHERSCAN_API_KEY is required for contract verification"
+        cmds:
+            - |
+                echo "Verifying contracts on Polygon mainnet (chain 137)..."
+                echo ""
+
+                # Read addresses from .env.mainnet
+                source <(grep -v '^#' .env.mainnet | grep '=')
+
+                # Verify each proxy contract
+                for name_var in \
+                  "NFTAppraisal:$NFT_APPRAISAL_ADDRESS" \
+                  "GachaTreasury:$GACHA_TREASURY_ADDRESS" \
+                  "CardGroupedVault:$CARD_GROUPED_VAULT_ADDRESS" \
+                  "ProtocolTreasury:$PROTOCOL_TREASURY_ADDRESS" \
+                  "GachaEconomyManager:$ECONOMY_MANAGER_ADDRESS" \
+                  "Gacha:$GACHA_ADDRESS"; do
+                  NAME="${name_var%%:*}"
+                  ADDR="${name_var#*:}"
+                  if [ -n "$ADDR" ]; then
+                    echo "Verifying $NAME at $ADDR..."
+                    forge verify-contract "$ADDR" "ERC1967Proxy" \
+                      --chain 137 \
+                      --etherscan-api-key "$ETHERSCAN_API_KEY" \
+                      --root contracts/ 2>&1 || echo "  (may already be verified)"
+                    echo ""
+                  fi
+                done
+
+                # Verify non-proxy contracts
+                for name_dir_var in \
+                  "GachaServiceHandler:gacha:$GACHA_SERVICE_HANDLER_ADDRESS" \
+                  "NFTAppraisalServiceHandler:appraisal:$APPRAISAL_SERVICE_HANDLER_ADDRESS"; do
+                  NAME="${name_dir_var%%:*}"
+                  REST="${name_dir_var#*:}"
+                  DIR="${REST%%:*}"
+                  ADDR="${REST#*:}"
+                  if [ -n "$ADDR" ]; then
+                    echo "Verifying $NAME at $ADDR..."
+                    forge verify-contract "$ADDR" "src/${DIR}/${NAME}.sol:${NAME}" \
+                      --chain 137 \
+                      --etherscan-api-key "$ETHERSCAN_API_KEY" \
+                      --root contracts/ 2>&1 || echo "  (may already be verified)"
+                    echo ""
+                  fi
+                done
+
+                echo "Verification complete. Check https://polygonscan.com for results."
+
+    mainnet:status:
+        desc: "Show mainnet deployment status: contract addresses, backend services, and wallet balances"
+        cmds:
+            - |
+                echo "╔══════════════════════════════════════════════════╗"
+                echo "║         Mainnet Deployment Status                ║"
+                echo "╚══════════════════════════════════════════════════╝"
+                echo ""
+
+                # Contract addresses
+                if [ -f ".env.mainnet" ]; then
+                  echo "📋 Deployed Contracts (.env.mainnet):"
+                  grep -v '^#' .env.mainnet | grep '=' | while IFS='=' read -r key value; do
+                    [ -n "$key" ] && printf "  %-40s %s\n" "$key" "$value"
+                  done
+                  echo ""
+                else
+                  echo "⚠️  No .env.mainnet found — contracts not yet deployed"
+                  echo ""
+                fi
+
+                # Backend services
+                echo "🐳 Backend Services:"
+                docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null \
+                  | grep -E "wavs-|ipfs|jaeger|prometheus" || echo "  No running services"
+                echo ""
+
+                # Wallet balances
+                RPC_URL=$(task backend:get-evm-rpc-url-1 2>/dev/null)
+                if [ -n "$RPC_URL" ] && [ -n "$DEPLOYER_PRIVATE_KEY" ]; then
+                  echo "💰 Wallet Balances (Polygon Mainnet):"
                   DEPLOYER_ADDR=$(cast wallet address --private-key "$DEPLOYER_PRIVATE_KEY" 2>/dev/null)
                   if [ -n "$DEPLOYER_ADDR" ]; then
                     BAL=$(cast from-wei $(cast balance "$DEPLOYER_ADDR" --rpc-url "$RPC_URL" 2>/dev/null || echo 0) 2>/dev/null || echo "?")

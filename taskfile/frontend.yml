@@ -126,3 +126,34 @@ tasks:
         done < .env.testnet
 
         echo "✅ Testnet environment variables synced to frontend/.env.local"
+
+  sync-env-mainnet:
+    desc: Port .env.mainnet (from DeployMainnet.s.sol) to frontend/.env.local with NEXT_PUBLIC_ prefixes
+    cmds:
+      - |
+        if [ ! -f ".env.mainnet" ]; then
+          echo "❌ No .env.mainnet found in root directory"
+          echo "   Run 'task contracts:deploy-mainnet' to generate it"
+          exit 1
+        fi
+        echo "🔄 Porting mainnet environment variables to frontend/.env.local..."
+
+        # Create frontend/.env.local if it doesn't exist
+        touch "{{.FRONTEND_DIR}}/.env.local"
+
+        # Process the .env.mainnet file and merge into frontend/.env.local
+        while IFS='=' read -r key value; do
+          # Skip empty lines and comments
+          if [[ -z "$key" || "$key" == \#* ]]; then
+            continue
+          fi
+          PREFIXED_KEY="NEXT_PUBLIC_${key}"
+          # Remove existing entry if present, then append
+          if grep -q "^${PREFIXED_KEY}=" "{{.FRONTEND_DIR}}/.env.local" 2>/dev/null; then
+            sed -i "s|^${PREFIXED_KEY}=.*|${PREFIXED_KEY}=${value}|" "{{.FRONTEND_DIR}}/.env.local"
+          else
+            echo "${PREFIXED_KEY}=${value}" >> "{{.FRONTEND_DIR}}/.env.local"
+          fi
+        done < .env.mainnet
+
+        echo "✅ Mainnet environment variables synced to frontend/.env.local"
