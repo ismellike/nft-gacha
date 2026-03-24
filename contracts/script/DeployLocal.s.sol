@@ -212,7 +212,7 @@ contract DeployLocal is Script {
         d.appraisalProxy = address(
             new ERC1967Proxy(
                 address(appraisalImpl),
-                abi.encodeWithSelector(NFTAppraisal.initialize.selector, deployer, d.usdc, 10 * 1e6, deployer)
+                abi.encodeWithSelector(NFTAppraisal.initialize.selector, deployer, d.usdc, 1 * 1e6, deployer)
             )
         );
     }
