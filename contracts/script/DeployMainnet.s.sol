@@ -15,6 +15,7 @@ import {GachaServiceHandler} from "../src/gacha/GachaServiceHandler.sol";
 import {CardGroupedVault} from "../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
+import {GachaPFP} from "../src/tokens/GachaPFP.sol";
 
 /**
  * @title DeployMainnet
@@ -77,6 +78,7 @@ contract DeployMainnet is Script {
         address gachaProxy;
         address gachaServiceHandler;
         address appraisalServiceHandler;
+        address pfpCollection;
     }
 
     // =========================================================================
@@ -152,6 +154,9 @@ contract DeployMainnet is Script {
 
         // Wire all contracts together
         _configureEconomy(d);
+
+        // Deploy PFP collection (free mint, fee-exempt)
+        _deployPfpCollection(d);
 
         console.log("\nAll contracts deployed and wired successfully.");
         return d;
@@ -353,6 +358,24 @@ contract DeployMainnet is Script {
     }
 
     // =========================================================================
+    // PFP COLLECTION
+    // =========================================================================
+
+    function _deployPfpCollection(Deployments memory d) internal {
+        GachaPFP pfp = new GachaPFP();
+        d.pfpCollection = address(pfp);
+        console.log("GachaPFP:               ", d.pfpCollection);
+
+        // Whitelist so users can deposit after appraisal
+        GachaTreasury(d.treasuryProxy).addToWhitelist(d.pfpCollection);
+        console.log("GachaPFP whitelisted in treasury");
+
+        // Exempt from appraisal fees (free appraisal)
+        NFTAppraisal(d.appraisalProxy).setFeeExemption(d.pfpCollection, true);
+        console.log("GachaPFP exempt from appraisal fees");
+    }
+
+    // =========================================================================
     // OWNERSHIP TRANSFER
     // =========================================================================
 
@@ -389,7 +412,8 @@ contract DeployMainnet is Script {
                 _envLine("ECONOMY_MANAGER_ADDRESS", vm.toString(d.economyManagerProxy)),
                 _envLine("GACHA_ADDRESS", vm.toString(d.gachaProxy)),
                 _envLine("GACHA_SERVICE_HANDLER_ADDRESS", vm.toString(d.gachaServiceHandler)),
-                _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(d.appraisalServiceHandler))
+                _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(d.appraisalServiceHandler)),
+                _envLine("PFP_COLLECTION_ADDRESS", vm.toString(d.pfpCollection))
             )
         );
 
@@ -420,6 +444,7 @@ contract DeployMainnet is Script {
         console.log("Gacha Proxy:            ", d.gachaProxy);
         console.log("GachaServiceHandler:    ", d.gachaServiceHandler);
         console.log("AppraisalServiceHandler:", d.appraisalServiceHandler);
+        console.log("GachaPFP:               ", d.pfpCollection);
         console.log("Owner:                  ", protocolOwner);
         console.log("========================================");
     }

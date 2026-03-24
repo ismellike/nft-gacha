@@ -1,6 +1,7 @@
 use crate::core::context::AppraisalContext;
 use crate::core::payload::{self, AppraisalIdentity};
 use crate::providers::generic::provider::random_price_from_uri;
+use crate::providers::pfp::provider::{extract_rarity_from_uri, price_for_rarity};
 use crate::traits::metadata::ProviderMetadata;
 use crate::traits::pricing::ResolverQuote;
 use crate::types::ProviderType;
@@ -40,13 +41,21 @@ impl AppraisalProcessor {
         let token_uri = self.fetch_token_uri(&token).await?;
         let metadata = self.fetch_metadata(&token_uri).await?;
 
-        // For generic NFTs (no resolver route), compute a random price from the URI.
-        // For known providers (e.g. Courtyard), use the external price resolver.
-        let price = if metadata.provider == ProviderType::Generic {
-            Some(random_price_from_uri(&token_uri))
-        } else {
-            let price_quote = self.fetch_price(metadata.resolver.clone()).await?;
-            price_quote.as_ref().map(|quote| quote.price.value)
+        // Determine price based on provider type:
+        // - PFP: read rarity trait from metadata, map to fixed price
+        // - Generic: compute a deterministic pseudo-random price from the URI hash
+        // - Known providers (e.g. Courtyard): use the external price resolver
+        let price = match metadata.provider {
+            ProviderType::Pfp => {
+                let rarity = extract_rarity_from_uri(&token_uri)
+                    .ok_or_else(|| anyhow!("PFP metadata missing Rarity trait"))?;
+                price_for_rarity(&rarity)
+            }
+            ProviderType::Generic => Some(random_price_from_uri(&token_uri)),
+            _ => {
+                let price_quote = self.fetch_price(metadata.resolver.clone()).await?;
+                price_quote.as_ref().map(|quote| quote.price.value)
+            }
         };
 
         let identity = AppraisalIdentity::new(

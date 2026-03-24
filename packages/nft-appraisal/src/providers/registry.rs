@@ -5,6 +5,7 @@ use async_trait::async_trait;
 
 use crate::providers::courtyard::CourtyardProvider;
 use crate::providers::generic::GenericProvider;
+use crate::providers::pfp::PfpProvider;
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
 use crate::types::ProviderType;
 
@@ -60,6 +61,7 @@ impl ProviderRegistry {
 /// Enum-backed registration so defaults stay declarative.
 pub enum RegisteredProvider {
     Courtyard(CourtyardProvider),
+    Pfp(PfpProvider),
     Generic(GenericProvider),
     #[allow(dead_code)]
     Custom(Arc<dyn AppraisalProvider>),
@@ -71,6 +73,7 @@ impl RegisteredProvider {
             RegisteredProvider::Courtyard(provider) => {
                 Arc::new(CourtyardAppraisalProvider::new(provider))
             }
+            RegisteredProvider::Pfp(provider) => Arc::new(PfpAppraisalProvider::new(provider)),
             RegisteredProvider::Generic(provider) => {
                 Arc::new(GenericAppraisalProvider::new(provider))
             }
@@ -129,5 +132,31 @@ impl AppraisalProvider for GenericAppraisalProvider {
 
     async fn fetch_metadata(&self, uri: &str) -> Result<ProviderMetadata> {
         <GenericProvider as MetadataProvider>::fetch_metadata(&self.inner, uri).await
+    }
+}
+
+/// Adapter around the PFP provider.
+pub struct PfpAppraisalProvider {
+    inner: PfpProvider,
+}
+
+impl PfpAppraisalProvider {
+    pub fn new(inner: PfpProvider) -> Self {
+        Self { inner }
+    }
+}
+
+#[async_trait(?Send)]
+impl AppraisalProvider for PfpAppraisalProvider {
+    fn provider_type(&self) -> ProviderType {
+        self.inner.provider_type()
+    }
+
+    fn can_handle(&self, uri: &str) -> bool {
+        self.inner.can_handle_uri(uri)
+    }
+
+    async fn fetch_metadata(&self, uri: &str) -> Result<ProviderMetadata> {
+        <PfpProvider as MetadataProvider>::fetch_metadata(&self.inner, uri).await
     }
 }

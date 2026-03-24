@@ -44,6 +44,8 @@ contract NFTAppraisal is
     error EmptyArrays();
     error TooManyItems();
     error InvalidImplementation();
+    error CollectionAlreadyExempt();
+    error CollectionNotExempt();
 
     /// @notice Status of NFT appraisals
     enum AppraisalStatus {
@@ -84,6 +86,9 @@ contract NFTAppraisal is
     /// @dev treasury => index+1 in treasuryList for O(1) removal
     mapping(address => uint256) private treasuryListIndex;
 
+    /// @notice Collections exempt from appraisal fees (e.g. free-mint PFP collections)
+    mapping(address => bool) public feeExemptCollections;
+
     /// @notice Token -> Card linkage and storage
     mapping(address => mapping(uint256 => bytes32)) public tokenCardIds; // (collection, tokenId) -> cardId
     mapping(bytes32 => CardAppraisal) public cardAppraisals; // cardId -> appraisal
@@ -116,6 +121,7 @@ contract NFTAppraisal is
     event AutoMigrationFailed(address indexed treasury, address indexed collection, uint256 indexed tokenId, bytes reason);
     event FeeTokenUpdated(address oldToken, address newToken);
     event ProtocolAddressUpdated(address oldAddress, address newAddress);
+    event FeeExemptionUpdated(address indexed collection, bool exempt);
 
     /// @notice Status changes
     event AppraisalStatusChanged(
@@ -187,8 +193,8 @@ contract NFTAppraisal is
         // Allow re-appraisals for migration purposes, but charge fee again
         // If already exists, this is a re-appraisal request
 
-        // Collect appraisal fee
-        if (appraisalFee > 0) {
+        // Collect appraisal fee (skip for exempt collections like free-mint PFPs)
+        if (appraisalFee > 0 && !feeExemptCollections[collection]) {
             address(feeToken).safeTransferFrom(msg.sender, protocolAddress, appraisalFee);
         }
 
@@ -226,7 +232,13 @@ contract NFTAppraisal is
         if (collections.length == 0) revert EmptyArrays();
         if (collections.length > 50) revert TooManyItems();
 
-        uint256 totalFee = appraisalFee * collections.length;
+        // Calculate total fee (skip exempt collections)
+        uint256 totalFee;
+        for (uint256 i = 0; i < collections.length; i++) {
+            if (!feeExemptCollections[collections[i]]) {
+                totalFee += appraisalFee;
+            }
+        }
 
         // Collect total appraisal fee upfront
         if (totalFee > 0) {
@@ -685,6 +697,22 @@ contract NFTAppraisal is
         address oldAddress = protocolAddress;
         protocolAddress = _newProtocolAddress;
         emit ProtocolAddressUpdated(oldAddress, _newProtocolAddress);
+    }
+
+    // ============ FEE EXEMPTION MANAGEMENT ============
+
+    /**
+     * @notice Sets fee exemption for a collection (e.g. free-mint PFP collections)
+     * @param collection NFT collection address
+     * @param exempt True to exempt from fees, false to require fees
+     */
+    function setFeeExemption(address collection, bool exempt) external onlyOwner {
+        if (collection == address(0)) revert InvalidCollection();
+        if (exempt && feeExemptCollections[collection]) revert CollectionAlreadyExempt();
+        if (!exempt && !feeExemptCollections[collection]) revert CollectionNotExempt();
+
+        feeExemptCollections[collection] = exempt;
+        emit FeeExemptionUpdated(collection, exempt);
     }
 
     // ============ TREASURY MANAGEMENT ============

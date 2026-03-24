@@ -9,6 +9,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
 import {TestnetERC721} from "../src/tokens/TestnetERC721.sol";
+import {GachaPFP} from "../src/tokens/GachaPFP.sol";
 import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
 import {NFTAppraisalServiceHandler} from "../src/appraisal/NFTAppraisalServiceHandler.sol";
 import {Gacha} from "../src/gacha/Gacha.sol";
@@ -94,6 +95,7 @@ contract DeployTestnet is Script {
         address gachaServiceHandler;
         address appraisalServiceHandler;
         address testnetCollection;
+        address pfpCollection;
         bool deployedTestUSDC;
     }
 
@@ -385,6 +387,21 @@ contract DeployTestnet is Script {
         // Whitelist so users can deposit after appraisal
         GachaTreasury(d.treasuryProxy).addToWhitelist(d.testnetCollection);
         console.log("TestnetERC721 whitelisted in treasury");
+
+        // Exempt from appraisal fees (free appraisal)
+        NFTAppraisal(d.appraisalProxy).setFeeExemption(d.testnetCollection, true);
+        console.log("TestnetERC721 exempt from appraisal fees");
+
+        // Deploy PFP collection
+        GachaPFP pfp = new GachaPFP();
+        d.pfpCollection = address(pfp);
+        console.log("GachaPFP:               ", d.pfpCollection);
+
+        GachaTreasury(d.treasuryProxy).addToWhitelist(d.pfpCollection);
+        console.log("GachaPFP whitelisted in treasury");
+
+        NFTAppraisal(d.appraisalProxy).setFeeExemption(d.pfpCollection, true);
+        console.log("GachaPFP exempt from appraisal fees");
     }
 
     // =========================================================================
@@ -421,7 +438,8 @@ contract DeployTestnet is Script {
                 _envLine("GACHA_ADDRESS", vm.toString(d.gachaProxy)),
                 _envLine("GACHA_SERVICE_HANDLER_ADDRESS", vm.toString(d.gachaServiceHandler)),
                 _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(d.appraisalServiceHandler)),
-                _envLine("TESTNET_COLLECTION_ADDRESS", vm.toString(d.testnetCollection))
+                _envLine("TESTNET_COLLECTION_ADDRESS", vm.toString(d.testnetCollection)),
+                _envLine("PFP_COLLECTION_ADDRESS", vm.toString(d.pfpCollection))
             )
         );
 
@@ -453,6 +471,7 @@ contract DeployTestnet is Script {
         console.log("GachaServiceHandler:    ", d.gachaServiceHandler);
         console.log("AppraisalServiceHandler:", d.appraisalServiceHandler);
         console.log("TestnetERC721:          ", d.testnetCollection);
+        console.log("GachaPFP:               ", d.pfpCollection);
         console.log("TestUSDC deployed:      ", d.deployedTestUSDC ? "YES" : "NO");
         console.log("========================================");
     }

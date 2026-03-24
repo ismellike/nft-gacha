@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use crate::core::cache::AppraisalCache;
 use crate::providers::courtyard::CourtyardProvider;
 use crate::providers::generic::GenericProvider;
+use crate::providers::pfp::PfpProvider;
 use crate::providers::{ProviderRegistry, RegisteredProvider};
 use crate::resolvers::scrydex::ScrydexPokemonResolver;
 use crate::resolvers::{RegisteredResolver, ResolverRegistry};
@@ -64,6 +65,8 @@ impl AppraisalContext {
         let providers =
             ProviderRegistry::new(vec![
                 RegisteredProvider::Courtyard(CourtyardProvider::new()),
+                // PFP provider handles data:application/json URIs from GachaPFP contract
+                RegisteredProvider::Pfp(PfpProvider::new()),
                 // Generic fallback must be last — it accepts any URI
                 RegisteredProvider::Generic(GenericProvider::new()),
             ]);

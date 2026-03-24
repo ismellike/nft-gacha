@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { AppraisalWorkflowGuide } from "../../components/nft/AppraisalWorkflowGuide";
 import { NFTAppraisalForm } from "../../components/nft/NFTAppraisalForm";
+import { PfpMintButton } from "../../components/nft/PfpMintButton";
 import { TestnetMintButton } from "../../components/nft/TestnetMintButton";
 import {
 	type SelectedNFT,
@@ -140,6 +141,8 @@ export default function StreamlinedAppraisalPage() {
 										{ENV_MODE !== "MAINNET" && (
 											<TestnetMintButton />
 										)}
+
+										<PfpMintButton />
 
 										<WalletNFTPicker
 											onSelect={handleNFTSelect}
