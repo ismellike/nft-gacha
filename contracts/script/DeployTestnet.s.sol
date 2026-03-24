@@ -8,6 +8,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IWavsServiceManager} from "@wavs/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
+import {TestnetERC721} from "../src/tokens/TestnetERC721.sol";
 import {NFTAppraisal} from "../src/appraisal/NFTAppraisal.sol";
 import {NFTAppraisalServiceHandler} from "../src/appraisal/NFTAppraisalServiceHandler.sol";
 import {Gacha} from "../src/gacha/Gacha.sol";
@@ -92,6 +93,7 @@ contract DeployTestnet is Script {
         address gachaProxy;
         address gachaServiceHandler;
         address appraisalServiceHandler;
+        address testnetCollection;
         bool deployedTestUSDC;
     }
 
@@ -154,7 +156,10 @@ contract DeployTestnet is Script {
         // Step 4: Wire all contracts together
         _configureEconomy(d);
 
-        // Step 5: Fund protocol treasury if we deployed TestUSDC
+        // Step 5: Deploy public-mint testnet NFT collection and whitelist it
+        _deployTestnetCollection(d);
+
+        // Step 6: Fund protocol treasury if we deployed TestUSDC
         if (d.deployedTestUSDC) {
             uint256 funding = vm.envOr("PROTOCOL_TREASURY_FUNDING", DEFAULT_PROTOCOL_TREASURY_FUNDING);
             _fundProtocolTreasury(TestUSDC(d.usdc), ProtocolTreasury(d.protocolTreasuryProxy), funding);
@@ -369,6 +374,20 @@ contract DeployTestnet is Script {
     }
 
     // =========================================================================
+    // TESTNET COLLECTION
+    // =========================================================================
+
+    function _deployTestnetCollection(Deployments memory d) internal {
+        TestnetERC721 collection = new TestnetERC721();
+        d.testnetCollection = address(collection);
+        console.log("TestnetERC721:          ", d.testnetCollection);
+
+        // Whitelist so users can deposit after appraisal
+        GachaTreasury(d.treasuryProxy).addToWhitelist(d.testnetCollection);
+        console.log("TestnetERC721 whitelisted in treasury");
+    }
+
+    // =========================================================================
     // FUNDING
     // =========================================================================
 
@@ -401,7 +420,8 @@ contract DeployTestnet is Script {
                 _envLine("ECONOMY_MANAGER_ADDRESS", vm.toString(d.economyManagerProxy)),
                 _envLine("GACHA_ADDRESS", vm.toString(d.gachaProxy)),
                 _envLine("GACHA_SERVICE_HANDLER_ADDRESS", vm.toString(d.gachaServiceHandler)),
-                _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(d.appraisalServiceHandler))
+                _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(d.appraisalServiceHandler)),
+                _envLine("TESTNET_COLLECTION_ADDRESS", vm.toString(d.testnetCollection))
             )
         );
 
@@ -432,6 +452,7 @@ contract DeployTestnet is Script {
         console.log("Gacha Proxy:            ", d.gachaProxy);
         console.log("GachaServiceHandler:    ", d.gachaServiceHandler);
         console.log("AppraisalServiceHandler:", d.appraisalServiceHandler);
+        console.log("TestnetERC721:          ", d.testnetCollection);
         console.log("TestUSDC deployed:      ", d.deployedTestUSDC ? "YES" : "NO");
         console.log("========================================");
     }

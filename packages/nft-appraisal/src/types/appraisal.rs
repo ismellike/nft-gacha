@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ProviderType {
     Courtyard,
+    Generic,
 }
 
 /// Resolver families supported by the appraisal engine.

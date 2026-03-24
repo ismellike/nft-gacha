@@ -5,6 +5,7 @@ use async_trait::async_trait;
 
 use crate::core::cache::AppraisalCache;
 use crate::providers::courtyard::CourtyardProvider;
+use crate::providers::generic::GenericProvider;
 use crate::providers::{ProviderRegistry, RegisteredProvider};
 use crate::resolvers::scrydex::ScrydexPokemonResolver;
 use crate::resolvers::{RegisteredResolver, ResolverRegistry};
@@ -63,9 +64,19 @@ impl AppraisalContext {
         let providers =
             ProviderRegistry::new(vec![
                 RegisteredProvider::Courtyard(CourtyardProvider::new()),
+                // Generic fallback must be last — it accepts any URI
+                RegisteredProvider::Generic(GenericProvider::new()),
             ]);
-        let scrydex = ScrydexPokemonResolver::from_env()?;
-        let resolvers = ResolverRegistry::new(vec![RegisteredResolver::Scrydex(scrydex)]);
+        // Scrydex resolver is optional — generic testnet NFTs don't need it
+        let mut registered_resolvers = Vec::new();
+        match ScrydexPokemonResolver::from_env() {
+            Ok(scrydex) => registered_resolvers.push(RegisteredResolver::Scrydex(scrydex)),
+            Err(_) => {
+                // No Scrydex API key configured; Courtyard NFTs won't get prices
+                // but generic NFTs will still work via the fallback provider
+            }
+        }
+        let resolvers = ResolverRegistry::new(registered_resolvers);
         Ok(Self::new(
             Arc::new(ERC721Client::new()),
             cache,

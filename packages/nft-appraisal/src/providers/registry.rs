@@ -4,6 +4,7 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 
 use crate::providers::courtyard::CourtyardProvider;
+use crate::providers::generic::GenericProvider;
 use crate::traits::metadata::{MetadataProvider, ProviderMetadata};
 use crate::types::ProviderType;
 
@@ -59,6 +60,7 @@ impl ProviderRegistry {
 /// Enum-backed registration so defaults stay declarative.
 pub enum RegisteredProvider {
     Courtyard(CourtyardProvider),
+    Generic(GenericProvider),
     #[allow(dead_code)]
     Custom(Arc<dyn AppraisalProvider>),
 }
@@ -68,6 +70,9 @@ impl RegisteredProvider {
         match self {
             RegisteredProvider::Courtyard(provider) => {
                 Arc::new(CourtyardAppraisalProvider::new(provider))
+            }
+            RegisteredProvider::Generic(provider) => {
+                Arc::new(GenericAppraisalProvider::new(provider))
             }
             RegisteredProvider::Custom(provider) => provider,
         }
@@ -98,5 +103,31 @@ impl AppraisalProvider for CourtyardAppraisalProvider {
     async fn fetch_metadata(&self, uri: &str) -> Result<ProviderMetadata> {
         // Delegate to the existing MetadataProvider implementation.
         <CourtyardProvider as MetadataProvider>::fetch_metadata(&self.inner, uri).await
+    }
+}
+
+/// Adapter around the generic fallback provider.
+pub struct GenericAppraisalProvider {
+    inner: GenericProvider,
+}
+
+impl GenericAppraisalProvider {
+    pub fn new(inner: GenericProvider) -> Self {
+        Self { inner }
+    }
+}
+
+#[async_trait(?Send)]
+impl AppraisalProvider for GenericAppraisalProvider {
+    fn provider_type(&self) -> ProviderType {
+        self.inner.provider_type()
+    }
+
+    fn can_handle(&self, uri: &str) -> bool {
+        self.inner.can_handle_uri(uri)
+    }
+
+    async fn fetch_metadata(&self, uri: &str) -> Result<ProviderMetadata> {
+        <GenericProvider as MetadataProvider>::fetch_metadata(&self.inner, uri).await
     }
 }

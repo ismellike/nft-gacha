@@ -1,7 +1,9 @@
 use crate::core::context::AppraisalContext;
 use crate::core::payload::{self, AppraisalIdentity};
+use crate::providers::generic::provider::random_price_from_uri;
 use crate::traits::metadata::ProviderMetadata;
 use crate::traits::pricing::ResolverQuote;
+use crate::types::ProviderType;
 use crate::utils::event_parser::AppraisalRequest;
 use crate::utils::EventParser;
 use crate::wavs::types::events::TriggerDataEvmContractEvent;
@@ -37,10 +39,15 @@ impl AppraisalProcessor {
         let token = self.describe_token(&request)?;
         let token_uri = self.fetch_token_uri(&token).await?;
         let metadata = self.fetch_metadata(&token_uri).await?;
-        let price_quote = self.fetch_price(metadata.resolver.clone()).await?;
 
-        // Extract price value if available
-        let price = price_quote.as_ref().map(|quote| quote.price.value);
+        // For generic NFTs (no resolver route), compute a random price from the URI.
+        // For known providers (e.g. Courtyard), use the external price resolver.
+        let price = if metadata.provider == ProviderType::Generic {
+            Some(random_price_from_uri(&token_uri))
+        } else {
+            let price_quote = self.fetch_price(metadata.resolver.clone()).await?;
+            price_quote.as_ref().map(|quote| quote.price.value)
+        };
 
         let identity = AppraisalIdentity::new(
             token.chain.clone(),
