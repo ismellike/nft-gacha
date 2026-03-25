@@ -42,7 +42,7 @@ function SectionHeader({
 	);
 }
 
-export default function LeaderboardPage() {
+export default function AnalyticsPage() {
 	const analytics = useLeaderboardAnalytics();
 	const allGachas = useMemo(() => getAllActiveGachas(), []);
 
@@ -90,9 +90,8 @@ export default function LeaderboardPage() {
 
 					<h1 className="text-4xl md:text-6xl font-black mb-4">
 						<span className="bg-gradient-to-r from-warning via-orange-400 to-yellow-500 bg-clip-text text-transparent">
-							Leaderboard
-						</span>{" "}
-						<span className="text-foreground/90">&amp; Analytics</span>
+							Analytics
+						</span>
 					</h1>
 
 					<p className="text-lg text-foreground/70 max-w-2xl mx-auto leading-relaxed">

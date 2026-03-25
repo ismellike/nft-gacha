@@ -19,7 +19,7 @@ export const Header = memo(() => {
 			{ href: "/", label: "Home", icon: "home" },
 			{ href: "/discover", label: "Discover", icon: "dice" },
 			{ href: "/appraisal", label: "NFT Appraisal", icon: "search" },
-			{ href: "/leaderboard", label: "Leaderboard", icon: "chart" },
+			{ href: "/analytics", label: "Analytics", icon: "chart" },
 		],
 		[],
 	);

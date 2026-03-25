@@ -2,7 +2,7 @@
 
 import { CardSkeleton } from "../../ui";
 
-export default function LeaderboardLoading() {
+export default function AnalyticsLoading() {
 	return (
 		<div className="min-h-screen bg-transparent">
 			<div className="mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">

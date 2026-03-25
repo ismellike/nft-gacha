@@ -15,11 +15,11 @@ interface ErrorProps {
 	reset: () => void;
 }
 
-export default function LeaderboardError({ error, reset }: ErrorProps) {
+export default function AnalyticsError({ error, reset }: ErrorProps) {
 	const router = useRouter();
 
 	useEffect(() => {
-		logger.general.error("Leaderboard route error:", error);
+		logger.general.error("Analytics route error:", error);
 	}, [error]);
 
 	return (
@@ -34,7 +34,7 @@ export default function LeaderboardError({ error, reset }: ErrorProps) {
 				</h1>
 
 				<p className="text-foreground/70 mb-8 leading-relaxed">
-					An unexpected error occurred while loading the leaderboard.
+					An unexpected error occurred while loading analytics.
 				</p>
 
 				{process.env.NODE_ENV === "development" && (

@@ -29,7 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 0.8,
 		},
 		{
-			url: `${baseUrl}/leaderboard`,
+			url: `${baseUrl}/analytics`,
 			lastModified: new Date(),
 			changeFrequency: "hourly",
 			priority: 0.7,
