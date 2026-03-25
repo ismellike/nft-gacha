@@ -29,6 +29,7 @@
 		"@reown/appkit": "^1.8.18",
 		"@reown/appkit-adapter-wagmi": "^1.8.18",
 		"@tanstack/react-query": "^5.90.21",
+		"@xstate/react": "^6.1.0",
 		"framer-motion": "^12.34.3",
 		"next": "^16.1.6",
 		"react": "^19.2.4",
@@ -38,6 +39,7 @@
 		"tailwind-variants": "^3.2.2",
 		"viem": "^2.46.3",
 		"wagmi": "^3.5.0",
+		"xstate": "^5.29.0",
 		"zod": "^4.3.6",
 		"zustand": "^5.0.11"
 	},

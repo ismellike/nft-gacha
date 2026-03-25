@@ -1,5 +1,5 @@
 /**
- * Unit tests for useGachaSpinMachine hook
+ * Unit tests for useGachaSpinMachine hook (XState v5)
  *
  * Tests state transitions, action handlers, and derived state flags.
  * Heavy wagmi / async-utils dependencies are mocked so tests run in isolation.
@@ -220,7 +220,6 @@ describe("useGachaSpinMachine", () => {
 		});
 
 		it("does nothing when user address is missing", async () => {
-			// Reconfigure useAccount before renderHook so the hook sees no address
 			const wagmi = await import("wagmi");
 			vi.mocked(wagmi.useAccount).mockReturnValue({ address: undefined } as ReturnType<typeof wagmi.useAccount>);
 
@@ -297,6 +296,10 @@ describe("useGachaSpinMachine", () => {
 				tokenId: "1",
 			};
 
+			// Must go through spinning state first — XState enforces valid transitions
+			act(() => {
+				result.current.startSpin();
+			});
 			act(() => {
 				result.current.fulfillSpin(spinResult);
 			});
@@ -314,6 +317,10 @@ describe("useGachaSpinMachine", () => {
 				tokenId: "99",
 			};
 
+			// Must go through spinning state first — XState enforces valid transitions
+			act(() => {
+				result.current.startSpin();
+			});
 			act(() => {
 				result.current.fulfillSpin(spinResult);
 			});
@@ -357,11 +364,10 @@ describe("useGachaSpinMachine", () => {
 		it("does not retry when MAX_RETRIES has been reached", () => {
 			const { result } = renderHook(() => useGachaSpinMachine());
 
-			// Exhaust all retries (MAX_RETRIES = 5)
 			act(() => { result.current.startSpin(); });
 			act(() => { result.current.confirmTransaction(BigInt(1)); });
 
-			// Simulate 5 retries by calling retry repeatedly through the error path
+			// Simulate 5 retries
 			for (let i = 0; i < 5; i++) {
 				act(() => { result.current.setError("err"); });
 				act(() => { result.current.retry(); });
@@ -370,7 +376,6 @@ describe("useGachaSpinMachine", () => {
 			// One more setError to push us back to error state
 			act(() => { result.current.setError("final err"); });
 
-			// At this point retryCount === 5 === MAX_RETRIES, canRetry should be false
 			expect(result.current.canRetry).toBe(false);
 
 			const stateBefore = result.current.state;
@@ -378,7 +383,7 @@ describe("useGachaSpinMachine", () => {
 				result.current.retry();
 			});
 
-			// State must not change to waitingForFulfillment
+			// State must not change — XState guard prevents the transition
 			expect(result.current.state).toBe(stateBefore);
 		});
 	});
@@ -414,6 +419,10 @@ describe("useGachaSpinMachine", () => {
 	describe("timeout", () => {
 		it("transitions to timeout state with an error message", () => {
 			const { result } = renderHook(() => useGachaSpinMachine());
+
+			// Must be in waitingForFulfillment for TIMEOUT to be accepted
+			act(() => { result.current.startSpin(); });
+			act(() => { result.current.confirmTransaction(BigInt(1)); });
 
 			act(() => {
 				result.current.timeout();
