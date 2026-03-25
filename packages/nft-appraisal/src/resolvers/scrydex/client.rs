@@ -9,14 +9,14 @@ use urlencoding::encode;
 
 use super::types::ScrydexCardResponse;
 
-const DEFAULT_SCRYDEX_CARDS_ENDPOINT: &str = "https://api.scrydex.com/pokemon/v1/cards";
+pub(crate) const DEFAULT_SCRYDEX_CARDS_ENDPOINT: &str = "https://api.scrydex.com/pokemon/v1/cards";
 
 /// HTTP client for Scrydex API
 #[derive(Debug, Clone)]
 pub struct ScrydexClient {
-    api_key: String,
-    team_id: Option<String>,
-    cards_endpoint: String,
+    pub(crate) api_key: String,
+    pub(crate) team_id: Option<String>,
+    pub(crate) cards_endpoint: String,
 }
 
 impl ScrydexClient {
@@ -60,5 +60,95 @@ impl ScrydexClient {
             .map_err(|e| anyhow!("Failed to parse Scrydex card response: {}", e))?;
 
         Ok(parsed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -----------------------------------------------------------------------
+    // ScrydexClient::new
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn new_stores_api_key_correctly() {
+        let client = ScrydexClient::new("test-api-key-123", None);
+        assert_eq!(client.api_key, "test-api-key-123");
+    }
+
+    #[test]
+    fn new_stores_team_id_correctly() {
+        let client = ScrydexClient::new("key", Some("team-abc".to_string()));
+        assert_eq!(client.team_id, Some("team-abc".to_string()));
+    }
+
+    #[test]
+    fn new_with_no_team_id_stores_none() {
+        let client = ScrydexClient::new("key", None);
+        assert!(client.team_id.is_none());
+    }
+
+    #[test]
+    fn new_uses_default_endpoint() {
+        let client = ScrydexClient::new("key", None);
+        assert_eq!(client.cards_endpoint, DEFAULT_SCRYDEX_CARDS_ENDPOINT);
+    }
+
+    // -----------------------------------------------------------------------
+    // with_endpoint
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn with_endpoint_overrides_default() {
+        let client = ScrydexClient::new("key", None)
+            .with_endpoint("https://staging.scrydex.com/v1/cards");
+        assert_eq!(client.cards_endpoint, "https://staging.scrydex.com/v1/cards");
+    }
+
+    #[test]
+    fn with_endpoint_preserves_api_key() {
+        let client = ScrydexClient::new("my-key", None)
+            .with_endpoint("https://custom.example.com");
+        assert_eq!(client.api_key, "my-key");
+    }
+
+    #[test]
+    fn with_endpoint_preserves_team_id() {
+        let client = ScrydexClient::new("key", Some("team-42".to_string()))
+            .with_endpoint("https://custom.example.com");
+        assert_eq!(client.team_id, Some("team-42".to_string()));
+    }
+
+    // -----------------------------------------------------------------------
+    // URL construction (via encode)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn card_identifier_with_slash_is_url_encoded() {
+        // The client uses urlencoding::encode on the identifier before appending
+        // it to the endpoint. Verify that a slash in the identifier is percent-encoded.
+        let identifier = "base1-58/102";
+        let encoded = encode(identifier);
+        assert_eq!(encoded, "base1-58%2F102");
+
+        // Verify the constructed URL format matches expectations.
+        let client = ScrydexClient::new("key", None);
+        let expected_url = format!(
+            "{}/{}?include=prices",
+            client.cards_endpoint,
+            encode(identifier)
+        );
+        assert!(expected_url.contains("base1-58%2F102"));
+        assert!(expected_url.ends_with("?include=prices"));
+    }
+
+    #[test]
+    fn url_construction_appends_include_prices() {
+        let client = ScrydexClient::new("key", None);
+        let id = "sv5a-1";
+        let url = format!("{}/{}?include=prices", client.cards_endpoint, encode(id));
+        assert!(url.ends_with("?include=prices"));
+        assert!(url.contains(id));
     }
 }

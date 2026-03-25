@@ -116,3 +116,125 @@ impl PriceResolver for ScrydexPokemonResolver {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::resolvers::scrydex::client::DEFAULT_SCRYDEX_CARDS_ENDPOINT;
+
+    // -----------------------------------------------------------------------
+    // ScrydexPokemonResolver::new
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn new_stores_api_key_in_client() {
+        let resolver = ScrydexPokemonResolver::new("resolver-key-xyz", None);
+        assert_eq!(resolver.client.api_key, "resolver-key-xyz");
+    }
+
+    #[test]
+    fn new_with_team_id_stores_team_id() {
+        let resolver = ScrydexPokemonResolver::new("key", Some("team-id-99".to_string()));
+        assert_eq!(resolver.client.team_id, Some("team-id-99".to_string()));
+    }
+
+    #[test]
+    fn new_uses_default_endpoint() {
+        let resolver = ScrydexPokemonResolver::new("key", None);
+        assert_eq!(resolver.client.cards_endpoint, DEFAULT_SCRYDEX_CARDS_ENDPOINT);
+    }
+
+    #[test]
+    fn name_returns_scrydex() {
+        let resolver = ScrydexPokemonResolver::new("key", None);
+        assert_eq!(resolver.name(), "Scrydex");
+    }
+
+    // -----------------------------------------------------------------------
+    // from_env — missing env var
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn from_env_errors_when_api_key_missing() {
+        // Remove the env var to ensure it is not set during this test.
+        // We use std::env::remove_var cautiously; tests are single-threaded by
+        // default for the native test harness.
+        let key = "WAVS_ENV_SCRYDEX_API_KEY";
+        let original = std::env::var(key).ok();
+        std::env::remove_var(key);
+
+        let result = ScrydexPokemonResolver::from_env();
+
+        // Restore original value if it existed.
+        if let Some(val) = original {
+            std::env::set_var(key, val);
+        }
+
+        assert!(result.is_err(), "from_env must fail when WAVS_ENV_SCRYDEX_API_KEY is not set");
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("WAVS_ENV_SCRYDEX_API_KEY"),
+            "error message must mention the missing env var; got: {msg}"
+        );
+    }
+
+    #[test]
+    fn from_env_succeeds_when_api_key_present() {
+        let key = "WAVS_ENV_SCRYDEX_API_KEY";
+        let team_key = "WAVS_ENV_SCRYDEX_TEAM_ID";
+        let original_key = std::env::var(key).ok();
+        let original_team = std::env::var(team_key).ok();
+
+        std::env::set_var(key, "test-key-from-env");
+        std::env::remove_var(team_key);
+
+        let result = ScrydexPokemonResolver::from_env();
+
+        // Restore
+        if let Some(val) = original_key {
+            std::env::set_var(key, val);
+        } else {
+            std::env::remove_var(key);
+        }
+        if let Some(val) = original_team {
+            std::env::set_var(team_key, val);
+        }
+
+        assert!(result.is_ok(), "from_env must succeed when WAVS_ENV_SCRYDEX_API_KEY is set");
+        let resolver = result.unwrap();
+        assert_eq!(resolver.client.api_key, "test-key-from-env");
+        assert!(resolver.client.team_id.is_none());
+    }
+
+    #[test]
+    fn from_env_reads_custom_endpoint() {
+        let api_key = "WAVS_ENV_SCRYDEX_API_KEY";
+        let endpoint_key = "WAVS_ENV_SCRYDEX_ENDPOINT";
+        let original_api = std::env::var(api_key).ok();
+        let original_endpoint = std::env::var(endpoint_key).ok();
+
+        std::env::set_var(api_key, "any-key");
+        std::env::set_var(endpoint_key, "https://custom.endpoint.example.com");
+
+        let result = ScrydexPokemonResolver::from_env();
+
+        // Restore
+        if let Some(val) = original_api {
+            std::env::set_var(api_key, val);
+        } else {
+            std::env::remove_var(api_key);
+        }
+        if let Some(val) = original_endpoint {
+            std::env::set_var(endpoint_key, val);
+        } else {
+            std::env::remove_var(endpoint_key);
+        }
+
+        assert!(result.is_ok());
+        let resolver = result.unwrap();
+        assert_eq!(
+            resolver.client.cards_endpoint,
+            "https://custom.endpoint.example.com"
+        );
+    }
+}

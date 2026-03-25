@@ -44,3 +44,69 @@ pub fn is_valid_tx(trigger_data: TriggerData) -> Result<bool, String> {
         _ => Ok(true),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    /// Attempt to convert a byte vector into a [u8; 32] fixed array, mirroring
+    /// the conversion performed on `log.tx_hash` and `log.block_hash` inside
+    /// `is_valid_tx`. This isolates the pure length-validation logic so it can
+    /// be tested without any WASI host imports.
+    fn try_to_fixed32(bytes: Vec<u8>) -> Result<[u8; 32], &'static str> {
+        bytes
+            .try_into()
+            .map_err(|_| "Could not convert tx hash to FixedBytes<32>")
+    }
+
+    // --- tx hash / block hash length validation ---
+
+    #[test]
+    fn exactly_32_bytes_converts_successfully() {
+        let bytes = vec![0xabu8; 32];
+        assert!(try_to_fixed32(bytes).is_ok());
+    }
+
+    #[test]
+    fn thirty_one_bytes_is_rejected() {
+        let bytes = vec![0u8; 31];
+        assert!(try_to_fixed32(bytes).is_err());
+    }
+
+    #[test]
+    fn thirty_three_bytes_is_rejected() {
+        let bytes = vec![0u8; 33];
+        assert!(try_to_fixed32(bytes).is_err());
+    }
+
+    #[test]
+    fn zero_bytes_is_rejected() {
+        assert!(try_to_fixed32(vec![]).is_err());
+    }
+
+    #[test]
+    fn sixty_four_bytes_is_rejected() {
+        let bytes = vec![0u8; 64];
+        assert!(try_to_fixed32(bytes).is_err());
+    }
+
+    #[test]
+    fn converted_bytes_match_original_content() {
+        let mut bytes = vec![0u8; 32];
+        bytes[0] = 0xde;
+        bytes[31] = 0xad;
+        let arr = try_to_fixed32(bytes).unwrap();
+        assert_eq!(arr[0], 0xde);
+        assert_eq!(arr[31], 0xad);
+    }
+
+    #[test]
+    fn all_zero_hash_converts() {
+        let arr = try_to_fixed32(vec![0u8; 32]).unwrap();
+        assert_eq!(arr, [0u8; 32]);
+    }
+
+    #[test]
+    fn all_max_byte_hash_converts() {
+        let arr = try_to_fixed32(vec![0xFFu8; 32]).unwrap();
+        assert_eq!(arr, [0xFFu8; 32]);
+    }
+}

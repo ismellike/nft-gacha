@@ -133,11 +133,18 @@ impl AppraisalCache {
     }
 
     pub fn generate_cache_key(&self, title: &str) -> String {
-        use sha3::{Digest, Keccak256};
-        let mut hasher = Keccak256::new();
-        hasher.update(title.as_bytes());
-        hex::encode(hasher.finalize())
+        keccak256_hex(title)
     }
+}
+
+/// Pure helper: compute the Keccak-256 hex digest of the given string.
+/// Extracted so tests can call this without constructing an `AppraisalCache`
+/// (which would invoke the WASI key-value store host import).
+pub(crate) fn keccak256_hex(input: &str) -> String {
+    use sha3::{Digest, Keccak256};
+    let mut hasher = Keccak256::new();
+    hasher.update(input.as_bytes());
+    hex::encode(hasher.finalize())
 }
 
 impl Default for AppraisalCache {
@@ -197,5 +204,108 @@ mod tests {
         let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
         assert_eq!(cached.ttl_secs, 300);
         assert!(cached.price.is_none());
+    }
+
+    // -----------------------------------------------------------------------
+    // generate_cache_key / keccak256_hex
+    //
+    // We test the pure `keccak256_hex` helper directly to avoid constructing
+    // an `AppraisalCache`, which calls the WASI key-value store host import
+    // and panics in the native test harness.
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn generate_cache_key_equal_inputs_produce_equal_keys() {
+        let key_a = keccak256_hex("sv5a-1-9-psa-false-base1-novariant");
+        let key_b = keccak256_hex("sv5a-1-9-psa-false-base1-novariant");
+        assert_eq!(key_a, key_b, "same input must always produce the same cache key");
+    }
+
+    #[test]
+    fn generate_cache_key_different_inputs_produce_different_keys() {
+        let key_a = keccak256_hex("sv5a-1-9-psa-false-base1-normal");
+        let key_b = keccak256_hex("sv5a-1-10-psa-true-base1-normal");
+        assert_ne!(key_a, key_b, "different inputs must produce different cache keys");
+    }
+
+    #[test]
+    fn generate_cache_key_empty_string_is_stable() {
+        let key_a = keccak256_hex("");
+        let key_b = keccak256_hex("");
+        // Empty string hashes to a deterministic value.
+        assert_eq!(key_a, key_b);
+        assert!(!key_a.is_empty());
+    }
+
+    #[test]
+    fn generate_cache_key_output_is_hex_string() {
+        let key = keccak256_hex("test-input");
+        // Keccak256 produces 32 bytes -> 64 hex chars.
+        assert_eq!(key.len(), 64, "cache key should be 64 hex characters");
+        assert!(
+            key.chars().all(|c| c.is_ascii_hexdigit()),
+            "cache key must be a lowercase hex string"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // CachedResolverQuote::is_expired — ttl_secs == 0 is always expired
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn is_expired_with_zero_ttl_is_always_true() {
+        // A zero TTL should immediately be considered expired regardless of timestamp.
+        let cached = CachedResolverQuote {
+            price: None,
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            ttl_secs: 0,
+        };
+        assert!(
+            cached.is_expired(),
+            "ttl_secs == 0 should always be treated as expired"
+        );
+    }
+
+    #[test]
+    fn is_expired_with_zero_ttl_and_future_timestamp_is_still_expired() {
+        // Even if the timestamp is in the future, ttl_secs == 0 forces expiry.
+        let cached = CachedResolverQuote {
+            price: None,
+            timestamp: u64::MAX, // impossibly far future
+            ttl_secs: 0,
+        };
+        assert!(cached.is_expired());
+    }
+
+    // -----------------------------------------------------------------------
+    // CachedResolverQuote — negative cache (price = None)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn negative_cache_into_quote_returns_none() {
+        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
+        assert!(cached.price.is_none(), "negative cache must have no price");
+        // into_quote on a negative cache entry returns None.
+        assert!(cached.into_quote().is_none());
+    }
+
+    #[test]
+    fn negative_cache_is_not_immediately_expired() {
+        // A fresh negative cache entry with a 5-minute TTL should not be expired.
+        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
+        assert!(!cached.is_expired(), "fresh negative cache entry must not be expired");
+    }
+
+    #[test]
+    fn negative_cache_serializes_and_deserializes() {
+        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
+        let json = serde_json::to_string(&cached).expect("serialization must succeed");
+        let recovered: CachedResolverQuote =
+            serde_json::from_str(&json).expect("deserialization must succeed");
+        assert!(recovered.price.is_none());
+        assert_eq!(recovered.ttl_secs, 300);
     }
 }

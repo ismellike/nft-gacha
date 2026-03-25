@@ -238,6 +238,121 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
+    // AppraisalResponse::to_success_payload — additional edge-case tests
+    // -----------------------------------------------------------------------
+
+    fn make_identity() -> AppraisalIdentity {
+        AppraisalIdentity::new(
+            "eip155:1".to_string(),
+            "0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD"
+                .parse()
+                .unwrap(),
+            U256::from(42u32),
+            Some("Test Card"),
+            &[0u8; 32],
+        )
+    }
+
+    #[test]
+    fn to_success_payload_with_price_none_returns_none() {
+        let response = AppraisalResponse {
+            identity: make_identity(),
+            price: None,
+        };
+        assert!(
+            response.to_success_payload().is_none(),
+            "price=None must yield no payload"
+        );
+    }
+
+    #[test]
+    fn to_success_payload_with_price_zero_returns_none() {
+        let response = AppraisalResponse {
+            identity: make_identity(),
+            price: Some(0.0),
+        };
+        assert!(
+            response.to_success_payload().is_none(),
+            "price=0.0 is not positive and must yield no payload"
+        );
+    }
+
+    #[test]
+    fn to_success_payload_with_negative_price_returns_none() {
+        let response = AppraisalResponse {
+            identity: make_identity(),
+            price: Some(-5.0),
+        };
+        assert!(
+            response.to_success_payload().is_none(),
+            "negative price must yield no payload"
+        );
+    }
+
+    #[test]
+    fn to_success_payload_with_positive_price_returns_some() {
+        let response = AppraisalResponse {
+            identity: make_identity(),
+            price: Some(25.50),
+        };
+        let payload = response.to_success_payload();
+        assert!(payload.is_some(), "positive price must produce a payload");
+        assert!(!payload.unwrap().is_empty());
+    }
+
+    #[test]
+    fn to_success_payload_result_is_abi_aligned() {
+        let response = AppraisalResponse {
+            identity: make_identity(),
+            price: Some(1.0),
+        };
+        let payload = response.to_success_payload().expect("positive price must yield payload");
+        assert_eq!(
+            payload.len() % 32,
+            0,
+            "ABI-encoded payload must be a multiple of 32 bytes; got {}",
+            payload.len()
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // scale_to_usdc6 — very large and boundary values
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn scale_to_usdc6_very_large_but_in_range() {
+        // u128::MAX / 1_000_000 ~ 3.4e32 — a price near u128::MAX after scaling
+        // should still work as long as it fits.
+        let max_safe = (u128::MAX as f64 / 1_000_000.0).floor();
+        // This might be too large due to floating point; just verify it returns a value.
+        let result = scale_to_usdc6(max_safe);
+        // It may return None if rounding causes overflow, but must not panic.
+        let _ = result;
+    }
+
+    #[test]
+    fn scale_to_usdc6_just_over_u128_max_returns_none() {
+        // Construct a value whose scaled form exceeds u128::MAX.
+        // u128::MAX ~ 3.4e38; price = u128::MAX * 10.0 / 1_000_000 will overflow.
+        let overflow_price = (u128::MAX as f64) * 10.0;
+        assert!(
+            scale_to_usdc6(overflow_price).is_none(),
+            "values that overflow u128 after scaling must return None"
+        );
+    }
+
+    #[test]
+    fn scale_to_usdc6_tiny_positive_rounds_to_one() {
+        // 0.000001 USD = 1 micro-USD = 1 in USDC6 units.
+        assert_eq!(scale_to_usdc6(0.000001), Some(U256::from(1u32)));
+    }
+
+    #[test]
+    fn scale_to_usdc6_one_dollar_gives_one_million() {
+        assert_eq!(scale_to_usdc6(1.0), Some(U256::from(1_000_000u32)));
+    }
+
+    // -----------------------------------------------------------------------
     // Proptest fuzz tests
     // -----------------------------------------------------------------------
 

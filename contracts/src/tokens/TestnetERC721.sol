@@ -8,12 +8,19 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 ///         Anyone can mint. No images — just on-chain metadata with a sequential ID.
 contract TestnetERC721 is ERC721 {
     uint256 private _nextId = 1;
+    uint256 private _totalSupply;
 
     constructor() ERC721("Testnet Gacha NFT", "tGACHA") {}
+
+    /// @notice Returns the total number of tokens minted.
+    function totalSupply() external view returns (uint256) {
+        return _totalSupply;
+    }
 
     /// @notice Mint a single NFT to the caller.
     function mint() external returns (uint256 tokenId) {
         tokenId = _nextId++;
+        _totalSupply++;
         _mint(msg.sender, tokenId);
     }
 
@@ -23,6 +30,7 @@ contract TestnetERC721 is ERC721 {
         tokenIds = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             uint256 tokenId = _nextId++;
+            _totalSupply++;
             _mint(msg.sender, tokenId);
             tokenIds[i] = tokenId;
         }
