@@ -392,8 +392,8 @@ contract DeployTestnet is Script {
         NFTAppraisal(d.appraisalProxy).setFeeExemption(d.testnetCollection, true);
         console.log("TestnetERC721 exempt from appraisal fees");
 
-        // Deploy PFP collection
-        GachaPFP pfp = new GachaPFP();
+        // Deploy PFP collection (free on testnet, supply cap 10,000)
+        GachaPFP pfp = new GachaPFP(0, 10_000, msg.sender);
         d.pfpCollection = address(pfp);
         console.log("GachaPFP:               ", d.pfpCollection);
 

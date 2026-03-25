@@ -52,7 +52,7 @@ contract NFTAppraisalFeeExemptionTest is StandardTest {
         mockWavsManager = new MockWavsServiceManager();
         feeToken = new BaseERC20("Fee Token", "FEE", owner);
         nft = new BaseERC721("Test NFT", "TNFT", owner);
-        pfp = new GachaPFP();
+        pfp = new GachaPFP(0, 10_000, owner);
         testnetNft = new TestnetERC721();
 
         // Deploy NFTAppraisal with proxy

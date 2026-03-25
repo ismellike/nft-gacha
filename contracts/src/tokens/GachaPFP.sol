@@ -2,15 +2,20 @@
 pragma solidity ^0.8.27;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /// @title GachaPFP
-/// @notice Free-mint NFT profile picture collection with on-chain rarity traits.
+/// @notice Paid-mint NFT profile picture collection with on-chain rarity traits and supply cap.
 ///         Rarity is assigned deterministically at mint time using block.prevrandao.
 ///         Metadata is fully on-chain (data URI with JSON) for marketplace compatibility.
-contract GachaPFP is ERC721 {
+contract GachaPFP is ERC721, Ownable {
     using Strings for uint256;
+
+    error MintPriceNotMet();
+    error MaxSupplyReached();
+    error WithdrawFailed();
 
     enum Rarity {
         Common, // 40%
@@ -23,16 +28,38 @@ contract GachaPFP is ERC721 {
 
     uint256 private _nextId = 1;
 
+    /// @notice Price to mint one PFP (in native token wei)
+    uint256 public immutable mintPrice;
+
+    /// @notice Maximum number of PFPs that can be minted
+    uint256 public immutable maxSupply;
+
     /// @notice Rarity assigned to each token at mint time
     mapping(uint256 => Rarity) public tokenRarity;
 
-    constructor() ERC721("Gacha PFP", "GPFP") {}
+    constructor(uint256 _mintPrice, uint256 _maxSupply, address _owner) ERC721("Gacha PFP", "GPFP") Ownable(_owner) {
+        mintPrice = _mintPrice;
+        maxSupply = _maxSupply;
+    }
 
     /// @notice Mint a single PFP NFT to the caller. Rarity is assigned automatically.
-    function mint() external returns (uint256 tokenId) {
+    function mint() external payable returns (uint256 tokenId) {
+        if (msg.value < mintPrice) revert MintPriceNotMet();
         tokenId = _nextId++;
+        if (tokenId > maxSupply) revert MaxSupplyReached();
         tokenRarity[tokenId] = _determineRarity(tokenId);
         _mint(msg.sender, tokenId);
+    }
+
+    /// @notice Returns the total number of tokens minted so far
+    function totalMinted() external view returns (uint256) {
+        return _nextId - 1;
+    }
+
+    /// @notice Withdraw collected mint fees to the owner
+    function withdraw() external onlyOwner {
+        (bool success,) = owner().call{value: address(this).balance}("");
+        if (!success) revert WithdrawFailed();
     }
 
     /// @notice Returns fully on-chain JSON metadata with rarity trait.

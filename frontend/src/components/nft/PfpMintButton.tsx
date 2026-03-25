@@ -2,16 +2,20 @@
 
 import { SparklesIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
-import { type Address, parseAbi } from "viem";
+import { type Address, formatEther, parseAbi } from "viem";
 import {
 	useAccount,
+	useReadContract,
 	useWaitForTransactionReceipt,
 	useWriteContract,
 } from "wagmi";
 import { env } from "../../lib/env";
 import { Button, Card } from "../../ui";
 
-const pfpAbi = parseAbi(["function mint() external returns (uint256)"]);
+const pfpAbi = parseAbi([
+	"function mint() external payable returns (uint256)",
+	"function mintPrice() external view returns (uint256)",
+]);
 
 /**
  * Mint button for the GachaPFP collection.
@@ -25,6 +29,13 @@ export function PfpMintButton({
 	const collectionAddress = env.NEXT_PUBLIC_PFP_COLLECTION_ADDRESS;
 	const { isConnected } = useAccount();
 	const [mintedTokenId, setMintedTokenId] = useState<string | null>(null);
+
+	const { data: mintPrice } = useReadContract({
+		address: collectionAddress as Address | undefined,
+		abi: pfpAbi,
+		functionName: "mintPrice",
+		query: { enabled: !!collectionAddress },
+	});
 
 	const {
 		writeContract,
@@ -67,12 +78,15 @@ export function PfpMintButton({
 
 	if (!collectionAddress) return null;
 
+	const isFree = !mintPrice || mintPrice === 0n;
+
 	const handleMint = () => {
 		setMintedTokenId(null);
 		writeContract({
 			address: collectionAddress as Address,
 			abi: pfpAbi,
 			functionName: "mint",
+			value: mintPrice ?? 0n,
 		});
 	};
 
@@ -96,7 +110,9 @@ export function PfpMintButton({
 					<p className="text-xs text-foreground/60">
 						{isSuccess && mintedTokenId
 							? `Minted #${mintedTokenId} — select it below to appraise`
-							: "Mint a free PFP NFT with random rarity"}
+							: isFree
+								? "Mint a free PFP NFT with random rarity"
+								: `Mint a PFP NFT for ${formatEther(mintPrice)} POL`}
 					</p>
 				</div>
 				<div className="flex-shrink-0">

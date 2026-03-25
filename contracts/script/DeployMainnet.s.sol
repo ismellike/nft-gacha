@@ -30,6 +30,8 @@ import {GachaPFP} from "../src/tokens/GachaPFP.sol";
  * @dev Optional environment variables:
  *   SPIN_FEE                      - Custom spin fee in USDC 6-decimal units (default: 25_000_000 = $25)
  *   APPRAISAL_FEE                 - Custom appraisal fee in USDC 6-decimal units (default: 1_000_000 = $1)
+ *   PFP_MINT_PRICE                - PFP mint price in wei (default: 1e16 = 0.01 POL)
+ *   PFP_MAX_SUPPLY                - PFP max supply (default: 10,000)
  *
  * @dev Usage:
  *   forge script script/DeployMainnet.s.sol:DeployMainnet \
@@ -49,6 +51,8 @@ contract DeployMainnet is Script {
     address constant TEMP_GACHA_ADDRESS = 0x1111111111111111111111111111111111111111;
     uint256 constant DEFAULT_SPIN_FEE = 25_000_000; // 25 USDC (6 decimals)
     uint256 constant DEFAULT_APPRAISAL_FEE = 1_000_000; // 1 USDC (6 decimals)
+    uint256 constant DEFAULT_PFP_MINT_PRICE = 1e16; // 0.01 POL
+    uint256 constant DEFAULT_PFP_MAX_SUPPLY = 10_000;
 
     // Price range constants (all in 18 decimals for USD values)
     uint256 constant PRICE_STEP = 1e16;
@@ -100,6 +104,8 @@ contract DeployMainnet is Script {
         // Optional overrides
         uint256 spinFee = vm.envOr("SPIN_FEE", DEFAULT_SPIN_FEE);
         uint256 appraisalFee = vm.envOr("APPRAISAL_FEE", DEFAULT_APPRAISAL_FEE);
+        uint256 pfpMintPrice = vm.envOr("PFP_MINT_PRICE", DEFAULT_PFP_MINT_PRICE);
+        uint256 pfpMaxSupply = vm.envOr("PFP_MAX_SUPPLY", DEFAULT_PFP_MAX_SUPPLY);
 
         console.log("========================================");
         console.log("   MAINNET DEPLOYMENT (Polygon)");
@@ -114,7 +120,8 @@ contract DeployMainnet is Script {
         console.log("========================================");
 
         vm.startBroadcast(deployerKey);
-        Deployments memory d = _deployAll(deployer, protocolOwner, usdc, wavsServiceManager, spinFee, appraisalFee);
+        Deployments memory d =
+            _deployAll(deployer, protocolOwner, usdc, wavsServiceManager, spinFee, appraisalFee, pfpMintPrice, pfpMaxSupply);
 
         // Transfer ownership to protocol owner (multisig)
         if (deployer != protocolOwner) {
@@ -142,7 +149,9 @@ contract DeployMainnet is Script {
         address usdc,
         address wavsServiceManager,
         uint256 spinFee,
-        uint256 appraisalFee
+        uint256 appraisalFee,
+        uint256 pfpMintPrice,
+        uint256 pfpMaxSupply
     ) internal returns (Deployments memory d) {
         d.usdc = usdc;
 
@@ -155,8 +164,8 @@ contract DeployMainnet is Script {
         // Wire all contracts together
         _configureEconomy(d);
 
-        // Deploy PFP collection (free mint, fee-exempt)
-        _deployPfpCollection(d);
+        // Deploy PFP collection (paid mint, supply-capped)
+        _deployPfpCollection(d, protocolOwner, pfpMintPrice, pfpMaxSupply);
 
         console.log("\nAll contracts deployed and wired successfully.");
         return d;
@@ -361,10 +370,12 @@ contract DeployMainnet is Script {
     // PFP COLLECTION
     // =========================================================================
 
-    function _deployPfpCollection(Deployments memory d) internal {
-        GachaPFP pfp = new GachaPFP();
+    function _deployPfpCollection(Deployments memory d, address owner, uint256 mintPrice, uint256 maxSupply) internal {
+        GachaPFP pfp = new GachaPFP(mintPrice, maxSupply, owner);
         d.pfpCollection = address(pfp);
         console.log("GachaPFP:               ", d.pfpCollection);
+        console.log("  Mint price (wei):     ", mintPrice);
+        console.log("  Max supply:           ", maxSupply);
 
         // Whitelist so users can deposit after appraisal
         GachaTreasury(d.treasuryProxy).addToWhitelist(d.pfpCollection);

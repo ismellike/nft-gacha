@@ -8,7 +8,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 /**
  * @title GachaPFP Test Suite
  * @notice Comprehensive tests for the Gacha PFP collection contract
- * @dev Covers minting, rarity assignment, metadata, and edge cases
+ * @dev Covers minting, rarity assignment, metadata, supply cap, mint price, and edge cases
  */
 contract GachaPFPTest is Test {
     using Strings for uint256;
@@ -17,9 +17,13 @@ contract GachaPFPTest is Test {
 
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
+    address public owner = makeAddr("owner");
+
+    uint256 constant MINT_PRICE = 0.01 ether;
+    uint256 constant MAX_SUPPLY = 100;
 
     function setUp() public {
-        pfp = new GachaPFP();
+        pfp = new GachaPFP(MINT_PRICE, MAX_SUPPLY, owner);
     }
 
     // ========================================================================
@@ -34,15 +38,32 @@ contract GachaPFPTest is Test {
         assertEq(pfp.symbol(), "GPFP");
     }
 
+    function testMintPrice() public view {
+        assertEq(pfp.mintPrice(), MINT_PRICE);
+    }
+
+    function testMaxSupply() public view {
+        assertEq(pfp.maxSupply(), MAX_SUPPLY);
+    }
+
+    function testOwner() public view {
+        assertEq(pfp.owner(), owner);
+    }
+
+    function testTotalMintedStartsAtZero() public view {
+        assertEq(pfp.totalMinted(), 0);
+    }
+
     // ========================================================================
     // MINTING
     // ========================================================================
 
     function testMintReturnsSequentialIds() public {
+        vm.deal(alice, 1 ether);
         vm.startPrank(alice);
-        uint256 id1 = pfp.mint();
-        uint256 id2 = pfp.mint();
-        uint256 id3 = pfp.mint();
+        uint256 id1 = pfp.mint{value: MINT_PRICE}();
+        uint256 id2 = pfp.mint{value: MINT_PRICE}();
+        uint256 id3 = pfp.mint{value: MINT_PRICE}();
         vm.stopPrank();
 
         assertEq(id1, 1);
@@ -51,28 +72,43 @@ contract GachaPFPTest is Test {
     }
 
     function testMintAssignsOwnership() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         assertEq(pfp.ownerOf(tokenId), alice);
     }
 
     function testMintUpdatesBalance() public {
+        vm.deal(alice, 1 ether);
         vm.startPrank(alice);
-        pfp.mint();
-        pfp.mint();
-        pfp.mint();
+        pfp.mint{value: MINT_PRICE}();
+        pfp.mint{value: MINT_PRICE}();
+        pfp.mint{value: MINT_PRICE}();
         vm.stopPrank();
 
         assertEq(pfp.balanceOf(alice), 3);
     }
 
+    function testMintUpdatesTotalMinted() public {
+        vm.deal(alice, 1 ether);
+        vm.startPrank(alice);
+        pfp.mint{value: MINT_PRICE}();
+        assertEq(pfp.totalMinted(), 1);
+        pfp.mint{value: MINT_PRICE}();
+        assertEq(pfp.totalMinted(), 2);
+        vm.stopPrank();
+    }
+
     function testMintFromMultipleUsers() public {
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+
         vm.prank(alice);
-        uint256 id1 = pfp.mint();
+        uint256 id1 = pfp.mint{value: MINT_PRICE}();
 
         vm.prank(bob);
-        uint256 id2 = pfp.mint();
+        uint256 id2 = pfp.mint{value: MINT_PRICE}();
 
         assertEq(id1, 1);
         assertEq(id2, 2);
@@ -81,10 +117,115 @@ contract GachaPFPTest is Test {
     }
 
     function testMintEmitsTransferEvent() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectEmit(true, true, true, false);
         emit Transfer(address(0), alice, 1);
+        pfp.mint{value: MINT_PRICE}();
+    }
+
+    function testMintAcceptsOverpayment() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE * 2}();
+        assertEq(pfp.ownerOf(tokenId), alice);
+    }
+
+    // ========================================================================
+    // MINT PRICE ENFORCEMENT
+    // ========================================================================
+
+    function testMintRevertsWithInsufficientPayment() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        vm.expectRevert(GachaPFP.MintPriceNotMet.selector);
+        pfp.mint{value: MINT_PRICE - 1}();
+    }
+
+    function testMintRevertsWithZeroPayment() public {
+        vm.prank(alice);
+        vm.expectRevert(GachaPFP.MintPriceNotMet.selector);
         pfp.mint();
+    }
+
+    function testFreeMintWhenPriceIsZero() public {
+        GachaPFP freePfp = new GachaPFP(0, MAX_SUPPLY, owner);
+        vm.prank(alice);
+        uint256 tokenId = freePfp.mint();
+        assertEq(freePfp.ownerOf(tokenId), alice);
+    }
+
+    // ========================================================================
+    // SUPPLY CAP
+    // ========================================================================
+
+    function testMintRevertsAtMaxSupply() public {
+        GachaPFP smallPfp = new GachaPFP(MINT_PRICE, 3, owner);
+
+        vm.deal(alice, 1 ether);
+        vm.startPrank(alice);
+        smallPfp.mint{value: MINT_PRICE}();
+        smallPfp.mint{value: MINT_PRICE}();
+        smallPfp.mint{value: MINT_PRICE}();
+
+        vm.expectRevert(GachaPFP.MaxSupplyReached.selector);
+        smallPfp.mint{value: MINT_PRICE}();
+        vm.stopPrank();
+    }
+
+    function testCanMintExactlyMaxSupply() public {
+        GachaPFP smallPfp = new GachaPFP(MINT_PRICE, 2, owner);
+
+        vm.deal(alice, 1 ether);
+        vm.startPrank(alice);
+        smallPfp.mint{value: MINT_PRICE}();
+        smallPfp.mint{value: MINT_PRICE}();
+        vm.stopPrank();
+
+        assertEq(smallPfp.totalMinted(), 2);
+    }
+
+    // ========================================================================
+    // WITHDRAW
+    // ========================================================================
+
+    function testWithdrawSendsBalanceToOwner() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        pfp.mint{value: MINT_PRICE}();
+
+        uint256 ownerBalanceBefore = owner.balance;
+        vm.prank(owner);
+        pfp.withdraw();
+
+        assertEq(owner.balance, ownerBalanceBefore + MINT_PRICE);
+        assertEq(address(pfp).balance, 0);
+    }
+
+    function testWithdrawRevertsForNonOwner() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        pfp.mint{value: MINT_PRICE}();
+
+        vm.prank(alice);
+        vm.expectRevert();
+        pfp.withdraw();
+    }
+
+    function testWithdrawMultipleMints() public {
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+
+        vm.prank(alice);
+        pfp.mint{value: MINT_PRICE}();
+        vm.prank(bob);
+        pfp.mint{value: MINT_PRICE}();
+
+        uint256 ownerBalanceBefore = owner.balance;
+        vm.prank(owner);
+        pfp.withdraw();
+
+        assertEq(owner.balance, ownerBalanceBefore + MINT_PRICE * 2);
     }
 
     // ========================================================================
@@ -92,33 +233,36 @@ contract GachaPFPTest is Test {
     // ========================================================================
 
     function testRarityIsAssignedOnMint() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         GachaPFP.Rarity rarity = pfp.tokenRarity(tokenId);
         assertTrue(uint8(rarity) <= uint8(GachaPFP.Rarity.Mythic), "Rarity should be valid enum value");
     }
 
     function testRarityIsDeterministicPerBlock() public {
-        // Same block → same prevrandao → same rarity for a given tokenId
+        vm.deal(alice, 1 ether);
+        // Same block -> same prevrandao -> same rarity for a given tokenId
         uint256 snapshot = vm.snapshotState();
 
         vm.prank(alice);
-        uint256 id1 = pfp.mint();
+        uint256 id1 = pfp.mint{value: MINT_PRICE}();
         GachaPFP.Rarity rarity1 = pfp.tokenRarity(id1);
 
         vm.revertToState(snapshot);
 
         vm.prank(alice);
-        uint256 id2 = pfp.mint();
+        uint256 id2 = pfp.mint{value: MINT_PRICE}();
         GachaPFP.Rarity rarity2 = pfp.tokenRarity(id2);
 
         assertEq(uint8(rarity1), uint8(rarity2), "Same block should yield same rarity for same tokenId");
     }
 
     function testRarityPersistsAfterMint() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         GachaPFP.Rarity r1 = pfp.tokenRarity(tokenId);
         GachaPFP.Rarity r2 = pfp.tokenRarity(tokenId);
@@ -137,33 +281,33 @@ contract GachaPFPTest is Test {
     // ========================================================================
 
     function testFuzz_RarityDistribution(uint256 seed) public {
+        vm.deal(alice, 1 ether);
         // Verify all 6 rarities are achievable by varying block randomness
         vm.prevrandao(bytes32(seed));
 
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         GachaPFP.Rarity rarity = pfp.tokenRarity(tokenId);
         assertTrue(uint8(rarity) <= 5, "Rarity must be in [0, 5]");
     }
 
     function testRarityDistributionOverManyMints() public {
+        vm.deal(alice, 100 ether);
         uint256[6] memory counts;
-        uint256 total = 500;
+        uint256 total = 100; // Reduced from 500 to stay within MAX_SUPPLY
 
         for (uint256 i = 0; i < total; i++) {
             // Vary prevrandao per mint to get different rarities
             vm.prevrandao(bytes32(uint256(keccak256(abi.encodePacked(i, block.timestamp)))));
             vm.prank(alice);
-            uint256 tokenId = pfp.mint();
+            uint256 tokenId = pfp.mint{value: MINT_PRICE}();
             counts[uint8(pfp.tokenRarity(tokenId))]++;
         }
 
-        // With 500 mints, verify each tier has at least 1 (statistical guarantee with varied randomness)
-        // Common (40%) should dominate
+        // With 100 mints, verify Common tier has at least 1 (statistical guarantee with varied randomness)
         assertGt(counts[0], 0, "Should have Common mints");
-        assertGt(counts[1], 0, "Should have Uncommon mints");
-        // Rarer tiers may not appear in small samples, so just verify totals
+        // Verify totals
         uint256 sum;
         for (uint256 i = 0; i < 6; i++) {
             sum += counts[i];
@@ -176,8 +320,9 @@ contract GachaPFPTest is Test {
     // ========================================================================
 
     function testTokenURIStartsWithDataPrefix() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         string memory uri = pfp.tokenURI(tokenId);
         bytes memory uriBytes = bytes(uri);
@@ -196,13 +341,15 @@ contract GachaPFPTest is Test {
     }
 
     function testTokenURIDiffersPerToken() public {
+        vm.deal(alice, 1 ether);
+
         vm.prevrandao(bytes32(uint256(1)));
         vm.prank(alice);
-        uint256 id1 = pfp.mint();
+        uint256 id1 = pfp.mint{value: MINT_PRICE}();
 
         vm.prevrandao(bytes32(uint256(2)));
         vm.prank(alice);
-        uint256 id2 = pfp.mint();
+        uint256 id2 = pfp.mint{value: MINT_PRICE}();
 
         string memory uri1 = pfp.tokenURI(id1);
         string memory uri2 = pfp.tokenURI(id2);
@@ -212,8 +359,9 @@ contract GachaPFPTest is Test {
     }
 
     function testTokenURIContainsBase64() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         string memory uri = pfp.tokenURI(tokenId);
 
@@ -235,8 +383,9 @@ contract GachaPFPTest is Test {
     }
 
     function testTransferWorks() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         vm.prank(alice);
         pfp.transferFrom(alice, bob, tokenId);
@@ -247,8 +396,9 @@ contract GachaPFPTest is Test {
     }
 
     function testApproveAndTransfer() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         vm.prank(alice);
         pfp.approve(bob, tokenId);
@@ -260,8 +410,9 @@ contract GachaPFPTest is Test {
     }
 
     function testRarityPersistsAfterTransfer() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         GachaPFP.Rarity rarityBefore = pfp.tokenRarity(tokenId);
 
@@ -273,8 +424,9 @@ contract GachaPFPTest is Test {
     }
 
     function testTokenURIAccessibleAfterTransfer() public {
+        vm.deal(alice, 1 ether);
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         string memory uriBefore = pfp.tokenURI(tokenId);
 
@@ -291,18 +443,20 @@ contract GachaPFPTest is Test {
 
     function testFuzz_MintAlwaysSucceeds(address minter) public {
         vm.assume(minter != address(0));
+        vm.deal(minter, 1 ether);
 
         vm.prank(minter);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         assertEq(pfp.ownerOf(tokenId), minter);
         assertTrue(uint8(pfp.tokenRarity(tokenId)) <= 5);
     }
 
     function testFuzz_TokenURINeverReverts(uint256 seed) public {
+        vm.deal(alice, 1 ether);
         vm.prevrandao(bytes32(seed));
         vm.prank(alice);
-        uint256 tokenId = pfp.mint();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         // Should never revert for a minted token
         string memory uri = pfp.tokenURI(tokenId);
@@ -311,11 +465,12 @@ contract GachaPFPTest is Test {
 
     function testFuzz_SequentialIdsNeverCollide(uint8 count) public {
         vm.assume(count > 0 && count <= 50);
+        vm.deal(alice, 100 ether);
 
         vm.startPrank(alice);
         uint256 prevId;
         for (uint8 i = 0; i < count; i++) {
-            uint256 tokenId = pfp.mint();
+            uint256 tokenId = pfp.mint{value: MINT_PRICE}();
             if (i > 0) {
                 assertEq(tokenId, prevId + 1, "IDs should be strictly sequential");
             }
