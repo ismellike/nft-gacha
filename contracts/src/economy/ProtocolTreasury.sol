@@ -37,6 +37,7 @@ contract ProtocolTreasury is
     error RedemptionWindowExpired();
     error InvalidArrayLength();
     error InvalidImplementation();
+    error PayoutExceedsTreasuryCap();
 
     /// @notice Payout percentage (in basis points) for NFT redemptions (80%)
     uint256 public constant REDEMPTION_PAYOUT_BPS = 8_000;
@@ -44,6 +45,8 @@ contract ProtocolTreasury is
     uint256 private constant USD_TO_USDC_CONVERSION = 1e12;
     /// @notice Redemption window after winning NFT (configurable by admin); set in initialize()
     uint256 public redemptionWindow;
+    /// @notice Max payout as basis points of treasury balance (0 = no cap)
+    uint256 public maxPayoutBps;
 
     IERC20 private _asset;
     address public economyManager;
@@ -57,6 +60,7 @@ contract ProtocolTreasury is
         address indexed collection, uint256 indexed tokenId, address indexed user, uint256 timeSinceWin
     );
     event RedemptionWindowUpdated(uint256 indexed oldWindow, uint256 indexed newWindow);
+    event MaxPayoutBpsUpdated(uint256 indexed oldBps, uint256 indexed newBps);
 
     modifier onlyEconomyManager() {
         _onlyEconomyManager();
@@ -157,7 +161,13 @@ contract ProtocolTreasury is
         uint256 timeSinceWin = receiveTime > 0 ? block.timestamp - receiveTime : 0;
         emit RedemptionWindowEnforced(collection, tokenId, msg.sender, timeSinceWin);
 
-        if (IERC20(_asset).balanceOf(address(this)) < payout) revert InsufficientLiquidity();
+        uint256 balance = IERC20(_asset).balanceOf(address(this));
+        if (balance < payout) revert InsufficientLiquidity();
+
+        uint256 _maxPayoutBps = maxPayoutBps;
+        if (_maxPayoutBps > 0 && payout > FixedPointMathLib.mulDiv(balance, _maxPayoutBps, 10_000)) {
+            revert PayoutExceedsTreasuryCap();
+        }
 
         IERC721(collection).safeTransferFrom(msg.sender, address(_treasury), tokenId);
         _treasury.handleRedemptionReturn(collection, tokenId, msg.sender, appraisalUSD);
@@ -260,6 +270,17 @@ contract ProtocolTreasury is
     }
 
     /**
+     * @notice Updates the max payout cap as basis points of treasury balance
+     * @param newBps New cap in basis points (0 = disabled, 1000 = 10%)
+     * @dev Only owner can call this function
+     */
+    function setMaxPayoutBps(uint256 newBps) external onlyOwner {
+        uint256 oldBps = maxPayoutBps;
+        maxPayoutBps = newBps;
+        emit MaxPayoutBpsUpdated(oldBps, newBps);
+    }
+
+    /**
      * @notice Authorizes UUPS upgrades
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
@@ -267,5 +288,5 @@ contract ProtocolTreasury is
         if (newImplementation.code.length == 0) revert InvalidImplementation();
     }
 
-    uint256[44] private __gap;
+    uint256[43] private __gap;
 }

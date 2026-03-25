@@ -174,6 +174,81 @@ contract EconomyFlowTest is Test, IERC721Receiver {
         );
     }
 
+    function testBuybackRevertsWhenPayoutExceedsTreasuryCap() public {
+        usdc.mint(address(this), REVENUE_AMOUNT);
+        usdc.approve(address(economy), REVENUE_AMOUNT);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
+
+        // Set max payout to 0.01% of treasury balance — too low for the redemption
+        protocolTreasury.setMaxPayoutBps(1);
+
+        uint256 tokenId = collection.mint(address(this));
+        appraisal.setMockAppraisal(address(collection), tokenId, APPRAISAL_PRICE);
+
+        collection.setApprovalForAll(address(treasury), true);
+        treasury.depositNFT(address(collection), tokenId);
+
+        GachaTreasury.NFTItem memory wonItem = treasury.sendRandomNFTToWinner(1, 0, SPINNER);
+
+        vm.startPrank(SPINNER);
+        collection.approve(address(protocolTreasury), wonItem.tokenId);
+
+        vm.expectRevert(abi.encodeWithSelector(ProtocolTreasury.PayoutExceedsTreasuryCap.selector));
+        protocolTreasury.executeRedemption(address(collection), wonItem.tokenId);
+        vm.stopPrank();
+    }
+
+    function testBuybackSucceedsWhenPayoutWithinTreasuryCap() public {
+        usdc.mint(address(this), REVENUE_AMOUNT);
+        usdc.approve(address(economy), REVENUE_AMOUNT);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
+
+        // Set max payout to 100% of treasury balance — generous cap
+        protocolTreasury.setMaxPayoutBps(10_000);
+
+        uint256 tokenId = collection.mint(address(this));
+        appraisal.setMockAppraisal(address(collection), tokenId, APPRAISAL_PRICE);
+
+        collection.setApprovalForAll(address(treasury), true);
+        treasury.depositNFT(address(collection), tokenId);
+
+        GachaTreasury.NFTItem memory wonItem = treasury.sendRandomNFTToWinner(1, 0, SPINNER);
+
+        vm.startPrank(SPINNER);
+        collection.approve(address(protocolTreasury), wonItem.tokenId);
+
+        uint256 payout = protocolTreasury.executeRedemption(address(collection), wonItem.tokenId);
+        vm.stopPrank();
+
+        uint256 expectedPayout = (APPRAISAL_PRICE * 8_000) / 10_000 / 1e12;
+        assertEq(payout, expectedPayout, "Payout should succeed within cap");
+    }
+
+    function testBuybackSucceedsWhenCapDisabled() public {
+        usdc.mint(address(this), REVENUE_AMOUNT);
+        usdc.approve(address(economy), REVENUE_AMOUNT);
+        economy.onSpinRevenue(REVENUE_AMOUNT, 1);
+
+        // maxPayoutBps defaults to 0 (disabled)
+        assertEq(protocolTreasury.maxPayoutBps(), 0, "Cap should be disabled by default");
+
+        uint256 tokenId = collection.mint(address(this));
+        appraisal.setMockAppraisal(address(collection), tokenId, APPRAISAL_PRICE);
+
+        collection.setApprovalForAll(address(treasury), true);
+        treasury.depositNFT(address(collection), tokenId);
+
+        GachaTreasury.NFTItem memory wonItem = treasury.sendRandomNFTToWinner(1, 0, SPINNER);
+
+        vm.startPrank(SPINNER);
+        collection.approve(address(protocolTreasury), wonItem.tokenId);
+
+        uint256 payout = protocolTreasury.executeRedemption(address(collection), wonItem.tokenId);
+        vm.stopPrank();
+
+        assertGt(payout, 0, "Payout should succeed when cap is disabled");
+    }
+
     function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
