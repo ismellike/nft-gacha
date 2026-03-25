@@ -129,12 +129,7 @@ contract GachaTreasuryReader {
         hasMore = offset + resultLength < total;
     }
 
-    function getUserDepositedNFTsByCardIdPaginated(
-        address user,
-        bytes32 cardId,
-        uint256 offset,
-        uint256 limit
-    )
+    function getUserDepositedNFTsByCardIdPaginated(address user, bytes32 cardId, uint256 offset, uint256 limit)
         external
         view
         returns (IGachaTreasuryRead.NFTItem[] memory items, uint256 total, bool hasMore)
@@ -187,11 +182,7 @@ contract GachaTreasuryReader {
         hasMore = offset + resultLength < total;
     }
 
-    function getUserDepositedNFTs(address user)
-        external
-        view
-        returns (IGachaTreasuryRead.NFTItem[] memory items)
-    {
+    function getUserDepositedNFTs(address user) external view returns (IGachaTreasuryRead.NFTItem[] memory items) {
         if (user == address(0)) return new IGachaTreasuryRead.NFTItem[](0);
 
         uint8 numRarities = treasury.getNumRarities();
@@ -268,11 +259,7 @@ contract GachaTreasuryReader {
         totalClaimed = treasury.globalLifetimeClaimed();
     }
 
-    function getGlobalStats()
-        external
-        view
-        returns (uint256 totalDeposited, uint256 totalClaimed)
-    {
+    function getGlobalStats() external view returns (uint256 totalDeposited, uint256 totalClaimed) {
         totalDeposited = treasury.globalLifetimeDeposited();
         totalClaimed = treasury.globalLifetimeClaimed();
     }

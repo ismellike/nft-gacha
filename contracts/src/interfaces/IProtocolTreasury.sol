@@ -53,7 +53,5 @@ interface IProtocolTreasury {
      * @param tokenId NFT identifier
      * @return payout Amount of USDC paid to the caller
      */
-    function executeRedemption(address collection, uint256 tokenId)
-        external
-        returns (uint256 payout);
+    function executeRedemption(address collection, uint256 tokenId) external returns (uint256 payout);
 }

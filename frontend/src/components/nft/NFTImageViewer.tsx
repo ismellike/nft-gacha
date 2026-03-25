@@ -247,6 +247,7 @@ export const NFTImageViewer = memo<NFTImageViewerProps>(
 					{/* Image container */}
 					<div
 						ref={containerRef}
+						role="application"
 						className={cn(
 							"relative overflow-hidden select-none",
 							"w-[80vw] h-[80vh] max-w-[800px] max-h-[800px]",

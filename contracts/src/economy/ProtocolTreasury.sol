@@ -53,7 +53,9 @@ contract ProtocolTreasury is
     event GachaTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
     event AppraisalOracleUpdated(address indexed previousOracle, address indexed newOracle);
     event EconomyManagerUpdated(address indexed previousManager, address indexed newManager);
-    event RedemptionWindowEnforced(address indexed collection, uint256 indexed tokenId, address indexed user, uint256 timeSinceWin);
+    event RedemptionWindowEnforced(
+        address indexed collection, uint256 indexed tokenId, address indexed user, uint256 timeSinceWin
+    );
     event RedemptionWindowUpdated(uint256 indexed oldWindow, uint256 indexed newWindow);
 
     modifier onlyEconomyManager() {
@@ -134,9 +136,8 @@ contract ProtocolTreasury is
             appraisalOracle.getAppraisedPrice(collection, tokenId);
         if (
             appraisalUSD == 0
-                || (
-                    status != NFTAppraisal.AppraisalStatus.Completed && status != NFTAppraisal.AppraisalStatus.OwnerOverride
-                )
+                || (status != NFTAppraisal.AppraisalStatus.Completed
+                    && status != NFTAppraisal.AppraisalStatus.OwnerOverride)
         ) {
             revert AppraisalMissing();
         }
@@ -225,7 +226,11 @@ contract ProtocolTreasury is
      * @param tokenId NFT identifier
      * @return remainingTime Remaining time in seconds (0 if expired)
      */
-    function getRemainingRedemptionWindow(address collection, uint256 tokenId) external view returns (uint256 remainingTime) {
+    function getRemainingRedemptionWindow(address collection, uint256 tokenId)
+        external
+        view
+        returns (uint256 remainingTime)
+    {
         uint256 deadline = _treasury.getNFTRedemptionDeadline(collection, tokenId);
         if (deadline == 0 || block.timestamp >= deadline) return 0;
         return deadline - block.timestamp;

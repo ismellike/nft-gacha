@@ -64,17 +64,17 @@ contract GasSnapshots is Test {
 
         // Initialize treasury with price ranges
         uint256[] memory minPrices = new uint256[](5);
-        minPrices[0] = uint256(0);              // Common
-        minPrices[1] = uint256(15.01e18);        // Uncommon
-        minPrices[2] = uint256(60.01e18);        // Rare
-        minPrices[3] = uint256(250.01e18);       // Epic
-        minPrices[4] = uint256(1200.01e18);      // Legendary
+        minPrices[0] = uint256(0); // Common
+        minPrices[1] = uint256(15.01e18); // Uncommon
+        minPrices[2] = uint256(60.01e18); // Rare
+        minPrices[3] = uint256(250.01e18); // Epic
+        minPrices[4] = uint256(1200.01e18); // Legendary
 
         uint256[] memory maxPrices = new uint256[](5);
-        maxPrices[0] = uint256(15e18);           // Common
-        maxPrices[1] = uint256(60e18);           // Uncommon
-        maxPrices[2] = uint256(250e18);          // Rare
-        maxPrices[3] = uint256(1200e18);         // Epic
+        maxPrices[0] = uint256(15e18); // Common
+        maxPrices[1] = uint256(60e18); // Uncommon
+        maxPrices[2] = uint256(250e18); // Rare
+        maxPrices[3] = uint256(1200e18); // Epic
         maxPrices[4] = uint256(type(uint256).max); // Legendary (no max)
 
         string[] memory rarityNames = new string[](5);
@@ -85,15 +85,7 @@ contract GasSnapshots is Test {
         rarityNames[4] = "Legendary";
 
         vm.prank(owner);
-        treasury.initialize(
-            owner,
-            gachaContract,
-            address(mockAppraisal),
-            uint8(5),
-            rarityNames,
-            minPrices,
-            maxPrices
-        );
+        treasury.initialize(owner, gachaContract, address(mockAppraisal), uint8(5), rarityNames, minPrices, maxPrices);
 
         // Set vault and protocol addresses
         vm.prank(owner);

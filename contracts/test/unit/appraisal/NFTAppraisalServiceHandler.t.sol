@@ -24,10 +24,7 @@ contract NFTAppraisalServiceHandlerTest is StandardTest {
         mockAppraisal = new MockNFTAppraisal();
         collection = makeAddr("collection");
 
-        handler = new NFTAppraisalServiceHandler(
-            IWavsServiceManager(address(mockWavsManager)),
-            address(mockAppraisal)
-        );
+        handler = new NFTAppraisalServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(mockAppraisal));
     }
 
     function testDeployment() public view {
@@ -36,16 +33,12 @@ contract NFTAppraisalServiceHandlerTest is StandardTest {
     }
 
     function testDeploymentFailsWithZeroServiceManager() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(NFTAppraisalServiceHandler.InvalidServiceManager.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(NFTAppraisalServiceHandler.InvalidServiceManager.selector));
         new NFTAppraisalServiceHandler(IWavsServiceManager(address(0)), address(mockAppraisal));
     }
 
     function testDeploymentFailsWithZeroAppraisal() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(NFTAppraisalServiceHandler.InvalidAppraisalContract.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(NFTAppraisalServiceHandler.InvalidAppraisalContract.selector));
         new NFTAppraisalServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(0));
     }
 

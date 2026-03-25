@@ -53,7 +53,5 @@ interface IGacha {
     function fulfillRandomness(uint256 triggerId, bytes32 randomness) external;
 
     /// @notice Spin with permit and max fee guard
-    function spinWithPermit(uint256 deadline, uint8 v, bytes32 r, bytes32 s, uint256 maxFee)
-        external
-        returns (uint256);
+    function spinWithPermit(uint256 deadline, uint8 v, bytes32 r, bytes32 s, uint256 maxFee) external returns (uint256);
 }

@@ -41,20 +41,20 @@ contract CardGroupedVaultFuzz is Test {
 
     uint256 constant PRECISION = 1e18;
 
-    uint8 constant COMMON    = 0;
-    uint8 constant UNCOMMON  = 1;
-    uint8 constant RARE      = 2;
-    uint8 constant EPIC      = 3;
+    uint8 constant COMMON = 0;
+    uint8 constant UNCOMMON = 1;
+    uint8 constant RARE = 2;
+    uint8 constant EPIC = 3;
     uint8 constant LEGENDARY = 4;
 
     // Price bounds: keep count×price/PRECISION small to bound rounding error.
     // With MAX_PRICE=200e18 and MAX_COUNT=50:
     //   maxValuePerCard = 50 × 200e18 / 1e18 = 10_000  (in 6-dec USDC per increment unit)
-    uint256 constant MIN_PRICE = 1e15;    // $0.001
-    uint256 constant MAX_PRICE = 200e18;  // $200  — keeps rounding tractable
+    uint256 constant MIN_PRICE = 1e15; // $0.001
+    uint256 constant MAX_PRICE = 200e18; // $200  — keeps rounding tractable
 
     // Yield bounds (6-dec USDC)
-    uint256 constant MIN_YIELD = 1e4;    // 0.01 USDC — large enough to survive YieldTooSmall
+    uint256 constant MIN_YIELD = 1e4; // 0.01 USDC — large enough to survive YieldTooSmall
     uint256 constant MAX_YIELD = 100_000e6; // $100k
 
     // Count bounds
@@ -68,12 +68,12 @@ contract CardGroupedVaultFuzz is Test {
     CardGroupedVault vault;
     BaseERC20 usdc;
 
-    address owner          = address(0x1);
-    address treasury       = address(0x2);
+    address owner = address(0x1);
+    address treasury = address(0x2);
     address economyManager = address(0x3);
 
     address alice = address(0xA);
-    address bob   = address(0xB);
+    address bob = address(0xB);
     address carol = address(0xC);
 
     bytes32 constant CARD_A = keccak256("card-A");
@@ -172,7 +172,11 @@ contract CardGroupedVaultFuzz is Test {
         return numDists * perDist + 1;
     }
 
-    function _toleranceEx(uint256 count, uint256 price, uint256 numDists, uint256 numCorrections) internal pure returns (uint256) {
+    function _toleranceEx(uint256 count, uint256 price, uint256 numDists, uint256 numCorrections)
+        internal
+        pure
+        returns (uint256)
+    {
         uint256 perDist = Math.mulDiv(count, price, PRECISION) + 1;
         return numDists * perDist + numCorrections * (count + 1) + 1;
     }
@@ -211,11 +215,11 @@ contract CardGroupedVaultFuzz is Test {
         uint256 count
     ) public {
         count = bound(count, MIN_COUNT, MAX_COUNT);
-        p0    = bound(p0, MIN_PRICE, MAX_PRICE);
-        p1    = bound(p1, MIN_PRICE, MAX_PRICE);
+        p0 = bound(p0, MIN_PRICE, MAX_PRICE);
+        p1 = bound(p1, MIN_PRICE, MAX_PRICE);
 
         uint256 totalVal = count * p0;
-        uint256 safeMin  = _safeMinYield(totalVal);
+        uint256 safeMin = _safeMinYield(totalVal);
         y1 = bound(y1, safeMin, MAX_YIELD / 3);
         y2 = bound(y2, safeMin, MAX_YIELD / 3);
         y3 = bound(y3, safeMin, MAX_YIELD / 3);
@@ -226,7 +230,7 @@ contract CardGroupedVaultFuzz is Test {
 
         // After price change, totalValueUSD changes; recompute safeMin for y2/y3
         uint256 totalVal2 = count * p1;
-        uint256 safeMin2  = _safeMinYield(totalVal2);
+        uint256 safeMin2 = _safeMinYield(totalVal2);
         if (y2 < safeMin2 || y3 < safeMin2) {
             // Skip this run — yield would be too small for the new price
             return;
@@ -257,14 +261,14 @@ contract CardGroupedVaultFuzz is Test {
         uint256 p1,
         uint256 p2,
         uint256 y1,
-        uint8   rarity,
+        uint8 rarity,
         uint256 count
     ) public {
         rarity = uint8(bound(rarity, 0, 4));
-        p0     = bound(p0, MIN_PRICE, MAX_PRICE);
-        p1     = bound(p1, MIN_PRICE, MAX_PRICE);
-        p2     = bound(p2, MIN_PRICE, MAX_PRICE);
-        count  = bound(count, MIN_COUNT, MAX_COUNT);
+        p0 = bound(p0, MIN_PRICE, MAX_PRICE);
+        p1 = bound(p1, MIN_PRICE, MAX_PRICE);
+        p2 = bound(p2, MIN_PRICE, MAX_PRICE);
+        count = bound(count, MIN_COUNT, MAX_COUNT);
 
         uint256 safeMin = _safeMinYield(count * p0);
         y1 = bound(y1, safeMin, MAX_YIELD);
@@ -280,7 +284,7 @@ contract CardGroupedVaultFuzz is Test {
 
         // Additional safe distribution
         uint256 totalVal2 = count * p2;
-        uint256 safeMin2  = _safeMinYield(totalVal2);
+        uint256 safeMin2 = _safeMinYield(totalVal2);
         if (safeMin2 <= MAX_YIELD) {
             _distribute(safeMin2 + 1, rarity);
             assertGe(vault.pendingYield(alice), 0, "negative pending after second distribution");
@@ -306,8 +310,8 @@ contract CardGroupedVaultFuzz is Test {
         uint256 count
     ) public {
         count = bound(count, MIN_COUNT, MAX_COUNT);
-        p0    = bound(p0, MIN_PRICE, MAX_PRICE);
-        p1    = bound(p1, MIN_PRICE, MAX_PRICE);
+        p0 = bound(p0, MIN_PRICE, MAX_PRICE);
+        p1 = bound(p1, MIN_PRICE, MAX_PRICE);
 
         uint256 safeMin1 = _safeMinYield(count * p0);
         y1 = bound(y1, safeMin1, MAX_YIELD / 2);
@@ -329,7 +333,7 @@ contract CardGroupedVaultFuzz is Test {
         // Reference: period-1 yield at old price + period-2 yield at new price
         uint256 refYield1 = Math.mulDiv(count * p0, acc1 - acc0, PRECISION);
         uint256 refYield2 = Math.mulDiv(count * p1, acc2 - acc1, PRECISION);
-        uint256 refTotal  = refYield1 + refYield2;
+        uint256 refTotal = refYield1 + refYield2;
 
         uint256 actual = vault.pendingYield(alice);
         // 2 distributions + 1 price change correction (mulDiv rounding amplified by count)
@@ -347,8 +351,8 @@ contract CardGroupedVaultFuzz is Test {
         uint256 yieldAfter,
         uint256 count
     ) public {
-        count    = bound(count, MIN_COUNT, MAX_COUNT);
-        price    = bound(price, MIN_PRICE, MAX_PRICE);
+        count = bound(count, MIN_COUNT, MAX_COUNT);
+        price = bound(price, MIN_PRICE, MAX_PRICE);
         newPrice = bound(newPrice, MIN_PRICE, MAX_PRICE);
 
         uint256 safeMin1 = _safeMinYield(count * price);
@@ -387,17 +391,17 @@ contract CardGroupedVaultFuzz is Test {
     function testFuzz_RarityMigration_PreservesYield(
         uint256 price,
         uint256 newPrice,
-        uint8   oldRarity,
-        uint8   newRarity,
+        uint8 oldRarity,
+        uint8 newRarity,
         uint256 yieldOld,
         uint256 yieldNew,
         uint256 count
     ) public {
-        count     = bound(count, MIN_COUNT, MAX_COUNT);
+        count = bound(count, MIN_COUNT, MAX_COUNT);
         oldRarity = uint8(bound(oldRarity, 0, 4));
         newRarity = uint8(bound(newRarity, 0, 4));
-        price     = bound(price, MIN_PRICE, MAX_PRICE);
-        newPrice  = bound(newPrice, MIN_PRICE, MAX_PRICE);
+        price = bound(price, MIN_PRICE, MAX_PRICE);
+        newPrice = bound(newPrice, MIN_PRICE, MAX_PRICE);
 
         uint256 safeMin1 = _safeMinYield(count * price);
         yieldOld = bound(yieldOld, safeMin1, MAX_YIELD / 2);
@@ -414,10 +418,7 @@ contract CardGroupedVaultFuzz is Test {
         uint256 pendingAfterMigration = vault.pendingYield(alice);
         // 1 distribution + 1 migration settlement (mulDiv rounding amplified by count)
         uint256 tol1 = _toleranceEx(count, price > newPrice ? price : newPrice, 1, 1);
-        assertApproxEqAbs(
-            pendingAfterMigration, pendingBeforeMigration, tol1,
-            "migration: pre-migration yield changed"
-        );
+        assertApproxEqAbs(pendingAfterMigration, pendingBeforeMigration, tol1, "migration: pre-migration yield changed");
 
         uint256 safeMin2 = _safeMinYield(count * newPrice);
         yieldNew = bound(yieldNew, safeMin2, MAX_YIELD / 2);
@@ -482,31 +483,31 @@ contract CardGroupedVaultFuzz is Test {
         uint256 aliceCount,
         uint256 bobCount,
         uint256 yieldAmount,
-        uint8   rarity
+        uint8 rarity
     ) public {
-        rarity     = uint8(bound(rarity, 0, 4));
-        price      = bound(price, MIN_PRICE, MAX_PRICE);
+        rarity = uint8(bound(rarity, 0, 4));
+        price = bound(price, MIN_PRICE, MAX_PRICE);
         aliceCount = bound(aliceCount, MIN_COUNT, MAX_COUNT);
-        bobCount   = bound(bobCount,   MIN_COUNT, MAX_COUNT);
+        bobCount = bound(bobCount, MIN_COUNT, MAX_COUNT);
 
         uint256 totalCount = aliceCount + bobCount;
-        uint256 safeMin    = _safeMinYield(totalCount * price);
+        uint256 safeMin = _safeMinYield(totalCount * price);
         // Ensure meaningful split (at least $1 USDC)
         yieldAmount = bound(yieldAmount, safeMin > 1e6 ? safeMin : 1e6, MAX_YIELD);
 
         _deposit(CARD_A, alice, price, rarity, aliceCount);
-        _deposit(CARD_A, bob,   price, rarity, bobCount);
+        _deposit(CARD_A, bob, price, rarity, bobCount);
         _distribute(yieldAmount, rarity);
 
         uint256 expectedAlice = Math.mulDiv(yieldAmount, aliceCount, totalCount);
-        uint256 expectedBob   = Math.mulDiv(yieldAmount, bobCount,   totalCount);
+        uint256 expectedBob = Math.mulDiv(yieldAmount, bobCount, totalCount);
 
         uint256 alicePending = vault.pendingYield(alice);
-        uint256 bobPending   = vault.pendingYield(bob);
+        uint256 bobPending = vault.pendingYield(bob);
 
         uint256 tol = _tolerance(aliceCount > bobCount ? aliceCount : bobCount, price, 1);
         assertApproxEqAbs(alicePending, expectedAlice, tol, "two-dep: alice proportion wrong");
-        assertApproxEqAbs(bobPending,   expectedBob,   tol, "two-dep: bob proportion wrong");
+        assertApproxEqAbs(bobPending, expectedBob, tol, "two-dep: bob proportion wrong");
 
         // Sum must not exceed distributed
         assertLe(alicePending + bobPending, yieldAmount + 2, "two-dep: sum > distributed");
@@ -522,22 +523,22 @@ contract CardGroupedVaultFuzz is Test {
         uint256 carolCount,
         uint256 yieldAmount
     ) public {
-        price      = bound(price, MIN_PRICE, MAX_PRICE);
+        price = bound(price, MIN_PRICE, MAX_PRICE);
         aliceCount = bound(aliceCount, MIN_COUNT, MAX_COUNT);
-        bobCount   = bound(bobCount,   MIN_COUNT, MAX_COUNT);
+        bobCount = bound(bobCount, MIN_COUNT, MAX_COUNT);
         carolCount = bound(carolCount, MIN_COUNT, MAX_COUNT);
 
         uint256 totalCount = aliceCount + bobCount + carolCount;
-        uint256 safeMin    = _safeMinYield(totalCount * price);
+        uint256 safeMin = _safeMinYield(totalCount * price);
         yieldAmount = bound(yieldAmount, safeMin, MAX_YIELD);
 
         _deposit(CARD_A, alice, price, COMMON, aliceCount);
-        _deposit(CARD_A, bob,   price, COMMON, bobCount);
+        _deposit(CARD_A, bob, price, COMMON, bobCount);
         _deposit(CARD_A, carol, price, COMMON, carolCount);
         _distribute(yieldAmount, COMMON);
 
         (uint256 aliceClaimed,) = _safeClaim(alice);
-        (uint256 bobClaimed,)   = _safeClaim(bob);
+        (uint256 bobClaimed,) = _safeClaim(bob);
         (uint256 carolClaimed,) = _safeClaim(carol);
 
         // Allow 1 wei per depositor rounding
@@ -554,30 +555,30 @@ contract CardGroupedVaultFuzz is Test {
         uint256 countA,
         uint256 countB,
         uint256 yieldAmount,
-        uint8   rarity
+        uint8 rarity
     ) public {
-        rarity  = uint8(bound(rarity, 0, 4));
-        priceA  = bound(priceA, MIN_PRICE, MAX_PRICE);
-        priceB  = bound(priceB, MIN_PRICE, MAX_PRICE);
-        countA  = bound(countA, MIN_COUNT, MAX_COUNT);
-        countB  = bound(countB, MIN_COUNT, MAX_COUNT);
+        rarity = uint8(bound(rarity, 0, 4));
+        priceA = bound(priceA, MIN_PRICE, MAX_PRICE);
+        priceB = bound(priceB, MIN_PRICE, MAX_PRICE);
+        countA = bound(countA, MIN_COUNT, MAX_COUNT);
+        countB = bound(countB, MIN_COUNT, MAX_COUNT);
 
         uint256 totalValue = countA * priceA + countB * priceB;
-        uint256 safeMin    = _safeMinYield(totalValue);
+        uint256 safeMin = _safeMinYield(totalValue);
         // At least large enough for a meaningful split (both sides get >0)
         yieldAmount = bound(yieldAmount, safeMin > 1e6 ? safeMin : 1e6, MAX_YIELD);
 
         _deposit(CARD_A, alice, priceA, rarity, countA);
-        _deposit(CARD_B, bob,   priceB, rarity, countB);
+        _deposit(CARD_B, bob, priceB, rarity, countB);
         _distribute(yieldAmount, rarity);
 
         uint256 expectedAlice = Math.mulDiv(yieldAmount, countA * priceA, totalValue);
-        uint256 expectedBob   = Math.mulDiv(yieldAmount, countB * priceB, totalValue);
+        uint256 expectedBob = Math.mulDiv(yieldAmount, countB * priceB, totalValue);
 
         uint256 tolA = _tolerance(countA, priceA, 1);
         uint256 tolB = _tolerance(countB, priceB, 1);
         assertApproxEqAbs(vault.pendingYield(alice), expectedAlice, tolA, "diff-price: alice proportion wrong");
-        assertApproxEqAbs(vault.pendingYield(bob),   expectedBob,   tolB, "diff-price: bob proportion wrong");
+        assertApproxEqAbs(vault.pendingYield(bob), expectedBob, tolB, "diff-price: bob proportion wrong");
 
         // Global invariant
         assertLe(vault.totalYieldClaimed(), vault.totalYieldDistributed());
@@ -590,13 +591,9 @@ contract CardGroupedVaultFuzz is Test {
     /**
      * @notice Fuzz: Many small yield distributions accumulate correctly.
      */
-    function testFuzz_SmallYieldDistributions_Accumulate(
-        uint256 price,
-        uint256 count,
-        uint8   numDistributions
-    ) public {
-        price            = bound(price, MIN_PRICE, MAX_PRICE);
-        count            = bound(count, MIN_COUNT, MAX_COUNT);
+    function testFuzz_SmallYieldDistributions_Accumulate(uint256 price, uint256 count, uint8 numDistributions) public {
+        price = bound(price, MIN_PRICE, MAX_PRICE);
+        count = bound(count, MIN_COUNT, MAX_COUNT);
         numDistributions = uint8(bound(numDistributions, 1, 20));
 
         _deposit(CARD_A, alice, price, COMMON, count);
@@ -620,11 +617,7 @@ contract CardGroupedVaultFuzz is Test {
     /**
      * @notice Fuzz: Large price combined with small count — no overflow, reasonable pending.
      */
-    function testFuzz_LargePrice_NoOverflow(
-        uint256 price,
-        uint256 count,
-        uint256 yieldAmount
-    ) public {
+    function testFuzz_LargePrice_NoOverflow(uint256 price, uint256 count, uint256 yieldAmount) public {
         // Use a bounded-but-large price
         price = bound(price, MAX_PRICE / 2, MAX_PRICE);
         count = bound(count, 1, MAX_COUNT);
@@ -644,11 +637,7 @@ contract CardGroupedVaultFuzz is Test {
     /**
      * @notice Fuzz: After claim, pending is zero and second claim reverts.
      */
-    function testFuzz_ClaimIdempotent(
-        uint256 price,
-        uint256 count,
-        uint256 yieldAmount
-    ) public {
+    function testFuzz_ClaimIdempotent(uint256 price, uint256 count, uint256 yieldAmount) public {
         price = bound(price, MIN_PRICE, MAX_PRICE);
         count = bound(count, MIN_COUNT, MAX_COUNT);
 
@@ -679,9 +668,9 @@ contract CardGroupedVaultFuzz is Test {
         uint256 y1,
         uint256 y2
     ) public {
-        price        = bound(price, MIN_PRICE, MAX_PRICE);
+        price = bound(price, MIN_PRICE, MAX_PRICE);
         initialCount = bound(initialCount, 2, MAX_COUNT);
-        removeCount  = bound(removeCount, 1, initialCount - 1);
+        removeCount = bound(removeCount, 1, initialCount - 1);
 
         uint256 safeMin1 = _safeMinYield(initialCount * price);
         y1 = bound(y1, safeMin1, MAX_YIELD / 2);
@@ -716,11 +705,7 @@ contract CardGroupedVaultFuzz is Test {
      * @notice Fuzz: Removing all tokens materializes yield into accruedYield (no auto-transfer).
      *         Yield is only paid out on explicit claimYield.
      */
-    function testFuzz_FullRemove_AccruesYield(
-        uint256 price,
-        uint256 count,
-        uint256 yieldAmount
-    ) public {
+    function testFuzz_FullRemove_AccruesYield(uint256 price, uint256 count, uint256 yieldAmount) public {
         price = bound(price, MIN_PRICE, MAX_PRICE);
         count = bound(count, MIN_COUNT, MAX_COUNT);
 
@@ -762,7 +747,7 @@ contract CardGroupedVaultFuzz is Test {
         uint256 y1,
         uint256 y2
     ) public {
-        price  = bound(price, MIN_PRICE, MAX_PRICE);
+        price = bound(price, MIN_PRICE, MAX_PRICE);
         count1 = bound(count1, MIN_COUNT, MAX_COUNT);
         count2 = bound(count2, MIN_COUNT, MAX_COUNT);
 
@@ -844,12 +829,12 @@ contract CardGroupedVaultFuzz is Test {
         uint256 newPrice,
         uint256 count,
         uint256 y1,
-        uint8   newRarity,
+        uint8 newRarity,
         uint256 y2
     ) public {
-        price     = bound(price, MIN_PRICE, MAX_PRICE);
-        newPrice  = bound(newPrice, MIN_PRICE, MAX_PRICE);
-        count     = bound(count, MIN_COUNT, MAX_COUNT);
+        price = bound(price, MIN_PRICE, MAX_PRICE);
+        newPrice = bound(newPrice, MIN_PRICE, MAX_PRICE);
+        count = bound(count, MIN_COUNT, MAX_COUNT);
         newRarity = uint8(bound(newRarity, 0, 4));
 
         uint256 safeMin1 = _safeMinYield(count * price);
@@ -875,22 +860,18 @@ contract CardGroupedVaultFuzz is Test {
     /**
      * @notice Fuzz: After removing all deposits, totalShares is zero.
      */
-    function testFuzz_RemoveAll_ZeroTotalShares(
-        uint256 price,
-        uint256 aliceCount,
-        uint256 bobCount
-    ) public {
-        price      = bound(price, MIN_PRICE, MAX_PRICE);
+    function testFuzz_RemoveAll_ZeroTotalShares(uint256 price, uint256 aliceCount, uint256 bobCount) public {
+        price = bound(price, MIN_PRICE, MAX_PRICE);
         aliceCount = bound(aliceCount, MIN_COUNT, MAX_COUNT);
-        bobCount   = bound(bobCount,   MIN_COUNT, MAX_COUNT);
+        bobCount = bound(bobCount, MIN_COUNT, MAX_COUNT);
 
         _deposit(CARD_A, alice, price, COMMON, aliceCount);
-        _deposit(CARD_A, bob,   price, COMMON, bobCount);
+        _deposit(CARD_A, bob, price, COMMON, bobCount);
 
         assertGt(vault.totalShares(), 0, "shares nonzero after deposits");
 
         _remove(CARD_A, alice, aliceCount);
-        _remove(CARD_A, bob,   bobCount);
+        _remove(CARD_A, bob, bobCount);
 
         assertEq(vault.totalShares(), 0, "totalShares nonzero after all removed");
     }
@@ -911,17 +892,17 @@ contract CardGroupedVaultFuzz is Test {
         uint256 countRare
     ) public {
         priceCommon = bound(priceCommon, MIN_PRICE, MAX_PRICE);
-        priceRare   = bound(priceRare, MIN_PRICE, MAX_PRICE);
+        priceRare = bound(priceRare, MIN_PRICE, MAX_PRICE);
         countCommon = bound(countCommon, MIN_COUNT, MAX_COUNT);
-        countRare   = bound(countRare,   MIN_COUNT, MAX_COUNT);
+        countRare = bound(countRare, MIN_COUNT, MAX_COUNT);
 
         uint256 safeCommon = _safeMinYield(countCommon * priceCommon);
-        uint256 safeRare   = _safeMinYield(countRare * priceRare);
+        uint256 safeRare = _safeMinYield(countRare * priceRare);
         yieldCommon = bound(yieldCommon, safeCommon > 1e4 ? safeCommon : 1e4, MAX_YIELD / 2);
-        yieldRare   = bound(yieldRare,   safeRare > 1e4 ? safeRare : 1e4,   MAX_YIELD / 2);
+        yieldRare = bound(yieldRare, safeRare > 1e4 ? safeRare : 1e4, MAX_YIELD / 2);
 
         _deposit(CARD_A, alice, priceCommon, COMMON, countCommon);
-        _deposit(CARD_B, bob,   priceRare,   RARE,   countRare);
+        _deposit(CARD_B, bob, priceRare, RARE, countRare);
 
         _distribute(yieldCommon, COMMON);
         uint256 tolC = _tolerance(countCommon, priceCommon, 1);
@@ -956,7 +937,7 @@ contract CardGroupedVaultFuzz is Test {
         yieldB = bound(yieldB, safeB > 1e4 ? safeB : 1e4, MAX_YIELD / 2);
 
         _deposit(CARD_A, alice, priceA, COMMON, countA);
-        _deposit(CARD_B, alice, priceB, RARE,   countB);
+        _deposit(CARD_B, alice, priceB, RARE, countB);
 
         _distribute(yieldA, COMMON);
         _distribute(yieldB, RARE);
@@ -991,7 +972,7 @@ contract CardGroupedVaultFuzz is Test {
         yieldB = bound(yieldB, safeB > 1e4 ? safeB : 1e4, MAX_YIELD / 2);
 
         _deposit(CARD_A, alice, priceA, COMMON, countA);
-        _deposit(CARD_B, alice, priceB, RARE,   countB);
+        _deposit(CARD_B, alice, priceB, RARE, countB);
 
         _distribute(yieldA, COMMON);
         _distribute(yieldB, RARE);
@@ -1020,15 +1001,10 @@ contract CardGroupedVaultFuzz is Test {
      * @notice Fuzz: Price round-trip p0 → p1 → p0 with no yield in between —
      *         the two corrections cancel, so pending equals original yield.
      */
-    function testFuzz_PriceRoundTrip_CorrectionCancels(
-        uint256 p0,
-        uint256 p1,
-        uint256 y0,
-        uint256 count
-    ) public {
+    function testFuzz_PriceRoundTrip_CorrectionCancels(uint256 p0, uint256 p1, uint256 y0, uint256 count) public {
         count = bound(count, MIN_COUNT, MAX_COUNT);
-        p0    = bound(p0, MIN_PRICE, MAX_PRICE);
-        p1    = bound(p1, MIN_PRICE, MAX_PRICE);
+        p0 = bound(p0, MIN_PRICE, MAX_PRICE);
+        p1 = bound(p1, MIN_PRICE, MAX_PRICE);
 
         uint256 safeMin = _safeMinYield(count * p0);
         y0 = bound(y0, safeMin, MAX_YIELD);
@@ -1054,16 +1030,10 @@ contract CardGroupedVaultFuzz is Test {
      * CARD_A: p → p+d  and  CARD_B: p → p-d.
      * Alice holds both; total yield should equal y0 + y1 regardless of the asymmetric prices.
      */
-    function testFuzz_PriceDeltaSymmetry(
-        uint256 p,
-        uint256 d,
-        uint256 y0,
-        uint256 y1,
-        uint256 count
-    ) public {
+    function testFuzz_PriceDeltaSymmetry(uint256 p, uint256 d, uint256 y0, uint256 y1, uint256 count) public {
         count = bound(count, MIN_COUNT, MAX_COUNT);
-        p     = bound(p, MIN_PRICE * 2, MAX_PRICE / 2);
-        d     = bound(d, 1, p - 1);                    // keep both prices positive
+        p = bound(p, MIN_PRICE * 2, MAX_PRICE / 2);
+        d = bound(d, 1, p - 1); // keep both prices positive
 
         uint256 totalValue0 = 2 * count * p;
         uint256 safeMin0 = _safeMinYield(totalValue0);
@@ -1103,9 +1073,9 @@ contract CardGroupedVaultFuzz is Test {
         uint256 yieldBefore,
         uint256 yieldAfter
     ) public {
-        price      = bound(price, MIN_PRICE, MAX_PRICE);
+        price = bound(price, MIN_PRICE, MAX_PRICE);
         aliceCount = bound(aliceCount, MIN_COUNT, MAX_COUNT);
-        bobCount   = bound(bobCount,   MIN_COUNT, MAX_COUNT);
+        bobCount = bound(bobCount, MIN_COUNT, MAX_COUNT);
 
         uint256 safeMin1 = _safeMinYield(aliceCount * price);
         yieldBefore = bound(yieldBefore, safeMin1 > 1e4 ? safeMin1 : 1e4, MAX_YIELD / 2);
@@ -1117,19 +1087,19 @@ contract CardGroupedVaultFuzz is Test {
         _deposit(CARD_A, bob, price, COMMON, bobCount);
 
         uint256 totalCount = aliceCount + bobCount;
-        uint256 safeMin2   = _safeMinYield(totalCount * price);
+        uint256 safeMin2 = _safeMinYield(totalCount * price);
         yieldAfter = bound(yieldAfter, safeMin2 > 1e4 ? safeMin2 : 1e4, MAX_YIELD / 2);
         _distribute(yieldAfter, COMMON);
 
-        uint256 expectedBobYield   = Math.mulDiv(yieldAfter, bobCount, totalCount);
+        uint256 expectedBobYield = Math.mulDiv(yieldAfter, bobCount, totalCount);
         uint256 expectedAliceYield = yieldBefore + Math.mulDiv(yieldAfter, aliceCount, totalCount);
 
         uint256 alicePending = vault.pendingYield(alice);
-        uint256 bobPending   = vault.pendingYield(bob);
+        uint256 bobPending = vault.pendingYield(bob);
 
-        uint256 tolBob   = _tolerance(bobCount,   price, 1);
+        uint256 tolBob = _tolerance(bobCount, price, 1);
         uint256 tolAlice = _tolerance(aliceCount, price, 2);
-        assertApproxEqAbs(bobPending,   expectedBobYield,   tolBob,   "late joiner: Bob got historical yield");
+        assertApproxEqAbs(bobPending, expectedBobYield, tolBob, "late joiner: Bob got historical yield");
         assertApproxEqAbs(alicePending, expectedAliceYield, tolAlice, "late joiner: Alice yield wrong");
     }
 
@@ -1140,12 +1110,7 @@ contract CardGroupedVaultFuzz is Test {
     /**
      * @notice Fuzz: Tracking totals through the full deposit → distribute → claim lifecycle.
      */
-    function testFuzz_LifecycleTotals(
-        uint256 price,
-        uint256 count,
-        uint256 y1,
-        uint256 y2
-    ) public {
+    function testFuzz_LifecycleTotals(uint256 price, uint256 count, uint256 y1, uint256 y2) public {
         price = bound(price, MIN_PRICE, MAX_PRICE);
         count = bound(count, MIN_COUNT, MAX_COUNT);
 
@@ -1183,34 +1148,27 @@ contract CardGroupedVaultFuzz is Test {
     /**
      * @notice Fuzz: Mixed price changes + distributions maintain global invariant.
      */
-    function testFuzz_MixedOperations_Invariants(
-        uint256 seed,
-        uint256 count,
-        uint256 yieldBase
-    ) public {
-        count     = bound(count, 2, MAX_COUNT);
+    function testFuzz_MixedOperations_Invariants(uint256 seed, uint256 count, uint256 yieldBase) public {
+        count = bound(count, 2, MAX_COUNT);
         yieldBase = bound(yieldBase, 1e6, 10_000e6);
-        seed      = bound(seed, 0, type(uint128).max);
+        seed = bound(seed, 0, type(uint128).max);
 
         uint256 price = 100e18;
         _deposit(CARD_A, alice, price, COMMON, count);
-        _deposit(CARD_A, bob,   price, COMMON, count);
+        _deposit(CARD_A, bob, price, COMMON, count);
 
         uint256 totalDistributedCommon = 0;
         uint256 numRounds = 5;
 
         for (uint256 i = 0; i < numRounds; i++) {
-            uint256 newPrice = bound(
-                uint256(keccak256(abi.encode(seed, i, "price"))), MIN_PRICE, MAX_PRICE
-            );
+            uint256 newPrice = bound(uint256(keccak256(abi.encode(seed, i, "price"))), MIN_PRICE, MAX_PRICE);
             _updatePrice(CARD_A, newPrice);
 
             // Compute safe min for this new total value
             uint256 totalVal = 2 * count * newPrice;
-            uint256 safeMin  = _safeMinYield(totalVal);
-            uint256 y = bound(
-                uint256(keccak256(abi.encode(seed, i, "yield"))), safeMin > 1e4 ? safeMin : 1e4, yieldBase
-            );
+            uint256 safeMin = _safeMinYield(totalVal);
+            uint256 y =
+                bound(uint256(keccak256(abi.encode(seed, i, "yield"))), safeMin > 1e4 ? safeMin : 1e4, yieldBase);
 
             _distribute(y, COMMON);
             totalDistributedCommon += y;
@@ -1219,7 +1177,7 @@ contract CardGroupedVaultFuzz is Test {
         }
 
         uint256 aliceClaimed = _claim(alice);
-        uint256 bobClaimed   = _claim(bob);
+        uint256 bobClaimed = _claim(bob);
 
         assertLe(aliceClaimed + bobClaimed, totalDistributedCommon + numRounds, "stress: sum exceeds distributed");
         assertLe(vault.totalYieldClaimed(), vault.totalYieldDistributed(), "stress: global invariant");
@@ -1237,7 +1195,7 @@ contract CardGroupedVaultFuzz is Test {
         uint256 y2,
         uint256 count
     ) public {
-        count  = bound(count, MIN_COUNT, MAX_COUNT);
+        count = bound(count, MIN_COUNT, MAX_COUNT);
         price0 = bound(price0, MIN_PRICE, MAX_PRICE);
         price1 = bound(price1, MIN_PRICE, MAX_PRICE);
         price2 = bound(price2, MIN_PRICE, MAX_PRICE);

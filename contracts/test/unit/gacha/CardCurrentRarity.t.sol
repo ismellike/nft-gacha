@@ -73,7 +73,9 @@ contract CardCurrentRarityTest is StandardTest {
 
     function testCardCurrentRaritySetOnDeposit_Legendary() public {
         uint256 tokenId = _depositWithSharedCard(TestConstants.LEGENDARY_PRICE);
-        assertEq(treasury.cardCurrentRarity(SHARED_CARD_ID), TestConstants.LEGENDARY, "Should be Legendary after deposit");
+        assertEq(
+            treasury.cardCurrentRarity(SHARED_CARD_ID), TestConstants.LEGENDARY, "Should be Legendary after deposit"
+        );
     }
 
     function testCardCurrentRarityOverwrittenBySubsequentDeposit() public {

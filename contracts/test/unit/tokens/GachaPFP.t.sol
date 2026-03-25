@@ -208,10 +208,7 @@ contract GachaPFPTest is Test {
         string memory uri2 = pfp.tokenURI(id2);
 
         // URIs should differ (different token IDs at minimum)
-        assertFalse(
-            keccak256(bytes(uri1)) == keccak256(bytes(uri2)),
-            "Different tokens should have different URIs"
-        );
+        assertFalse(keccak256(bytes(uri1)) == keccak256(bytes(uri2)), "Different tokens should have different URIs");
     }
 
     function testTokenURIContainsBase64() public {

@@ -113,7 +113,14 @@ contract AppraisalEconomicsTest is Test {
         rarityNames[4] = "Legendary";
 
         bytes memory initData = abi.encodeWithSelector(
-            GachaTreasury.initialize.selector, owner, address(this), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices
+            GachaTreasury.initialize.selector,
+            owner,
+            address(this),
+            address(appraisal),
+            uint8(5),
+            rarityNames,
+            minPrices,
+            maxPrices
         );
 
         ERC1967Proxy proxy = new ERC1967Proxy(address(treasuryImpl), initData);
@@ -202,9 +209,7 @@ contract AppraisalEconomicsTest is Test {
         treasury.depositNFT(address(collection), tokenId);
         vm.stopPrank();
 
-        assertEq(
-            treasury.getRarityCount(0), 1, "Should be assigned Common rarity based on price"
-        );
+        assertEq(treasury.getRarityCount(0), 1, "Should be assigned Common rarity based on price");
     }
 
     /**
@@ -365,7 +370,9 @@ contract AppraisalEconomicsTest is Test {
         price = appraisalInfo.priceUSD;
         NFTAppraisal.AppraisalStatus status = appraisalInfo.status;
         assertEq(price, ownerPrice, "Should have owner override price");
-        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Should be owner override status");
+        assertEq(
+            uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Should be owner override status"
+        );
 
         // Test economic impact in treasury
         vm.startPrank(user);
@@ -373,11 +380,7 @@ contract AppraisalEconomicsTest is Test {
         treasury.depositNFT(address(collection), tokenId);
         vm.stopPrank();
 
-        assertEq(
-            treasury.getRarityCount(4),
-            1,
-            "Should be Legendary based on owner override price"
-        );
+        assertEq(treasury.getRarityCount(4), 1, "Should be Legendary based on owner override price");
     }
 
     // ========================================================================

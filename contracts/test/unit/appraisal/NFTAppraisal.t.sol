@@ -64,7 +64,11 @@ contract NFTAppraisalTest is StandardTest {
 
     event AppraisalRequested(address indexed nftContract, uint256 indexed tokenId);
     event AppraisalCompleted(
-        address indexed collection, uint256 indexed tokenId, uint256 priceUSD, address indexed appraiser, uint256 timestamp
+        address indexed collection,
+        uint256 indexed tokenId,
+        uint256 priceUSD,
+        address indexed appraiser,
+        uint256 timestamp
     );
     event AppraisalStatusChanged(
         address indexed collection,
@@ -103,16 +107,14 @@ contract NFTAppraisalTest is StandardTest {
 
         // Deploy NFTAppraisal contract with proxy
         NFTAppraisal appraisalImpl = new NFTAppraisal();
-        bytes memory initData = abi.encodeWithSelector(
-            NFTAppraisal.initialize.selector, owner, address(feeToken), APPRAISAL_FEE, protocol
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(NFTAppraisal.initialize.selector, owner, address(feeToken), APPRAISAL_FEE, protocol);
         ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), initData);
         appraisal = NFTAppraisal(address(proxy));
 
         // Deploy service handler
-        serviceHandler = new NFTAppraisalServiceHandler(
-            IWavsServiceManager(address(mockWavsManager)), address(appraisal)
-        );
+        serviceHandler =
+            new NFTAppraisalServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(appraisal));
 
         // Set service handler as the authorized handler for WAVS integration
         vm.prank(owner);
@@ -161,7 +163,9 @@ contract NFTAppraisalTest is StandardTest {
         NFTAppraisal.Appraisal memory appraisalInfo = appraisal.getAppraisal(address(nft), TOKEN_ID_1);
         assertEq(appraisalInfo.requester, user, "Requester should be set correctly");
         assertEq(appraisalInfo.priceUSD, 0, "Initial price should be zero");
-        assertEq(uint256(appraisalInfo.status), uint256(NFTAppraisal.AppraisalStatus.Pending), "Status should be pending");
+        assertEq(
+            uint256(appraisalInfo.status), uint256(NFTAppraisal.AppraisalStatus.Pending), "Status should be pending"
+        );
         assertGt(appraisalInfo.timestamp, 0, "Timestamp should be set");
         assertEq(appraisalInfo.lastUpdated, 0, "LastUpdated should be zero initially");
     }
@@ -211,7 +215,9 @@ contract NFTAppraisalTest is StandardTest {
         // Verify override
         (uint256 price, NFTAppraisal.AppraisalStatus status) = appraisal.getAppraisedPrice(address(nft), 0);
         assertEq(price, newPrice, "Price should be overridden");
-        assertEq(uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Status should be owner override");
+        assertEq(
+            uint256(status), uint256(NFTAppraisal.AppraisalStatus.OwnerOverride), "Status should be owner override"
+        );
     }
 
     /**
@@ -516,15 +522,11 @@ contract NFTAppraisalTest is StandardTest {
         bytes memory payload = abi.encode(successPayload);
 
         IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
-            eventId: bytes20(uint160(address(appraisal))),
-            ordering: bytes12(0),
-            payload: payload
+            eventId: bytes20(uint160(address(appraisal))), ordering: bytes12(0), payload: payload
         });
 
         IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
-            signers: new address[](0),
-            signatures: new bytes[](0),
-            referenceBlock: uint32(block.number)
+            signers: new address[](0), signatures: new bytes[](0), referenceBlock: uint32(block.number)
         });
 
         // Appraiser calls service handler (WAVS integration)
@@ -651,7 +653,9 @@ contract NFTAppraisalTest is StandardTest {
 
         // Check exact fee deductions
         uint256 totalFeesPaid = 30e18; // 3 x 10e18
-        assertEq(feeToken.balanceOf(protocol), protocolInitialBalance + totalFeesPaid, "Protocol should receive 30 tokens");
+        assertEq(
+            feeToken.balanceOf(protocol), protocolInitialBalance + totalFeesPaid, "Protocol should receive 30 tokens"
+        );
         assertEq(feeToken.balanceOf(user), userInitialBalance - totalFeesPaid, "User should pay 30 tokens");
 
         // Complete appraisals

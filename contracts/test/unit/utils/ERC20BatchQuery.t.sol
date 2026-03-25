@@ -53,13 +53,8 @@ contract ERC20BatchQueryTest is Test {
      * @notice Test getTokenInfoBatch returns correct token metadata
      */
     function test_GetTokenInfoBatch_Success() public view {
-        (
-            string memory name,
-            string memory symbol,
-            uint8 decimals,
-            uint256 totalSupply,
-            uint256 userBalance
-        ) = batchQuery.getTokenInfoBatch(address(token), user);
+        (string memory name, string memory symbol, uint8 decimals, uint256 totalSupply, uint256 userBalance) =
+            batchQuery.getTokenInfoBatch(address(token), user);
 
         assertEq(name, "USDC");
         assertEq(symbol, "USDC");
@@ -72,13 +67,8 @@ contract ERC20BatchQueryTest is Test {
      * @notice Test getTokenInfoBatch with zero address returns zero balance
      */
     function test_GetTokenInfoBatch_ZeroUserAddress() public view {
-        (
-            string memory name,
-            string memory symbol,
-            uint8 decimals,
-            uint256 totalSupply,
-            uint256 userBalance
-        ) = batchQuery.getTokenInfoBatch(address(token), address(0));
+        (string memory name, string memory symbol, uint8 decimals, uint256 totalSupply, uint256 userBalance) =
+            batchQuery.getTokenInfoBatch(address(token), address(0));
 
         assertEq(name, "USDC");
         assertEq(symbol, "USDC");
@@ -120,11 +110,7 @@ contract ERC20BatchQueryTest is Test {
         vm.prank(user);
         token.approve(spender, 500e18);
 
-        (uint256 balance, uint256 allowance) = batchQuery.getBalanceAndAllowanceBatch(
-            address(token),
-            user,
-            spender
-        );
+        (uint256 balance, uint256 allowance) = batchQuery.getBalanceAndAllowanceBatch(address(token), user, spender);
 
         assertEq(balance, 1000e18);
         assertEq(allowance, 500e18);
@@ -134,11 +120,7 @@ contract ERC20BatchQueryTest is Test {
      * @notice Test getBalanceAndAllowanceBatch with zero allowance
      */
     function test_GetBalanceAndAllowanceBatch_ZeroAllowance() public view {
-        (uint256 balance, uint256 allowance) = batchQuery.getBalanceAndAllowanceBatch(
-            address(token),
-            user,
-            spender
-        );
+        (uint256 balance, uint256 allowance) = batchQuery.getBalanceAndAllowanceBatch(address(token), user, spender);
 
         assertEq(balance, 1000e18);
         assertEq(allowance, 0);
@@ -153,11 +135,7 @@ contract ERC20BatchQueryTest is Test {
         vm.prank(user);
         token.approve(spender, maxUint);
 
-        (uint256 balance, uint256 allowance) = batchQuery.getBalanceAndAllowanceBatch(
-            address(token),
-            user,
-            spender
-        );
+        (uint256 balance, uint256 allowance) = batchQuery.getBalanceAndAllowanceBatch(address(token), user, spender);
 
         assertEq(balance, 1000e18);
         assertEq(allowance, maxUint);
@@ -287,11 +265,7 @@ contract ERC20BatchQueryTest is Test {
     function test_ZeroBalanceUser() public view {
         address zeroBalanceUser = address(0x99);
 
-        (uint256 balance,) = batchQuery.getBalanceAndAllowanceBatch(
-            address(token),
-            zeroBalanceUser,
-            spender
-        );
+        (uint256 balance,) = batchQuery.getBalanceAndAllowanceBatch(address(token), zeroBalanceUser, spender);
 
         assertEq(balance, 0);
     }

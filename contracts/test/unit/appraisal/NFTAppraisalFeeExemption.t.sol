@@ -57,16 +57,14 @@ contract NFTAppraisalFeeExemptionTest is StandardTest {
 
         // Deploy NFTAppraisal with proxy
         NFTAppraisal impl = new NFTAppraisal();
-        bytes memory initData = abi.encodeWithSelector(
-            NFTAppraisal.initialize.selector, owner, address(feeToken), APPRAISAL_FEE, protocol
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(NFTAppraisal.initialize.selector, owner, address(feeToken), APPRAISAL_FEE, protocol);
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         appraisal = NFTAppraisal(address(proxy));
 
         // Deploy service handler
-        serviceHandler = new NFTAppraisalServiceHandler(
-            IWavsServiceManager(address(mockWavsManager)), address(appraisal)
-        );
+        serviceHandler =
+            new NFTAppraisalServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(appraisal));
 
         vm.prank(owner);
         appraisal.setServiceHandler(address(serviceHandler));

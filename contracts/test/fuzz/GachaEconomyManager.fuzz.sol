@@ -38,14 +38,7 @@ contract GachaEconomyManagerFuzz is Test {
 
         // Deploy economy manager
         economy = new GachaEconomyManager();
-        economy.initialize(
-            address(this),
-            address(usdc),
-            gacha,
-            address(vault),
-            address(protocolTreasury),
-            uint8(5)
-        );
+        economy.initialize(address(this), address(usdc), gacha, address(vault), address(protocolTreasury), uint8(5));
 
         // Mint USDC to gacha
         usdc.mint(gacha, type(uint256).max);
@@ -88,9 +81,7 @@ contract GachaEconomyManagerFuzz is Test {
     /**
      * @notice Fuzz test: Update share basis points within valid range
      */
-    function testFuzz_UpdateShareBps(
-        uint256 newDepositorBps
-    ) public {
+    function testFuzz_UpdateShareBps(uint256 newDepositorBps) public {
         // Bound depositor share to valid range (1 to 9999), derive protocol share
         newDepositorBps = bound(newDepositorBps, 1, 9999);
         uint256 newProtocolBps = 10000 - newDepositorBps;
@@ -134,10 +125,7 @@ contract GachaEconomyManagerFuzz is Test {
     /**
      * @notice Fuzz test: Unauthorized caller should fail
      */
-    function testFuzz_UnauthorizedCaller_Fails(
-        uint256 revenueAmount,
-        address unauthorizedCaller
-    ) public {
+    function testFuzz_UnauthorizedCaller_Fails(uint256 revenueAmount, address unauthorizedCaller) public {
         vm.assume(revenueAmount > 0 && revenueAmount <= 10000e6);
         vm.assume(unauthorizedCaller != gacha);
 
@@ -159,9 +147,7 @@ contract GachaEconomyManagerFuzz is Test {
     /**
      * @notice Fuzz test: Paused contract rejects revenue
      */
-    function testFuzz_PausedContractRejectsRevenue(
-        uint256 revenueAmount
-    ) public {
+    function testFuzz_PausedContractRejectsRevenue(uint256 revenueAmount) public {
         vm.assume(revenueAmount > 0 && revenueAmount <= 10000e6);
 
         economy.pause();

@@ -13,7 +13,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface ICardGroupedVault {
     // ─── Events ─────────────────────────────────────────────────────────
 
-    event CardDepositRegistered(bytes32 indexed cardId, address indexed depositor, uint256 priceUSD, uint8 rarity, uint256 count);
+    event CardDepositRegistered(
+        bytes32 indexed cardId, address indexed depositor, uint256 priceUSD, uint8 rarity, uint256 count
+    );
     event CardDepositRemoved(bytes32 indexed cardId, address indexed depositor, uint256 count);
     event CardPriceUpdated(bytes32 indexed cardId, uint256 oldPriceUSD, uint256 newPriceUSD);
     event CardRarityMigrated(bytes32 indexed cardId, uint8 oldRarity, uint8 newRarity, uint256 newPriceUSD);
@@ -30,7 +32,8 @@ interface ICardGroupedVault {
      * @param rarity    Rarity tier (0-4)
      * @param count     Number of tokens deposited
      */
-    function registerCardDeposit(bytes32 cardId, address depositor, uint256 priceUSD, uint8 rarity, uint256 count) external;
+    function registerCardDeposit(bytes32 cardId, address depositor, uint256 priceUSD, uint8 rarity, uint256 count)
+        external;
 
     /**
      * @notice Remove `count` tokens of a card from a depositor's position

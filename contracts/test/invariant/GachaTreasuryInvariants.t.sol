@@ -21,7 +21,6 @@ import {MockERC721} from "../mocks/MockERC721.sol";
  *    iterating on-chain storage in O(n).
  */
 contract GachaTreasuryHandler is Test {
-
     // ─── Contracts under test ──────────────────────────────────────────
     GachaTreasury public treasury;
     MockNFTAppraisal public appraisal;
@@ -39,10 +38,10 @@ contract GachaTreasuryHandler is Test {
     uint256 constant TOTAL_TOKENS = NUM_ACTORS * TOKENS_PER_ACTOR;
 
     // ─── Price tier helpers ───────────────────────────────────────────
-    uint256 constant COMMON_PRICE   = 10e18;    // rarity 0
-    uint256 constant UNCOMMON_PRICE = 30e18;    // rarity 1
-    uint256 constant RARE_PRICE     = 100e18;   // rarity 2
-    uint256 constant EPIC_PRICE     = 500e18;   // rarity 3
+    uint256 constant COMMON_PRICE = 10e18; // rarity 0
+    uint256 constant UNCOMMON_PRICE = 30e18; // rarity 1
+    uint256 constant RARE_PRICE = 100e18; // rarity 2
+    uint256 constant EPIC_PRICE = 500e18; // rarity 3
     uint256 constant LEGENDARY_PRICE = 2000e18; // rarity 4
 
     // ─── Ghost variables (mirrors of expected on-chain state) ─────────
@@ -166,12 +165,9 @@ contract GachaTreasuryHandler is Test {
             ghost_currentTotal++;
             ghost_depositorCount[actor]++;
             ghost_rarityCount[rarity]++;
-            ghost_depositedTokens.push(DepositedToken({
-                collection: address(nftCollection),
-                tokenId: tokenId,
-                depositor: actor,
-                rarity: rarity
-            }));
+            ghost_depositedTokens.push(
+                DepositedToken({collection: address(nftCollection), tokenId: tokenId, depositor: actor, rarity: rarity})
+            );
 
             // Track vault calls
             if (vault.getRegisterCallCount() > vaultRegisterBefore) {
@@ -303,8 +299,7 @@ contract GachaTreasuryHandler is Test {
         try treasury.onCardPriceUpdated(cardId, newPrice) {
             // Verify vault received the update
             assertTrue(
-                vault.getPriceUpdateCallCount() > priceUpdatesBefore
-                    || vault.getMigrateCallCount() > 0,
+                vault.getPriceUpdateCallCount() > priceUpdatesBefore || vault.getMigrateCallCount() > 0,
                 "vault should see price update or migration"
             );
         } catch {
@@ -347,12 +342,11 @@ contract GachaTreasuryHandler is Test {
                 ghost_currentTotal++;
                 ghost_depositorCount[actor]++;
                 ghost_rarityCount[rarity]++;
-                ghost_depositedTokens.push(DepositedToken({
-                    collection: address(nftCollection),
-                    tokenId: tokenId,
-                    depositor: actor,
-                    rarity: rarity
-                }));
+                ghost_depositedTokens.push(
+                    DepositedToken({
+                        collection: address(nftCollection), tokenId: tokenId, depositor: actor, rarity: rarity
+                    })
+                );
 
                 if (vault.getRegisterCallCount() > vaultRegisterBefore) {
                     ghost_vaultRegisterCalls++;
@@ -451,18 +445,18 @@ contract GachaTreasuryHandler is Test {
         nftCollection.approve(address(treasury), tokenId);
 
         vm.prank(actor);
-        try treasury.depositNFT(address(nftCollection), tokenId) {} catch { return; }
+        try treasury.depositNFT(address(nftCollection), tokenId) {}
+        catch {
+            return;
+        }
 
         ghost_totalDeposited++;
         ghost_currentTotal++;
         ghost_depositorCount[actor]++;
         ghost_rarityCount[fromRarity]++;
-        ghost_depositedTokens.push(DepositedToken({
-            collection: address(nftCollection),
-            tokenId: tokenId,
-            depositor: actor,
-            rarity: fromRarity
-        }));
+        ghost_depositedTokens.push(
+            DepositedToken({collection: address(nftCollection), tokenId: tokenId, depositor: actor, rarity: fromRarity})
+        );
 
         // Now update the price to trigger a rarity change
         appraisal.setMockAppraisalWithCardId(address(nftCollection), tokenId, cardId, toPrice);
@@ -499,7 +493,6 @@ contract GachaTreasuryHandler is Test {
  * I10. userTotalDeposits[user] matches sum of userDepositCounts[user][r] across all rarities
  */
 contract GachaTreasuryInvariants is StdInvariant, Test {
-
     // ========================================================================
     // STATE VARIABLES
     // ========================================================================
@@ -531,9 +524,9 @@ contract GachaTreasuryInvariants is StdInvariant, Test {
 
         uint256[] memory minPrices = new uint256[](5);
         minPrices[0] = 0;
-        minPrices[1] = 15e18 + 1e16;   // $15.01
-        minPrices[2] = 60e18 + 1e16;   // $60.01
-        minPrices[3] = 250e18 + 1e16;  // $250.01
+        minPrices[1] = 15e18 + 1e16; // $15.01
+        minPrices[2] = 60e18 + 1e16; // $60.01
+        minPrices[3] = 250e18 + 1e16; // $250.01
         minPrices[4] = 1200e18 + 1e16; // $1200.01
 
         uint256[] memory maxPrices = new uint256[](5);
@@ -640,8 +633,7 @@ contract GachaTreasuryInvariants is StdInvariant, Test {
             GachaTreasury.NFTItem[] memory items = treasury.getTreasuryItems(i);
             for (uint256 j = 0; j < items.length; j++) {
                 assertTrue(
-                    treasury.isCollectionWhitelisted(items[j].collection),
-                    "I4: NFT from non-whitelisted collection"
+                    treasury.isCollectionWhitelisted(items[j].collection), "I4: NFT from non-whitelisted collection"
                 );
             }
         }
@@ -729,11 +721,8 @@ contract GachaTreasuryInvariants is StdInvariant, Test {
     function invariant_I9_depositedNFTsMappingConsistency() public view {
         uint256 len = handler.ghost_depositedTokens_length();
         for (uint256 i = 0; i < len; i++) {
-            (address col, uint256 tid, , ) = handler.ghost_depositedTokensAt(i);
-            assertTrue(
-                treasury.depositedNFTs(col, tid),
-                "I9: ghost thinks token is deposited but mapping says false"
-            );
+            (address col, uint256 tid,,) = handler.ghost_depositedTokensAt(i);
+            assertTrue(treasury.depositedNFTs(col, tid), "I9: ghost thinks token is deposited but mapping says false");
         }
     }
 
@@ -752,9 +741,7 @@ contract GachaTreasuryInvariants is StdInvariant, Test {
                 sumByRarity += treasury.userDepositCounts(actor, r);
             }
             assertEq(
-                treasury.userTotalDeposits(actor),
-                sumByRarity,
-                "I10: userTotalDeposits != sum of per-rarity counts"
+                treasury.userTotalDeposits(actor), sumByRarity, "I10: userTotalDeposits != sum of per-rarity counts"
             );
         }
     }

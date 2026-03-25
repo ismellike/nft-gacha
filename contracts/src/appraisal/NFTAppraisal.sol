@@ -118,7 +118,9 @@ contract NFTAppraisal is
     event TreasuryWhitelisted(address indexed treasury);
     event TreasuryUnwhitelisted(address indexed treasury);
     event AutoMigrationTriggered(address indexed treasury, address indexed collection, uint256 indexed tokenId);
-    event AutoMigrationFailed(address indexed treasury, address indexed collection, uint256 indexed tokenId, bytes reason);
+    event AutoMigrationFailed(
+        address indexed treasury, address indexed collection, uint256 indexed tokenId, bytes reason
+    );
     event FeeTokenUpdated(address oldToken, address newToken);
     event ProtocolAddressUpdated(address oldAddress, address newAddress);
     event FeeExemptionUpdated(address indexed collection, bool exempt);
@@ -184,9 +186,12 @@ contract NFTAppraisal is
         if (!_isValidNFTContract(collection)) revert InvalidCollection();
 
         // Verify token exists
-        try IERC721(collection).ownerOf(tokenId) returns (address) {
-            // Token exists, continue
-        } catch {
+        try IERC721(collection).ownerOf(tokenId) returns (
+            address
+        ) {
+        // Token exists, continue
+        }
+        catch {
             revert InvalidTokenId();
         }
 
@@ -212,9 +217,7 @@ contract NFTAppraisal is
         });
 
         emit AppraisalRequested(collection, tokenId);
-        emit AppraisalStatusChanged(
-            collection, tokenId, oldStatus, AppraisalStatus.Pending, block.timestamp
-        );
+        emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.Pending, block.timestamp);
     }
 
     /**
@@ -254,9 +257,12 @@ contract NFTAppraisal is
             if (!_isValidNFTContract(collection)) revert InvalidCollection();
 
             // Verify token exists
-            try IERC721(collection).ownerOf(tokenId) returns (address) {
-                // Token exists, continue
-            } catch {
+            try IERC721(collection).ownerOf(tokenId) returns (
+                address
+            ) {
+            // Token exists, continue
+            }
+            catch {
                 revert InvalidTokenId();
             }
 
@@ -275,9 +281,7 @@ contract NFTAppraisal is
 
             // Emit events for external service integration
             emit AppraisalRequested(collection, tokenId);
-            emit AppraisalStatusChanged(
-                collection, tokenId, oldStatus, AppraisalStatus.Pending, block.timestamp
-            );
+            emit AppraisalStatusChanged(collection, tokenId, oldStatus, AppraisalStatus.Pending, block.timestamp);
         }
     }
 
@@ -384,9 +388,12 @@ contract NFTAppraisal is
         bool isOwnerOverride
     ) internal {
         // Verify token exists
-        try IERC721(collection).ownerOf(tokenId) returns (address) {
-            // Token exists
-        } catch {
+        try IERC721(collection).ownerOf(tokenId) returns (
+            address
+        ) {
+        // Token exists
+        }
+        catch {
             revert InvalidTokenId();
         }
 
@@ -617,11 +624,7 @@ contract NFTAppraisal is
      * @dev Returns the canonical (first appraised) NFT instance for the card ID
      * @dev If no canonical instance exists, returns zero address and zero token ID
      */
-    function getCardInstance(bytes32 cardId)
-        external
-        view
-        returns (address collection, uint256 tokenId)
-    {
+    function getCardInstance(bytes32 cardId) external view returns (address collection, uint256 tokenId) {
         CardAppraisal storage cardAppraisal = cardAppraisals[cardId];
 
         // Return the canonical (first) NFT instance for this card

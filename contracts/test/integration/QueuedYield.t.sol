@@ -52,7 +52,9 @@ contract QueuedYield is Test, IERC721Receiver {
         rarityNames[3] = "Epic";
         rarityNames[4] = "Legendary";
 
-        treasury.initialize(address(this), address(0xDEAD), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices);
+        treasury.initialize(
+            address(this), address(0xDEAD), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices
+        );
 
         cardGroupedVault = new CardGroupedVault();
         cardGroupedVault.initialize(address(this), address(usdc), address(treasury), address(this), uint8(5));
@@ -89,9 +91,15 @@ contract QueuedYield is Test, IERC721Receiver {
         economy.onSpinRevenue(REVENUE_AMOUNT, 1);
 
         // Verify depositor share was queued, not sent to protocol
-        assertEq(economy.totalQueuedYield(), (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000, "Queued yield mismatch");
+        assertEq(
+            economy.totalQueuedYield(), (REVENUE_AMOUNT * economy.depositorShareBps()) / 10_000, "Queued yield mismatch"
+        );
         assertEq(usdc.balanceOf(address(cardGroupedVault)), 0, "Depositor vault should have no funds");
-        assertEq(usdc.balanceOf(address(protocolTreasury)), (REVENUE_AMOUNT * economy.protocolShareBps()) / 10_000, "Protocol should only get its share");
+        assertEq(
+            usdc.balanceOf(address(protocolTreasury)),
+            (REVENUE_AMOUNT * economy.protocolShareBps()) / 10_000,
+            "Protocol should only get its share"
+        );
     }
 
     function testQueuedYieldProcessedOnDeposit() public {
@@ -185,12 +193,7 @@ contract QueuedYield is Test, IERC721Receiver {
         assertGt(usdc.balanceOf(address(cardGroupedVault)), totalQueued, "Depositor vault should have all queued funds");
     }
 
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure override returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
 }

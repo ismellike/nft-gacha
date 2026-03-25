@@ -397,7 +397,11 @@ contract Gacha is
     /// @param counts Current NFT counts per rarity tier in the treasury
     /// @param totalCount Sum of all counts across rarity tiers
     /// @return The selected rarity tier index
-    function _selectRarity(bytes32 randomness, uint256[] memory counts, uint256 totalCount) private view returns (uint8) {
+    function _selectRarity(bytes32 randomness, uint256[] memory counts, uint256 totalCount)
+        private
+        view
+        returns (uint8)
+    {
         uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
         uint256 roll = uint256(randomness) % TOTAL_WEIGHT;
         uint8 _numRarities = numRarities;
@@ -449,11 +453,7 @@ contract Gacha is
     /// @notice Batch function to get multiple spin requests
     /// @param triggerIds Array of trigger IDs to query
     /// @return requests Array of spin requests
-    function getBatchSpinRequests(uint256[] calldata triggerIds)
-        external
-        view
-        returns (SpinRequest[] memory requests)
-    {
+    function getBatchSpinRequests(uint256[] calldata triggerIds) external view returns (SpinRequest[] memory requests) {
         requests = new SpinRequest[](triggerIds.length);
         for (uint256 i = 0; i < triggerIds.length; i++) {
             requests[i] = spinRequests[triggerIds[i]];
@@ -646,11 +646,7 @@ contract Gacha is
     /// @param user The user address to query
     /// @param rarity The rarity to check
     /// @return winCount Number of wins for that rarity
-    function getUserRarityWinCount(address user, uint8 rarity)
-        external
-        view
-        returns (uint256 winCount)
-    {
+    function getUserRarityWinCount(address user, uint8 rarity) external view returns (uint256 winCount) {
         return userRarityWins[user][rarity];
     }
 
@@ -668,7 +664,7 @@ contract Gacha is
         // Validate the request exists and caller is the original requester
         if (request.requester == address(0)) revert InvalidTriggerId();
         if (request.requester != msg.sender) revert NotSpinRequester();
-        (bool fulfilled, ) = _getSpinRequestStatus(request);
+        (bool fulfilled,) = _getSpinRequestStatus(request);
         if (fulfilled) revert CannotReclaimFulfilledSpin();
 
         // Check if the request has timed out
@@ -928,8 +924,7 @@ contract Gacha is
     /// @param request SpinRequest to check
     /// @return fulfilled True if the spin has been completed
     /// @return reclaimed True if the user has reclaimed their fee
-    function _getSpinRequestStatus(SpinRequest memory request)
-        private pure returns (bool fulfilled, bool reclaimed) {
+    function _getSpinRequestStatus(SpinRequest memory request) private pure returns (bool fulfilled, bool reclaimed) {
         fulfilled = _isFulfilled(request.statusFlags);
         reclaimed = _isReclaimed(request.statusFlags);
     }

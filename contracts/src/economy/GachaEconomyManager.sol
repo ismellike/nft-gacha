@@ -129,13 +129,7 @@ contract GachaEconomyManager is
     }
 
     /// @inheritdoc IGachaEconomyManager
-    function onSpinRevenue(uint256 usdcAmount, uint8 hitRarity)
-        external
-        override
-        onlyGacha
-        whenNotPaused
-        nonReentrant
-    {
+    function onSpinRevenue(uint256 usdcAmount, uint8 hitRarity) external override onlyGacha whenNotPaused nonReentrant {
         if (usdcAmount == 0) revert ZeroRevenue();
 
         // Pull funds from Gacha
@@ -201,7 +195,9 @@ contract GachaEconomyManager is
      * @return total Aggregate queued USDC across all rarity tiers
      */
     function totalQueuedYield() external view returns (uint256 total) {
-        for (uint8 i; i < numRarities; i++) total += queuedYieldByRarity[i];
+        for (uint8 i; i < numRarities; i++) {
+            total += queuedYieldByRarity[i];
+        }
     }
 
     /**

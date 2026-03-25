@@ -184,12 +184,7 @@ contract UUPSUpgradeTest is Test {
     function _deployVaultProxy() internal returns (CardGroupedVault) {
         CardGroupedVault impl = new CardGroupedVault();
         bytes memory initData = abi.encodeWithSelector(
-            CardGroupedVault.initialize.selector,
-            OWNER,
-            address(feeToken),
-            STUB_TREASURY_ADDR,
-            STUB_ECONOMY,
-            uint8(5)
+            CardGroupedVault.initialize.selector, OWNER, address(feeToken), STUB_TREASURY_ADDR, STUB_ECONOMY, uint8(5)
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         return CardGroupedVault(address(proxy));

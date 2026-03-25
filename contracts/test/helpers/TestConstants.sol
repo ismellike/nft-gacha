@@ -162,9 +162,13 @@ library TestConstants {
      * @param priceUSD The appraised price in USD (18 decimals)
      * @return rarity The corresponding rarity tier
      */
-    function getRarityFromPrice(
-        uint256 priceUSD
-    ) internal pure returns (uint8 /* rarity as uint8 */) {
+    function getRarityFromPrice(uint256 priceUSD)
+        internal
+        pure
+        returns (
+            uint8 /* rarity as uint8 */
+        )
+    {
         if (priceUSD <= COMMON_MAX) {
             return 0; // Common
         } else if (priceUSD >= UNCOMMON_MIN && priceUSD <= UNCOMMON_MAX) {

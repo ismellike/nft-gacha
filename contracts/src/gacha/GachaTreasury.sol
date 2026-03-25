@@ -343,7 +343,9 @@ contract GachaTreasury is
 
         for (uint256 i; i < length;) {
             _migrateNFTRarity(collections[i], tokenIds[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -376,9 +378,8 @@ contract GachaTreasury is
             appraisalContract.getAppraisedPrice(collection, tokenId);
         if (
             newPriceUSD == 0
-                || (
-                    status != NFTAppraisal.AppraisalStatus.Completed && status != NFTAppraisal.AppraisalStatus.OwnerOverride
-                )
+                || (status != NFTAppraisal.AppraisalStatus.Completed
+                    && status != NFTAppraisal.AppraisalStatus.OwnerOverride)
         ) {
             revert NFTNotAppraised();
         }
@@ -552,7 +553,6 @@ contract GachaTreasury is
 
         hasMore = end < total;
     }
-
 
     /// @dev Internal: add a cardId (bytes32 hash) to user's list if absent, using cardId index
     function _addUserGroupId(address user, bytes32 cardId) internal {
@@ -731,12 +731,9 @@ contract GachaTreasury is
      * @param toRarity Destination rarity
      * @param newPriceUSD New price for the tokens
      */
-    function _migrateCardTokensInTreasury(
-        bytes32 cardId,
-        uint8 fromRarity,
-        uint8 toRarity,
-        uint256 newPriceUSD
-    ) internal {
+    function _migrateCardTokensInTreasury(bytes32 cardId, uint8 fromRarity, uint8 toRarity, uint256 newPriceUSD)
+        internal
+    {
         CardTokenRef[] storage refs = cardTokenRefs[cardId];
         NFTItem[] storage fromArr = treasury[fromRarity];
 
@@ -800,7 +797,9 @@ contract GachaTreasury is
     function getRarityByPrice(uint256 priceUSD) public view returns (uint8 rarity) {
         // Search from highest rarity to lowest
         for (uint8 i = numRarities; i > 0;) {
-            unchecked { --i; }
+            unchecked {
+                --i;
+            }
             PriceRange memory r = priceRanges[i];
             if (priceUSD >= r.minPriceUSD && priceUSD <= r.maxPriceUSD) return i;
         }
@@ -846,7 +845,9 @@ contract GachaTreasury is
 
         for (uint256 i; i < length;) {
             _depositSingleNFT(collections[i], tokenIds[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         emit BatchDeposited(length);
@@ -866,9 +867,8 @@ contract GachaTreasury is
             appraisalContract.getAppraisedPrice(collection, tokenId);
         if (
             priceUSD == 0
-                || (
-                    status != NFTAppraisal.AppraisalStatus.Completed && status != NFTAppraisal.AppraisalStatus.OwnerOverride
-                )
+                || (status != NFTAppraisal.AppraisalStatus.Completed
+                    && status != NFTAppraisal.AppraisalStatus.OwnerOverride)
         ) {
             revert NFTNotAppraised();
         }
@@ -879,15 +879,17 @@ contract GachaTreasury is
         depositedNFTs[collection][tokenId] = true;
         nftCurrentRarity[collection][tokenId] = rarity;
 
-        treasury[rarity].push(NFTItem({
-            collection: collection,
-            depositor: msg.sender,
-            tokenId: tokenId,
-            appraisedPrice: priceUSD,
-            rarity: rarity,
-            depositTime: block.timestamp,
-            receiveTime: 0
-        }));
+        treasury[rarity].push(
+            NFTItem({
+                collection: collection,
+                depositor: msg.sender,
+                tokenId: tokenId,
+                appraisedPrice: priceUSD,
+                rarity: rarity,
+                depositTime: block.timestamp,
+                receiveTime: 0
+            })
+        );
         nftToTreasuryIndex[collection][tokenId] = treasury[rarity].length - 1;
 
         unchecked {
@@ -1171,10 +1173,14 @@ contract GachaTreasury is
     {
         if (depositor != address(0)) {
             if (userDepositCounts[depositor][rarity] > 0) {
-                unchecked { --userDepositCounts[depositor][rarity]; }
+                unchecked {
+                    --userDepositCounts[depositor][rarity];
+                }
             }
             if (userTotalDeposits[depositor] > 0) {
-                unchecked { --userTotalDeposits[depositor]; }
+                unchecked {
+                    --userTotalDeposits[depositor];
+                }
             }
             userDepositValues[depositor][rarity] -= priceUSD;
 
@@ -1307,10 +1313,14 @@ contract GachaTreasury is
         address, // from
         uint256, // tokenId
         bytes calldata // data
-    ) external pure override returns (bytes4) {
+    )
+        external
+        pure
+        override
+        returns (bytes4)
+    {
         return IERC721Receiver.onERC721Received.selector;
     }
-
 
     /// @notice Gets total deposit count for a specific card ID
     /// @param cardId Card ID to check

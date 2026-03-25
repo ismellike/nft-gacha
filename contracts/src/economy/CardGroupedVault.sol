@@ -104,25 +104,25 @@ contract CardGroupedVault is
     /// @dev Per-rarity yield accumulator
     struct RarityPool {
         uint256 accYieldPerUSD; // Cumulative yield per $1 of value (scaled × PRECISION)
-        uint256 totalValueUSD;  // Sum of count × price for all cards in this tier (18-dec USD)
+        uint256 totalValueUSD; // Sum of count × price for all cards in this tier (18-dec USD)
     }
 
     /// @dev One node per card (all tokens of same card share one node)
     struct CardNode {
         uint8 rarity;
-        uint256 cardPriceUSD;   // 18-dec USD price for one token
-        uint256 totalCount;     // Total tokens deposited across all depositors
-        int256 correctionPerUnit;    // Accumulates price-change corrections (scaled × PRECISION)
+        uint256 cardPriceUSD; // 18-dec USD price for one token
+        uint256 totalCount; // Total tokens deposited across all depositors
+        int256 correctionPerUnit; // Accumulates price-change corrections (scaled × PRECISION)
         uint256 settledYieldPerUnit; // Yield from previous rarity stints (scaled × PRECISION)
-        uint256 baseAcc;             // accYieldPerUSD[rarity] snapshot when card entered pool
+        uint256 baseAcc; // accYieldPerUSD[rarity] snapshot when card entered pool
     }
 
     /// @dev Per depositor per card
     struct DepositorPosition {
         uint256 count;
-        uint256 rewardDebt;     // Snapshot of main accumulator yield owed
-        int256 correctionDebt;  // Snapshot of correction at time of last update
-        uint256 settledDebt;    // Snapshot of settled yield at time of last update
+        uint256 rewardDebt; // Snapshot of main accumulator yield owed
+        int256 correctionDebt; // Snapshot of correction at time of last update
+        uint256 settledDebt; // Snapshot of settled yield at time of last update
     }
 
     RarityPool[] public rarityPools;
@@ -186,13 +186,13 @@ contract CardGroupedVault is
     // ─── Card-level operations ──────────────────────────────────────────
 
     /// @inheritdoc ICardGroupedVault
-    function registerCardDeposit(
-        bytes32 cardId,
-        address depositor,
-        uint256 priceUSD,
-        uint8 rarity,
-        uint256 count
-    ) external override onlyTreasury whenNotPaused nonReentrant {
+    function registerCardDeposit(bytes32 cardId, address depositor, uint256 priceUSD, uint8 rarity, uint256 count)
+        external
+        override
+        onlyTreasury
+        whenNotPaused
+        nonReentrant
+    {
         if (depositor == address(0)) revert ZeroAddress();
         if (priceUSD == 0) revert ZeroPrice();
         if (count == 0) revert ZeroAmount();
@@ -282,12 +282,7 @@ contract CardGroupedVault is
     }
 
     /// @inheritdoc ICardGroupedVault
-    function updateCardPrice(bytes32 cardId, uint256 newPriceUSD)
-        external
-        override
-        onlyTreasury
-        whenNotPaused
-    {
+    function updateCardPrice(bytes32 cardId, uint256 newPriceUSD) external override onlyTreasury whenNotPaused {
         if (newPriceUSD == 0) revert ZeroPrice();
 
         CardNode storage card = cardNodes[cardId];
@@ -404,13 +399,7 @@ contract CardGroupedVault is
     // ─── User-facing ────────────────────────────────────────────────────
 
     /// @inheritdoc ICardGroupedVault
-    function claimYield(address account)
-        external
-        override
-        whenNotPaused
-        nonReentrant
-        returns (uint256 withdrawn)
-    {
+    function claimYield(address account) external override whenNotPaused nonReentrant returns (uint256 withdrawn) {
         if (account == address(0)) revert ZeroAddress();
         if (msg.sender != account && msg.sender != economyManager) revert UnauthorizedClaim();
 
@@ -564,8 +553,8 @@ contract CardGroupedVault is
         int256 correction = _safeToInt256(pos.count) * card.correctionPerUnit;
 
         // Total raw = mainYield + settledYield - correction - rewardDebt - settledDebt + correctionDebt
-        int256 raw = mainYield + settledYield - correction
-            - _safeToInt256(pos.rewardDebt) - _safeToInt256(pos.settledDebt) + pos.correctionDebt;
+        int256 raw = mainYield + settledYield - correction - _safeToInt256(pos.rewardDebt)
+            - _safeToInt256(pos.settledDebt) + pos.correctionDebt;
 
         return raw > 0 ? uint256(raw) : 0;
     }

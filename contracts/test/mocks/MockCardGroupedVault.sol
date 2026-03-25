@@ -61,7 +61,10 @@ contract MockCardGroupedVault is ICardGroupedVault {
 
     // ─── ICardGroupedVault implementation ───────────────────────────────
 
-    function registerCardDeposit(bytes32 cardId, address depositor, uint256 priceUSD, uint8 rarity, uint256 count) external override {
+    function registerCardDeposit(bytes32 cardId, address depositor, uint256 priceUSD, uint8 rarity, uint256 count)
+        external
+        override
+    {
         registerCalls.push(RegisterCall(cardId, depositor, priceUSD, rarity, count));
         mockShares[depositor] += count * priceUSD;
         mockTotalShares += count * priceUSD;

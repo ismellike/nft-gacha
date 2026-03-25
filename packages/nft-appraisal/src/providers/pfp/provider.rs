@@ -140,7 +140,7 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
 #[cfg(test)]
 fn base64_encode(input: &[u8]) -> String {
     const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = String::with_capacity((input.len() + 2) / 3 * 4);
+    let mut out = String::with_capacity(input.len().div_ceil(3) * 4);
     for chunk in input.chunks(3) {
         let b0 = chunk[0] as u32;
         let b1 = *chunk.get(1).unwrap_or(&0) as u32;
@@ -352,7 +352,7 @@ mod tests {
         // Verify each price lands within the correct gacha treasury rarity tier
         // Common: $0 – $15
         let common = price_for_rarity("Common").unwrap();
-        assert!(common >= 0.0 && common <= 15.0, "Common ${} not in $0-$15", common);
+        assert!((0.0..=15.0).contains(&common), "Common ${} not in $0-$15", common);
 
         // Uncommon: $15.01 – $60
         let uncommon = price_for_rarity("Uncommon").unwrap();

@@ -119,7 +119,10 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
      * @return processed True if the appraisal was successfully processed
      * @return permanent True if failure is permanent (invalid data, will never succeed on retry)
      */
-    function _tryProcessSuccess(bytes calldata payload) internal returns (bool isSuccess, bool processed, bool permanent) {
+    function _tryProcessSuccess(bytes calldata payload)
+        internal
+        returns (bool isSuccess, bool processed, bool permanent)
+    {
         try this.decodeSuccess(payload) returns (AppraisalSuccess memory successPayload) {
             // Validate appraisal data — permanent failures (bad data)
             if (successPayload.contractAddress == address(0)) return (true, false, true);
@@ -215,11 +218,7 @@ contract NFTAppraisalServiceHandler is IWavsServiceHandler {
      * @return exists True if the appraisal exists in the contract
      * @return priceUSD Current appraised price
      */
-    function checkAppraisal(address collection, uint256 tokenId)
-        external
-        view
-        returns (bool exists, uint256 priceUSD)
-    {
+    function checkAppraisal(address collection, uint256 tokenId) external view returns (bool exists, uint256 priceUSD) {
         exists = _appraisalContract.hasAppraisal(collection, tokenId);
         (priceUSD,) = _appraisalContract.getAppraisedPrice(collection, tokenId);
     }

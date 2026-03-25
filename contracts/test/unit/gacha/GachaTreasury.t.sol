@@ -37,9 +37,7 @@ contract GachaTreasuryTest is StandardTest {
     event GachaContractUpdated(address indexed oldGacha, address indexed newGacha);
     event CollectionWhitelisted(address indexed collection);
     event CollectionRemovedFromWhitelist(address indexed collection);
-    event NFTDeposited(
-        address indexed collection, uint256 indexed tokenId, address indexed depositor, uint8 rarity
-    );
+    event NFTDeposited(address indexed collection, uint256 indexed tokenId, address indexed depositor, uint8 rarity);
     event NFTWithdrawn(address indexed collection, uint256 indexed tokenId, address indexed depositor);
     event ProtocolTreasuryUpdated(address indexed previous, address indexed newProtocol);
 
@@ -218,14 +216,14 @@ contract GachaTreasuryTest is StandardTest {
      * @dev Verifies that only NFT owner can deposit
      */
     function testDepositAuthorization() public {
-        uint256 tokenId = _mintNFT(nft, user);  // Mint to user, not owner
+        uint256 tokenId = _mintNFT(nft, user); // Mint to user, not owner
 
         _whitelistCollection(treasury, address(nft), owner);
         mockAppraisal.setMockAppraisal(address(nft), tokenId, TestConstants.UNCOMMON_PRICE);
 
         // Owner tries to deposit user's NFT - should fail
         vm.startPrank(owner);
-        vm.expectRevert();  // Should fail because owner doesn't own the NFT
+        vm.expectRevert(); // Should fail because owner doesn't own the NFT
         treasury.depositNFT(address(nft), tokenId);
         vm.stopPrank();
     }
@@ -340,9 +338,9 @@ contract GachaTreasuryTest is StandardTest {
 
         // Test exact boundary values
         uint256[] memory prices = new uint256[](6);
-        prices[0] = 10e18;  // Common: $10
-        prices[1] = 25e18;  // Uncommon: exact threshold
-        prices[2] = 70e18;  // Rare: exact threshold
+        prices[0] = 10e18; // Common: $10
+        prices[1] = 25e18; // Uncommon: exact threshold
+        prices[2] = 70e18; // Rare: exact threshold
         prices[3] = 300e18; // Epic: exact threshold
         prices[4] = 1500e18; // Legendary: exact threshold
         prices[5] = 5000e18; // Legendary: way above

@@ -39,7 +39,12 @@ contract MockGachaEconomyManager {
      * @param usdcAmount Amount of USDC (6 decimals) collected for the spin
      * @param - Rarity executed, for analytical eventing
      */
-    function onSpinRevenue(uint256 usdcAmount, uint8 /* hitRarity */) external {
+    function onSpinRevenue(
+        uint256 usdcAmount,
+        uint8 /* hitRarity */
+    )
+        external
+    {
         // Track total revenue for testing
         totalRevenueReceived += usdcAmount;
 

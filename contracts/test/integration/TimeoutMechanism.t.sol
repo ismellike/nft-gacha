@@ -69,38 +69,18 @@ contract TimeoutMechanism is Test {
         rarityNames[3] = "Epic";
         rarityNames[4] = "Legendary";
 
-        treasury.initialize(
-            owner,
-            address(gacha),
-            address(appraisal),
-            uint8(5),
-            rarityNames,
-            minPrices,
-            maxPrices
-        );
+        treasury.initialize(owner, address(gacha), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices);
 
         // Set the asset for mock protocol treasury (must be done by owner)
         protocolTreasury.setAsset(feeToken);
 
         // Initialize economy manager
         economyManager.initialize(
-            owner,
-            address(feeToken),
-            address(gacha),
-            address(cardGroupedVault),
-            address(protocolTreasury),
-            uint8(5)
+            owner, address(feeToken), address(gacha), address(cardGroupedVault), address(protocolTreasury), uint8(5)
         );
 
         // Initialize gacha
-        gacha.initialize(
-            owner,
-            serviceHandler,
-            address(feeToken),
-            SPIN_FEE,
-            address(treasury),
-            address(economyManager)
-        );
+        gacha.initialize(owner, serviceHandler, address(feeToken), SPIN_FEE, address(treasury), address(economyManager));
 
         vm.stopPrank();
         spinTimeout = gacha.spinTimeout();
@@ -122,7 +102,8 @@ contract TimeoutMechanism is Test {
         vm.stopPrank();
 
         // Verify spin request details
-        (address requester, bool fulfilled, bool reclaimed, uint256 feePaid, uint256 requestTime) = gacha.getSpinRequest(triggerId);
+        (address requester, bool fulfilled, bool reclaimed, uint256 feePaid, uint256 requestTime) =
+            gacha.getSpinRequest(triggerId);
         assertEq(requester, user, "Requester should be user");
         assertEq(fulfilled, false, "Should not be fulfilled");
         assertEq(reclaimed, false, "Should not be reclaimed");
@@ -138,7 +119,7 @@ contract TimeoutMechanism is Test {
         vm.stopPrank();
 
         // Verify spin is marked as fulfilled
-        (, bool fulfilledAfter, bool reclaimedAfter,, ) = gacha.getSpinRequest(triggerId);
+        (, bool fulfilledAfter, bool reclaimedAfter,,) = gacha.getSpinRequest(triggerId);
         assertTrue(fulfilledAfter, "Spin should be marked as fulfilled");
         assertFalse(reclaimedAfter, "Should not be marked as reclaimed");
     }
@@ -169,7 +150,7 @@ contract TimeoutMechanism is Test {
         assertEq(balanceAfter - balanceBefore, SPIN_FEE, "User should receive refund");
 
         // Verify spin is marked as fulfilled and reclaimed
-        (, bool fulfilled, bool reclaimed,, ) = gacha.getSpinRequest(triggerId);
+        (, bool fulfilled, bool reclaimed,,) = gacha.getSpinRequest(triggerId);
         assertTrue(fulfilled, "Spin should be marked as fulfilled");
         assertTrue(reclaimed, "Spin should be marked as reclaimed");
 
@@ -192,7 +173,7 @@ contract TimeoutMechanism is Test {
         vm.stopPrank();
 
         // Verify spin is marked as fulfilled but not reclaimed
-        (, bool fulfilled, bool reclaimed,, ) = gacha.getSpinRequest(triggerId);
+        (, bool fulfilled, bool reclaimed,,) = gacha.getSpinRequest(triggerId);
         assertTrue(fulfilled, "Spin should be marked as fulfilled");
         assertFalse(reclaimed, "Should not be marked as reclaimed");
 
@@ -310,7 +291,7 @@ contract TimeoutMechanism is Test {
 
         // Deposit NFTs
         vm.startPrank(address(this));
-        for (uint i = 1; i <= 5; i++) {
+        for (uint256 i = 1; i <= 5; i++) {
             uint256 tokenId = i;
             nftCollection.mint(address(this), tokenId);
 

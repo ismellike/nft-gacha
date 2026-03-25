@@ -36,9 +36,8 @@ contract NFTAppraisalBatchTest is StandardTest {
 
         // Deploy appraisal proxy
         NFTAppraisal impl = new NFTAppraisal();
-        bytes memory initData = abi.encodeWithSelector(
-            NFTAppraisal.initialize.selector, owner, address(feeToken), APPRAISAL_FEE, protocol
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(NFTAppraisal.initialize.selector, owner, address(feeToken), APPRAISAL_FEE, protocol);
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         appraisal = NFTAppraisal(address(proxy));
 
@@ -153,7 +152,9 @@ contract NFTAppraisalBatchTest is StandardTest {
         // Verify appraisals were set
         (uint256 price1, NFTAppraisal.AppraisalStatus status1) = appraisal.getAppraisedPrice(address(nft), 1);
         assertEq(price1, 100e18, "Token 1 price should be set");
-        assertEq(uint8(status1), uint8(NFTAppraisal.AppraisalStatus.OwnerOverride), "Token 1 status should be OwnerOverride");
+        assertEq(
+            uint8(status1), uint8(NFTAppraisal.AppraisalStatus.OwnerOverride), "Token 1 status should be OwnerOverride"
+        );
 
         (uint256 price2,) = appraisal.getAppraisedPrice(address(nft), 2);
         assertEq(price2, 500e18, "Token 2 price should be set");

@@ -338,12 +338,8 @@ impl TryFrom<&NFTMetadata> for ScrydexCardInfo {
                             let trimmed = s.trim();
                             if trimmed.is_empty() {
                                 None
-                            } else if let Some(idx) = trimmed.find('(') {
-                                Some(trimmed[idx + 1..].trim())
                             } else {
-                                // First part before any parentheses (e.g., "Holiday Calendar")
-                                // This is typically the card name, not a variant, so we skip it
-                                None
+                                trimmed.find('(').map(|idx| trimmed[idx + 1..].trim())
                             }
                         }).collect();
 
@@ -373,7 +369,7 @@ impl TryFrom<&NFTMetadata> for ScrydexCardInfo {
             company.ok_or_else(|| anyhow!("Missing required grading company attribute"))?;
 
         let set_raw = set_name.ok_or_else(|| anyhow!("Missing required set name attribute"))?;
-        let set_id = AttributeParser::extract_set_id(&set_raw).unwrap_or_else(|| set_raw);
+        let set_id = AttributeParser::extract_set_id(&set_raw).unwrap_or(set_raw);
 
         // Deduplicate variant parts (case-insensitive) while preserving order
         let mut seen = HashSet::new();

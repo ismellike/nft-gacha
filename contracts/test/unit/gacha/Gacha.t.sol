@@ -60,10 +60,7 @@ contract GachaTest is StandardTest {
         uint256 appraisedPrice
     );
     event SpinRefunded(
-        uint256 indexed triggerId,
-        address indexed requester,
-        uint8 selectedRarity,
-        uint256 refundAmount
+        uint256 indexed triggerId, address indexed requester, uint8 selectedRarity, uint256 refundAmount
     );
     event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
     event SpinStatusUpdate(uint256 indexed triggerId, address indexed requester, string status, uint256 timestamp);
@@ -118,10 +115,7 @@ contract GachaTest is StandardTest {
         Gacha gachaImpl = new Gacha();
 
         // Deploy service handler (gachaImpl will be replaced with proxy after initialization)
-        serviceHandler = new GachaServiceHandler(
-            IWavsServiceManager(address(mockWavsManager)),
-            address(gachaImpl)
-        );
+        serviceHandler = new GachaServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(gachaImpl));
 
         // Initialize Gacha proxy
         vm.prank(gachaOwner);
@@ -205,7 +199,7 @@ contract GachaTest is StandardTest {
 
         // Don't fund the poor gameSpinner
         vm.prank(poorSpinner);
-        vm.expectRevert();  // Should fail due to insufficient funds
+        vm.expectRevert(); // Should fail due to insufficient funds
         gacha.spin(MAX_SPIN_FEE);
     }
 
@@ -219,7 +213,7 @@ contract GachaTest is StandardTest {
         gacha.emergencyPause();
 
         vm.prank(gameSpinner);
-        vm.expectRevert();  // Should fail due to pause
+        vm.expectRevert(); // Should fail due to pause
         gacha.spin(MAX_SPIN_FEE);
     }
 
@@ -261,7 +255,7 @@ contract GachaTest is StandardTest {
         gacha.fulfillRandomness(triggerId, randomness);
 
         // Verify spin was completed
-        (, , , uint32 statusFlags) = gacha.spinRequests(triggerId);
+        (,,, uint32 statusFlags) = gacha.spinRequests(triggerId);
         assertEq(statusFlags & 1, 1, "Fulfilled flag should be set");
     }
 
@@ -334,7 +328,7 @@ contract GachaTest is StandardTest {
         gacha.reclaimFailedSpin(triggerId);
 
         // Verify reclaim
-        (, , , uint32 statusFlags) = gacha.spinRequests(triggerId);
+        (,,, uint32 statusFlags) = gacha.spinRequests(triggerId);
         assertEq((statusFlags >> 1) & 1, 1, "Reclaimed flag should be set");
         assertEq(gacha.userReclaimCount(gameSpinner), 1, "User reclaim count should be 1");
         assertEq(gacha.totalReclaimCount(), 1, "Total reclaim count should be 1");

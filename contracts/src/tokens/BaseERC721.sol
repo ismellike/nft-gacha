@@ -20,9 +20,7 @@ contract BaseERC721 is ERC721Enumerable, Ownable {
     /// @notice Base URI for all tokens
     string private _baseTokenURI;
 
-    constructor(string memory name_, string memory symbol_, address initialOwner)
-        ERC721(name_, symbol_)
-    {
+    constructor(string memory name_, string memory symbol_, address initialOwner) ERC721(name_, symbol_) {
         require(initialOwner != address(0), "Owner cannot be zero address");
         _initializeOwner(initialOwner);
     }

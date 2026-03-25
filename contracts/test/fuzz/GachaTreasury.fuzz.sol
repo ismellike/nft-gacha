@@ -25,14 +25,14 @@ contract GachaTreasuryFuzz is Test {
     address public owner = address(this);
 
     uint256 constant COMMON_MIN = 0;
-    uint256 constant COMMON_MAX = 15e18;                  // $0-$15
-    uint256 constant UNCOMMON_MIN = 15e18 + 1e16;        // $15.01
-    uint256 constant UNCOMMON_MAX = 60e18;               // $15.01-$60
-    uint256 constant RARE_MIN = 60e18 + 1e16;            // $60.01
-    uint256 constant RARE_MAX = 250e18;                  // $60.01-$250
-    uint256 constant EPIC_MIN = 250e18 + 1e16;           // $250.01
-    uint256 constant EPIC_MAX = 1200e18;                 // $250.01-$1200
-    uint256 constant LEGENDARY_MIN = 1200e18 + 1e16;     // $1200.01
+    uint256 constant COMMON_MAX = 15e18; // $0-$15
+    uint256 constant UNCOMMON_MIN = 15e18 + 1e16; // $15.01
+    uint256 constant UNCOMMON_MAX = 60e18; // $15.01-$60
+    uint256 constant RARE_MIN = 60e18 + 1e16; // $60.01
+    uint256 constant RARE_MAX = 250e18; // $60.01-$250
+    uint256 constant EPIC_MIN = 250e18 + 1e16; // $250.01
+    uint256 constant EPIC_MAX = 1200e18; // $250.01-$1200
+    uint256 constant LEGENDARY_MIN = 1200e18 + 1e16; // $1200.01
 
     function setUp() public {
         // Deploy mocks
@@ -67,15 +67,7 @@ contract GachaTreasuryFuzz is Test {
         rarityNames[3] = "Epic";
         rarityNames[4] = "Legendary";
 
-        treasury.initialize(
-            owner,
-            address(0x999),
-            address(appraisal),
-            uint8(5),
-            rarityNames,
-            minPrices,
-            maxPrices
-        );
+        treasury.initialize(owner, address(0x999), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices);
 
         // Set vault and treasury addresses
         vm.prank(owner);
@@ -103,9 +95,7 @@ contract GachaTreasuryFuzz is Test {
      */
     // function testFuzz_DepositWithRandomPrice(...) public { ... }
 
-    function testFuzz_RarityAssignment(
-        uint256 priceUSD
-    ) public pure {
+    function testFuzz_RarityAssignment(uint256 priceUSD) public pure {
         vm.assume(priceUSD >= COMMON_MIN && priceUSD <= 11000e18);
 
         uint8 expectedRarity = _getRarityForPrice(priceUSD);

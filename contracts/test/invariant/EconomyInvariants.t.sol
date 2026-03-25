@@ -14,7 +14,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev Tests system properties that should always hold true
  */
 contract EconomyInvariants is Test {
-
     // ========================================================================
     // STATE VARIABLES
     // ========================================================================
@@ -39,14 +38,7 @@ contract EconomyInvariants is Test {
 
         // Deploy economy manager
         economy = new GachaEconomyManager();
-        economy.initialize(
-            address(this),
-            address(usdc),
-            gacha,
-            address(vault),
-            address(protocolTreasury),
-            uint8(5)
-        );
+        economy.initialize(address(this), address(usdc), gacha, address(vault), address(protocolTreasury), uint8(5));
 
         // Mint USDC to gacha
         usdc.mint(gacha, type(uint256).max);
@@ -212,8 +204,9 @@ contract EconomyInvariants is Test {
         // Process revenue as gacha
         vm.prank(gacha);
         try economy.onSpinRevenue(revenueAmount, uint8(rarity)) {
-            // Success
-        } catch {
+        // Success
+        }
+            catch {
             // Expected failure (e.g., contract paused)
         }
     }
@@ -229,8 +222,9 @@ contract EconomyInvariants is Test {
         // Only update if sum is 10000
         if (depositorBps + protocolBps == 10000) {
             try economy.setRevenueSplit(depositorBps, protocolBps) {
-                // Success
-            } catch {
+            // Success
+            }
+                catch {
                 // Expected failure
             }
         }
@@ -242,14 +236,16 @@ contract EconomyInvariants is Test {
     function pause_handler(bool shouldPause) external {
         if (shouldPause) {
             try economy.pause() {
-                // Success
-            } catch {
+            // Success
+            }
+                catch {
                 // Already paused
             }
         } else {
             try economy.unpause() {
-                // Success
-            } catch {
+            // Success
+            }
+                catch {
                 // Not paused
             }
         }

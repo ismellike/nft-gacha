@@ -177,8 +177,8 @@ contract CardGroupedVaultTest is Test {
     // ================================================================
 
     function test_rarityMigration_preservesYield() public {
-        uint256 commonPrice = 10e18;  // $10 Common
-        uint256 epicPrice = 500e18;   // $500 Epic
+        uint256 commonPrice = 10e18; // $10 Common
+        uint256 epicPrice = 500e18; // $500 Epic
 
         // Alice deposits at Common
         vm.prank(treasury);
@@ -241,7 +241,7 @@ contract CardGroupedVaultTest is Test {
         // Both deposit into same card
         vm.startPrank(treasury);
         vault.registerCardDeposit(CARD_A, alice, price, COMMON, 3); // 300 value
-        vault.registerCardDeposit(CARD_A, bob, price, COMMON, 1);   // 100 value
+        vault.registerCardDeposit(CARD_A, bob, price, COMMON, 1); // 100 value
         vm.stopPrank();
 
         // Total = 400e18
@@ -385,7 +385,7 @@ contract CardGroupedVaultTest is Test {
         // Setup: Alice deposits 2 tokens at $50 each, Bob deposits 1 at $50
         vm.startPrank(treasury);
         vault.registerCardDeposit(CARD_A, alice, 50e18, COMMON, 2); // 100 value
-        vault.registerCardDeposit(CARD_A, bob, 50e18, COMMON, 1);   // 50 value
+        vault.registerCardDeposit(CARD_A, bob, 50e18, COMMON, 1); // 50 value
         vm.stopPrank();
 
         // Total: 150e18 in Common

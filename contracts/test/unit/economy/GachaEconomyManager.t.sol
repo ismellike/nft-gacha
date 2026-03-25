@@ -28,7 +28,9 @@ contract GachaEconomyManagerTest is StandardTest {
     uint256 public constant REVENUE_AMOUNT = 1000e6;
 
     event RevenueSplitUpdated(uint256 indexed depositorShareBps, uint256 indexed protocolShareBps);
-    event SpinRevenueReceived(uint256 indexed usdcAmount, uint256 indexed depositorShare, uint256 indexed protocolShare);
+    event SpinRevenueReceived(
+        uint256 indexed usdcAmount, uint256 indexed depositorShare, uint256 indexed protocolShare
+    );
 
     function setUp() public {
         economyOwner = makeAddr("economyOwner");
@@ -41,12 +43,7 @@ contract GachaEconomyManagerTest is StandardTest {
         // Deploy vault
         CardGroupedVault vaultImpl = new CardGroupedVault();
         bytes memory vaultInit = abi.encodeWithSelector(
-            CardGroupedVault.initialize.selector,
-            economyOwner,
-            address(usdc),
-            address(this),
-            address(this),
-            uint8(5)
+            CardGroupedVault.initialize.selector, economyOwner, address(usdc), address(this), address(this), uint8(5)
         );
         ERC1967Proxy vaultProxy = new ERC1967Proxy(address(vaultImpl), vaultInit);
         vault = CardGroupedVault(address(vaultProxy));

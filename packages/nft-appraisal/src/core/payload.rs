@@ -64,6 +64,29 @@ pub fn extract_tx_hash(tx_hash_bytes: &[u8]) -> B256 {
     B256::from(hash_bytes)
 }
 
+pub fn encode_success(identity: &AppraisalIdentity, price: U256) -> Vec<u8> {
+    AppraisalSuccess {
+        chain: identity.chain.clone(),
+        contractAddress: identity.contract_address,
+        tokenId: identity.token_id,
+        groupId: identity.group_id.into(),
+        price,
+        txHash: identity.tx_hash,
+    }
+    .abi_encode()
+}
+
+pub fn encode_error(identity: &AppraisalIdentity, error: String) -> Vec<u8> {
+    AppraisalError {
+        contractAddress: identity.contract_address,
+        tokenId: identity.token_id,
+        groupId: identity.group_id.into(),
+        error,
+        txHash: identity.tx_hash,
+    }
+    .abi_encode()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,27 +182,4 @@ mod tests {
             prop_assert_ne!(id_a, id_b, "Different token IDs should produce different group IDs");
         }
     }
-}
-
-pub fn encode_success(identity: &AppraisalIdentity, price: U256) -> Vec<u8> {
-    AppraisalSuccess {
-        chain: identity.chain.clone(),
-        contractAddress: identity.contract_address,
-        tokenId: identity.token_id,
-        groupId: identity.group_id.into(),
-        price,
-        txHash: identity.tx_hash,
-    }
-    .abi_encode()
-}
-
-pub fn encode_error(identity: &AppraisalIdentity, error: String) -> Vec<u8> {
-    AppraisalError {
-        contractAddress: identity.contract_address,
-        tokenId: identity.token_id,
-        groupId: identity.group_id.into(),
-        error,
-        txHash: identity.tx_hash,
-    }
-    .abi_encode()
 }

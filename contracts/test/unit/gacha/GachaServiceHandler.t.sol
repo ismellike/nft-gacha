@@ -133,10 +133,7 @@ contract GachaServiceHandlerTest is StandardTest {
         gacha = Gacha(address(gachaProxy));
 
         // Deploy service handler with proxy address
-        serviceHandler = new GachaServiceHandler(
-            IWavsServiceManager(address(mockWavsManager)),
-            address(gacha)
-        );
+        serviceHandler = new GachaServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(gacha));
 
         // Update gacha with correct service handler
         vm.prank(gachaOwner);
@@ -210,22 +207,15 @@ contract GachaServiceHandlerTest is StandardTest {
 
         // Create WAVS envelope
         bytes32 randomness = bytes32(uint256(12345));
-        WavsDrandPayload memory payload = WavsDrandPayload({
-            triggerId: triggerId,
-            randomness: randomness
-        });
+        WavsDrandPayload memory payload = WavsDrandPayload({triggerId: triggerId, randomness: randomness});
 
         bytes memory payloadBytes = abi.encode(payload);
         IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
-            eventId: bytes20(uint160(address(gacha))),
-            ordering: bytes12(0),
-            payload: payloadBytes
+            eventId: bytes20(uint160(address(gacha))), ordering: bytes12(0), payload: payloadBytes
         });
 
         IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
-            signers: new address[](0),
-            signatures: new bytes[](0),
-            referenceBlock: uint32(block.number)
+            signers: new address[](0), signatures: new bytes[](0), referenceBlock: uint32(block.number)
         });
 
         // Expect event
@@ -236,7 +226,7 @@ contract GachaServiceHandlerTest is StandardTest {
         serviceHandler.handleSignedEnvelope(envelope, signatureData);
 
         // Verify spin was fulfilled
-        (, , , uint32 statusFlags) = gacha.spinRequests(triggerId);
+        (,,, uint32 statusFlags) = gacha.spinRequests(triggerId);
         assertEq(statusFlags & 1, 1, "Fulfilled flag should be set");
     }
 
@@ -254,16 +244,11 @@ contract GachaServiceHandlerTest is StandardTest {
 
         // Create WAVS envelope with any signature data (mock accepts all)
         bytes32 randomness = bytes32(uint256(99999));
-        WavsDrandPayload memory payload = WavsDrandPayload({
-            triggerId: triggerId,
-            randomness: randomness
-        });
+        WavsDrandPayload memory payload = WavsDrandPayload({triggerId: triggerId, randomness: randomness});
 
         bytes memory payloadBytes = abi.encode(payload);
         IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
-            eventId: bytes20(uint160(address(gacha))),
-            ordering: bytes12(0),
-            payload: payloadBytes
+            eventId: bytes20(uint160(address(gacha))), ordering: bytes12(0), payload: payloadBytes
         });
 
         // Mock signature data (accepted by mock manager)
@@ -273,16 +258,14 @@ contract GachaServiceHandlerTest is StandardTest {
         signatures[0] = hex"1234";
 
         IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
-            signers: signers,
-            signatures: signatures,
-            referenceBlock: uint32(block.number)
+            signers: signers, signatures: signatures, referenceBlock: uint32(block.number)
         });
 
         // Mock manager accepts all signatures for testing
         serviceHandler.handleSignedEnvelope(envelope, signatureData);
 
         // Verify randomness was processed
-        (, , , uint32 statusFlags) = gacha.spinRequests(triggerId);
+        (,,, uint32 statusFlags) = gacha.spinRequests(triggerId);
         assertEq(statusFlags & 1, 1, "Spin should be fulfilled");
     }
 
@@ -308,7 +291,7 @@ contract GachaServiceHandlerTest is StandardTest {
         _processWavsEnvelope(triggerId, randomness);
 
         // Verify gacha received randomness
-        (, , , uint32 statusFlags) = gacha.spinRequests(triggerId);
+        (,,, uint32 statusFlags) = gacha.spinRequests(triggerId);
         assertEq(statusFlags & 1, 1, "Spin should be fulfilled");
     }
 
@@ -336,7 +319,7 @@ contract GachaServiceHandlerTest is StandardTest {
 
         // Verify all spins fulfilled
         for (uint256 i = 0; i < 3; i++) {
-            (, , , uint32 statusFlags) = gacha.spinRequests(triggerIds[i]);
+            (,,, uint32 statusFlags) = gacha.spinRequests(triggerIds[i]);
             assertEq(statusFlags & 1, 1, string(abi.encodePacked("Spin ", i, " should be fulfilled")));
         }
     }
@@ -383,15 +366,11 @@ contract GachaServiceHandlerTest is StandardTest {
         bytes memory malformedPayload = abi.encode(uint256(123), uint256(456));
 
         IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
-            eventId: bytes20(uint160(address(gacha))),
-            ordering: bytes12(0),
-            payload: malformedPayload
+            eventId: bytes20(uint160(address(gacha))), ordering: bytes12(0), payload: malformedPayload
         });
 
         IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
-            signers: new address[](0),
-            signatures: new bytes[](0),
-            referenceBlock: uint32(block.number)
+            signers: new address[](0), signatures: new bytes[](0), referenceBlock: uint32(block.number)
         });
 
         // Should fail during decoding
@@ -411,10 +390,7 @@ contract GachaServiceHandlerTest is StandardTest {
 
         // Create envelope with wrong event ID
         bytes32 randomness = bytes32(uint256(11111));
-        WavsDrandPayload memory payload = WavsDrandPayload({
-            triggerId: triggerId,
-            randomness: randomness
-        });
+        WavsDrandPayload memory payload = WavsDrandPayload({triggerId: triggerId, randomness: randomness});
 
         bytes memory payloadBytes = abi.encode(payload);
         IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
@@ -424,9 +400,7 @@ contract GachaServiceHandlerTest is StandardTest {
         });
 
         IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
-            signers: new address[](0),
-            signatures: new bytes[](0),
-            referenceBlock: uint32(block.number)
+            signers: new address[](0), signatures: new bytes[](0), referenceBlock: uint32(block.number)
         });
 
         // Process envelope (WAVS validation may or may not catch this)
@@ -448,8 +422,8 @@ contract GachaServiceHandlerTest is StandardTest {
         treasury.addToWhitelist(address(nft));
 
         uint256[] memory prices = new uint256[](5);
-        prices[0] = 10e18;  // Common (0-15)
-        prices[1] = 50e18;  // Uncommon (15.01-60)
+        prices[0] = 10e18; // Common (0-15)
+        prices[1] = 50e18; // Uncommon (15.01-60)
         prices[2] = 100e18; // Rare (60.01-250)
         prices[3] = 500e18; // Epic (250.01-1200)
         prices[4] = 2000e18; // Legendary (1200.01+)
@@ -486,22 +460,15 @@ contract GachaServiceHandlerTest is StandardTest {
      * @param randomness The randomness bytes
      */
     function _processWavsEnvelope(uint256 triggerId, bytes32 randomness) internal {
-        WavsDrandPayload memory payload = WavsDrandPayload({
-            triggerId: triggerId,
-            randomness: randomness
-        });
+        WavsDrandPayload memory payload = WavsDrandPayload({triggerId: triggerId, randomness: randomness});
 
         bytes memory payloadBytes = abi.encode(payload);
         IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
-            eventId: bytes20(uint160(address(gacha))),
-            ordering: bytes12(0),
-            payload: payloadBytes
+            eventId: bytes20(uint160(address(gacha))), ordering: bytes12(0), payload: payloadBytes
         });
 
         IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
-            signers: new address[](0),
-            signatures: new bytes[](0),
-            referenceBlock: uint32(block.number)
+            signers: new address[](0), signatures: new bytes[](0), referenceBlock: uint32(block.number)
         });
 
         serviceHandler.handleSignedEnvelope(envelope, signatureData);

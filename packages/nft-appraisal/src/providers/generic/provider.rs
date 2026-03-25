@@ -105,11 +105,11 @@ mod tests {
 
     #[test]
     fn test_distribution_roughly_matches_weights() {
-        let mut common = 0;
-        let mut uncommon = 0;
-        let mut rare = 0;
-        let mut epic = 0;
-        let mut legendary = 0;
+        let mut common: i32 = 0;
+        let mut uncommon: i32 = 0;
+        let mut rare: i32 = 0;
+        let mut epic: i32 = 0;
+        let mut legendary: i32 = 0;
         let total = 10000;
 
         for i in 0..total {
@@ -126,10 +126,10 @@ mod tests {
 
         // Allow 5% tolerance from expected distribution
         let tolerance = (total as f64 * 0.05) as i32;
-        assert!((common as i32 - 7000).abs() < tolerance, "Common: {}", common);
-        assert!((uncommon as i32 - 2000).abs() < tolerance, "Uncommon: {}", uncommon);
-        assert!((rare as i32 - 600).abs() < tolerance, "Rare: {}", rare);
-        assert!((epic as i32 - 300).abs() < tolerance, "Epic: {}", epic);
-        assert!((legendary as i32 - 100).abs() < tolerance, "Legendary: {}", legendary);
+        assert!((common - 7000).abs() < tolerance, "Common: {}", common);
+        assert!((uncommon - 2000).abs() < tolerance, "Uncommon: {}", uncommon);
+        assert!((rare - 600).abs() < tolerance, "Rare: {}", rare);
+        assert!((epic - 300).abs() < tolerance, "Epic: {}", epic);
+        assert!((legendary - 100).abs() < tolerance, "Legendary: {}", legendary);
     }
 }

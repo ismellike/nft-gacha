@@ -54,7 +54,9 @@ contract EconomyFlowTest is Test, IERC721Receiver {
         rarityNames[3] = "Epic";
         rarityNames[4] = "Legendary";
 
-        treasury.initialize(address(this), address(0xDEAD), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices);
+        treasury.initialize(
+            address(this), address(0xDEAD), address(appraisal), uint8(5), rarityNames, minPrices, maxPrices
+        );
 
         cardGroupedVault = new CardGroupedVault();
         cardGroupedVault.initialize(address(this), address(usdc), address(treasury), address(this), uint8(5));

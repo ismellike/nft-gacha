@@ -70,21 +70,21 @@ contract CardGroupedVaultPartialClaimTest is Test {
      */
     function test_partialClaim_subsetOfCards_acrossRarities() public {
         uint256 commonPrice = 10e18;
-        uint256 rarePrice   = 100e18;
-        uint256 epicPrice   = 500e18;
+        uint256 rarePrice = 100e18;
+        uint256 epicPrice = 500e18;
 
         // Alice deposits one token of each rarity
         vm.startPrank(treasury);
         vault.registerCardDeposit(CARD_COMMON_A, alice, commonPrice, COMMON, 1);
-        vault.registerCardDeposit(CARD_RARE,     alice, rarePrice,   RARE,   1);
-        vault.registerCardDeposit(CARD_EPIC,     alice, epicPrice,   EPIC,   1);
+        vault.registerCardDeposit(CARD_RARE, alice, rarePrice, RARE, 1);
+        vault.registerCardDeposit(CARD_EPIC, alice, epicPrice, EPIC, 1);
         vm.stopPrank();
 
         // Distribute yield to each rarity pool (alice is sole depositor in each)
         vm.startPrank(economyManager);
-        vault.distributeYield(20e6,  COMMON);   // Alice gets 20 USDC from Common
-        vault.distributeYield(80e6,  RARE);     // Alice gets 80 USDC from Rare
-        vault.distributeYield(200e6, EPIC);     // Alice gets 200 USDC from Epic
+        vault.distributeYield(20e6, COMMON); // Alice gets 20 USDC from Common
+        vault.distributeYield(80e6, RARE); // Alice gets 80 USDC from Rare
+        vault.distributeYield(200e6, EPIC); // Alice gets 200 USDC from Epic
         vm.stopPrank();
 
         // Total pending should be 300 USDC
@@ -144,7 +144,7 @@ contract CardGroupedVaultPartialClaimTest is Test {
 
         vm.startPrank(treasury);
         vault.registerCardDeposit(CARD_COMMON_A, alice, price, COMMON, 3); // 3/4 share
-        vault.registerCardDeposit(CARD_COMMON_A, bob,   price, COMMON, 1); // 1/4 share
+        vault.registerCardDeposit(CARD_COMMON_A, bob, price, COMMON, 1); // 1/4 share
         vm.stopPrank();
 
         vm.prank(economyManager);
@@ -241,8 +241,8 @@ contract CardGroupedVaultPartialClaimTest is Test {
 
         // Mix unknown card with valid card
         bytes32[] memory cards = new bytes32[](2);
-        cards[0] = unknownCard;    // alice has no position here — skipped
-        cards[1] = CARD_COMMON_A;  // alice has position here
+        cards[0] = unknownCard; // alice has no position here — skipped
+        cards[1] = CARD_COMMON_A; // alice has position here
 
         uint256 balBefore = usdc.balanceOf(alice);
         vm.prank(alice);
@@ -315,7 +315,9 @@ contract NFTAppraisalAutoMigrationTest is Test {
     bytes32 constant CARD_ID = keccak256("migration-test-card");
 
     event AutoMigrationTriggered(address indexed treasury, address indexed collection, uint256 indexed tokenId);
-    event AutoMigrationFailed(address indexed treasury, address indexed collection, uint256 indexed tokenId, bytes reason);
+    event AutoMigrationFailed(
+        address indexed treasury, address indexed collection, uint256 indexed tokenId, bytes reason
+    );
     event CardPriceUpdated(bytes32 indexed cardId, uint256 oldPriceUSD, uint256 newPriceUSD);
 
     function setUp() public {
@@ -327,7 +329,7 @@ contract NFTAppraisalAutoMigrationTest is Test {
             NFTAppraisal.initialize.selector,
             owner,
             address(feeToken),
-            0,         // zero fee for simplicity
+            0, // zero fee for simplicity
             protocol
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
@@ -338,7 +340,7 @@ contract NFTAppraisalAutoMigrationTest is Test {
 
         // Mint an NFT to be used in tests
         vm.prank(owner);
-        nft.mint(owner);  // tokenId = 0
+        nft.mint(owner); // tokenId = 0
     }
 
     // ─── Helper: complete an initial appraisal so subsequent updates trigger migration ─
@@ -372,7 +374,7 @@ contract NFTAppraisalAutoMigrationTest is Test {
 
         // Now re-appraise with a different price to trigger auto-migration
         vm.prank(owner);
-        vm.expectEmit(true, false, false, false);  // only check treasury indexed arg
+        vm.expectEmit(true, false, false, false); // only check treasury indexed arg
         emit AutoMigrationFailed(address(revertTreasury), address(nft), 0, "");
 
         // Should NOT revert even though migration fails
@@ -425,7 +427,7 @@ contract NFTAppraisalAutoMigrationTest is Test {
         // Parse emitted events and confirm no migration events were fired
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes32 triggeredSig = keccak256("AutoMigrationTriggered(address,address,uint256)");
-        bytes32 failedSig    = keccak256("AutoMigrationFailed(address,address,uint256,bytes)");
+        bytes32 failedSig = keccak256("AutoMigrationFailed(address,address,uint256,bytes)");
 
         bool foundMigrationEvent = false;
         for (uint256 i = 0; i < logs.length; i++) {
@@ -485,8 +487,8 @@ contract NFTAppraisalAutoMigrationTest is Test {
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes32 triggeredSig = keccak256("AutoMigrationTriggered(address,address,uint256)");
-        bytes32 failedSig    = keccak256("AutoMigrationFailed(address,address,uint256,bytes)");
-        bytes32 priceSig     = keccak256("CardPriceUpdated(bytes32,uint256,uint256)");
+        bytes32 failedSig = keccak256("AutoMigrationFailed(address,address,uint256,bytes)");
+        bytes32 priceSig = keccak256("CardPriceUpdated(bytes32,uint256,uint256)");
 
         for (uint256 i = 0; i < logs.length; i++) {
             assertFalse(
@@ -538,25 +540,25 @@ contract GachaRarityWeightRoundingTest is Test {
     GachaServiceHandler serviceHandler;
     MockWavsServiceManager mockWavsManager;
 
-    address gachaOwner    = makeAddr("gachaOwner");
+    address gachaOwner = makeAddr("gachaOwner");
     address treasuryOwner = makeAddr("treasuryOwner");
-    address spinner       = makeAddr("spinner");
+    address spinner = makeAddr("spinner");
 
     uint256 constant TOTAL_WEIGHT = 10_000;
     uint256 constant MAX_SPIN_FEE = 1e9;
 
     function setUp() public {
         mockWavsManager = new MockWavsServiceManager();
-        mockEconomy     = new MockGachaEconomyManager();
-        feeToken        = new BaseERC20("USDC", "USDC", gachaOwner);
-        nft             = new BaseERC721("NFT", "NFT", treasuryOwner);
-        mockAppraisal   = new MockNFTAppraisal();
+        mockEconomy = new MockGachaEconomyManager();
+        feeToken = new BaseERC20("USDC", "USDC", gachaOwner);
+        nft = new BaseERC721("NFT", "NFT", treasuryOwner);
+        mockAppraisal = new MockNFTAppraisal();
 
         // Deploy treasury
         GachaTreasury treasuryImpl = new GachaTreasury();
         uint256[] memory minPrices = new uint256[](5);
         uint256[] memory maxPrices = new uint256[](5);
-        string[] memory names      = new string[](5);
+        string[] memory names = new string[](5);
         uint256 PRICE_STEP = 1e16;
 
         minPrices[0] = 0;
@@ -571,13 +573,16 @@ contract GachaRarityWeightRoundingTest is Test {
         maxPrices[3] = 1200e18;
         maxPrices[4] = type(uint256).max;
 
-        names[0] = "Common"; names[1] = "Uncommon"; names[2] = "Rare";
-        names[3] = "Epic";   names[4] = "Legendary";
+        names[0] = "Common";
+        names[1] = "Uncommon";
+        names[2] = "Rare";
+        names[3] = "Epic";
+        names[4] = "Legendary";
 
         bytes memory initData = abi.encodeWithSelector(
             GachaTreasury.initialize.selector,
             treasuryOwner,
-            address(0xDEAD),  // placeholder gacha
+            address(0xDEAD), // placeholder gacha
             address(mockAppraisal),
             uint8(5),
             names,
@@ -589,17 +594,14 @@ contract GachaRarityWeightRoundingTest is Test {
 
         // Deploy Gacha
         Gacha gachaImpl = new Gacha();
-        serviceHandler = new GachaServiceHandler(
-            IWavsServiceManager(address(mockWavsManager)),
-            address(gachaImpl)
-        );
+        serviceHandler = new GachaServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(gachaImpl));
 
         bytes memory gachaInit = abi.encodeWithSelector(
             Gacha.initialize.selector,
             gachaOwner,
             address(serviceHandler),
             address(feeToken),
-            uint256(1e4),  // min spin fee
+            uint256(1e4), // min spin fee
             address(treasury),
             address(mockEconomy)
         );
@@ -644,7 +646,7 @@ contract GachaRarityWeightRoundingTest is Test {
 
     function test_rarityWeights_sumAlwaysEqualsTotalWeight() public {
         // Deposit one Common NFT — Common gets weight 7000, rest 0 (no NFTs)
-        _depositNFT(10e18);  // Common price
+        _depositNFT(10e18); // Common price
 
         uint256[] memory weights = gacha.getCurrentRarityWeights();
         uint256 sum;
@@ -659,7 +661,7 @@ contract GachaRarityWeightRoundingTest is Test {
      */
     function test_rarityWeights_singleRarity_getsAllWeight() public {
         // Single Rare NFT
-        _depositNFT(100e18);  // Rare price
+        _depositNFT(100e18); // Rare price
 
         uint256[] memory weights = gacha.getCurrentRarityWeights();
         assertEq(weights[2], TOTAL_WEIGHT, "Rare should get all 10000 weight");
@@ -683,13 +685,19 @@ contract GachaRarityWeightRoundingTest is Test {
         }
 
         uint256[] memory weights = gacha.getCurrentRarityWeights();
-        uint256[] memory target  = gacha.getTargetRarityBps();
+        uint256[] memory target = gacha.getTargetRarityBps();
 
         for (uint256 i = 0; i < 5; i++) {
-            assertEq(weights[i], target[i], string(abi.encodePacked("Weight should match target for rarity ", vm.toString(i))));
+            assertEq(
+                weights[i],
+                target[i],
+                string(abi.encodePacked("Weight should match target for rarity ", vm.toString(i)))
+            );
         }
         uint256 sum;
-        for (uint256 i = 0; i < 5; i++) sum += weights[i];
+        for (uint256 i = 0; i < 5; i++) {
+            sum += weights[i];
+        }
         assertEq(sum, TOTAL_WEIGHT, "Sum must be 10000");
     }
 
@@ -701,14 +709,16 @@ contract GachaRarityWeightRoundingTest is Test {
     function test_rarityWeights_heavilyImbalanced_sumIsCorrect() public {
         // 1000 Common NFTs
         for (uint256 i = 0; i < 10; i++) {
-            _depositNFT(10e18);  // Common
+            _depositNFT(10e18); // Common
         }
         // 1 Rare NFT
-        _depositNFT(100e18);   // Rare
+        _depositNFT(100e18); // Rare
 
         uint256[] memory weights = gacha.getCurrentRarityWeights();
         uint256 sum;
-        for (uint256 i = 0; i < 5; i++) sum += weights[i];
+        for (uint256 i = 0; i < 5; i++) {
+            sum += weights[i];
+        }
         assertEq(sum, TOTAL_WEIGHT, "Imbalanced treasury weights must still sum to 10000");
 
         // Rare weight should be boosted (fewer NFTs → higher weight in _getCurrentRarityWeights)
@@ -747,7 +757,9 @@ contract GachaRarityWeightRoundingTest is Test {
         assertEq(weights[0], 0, "Common with target 0 should get zero weight");
 
         uint256 sum;
-        for (uint256 i = 0; i < 5; i++) sum += weights[i];
+        for (uint256 i = 0; i < 5; i++) {
+            sum += weights[i];
+        }
         assertEq(sum, TOTAL_WEIGHT, "Weights excluding zero-target rarity must still sum to 10000");
     }
 
@@ -788,18 +800,26 @@ contract GachaRarityWeightRoundingTest is Test {
         // only populate 3 rarities in a way that tends to create a remainder.
 
         // Deposit 3 Common NFTs
-        for (uint256 i = 0; i < 3; i++) _depositNFT(10e18);
+        for (uint256 i = 0; i < 3; i++) {
+            _depositNFT(10e18);
+        }
         // Deposit 7 Uncommon NFTs
-        for (uint256 i = 0; i < 7; i++) _depositNFT(50e18);
+        for (uint256 i = 0; i < 7; i++) {
+            _depositNFT(50e18);
+        }
         // Deposit 11 Rare NFTs
-        for (uint256 i = 0; i < 11; i++) _depositNFT(100e18);
+        for (uint256 i = 0; i < 11; i++) {
+            _depositNFT(100e18);
+        }
         // No Epic or Legendary NFTs → those get zero weight
 
         uint256[] memory weights = gacha.getCurrentRarityWeights();
 
         // Invariant: sum must equal TOTAL_WEIGHT
         uint256 sum;
-        for (uint256 i = 0; i < 5; i++) sum += weights[i];
+        for (uint256 i = 0; i < 5; i++) {
+            sum += weights[i];
+        }
         assertEq(sum, TOTAL_WEIGHT, "Weights with 3 active rarities must sum to exactly 10000");
 
         // The two empty rarities must have zero weight
@@ -829,18 +849,18 @@ contract GachaRarityWeightRoundingTest is Test {
         // Deposit 5 Common NFTs and 1 Rare NFT
         // Common: rarity 0, price 10e18; Rare: rarity 2, price 100e18
         for (uint256 i = 0; i < 5; i++) {
-            _depositNFT(10e18);  // Common
+            _depositNFT(10e18); // Common
         }
-        _depositNFT(100e18);  // Rare
+        _depositNFT(100e18); // Rare
 
         // Set target weights: only Common and Rare are eligible
         // Uncommon (1), Epic (3), Legendary (4) get weight 0
         uint256[] memory targetWeights = new uint256[](5);
-        targetWeights[0] = 9000;  // Common
-        targetWeights[1] = 0;     // Uncommon (zero target)
-        targetWeights[2] = 1000;  // Rare
-        targetWeights[3] = 0;     // Epic (zero target)
-        targetWeights[4] = 0;     // Legendary (zero target)
+        targetWeights[0] = 9000; // Common
+        targetWeights[1] = 0; // Uncommon (zero target)
+        targetWeights[2] = 1000; // Rare
+        targetWeights[3] = 0; // Epic (zero target)
+        targetWeights[4] = 0; // Legendary (zero target)
 
         vm.prank(gachaOwner);
         gacha.setDynamicWeightsConfig(targetWeights);
@@ -854,7 +874,9 @@ contract GachaRarityWeightRoundingTest is Test {
         assertGt(computed[2], 0, "Rare should have non-zero computed weight");
 
         uint256 sum;
-        for (uint256 i = 0; i < 5; i++) sum += computed[i];
+        for (uint256 i = 0; i < 5; i++) {
+            sum += computed[i];
+        }
         assertEq(sum, TOTAL_WEIGHT, "Computed weights must sum to TOTAL_WEIGHT");
 
         // Run 5 spins — all should win Common or Rare, never Uncommon/Epic/Legendary
@@ -901,25 +923,25 @@ contract QueuedYieldProcessingTest is Test {
     ProtocolTreasury protocolTreasury;
     BaseERC20 usdc;
 
-    address economyOwner  = makeAddr("economyOwner");
-    address gacha         = makeAddr("gacha");
-    address vaultTreasury = makeAddr("vaultTreasury");  // the CardGroupedVault's "treasury" role
+    address economyOwner = makeAddr("economyOwner");
+    address gacha = makeAddr("gacha");
+    address vaultTreasury = makeAddr("vaultTreasury"); // the CardGroupedVault's "treasury" role
 
     address alice = makeAddr("alice");
-    address bob   = makeAddr("bob");
+    address bob = makeAddr("bob");
 
-    bytes32 constant CARD_COMMON     = keccak256("queued-card-common");
-    bytes32 constant CARD_UNCOMMON   = keccak256("queued-card-uncommon");
-    bytes32 constant CARD_RARE       = keccak256("queued-card-rare");
+    bytes32 constant CARD_COMMON = keccak256("queued-card-common");
+    bytes32 constant CARD_UNCOMMON = keccak256("queued-card-uncommon");
+    bytes32 constant CARD_RARE = keccak256("queued-card-rare");
 
-    uint8 constant COMMON   = 0;
+    uint8 constant COMMON = 0;
     uint8 constant UNCOMMON = 1;
-    uint8 constant RARE     = 2;
-    uint8 constant EPIC     = 3;
+    uint8 constant RARE = 2;
+    uint8 constant EPIC = 3;
     uint8 constant LEGENDARY = 4;
 
     uint256 constant DEPOSITOR_SHARE_BPS = 9_500;
-    uint256 constant PROTOCOL_SHARE_BPS  = 500;
+    uint256 constant PROTOCOL_SHARE_BPS = 500;
 
     event DepositorYieldQueued(uint256 amount, uint8 rarity);
     event QueuedDepositorYieldProcessed(uint256 amount, uint8 rarity);
@@ -935,8 +957,8 @@ contract QueuedYieldProcessingTest is Test {
             CardGroupedVault.initialize.selector,
             economyOwner,
             address(usdc),
-            vaultTreasury,  // vault's "treasury" = who can register deposits
-            address(this),  // temporary economy manager (will be replaced)
+            vaultTreasury, // vault's "treasury" = who can register deposits
+            address(this), // temporary economy manager (will be replaced)
             uint8(5)
         );
         ERC1967Proxy vaultProxy = new ERC1967Proxy(address(vaultImpl), vaultInit);
@@ -1030,27 +1052,27 @@ contract QueuedYieldProcessingTest is Test {
      *         are flushed; the others remain queued.
      */
     function test_queuedYield_multipleRarities_partialFlush() public {
-        uint256 revenueCommon   = 1000e6;
+        uint256 revenueCommon = 1000e6;
         uint256 revenueUncommon = 2000e6;
-        uint256 revenueRare     = 3000e6;
+        uint256 revenueRare = 3000e6;
 
-        uint256 queuedCommon   = (revenueCommon   * DEPOSITOR_SHARE_BPS) / 10_000;
+        uint256 queuedCommon = (revenueCommon * DEPOSITOR_SHARE_BPS) / 10_000;
         uint256 queuedUncommon = (revenueUncommon * DEPOSITOR_SHARE_BPS) / 10_000;
-        uint256 queuedRare     = (revenueRare     * DEPOSITOR_SHARE_BPS) / 10_000;
+        uint256 queuedRare = (revenueRare * DEPOSITOR_SHARE_BPS) / 10_000;
 
         // Queue yield for 3 rarities (all pools empty)
-        _spinRevenue(revenueCommon,   COMMON);
+        _spinRevenue(revenueCommon, COMMON);
         _spinRevenue(revenueUncommon, UNCOMMON);
-        _spinRevenue(revenueRare,     RARE);
+        _spinRevenue(revenueRare, RARE);
 
-        assertEq(economy.queuedYieldByRarity(COMMON),   queuedCommon,   "Common queued");
+        assertEq(economy.queuedYieldByRarity(COMMON), queuedCommon, "Common queued");
         assertEq(economy.queuedYieldByRarity(UNCOMMON), queuedUncommon, "Uncommon queued");
-        assertEq(economy.queuedYieldByRarity(RARE),     queuedRare,     "Rare queued");
+        assertEq(economy.queuedYieldByRarity(RARE), queuedRare, "Rare queued");
 
         // Deposit into only Common and Rare pools
         vm.startPrank(vaultTreasury);
         vault.registerCardDeposit(CARD_COMMON, alice, 10e18, COMMON, 1);
-        vault.registerCardDeposit(CARD_RARE,   bob,   100e18, RARE,  1);
+        vault.registerCardDeposit(CARD_RARE, bob, 100e18, RARE, 1);
         vm.stopPrank();
 
         // Mint extra usdc to economy so flush can transfer
@@ -1162,8 +1184,8 @@ contract QueuedYieldProcessingTest is Test {
 
         // Two depositors in COMMON: alice 3x, bob 1x
         vm.startPrank(vaultTreasury);
-        vault.registerCardDeposit(CARD_COMMON, alice, 100e18, COMMON, 3);  // 75% share
-        vault.registerCardDeposit(CARD_COMMON, bob,   100e18, COMMON, 1);  // 25% share
+        vault.registerCardDeposit(CARD_COMMON, alice, 100e18, COMMON, 3); // 75% share
+        vault.registerCardDeposit(CARD_COMMON, bob, 100e18, COMMON, 1); // 25% share
         vm.stopPrank();
 
         // Mint usdc for the flush
@@ -1179,7 +1201,7 @@ contract QueuedYieldProcessingTest is Test {
         // Bob should have ~25%
         // The current spin's depositor share is also in there; check relative proportions
         uint256 alicePending = vault.pendingYield(alice);
-        uint256 bobPending   = vault.pendingYield(bob);
+        uint256 bobPending = vault.pendingYield(bob);
 
         // With alice 3x and bob 1x: alice gets 3/(3+1) = 75%, bob gets 25%
         // Total flushed to vault = depositorShare (from first spin)
@@ -1188,7 +1210,7 @@ contract QueuedYieldProcessingTest is Test {
         uint256 totalDistributed = depositorShare + (100e6 * DEPOSITOR_SHARE_BPS / 10_000);
         assertApproxEqAbs(alicePending + bobPending, totalDistributed, 20, "Combined yield should match distributed");
         assertApproxEqAbs(alicePending, (totalDistributed * 3) / 4, 10, "Alice should have ~75% of total");
-        assertApproxEqAbs(bobPending,   totalDistributed / 4,        10, "Bob should have ~25% of total");
+        assertApproxEqAbs(bobPending, totalDistributed / 4, 10, "Bob should have ~25% of total");
     }
 }
 
@@ -1214,24 +1236,24 @@ contract GachaRefundedSpinCounterTest is Test {
     MockWavsServiceManager mockWavsManager;
     MockGachaEconomyManager mockEconomyManager;
 
-    address gachaOwner   = makeAddr("gachaOwner");
+    address gachaOwner = makeAddr("gachaOwner");
     address treasuryOwner = makeAddr("treasuryOwner");
-    address spinner      = makeAddr("spinner");
+    address spinner = makeAddr("spinner");
 
-    uint256 constant MIN_SPIN_FEE  = 0.01e6; // 0.01 USDC (6 decimals)
-    uint256 constant MAX_SPIN_FEE  = 1e9;
+    uint256 constant MIN_SPIN_FEE = 0.01e6; // 0.01 USDC (6 decimals)
+    uint256 constant MAX_SPIN_FEE = 1e9;
 
-    uint8 constant COMMON    = 0;
-    uint8 constant UNCOMMON  = 1;
-    uint8 constant RARE      = 2;
-    uint8 constant EPIC      = 3;
+    uint8 constant COMMON = 0;
+    uint8 constant UNCOMMON = 1;
+    uint8 constant RARE = 2;
+    uint8 constant EPIC = 3;
     uint8 constant LEGENDARY = 4;
 
     function setUp() public {
-        mockWavsManager   = new MockWavsServiceManager();
+        mockWavsManager = new MockWavsServiceManager();
         mockEconomyManager = new MockGachaEconomyManager();
-        feeToken          = new BaseERC20("USDC", "USDC", gachaOwner);
-        mockAppraisal     = new MockNFTAppraisal();
+        feeToken = new BaseERC20("USDC", "USDC", gachaOwner);
+        mockAppraisal = new MockNFTAppraisal();
 
         // Deploy treasury
         vm.startPrank(treasuryOwner);
@@ -1255,10 +1277,7 @@ contract GachaRefundedSpinCounterTest is Test {
 
         // Deploy Gacha
         Gacha gachaImpl = new Gacha();
-        serviceHandler = new GachaServiceHandler(
-            IWavsServiceManager(address(mockWavsManager)),
-            address(gachaImpl)
-        );
+        serviceHandler = new GachaServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(gachaImpl));
         vm.prank(gachaOwner);
         initData = abi.encodeWithSelector(
             Gacha.initialize.selector,
@@ -1324,7 +1343,7 @@ contract GachaRefundedSpinCounterTest is Test {
         uint256 triggerId = gacha.spin(MAX_SPIN_FEE);
 
         // Record counters before fulfillment
-        uint256 userCountBefore  = gacha.userSpinCount(spinner);
+        uint256 userCountBefore = gacha.userSpinCount(spinner);
         uint256 totalCountBefore = gacha.totalSpinCount();
 
         // Withdraw the Common NFT so the pool is now empty when fulfillment arrives
@@ -1340,12 +1359,12 @@ contract GachaRefundedSpinCounterTest is Test {
         gacha.fulfillRandomness(triggerId, randomness);
 
         // Counters must be unchanged — refund path must NOT increment them
-        assertEq(gacha.userSpinCount(spinner), userCountBefore,  "userSpinCount must not increase on refund");
-        assertEq(gacha.totalSpinCount(),       totalCountBefore, "totalSpinCount must not increase on refund");
+        assertEq(gacha.userSpinCount(spinner), userCountBefore, "userSpinCount must not increase on refund");
+        assertEq(gacha.totalSpinCount(), totalCountBefore, "totalSpinCount must not increase on refund");
 
         // Refund counters should have incremented
         assertEq(gacha.userRefundCount(spinner), 1, "userRefundCount should be 1");
-        assertEq(gacha.totalRefundCount(),       1, "totalRefundCount should be 1");
+        assertEq(gacha.totalRefundCount(), 1, "totalRefundCount should be 1");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -1396,15 +1415,15 @@ contract CardGroupedVaultReDepositTest is Test {
     CardGroupedVault vault;
     BaseERC20 usdc;
 
-    address owner        = address(0x1);
-    address treasury     = address(0x2);
-    address economyMgr   = address(0x3);
-    address alice        = address(0xA);
+    address owner = address(0x1);
+    address treasury = address(0x2);
+    address economyMgr = address(0x3);
+    address alice = address(0xA);
 
     bytes32 constant CARD_X = keccak256("card-X");
 
-    uint8 constant COMMON    = 0;
-    uint8 constant EPIC      = 3;
+    uint8 constant COMMON = 0;
+    uint8 constant EPIC = 3;
 
     function setUp() public {
         usdc = new BaseERC20("USDC", "USDC", address(this));
@@ -1429,8 +1448,8 @@ contract CardGroupedVaultReDepositTest is Test {
      *   6. Distribute yield to Common — alice must NOT receive it (wrong pool).
      */
     function test_reDeposit_afterFullRemoval_usesFreshPriceAndRarity() public {
-        uint256 oldPrice = 10e18;   // $10 — Common
-        uint256 newPrice = 500e18;  // $500 — Epic
+        uint256 oldPrice = 10e18; // $10 — Common
+        uint256 newPrice = 500e18; // $500 — Epic
 
         // Step 1: initial deposit
         vm.prank(treasury);
@@ -1438,7 +1457,7 @@ contract CardGroupedVaultReDepositTest is Test {
 
         assertEq(vault.sharesOf(alice), 2 * oldPrice, "initial shares correct");
         assertEq(vault.rarityTotalValue(COMMON), 2 * oldPrice, "Common value correct");
-        assertEq(vault.rarityTotalValue(EPIC),   0,            "Epic value zero initially");
+        assertEq(vault.rarityTotalValue(EPIC), 0, "Epic value zero initially");
 
         // Step 2: remove all deposits → totalCount reaches 0
         vm.prank(treasury);
@@ -1451,16 +1470,15 @@ contract CardGroupedVaultReDepositTest is Test {
         vm.prank(treasury);
         vault.registerCardDeposit(CARD_X, alice, newPrice, EPIC, 1);
 
-        assertEq(vault.sharesOf(alice), newPrice,         "shares reflect new price");
-        assertEq(vault.rarityTotalValue(EPIC),   newPrice, "Epic value reflects new deposit");
-        assertEq(vault.rarityTotalValue(COMMON), 0,        "Common value unchanged");
+        assertEq(vault.sharesOf(alice), newPrice, "shares reflect new price");
+        assertEq(vault.rarityTotalValue(EPIC), newPrice, "Epic value reflects new deposit");
+        assertEq(vault.rarityTotalValue(COMMON), 0, "Common value unchanged");
 
         // Step 4: distribute yield to Epic — alice must receive it all
         vm.prank(economyMgr);
         vault.distributeYield(100e6, EPIC);
 
-        assertApproxEqAbs(vault.pendingYield(alice), 100e6, 1,
-            "alice should receive Epic yield after re-deposit");
+        assertApproxEqAbs(vault.pendingYield(alice), 100e6, 1, "alice should receive Epic yield after re-deposit");
 
         // Step 5: distribute yield to Common — alice must NOT receive it
         // (Common pool is empty, so distributeYield would revert with NoValueInPool)
@@ -1475,8 +1493,8 @@ contract CardGroupedVaultReDepositTest is Test {
      *         into the new stint at the Epic rarity.
      */
     function test_reDeposit_noYieldBleedFromPreviousStint() public {
-        uint256 price1 = 10e18;   // $10 — Common
-        uint256 price2 = 500e18;  // $500 — Epic
+        uint256 price1 = 10e18; // $10 — Common
+        uint256 price2 = 500e18; // $500 — Epic
 
         // First stint: deposit, earn yield, remove all
         vm.prank(treasury);
@@ -1489,8 +1507,7 @@ contract CardGroupedVaultReDepositTest is Test {
         vm.prank(treasury);
         vault.removeCardDeposit(CARD_X, alice, 1);
 
-        assertApproxEqAbs(vault.pendingYield(alice), 30e6, 1,
-            "accrued yield from first stint visible");
+        assertApproxEqAbs(vault.pendingYield(alice), 30e6, 1, "accrued yield from first stint visible");
 
         // Second stint: re-deposit at different rarity
         vm.prank(treasury);
@@ -1501,8 +1518,7 @@ contract CardGroupedVaultReDepositTest is Test {
         vault.distributeYield(50e6, EPIC);
 
         // Total pending = 30 (old settled) + 50 (new Epic yield) = 80
-        assertApproxEqAbs(vault.pendingYield(alice), 80e6, 2,
-            "total pending should be old + new yield");
+        assertApproxEqAbs(vault.pendingYield(alice), 80e6, 2, "total pending should be old + new yield");
 
         // Claiming should pay out exactly 80 USDC
         vm.prank(alice);
@@ -1529,7 +1545,7 @@ contract MockTreasuryForMigration {
     function onCardPriceUpdated(bytes32 cardId, uint256 newPriceUSD) external {
         callCount++;
         lastCardId = cardId;
-        lastPrice  = newPriceUSD;
+        lastPrice = newPriceUSD;
     }
 }
 
@@ -1550,9 +1566,9 @@ contract NFTAppraisalNonDepositedTokenMigrationTest is Test {
     BaseERC20 feeToken;
 
     address appraisalOwner = makeAddr("appraisalOwner");
-    address protocol       = makeAddr("protocol");
+    address protocol = makeAddr("protocol");
     address serviceHandler = makeAddr("serviceHandler");
-    address user           = makeAddr("user");
+    address user = makeAddr("user");
 
     uint256 constant APPRAISAL_FEE = 10e18;
 
@@ -1564,16 +1580,12 @@ contract NFTAppraisalNonDepositedTokenMigrationTest is Test {
 
     function setUp() public {
         feeToken = new BaseERC20("FEE", "FEE", appraisalOwner);
-        nft      = new BaseERC721("NFT", "NFT", appraisalOwner);
+        nft = new BaseERC721("NFT", "NFT", appraisalOwner);
 
         // Deploy NFTAppraisal proxy
         NFTAppraisal appraisalImpl = new NFTAppraisal();
         bytes memory initData = abi.encodeWithSelector(
-            NFTAppraisal.initialize.selector,
-            appraisalOwner,
-            address(feeToken),
-            APPRAISAL_FEE,
-            protocol
+            NFTAppraisal.initialize.selector, appraisalOwner, address(feeToken), APPRAISAL_FEE, protocol
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(appraisalImpl), initData);
         appraisal = NFTAppraisal(address(proxy));
@@ -1641,12 +1653,9 @@ contract NFTAppraisalNonDepositedTokenMigrationTest is Test {
         appraisal.setAppraisalForTokenWithCard(address(nft), TOKEN_B, SHARED_CARD_ID, newPrice);
 
         // The mock treasury must have been notified exactly once
-        assertEq(mockTreasury.callCount(), 1,
-            "treasury must receive onCardPriceUpdated when card price changes");
-        assertEq(mockTreasury.lastCardId(), SHARED_CARD_ID,
-            "treasury must receive the correct card ID");
-        assertEq(mockTreasury.lastPrice(),  newPrice,
-            "treasury must receive the new price");
+        assertEq(mockTreasury.callCount(), 1, "treasury must receive onCardPriceUpdated when card price changes");
+        assertEq(mockTreasury.lastCardId(), SHARED_CARD_ID, "treasury must receive the correct card ID");
+        assertEq(mockTreasury.lastPrice(), newPrice, "treasury must receive the new price");
     }
 
     /**
@@ -1664,7 +1673,7 @@ contract NFTAppraisalNonDepositedTokenMigrationTest is Test {
         appraisal.setAppraisalForTokenWithCard(address(nft), TOKEN_B, SHARED_CARD_ID, price1);
 
         assertEq(mockTreasury.callCount(), 1, "first migration fired");
-        assertEq(mockTreasury.lastPrice(),  price1, "first migration price correct");
+        assertEq(mockTreasury.lastPrice(), price1, "first migration price correct");
 
         // Second price change on TOKEN_B
         vm.prank(user);
@@ -1673,6 +1682,6 @@ contract NFTAppraisalNonDepositedTokenMigrationTest is Test {
         appraisal.setAppraisalForTokenWithCard(address(nft), TOKEN_B, SHARED_CARD_ID, price2);
 
         assertEq(mockTreasury.callCount(), 2, "second migration fired");
-        assertEq(mockTreasury.lastPrice(),  price2, "second migration price correct");
+        assertEq(mockTreasury.lastPrice(), price2, "second migration price correct");
     }
 }

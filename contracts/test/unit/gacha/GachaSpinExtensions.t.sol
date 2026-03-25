@@ -80,9 +80,7 @@ contract GachaSpinExtensionsTest is StandardTest {
 
         // Deploy Gacha proxy
         Gacha gachaImpl = new Gacha();
-        serviceHandler = new GachaServiceHandler(
-            IWavsServiceManager(address(mockWavsManager)), address(gachaImpl)
-        );
+        serviceHandler = new GachaServiceHandler(IWavsServiceManager(address(mockWavsManager)), address(gachaImpl));
         vm.prank(gachaOwner);
         initData = abi.encodeWithSelector(
             Gacha.initialize.selector,

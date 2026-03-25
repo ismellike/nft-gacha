@@ -13,12 +13,12 @@ contract GachaPFP is ERC721 {
     using Strings for uint256;
 
     enum Rarity {
-        Common,     // 40%
-        Uncommon,   // 25%
-        Rare,       // 18%
-        Epic,       // 10%
-        Legendary,  // 5%
-        Mythic      // 2%
+        Common, // 40%
+        Uncommon, // 25%
+        Rare, // 18%
+        Epic, // 10%
+        Legendary, // 5%
+        Mythic // 2%
     }
 
     uint256 private _nextId = 1;
@@ -59,12 +59,12 @@ contract GachaPFP is ERC721 {
     function _determineRarity(uint256 tokenId) internal view returns (Rarity) {
         uint256 roll = uint256(keccak256(abi.encodePacked(tokenId, block.prevrandao))) % 10000;
 
-        if (roll < 4000) return Rarity.Common;      // 40%
-        if (roll < 6500) return Rarity.Uncommon;     // 25%
-        if (roll < 8300) return Rarity.Rare;         // 18%
-        if (roll < 9300) return Rarity.Epic;         // 10%
-        if (roll < 9800) return Rarity.Legendary;    //  5%
-        return Rarity.Mythic;                        //  2%
+        if (roll < 4000) return Rarity.Common; // 40%
+        if (roll < 6500) return Rarity.Uncommon; // 25%
+        if (roll < 8300) return Rarity.Rare; // 18%
+        if (roll < 9300) return Rarity.Epic; // 10%
+        if (roll < 9800) return Rarity.Legendary; //  5%
+        return Rarity.Mythic; //  2%
     }
 
     function _rarityString(Rarity r) internal pure returns (string memory) {

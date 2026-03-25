@@ -32,11 +32,10 @@ contract DeploymentHelpers is Test {
      * @param mockAppraisal The mock NFT appraisal contract
      * @return treasury The deployed GachaTreasury proxy
      */
-    function _deployTreasury(
-        address owner,
-        address gachaContract,
-        address mockAppraisal
-    ) internal returns (GachaTreasury treasury) {
+    function _deployTreasury(address owner, address gachaContract, address mockAppraisal)
+        internal
+        returns (GachaTreasury treasury)
+    {
         GachaTreasury treasuryImpl = new GachaTreasury();
 
         vm.startPrank(owner);
@@ -82,12 +81,10 @@ contract DeploymentHelpers is Test {
      * @param protocolTreasury The protocol treasury address
      * @return appraisal The deployed NFTAppraisal proxy
      */
-    function _deployAppraisal(
-        address owner,
-        address feeToken,
-        uint256 fee,
-        address protocolTreasury
-    ) internal returns (NFTAppraisal appraisal) {
+    function _deployAppraisal(address owner, address feeToken, uint256 fee, address protocolTreasury)
+        internal
+        returns (NFTAppraisal appraisal)
+    {
         NFTAppraisal appraisalImpl = new NFTAppraisal();
 
         bytes memory initData =
@@ -103,12 +100,10 @@ contract DeploymentHelpers is Test {
      * @return appraisal The deployed NFTAppraisal proxy
      * @return feeToken The deployed fee token
      */
-    function _deployDefaultAppraisal(address owner)
-        internal
-        returns (NFTAppraisal appraisal, BaseERC20 feeToken)
-    {
+    function _deployDefaultAppraisal(address owner) internal returns (NFTAppraisal appraisal, BaseERC20 feeToken) {
         feeToken = new BaseERC20("Fee Token", "FEE", owner);
-        appraisal = _deployAppraisal(owner, address(feeToken), TestConstants.APPRAISAL_FEE, TestConstants.PROTOCOL_TREASURY);
+        appraisal =
+            _deployAppraisal(owner, address(feeToken), TestConstants.APPRAISAL_FEE, TestConstants.PROTOCOL_TREASURY);
     }
 
     // ========================================================================
@@ -123,16 +118,9 @@ contract DeploymentHelpers is Test {
      * @return protocolTreasury The deployed ProtocolTreasury
      * @return manager The deployed GachaEconomyManager
      */
-    function _deployEconomyStack(
-        address owner,
-        address feeToken
-    )
+    function _deployEconomyStack(address owner, address feeToken)
         internal
-        returns (
-            CardGroupedVault vault,
-            ProtocolTreasury protocolTreasury,
-            GachaEconomyManager manager
-        )
+        returns (CardGroupedVault vault, ProtocolTreasury protocolTreasury, GachaEconomyManager manager)
     {
         vm.startPrank(owner);
 
@@ -142,9 +130,18 @@ contract DeploymentHelpers is Test {
         manager = new GachaEconomyManager();
 
         // Initialize with temporary addresses (will be wired later)
-        vault.initialize(owner, feeToken, address(protocolTreasury), address(manager), TestConstants.DEFAULT_NUM_RARITIES);
-        protocolTreasury.initialize(owner, feeToken, address(manager), address(0), address(0));  // treasury and appraisal will be set later
-        manager.initialize(owner, feeToken, TestConstants.GACHA_CONTRACT, address(vault), address(protocolTreasury), TestConstants.DEFAULT_NUM_RARITIES);
+        vault.initialize(
+            owner, feeToken, address(protocolTreasury), address(manager), TestConstants.DEFAULT_NUM_RARITIES
+        );
+        protocolTreasury.initialize(owner, feeToken, address(manager), address(0), address(0)); // treasury and appraisal will be set later
+        manager.initialize(
+            owner,
+            feeToken,
+            TestConstants.GACHA_CONTRACT,
+            address(vault),
+            address(protocolTreasury),
+            TestConstants.DEFAULT_NUM_RARITIES
+        );
 
         // Wire up the contracts using setter functions
         vault.setEconomyManager(address(manager));
@@ -209,14 +206,13 @@ contract DeploymentHelpers is Test {
      * @param feeToken The fee token address
      * @return manager The deployed GachaEconomyManager
      */
-    function _deployEconomyManager(address owner, address feeToken)
-        internal
-        returns (GachaEconomyManager manager)
-    {
+    function _deployEconomyManager(address owner, address feeToken) internal returns (GachaEconomyManager manager) {
         manager = new GachaEconomyManager();
         vm.prank(owner);
         // Initialize with temporary addresses
-        manager.initialize(owner, feeToken, TestConstants.GACHA_CONTRACT, address(0), address(0), TestConstants.DEFAULT_NUM_RARITIES);
+        manager.initialize(
+            owner, feeToken, TestConstants.GACHA_CONTRACT, address(0), address(0), TestConstants.DEFAULT_NUM_RARITIES
+        );
     }
 
     // ========================================================================

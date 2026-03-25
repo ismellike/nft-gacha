@@ -130,11 +130,7 @@ contract MockNFTAppraisal {
         }
     }
 
-    function getCardInstance(bytes32 cardId)
-        external
-        view
-        returns (address collection, uint256 tokenId)
-    {
+    function getCardInstance(bytes32 cardId) external view returns (address collection, uint256 tokenId) {
         CardAppraisal storage cardAppraisal = cardAppraisals[cardId];
 
         // Return the canonical (first) NFT instance for this card

@@ -260,7 +260,9 @@ contract DeployLocal is Script {
         d.cardGroupedVaultProxy = address(
             new ERC1967Proxy(
                 address(cardGroupedVaultImpl),
-                abi.encodeWithSelector(CardGroupedVault.initialize.selector, deployer, d.usdc, d.treasuryProxy, deployer, uint8(5))
+                abi.encodeWithSelector(
+                    CardGroupedVault.initialize.selector, deployer, d.usdc, d.treasuryProxy, deployer, uint8(5)
+                )
             )
         );
     }
@@ -546,9 +548,7 @@ contract DeployLocal is Script {
         }
     }
 
-    function _seedLegendary(GachaTreasury treasury, NFTAppraisal appraisal, BaseERC721 nft, address deployer)
-        internal
-    {
+    function _seedLegendary(GachaTreasury treasury, NFTAppraisal appraisal, BaseERC721 nft, address deployer) internal {
         string[5] memory ids = [
             "0x217e91a9d710b92ebdaaee53d9b85dfff8b0010d85e01dc0c5d7e83a23552b4c", // Base Set Charizard (Valid)
             "0xd8747e713116b7c3171311e371f4864aa53cc444e0073fbe167fc99166c54b4f", // Charizard V (Valid)
@@ -636,7 +636,13 @@ contract DeployLocal is Script {
         // Write to a JSON file for task discovery
         string memory jsonPath = "../.project-output/chain-1/avs/avs_deploy.json";
         string memory serviceManagerStr = vm.toString(serviceManager);
-        string memory jsonContent = string(abi.encodePacked('{"lastUpdate":{"timestamp":"1766905622","block_number":"595"},"addresses":{"WavsServiceManager":"', serviceManagerStr, '"}}'));
+        string memory jsonContent = string(
+            abi.encodePacked(
+                '{"lastUpdate":{"timestamp":"1766905622","block_number":"595"},"addresses":{"WavsServiceManager":"',
+                serviceManagerStr,
+                '"}}'
+            )
+        );
         // forge-lint: disable-next-line(unsafe-cheatcode)
         vm.writeFile(jsonPath, jsonContent);
         console.log("Wrote service manager address to avs_deploy.json");
