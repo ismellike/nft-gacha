@@ -150,9 +150,12 @@ export const DEFAULT_RARITY_NAMES = [
 const DEFAULT_PERCENTAGES = [70, 20, 6, 3, 1];
 
 /**
- * Build rarity config array from on-chain names and optional weights
+ * Build rarity config array from on-chain names and optional weights.
+ * Exported so callers with a non-default tier count (e.g. 6-tier PFP collections
+ * with a Mythic tier) can derive consistent styling from the shared palette
+ * instead of hardcoding colors.
  */
-function buildRarityConfig(
+export function buildRarityConfig(
 	names: string[],
 	weights?: number[],
 ): RarityConfigItem[] {
