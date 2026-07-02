@@ -587,4 +587,119 @@ contract CardGroupedVaultTest is Test {
         bytes32[] memory cards = vault.getDepositorCards(alice);
         assertEq(cards.length, 2);
     }
+
+    // ================================================================
+    // Paginated claim / views (unbounded-list DoS mitigation)
+    // ================================================================
+
+    /// @dev Registers `n` distinct single-token COMMON cards for `who` at `price`.
+    function _registerManyCards(address who, uint256 n, uint256 price) internal {
+        vm.startPrank(treasury);
+        for (uint256 i; i < n; ++i) {
+            vault.registerCardDeposit(keccak256(abi.encode("pagcard", who, i)), who, price, COMMON, 1);
+        }
+        vm.stopPrank();
+    }
+
+    function test_getDepositorCardCount() public {
+        _registerManyCards(alice, 5, 10e18);
+        assertEq(vault.getDepositorCardCount(alice), 5);
+        assertEq(vault.getDepositorCardCount(bob), 0);
+    }
+
+    function test_paginatedClaim_walksAllPages_matchesFull() public {
+        _registerManyCards(alice, 7, 10e18);
+        vm.prank(economyManager);
+        vault.distributeYield(100e6, COMMON);
+
+        uint256 expected = vault.pendingYield(alice);
+        // Per-card integer division loses a few wei across the 7 cards (dust); tolerate it.
+        assertApproxEqAbs(expected, 100e6, 100, "pending should equal distributed");
+
+        uint256 totalClaimed;
+        uint256 offset;
+        uint256 guard;
+        do {
+            vm.prank(alice);
+            (uint256 got, uint256 next) = vault.claimYieldPaginated(alice, offset, 3);
+            totalClaimed += got;
+            offset = next;
+            require(guard++ < 20, "pagination did not terminate");
+        } while (offset != 0);
+
+        assertApproxEqAbs(totalClaimed, expected, 100, "paged claim total should match full pending");
+        assertEq(vault.pendingYield(alice), 0, "nothing left after full paged claim");
+    }
+
+    function test_paginatedClaim_emptyPagesDoNotRevert() public {
+        _registerManyCards(alice, 4, 10e18);
+        vm.prank(economyManager);
+        vault.distributeYield(40e6, COMMON);
+
+        // First full walk drains everything.
+        uint256 offset;
+        do {
+            vm.prank(alice);
+            (, uint256 next) = vault.claimYieldPaginated(alice, offset, 2);
+            offset = next;
+        } while (offset != 0);
+
+        // A second walk over already-claimed pages must not revert and must pay nothing.
+        offset = 0;
+        uint256 second;
+        do {
+            vm.prank(alice);
+            (uint256 got, uint256 next) = vault.claimYieldPaginated(alice, offset, 2);
+            second += got;
+            offset = next;
+        } while (offset != 0);
+        assertEq(second, 0, "re-walk of claimed pages pays nothing");
+    }
+
+    function test_paginatedClaim_zeroLimitReverts() public {
+        _registerManyCards(alice, 2, 10e18);
+        vm.prank(alice);
+        vm.expectRevert(CardGroupedVault.ZeroAmount.selector);
+        vault.claimYieldPaginated(alice, 0, 0);
+    }
+
+    function test_paginatedClaim_unauthorizedReverts() public {
+        _registerManyCards(alice, 2, 10e18);
+        vm.prank(bob);
+        vm.expectRevert(CardGroupedVault.UnauthorizedClaim.selector);
+        vault.claimYieldPaginated(alice, 0, 2);
+    }
+
+    function test_paginatedViews_sumToFull() public {
+        _registerManyCards(alice, 6, 25e18);
+        vm.prank(economyManager);
+        vault.distributeYield(60e6, COMMON);
+
+        uint256 pendingFull = vault.pendingYield(alice);
+        uint256 sharesFull = vault.sharesOf(alice);
+
+        uint256 pendingSum;
+        uint256 sharesSum;
+        uint256 offset;
+        uint256 guard;
+        do {
+            (uint256 p, uint256 nextP) = vault.pendingYieldPaginated(alice, offset, 4);
+            (uint256 s,) = vault.sharesOfPaginated(alice, offset, 4);
+            pendingSum += p;
+            sharesSum += s;
+            offset = nextP;
+            require(guard++ < 20, "pagination did not terminate");
+        } while (offset != 0);
+
+        assertEq(pendingSum, pendingFull, "paged pending must equal full pending");
+        assertEq(sharesSum, sharesFull, "paged shares must equal full shares");
+    }
+
+    function test_paginatedViews_zeroLimitReverts() public {
+        _registerManyCards(alice, 2, 10e18);
+        vm.expectRevert(CardGroupedVault.ZeroAmount.selector);
+        vault.pendingYieldPaginated(alice, 0, 0);
+        vm.expectRevert(CardGroupedVault.ZeroAmount.selector);
+        vault.sharesOfPaginated(alice, 0, 0);
+    }
 }

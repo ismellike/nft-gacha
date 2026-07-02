@@ -447,6 +447,71 @@ contract CardGroupedVault is
         return withdrawn;
     }
 
+    /**
+     * @notice Claims yield over a contiguous slice of the depositor's card list so accounts with
+     *         many cards can always claim in bounded-gas pages. The unpaginated {claimYield} loops
+     *         over every card and can exceed the block gas limit for a very large position, which
+     *         would otherwise strand that depositor's yield; this is the safe path for all sizes.
+     * @dev Loop from offset 0 with a fixed page size, re-calling with the returned `nextOffset`
+     *      until it is 0. The pre-materialized `accruedYield` bucket is paid out once, on the first
+     *      page (offset == 0). Claiming does not remove cards from the list, so a straight 0..N walk
+     *      is stable unless a concurrent deposit/withdraw reorders it (swap-and-pop); in that rare
+     *      case a card may be revisited (yields 0, its debts already reset) or briefly skipped and
+     *      picked up on a subsequent pass — no yield is lost.
+     * @param account Address whose rewards will be withdrawn
+     * @param offset  Starting index into the depositor's card list
+     * @param limit   Maximum number of cards to process this page (must be > 0)
+     * @return withdrawn  Amount paid out in USDC this page
+     * @return nextOffset Index to resume from, or 0 when the end of the list was reached
+     */
+    function claimYieldPaginated(address account, uint256 offset, uint256 limit)
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256 withdrawn, uint256 nextOffset)
+    {
+        if (account == address(0)) revert ZeroAddress();
+        if (msg.sender != account && msg.sender != economyManager) revert UnauthorizedClaim();
+        if (limit == 0) revert ZeroAmount();
+
+        // Pay out any yield materialized during prior position changes once, on the first page.
+        if (offset == 0) {
+            withdrawn = accruedYield[account];
+            if (withdrawn > 0) {
+                accruedYield[account] = 0;
+            }
+        }
+
+        bytes32[] storage cards = _depositorCards[account];
+        uint256 len = cards.length;
+        uint256 end = offset + limit;
+        if (end > len) end = len;
+
+        for (uint256 i = offset; i < end; ++i) {
+            bytes32 cardId = cards[i];
+            uint256 unclaimed = _unclaimedOf(cardId, account);
+            if (unclaimed > 0) {
+                _resetDebts(cardId, account);
+                withdrawn += unclaimed;
+            }
+        }
+
+        // 0 signals "done"; because indices are 1-based-free here, offset==0 on an empty list also
+        // returns 0 (nothing more to do), which callers treat as complete.
+        nextOffset = end >= len ? 0 : end;
+
+        // Tolerate empty pages so a pagination loop doesn't revert mid-walk; only pay when non-zero.
+        if (withdrawn > 0) {
+            _payOut(account, withdrawn);
+        }
+    }
+
+    /// @notice Number of distinct cards a depositor holds positions in (page count basis).
+    /// @param account Address to query
+    function getDepositorCardCount(address account) external view returns (uint256) {
+        return _depositorCards[account].length;
+    }
+
     /// @inheritdoc ICardGroupedVault
     function pendingYield(address account) external view override returns (uint256 total) {
         total = accruedYield[account];
@@ -454,6 +519,56 @@ contract CardGroupedVault is
         for (uint256 i; i < cards.length; ++i) {
             total += _pendingForCard(cards[i], account);
         }
+    }
+
+    /// @notice Paginated {pendingYield} for depositors with many cards (bounded-gas view).
+    /// @dev Includes the `accruedYield` bucket only on the first page (offset == 0), mirroring
+    ///      {claimYieldPaginated}, so summing all pages equals {pendingYield}.
+    /// @param account Address to query
+    /// @param offset  Starting index into the depositor's card list
+    /// @param limit   Maximum number of cards to sum this page (must be > 0)
+    /// @return total      Pending USDC accrued across this page's cards (plus the bucket on page 0)
+    /// @return nextOffset Index to resume from, or 0 when the end of the list was reached
+    function pendingYieldPaginated(address account, uint256 offset, uint256 limit)
+        external
+        view
+        returns (uint256 total, uint256 nextOffset)
+    {
+        if (limit == 0) revert ZeroAmount();
+        if (offset == 0) {
+            total = accruedYield[account];
+        }
+        bytes32[] storage cards = _depositorCards[account];
+        uint256 len = cards.length;
+        uint256 end = offset + limit;
+        if (end > len) end = len;
+        for (uint256 i = offset; i < end; ++i) {
+            total += _pendingForCard(cards[i], account);
+        }
+        nextOffset = end >= len ? 0 : end;
+    }
+
+    /// @notice Paginated {sharesOf} for depositors with many cards (bounded-gas view).
+    /// @param account Address to query
+    /// @param offset  Starting index into the depositor's card list
+    /// @param limit   Maximum number of cards to sum this page (must be > 0)
+    /// @return total      Share value (count × price) across this page's cards
+    /// @return nextOffset Index to resume from, or 0 when the end of the list was reached
+    function sharesOfPaginated(address account, uint256 offset, uint256 limit)
+        external
+        view
+        returns (uint256 total, uint256 nextOffset)
+    {
+        if (limit == 0) revert ZeroAmount();
+        bytes32[] storage cards = _depositorCards[account];
+        uint256 len = cards.length;
+        uint256 end = offset + limit;
+        if (end > len) end = len;
+        for (uint256 i = offset; i < end; ++i) {
+            DepositorPosition storage pos = positions[cards[i]][account];
+            total += pos.count * cardNodes[cards[i]].cardPriceUSD;
+        }
+        nextOffset = end >= len ? 0 : end;
     }
 
     /// @inheritdoc ICardGroupedVault
