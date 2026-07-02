@@ -62,8 +62,8 @@ task frontend:codegen          # 3. Regenerate TypeScript types
 
 ## Key Architectural Decisions
 
-- **State**: Zustand stores with localStorage persistence. Async orchestration in `src/async-utils/`.
-- **Spin flow**: `idle` -> `spinning` -> `waitingForFulfillment` -> `revealing` -> `idle` (no XState).
+- **State**: Zustand stores with localStorage persistence. Polling/storage helpers in `src/async-utils/`.
+- **Spin flow**: XState v5 machine in `src/machines/gachaSpinMachine.ts` (React binding in `src/hooks/useGachaSpinMachine.ts`), states `idle` -> `spinning` -> `waitingForFulfillment` -> `revealing` -> `idle`. `src/async-utils/` holds the polling/storage helpers the machine invokes.
 - **Contract types**: Auto-generated via `wagmi generate` from Foundry artifacts. Never edit `src/generated.ts`.
 - **Config**: Environment-aware via `src/lib/gacha-config.ts` with Zod validation.
 - **UI**: Glassmorphism primitives in `frontend/src/ui/`.

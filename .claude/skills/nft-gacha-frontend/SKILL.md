@@ -25,14 +25,16 @@ metadata:
 - `frontend/src/components/` - Feature components (GachaCard, AdminControls)
 - `frontend/src/ui/` - UI primitives (glassmorphism)
 - `frontend/src/stores/gachaStore.ts` - Zustand store with persistence
-- `frontend/src/async-utils/gachaSpinMachine.ts` - Async utilities (no XState)
+- `frontend/src/machines/gachaSpinMachine.ts` - XState v5 spin state machine
+- `frontend/src/hooks/useGachaSpinMachine.ts` - React binding for the spin machine
+- `frontend/src/async-utils/` - Polling/storage helpers invoked by the machine (not a state machine)
 - `frontend/src/generated.ts` - Auto-generated contract types (do not edit)
 - `frontend/wagmi.ts` - wagmi configuration
 
 ## State Management
 
 - Use Zustand stores in `src/stores/`; avoid new global patterns.
-- Keep async orchestration in `src/async-utils/` helpers.
+- Drive the spin flow through the XState machine in `src/machines/gachaSpinMachine.ts` (via `useGachaSpinMachine`); keep polling/storage helpers in `src/async-utils/`.
 - Spin state flow: `idle -> spinning -> waitingForFulfillment -> revealing -> idle`
 
 ## Contract Integration
