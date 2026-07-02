@@ -99,8 +99,18 @@ fn process_submission(input: AggregatorInput, validate_tx: bool) -> Result<Vec<A
     }
 
     // Get gas price from Etherscan if configured once before the loop.
-    // Will fail the entire operation if API key is configured but fetching fails.
-    let gas_price = gas_oracle::get_gas_price()?;
+    // A transient oracle failure must not block legitimate settlement: fall back to
+    // `None` (let the chain/RPC pick the gas price) and log a warning instead of aborting.
+    let gas_price = match gas_oracle::get_gas_price() {
+        Ok(gas_price) => gas_price,
+        Err(e) => {
+            host::log(
+                LogLevel::Warn,
+                &format!("Gas oracle failed, falling back to default gas price: {e}"),
+            );
+            None
+        }
+    };
 
     for (chain_key, service_handler_address) in submit_config {
         if host::get_evm_chain_config(&chain_key).is_some() {
