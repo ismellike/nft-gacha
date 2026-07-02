@@ -14,7 +14,11 @@ import {
 	type UseNFTInteractionParams,
 	useNFTInteraction,
 } from "@/hooks/useNFTInteraction";
-import { useRedemptionWindow } from "@/hooks/useRedemptionWindow";
+import {
+	REDEEM_EXCEEDS_CAP,
+	REDEEM_INSUFFICIENT_LIQUIDITY,
+	useRedemptionWindow,
+} from "@/hooks/useRedemptionWindow";
 import { getRarityConfig } from "@/lib/rarityConfig";
 import { formatCurrency } from "@/lib/utils";
 import { useBuybackActions } from "../../hooks/useBuybackActions";
@@ -210,16 +214,23 @@ export default function BuybackComponent({
 		ownerOf && connectedAddress
 			? ownerOf.toLowerCase() === connectedAddress.toLowerCase()
 			: false;
-	const hasEnoughLiquidity = !isPaused;
+	const isInsufficientLiquidity =
+		redemptionWindow.redeemReason === REDEEM_INSUFFICIENT_LIQUIDITY ||
+		redemptionWindow.redeemReason === REDEEM_EXCEEDS_CAP;
+	// Redemption is best-effort while treasury funds last, not a hard guarantee -
+	// `isRedeemable` is the authoritative on-chain preflight for liquidity/cap state.
+	const hasEnoughLiquidity = !isPaused && !isInsufficientLiquidity;
 	const needsApproval = !isApprovedForAll;
 	const hasAppraisalData = hasAppraisal === true;
 	const isNotOwned = !isOwner;
 
-	// Calculate payout amount FIRST (before other derived state that depends on it)
-	const payoutAmount = useMemo(() => {
-		if (!payoutBps) return null; // Return null instead of 0 to indicate "no payout"
+	// Local estimate computed from the live/historical appraisal price, used only until the
+	// authoritative on-chain preflight (`ProtocolTreasury.isRedeemable`) has resolved. The
+	// on-chain value additionally accounts for min(win-time snapshot, live appraisal) and is
+	// always preferred once available.
+	const localEstimatedPayout = useMemo(() => {
+		if (!payoutBps) return null;
 
-		// Try to use current appraisal price first, fall back to historical price
 		let priceValue: bigint | undefined;
 
 		if (appraisalPrice) {
@@ -244,6 +255,8 @@ export default function BuybackComponent({
 
 		return result === 0n ? null : result;
 	}, [appraisalPrice, historicalAppraisedPrice, payoutBps]);
+
+	const payoutAmount = redemptionWindow.redeemPayout ?? localEstimatedPayout;
 
 	const hasValidPayout = payoutAmount !== null && payoutAmount > 0n;
 
@@ -290,6 +303,7 @@ export default function BuybackComponent({
 			actionInfo,
 			reset,
 			redemptionWindowIsExpired: redemptionWindow.isExpired,
+			isInsufficientLiquidity,
 			needsApproval,
 			isNotOwned,
 		});
@@ -304,10 +318,12 @@ export default function BuybackComponent({
 			};
 		}
 
-		if (!hasEnoughLiquidity) {
+		if (isInsufficientLiquidity) {
 			return {
 				type: "warning" as const,
-				message: "Redemption is currently unavailable",
+				message:
+					redemptionWindow.redeemReasonMessage ??
+					"Redemption is currently unavailable",
 				action: "Please try again later",
 			};
 		}
@@ -315,7 +331,8 @@ export default function BuybackComponent({
 		return {
 			type: "success" as const,
 			message: "Protocol treasury is operating normally",
-			action: "You can redeem your NFT instantly",
+			action:
+				"Best-effort buyback available now (80% of appraised value, subject to treasury funds)",
 		};
 	};
 
@@ -353,7 +370,7 @@ export default function BuybackComponent({
 					{/* Header */}
 					<div className="flex items-center justify-between">
 						<h3 className={`text-white font-bold ${classes.text}`}>
-							Instant Sell Back
+							Best-Effort Buyback
 						</h3>
 						<Chip
 							color={
@@ -403,7 +420,7 @@ export default function BuybackComponent({
 										</span>
 									</div>
 									<div className="flex justify-between items-center">
-										<span className="text-white/70">Instant Payout:</span>
+										<span className="text-white/70">Payout:</span>
 										<span
 											className={`font-bold text-lg ${rarityConfig.textColor}`}
 										>
@@ -420,10 +437,14 @@ export default function BuybackComponent({
 											{Number(payoutBps || 0) / 100}%
 										</span>
 									</div>
+									<p className="text-[11px] text-white/50">
+										Best-effort — paid while treasury funds last, subject to
+										on-chain availability.
+									</p>
 								</div>
 							) : (
 								<div className="text-warning-300 text-sm bg-warning-500/10 rounded-lg p-3">
-									⚠️ NFT must be appraised before instant sell back is available
+									⚠️ NFT must be appraised before buyback is available
 								</div>
 							)}
 

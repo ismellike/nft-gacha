@@ -30,9 +30,9 @@ export function SpinSection({ title, description }: SpinSectionProps) {
 				},
 				{
 					icon: CurrencyDollarIcon,
-					title: "Instant Buyback",
+					title: "Best-Effort Buyback",
 					description:
-						"Revealed NFTs can be sold instantly for 90% of their appraised value, subject to treasury fund availability.",
+						"Revealed NFTs can be sold back for 80% of their appraised value on a best-effort basis, while treasury funds last.",
 				},
 			]}
 		>

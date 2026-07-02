@@ -3813,6 +3813,16 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getNFTRedemptionPriceSnapshot',
+    outputs: [{ name: 'priceUSD', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'getNumRarities',
     outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
@@ -4080,6 +4090,13 @@ export const gachaTreasuryAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'minDepositAppraisalUSD',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: '', internalType: 'address', type: 'address' },
       { name: '', internalType: 'uint256', type: 'uint256' },
@@ -4105,6 +4122,16 @@ export const gachaTreasuryAbi = [
       { name: '', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'nftRedemptionDeadlines',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '', internalType: 'address', type: 'address' },
+      { name: '', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'nftRedemptionPriceSnapshots',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -4289,6 +4316,19 @@ export const gachaTreasuryAbi = [
       { name: '_maxDepositsPerCard', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'setMaxDepositsPerCard',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: '_minDepositAppraisalUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+      },
+    ],
+    name: 'setMinDepositAppraisalUSD',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -4572,6 +4612,25 @@ export const gachaTreasuryAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'oldMin',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'newMin',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'MinDepositAppraisalUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'collection',
         internalType: 'address',
         type: 'address',
@@ -4725,6 +4784,31 @@ export const gachaTreasuryAbi = [
         indexed: true,
       },
       {
+        name: 'priceUSD',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+    ],
+    name: 'RedemptionPriceSnapshotted',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      {
+        name: 'tokenId',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
         name: 'seller',
         internalType: 'address',
         type: 'address',
@@ -4809,6 +4893,14 @@ export const gachaTreasuryAbi = [
   { type: 'error', inputs: [], name: 'CollectionAlreadyWhitelisted' },
   { type: 'error', inputs: [], name: 'CollectionNotInWhitelist' },
   { type: 'error', inputs: [], name: 'CollectionNotWhitelisted' },
+  {
+    type: 'error',
+    inputs: [
+      { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
+      { name: 'minRequired', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'DepositBelowMinAppraisal',
+  },
   {
     type: 'error',
     inputs: [
@@ -5284,6 +5376,13 @@ export const nftAppraisalAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'feeExemptCollections',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'feeToken',
     outputs: [{ name: '', internalType: 'contract IERC20', type: 'address' }],
@@ -5612,6 +5711,16 @@ export const nftAppraisalAbi = [
       { name: 'priceUSD', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'setAppraisalForTokenWithCard',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'exempt', internalType: 'bool', type: 'bool' },
+    ],
+    name: 'setFeeExemption',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -5977,6 +6086,20 @@ export const nftAppraisalAbi = [
     anonymous: false,
     inputs: [
       {
+        name: 'collection',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
+      { name: 'exempt', internalType: 'bool', type: 'bool', indexed: false },
+    ],
+    name: 'FeeExemptionUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
         name: 'oldToken',
         internalType: 'address',
         type: 'address',
@@ -6159,6 +6282,8 @@ export const nftAppraisalAbi = [
   { type: 'error', inputs: [], name: 'AppraisalNotFound' },
   { type: 'error', inputs: [], name: 'ArrayLengthMismatch' },
   { type: 'error', inputs: [], name: 'CardIdMismatch' },
+  { type: 'error', inputs: [], name: 'CollectionAlreadyExempt' },
+  { type: 'error', inputs: [], name: 'CollectionNotExempt' },
   {
     type: 'error',
     inputs: [
@@ -6464,6 +6589,41 @@ export const protocolTreasuryAbi = [
   {
     type: 'function',
     inputs: [],
+    name: 'REDEEM_APPRAISAL_MISSING',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'REDEEM_EXCEEDS_CAP',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'REDEEM_INSUFFICIENT_LIQUIDITY',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'REDEEM_OK',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'REDEEM_WINDOW_EXPIRED',
+    outputs: [{ name: '', internalType: 'uint8', type: 'uint8' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
     name: 'REDEMPTION_PAYOUT_BPS',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
@@ -6548,8 +6708,29 @@ export const protocolTreasuryAbi = [
       { name: 'collection', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
     ],
+    name: 'isRedeemable',
+    outputs: [
+      { name: 'ok', internalType: 'bool', type: 'bool' },
+      { name: 'reason', internalType: 'uint8', type: 'uint8' },
+      { name: 'payout', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'collection', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
     name: 'isRedemptionEligible',
     outputs: [{ name: 'isEligible', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'maxPayoutBps',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -6619,6 +6800,13 @@ export const protocolTreasuryAbi = [
     type: 'function',
     inputs: [{ name: 'newTreasury', internalType: 'address', type: 'address' }],
     name: 'setGachaTreasury',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'newBps', internalType: 'uint256', type: 'uint256' }],
+    name: 'setMaxPayoutBps',
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -6732,6 +6920,25 @@ export const protocolTreasuryAbi = [
       },
     ],
     name: 'Initialized',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {
+        name: 'oldBps',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+      {
+        name: 'newBps',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: true,
+      },
+    ],
+    name: 'MaxPayoutBpsUpdated',
   },
   {
     type: 'event',
@@ -6927,6 +7134,7 @@ export const protocolTreasuryAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
+  { type: 'error', inputs: [], name: 'PayoutExceedsTreasuryCap' },
   { type: 'error', inputs: [], name: 'RedemptionWindowExpired' },
   { type: 'error', inputs: [], name: 'Reentrancy' },
   { type: 'error', inputs: [], name: 'UUPSUnauthorizedCallContext' },
@@ -10485,6 +10693,15 @@ export const useReadGachaTreasuryGetNftRedemptionDeadline =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getNFTRedemptionPriceSnapshot"`
+ */
+export const useReadGachaTreasuryGetNftRedemptionPriceSnapshot =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'getNFTRedemptionPriceSnapshot',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"getNumRarities"`
  */
 export const useReadGachaTreasuryGetNumRarities =
@@ -10710,6 +10927,15 @@ export const useReadGachaTreasuryMaxDepositsPerCard =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"minDepositAppraisalUSD"`
+ */
+export const useReadGachaTreasuryMinDepositAppraisalUsd =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'minDepositAppraisalUSD',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftCurrentRarity"`
  */
 export const useReadGachaTreasuryNftCurrentRarity =
@@ -10734,6 +10960,15 @@ export const useReadGachaTreasuryNftRedemptionDeadlines =
   /*#__PURE__*/ createUseReadContract({
     abi: gachaTreasuryAbi,
     functionName: 'nftRedemptionDeadlines',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"nftRedemptionPriceSnapshots"`
+ */
+export const useReadGachaTreasuryNftRedemptionPriceSnapshots =
+  /*#__PURE__*/ createUseReadContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'nftRedemptionPriceSnapshots',
   })
 
 /**
@@ -11108,6 +11343,15 @@ export const useWriteGachaTreasurySetMaxDepositsPerCard =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setMinDepositAppraisalUSD"`
+ */
+export const useWriteGachaTreasurySetMinDepositAppraisalUsd =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setMinDepositAppraisalUSD',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setProtocolTreasury"`
  */
 export const useWriteGachaTreasurySetProtocolTreasury =
@@ -11321,6 +11565,15 @@ export const useSimulateGachaTreasurySetMaxDepositsPerCard =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setMinDepositAppraisalUSD"`
+ */
+export const useSimulateGachaTreasurySetMinDepositAppraisalUsd =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: gachaTreasuryAbi,
+    functionName: 'setMinDepositAppraisalUSD',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `functionName` set to `"setProtocolTreasury"`
  */
 export const useSimulateGachaTreasurySetProtocolTreasury =
@@ -11444,6 +11697,15 @@ export const useWatchGachaTreasuryMaxDepositsPerCardUpdated =
   })
 
 /**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"MinDepositAppraisalUpdated"`
+ */
+export const useWatchGachaTreasuryMinDepositAppraisalUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'MinDepositAppraisalUpdated',
+  })
+
+/**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"NFTDeposited"`
  */
 export const useWatchGachaTreasuryNftDeposited =
@@ -11495,6 +11757,15 @@ export const useWatchGachaTreasuryRarityMigrated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: gachaTreasuryAbi,
     eventName: 'RarityMigrated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaTreasuryAbi}__ and `eventName` set to `"RedemptionPriceSnapshotted"`
+ */
+export const useWatchGachaTreasuryRedemptionPriceSnapshotted =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: gachaTreasuryAbi,
+    eventName: 'RedemptionPriceSnapshotted',
   })
 
 /**
@@ -11852,6 +12123,15 @@ export const useReadNftAppraisalCardAppraisals =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"feeExemptCollections"`
+ */
+export const useReadNftAppraisalFeeExemptCollections =
+  /*#__PURE__*/ createUseReadContract({
+    abi: nftAppraisalAbi,
+    functionName: 'feeExemptCollections',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"feeToken"`
  */
 export const useReadNftAppraisalFeeToken = /*#__PURE__*/ createUseReadContract({
@@ -12161,6 +12441,15 @@ export const useWriteNftAppraisalSetAppraisalForTokenWithCard =
   })
 
 /**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setFeeExemption"`
+ */
+export const useWriteNftAppraisalSetFeeExemption =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setFeeExemption',
+  })
+
+/**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setFeeToken"`
  */
 export const useWriteNftAppraisalSetFeeToken =
@@ -12320,6 +12609,15 @@ export const useSimulateNftAppraisalSetAppraisalForTokenWithCard =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setFeeExemption"`
+ */
+export const useSimulateNftAppraisalSetFeeExemption =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: nftAppraisalAbi,
+    functionName: 'setFeeExemption',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link nftAppraisalAbi}__ and `functionName` set to `"setFeeToken"`
  */
 export const useSimulateNftAppraisalSetFeeToken =
@@ -12467,6 +12765,15 @@ export const useWatchNftAppraisalCardPriceUpdated =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: nftAppraisalAbi,
     eventName: 'CardPriceUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link nftAppraisalAbi}__ and `eventName` set to `"FeeExemptionUpdated"`
+ */
+export const useWatchNftAppraisalFeeExemptionUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: nftAppraisalAbi,
+    eventName: 'FeeExemptionUpdated',
   })
 
 /**
@@ -12711,6 +13018,51 @@ export const useReadProtocolTreasuryContract =
   /*#__PURE__*/ createUseReadContract({ abi: protocolTreasuryAbi })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"REDEEM_APPRAISAL_MISSING"`
+ */
+export const useReadProtocolTreasuryRedeemAppraisalMissing =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'REDEEM_APPRAISAL_MISSING',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"REDEEM_EXCEEDS_CAP"`
+ */
+export const useReadProtocolTreasuryRedeemExceedsCap =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'REDEEM_EXCEEDS_CAP',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"REDEEM_INSUFFICIENT_LIQUIDITY"`
+ */
+export const useReadProtocolTreasuryRedeemInsufficientLiquidity =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'REDEEM_INSUFFICIENT_LIQUIDITY',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"REDEEM_OK"`
+ */
+export const useReadProtocolTreasuryRedeemOk =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'REDEEM_OK',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"REDEEM_WINDOW_EXPIRED"`
+ */
+export const useReadProtocolTreasuryRedeemWindowExpired =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'REDEEM_WINDOW_EXPIRED',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"REDEMPTION_PAYOUT_BPS"`
  */
 export const useReadProtocolTreasuryRedemptionPayoutBps =
@@ -12772,12 +13124,30 @@ export const useReadProtocolTreasuryGetRemainingRedemptionWindow =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"isRedeemable"`
+ */
+export const useReadProtocolTreasuryIsRedeemable =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'isRedeemable',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"isRedemptionEligible"`
  */
 export const useReadProtocolTreasuryIsRedemptionEligible =
   /*#__PURE__*/ createUseReadContract({
     abi: protocolTreasuryAbi,
     functionName: 'isRedemptionEligible',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"maxPayoutBps"`
+ */
+export const useReadProtocolTreasuryMaxPayoutBps =
+  /*#__PURE__*/ createUseReadContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'maxPayoutBps',
   })
 
 /**
@@ -12890,6 +13260,15 @@ export const useWriteProtocolTreasurySetGachaTreasury =
   /*#__PURE__*/ createUseWriteContract({
     abi: protocolTreasuryAbi,
     functionName: 'setGachaTreasury',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setMaxPayoutBps"`
+ */
+export const useWriteProtocolTreasurySetMaxPayoutBps =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'setMaxPayoutBps',
   })
 
 /**
@@ -13016,6 +13395,15 @@ export const useSimulateProtocolTreasurySetGachaTreasury =
   })
 
 /**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setMaxPayoutBps"`
+ */
+export const useSimulateProtocolTreasurySetMaxPayoutBps =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: protocolTreasuryAbi,
+    functionName: 'setMaxPayoutBps',
+  })
+
+/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `functionName` set to `"setRedemptionWindow"`
  */
 export const useSimulateProtocolTreasurySetRedemptionWindow =
@@ -13100,6 +13488,15 @@ export const useWatchProtocolTreasuryInitialized =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: protocolTreasuryAbi,
     eventName: 'Initialized',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link protocolTreasuryAbi}__ and `eventName` set to `"MaxPayoutBpsUpdated"`
+ */
+export const useWatchProtocolTreasuryMaxPayoutBpsUpdated =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: protocolTreasuryAbi,
+    eventName: 'MaxPayoutBpsUpdated',
   })
 
 /**

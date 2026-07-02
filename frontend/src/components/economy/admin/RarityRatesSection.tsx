@@ -74,11 +74,20 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 			<div className="flex items-center justify-between mb-8">
 				<div>
 					<h2 className="text-2xl font-bold text-foreground mb-2">
-						Rarity Drop Rates
+						Rarity Drop Rates{" "}
+						<span className="text-sm font-normal text-foreground/50">
+							(reference only)
+						</span>
 					</h2>
 					<p className="text-foreground/70">
-						Configure the probability weights for each rarity tier. Total must
-						equal 10,000.
+						Configure the designed/reference distribution for each rarity tier.
+						Total must equal 10,000.
+					</p>
+					<p className="mt-2 text-xs text-warning">
+						Draws are uniform-over-pool: real player odds always equal the live
+						pool composition (see Rarity Breakdown), not these values. This
+						reference distribution only guides restocking and does not affect
+						draw probabilities or pricing.
 					</p>
 				</div>
 				<Chip
@@ -103,7 +112,7 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 											{rarity.name}
 										</div>
 										<div className="text-sm text-foreground/60">
-											{percentage} drop rate
+											{percentage} reference target
 										</div>
 									</div>
 								</div>

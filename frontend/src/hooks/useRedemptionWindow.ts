@@ -4,8 +4,46 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useReadContract } from "wagmi";
 import {
 	gachaTreasuryAbi,
+	useReadProtocolTreasuryIsRedeemable,
 	useReadProtocolTreasuryRedemptionWindow,
 } from "@/generated";
+
+/**
+ * Redemption preflight reason codes, mirrored from
+ * `ProtocolTreasury.REDEEM_*` constants. Redemption is best-effort (not a
+ * hard guarantee) — these codes let the UI explain why a redemption would
+ * currently fail before the user submits a transaction.
+ */
+export const REDEEM_OK = 0;
+export const REDEEM_WINDOW_EXPIRED = 1;
+export const REDEEM_APPRAISAL_MISSING = 2;
+export const REDEEM_INSUFFICIENT_LIQUIDITY = 3;
+export const REDEEM_EXCEEDS_CAP = 4;
+
+export type RedeemReasonCode =
+	| typeof REDEEM_OK
+	| typeof REDEEM_WINDOW_EXPIRED
+	| typeof REDEEM_APPRAISAL_MISSING
+	| typeof REDEEM_INSUFFICIENT_LIQUIDITY
+	| typeof REDEEM_EXCEEDS_CAP;
+
+/** Human-readable explanation for a non-OK redeem reason code, or `null` when redeemable. */
+export function getRedeemReasonMessage(
+	reason: RedeemReasonCode | undefined,
+): string | null {
+	switch (reason) {
+		case REDEEM_WINDOW_EXPIRED:
+			return "The redemption window for this NFT has expired.";
+		case REDEEM_APPRAISAL_MISSING:
+			return "This NFT must be appraised before it can be redeemed.";
+		case REDEEM_INSUFFICIENT_LIQUIDITY:
+			return "Treasury temporarily low on funds. Please try again later.";
+		case REDEEM_EXCEEDS_CAP:
+			return "This payout currently exceeds the treasury's redemption cap. Please try again later.";
+		default:
+			return null;
+	}
+}
 
 export interface RedemptionWindowState {
 	remainingSeconds: number;
@@ -16,6 +54,14 @@ export interface RedemptionWindowState {
 	formattedTimeRemaining: string;
 	formattedTotalWindow: string;
 	isLoading: boolean;
+	/** True only if `ProtocolTreasury.isRedeemable` currently reports a successful redemption. */
+	isRedeemableNow: boolean;
+	/** Reason code from `ProtocolTreasury.isRedeemable`, `undefined` while loading. */
+	redeemReason: RedeemReasonCode | undefined;
+	/** Human-readable message for `redeemReason`, `null` when redeemable or unknown. */
+	redeemReasonMessage: string | null;
+	/** Exact payout (USDC, 6 decimals) `isRedeemable` reports the redemption would pay out. */
+	redeemPayout: bigint | undefined;
 }
 
 function formatSeconds(totalSeconds: number): string {
@@ -68,6 +114,18 @@ export function useRedemptionWindow({
 			address: protocolTreasuryAddress as `0x${string}`,
 			query: {
 				enabled,
+			},
+		});
+
+	// Preflight redemption check: reports whether `executeRedemption` would currently
+	// succeed and the exact payout, since redemption is best-effort while treasury
+	// funds last (not a hard guarantee).
+	const { data: redeemableData, isLoading: isLoadingRedeemable } =
+		useReadProtocolTreasuryIsRedeemable({
+			address: protocolTreasuryAddress as `0x${string}`,
+			args: [collectionAddr, tokenIdBigInt],
+			query: {
+				enabled: enabled && !!protocolTreasuryAddress,
 			},
 		});
 
@@ -135,6 +193,15 @@ export function useRedemptionWindow({
 	const formattedTimeRemaining = formatSeconds(remainingSeconds);
 	const formattedTotalWindow = formatSeconds(totalWindowSeconds);
 
+	const [redeemableOk, redeemableReasonRaw, redeemablePayout] =
+		redeemableData ?? [undefined, undefined, undefined];
+	const redeemReason = isLoadingRedeemable
+		? undefined
+		: ((redeemableReasonRaw as RedeemReasonCode | undefined) ?? undefined);
+	const isRedeemableNow = redeemableOk === true;
+	const redeemReasonMessage = getRedeemReasonMessage(redeemReason);
+	const redeemPayout = redeemablePayout as bigint | undefined;
+
 	return useMemo(
 		() => ({
 			remainingSeconds,
@@ -144,7 +211,11 @@ export function useRedemptionWindow({
 			progressPercent,
 			formattedTimeRemaining,
 			formattedTotalWindow,
-			isLoading,
+			isLoading: isLoading || isLoadingRedeemable,
+			isRedeemableNow,
+			redeemReason,
+			redeemReasonMessage,
+			redeemPayout,
 		}),
 		[
 			remainingSeconds,
@@ -155,6 +226,11 @@ export function useRedemptionWindow({
 			formattedTimeRemaining,
 			formattedTotalWindow,
 			isLoading,
+			isLoadingRedeemable,
+			isRedeemableNow,
+			redeemReason,
+			redeemReasonMessage,
+			redeemPayout,
 		],
 	);
 }

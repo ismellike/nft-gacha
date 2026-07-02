@@ -3,10 +3,7 @@
 import { forwardRef, memo, useImperativeHandle, useState } from "react";
 import { useReadContract } from "wagmi";
 import { useGachaRefetch } from "../../contexts/GachaRefreshContext";
-import {
-	gachaTreasuryAbi,
-	useReadGachaGetAverageRarityValues,
-} from "../../generated";
+import { gachaTreasuryAbi } from "../../generated";
 import { useGachaContracts } from "../../hooks/useGachaContracts";
 import { useGachaId } from "../../hooks/useGachaId";
 import { getAllRarities, getRarityConfig } from "../../lib/rarityConfig";
@@ -49,7 +46,11 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 		| readonly bigint[]
 		| undefined;
 
-	// Rarity weights from gacha contract
+	// Live odds from the gacha contract: draws are uniform-over-pool, so
+	// `getCurrentRarityWeights()` returns the honest, real-time probability of
+	// drawing each rarity tier (counts[i]/total), verifiable on-chain. This is
+	// NOT the same as `getTargetRarityBps()`, which is display-only reference
+	// metadata for admins and does not reflect real odds.
 	const rarityWeightsQuery = useReadContract({
 		address: contracts.gacha as `0x${string}` | undefined,
 		abi: [
@@ -58,7 +59,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 				name: "getCurrentRarityWeights",
 				stateMutability: "view",
 				inputs: [],
-				outputs: [{ name: "weights", type: "uint256[5]" }],
+				outputs: [{ name: "weights", type: "uint256[]" }],
 			},
 		],
 		functionName: "getCurrentRarityWeights",
@@ -70,10 +71,22 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 
 	// Additional treasury data (omitted for now)
 
-	const averageRarityValuesQuery = useReadGachaGetAverageRarityValues({
+	// Use useReadContract directly with an inline ABI to avoid "Type instantiation is
+	// excessively deep" from the generated hook (see CLAUDE.md TypeScript gotchas).
+	const averageRarityValuesQuery = useReadContract({
 		address: contracts.gacha as `0x${string}` | undefined,
+		abi: [
+			{
+				type: "function",
+				name: "getAverageRarityValues",
+				stateMutability: "view",
+				inputs: [],
+				outputs: [{ name: "averageValues", type: "uint256[]" }],
+			},
+		],
+		functionName: "getAverageRarityValues",
 		query: { enabled: !!contracts.gacha },
-	} as Parameters<typeof useReadGachaGetAverageRarityValues>[0]);
+	});
 	const averageRarityValues = averageRarityValuesQuery.data as unknown as
 		| readonly bigint[]
 		| undefined;
@@ -129,7 +142,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 							Rarity Breakdown
 						</h3>
 						<p className="text-sm text-foreground/60">
-							Current NFT distribution and drop rates
+							Live odds = current pool composition, verifiable on-chain
 						</p>
 					</div>
 
@@ -199,7 +212,7 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 									>
 										{rarity.percentage.toFixed(1)}%
 									</p>
-									<p className="text-[11px] text-foreground/50">weight</p>
+									<p className="text-[11px] text-foreground/50">live odds</p>
 								</div>
 								<span className="text-xs text-foreground/40 transition-colors group-hover:text-foreground/60">
 									View →

@@ -62,7 +62,7 @@ const adminSections: AdminSection[] = [
 	{
 		id: "rates",
 		title: "Rarity Rates",
-		description: "Configure drop rates for each rarity tier",
+		description: "Configure reference distribution targets (not live odds)",
 		icon: "dice",
 	},
 	{

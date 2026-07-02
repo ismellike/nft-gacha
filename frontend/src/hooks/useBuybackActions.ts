@@ -42,6 +42,8 @@ interface UseBuybackActionsParams {
 	actionInfo: ActionInfo;
 	reset: () => void;
 	redemptionWindowIsExpired: boolean;
+	/** True when the on-chain preflight (`isRedeemable`) reports treasury is temporarily unable to pay out. */
+	isInsufficientLiquidity?: boolean | undefined;
 	needsApproval: boolean;
 	isNotOwned: boolean;
 }
@@ -73,6 +75,7 @@ export function useBuybackActions({
 	actionInfo,
 	reset,
 	redemptionWindowIsExpired,
+	isInsufficientLiquidity,
 	needsApproval,
 	isNotOwned,
 }: UseBuybackActionsParams): UseBuybackActionsReturn {
@@ -173,6 +176,7 @@ export function useBuybackActions({
 		if (redemptionWindowIsExpired) return "Window Expired";
 		if (error) return "Retry Buyback";
 		if (isNotOwned) return "Sold";
+		if (isInsufficientLiquidity) return "Treasury Low on Funds";
 		if (status === "idle")
 			return needsApproval ? "Approve NFT" : "Accept Buyback";
 		if (status === "awaitingInteractionSignature")
