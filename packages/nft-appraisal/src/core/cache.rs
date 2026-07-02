@@ -29,10 +29,17 @@ struct CachedResolverQuote {
     timestamp: u64,
     #[serde(default)]
     ttl_secs: u64,
+    /// Deterministic price epoch (derived from the trigger event's block time) this entry was
+    /// resolved for. Positive entries are valid only for their own epoch — this pins the price
+    /// across ALL operators for the whole epoch and removes per-operator wall-clock cache drift,
+    /// which is the main source of cross-operator (AVS quorum) disagreement. Defaults to 0 for
+    /// entries written before epoch anchoring existed (treated as a miss on read).
+    #[serde(default)]
+    price_epoch: u64,
 }
 
 impl CachedResolverQuote {
-    fn from_quote(quote: Option<&ResolverQuote>, fallback_ttl: Duration) -> Self {
+    fn from_quote(quote: Option<&ResolverQuote>, fallback_ttl: Duration, price_epoch: u64) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -43,24 +50,37 @@ impl CachedResolverQuote {
                 price: Some(actual.price.clone()),
                 timestamp,
                 ttl_secs: actual.ttl.as_secs(),
+                price_epoch,
             },
             None => Self {
                 price: None,
                 timestamp,
                 ttl_secs: fallback_ttl.as_secs(),
+                price_epoch,
             },
         }
     }
 
-    fn is_expired(&self) -> bool {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        if self.ttl_secs == 0 {
-            return true;
+    /// Whether this entry is still usable for a request in `expected_epoch`.
+    ///
+    /// Positive (priced) entries are **epoch-pinned**: valid iff resolved for the same epoch, with
+    /// no wall-clock component, so every operator serving from cache returns an identical price for
+    /// the entire epoch. Negative (no-price) entries instead keep a short wall-clock TTL so a
+    /// transient upstream failure doesn't poison the whole epoch — a subsequent request re-fetches.
+    fn is_valid(&self, expected_epoch: u64) -> bool {
+        match self.price {
+            Some(_) => self.price_epoch == expected_epoch,
+            None => {
+                if self.ttl_secs == 0 {
+                    return false;
+                }
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                now.saturating_sub(self.timestamp) <= self.ttl_secs
+            }
         }
-        now.saturating_sub(self.timestamp) > self.ttl_secs
     }
 
     fn into_quote(self) -> Option<ResolverQuote> {
@@ -79,33 +99,31 @@ impl AppraisalCache {
         }
     }
 
-    pub fn get(&self, cache_key: &str) -> Result<CacheResult> {
+    pub fn get(&self, cache_key: &str, expected_epoch: u64) -> Result<CacheResult> {
         if let Some(ref bucket) = self.bucket {
             match bucket.get(cache_key) {
-                Ok(Some(cached_data)) => {
-                    match String::from_utf8(cached_data) {
-                        Ok(cached_str) => {
-                            match serde_json::from_str::<CachedResolverQuote>(&cached_str) {
-                                Ok(cached_quote) => {
-                                    if !cached_quote.is_expired() {
-                                        return Ok(match cached_quote.into_quote() {
-                                            Some(quote) => CacheResult::Hit(quote),
-                                            None => CacheResult::NegativeHit,
-                                        });
-                                    }
-                                }
-                                Err(e) => {
-                                    eprintln!("WARN: cache entry '{cache_key}' corrupted (JSON): {e}");
-                                    let _ = bucket.delete(cache_key);
+                Ok(Some(cached_data)) => match String::from_utf8(cached_data) {
+                    Ok(cached_str) => {
+                        match serde_json::from_str::<CachedResolverQuote>(&cached_str) {
+                            Ok(cached_quote) => {
+                                if cached_quote.is_valid(expected_epoch) {
+                                    return Ok(match cached_quote.into_quote() {
+                                        Some(quote) => CacheResult::Hit(quote),
+                                        None => CacheResult::NegativeHit,
+                                    });
                                 }
                             }
-                        }
-                        Err(e) => {
-                            eprintln!("WARN: cache entry '{cache_key}' corrupted (UTF-8): {e}");
-                            let _ = bucket.delete(cache_key);
+                            Err(e) => {
+                                eprintln!("WARN: cache entry '{cache_key}' corrupted (JSON): {e}");
+                                let _ = bucket.delete(cache_key);
+                            }
                         }
                     }
-                }
+                    Err(e) => {
+                        eprintln!("WARN: cache entry '{cache_key}' corrupted (UTF-8): {e}");
+                        let _ = bucket.delete(cache_key);
+                    }
+                },
                 Ok(None) => {}
                 Err(e) => {
                     eprintln!("WARN: cache read error for '{cache_key}': {e}");
@@ -115,7 +133,12 @@ impl AppraisalCache {
         Ok(CacheResult::Miss)
     }
 
-    pub fn set(&self, cache_key: &str, quote: Option<&ResolverQuote>) -> Result<()> {
+    pub fn set(
+        &self,
+        cache_key: &str,
+        quote: Option<&ResolverQuote>,
+        price_epoch: u64,
+    ) -> Result<()> {
         if let Some(ref bucket) = self.bucket {
             let fallback_ttl = if quote.is_some() {
                 self.default_ttl
@@ -124,7 +147,7 @@ impl AppraisalCache {
                 Duration::from_secs(300)
             };
 
-            let cached_quote = CachedResolverQuote::from_quote(quote, fallback_ttl);
+            let cached_quote = CachedResolverQuote::from_quote(quote, fallback_ttl, price_epoch);
             if let Ok(serialized) = serde_json::to_string(&cached_quote) {
                 let _ = bucket.set(cache_key, serialized.as_bytes());
             }
@@ -170,11 +193,12 @@ mod tests {
             ttl: Duration::from_secs(3600),
         };
 
-        let cached = CachedResolverQuote::from_quote(Some(&quote), Duration::from_secs(60));
+        let cached = CachedResolverQuote::from_quote(Some(&quote), Duration::from_secs(60), 7);
         assert!(cached.price.is_some());
         assert_eq!(cached.price.as_ref().unwrap().value, 25.0);
         assert!(cached.timestamp > 0);
         assert_eq!(cached.ttl_secs, 3600);
+        assert_eq!(cached.price_epoch, 7);
 
         let resolver_quote = cached.into_quote().expect("expected cached quote");
         assert_eq!(resolver_quote.price.value, 25.0);
@@ -182,9 +206,10 @@ mod tests {
     }
 
     #[test]
-    fn test_ttl_expiration() {
-        let mut cached = CachedResolverQuote::from_quote(None, Duration::from_secs(3600));
-        assert!(!cached.is_expired());
+    fn test_negative_ttl_expiration() {
+        // Negative (no-price) entries keep a wall-clock TTL so transient failures don't stick.
+        let mut cached = CachedResolverQuote::from_quote(None, Duration::from_secs(3600), 0);
+        assert!(cached.is_valid(0));
 
         // Set timestamp to past
         cached.timestamp = SystemTime::now()
@@ -193,15 +218,47 @@ mod tests {
             .as_secs()
             - 7200; // 2 hours ago
 
-        assert!(cached.is_expired());
+        assert!(!cached.is_valid(0));
 
         cached.ttl_secs = 86_400;
-        assert!(!cached.is_expired());
+        assert!(cached.is_valid(0));
+    }
+
+    #[test]
+    fn positive_entry_is_epoch_pinned_not_wall_clock() {
+        let quote = ResolverQuote {
+            price: AppraisalPrice {
+                value: 25.0,
+                currency: "USD".to_string(),
+                source: "test".to_string(),
+                context: None,
+            },
+            ttl: Duration::from_secs(3600),
+        };
+        let mut cached =
+            CachedResolverQuote::from_quote(Some(&quote), Duration::from_secs(60), 100);
+
+        // Valid only for its own epoch, regardless of wall-clock age.
+        assert!(
+            cached.is_valid(100),
+            "priced entry must be valid for its own epoch"
+        );
+        assert!(
+            !cached.is_valid(101),
+            "priced entry must be invalid for a different epoch"
+        );
+
+        // Even an ancient timestamp does not expire a priced entry within its epoch.
+        cached.timestamp = 0;
+        assert!(
+            cached.is_valid(100),
+            "priced entry must ignore wall-clock age within its epoch"
+        );
     }
 
     #[test]
     fn test_negative_cache_ttl_is_short() {
-        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
+        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300), 0);
         assert_eq!(cached.ttl_secs, 300);
         assert!(cached.price.is_none());
     }
@@ -218,14 +275,20 @@ mod tests {
     fn generate_cache_key_equal_inputs_produce_equal_keys() {
         let key_a = keccak256_hex("sv5a-1-9-psa-false-base1-novariant");
         let key_b = keccak256_hex("sv5a-1-9-psa-false-base1-novariant");
-        assert_eq!(key_a, key_b, "same input must always produce the same cache key");
+        assert_eq!(
+            key_a, key_b,
+            "same input must always produce the same cache key"
+        );
     }
 
     #[test]
     fn generate_cache_key_different_inputs_produce_different_keys() {
         let key_a = keccak256_hex("sv5a-1-9-psa-false-base1-normal");
         let key_b = keccak256_hex("sv5a-1-10-psa-true-base1-normal");
-        assert_ne!(key_a, key_b, "different inputs must produce different cache keys");
+        assert_ne!(
+            key_a, key_b,
+            "different inputs must produce different cache keys"
+        );
     }
 
     #[test]
@@ -249,12 +312,12 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
-    // CachedResolverQuote::is_expired — ttl_secs == 0 is always expired
+    // CachedResolverQuote::is_valid — negative entry with ttl_secs == 0 is invalid
     // -----------------------------------------------------------------------
 
     #[test]
-    fn is_expired_with_zero_ttl_is_always_true() {
-        // A zero TTL should immediately be considered expired regardless of timestamp.
+    fn negative_entry_with_zero_ttl_is_invalid() {
+        // A zero TTL negative entry should immediately be considered invalid regardless of timestamp.
         let cached = CachedResolverQuote {
             price: None,
             timestamp: SystemTime::now()
@@ -262,22 +325,24 @@ mod tests {
                 .unwrap()
                 .as_secs(),
             ttl_secs: 0,
+            price_epoch: 0,
         };
         assert!(
-            cached.is_expired(),
-            "ttl_secs == 0 should always be treated as expired"
+            !cached.is_valid(0),
+            "ttl_secs == 0 negative entry should always be invalid"
         );
     }
 
     #[test]
-    fn is_expired_with_zero_ttl_and_future_timestamp_is_still_expired() {
-        // Even if the timestamp is in the future, ttl_secs == 0 forces expiry.
+    fn negative_entry_with_zero_ttl_and_future_timestamp_is_still_invalid() {
+        // Even if the timestamp is in the future, ttl_secs == 0 forces invalidity.
         let cached = CachedResolverQuote {
             price: None,
             timestamp: u64::MAX, // impossibly far future
             ttl_secs: 0,
+            price_epoch: 0,
         };
-        assert!(cached.is_expired());
+        assert!(!cached.is_valid(0));
     }
 
     // -----------------------------------------------------------------------
@@ -286,22 +351,25 @@ mod tests {
 
     #[test]
     fn negative_cache_into_quote_returns_none() {
-        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
+        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300), 0);
         assert!(cached.price.is_none(), "negative cache must have no price");
         // into_quote on a negative cache entry returns None.
         assert!(cached.into_quote().is_none());
     }
 
     #[test]
-    fn negative_cache_is_not_immediately_expired() {
-        // A fresh negative cache entry with a 5-minute TTL should not be expired.
-        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
-        assert!(!cached.is_expired(), "fresh negative cache entry must not be expired");
+    fn negative_cache_is_not_immediately_invalid() {
+        // A fresh negative cache entry with a 5-minute TTL should still be valid.
+        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300), 0);
+        assert!(
+            cached.is_valid(0),
+            "fresh negative cache entry must still be valid"
+        );
     }
 
     #[test]
     fn negative_cache_serializes_and_deserializes() {
-        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300));
+        let cached = CachedResolverQuote::from_quote(None, Duration::from_secs(300), 0);
         let json = serde_json::to_string(&cached).expect("serialization must succeed");
         let recovered: CachedResolverQuote =
             serde_json::from_str(&json).expect("deserialization must succeed");

@@ -11,6 +11,13 @@ use super::types::ScrydexCardResponse;
 
 pub(crate) const DEFAULT_SCRYDEX_CARDS_ENDPOINT: &str = "https://api.scrydex.com/pokemon/v1/cards";
 
+/// Total attempts for a Scrydex request (1 initial + retries).
+const MAX_ATTEMPTS: u32 = 3;
+/// Fixed backoff schedule between attempts. Deterministic (no jitter) so behavior is reproducible
+/// across operators; a transient network blip on one operator shouldn't desync it from peers that
+/// happened to succeed, which would otherwise break AVS quorum on the appraisal.
+const BACKOFF_MS: [u64; 2] = [200, 500];
+
 /// HTTP client for Scrydex API
 #[derive(Debug, Clone)]
 pub struct ScrydexClient {
@@ -34,7 +41,7 @@ impl ScrydexClient {
         self
     }
 
-    /// Fetch card data from Scrydex API
+    /// Fetch card data from Scrydex API, retrying transient request failures with a fixed backoff.
     pub async fn get_card(&self, card_identifier: &str) -> Result<ScrydexCardResponse> {
         let url = format!(
             "{}/{}?include=prices",
@@ -42,19 +49,38 @@ impl ScrydexClient {
             encode(card_identifier)
         );
 
-        let mut builder = Request::get(&url);
-        builder = builder.header("X-Api-Key", self.api_key.as_str());
-        if let Some(team_id) = &self.team_id {
-            builder = builder.header("X-Team-ID", team_id.as_str());
-        }
+        // The request body is consumed per send, so rebuild the request on each attempt.
+        let build_request = || {
+            let mut builder = Request::get(&url);
+            builder = builder.header("X-Api-Key", self.api_key.as_str());
+            if let Some(team_id) = &self.team_id {
+                builder = builder.header("X-Team-ID", team_id.as_str());
+            }
+            builder
+                .body(Vec::new().into_body())
+                .map_err(|e| anyhow!("Failed to construct Scrydex card request: {}", e))
+        };
 
-        let request = builder
-            .body(Vec::new().into_body())
-            .map_err(|e| anyhow!("Failed to construct Scrydex card request: {}", e))?;
-
-        let response_text = fetch_string(request)
-            .await
-            .map_err(|e| anyhow!("Scrydex card request failed for {}: {}", card_identifier, e))?;
+        let mut attempt: u32 = 0;
+        let response_text = loop {
+            let request = build_request()?;
+            match fetch_string(request).await {
+                Ok(text) => break text,
+                Err(e) => {
+                    attempt += 1;
+                    if attempt >= MAX_ATTEMPTS {
+                        return Err(anyhow!(
+                            "Scrydex card request failed for {} after {} attempts: {}",
+                            card_identifier,
+                            attempt,
+                            e
+                        ));
+                    }
+                    let backoff_ms = BACKOFF_MS[(attempt as usize - 1).min(BACKOFF_MS.len() - 1)];
+                    wstd::task::sleep(wstd::time::Duration::from_millis(backoff_ms)).await;
+                }
+            }
+        };
 
         let parsed: ScrydexCardResponse = serde_json::from_str(&response_text)
             .map_err(|e| anyhow!("Failed to parse Scrydex card response: {}", e))?;
@@ -101,15 +127,17 @@ mod tests {
 
     #[test]
     fn with_endpoint_overrides_default() {
-        let client = ScrydexClient::new("key", None)
-            .with_endpoint("https://staging.scrydex.com/v1/cards");
-        assert_eq!(client.cards_endpoint, "https://staging.scrydex.com/v1/cards");
+        let client =
+            ScrydexClient::new("key", None).with_endpoint("https://staging.scrydex.com/v1/cards");
+        assert_eq!(
+            client.cards_endpoint,
+            "https://staging.scrydex.com/v1/cards"
+        );
     }
 
     #[test]
     fn with_endpoint_preserves_api_key() {
-        let client = ScrydexClient::new("my-key", None)
-            .with_endpoint("https://custom.example.com");
+        let client = ScrydexClient::new("my-key", None).with_endpoint("https://custom.example.com");
         assert_eq!(client.api_key, "my-key");
     }
 

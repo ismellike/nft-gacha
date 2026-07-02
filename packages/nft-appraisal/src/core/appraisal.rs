@@ -53,7 +53,9 @@ impl AppraisalProcessor {
             }
             ProviderType::Generic => Some(random_price_from_uri(&token_uri)),
             _ => {
-                let price_quote = self.fetch_price(metadata.resolver.clone()).await?;
+                let price_quote = self
+                    .fetch_price(metadata.resolver.clone(), price_epoch_of(evm_event))
+                    .await?;
                 price_quote.as_ref().map(|quote| quote.price.value)
             }
         };
@@ -100,6 +102,7 @@ impl AppraisalProcessor {
     async fn fetch_price(
         &self,
         route: Option<crate::types::ResolverRoute>,
+        price_epoch: u64,
     ) -> Result<Option<ResolverQuote>> {
         let Some(route) = route else {
             return Ok(None);
@@ -107,8 +110,45 @@ impl AppraisalProcessor {
 
         self.context
             .resolvers
-            .resolve_with_cache(&route, &self.context.cache)
+            .resolve_with_cache(&route, &self.context.cache, price_epoch)
             .await
+    }
+}
+
+/// Length of a price epoch in seconds. All operators bucket the trigger event's block time into
+/// epochs of this size so a cached price is pinned to a shared window (see [`price_epoch_of`]).
+/// Defaults to one day, matching graded-card price cadence; override with `WAVS_ENV_PRICE_EPOCH_SECS`.
+fn price_epoch_secs() -> u64 {
+    std::env::var("WAVS_ENV_PRICE_EPOCH_SECS")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|&v| v > 0)
+        .unwrap_or(86_400)
+}
+
+/// Number of blocks per epoch when falling back to block-number bucketing (~1 day of 2s blocks).
+const FALLBACK_BLOCKS_PER_EPOCH: u64 = 43_200;
+
+/// Derive a deterministic price epoch from a trigger event. Every operator handling the same event
+/// computes the same value regardless of when it actually runs, so a cached price resolved for that
+/// epoch is identical across operators (removing per-operator wall-clock cache drift, the main
+/// source of AVS quorum disagreement on appraisals).
+fn price_epoch_of(evm_event: &TriggerDataEvmContractEvent) -> u64 {
+    epoch_from(
+        evm_event.log.block_timestamp,
+        evm_event.log.block_number,
+        price_epoch_secs(),
+    )
+}
+
+/// Pure epoch math. Uses the on-chain block timestamp when present (bucketed into `epoch_secs`);
+/// otherwise falls back to the always-present, identical-across-operators block number so the value
+/// is still shared and deterministic.
+fn epoch_from(block_timestamp: Option<u64>, block_number: u64, epoch_secs: u64) -> u64 {
+    let epoch_secs = epoch_secs.max(1);
+    match block_timestamp {
+        Some(ts) if ts > 0 => ts / epoch_secs,
+        _ => block_number / FALLBACK_BLOCKS_PER_EPOCH,
     }
 }
 
@@ -135,7 +175,6 @@ impl AppraisalResponse {
         }
         None
     }
-
 }
 
 fn scale_to_usdc6(p: f64) -> Option<U256> {
@@ -152,6 +191,51 @@ fn scale_to_usdc6(p: f64) -> Option<U256> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn epoch_from_buckets_by_timestamp() {
+        // Daily epochs: two timestamps within the same UTC day share an epoch; the next day differs.
+        let day = 86_400;
+        assert_eq!(epoch_from(Some(day * 100), 0, day), 100);
+        assert_eq!(
+            epoch_from(Some(day * 100 + 3_600), 0, day),
+            100,
+            "same day → same epoch"
+        );
+        assert_eq!(
+            epoch_from(Some(day * 101), 0, day),
+            101,
+            "next day → next epoch"
+        );
+    }
+
+    #[test]
+    fn epoch_from_is_deterministic_across_operators() {
+        // The same event (identical timestamp/block) always yields the same epoch, independent of
+        // when an operator evaluates it — this is what keeps operators in consensus.
+        let e1 = epoch_from(Some(1_700_000_123), 5_000_000, 86_400);
+        let e2 = epoch_from(Some(1_700_000_123), 5_000_000, 86_400);
+        assert_eq!(e1, e2);
+    }
+
+    #[test]
+    fn epoch_from_falls_back_to_block_number_when_no_timestamp() {
+        // No block timestamp (or zero): bucket the block number instead, still shared/deterministic.
+        assert_eq!(
+            epoch_from(None, FALLBACK_BLOCKS_PER_EPOCH * 3 + 10, 86_400),
+            3
+        );
+        assert_eq!(
+            epoch_from(Some(0), FALLBACK_BLOCKS_PER_EPOCH * 2, 86_400),
+            2
+        );
+    }
+
+    #[test]
+    fn epoch_from_guards_zero_epoch_secs() {
+        // A misconfigured epoch length must not divide-by-zero panic.
+        let _ = epoch_from(Some(123_456), 0, 0);
+    }
     use crate::resolvers::ResolverRegistry;
     use crate::types::ResolverRoute;
     use proptest::prelude::*;
@@ -306,7 +390,9 @@ mod tests {
             identity: make_identity(),
             price: Some(1.0),
         };
-        let payload = response.to_success_payload().expect("positive price must yield payload");
+        let payload = response
+            .to_success_payload()
+            .expect("positive price must yield payload");
         assert_eq!(
             payload.len() % 32,
             0,

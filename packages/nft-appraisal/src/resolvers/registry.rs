@@ -38,16 +38,17 @@ impl ResolverRegistry {
         &self,
         route: &ResolverRoute,
         cache: &AppraisalCache,
+        price_epoch: u64,
     ) -> Result<Option<ResolverQuote>> {
         let cache_key = cache.generate_cache_key(&Self::cache_seed(route));
-        match cache.get(&cache_key)? {
+        match cache.get(&cache_key, price_epoch)? {
             CacheResult::Hit(quote) => return Ok(Some(quote)),
             CacheResult::NegativeHit => return Ok(None),
             CacheResult::Miss => {}
         }
 
         let fresh = self.resolve(route).await?;
-        let _ = cache.set(&cache_key, fresh.as_ref());
+        let _ = cache.set(&cache_key, fresh.as_ref(), price_epoch);
         Ok(fresh)
     }
 
@@ -116,7 +117,10 @@ mod tests {
         );
         let seed_a = ResolverRegistry::cache_seed(&route);
         let seed_b = ResolverRegistry::cache_seed(&route);
-        assert_eq!(seed_a, seed_b, "cache_seed must be deterministic for the same route");
+        assert_eq!(
+            seed_a, seed_b,
+            "cache_seed must be deterministic for the same route"
+        );
     }
 
     #[test]
@@ -159,7 +163,9 @@ mod tests {
 
         // Minimal waker that does nothing — sufficient for futures that are
         // Ready on the very first poll (no .await that yields).
-        fn noop_clone(data: *const ()) -> RawWaker { RawWaker::new(data, &NOOP_VTABLE) }
+        fn noop_clone(data: *const ()) -> RawWaker {
+            RawWaker::new(data, &NOOP_VTABLE)
+        }
         fn noop(_data: *const ()) {}
         static NOOP_VTABLE: RawWakerVTable = RawWakerVTable::new(noop_clone, noop, noop, noop);
         fn noop_waker() -> Waker {
@@ -185,7 +191,10 @@ mod tests {
 
         match poll_result {
             Poll::Ready(result) => {
-                assert!(result.is_err(), "resolving with no registered resolver must return an error");
+                assert!(
+                    result.is_err(),
+                    "resolving with no registered resolver must return an error"
+                );
                 let msg = result.unwrap_err().to_string();
                 assert!(
                     msg.contains("No resolver registered"),
@@ -193,7 +202,9 @@ mod tests {
                 );
             }
             Poll::Pending => {
-                panic!("resolve on empty registry must complete synchronously (Ready), not Pending");
+                panic!(
+                    "resolve on empty registry must complete synchronously (Ready), not Pending"
+                );
             }
         }
     }
