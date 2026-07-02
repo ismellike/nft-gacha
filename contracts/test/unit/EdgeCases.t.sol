@@ -671,27 +671,24 @@ contract GachaRarityWeightRoundingTest is Test {
     }
 
     /**
-     * @notice Extreme distribution: one NFT at each of the 5 rarities.
-     *         The default targetRarityBps is [7000, 2000, 600, 300, 100].
-     *         With one NFT per rarity, raw[i] = targetBps[i] * 5 / 1.
-     *         rawSum = (7000+2000+600+300+100)*5 = 50000.
-     *         Normalised: weights[i] = raw[i]*10000/50000 = targetBps[i].
-     *         Sum = 10000. Remainder check: 7000+2000+600+300+100 = 10000 exactly, no remainder.
+     * @notice One NFT at each of the 5 rarities → equal counts. Under uniform-over-pool selection
+     *         the draw odds ARE the pool composition, so each tier gets an equal 1/5 share
+     *         (2000 bps), NOT the configured targetRarityBps [7000, 2000, 600, 300, 100].
+     *         10000/5 = 2000 exactly, so there is no rounding remainder.
      */
-    function test_rarityWeights_oneNFTPerRarity_matchesTargetBps() public {
+    function test_rarityWeights_oneNFTPerRarity_uniformComposition() public {
         uint256[5] memory prices = [uint256(10e18), 50e18, 100e18, 500e18, 2000e18];
         for (uint256 i = 0; i < 5; i++) {
             _depositNFT(prices[i]);
         }
 
         uint256[] memory weights = gacha.getCurrentRarityWeights();
-        uint256[] memory target = gacha.getTargetRarityBps();
 
         for (uint256 i = 0; i < 5; i++) {
             assertEq(
                 weights[i],
-                target[i],
-                string(abi.encodePacked("Weight should match target for rarity ", vm.toString(i)))
+                2000,
+                string(abi.encodePacked("Equal counts should give equal 2000 bps for rarity ", vm.toString(i)))
             );
         }
         uint256 sum;
@@ -727,40 +724,39 @@ contract GachaRarityWeightRoundingTest is Test {
     }
 
     /**
-     * @notice Setting one rarity's target to 0 means it never gets selected,
-     *         even if it has NFTs. Remaining weights still sum to TOTAL_WEIGHT.
+     * @notice Since the switch to uniform-over-pool selection, targetRarityBps is display-only and
+     *         does NOT affect draw odds. Setting a tier's target to 0 while it still holds
+     *         inventory must NOT zero out its draw weight — the odds remain the live pool
+     *         composition. With one NFT per rarity that is an equal 2000 bps per tier.
      */
-    function test_rarityWeights_zeroTargetBps_excludedFromDistribution() public {
-        // Deposit one NFT per rarity
+    function test_rarityWeights_targetBpsDoesNotAffectDrawWeights() public {
+        // Deposit one NFT per rarity (equal counts)
         uint256[5] memory prices = [uint256(10e18), 50e18, 100e18, 500e18, 2000e18];
         for (uint256 i = 0; i < 5; i++) {
             _depositNFT(prices[i]);
         }
 
-        // Set Common (index 0) target weight to 0; redistribute to others
-        // New sum: 0 + 2000 + 600 + 300 + 100 = 3000; need to reach 10000
-        // We'll set Uncommon to 9300 so total = 0+9300+600+300+0+... adjust:
-        // Use: [0, 9100, 600, 300, 0] = 10000? No: we must keep sum = 10000
-        // Use: [0, 8000, 1400, 500, 100] = 10000
+        // Set Common (index 0) reference target to 0. This is now display-only metadata.
         uint256[] memory newWeights = new uint256[](5);
         newWeights[0] = 0;
         newWeights[1] = 8000;
         newWeights[2] = 1400;
         newWeights[3] = 500;
         newWeights[4] = 100;
-        // Sum = 0+8000+1400+500+100 = 10000 ✓
+        // Sum = 0+8000+1400+500+100 = 10000 ✓ (required by setDynamicWeightsConfig)
 
         vm.prank(gachaOwner);
         gacha.setDynamicWeightsConfig(newWeights);
 
+        // Draw odds ignore targetRarityBps entirely: Common still gets its inventory share.
         uint256[] memory weights = gacha.getCurrentRarityWeights();
-        assertEq(weights[0], 0, "Common with target 0 should get zero weight");
+        assertEq(weights[0], 2000, "target 0 must NOT zero out draw weight under uniform-over-pool");
 
         uint256 sum;
         for (uint256 i = 0; i < 5; i++) {
             sum += weights[i];
         }
-        assertEq(sum, TOTAL_WEIGHT, "Weights excluding zero-target rarity must still sum to 10000");
+        assertEq(sum, TOTAL_WEIGHT, "Composition weights must still sum to 10000");
     }
 
     /**

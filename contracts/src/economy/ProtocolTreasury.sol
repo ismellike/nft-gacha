@@ -146,7 +146,15 @@ contract ProtocolTreasury is
             revert AppraisalMissing();
         }
 
-        payout = FixedPointMathLib.mulDiv(appraisalUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
+        // Pay against min(win-time snapshot, live appraisal). Capping by the snapshot stops a
+        // redeemer from inflating the appraisal after winning to over-extract; capping by the
+        // live price means the protocol never overpays if the card's market value has fallen.
+        // A zero snapshot (e.g. an NFT won before this snapshotting was introduced) falls back
+        // to the live appraisal.
+        uint256 snapshotUSD = _treasury.getNFTRedemptionPriceSnapshot(collection, tokenId);
+        uint256 basisUSD = (snapshotUSD > 0 && snapshotUSD < appraisalUSD) ? snapshotUSD : appraisalUSD;
+
+        payout = FixedPointMathLib.mulDiv(basisUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
         if (payout == 0) revert InvalidAmount();
 
         // Check redemption window using snapshot deadline
@@ -154,12 +162,6 @@ contract ProtocolTreasury is
         if (deadline == 0 || block.timestamp > deadline) {
             revert RedemptionWindowExpired();
         }
-
-        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
-        // In normal operation receiveTime is always set alongside deadline, so receiveTime == 0
-        // with deadline > 0 should not occur. The ternary guards against any edge-case state.
-        uint256 timeSinceWin = receiveTime > 0 ? block.timestamp - receiveTime : 0;
-        emit RedemptionWindowEnforced(collection, tokenId, msg.sender, timeSinceWin);
 
         uint256 balance = IERC20(_asset).balanceOf(address(this));
         if (balance < payout) revert InsufficientLiquidity();
@@ -169,13 +171,75 @@ contract ProtocolTreasury is
             revert PayoutExceedsTreasuryCap();
         }
 
+        // Emit window enforcement only after all checks pass so event order matches state changes.
+        uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
+        // In normal operation receiveTime is always set alongside deadline, so receiveTime == 0
+        // with deadline > 0 should not occur. The ternary guards against any edge-case state.
+        uint256 timeSinceWin = receiveTime > 0 ? block.timestamp - receiveTime : 0;
+        emit RedemptionWindowEnforced(collection, tokenId, msg.sender, timeSinceWin);
+
         IERC721(collection).safeTransferFrom(msg.sender, address(_treasury), tokenId);
+        // Restock at the live appraisal so the pool reflects the card's current market value.
         _treasury.handleRedemptionReturn(collection, tokenId, msg.sender, appraisalUSD);
 
         address(_asset).safeTransfer(msg.sender, payout);
 
         emit RedemptionExecuted(msg.sender, collection, tokenId, payout);
         return payout;
+    }
+
+    /// @notice Redemption status reason codes returned by {isRedeemable}.
+    uint8 public constant REDEEM_OK = 0;
+    uint8 public constant REDEEM_WINDOW_EXPIRED = 1;
+    uint8 public constant REDEEM_APPRAISAL_MISSING = 2;
+    uint8 public constant REDEEM_INSUFFICIENT_LIQUIDITY = 3;
+    uint8 public constant REDEEM_EXCEEDS_CAP = 4;
+
+    /**
+     * @notice Reports whether an NFT can be redeemed right now, and the exact payout it would receive.
+     * @dev Lets the UI show "redeemable now / treasury low / window expired" before a user submits,
+     *      since a buyback is best-effort while treasury funds last (not a hard guarantee). Mirrors
+     *      the checks in {executeRedemption} in the same order.
+     * @param collection NFT contract address
+     * @param tokenId NFT identifier
+     * @return ok True only if a redemption would currently succeed
+     * @return reason One of the REDEEM_* codes explaining the status
+     * @return payout The USDC (6 decimals) the redemption would pay out
+     */
+    function isRedeemable(address collection, uint256 tokenId)
+        external
+        view
+        returns (bool ok, uint8 reason, uint256 payout)
+    {
+        (uint256 appraisalUSD, NFTAppraisal.AppraisalStatus status) =
+            appraisalOracle.getAppraisedPrice(collection, tokenId);
+        if (
+            appraisalUSD == 0
+                || (status != NFTAppraisal.AppraisalStatus.Completed
+                    && status != NFTAppraisal.AppraisalStatus.OwnerOverride)
+        ) {
+            return (false, REDEEM_APPRAISAL_MISSING, 0);
+        }
+
+        uint256 snapshotUSD = _treasury.getNFTRedemptionPriceSnapshot(collection, tokenId);
+        uint256 basisUSD = (snapshotUSD > 0 && snapshotUSD < appraisalUSD) ? snapshotUSD : appraisalUSD;
+        payout = FixedPointMathLib.mulDiv(basisUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
+        if (payout == 0) return (false, REDEEM_APPRAISAL_MISSING, 0);
+
+        uint256 deadline = _treasury.getNFTRedemptionDeadline(collection, tokenId);
+        if (deadline == 0 || block.timestamp > deadline) {
+            return (false, REDEEM_WINDOW_EXPIRED, payout);
+        }
+
+        uint256 balance = IERC20(_asset).balanceOf(address(this));
+        if (balance < payout) return (false, REDEEM_INSUFFICIENT_LIQUIDITY, payout);
+
+        uint256 _maxPayoutBps = maxPayoutBps;
+        if (_maxPayoutBps > 0 && payout > FixedPointMathLib.mulDiv(balance, _maxPayoutBps, 10_000)) {
+            return (false, REDEEM_EXCEEDS_CAP, payout);
+        }
+
+        return (true, REDEEM_OK, payout);
     }
 
     /// @inheritdoc IProtocolTreasury

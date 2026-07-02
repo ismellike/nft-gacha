@@ -286,7 +286,9 @@ contract Gacha is
         return triggerId;
     }
 
-    /// @dev Validates that treasury has NFTs for all weighted rarities
+    /// @dev Validates that the treasury holds at least one NFT. With uniform-over-pool
+    ///      selection, any non-empty pool is spinnable — a tier is only ever drawn when it
+    ///      holds inventory, so no per-tier availability check is required.
     function _validateTreasuryHasItems() private view {
         uint256[] memory counts = treasury.getAllRarityCounts();
         uint256 totalCount;
@@ -295,13 +297,6 @@ contract Gacha is
             totalCount += counts[i];
         }
         if (totalCount == 0) revert NoTreasuryInventory();
-
-        uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
-        for (uint8 i = 0; i < _numRarities; i++) {
-            if (weights[i] > 0 && counts[i] == 0) {
-                revert NoNFTsAvailable(i);
-            }
-        }
     }
 
     /// @notice Fulfills a spin request with randomness
@@ -379,20 +374,17 @@ contract Gacha is
         emit SpinStatusUpdate(triggerId, request.requester, "completed", block.timestamp);
     }
 
-    /// @notice Selects a rarity tier using weighted cumulative probability
-    /// @dev Algorithm:
-    ///      1. Compute dynamic weights from `_getCurrentRarityWeights()` which adjusts
-    ///         target basis points by current pool inventory (scarcer pools get higher weight).
-    ///      2. Derive a uniform roll in [0, TOTAL_WEIGHT) from the randomness hash.
-    ///      3. Walk through rarities accumulating weights into a running `cumulative` sum.
-    ///         The first rarity whose cumulative sum exceeds the roll is selected.
-    ///         Example with weights [7000, 2000, 600, 300, 100]:
-    ///           roll in [0, 7000)     -> rarity 0 (Common)
-    ///           roll in [7000, 9000)  -> rarity 1 (Uncommon)
-    ///           roll in [9000, 9600)  -> rarity 2 (Rare)
-    ///           roll in [9600, 9900)  -> rarity 3 (Epic)
-    ///           roll in [9900, 10000) -> rarity 4 (Legendary)
-    ///      4. Falls back to the highest rarity if no earlier match (guards against rounding).
+    /// @notice Selects a rarity tier by its share of total inventory (uniform-over-pool draw)
+    /// @dev Each tier is chosen with probability `counts[i] / totalCount`. Combined with the
+    ///      uniform within-tier index selection in `sendRandomNFTToWinner`, every NFT in the
+    ///      pool has exactly `1 / totalCount` probability of being drawn — the odds a player
+    ///      experiences are literally the on-chain pool composition, and cannot be inverted or
+    ///      manipulated by depositing/withdrawing into a particular tier. Rarity is a
+    ///      descriptive label on the drawn NFT, not a probability input.
+    /// @dev Algorithm: derive a uniform roll in [0, totalCount), then walk the tiers
+    ///      accumulating `counts[i]`; the first tier whose cumulative count exceeds the roll is
+    ///      selected. Empty tiers contribute zero and are skipped, so the selected tier always
+    ///      holds inventory whenever `totalCount > 0`.
     /// @param randomness Random bytes32 from the WAVS DRAND service
     /// @param counts Current NFT counts per rarity tier in the treasury
     /// @param totalCount Sum of all counts across rarity tiers
@@ -402,14 +394,18 @@ contract Gacha is
         view
         returns (uint8)
     {
-        uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
-        uint256 roll = uint256(randomness) % TOTAL_WEIGHT;
         uint8 _numRarities = numRarities;
+        // Guard against an empty pool at fulfillment time (all NFTs withdrawn/won between
+        // request and fulfillment). Returning the last tier routes to the refund path, which
+        // sees a zero count and reclaims the fee, and also avoids a modulo-by-zero.
+        if (totalCount == 0) return _numRarities - 1;
 
-        // Select rarity using cumulative probabilities
+        uint256 roll = uint256(randomness) % totalCount;
+
+        // Select the tier whose cumulative inventory count first exceeds the roll.
         uint256 cumulative = 0;
         for (uint8 i = 0; i < _numRarities; i++) {
-            cumulative += weights[i];
+            cumulative += counts[i];
             if (roll < cumulative) return i;
         }
         return _numRarities - 1;
@@ -479,10 +475,12 @@ contract Gacha is
         emit PricingConfigUpdated(premiumBps, minFee, maxFee);
     }
 
-    /// @notice Updates the target rarity weight distribution used for dynamic weight calculation
-    /// @dev Weights must sum to exactly TOTAL_WEIGHT (10,000 basis points).
-    ///      These targets are adjusted at spin time based on pool inventory scarcity.
-    /// @param targetBps Array of target weights in basis points, one per rarity tier
+    /// @notice Updates the originally-designed reference rarity distribution (display only).
+    /// @dev Weights must sum to exactly TOTAL_WEIGHT (10,000 basis points). Since the switch to
+    ///      uniform-over-pool selection these values NO LONGER affect draw odds or pricing —
+    ///      real odds are the live pool composition (`getCurrentRarityWeights`). Retained for
+    ///      UI reference and storage-layout stability.
+    /// @param targetBps Array of reference weights in basis points, one per rarity tier
     function setDynamicWeightsConfig(uint256[] calldata targetBps) external onlyOwner {
         if (targetBps.length != numRarities) revert InvalidWeightsLength();
         uint256 total;
@@ -512,24 +510,45 @@ contract Gacha is
         return _getSpinFeeToCharge();
     }
 
-    /// @notice Returns the current dynamic rarity weights adjusted for pool inventory scarcity
-    /// @return weights Array of weights in basis points (sums to TOTAL_WEIGHT when treasury is non-empty)
+    /// @notice Returns the live probability of drawing each rarity tier, in basis points.
+    /// @dev With uniform-over-pool selection the odds ARE the pool composition:
+    ///      `weight[i] = counts[i] * TOTAL_WEIGHT / totalCount`. This is the honest,
+    ///      on-chain-verifiable chance a spin lands in each tier — not a configured target.
+    ///      The rounding remainder is assigned to the largest tier so the array sums to
+    ///      exactly TOTAL_WEIGHT when the treasury is non-empty.
+    /// @return weights Array of live draw probabilities in basis points
     function getCurrentRarityWeights() public view returns (uint256[] memory weights) {
         uint256[] memory counts = treasury.getAllRarityCounts();
-        uint256 totalCount;
         uint8 _numRarities = numRarities;
+        weights = new uint256[](_numRarities);
+
+        uint256 totalCount;
         for (uint256 i = 0; i < _numRarities; i++) {
             totalCount += counts[i];
         }
-        if (totalCount == 0) {
-            weights = new uint256[](_numRarities);
-            return weights;
+        if (totalCount == 0) return weights;
+
+        uint256 assigned;
+        uint256 largestIdx;
+        uint256 largestCount;
+        for (uint256 i = 0; i < _numRarities; i++) {
+            weights[i] = FixedPointMathLib.mulDiv(counts[i], TOTAL_WEIGHT, totalCount);
+            assigned += weights[i];
+            if (counts[i] > largestCount) {
+                largestCount = counts[i];
+                largestIdx = i;
+            }
         }
-        return _getCurrentRarityWeights(counts, totalCount);
+        // Assign the rounding remainder to the largest (non-empty) tier so weights sum to TOTAL_WEIGHT.
+        if (assigned < TOTAL_WEIGHT) {
+            weights[largestIdx] += TOTAL_WEIGHT - assigned;
+        }
     }
 
-    /// @notice Returns the configured target rarity basis points (before inventory adjustment)
-    /// @return targetBps Array of target weights in basis points, one per rarity tier
+    /// @notice Returns the originally-designed reference rarity distribution, in basis points.
+    /// @dev Display/reference only. Since the switch to uniform-over-pool selection, draw odds
+    ///      are the live pool composition (see `getCurrentRarityWeights`), NOT these values.
+    /// @return targetBps Array of reference weights in basis points, one per rarity tier
     function getTargetRarityBps() external view returns (uint256[] memory targetBps) {
         targetBps = new uint256[](numRarities);
         for (uint256 i = 0; i < numRarities; i++) {
@@ -537,26 +556,24 @@ contract Gacha is
         }
     }
 
-    /// @notice Computes the weighted expected value of a spin in USD (scaled by 1e18)
-    /// @dev For each rarity: EV += weight[i] * (totalValue[i] / count[i]) / TOTAL_WEIGHT
-    /// @return expectedValueUSD Probability-weighted average value of an NFT from a single spin
+    /// @notice Computes the expected value of a spin in USD (scaled by 1e18)
+    /// @dev With uniform-over-pool selection every NFT is equally likely, so the expected
+    ///      value is simply the mean value of the pool: `sum(totalValue) / sum(counts)`.
+    /// @return expectedValueUSD Average USD value of an NFT drawn from a single spin
     function getExpectedValueUSD() public view returns (uint256 expectedValueUSD) {
         uint256[] memory counts = treasury.getAllRarityCounts();
-        uint256 totalCount;
+        uint256[] memory totals = treasury.getAllRarityTotalValues();
         uint8 _numRarities = numRarities;
+
+        uint256 totalCount;
+        uint256 totalValue;
         for (uint256 i = 0; i < _numRarities; i++) {
             totalCount += counts[i];
+            totalValue += totals[i];
         }
         if (totalCount == 0) return 0;
 
-        uint256[] memory weights = _getCurrentRarityWeights(counts, totalCount);
-        uint256[] memory totals = treasury.getAllRarityTotalValues();
-
-        for (uint256 i = 0; i < _numRarities; i++) {
-            if (counts[i] == 0 || weights[i] == 0) continue;
-            uint256 averageValue = totals[i] / counts[i];
-            expectedValueUSD += FixedPointMathLib.mulDiv(weights[i], averageValue, TOTAL_WEIGHT);
-        }
+        expectedValueUSD = totalValue / totalCount;
     }
 
     /// @notice Updates the gacha service handler address
@@ -844,50 +861,6 @@ contract Gacha is
     function _usdToFeeToken(uint256 amountUSD) private view returns (uint256) {
         if (feeTokenScalar == 0) return 0;
         return FixedPointMathLib.mulDiv(amountUSD, feeTokenScalar, 1e18);
-    }
-
-    /// @dev Computes dynamic rarity weights adjusted for inventory scarcity.
-    ///      For each rarity with non-zero count and target weight:
-    ///        raw[i] = targetBps[i] * totalCount / counts[i]
-    ///      Then normalizes so the weights sum to TOTAL_WEIGHT (10,000 bps).
-    ///      Assigns any rounding remainder to the first non-zero weight to avoid
-    ///      routing probability to an empty pool.
-    /// @param counts Current NFT counts per rarity tier
-    /// @param totalCount Sum of all counts
-    /// @return weights Normalized weights in basis points
-    function _getCurrentRarityWeights(uint256[] memory counts, uint256 totalCount)
-        private
-        view
-        returns (uint256[] memory weights)
-    {
-        weights = new uint256[](numRarities);
-        uint256[] memory raw = new uint256[](numRarities);
-        uint256 rawSum;
-        for (uint256 i = 0; i < numRarities; i++) {
-            if (counts[i] == 0 || targetRarityBps[i] == 0) continue;
-            raw[i] = FixedPointMathLib.mulDiv(targetRarityBps[i], totalCount, counts[i]);
-            rawSum += raw[i];
-        }
-
-        if (rawSum == 0) return weights;
-
-        uint256 assigned;
-        for (uint256 i = 0; i < numRarities; i++) {
-            if (raw[i] == 0) continue;
-            weights[i] = FixedPointMathLib.mulDiv(raw[i], TOTAL_WEIGHT, rawSum);
-            assigned += weights[i];
-        }
-
-        if (assigned < TOTAL_WEIGHT) {
-            // Assign remainder to first non-zero weight to avoid
-            // routing probability to an empty rarity pool
-            for (uint256 i = 0; i < numRarities; i++) {
-                if (weights[i] > 0) {
-                    weights[i] += TOTAL_WEIGHT - assigned;
-                    break;
-                }
-            }
-        }
     }
 
     // ============ SpinRequest Status Helpers ============

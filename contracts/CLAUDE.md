@@ -48,8 +48,13 @@ forge create <contract> --rpc-url <url> --private-key <key>
 **Gacha Contract** (`src/gacha/Gacha.sol`)
 - Main game interface handling spin requests and randomness fulfillment
 - Uses WAVS service handlers for provably fair randomness
-- Implements weighted rarity selection (Common 70%, Uncommon 20%, Rare 6%, Epic 3%, Legendary 1%)
-- Manages spin fees and automatic refunds for empty rarity pools
+- Uniform-over-pool selection: every NFT in the treasury is equally likely to be drawn
+  (a tier is chosen with probability `counts[i]/totalCount`, then a uniform NFT within it).
+  Draw odds ARE the live pool composition (`getCurrentRarityWeights()`), verifiable on-chain;
+  rarity is a descriptive label, not a probability input. `targetRarityBps`/`getTargetRarityBps()`
+  is display-only reference metadata and does NOT affect draws or pricing.
+- Spin fee = pool-average expected value (`getExpectedValueUSD()`) × pricing premium
+- Manages spin fees and automatic refunds when the pool is empty at fulfillment
 - Comprehensive analytics tracking for spins, wins, and refunds
 
 **NFTAppraisal Contract** (`src/appraisal/NFTAppraisal.sol`)

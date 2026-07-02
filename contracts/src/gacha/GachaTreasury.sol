@@ -66,6 +66,7 @@ contract GachaTreasury is
     error MaxCardDepositsReached();
     error InvalidNumRarities();
     error InvalidImplementation();
+    error DepositBelowMinAppraisal(uint256 priceUSD, uint256 minRequired);
 
     /// @notice Maximum batch operation limits for gas optimization
     uint256 public constant MAX_BATCH_DEPOSIT = 50;
@@ -211,6 +212,8 @@ contract GachaTreasury is
         uint256 appraisedPrice
     );
     event YieldClaimRecorded(address indexed user, uint256 amount);
+    event MinDepositAppraisalUpdated(uint256 oldMin, uint256 newMin);
+    event RedemptionPriceSnapshotted(address indexed collection, uint256 indexed tokenId, uint256 priceUSD);
 
     /// @notice Restricts access to the authorized gacha contract
     modifier onlyGacha() {
@@ -662,6 +665,15 @@ contract GachaTreasury is
         emit MaxDepositsPerCardUpdated(oldMax, _maxDepositsPerCard);
     }
 
+    /// @notice Sets the minimum appraised value (USD, 18 decimals) required to deposit an NFT
+    /// @dev Set to 0 to disable the floor. Protects the pool-average spin fee from junk deposits.
+    /// @param _minDepositAppraisalUSD New minimum appraised value (0 = no floor)
+    function setMinDepositAppraisalUSD(uint256 _minDepositAppraisalUSD) external onlyOwner {
+        uint256 oldMin = minDepositAppraisalUSD;
+        minDepositAppraisalUSD = _minDepositAppraisalUSD;
+        emit MinDepositAppraisalUpdated(oldMin, _minDepositAppraisalUSD);
+    }
+
     /// @notice Sets the decimal scalar for yield claim analytics conversion
     /// @dev Set to 10^(18 - tokenDecimals). E.g. 1e12 for 6-decimal USDC, 1 for 18-decimal tokens.
     ///      Set to 0 to use the default (1e12 for USDC).
@@ -873,6 +885,13 @@ contract GachaTreasury is
             revert NFTNotAppraised();
         }
 
+        // Enforce the minimum-appraisal deposit floor so junk NFTs can't drag down the
+        // pool-average spin fee (uniform-over-pool pricing means every deposit affects the fee).
+        uint256 _minDeposit = minDepositAppraisalUSD;
+        if (_minDeposit > 0 && priceUSD < _minDeposit) {
+            revert DepositBelowMinAppraisal(priceUSD, _minDeposit);
+        }
+
         uint8 rarity = getRarityByPrice(priceUSD);
 
         // Effects before interactions (CEI pattern)
@@ -960,6 +979,18 @@ contract GachaTreasury is
     /// @return deadline Timestamp deadline (0 if not set)
     function getNFTRedemptionDeadline(address collection, uint256 tokenId) external view returns (uint256 deadline) {
         return nftRedemptionDeadlines[collection][tokenId];
+    }
+
+    /// @notice Gets the win-time appraised price snapshot for an NFT
+    /// @param collection NFT collection address
+    /// @param tokenId Token ID
+    /// @return priceUSD Appraised price snapshotted at win (USD, 18 decimals; 0 if not set)
+    function getNFTRedemptionPriceSnapshot(address collection, uint256 tokenId)
+        external
+        view
+        returns (uint256 priceUSD)
+    {
+        return nftRedemptionPriceSnapshots[collection][tokenId];
     }
 
     /// @notice Gets all deposit counts for a user across all rarities
@@ -1068,10 +1099,14 @@ contract GachaTreasury is
         uint256 receiveTime = block.timestamp;
         nftReceiveTimes[item.collection][item.tokenId] = receiveTime;
 
-        // Snapshot redemption deadline at win time
+        // Snapshot redemption deadline and appraised price at win time. Freezing the price here
+        // means redemption pays against min(snapshot, live) — a winner cannot inflate the
+        // appraisal after the fact to over-extract on the protocol buyback.
         if (protocolTreasury != address(0)) {
             uint256 window = IRedemptionWindow(protocolTreasury).redemptionWindow();
             nftRedemptionDeadlines[item.collection][item.tokenId] = receiveTime + window;
+            nftRedemptionPriceSnapshots[item.collection][item.tokenId] = item.appraisedPrice;
+            emit RedemptionPriceSnapshotted(item.collection, item.tokenId, item.appraisedPrice);
         }
 
         // Transfer NFT to winner
@@ -1117,9 +1152,10 @@ contract GachaTreasury is
         treasury[rarity].push(item);
         nftToTreasuryIndex[collection][tokenId] = treasury[rarity].length - 1;
 
-        // Clear receive time and redemption deadline when NFT returns to treasury
+        // Clear receive time, redemption deadline, and price snapshot when NFT returns to treasury
         delete nftReceiveTimes[collection][tokenId];
         delete nftRedemptionDeadlines[collection][tokenId];
+        delete nftRedemptionPriceSnapshots[collection][tokenId];
 
         unchecked {
             ++rarityCount[rarity];
@@ -1361,6 +1397,16 @@ contract GachaTreasury is
         return rarityNames[rarity];
     }
 
+    /// @notice Win-time snapshot of an NFT's appraised price (USD, 18 decimals), captured when a
+    ///         gacha win transfers it out. Redemption pays against min(snapshot, live) so a redeemer
+    ///         cannot inflate the appraisal after winning to over-extract on buyback.
+    /// @dev collection => tokenId => appraised price at win (0 if not set)
+    mapping(address => mapping(uint256 => uint256)) public nftRedemptionPriceSnapshots;
+
+    /// @notice Minimum appraised value (USD, 18 decimals) required to deposit an NFT (0 = no floor).
+    /// @dev Protects the pool-average spin fee from being dragged down by junk deposits.
+    uint256 public minDepositAppraisalUSD;
+
     /// @notice Custom gap for future storage variables
-    uint256[45] private __gap;
+    uint256[43] private __gap;
 }

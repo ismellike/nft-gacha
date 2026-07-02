@@ -348,7 +348,7 @@ contract IntegrationTest is Test, IERC721Receiver {
         assertEq(treasury.cardCurrentRarity(cardId), 1, "Rarity should still be Uncommon after same-rarity update");
 
         // Vault's CardNode should reflect the new price
-        (,uint256 vaultPrice,,,, ) = vault.cardNodes(cardId);
+        (, uint256 vaultPrice,,,,) = vault.cardNodes(cardId);
         assertEq(vaultPrice, newPrice, "Vault CardNode price should reflect updated price");
     }
 
@@ -473,7 +473,10 @@ contract IntegrationTest is Test, IERC721Receiver {
         assertEq(nftCollection.ownerOf(depositedTokenId), spinner, "Spinner should own the NFT after winning");
 
         // Check redemption window is still open (treasury sets it at win time)
-        assertTrue(protocolTreasury.isRedemptionEligible(address(nftCollection), depositedTokenId), "Redemption window should be open");
+        assertTrue(
+            protocolTreasury.isRedemptionEligible(address(nftCollection), depositedTokenId),
+            "Redemption window should be open"
+        );
 
         // Fund protocol treasury with enough USDC for the 80% payout
         uint256 expectedPayout = (UNCOMMON_PRICE * 8_000) / 10_000 / 1e12; // 18-dec → 6-dec
@@ -489,7 +492,9 @@ contract IntegrationTest is Test, IERC721Receiver {
         assertEq(payout, expectedPayout, "Redemption payout should be 80% of appraised USD price");
 
         // NFT must be restocked in the treasury
-        assertTrue(treasury.depositedNFTs(address(nftCollection), depositedTokenId), "NFT should be restocked in treasury");
+        assertTrue(
+            treasury.depositedNFTs(address(nftCollection), depositedTokenId), "NFT should be restocked in treasury"
+        );
         assertEq(treasury.rarityCount(uncommonRarity), 1, "Treasury should have 1 uncommon NFT again after restock");
 
         // Redemption window should be cleared (deadline reset)
@@ -530,6 +535,171 @@ contract IntegrationTest is Test, IERC721Receiver {
         vm.expectRevert(ProtocolTreasury.RedemptionWindowExpired.selector);
         protocolTreasury.executeRedemption(address(nftCollection), wonTokenId);
         vm.stopPrank();
+    }
+
+    // ─── Economic redesign: snapshot-capped redemption, uniform draw, deposit floor ─────
+
+    /// @dev Wins `tokenId` for the spinner via a spin+fulfill, returns after the win.
+    function _winNFT(uint256 seed) internal returns (uint256 wonTokenId) {
+        uint256 spinFee = gacha.getCurrentSpinFee();
+        vm.startPrank(spinner);
+        usdc.approve(address(gacha), spinFee);
+        uint256 triggerId = gacha.spin(MAX_FEE_GUARD);
+        vm.stopPrank();
+
+        vm.prank(fakeServiceHandler);
+        gacha.fulfillRandomness(triggerId, bytes32(seed));
+
+        return nftCollection.tokenOfOwnerByIndex(spinner, nftCollection.balanceOf(spinner) - 1);
+    }
+
+    /**
+     * @notice A redeemer must not be able to inflate the appraisal after winning to extract more:
+     *         payout is capped at 80% of the WIN-TIME snapshot, not the (higher) live price.
+     */
+    function testRedemptionCappedBySnapshotWhenPriceInflated() public {
+        uint256 tokenId = _depositNFT(depositor, UNCOMMON_PRICE); // $50 at win
+        uint256 wonTokenId = _winNFT(uint256(5));
+        assertEq(wonTokenId, tokenId, "single-NFT pool: spinner wins the deposited token");
+
+        // Snapshot captured at win must equal the win-time appraisal.
+        assertEq(
+            treasury.getNFTRedemptionPriceSnapshot(address(nftCollection), tokenId),
+            UNCOMMON_PRICE,
+            "win-time price snapshot"
+        );
+
+        // Redeemer inflates the live appraisal well above the snapshot.
+        bytes32 cardId = keccak256(abi.encodePacked(address(nftCollection), tokenId));
+        vm.prank(owner);
+        appraisal.ownerSetAppraisalForTokenWithCard(address(nftCollection), tokenId, cardId, LEGENDARY_PRICE);
+
+        // Fund generously so liquidity is never the limiting factor.
+        uint256 snapshotPayout = (UNCOMMON_PRICE * 8_000) / 10_000 / 1e12;
+        vm.prank(owner);
+        usdc.mint(address(protocolTreasury), (LEGENDARY_PRICE * 8_000) / 10_000 / 1e12);
+
+        vm.startPrank(spinner);
+        nftCollection.approve(address(protocolTreasury), tokenId);
+        uint256 payout = protocolTreasury.executeRedemption(address(nftCollection), tokenId);
+        vm.stopPrank();
+
+        assertEq(
+            payout, snapshotPayout, "payout must be capped at 80% of the win-time snapshot, not inflated live price"
+        );
+    }
+
+    /**
+     * @notice If the card's live value falls after a win, the protocol pays the lower live price
+     *         (min(snapshot, live)) so it never overpays versus current market.
+     */
+    function testRedemptionUsesLivePriceWhenBelowSnapshot() public {
+        uint256 tokenId = _depositNFT(depositor, RARE_PRICE); // $100 at win
+        _winNFT(uint256(5));
+
+        // Live price drops below the win-time snapshot.
+        bytes32 cardId = keccak256(abi.encodePacked(address(nftCollection), tokenId));
+        vm.prank(owner);
+        appraisal.ownerSetAppraisalForTokenWithCard(address(nftCollection), tokenId, cardId, UNCOMMON_PRICE);
+
+        uint256 livePayout = (UNCOMMON_PRICE * 8_000) / 10_000 / 1e12;
+        vm.prank(owner);
+        usdc.mint(address(protocolTreasury), (RARE_PRICE * 8_000) / 10_000 / 1e12);
+
+        vm.startPrank(spinner);
+        nftCollection.approve(address(protocolTreasury), tokenId);
+        uint256 payout = protocolTreasury.executeRedemption(address(nftCollection), tokenId);
+        vm.stopPrank();
+
+        assertEq(payout, livePayout, "payout must use the lower live price when it falls below the snapshot");
+    }
+
+    /**
+     * @notice isRedeemable mirrors executeRedemption's checks so the UI can preflight status.
+     */
+    function testIsRedeemableReasonCodes() public {
+        uint256 tokenId = _depositNFT(depositor, UNCOMMON_PRICE);
+
+        // Won NFT, but treasury holds no USDC yet → insufficient liquidity.
+        _winNFT(uint256(5));
+        (bool ok, uint8 reason, uint256 payout) = protocolTreasury.isRedeemable(address(nftCollection), tokenId);
+        assertFalse(ok, "unfunded treasury: not redeemable");
+        assertEq(reason, protocolTreasury.REDEEM_INSUFFICIENT_LIQUIDITY(), "reason: insufficient liquidity");
+        assertEq(payout, (UNCOMMON_PRICE * 8_000) / 10_000 / 1e12, "quoted payout still computed");
+
+        // Fund it → now redeemable.
+        vm.prank(owner);
+        usdc.mint(address(protocolTreasury), payout);
+        (ok, reason,) = protocolTreasury.isRedeemable(address(nftCollection), tokenId);
+        assertTrue(ok, "funded + in-window: redeemable");
+        assertEq(reason, protocolTreasury.REDEEM_OK(), "reason: ok");
+
+        // Past the window → window expired.
+        vm.warp(block.timestamp + 2 hours);
+        (ok, reason,) = protocolTreasury.isRedeemable(address(nftCollection), tokenId);
+        assertFalse(ok, "expired window: not redeemable");
+        assertEq(reason, protocolTreasury.REDEEM_WINDOW_EXPIRED(), "reason: window expired");
+    }
+
+    /**
+     * @notice The min-appraisal deposit floor rejects junk deposits below the configured threshold.
+     */
+    function testMinDepositAppraisalFloor() public {
+        vm.prank(owner);
+        treasury.setMinDepositAppraisalUSD(UNCOMMON_PRICE); // $50 floor
+
+        // A $10 common is below the floor → reverts.
+        vm.prank(owner);
+        uint256 cheapToken = nftCollection.mint(depositor);
+        bytes32 cheapCard = keccak256(abi.encodePacked(address(nftCollection), cheapToken));
+        vm.prank(owner);
+        appraisal.ownerSetAppraisalForTokenWithCard(address(nftCollection), cheapToken, cheapCard, COMMON_PRICE);
+        vm.startPrank(depositor);
+        nftCollection.approve(address(treasury), cheapToken);
+        vm.expectRevert(
+            abi.encodeWithSelector(GachaTreasury.DepositBelowMinAppraisal.selector, COMMON_PRICE, UNCOMMON_PRICE)
+        );
+        treasury.depositNFT(address(nftCollection), cheapToken);
+        vm.stopPrank();
+
+        // A $50 uncommon at the floor → succeeds.
+        uint256 okToken = _depositNFT(depositor, UNCOMMON_PRICE);
+        assertTrue(treasury.depositedNFTs(address(nftCollection), okToken), "at-floor deposit should succeed");
+    }
+
+    /**
+     * @notice Uniform-over-pool draw: with counts held constant at 3 Common : 1 Rare, wins land
+     *         count-proportionally (~75% / ~25%), never in empty tiers. Counts are topped back up
+     *         after each win so the pool composition stays fixed across the sample.
+     */
+    function testUniformDrawTracksPoolComposition() public {
+        // Build a 3 Common : 1 Rare pool.
+        for (uint256 i = 0; i < 3; i++) {
+            _depositNFT(depositor, COMMON_PRICE);
+        }
+        _depositNFT(depositor, RARE_PRICE);
+
+        uint256 iterations = 40;
+        for (uint256 s = 1; s <= iterations; s++) {
+            _winNFT(s);
+            // Restore counts to [3 common, 1 rare] so composition is constant.
+            while (treasury.rarityCount(0) < 3) {
+                _depositNFT(depositor, COMMON_PRICE);
+            }
+            while (treasury.rarityCount(2) < 1) {
+                _depositNFT(depositor, RARE_PRICE);
+            }
+        }
+
+        uint256 commonWins = gacha.globalRarityWins(0);
+        uint256 rareWins = gacha.globalRarityWins(2);
+        assertEq(commonWins + rareWins, iterations, "all spins land in a stocked tier (no empties won)");
+        assertEq(gacha.globalRarityWins(1), 0, "empty Uncommon tier is never won");
+        assertEq(gacha.globalRarityWins(3), 0, "empty Epic tier is never won");
+        // ~75/25 split from count-proportional selection (generous band around 30/10).
+        assertGt(commonWins, rareWins, "Common (3x inventory) should win more than Rare");
+        assertGe(commonWins, 24, "Common share ~75%");
+        assertLe(rareWins, 16, "Rare share ~25%");
     }
 
     /**
