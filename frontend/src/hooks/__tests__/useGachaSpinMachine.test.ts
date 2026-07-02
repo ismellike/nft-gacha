@@ -16,7 +16,6 @@ import { useGachaSpinMachine } from "../useGachaSpinMachine";
 vi.mock("wagmi", () => ({
 	useAccount: vi.fn(),
 	usePublicClient: vi.fn(),
-	useWatchContractEvent: vi.fn(),
 	useAccountEffect: vi.fn(),
 }));
 
@@ -68,29 +67,6 @@ vi.mock("@/lib/logger", () => {
 	};
 });
 
-vi.mock("@/lib/rarity-utils", () => ({
-	rarityBigIntToName: (rarity: bigint) => {
-		const map: Record<number, string> = {
-			0: "Common",
-			1: "Uncommon",
-			2: "Rare",
-			3: "Epic",
-			4: "Legendary",
-		};
-		return map[Number(rarity)] ?? "Unknown";
-	},
-}));
-
-// Stub the generated ABI import
-vi.mock("@/generated", () => ({
-	gachaAbi: [],
-}));
-
-// Stub constants
-vi.mock("@/lib/constants", () => ({
-	POLLING_INTERVAL_MS: 3000,
-}));
-
 // ---------------------------------------------------------------------------
 // Test setup helpers
 // ---------------------------------------------------------------------------
@@ -112,7 +88,6 @@ async function setupMocks({
 	vi.mocked(wagmi.usePublicClient).mockReturnValue({} as ReturnType<
 		typeof wagmi.usePublicClient
 	>);
-	vi.mocked(wagmi.useWatchContractEvent).mockReturnValue(undefined);
 	vi.mocked(wagmi.useAccountEffect).mockReturnValue(undefined);
 
 	const { useGachaContracts } = await import("@/hooks/useGachaContracts");
@@ -260,6 +235,27 @@ describe("useGachaSpinMachine", () => {
 			expect(result.current.isWaitingForFulfillment).toBe(true);
 			expect(result.current.triggerId).toBe(triggerId);
 			expect(result.current.retryCount).toBe(0);
+		});
+
+		it("drives fulfillment through a single RPC watcher (pollForSpinFulfillment invoked exactly once, no duplicate event watcher)", async () => {
+			const { pollForSpinFulfillment } = await import(
+				"@/async-utils/gachaSpinMachine"
+			);
+			const { result } = renderHook(() => useGachaSpinMachine());
+			const triggerId = BigInt(123);
+
+			act(() => {
+				result.current.startSpin();
+			});
+			act(() => {
+				result.current.confirmTransaction(triggerId);
+			});
+
+			expect(result.current.state).toBe("waitingForFulfillment");
+			// The XState-invoked actor is the single source of truth for
+			// SpinCompleted/SpinRefunded detection — no parallel
+			// useWatchContractEvent watcher should also be polling.
+			expect(pollForSpinFulfillment).toHaveBeenCalledTimes(1);
 		});
 	});
 

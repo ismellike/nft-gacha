@@ -1,12 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import {
-	useAccount,
-	useAccountEffect,
-	usePublicClient,
-	useWatchContractEvent,
-} from "wagmi";
+import { useAccount, useAccountEffect, usePublicClient } from "wagmi";
 import { useActorRef, useSelector } from "@xstate/react";
 import type { RefundResult, SpinResult } from "../async-utils/gachaSpinMachine";
 import {
@@ -18,10 +13,7 @@ import {
 	MAX_RETRIES,
 	type GachaSpinContext,
 } from "../machines/gachaSpinMachine";
-import { gachaAbi } from "../generated";
-import { POLLING_INTERVAL_MS } from "../lib/constants";
 import { createDebugLogger, DEBUG_FLAGS, logger } from "../lib/logger";
-import { rarityBigIntToName } from "../lib/rarity-utils";
 import { useGachaStore } from "../stores/gachaStore";
 import { useGachaContracts } from "./useGachaContracts";
 import { useGachaId } from "./useGachaId";
@@ -58,26 +50,6 @@ export interface UseGachaSpinMachineReturn {
 	setError: (error: string) => void;
 	clearPendingSpins: () => void;
 }
-
-const buildSpinResult = (args: {
-	rarity?: bigint | number;
-	collection?: string;
-	tokenId?: bigint;
-}): SpinResult | null => {
-	if (
-		args.rarity === undefined ||
-		!args.collection ||
-		args.tokenId === undefined
-	) {
-		return null;
-	}
-
-	return {
-		rarity: rarityBigIntToName(args.rarity),
-		collection: args.collection,
-		tokenId: args.tokenId.toString(),
-	};
-};
 
 // Selectors — stable references for useSelector
 const selectStateValue = (state: { value: string }) => state.value as string;
@@ -161,52 +133,14 @@ export function useGachaSpinMachine(
 		}
 	}, [isRefunded, context.refundResult]);
 
-	// Watch for SpinCompleted events from the contract
-	useWatchContractEvent({
-		address: gachaAddress as `0x${string}` | undefined,
-		enabled:
-			!!gachaAddress &&
-			Boolean(userAddress) &&
-			isWaitingForFulfillment,
-		pollingInterval: POLLING_INTERVAL_MS,
-		abi: gachaAbi,
-		eventName: "SpinCompleted",
-		args: userAddress ? { requester: userAddress } : undefined,
-		onLogs(logs) {
-			debugLog("SpinCompleted logs received:", {
-				logCount: logs.length,
-				currentState: stateValue,
-				currentTriggerId: context.triggerId?.toString(),
-			});
-
-			for (const log of logs) {
-				const { triggerId: logTriggerId, rarity, collection, tokenId } = log.args;
-
-				if (!logTriggerId || logTriggerId !== context.triggerId) {
-					continue;
-				}
-
-				const resultArgs: {
-					rarity?: number | bigint;
-					collection?: string;
-					tokenId?: bigint;
-				} = {};
-				if (rarity !== undefined) resultArgs.rarity = rarity;
-				if (collection !== undefined) resultArgs.collection = collection;
-				if (tokenId !== undefined) resultArgs.tokenId = tokenId;
-
-				const result = buildSpinResult(resultArgs);
-				if (!result) {
-					logger.gachaSpin.warn("SpinCompleted log missing fields");
-					continue;
-				}
-
-				debugLog("Accepting SpinCompleted via event watcher:", result);
-				actorRef.send({ type: "FULFILL_SPIN", result });
-				break;
-			}
-		},
-	});
+	// NOTE: SpinCompleted/SpinRefunded fulfillment is handled exclusively by the
+	// `pollForFulfillment` actor invoked from the `waitingForFulfillment` state
+	// in `gachaSpinMachine.ts` (see `pollForSpinFulfillment` in
+	// `async-utils/gachaSpinMachine.ts`). It already owns timeout, exponential
+	// backoff/retry, and refund detection. A second `useWatchContractEvent`
+	// watcher here would poll the same RPC endpoint concurrently for every
+	// active spin, doubling load for no benefit — so it has been removed in
+	// favor of this single source of truth.
 
 	// Restore state from localStorage on mount/account change
 	useEffect(() => {
