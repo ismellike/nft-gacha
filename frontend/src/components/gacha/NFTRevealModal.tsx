@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAccount, useChainId } from "wagmi";
 import { useEnhancedSpinResult } from "../../hooks/useNFTMetadata";
 import { getGachaConfig } from "../../lib/gacha-config";
 import { createDebugLogger, DEBUG_FLAGS, logger } from "../../lib/logger";
@@ -19,8 +20,10 @@ import {
 	getPhaseTiming,
 	type RevealPhase,
 } from "../../lib/revealAnimationConfig";
+import { formatAddress, getBlockExplorerTxUrl } from "../../lib/utils";
+import { DRAND_LEARN_MORE_URL, useSpinFulfillmentTx } from "../../lib/verify";
 import { useSoundEffects } from "../../hooks/useSoundEffects";
-import { DialogTitle, Modal, ModalBody, ModalContent } from "../../ui";
+import { Button, DialogTitle, Modal, ModalBody, ModalContent } from "../../ui";
 import { RevealErrorBoundary } from "./RevealErrorBoundary";
 import {
 	MonetaryRevealSection,
@@ -141,6 +144,20 @@ export default function NFTRevealModal({
 	);
 	const protocolTreasuryAddress = gachaConfig?.protocolTreasuryAddress;
 	const gachaTreasuryAddress = gachaConfig?.treasuryAddress || "";
+
+	// "Provably fair" verification - recover the on-chain fulfillment tx for
+	// this spin so the user can independently confirm it on a block explorer.
+	const { address: userAddress } = useAccount();
+	const chainId = useChainId();
+	const fulfillmentTx = useSpinFulfillmentTx({
+		triggerId,
+		gachaAddress: gachaConfig?.address,
+		userAddress,
+		enabled: isVisible,
+	});
+	const verifyTxUrl = fulfillmentTx.data
+		? getBlockExplorerTxUrl(chainId, fulfillmentTx.data.transactionHash)
+		: null;
 
 	// Get rarity config
 	const resultRarity = Number(nftResult.rarity) || 0;
@@ -558,7 +575,74 @@ export default function NFTRevealModal({
 										appraisalContractAddress={appraisalContractAddress}
 										protocolTreasuryAddress={protocolTreasuryAddress}
 										gachaTreasuryAddress={gachaTreasuryAddress}
+										verifyTxUrl={verifyTxUrl}
 									/>
+								)}
+
+								{/* Provably Fair Verification */}
+								{showMonetary && (
+									<motion.div
+										initial={{ opacity: 0, y: 10 }}
+										animate={{ opacity: 1, y: 0 }}
+										transition={{ delay: 0.9, duration: 0.5 }}
+										className="flex flex-col items-center gap-2 pointer-events-auto"
+									>
+										<div className="flex flex-wrap items-center justify-center gap-3">
+											{verifyTxUrl ? (
+												<Button
+													size="sm"
+													color="glass"
+													onPress={() =>
+														window.open(
+															verifyTxUrl,
+															"_blank",
+															"noopener,noreferrer",
+														)
+													}
+													startContent={
+														<svg
+															className="w-4 h-4"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+															strokeWidth={2}
+															aria-hidden="true"
+														>
+															<title>Verify</title>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																d="M9 12.75L11.25 15 15 9.75M21 12c0 3.183-1.267 6.24-3.522 8.494a11.94 11.94 0 01-5.478 3.028 11.94 11.94 0 01-5.478-3.028A11.953 11.953 0 013 12c0-3.183 1.267-6.24 3.522-8.494A11.954 11.954 0 0112 1.5a11.954 11.954 0 015.478 2.006A11.953 11.953 0 0121 12z"
+															/>
+														</svg>
+													}
+												>
+													Verify this spin on-chain
+												</Button>
+											) : fulfillmentTx.isLoading ? (
+												<span className="text-xs text-foreground/50">
+													Locating fulfillment transaction…
+												</span>
+											) : null}
+											<a
+												href={DRAND_LEARN_MORE_URL}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-[11px] text-foreground/50 hover:text-foreground/80 underline transition-colors"
+											>
+												How fairness works ↗
+											</a>
+										</div>
+										{fulfillmentTx.data && (
+											<span className="text-[10px] text-foreground/40 font-mono">
+												Fulfillment tx:{" "}
+												{formatAddress(fulfillmentTx.data.transactionHash, {
+													startChars: 8,
+													endChars: 6,
+												})}
+											</span>
+										)}
+									</motion.div>
 								)}
 							</div>
 						</div>

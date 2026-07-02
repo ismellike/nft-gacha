@@ -16,6 +16,8 @@ interface MonetaryRevealSectionProps {
 	appraisalContractAddress: `0x${string}`;
 	protocolTreasuryAddress: string;
 	gachaTreasuryAddress: string;
+	/** Block explorer URL for the on-chain fulfillment tx, when resolved. */
+	verifyTxUrl?: string | null | undefined;
 }
 
 export function MonetaryRevealSection({
@@ -30,6 +32,7 @@ export function MonetaryRevealSection({
 	appraisalContractAddress,
 	protocolTreasuryAddress,
 	gachaTreasuryAddress,
+	verifyTxUrl,
 }: MonetaryRevealSectionProps) {
 	if (isMetadataLoading || currentPhase !== "monetary") return null;
 
@@ -100,6 +103,7 @@ export function MonetaryRevealSection({
 						metadata={enhancedMetadata}
 						rarityName={rarityName}
 						animationDelay={0.6}
+						verifyTxUrl={verifyTxUrl}
 					/>
 				</div>
 

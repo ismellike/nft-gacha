@@ -11,6 +11,8 @@ interface SharePullButtonProps {
 	metadata: NFTMetadata | null;
 	rarityName: string;
 	animationDelay?: number | undefined;
+	/** Block explorer URL for the on-chain fulfillment tx, when resolved. */
+	verifyTxUrl?: string | null | undefined;
 }
 
 const EPIC_FLAVOR = [
@@ -23,6 +25,7 @@ function getShareText(
 	rarity: number,
 	rarityName: string,
 	metadata: NFTMetadata | null,
+	verifyTxUrl?: string | null,
 ): string {
 	const config = getRarityConfig(rarity);
 	const cardName = metadata?.title || metadata?.name || "an NFT";
@@ -35,6 +38,12 @@ function getShareText(
 	}
 
 	text += "\nhttps://spinfi.app";
+
+	// Let anyone verify the pull was provably fair on-chain
+	if (verifyTxUrl) {
+		text += `\nVerify on-chain: ${verifyTxUrl}`;
+	}
+
 	return text;
 }
 
@@ -43,11 +52,12 @@ export default function SharePullButton({
 	metadata,
 	rarityName,
 	animationDelay = 0.6,
+	verifyTxUrl,
 }: SharePullButtonProps) {
 	const [shared, setShared] = useState(false);
 
 	const handleShare = useCallback(async () => {
-		const text = getShareText(rarity, rarityName, metadata);
+		const text = getShareText(rarity, rarityName, metadata, verifyTxUrl);
 
 		// Try Web Share API (mobile)
 		if (typeof navigator !== "undefined" && navigator.share) {
@@ -70,7 +80,7 @@ export default function SharePullButton({
 		);
 		setShared(true);
 		setTimeout(() => setShared(false), 2000);
-	}, [rarity, rarityName, metadata]);
+	}, [rarity, rarityName, metadata, verifyTxUrl]);
 
 	return (
 		<motion.div
