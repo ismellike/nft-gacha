@@ -131,7 +131,10 @@ mod tests {
         let good = make_price("9", "PSA", false);
         let card = make_card(vec![("normal", vec![bad, good])]);
         let result = PriceMatcher::find_matching_price(&card, "9", "PSA", false, &None);
-        assert!(result.is_some(), "valid price after an error-flagged one must still match");
+        assert!(
+            result.is_some(),
+            "valid price after an error-flagged one must still match"
+        );
         assert!(!result.unwrap().is_error);
     }
 

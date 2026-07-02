@@ -100,7 +100,8 @@ mod tests {
         let proof = ProofOfIntegrityInfo {
             fingerprint: "".to_string(),
             salt: 0,
-            hex_proof: "0x0000000000000000000000000000000000000000000000000000000000000000".to_string(),
+            hex_proof: "0x0000000000000000000000000000000000000000000000000000000000000000"
+                .to_string(),
         };
         assert!(IntegrityVerifier::verify_proof_of_integrity(&proof).is_err());
     }

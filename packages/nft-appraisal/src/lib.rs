@@ -48,8 +48,7 @@ impl Guest for Component {
                 }
                 Err(e) => {
                     host::log(LogLevel::Error, &format!("Appraisal error: {}", e));
-                    let payload =
-                        core::errors::encode_error_from_event(&evm_event, e.to_string());
+                    let payload = core::errors::encode_error_from_event(&evm_event, e.to_string());
                     Ok(vec![WasmResponse {
                         payload,
                         ordering: None,

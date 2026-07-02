@@ -158,10 +158,7 @@ impl AttributeParser {
         }
 
         // Find the end of leading ASCII digits (0-9 only)
-        let digits_end = trimmed
-            .bytes()
-            .take_while(|&b| b.is_ascii_digit())
-            .count();
+        let digits_end = trimmed.bytes().take_while(|&b| b.is_ascii_digit()).count();
 
         if digits_end == 0 {
             // No leading digits, return as-is (e.g., "TG23")
@@ -334,14 +331,17 @@ impl TryFrom<&NFTMetadata> for ScrydexCardInfo {
                             }
                         }
 
-                        let parts: Vec<&str> = value_str.split(')').filter_map(|s| {
-                            let trimmed = s.trim();
-                            if trimmed.is_empty() {
-                                None
-                            } else {
-                                trimmed.find('(').map(|idx| trimmed[idx + 1..].trim())
-                            }
-                        }).collect();
+                        let parts: Vec<&str> = value_str
+                            .split(')')
+                            .filter_map(|s| {
+                                let trimmed = s.trim();
+                                if trimmed.is_empty() {
+                                    None
+                                } else {
+                                    trimmed.find('(').map(|idx| trimmed[idx + 1..].trim())
+                                }
+                            })
+                            .collect();
 
                         // Only add parts that are valid variants
                         for part in parts {
@@ -403,23 +403,53 @@ mod tests {
 
     #[test]
     fn test_normalize_card_number_basic() {
-        assert_eq!(AttributeParser::normalize_card_number("070/100"), Some("70/100".to_string()));
-        assert_eq!(AttributeParser::normalize_card_number("007"), Some("7".to_string()));
-        assert_eq!(AttributeParser::normalize_card_number("0"), Some("0".to_string()));
-        assert_eq!(AttributeParser::normalize_card_number("000"), Some("0".to_string()));
-        assert_eq!(AttributeParser::normalize_card_number("TG23"), Some("TG23".to_string()));
+        assert_eq!(
+            AttributeParser::normalize_card_number("070/100"),
+            Some("70/100".to_string())
+        );
+        assert_eq!(
+            AttributeParser::normalize_card_number("007"),
+            Some("7".to_string())
+        );
+        assert_eq!(
+            AttributeParser::normalize_card_number("0"),
+            Some("0".to_string())
+        );
+        assert_eq!(
+            AttributeParser::normalize_card_number("000"),
+            Some("0".to_string())
+        );
+        assert_eq!(
+            AttributeParser::normalize_card_number("TG23"),
+            Some("TG23".to_string())
+        );
         assert_eq!(AttributeParser::normalize_card_number(""), None);
         assert_eq!(AttributeParser::normalize_card_number("  "), None);
     }
 
     #[test]
     fn test_normalize_grade_value_basic() {
-        assert_eq!(AttributeParser::normalize_grade_value("9.5"), Some("9.5".to_string()));
-        assert_eq!(AttributeParser::normalize_grade_value("10"), Some("10".to_string()));
-        assert_eq!(AttributeParser::normalize_grade_value("RAW"), Some("RAW".to_string()));
-        assert_eq!(AttributeParser::normalize_grade_value("raw"), Some("RAW".to_string()));
+        assert_eq!(
+            AttributeParser::normalize_grade_value("9.5"),
+            Some("9.5".to_string())
+        );
+        assert_eq!(
+            AttributeParser::normalize_grade_value("10"),
+            Some("10".to_string())
+        );
+        assert_eq!(
+            AttributeParser::normalize_grade_value("RAW"),
+            Some("RAW".to_string())
+        );
+        assert_eq!(
+            AttributeParser::normalize_grade_value("raw"),
+            Some("RAW".to_string())
+        );
         assert_eq!(AttributeParser::normalize_grade_value(""), None);
-        assert_eq!(AttributeParser::normalize_grade_value("PSA 9"), Some("9".to_string()));
+        assert_eq!(
+            AttributeParser::normalize_grade_value("PSA 9"),
+            Some("9".to_string())
+        );
     }
 
     #[test]
@@ -428,7 +458,9 @@ mod tests {
         assert!(AttributeParser::detect_perfect_grade("Black Label 10"));
         assert!(AttributeParser::detect_perfect_grade("GEM MINT 10"));
         assert!(AttributeParser::detect_perfect_grade("PERFECT 10"));
-        assert!(AttributeParser::detect_perfect_grade("This is PERFECT work"));
+        assert!(AttributeParser::detect_perfect_grade(
+            "This is PERFECT work"
+        ));
         assert!(!AttributeParser::detect_perfect_grade("NOT PRISTINE"));
         assert!(!AttributeParser::detect_perfect_grade("grade 9"));
         assert!(!AttributeParser::detect_perfect_grade(""));
@@ -436,9 +468,18 @@ mod tests {
 
     #[test]
     fn test_extract_set_id_basic() {
-        assert_eq!(AttributeParser::extract_set_id("Pokémon Base-Set"), Some("base".to_string()));
-        assert_eq!(AttributeParser::extract_set_id("Pokemon Jungle"), Some("jungle".to_string()));
-        assert_eq!(AttributeParser::extract_set_id("SV06"), Some("sv06".to_string()));
+        assert_eq!(
+            AttributeParser::extract_set_id("Pokémon Base-Set"),
+            Some("base".to_string())
+        );
+        assert_eq!(
+            AttributeParser::extract_set_id("Pokemon Jungle"),
+            Some("jungle".to_string())
+        );
+        assert_eq!(
+            AttributeParser::extract_set_id("SV06"),
+            Some("sv06".to_string())
+        );
         assert_eq!(AttributeParser::extract_set_id(""), None);
         assert_eq!(AttributeParser::extract_set_id("   "), None);
     }
@@ -451,7 +492,10 @@ mod tests {
             "firstEdition"
         );
         assert_eq!(
-            AttributeParser::construct_variant_string(&["1st Edition".to_string(), "Holo".to_string()]),
+            AttributeParser::construct_variant_string(&[
+                "1st Edition".to_string(),
+                "Holo".to_string()
+            ]),
             "firstEditionHolofoil"
         );
     }

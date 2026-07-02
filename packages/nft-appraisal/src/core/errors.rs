@@ -12,7 +12,9 @@ pub(crate) fn make_empty_evm_event(chain: &str) -> TriggerDataEvmContractEvent {
     TriggerDataEvmContractEvent {
         chain: chain.to_string(),
         log: EvmEventLog {
-            address: EvmAddress { raw_bytes: vec![0u8; 20] },
+            address: EvmAddress {
+                raw_bytes: vec![0u8; 20],
+            },
             data: EvmEventLogData {
                 topics: vec![],
                 data: vec![],
@@ -38,9 +40,8 @@ pub fn error_identity_from_event(evm_event: &TriggerDataEvmContractEvent) -> App
                 .contract_address
                 .parse::<Address>()
                 .unwrap_or(Address::ZERO);
-            let token_id_val =
-                U256::from_str_radix(request.token_id.trim_start_matches("0x"), 16)
-                    .unwrap_or(U256::ZERO);
+            let token_id_val = U256::from_str_radix(request.token_id.trim_start_matches("0x"), 16)
+                .unwrap_or(U256::ZERO);
             (request.chain, contract_addr, token_id_val)
         } else {
             ("unknown".to_string(), Address::ZERO, U256::ZERO)
@@ -56,10 +57,7 @@ pub fn error_identity_from_event(evm_event: &TriggerDataEvmContractEvent) -> App
 }
 
 /// Encode an error payload from an EVM event and an error message.
-pub fn encode_error_from_event(
-    evm_event: &TriggerDataEvmContractEvent,
-    error: String,
-) -> Vec<u8> {
+pub fn encode_error_from_event(evm_event: &TriggerDataEvmContractEvent, error: String) -> Vec<u8> {
     let identity = error_identity_from_event(evm_event);
     payload::encode_error(&identity, error)
 }
@@ -98,7 +96,10 @@ mod tests {
         let event = make_empty_evm_event("eip155:1");
         let bytes_a = encode_error_from_event(&event, "error A".to_string());
         let bytes_b = encode_error_from_event(&event, "error B".to_string());
-        assert_ne!(bytes_a, bytes_b, "different error messages should produce different payloads");
+        assert_ne!(
+            bytes_a, bytes_b,
+            "different error messages should produce different payloads"
+        );
     }
 
     // -----------------------------------------------------------------------

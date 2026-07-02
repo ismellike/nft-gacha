@@ -106,7 +106,11 @@ mod tests {
         let result = extract_tx_hash(&input);
         let bytes = result.as_slice();
 
-        assert_eq!(&bytes[..20], input.as_slice(), "first 20 bytes must match input");
+        assert_eq!(
+            &bytes[..20],
+            input.as_slice(),
+            "first 20 bytes must match input"
+        );
         assert_eq!(
             &bytes[20..],
             &[0u8; 12],

@@ -62,14 +62,13 @@ impl AppraisalContext {
     /// Construct context from environment configuration. Fails fast if required config is missing.
     pub fn from_env() -> Result<Self> {
         let cache = Arc::new(AppraisalCache::default());
-        let providers =
-            ProviderRegistry::new(vec![
-                RegisteredProvider::Courtyard(CourtyardProvider::new()),
-                // PFP provider handles data:application/json URIs from GachaPFP contract
-                RegisteredProvider::Pfp(PfpProvider::new()),
-                // Generic fallback must be last — it accepts any URI
-                RegisteredProvider::Generic(GenericProvider::new()),
-            ]);
+        let providers = ProviderRegistry::new(vec![
+            RegisteredProvider::Courtyard(CourtyardProvider::new()),
+            // PFP provider handles data:application/json URIs from GachaPFP contract
+            RegisteredProvider::Pfp(PfpProvider::new()),
+            // Generic fallback must be last — it accepts any URI
+            RegisteredProvider::Generic(GenericProvider::new()),
+        ]);
         // Scrydex resolver is optional — generic testnet NFTs don't need it
         let mut registered_resolvers = Vec::new();
         match ScrydexPokemonResolver::from_env() {

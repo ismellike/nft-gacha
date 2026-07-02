@@ -60,10 +60,10 @@ pub fn random_price_from_uri(uri: &str) -> f64 {
     // Weighted tier selection matching gacha probabilities
     let (min, max) = match tier_roll {
         0..7000 => (1.0, 15.0),        // Common 70%
-        7000..9000 => (16.0, 60.0),     // Uncommon 20%
-        9000..9600 => (61.0, 250.0),    // Rare 6%
-        9600..9900 => (251.0, 1200.0),  // Epic 3%
-        _ => (1201.0, 5000.0),          // Legendary 1%
+        7000..9000 => (16.0, 60.0),    // Uncommon 20%
+        9000..9600 => (61.0, 250.0),   // Rare 6%
+        9600..9900 => (251.0, 1200.0), // Epic 3%
+        _ => (1201.0, 5000.0),         // Legendary 1%
     };
 
     // Interpolate within the tier range, round to nearest dollar
@@ -127,9 +127,17 @@ mod tests {
         // Allow 5% tolerance from expected distribution
         let tolerance = (total as f64 * 0.05) as i32;
         assert!((common - 7000).abs() < tolerance, "Common: {}", common);
-        assert!((uncommon - 2000).abs() < tolerance, "Uncommon: {}", uncommon);
+        assert!(
+            (uncommon - 2000).abs() < tolerance,
+            "Uncommon: {}",
+            uncommon
+        );
         assert!((rare - 600).abs() < tolerance, "Rare: {}", rare);
         assert!((epic - 300).abs() < tolerance, "Epic: {}", epic);
-        assert!((legendary - 100).abs() < tolerance, "Legendary: {}", legendary);
+        assert!(
+            (legendary - 100).abs() < tolerance,
+            "Legendary: {}",
+            legendary
+        );
     }
 }

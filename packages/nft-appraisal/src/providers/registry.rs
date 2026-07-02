@@ -335,7 +335,10 @@ mod tests {
     #[test]
     fn test_registry_provider_order() {
         let registry = make_registry();
-        assert_eq!(registry.providers[0].provider_type(), ProviderType::Courtyard);
+        assert_eq!(
+            registry.providers[0].provider_type(),
+            ProviderType::Courtyard
+        );
         assert_eq!(registry.providers[1].provider_type(), ProviderType::Pfp);
         assert_eq!(registry.providers[2].provider_type(), ProviderType::Generic);
     }

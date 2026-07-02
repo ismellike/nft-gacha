@@ -141,7 +141,10 @@ mod tests {
     #[test]
     fn new_uses_default_endpoint() {
         let resolver = ScrydexPokemonResolver::new("key", None);
-        assert_eq!(resolver.client.cards_endpoint, DEFAULT_SCRYDEX_CARDS_ENDPOINT);
+        assert_eq!(
+            resolver.client.cards_endpoint,
+            DEFAULT_SCRYDEX_CARDS_ENDPOINT
+        );
     }
 
     #[test]
@@ -170,7 +173,10 @@ mod tests {
             std::env::set_var(key, val);
         }
 
-        assert!(result.is_err(), "from_env must fail when WAVS_ENV_SCRYDEX_API_KEY is not set");
+        assert!(
+            result.is_err(),
+            "from_env must fail when WAVS_ENV_SCRYDEX_API_KEY is not set"
+        );
         let msg = result.unwrap_err().to_string();
         assert!(
             msg.contains("WAVS_ENV_SCRYDEX_API_KEY"),
@@ -200,7 +206,10 @@ mod tests {
             std::env::set_var(team_key, val);
         }
 
-        assert!(result.is_ok(), "from_env must succeed when WAVS_ENV_SCRYDEX_API_KEY is set");
+        assert!(
+            result.is_ok(),
+            "from_env must succeed when WAVS_ENV_SCRYDEX_API_KEY is set"
+        );
         let resolver = result.unwrap();
         assert_eq!(resolver.client.api_key, "test-key-from-env");
         assert!(resolver.client.team_id.is_none());

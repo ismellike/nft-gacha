@@ -217,6 +217,9 @@ mod tests {
     fn cache_fragment_differs_for_perfect_vs_non_perfect() {
         let args_not_perfect = card_info("1", "10", "PSA", false, "base1", None);
         let args_perfect = card_info("1", "10", "PSA", true, "base1", None);
-        assert_ne!(args_not_perfect.cache_fragment(), args_perfect.cache_fragment());
+        assert_ne!(
+            args_not_perfect.cache_fragment(),
+            args_perfect.cache_fragment()
+        );
     }
 }
