@@ -40,6 +40,12 @@ impl PriceMatcher {
         // Search for matching price in allowed variants
         for card_variant in allowed_variants {
             for price in &card_variant.prices {
+                // Skip entries Scrydex itself flags as erroneous/placeholder so a bad
+                // price can never be pushed on-chain as a valid appraisal.
+                if price.is_error {
+                    continue;
+                }
+
                 let grade_matches = price.grade == grade;
                 let company_matches = price.company.to_uppercase() == company.to_uppercase();
                 let perfect_matches = price.is_perfect == is_perfect;
@@ -107,6 +113,26 @@ mod tests {
         ]);
         let result = PriceMatcher::find_matching_price(&card, "9", "PSA", false, &None);
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_error_flagged_price_is_skipped() {
+        let mut bad = make_price("9", "PSA", false);
+        bad.is_error = true;
+        let card = make_card(vec![("normal", vec![bad])]);
+        let result = PriceMatcher::find_matching_price(&card, "9", "PSA", false, &None);
+        assert!(result.is_none(), "error-flagged price must not match");
+    }
+
+    #[test]
+    fn test_error_flagged_price_falls_through_to_valid() {
+        let mut bad = make_price("9", "PSA", false);
+        bad.is_error = true;
+        let good = make_price("9", "PSA", false);
+        let card = make_card(vec![("normal", vec![bad, good])]);
+        let result = PriceMatcher::find_matching_price(&card, "9", "PSA", false, &None);
+        assert!(result.is_some(), "valid price after an error-flagged one must still match");
+        assert!(!result.unwrap().is_error);
     }
 
     proptest! {
