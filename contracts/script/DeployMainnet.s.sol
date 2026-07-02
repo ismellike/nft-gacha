@@ -12,6 +12,7 @@ import {Gacha} from "../src/gacha/Gacha.sol";
 import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
 import {GachaTreasuryReader} from "../src/gacha/GachaTreasuryReader.sol";
 import {GachaServiceHandler} from "../src/gacha/GachaServiceHandler.sol";
+import {PFPServiceHandler} from "../src/tokens/PFPServiceHandler.sol";
 import {CardGroupedVault} from "../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
@@ -83,6 +84,7 @@ contract DeployMainnet is Script {
         address gachaServiceHandler;
         address appraisalServiceHandler;
         address pfpCollection;
+        address pfpServiceHandler;
     }
 
     // =========================================================================
@@ -120,8 +122,9 @@ contract DeployMainnet is Script {
         console.log("========================================");
 
         vm.startBroadcast(deployerKey);
-        Deployments memory d =
-            _deployAll(deployer, protocolOwner, usdc, wavsServiceManager, spinFee, appraisalFee, pfpMintPrice, pfpMaxSupply);
+        Deployments memory d = _deployAll(
+            deployer, protocolOwner, usdc, wavsServiceManager, spinFee, appraisalFee, pfpMintPrice, pfpMaxSupply
+        );
 
         // Transfer ownership to protocol owner (multisig)
         if (deployer != protocolOwner) {
@@ -165,7 +168,7 @@ contract DeployMainnet is Script {
         _configureEconomy(d);
 
         // Deploy PFP collection (paid mint, supply-capped)
-        _deployPfpCollection(d, protocolOwner, pfpMintPrice, pfpMaxSupply);
+        _deployPfpCollection(d, protocolOwner, pfpMintPrice, pfpMaxSupply, wavsServiceManager);
 
         console.log("\nAll contracts deployed and wired successfully.");
         return d;
@@ -370,12 +373,26 @@ contract DeployMainnet is Script {
     // PFP COLLECTION
     // =========================================================================
 
-    function _deployPfpCollection(Deployments memory d, address owner, uint256 mintPrice, uint256 maxSupply) internal {
-        GachaPFP pfp = new GachaPFP(mintPrice, maxSupply, owner);
+    function _deployPfpCollection(
+        Deployments memory d,
+        address owner,
+        uint256 mintPrice,
+        uint256 maxSupply,
+        address wavsServiceManager
+    ) internal {
+        // Deploy owned by the deployer so we can wire the service handler, then hand ownership to
+        // `owner` (the protocol owner / multisig).
+        GachaPFP pfp = new GachaPFP(mintPrice, maxSupply, msg.sender);
         d.pfpCollection = address(pfp);
         console.log("GachaPFP:               ", d.pfpCollection);
         console.log("  Mint price (wei):     ", mintPrice);
         console.log("  Max supply:           ", maxSupply);
+
+        // Deploy the PFP randomness service handler and authorize it to fulfill rarity.
+        PFPServiceHandler psh = new PFPServiceHandler(IWavsServiceManager(wavsServiceManager), d.pfpCollection);
+        d.pfpServiceHandler = address(psh);
+        pfp.setServiceHandler(d.pfpServiceHandler);
+        console.log("PFPServiceHandler:      ", d.pfpServiceHandler);
 
         // Whitelist so users can deposit after appraisal
         GachaTreasury(d.treasuryProxy).addToWhitelist(d.pfpCollection);
@@ -384,6 +401,10 @@ contract DeployMainnet is Script {
         // Exempt from appraisal fees (free appraisal)
         NFTAppraisal(d.appraisalProxy).setFeeExemption(d.pfpCollection, true);
         console.log("GachaPFP exempt from appraisal fees");
+
+        // Hand PFP ownership to the protocol owner now that wiring is complete.
+        pfp.transferOwnership(owner);
+        console.log("GachaPFP ownership -> protocol owner");
     }
 
     // =========================================================================
@@ -424,7 +445,8 @@ contract DeployMainnet is Script {
                 _envLine("GACHA_ADDRESS", vm.toString(d.gachaProxy)),
                 _envLine("GACHA_SERVICE_HANDLER_ADDRESS", vm.toString(d.gachaServiceHandler)),
                 _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(d.appraisalServiceHandler)),
-                _envLine("PFP_COLLECTION_ADDRESS", vm.toString(d.pfpCollection))
+                _envLine("PFP_COLLECTION_ADDRESS", vm.toString(d.pfpCollection)),
+                _envLine("PFP_SERVICE_HANDLER_ADDRESS", vm.toString(d.pfpServiceHandler))
             )
         );
 

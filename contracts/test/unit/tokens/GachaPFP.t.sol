@@ -3,7 +3,9 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {GachaPFP} from "../../../src/tokens/GachaPFP.sol";
+import {RandomnessRequested} from "../../../src/interfaces/WavsDrandTypes.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 /**
  * @title GachaPFP Test Suite
@@ -18,12 +20,21 @@ contract GachaPFPTest is Test {
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
     address public owner = makeAddr("owner");
+    address public handler = makeAddr("handler");
 
     uint256 constant MINT_PRICE = 0.01 ether;
     uint256 constant MAX_SUPPLY = 100;
 
     function setUp() public {
         pfp = new GachaPFP(MINT_PRICE, MAX_SUPPLY, owner);
+        vm.prank(owner);
+        pfp.setServiceHandler(handler);
+    }
+
+    /// @dev Fulfills a token's rarity as the authorized service handler would.
+    function _fulfill(uint256 tokenId, bytes32 randomness) internal {
+        vm.prank(handler);
+        pfp.fulfillRarity(tokenId, randomness);
     }
 
     // ========================================================================
@@ -229,90 +240,166 @@ contract GachaPFPTest is Test {
     }
 
     // ========================================================================
-    // RARITY ASSIGNMENT
+    // ASYNC REVEAL FLOW (WAVS-DRAND)
     // ========================================================================
 
-    function testRarityIsAssignedOnMint() public {
+    function testMintLeavesTokenUnrevealed() public {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
-        GachaPFP.Rarity rarity = pfp.tokenRarity(tokenId);
-        assertTrue(uint8(rarity) <= uint8(GachaPFP.Rarity.Mythic), "Rarity should be valid enum value");
+        assertFalse(pfp.rarityRevealed(tokenId), "rarity must not be revealed at mint");
     }
 
-    function testRarityIsDeterministicPerBlock() public {
+    function testMintEmitsRandomnessRequested() public {
         vm.deal(alice, 1 ether);
-        // Same block -> same prevrandao -> same rarity for a given tokenId
-        uint256 snapshot = vm.snapshotState();
-
         vm.prank(alice);
-        uint256 id1 = pfp.mint{value: MINT_PRICE}();
-        GachaPFP.Rarity rarity1 = pfp.tokenRarity(id1);
-
-        vm.revertToState(snapshot);
-
-        vm.prank(alice);
-        uint256 id2 = pfp.mint{value: MINT_PRICE}();
-        GachaPFP.Rarity rarity2 = pfp.tokenRarity(id2);
-
-        assertEq(uint8(rarity1), uint8(rarity2), "Same block should yield same rarity for same tokenId");
+        vm.expectEmit(true, false, false, false);
+        emit RandomnessRequested(1);
+        pfp.mint{value: MINT_PRICE}();
     }
 
-    function testRarityPersistsAfterMint() public {
+    function testFulfillRaritySetsRarityAndReveals() public {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
-        GachaPFP.Rarity r1 = pfp.tokenRarity(tokenId);
-        GachaPFP.Rarity r2 = pfp.tokenRarity(tokenId);
+        // randomness rolling to the Mythic band (>= 9800 mod 10000)
+        _fulfill(tokenId, bytes32(uint256(9950)));
 
-        assertEq(uint8(r1), uint8(r2), "Rarity should not change after mint");
+        assertTrue(pfp.rarityRevealed(tokenId), "token should be revealed after fulfillment");
+        assertEq(uint8(pfp.tokenRarity(tokenId)), uint8(GachaPFP.Rarity.Mythic), "9950 -> Mythic");
+    }
+
+    function testFulfillRarityRevertsForNonServiceHandler() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+
+        vm.prank(alice);
+        vm.expectRevert(GachaPFP.NotServiceHandler.selector);
+        pfp.fulfillRarity(tokenId, bytes32(uint256(1)));
+    }
+
+    function testFulfillRarityIsIdempotent() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+
+        _fulfill(tokenId, bytes32(uint256(100)));
+
+        vm.prank(handler);
+        vm.expectRevert(GachaPFP.RarityAlreadyRevealed.selector);
+        pfp.fulfillRarity(tokenId, bytes32(uint256(9999)));
+    }
+
+    function testSetServiceHandlerOnlyOwner() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        pfp.setServiceHandler(alice);
+    }
+
+    function testSetServiceHandlerRejectsZeroAddress() public {
+        vm.prank(owner);
+        vm.expectRevert(GachaPFP.InvalidServiceHandler.selector);
+        pfp.setServiceHandler(address(0));
+    }
+
+    function testRequestRevealRevertsBeforeCooldown() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+
+        vm.prank(alice);
+        vm.expectRevert(GachaPFP.RevealRequestCooldown.selector);
+        pfp.requestReveal(tokenId);
+    }
+
+    function testRequestRevealReemitsAfterCooldown() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+
+        vm.warp(block.timestamp + pfp.REVEAL_REREQUEST_COOLDOWN());
+
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, false);
+        emit RandomnessRequested(tokenId);
+        pfp.requestReveal(tokenId);
+    }
+
+    function testRequestRevealRevertsIfAlreadyRevealed() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+        _fulfill(tokenId, bytes32(uint256(1)));
+
+        vm.warp(block.timestamp + pfp.REVEAL_REREQUEST_COOLDOWN());
+        vm.prank(alice);
+        vm.expectRevert(GachaPFP.RarityAlreadyRevealed.selector);
+        pfp.requestReveal(tokenId);
     }
 
     function testUnmintedTokenHasDefaultRarity() public view {
-        // Unminted token has default mapping value (Common = 0)
-        GachaPFP.Rarity rarity = pfp.tokenRarity(999);
-        assertEq(uint8(rarity), 0, "Unminted token should have default rarity value");
+        // Unminted token has default mapping value (Common = 0) and is unrevealed
+        assertEq(uint8(pfp.tokenRarity(999)), 0, "Unminted token should have default rarity value");
+        assertFalse(pfp.rarityRevealed(999));
     }
 
     // ========================================================================
-    // RARITY DISTRIBUTION (FUZZ)
+    // RARITY DISTRIBUTION (FUZZ) — driven by fulfillment randomness
     // ========================================================================
 
-    function testFuzz_RarityDistribution(uint256 seed) public {
+    function testFuzz_RarityFromRandomness(uint256 seed) public {
         vm.deal(alice, 1 ether);
-        // Verify all 6 rarities are achievable by varying block randomness
-        vm.prevrandao(bytes32(seed));
-
         vm.prank(alice);
         uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
-        GachaPFP.Rarity rarity = pfp.tokenRarity(tokenId);
-        assertTrue(uint8(rarity) <= 5, "Rarity must be in [0, 5]");
+        _fulfill(tokenId, bytes32(seed));
+
+        assertTrue(uint8(pfp.tokenRarity(tokenId)) <= 5, "Rarity must be in [0, 5]");
+        assertTrue(pfp.rarityRevealed(tokenId));
     }
 
     function testRarityDistributionOverManyMints() public {
         vm.deal(alice, 100 ether);
         uint256[6] memory counts;
-        uint256 total = 100; // Reduced from 500 to stay within MAX_SUPPLY
+        uint256 total = 100; // stay within MAX_SUPPLY
 
         for (uint256 i = 0; i < total; i++) {
-            // Vary prevrandao per mint to get different rarities
-            vm.prevrandao(bytes32(uint256(keccak256(abi.encodePacked(i, block.timestamp)))));
             vm.prank(alice);
             uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+            // Vary fulfillment randomness per token to spread rarities
+            _fulfill(tokenId, bytes32(uint256(keccak256(abi.encodePacked(i, block.timestamp)))));
             counts[uint8(pfp.tokenRarity(tokenId))]++;
         }
 
-        // With 100 mints, verify Common tier has at least 1 (statistical guarantee with varied randomness)
         assertGt(counts[0], 0, "Should have Common mints");
-        // Verify totals
         uint256 sum;
         for (uint256 i = 0; i < 6; i++) {
             sum += counts[i];
         }
         assertEq(sum, total, "All mints should be accounted for");
+    }
+
+    function testRarityBandsMapCorrectly() public {
+        vm.deal(alice, 1 ether);
+        // roll = randomness % 10000; verify each band's boundary maps to the right tier
+        uint256[6] memory rolls = [uint256(0), 4000, 6500, 8300, 9300, 9800];
+        GachaPFP.Rarity[6] memory expected = [
+            GachaPFP.Rarity.Common,
+            GachaPFP.Rarity.Uncommon,
+            GachaPFP.Rarity.Rare,
+            GachaPFP.Rarity.Epic,
+            GachaPFP.Rarity.Legendary,
+            GachaPFP.Rarity.Mythic
+        ];
+        for (uint256 i = 0; i < 6; i++) {
+            vm.prank(alice);
+            uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+            _fulfill(tokenId, bytes32(rolls[i]));
+            assertEq(uint8(pfp.tokenRarity(tokenId)), uint8(expected[i]), "band boundary mismatch");
+        }
     }
 
     // ========================================================================
@@ -370,6 +457,33 @@ contract GachaPFPTest is Test {
         assertGt(bytes(uri).length, prefix.length, "Base64 content should be non-empty");
     }
 
+    function _dataUri(string memory json) internal pure returns (string memory) {
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(bytes(json))));
+    }
+
+    function testTokenURIUnrevealedShowsUnrevealedMetadata() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+
+        string memory expected = _dataUri(
+            '{"name":"Gacha PFP #1","description":"Gacha PFP Collection - Unrevealed","attributes":[{"trait_type":"Status","value":"Unrevealed"}]}'
+        );
+        assertEq(pfp.tokenURI(tokenId), expected, "unrevealed metadata must expose Status, not Rarity");
+    }
+
+    function testTokenURIRevealedShowsRarityMetadata() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+        _fulfill(tokenId, bytes32(uint256(9950))); // Mythic
+
+        string memory expected = _dataUri(
+            '{"name":"Gacha PFP #1","description":"Gacha PFP Collection - Mythic","attributes":[{"trait_type":"Rarity","value":"Mythic"}]}'
+        );
+        assertEq(pfp.tokenURI(tokenId), expected, "revealed metadata must expose the Rarity trait");
+    }
+
     // ========================================================================
     // ERC721 COMPLIANCE
     // ========================================================================
@@ -413,6 +527,7 @@ contract GachaPFPTest is Test {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+        _fulfill(tokenId, bytes32(uint256(7777)));
 
         GachaPFP.Rarity rarityBefore = pfp.tokenRarity(tokenId);
 
@@ -449,7 +564,7 @@ contract GachaPFPTest is Test {
         uint256 tokenId = pfp.mint{value: MINT_PRICE}();
 
         assertEq(pfp.ownerOf(tokenId), minter);
-        assertTrue(uint8(pfp.tokenRarity(tokenId)) <= 5);
+        assertFalse(pfp.rarityRevealed(tokenId), "freshly minted token is unrevealed");
     }
 
     function testFuzz_TokenURINeverReverts(uint256 seed) public {

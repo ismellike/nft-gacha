@@ -440,6 +440,12 @@ tasks:
                   CONTRACT_ADDRESS_KEY: "NFT_APPRAISAL_ADDRESS"
                   EVENT_SIGNATURE: "AppraisalRequested(address,uint256)"
                   COMPONENT_CID_NAME: "nft_appraisal"
+            - task: setup-workflow
+              vars:
+                  WORKFLOW_ID: "pfp_rarity"
+                  CONTRACT_ADDRESS_KEY: "PFP_COLLECTION_ADDRESS"
+                  EVENT_SIGNATURE: "RandomnessRequested(uint256)"
+                  COMPONENT_CID_NAME: "wavs_drand"
             - task: setup-service-manager
 
     setup-workflow:
@@ -683,6 +689,8 @@ tasks:
                 sh: awk -F= '/^GACHA_SERVICE_HANDLER_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
             APPRAISAL_SERVICE_HANDLER_ADDRESS:
                 sh: awk -F= '/^APPRAISAL_SERVICE_HANDLER_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
+            PFP_SERVICE_HANDLER_ADDRESS:
+                sh: awk -F= '/^PFP_SERVICE_HANDLER_ADDRESS=/{print $2}' {{.CONTRACT_ENV_FILE}}
         preconditions:
             - sh: '[ -f "{{.CONTRACT_ENV_FILE}}" ]'
               msg: "{{.CONTRACT_ENV_FILE}} not found; run task contracts:deploy first"
@@ -694,6 +702,9 @@ tasks:
                     ;;
                   "wavs_drand")
                     echo "{{.GACHA_SERVICE_HANDLER_ADDRESS}}"
+                    ;;
+                  "pfp_rarity")
+                    echo "{{.PFP_SERVICE_HANDLER_ADDRESS}}"
                     ;;
                   *)
                     echo "Error: Unknown workflow ID {{.WORKFLOW_ID}}" >&2

@@ -16,6 +16,7 @@ import {Gacha} from "../src/gacha/Gacha.sol";
 import {GachaTreasury} from "../src/gacha/GachaTreasury.sol";
 import {GachaTreasuryReader} from "../src/gacha/GachaTreasuryReader.sol";
 import {GachaServiceHandler} from "../src/gacha/GachaServiceHandler.sol";
+import {PFPServiceHandler} from "../src/tokens/PFPServiceHandler.sol";
 import {CardGroupedVault} from "../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
@@ -96,6 +97,7 @@ contract DeployTestnet is Script {
         address appraisalServiceHandler;
         address testnetCollection;
         address pfpCollection;
+        address pfpServiceHandler;
         bool deployedTestUSDC;
     }
 
@@ -159,7 +161,7 @@ contract DeployTestnet is Script {
         _configureEconomy(d);
 
         // Step 5: Deploy public-mint testnet NFT collection and whitelist it
-        _deployTestnetCollection(d);
+        _deployTestnetCollection(d, wavsServiceManager);
 
         // Step 6: Fund protocol treasury if we deployed TestUSDC
         if (d.deployedTestUSDC) {
@@ -379,7 +381,7 @@ contract DeployTestnet is Script {
     // TESTNET COLLECTION
     // =========================================================================
 
-    function _deployTestnetCollection(Deployments memory d) internal {
+    function _deployTestnetCollection(Deployments memory d, address wavsServiceManager) internal {
         TestnetERC721 collection = new TestnetERC721();
         d.testnetCollection = address(collection);
         console.log("TestnetERC721:          ", d.testnetCollection);
@@ -396,6 +398,12 @@ contract DeployTestnet is Script {
         GachaPFP pfp = new GachaPFP(0, 10_000, msg.sender);
         d.pfpCollection = address(pfp);
         console.log("GachaPFP:               ", d.pfpCollection);
+
+        // Deploy the PFP randomness service handler and authorize it to fulfill rarity.
+        PFPServiceHandler psh = new PFPServiceHandler(IWavsServiceManager(wavsServiceManager), d.pfpCollection);
+        d.pfpServiceHandler = address(psh);
+        pfp.setServiceHandler(d.pfpServiceHandler);
+        console.log("PFPServiceHandler:      ", d.pfpServiceHandler);
 
         GachaTreasury(d.treasuryProxy).addToWhitelist(d.pfpCollection);
         console.log("GachaPFP whitelisted in treasury");
@@ -439,7 +447,8 @@ contract DeployTestnet is Script {
                 _envLine("GACHA_SERVICE_HANDLER_ADDRESS", vm.toString(d.gachaServiceHandler)),
                 _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(d.appraisalServiceHandler)),
                 _envLine("TESTNET_COLLECTION_ADDRESS", vm.toString(d.testnetCollection)),
-                _envLine("PFP_COLLECTION_ADDRESS", vm.toString(d.pfpCollection))
+                _envLine("PFP_COLLECTION_ADDRESS", vm.toString(d.pfpCollection)),
+                _envLine("PFP_SERVICE_HANDLER_ADDRESS", vm.toString(d.pfpServiceHandler))
             )
         );
 
