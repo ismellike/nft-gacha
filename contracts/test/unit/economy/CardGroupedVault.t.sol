@@ -97,30 +97,28 @@ contract CardGroupedVaultTest is Test {
     // Per-rarity yield distribution
     // ================================================================
 
-    function test_yieldGoesToCorrectRarity() public {
+    function test_yieldDistributesGloballyByValue() public {
         uint256 price = 100e18;
 
-        // Alice in Common, Bob in Rare
+        // Alice in Common, Bob in Rare — equal value.
         vm.startPrank(treasury);
         vault.registerCardDeposit(CARD_A, alice, price, COMMON, 1);
         vault.registerCardDeposit(CARD_B, bob, price, RARE, 1);
         vm.stopPrank();
 
-        // Distribute 50 USDC to Common
+        // Distribute 50 USDC citing COMMON as the hit tier. Routing is global value-weighted:
+        // the cited rarity is analytics only, so the 50 splits across the whole pool by value.
+        // Alice and Bob hold equal value, so each gets 25.
         vm.prank(economyManager);
         vault.distributeYield(50e6, COMMON);
+        assertApproxEqAbs(vault.pendingYield(alice), 25e6, 1);
+        assertApproxEqAbs(vault.pendingYield(bob), 25e6, 1);
 
-        // Only Alice should get yield
-        assertApproxEqAbs(vault.pendingYield(alice), 50e6, 1);
-        assertEq(vault.pendingYield(bob), 0);
-
-        // Distribute 30 USDC to Rare
+        // Distribute 30 USDC citing RARE — again split by value across the whole pool (15 each).
         vm.prank(economyManager);
         vault.distributeYield(30e6, RARE);
-
-        // Now Bob gets 30
-        assertApproxEqAbs(vault.pendingYield(bob), 30e6, 1);
-        assertApproxEqAbs(vault.pendingYield(alice), 50e6, 1); // Unchanged
+        assertApproxEqAbs(vault.pendingYield(alice), 40e6, 1); // 25 + 15
+        assertApproxEqAbs(vault.pendingYield(bob), 40e6, 1); // 25 + 15
     }
 
     // ================================================================
@@ -220,15 +218,18 @@ contract CardGroupedVaultTest is Test {
         // Shares should be 5*10 + 2*500 = 1050e18
         assertEq(vault.sharesOf(alice), 5 * 10e18 + 2 * 500e18);
 
-        // Distribute to both pools
+        // Distribute citing both pools
         vm.startPrank(economyManager);
         vault.distributeYield(10e6, COMMON);
         vault.distributeYield(100e6, EPIC);
         vm.stopPrank();
 
-        // Alice gets all of Common yield (10) + all of Epic yield (100)
+        // Alice is the sole depositor, so global-by-value routing still sends her essentially
+        // all of both distributions (110 USDC). Tolerance covers accumulator flooring dust,
+        // which is bounded by ~totalValue/PRECISION per distribution (~1050 units of 6-dec USDC
+        // here, over two distributions) and stays as un-claimed dust in the vault.
         uint256 pending = vault.pendingYield(alice);
-        assertApproxEqAbs(pending, 110e6, 2);
+        assertApproxEqAbs(pending, 110e6, 2200);
     }
 
     // ================================================================
@@ -371,10 +372,11 @@ contract CardGroupedVaultTest is Test {
         vault.claimYieldForCards(alice, cardIds);
         uint256 balAfter = usdc.balanceOf(alice);
 
-        assertApproxEqAbs(balAfter - balBefore, 10e6, 1);
-
-        // CARD_B yield still pending
-        assertApproxEqAbs(vault.pendingYield(alice), 20e6, 1);
+        // Global-by-value routing: CARD_A and CARD_B hold equal value, so each accrues half of
+        // both distributions -> 10/2 + 20/2 = 15 each. Claiming only CARD_A pays 15; CARD_B's 15
+        // stays pending.
+        assertApproxEqAbs(balAfter - balBefore, 15e6, 1);
+        assertApproxEqAbs(vault.pendingYield(alice), 15e6, 1);
     }
 
     // ================================================================

@@ -80,16 +80,26 @@ contract CardGroupedVaultPartialClaimTest is Test {
         vault.registerCardDeposit(CARD_EPIC, alice, epicPrice, EPIC, 1);
         vm.stopPrank();
 
-        // Distribute yield to each rarity pool (alice is sole depositor in each)
+        // Distribute yield citing each rarity. Routing is global value-weighted: the cited
+        // rarity is analytics only, so all 300 USDC spreads across the whole pool by value.
         vm.startPrank(economyManager);
-        vault.distributeYield(20e6, COMMON); // Alice gets 20 USDC from Common
-        vault.distributeYield(80e6, RARE); // Alice gets 80 USDC from Rare
-        vault.distributeYield(200e6, EPIC); // Alice gets 200 USDC from Epic
+        vault.distributeYield(20e6, COMMON);
+        vault.distributeYield(80e6, RARE);
+        vault.distributeYield(200e6, EPIC);
         vm.stopPrank();
 
-        // Total pending should be 300 USDC
+        // Per-card yield is now value-weighted over the whole pool, not confined to its tier.
+        uint256 totalValue = commonPrice + rarePrice + epicPrice; // 610e18
+        uint256 totalYield = 300e6;
+        // Claimed set (Common + Epic) and remainder (Rare) each get their value share of the total.
+        uint256 claimedValue = commonPrice + epicPrice; // 510e18
+        uint256 expClaimed = (totalYield * claimedValue) / totalValue; // ~250.82 USDC
+        uint256 expRemaining = (totalYield * rarePrice) / totalValue; // ~49.18 USDC
+        uint256 tol = 3 * (totalValue / 1e18) + 10; // 3 distributions of accumulator flooring dust
+
+        // Total pending still conserves to ~300 USDC (global routing only reallocates across cards).
         uint256 totalPending = vault.pendingYield(alice);
-        assertApproxEqAbs(totalPending, 300e6, 3, "Total pending should be ~300 USDC");
+        assertApproxEqAbs(totalPending, 300e6, tol, "Total pending should be ~300 USDC");
 
         // Claim only CARD_COMMON_A and CARD_EPIC (not CARD_RARE)
         bytes32[] memory cardsToClaim = new bytes32[](2);
@@ -101,13 +111,12 @@ contract CardGroupedVaultPartialClaimTest is Test {
         uint256 claimed = vault.claimYieldForCards(alice, cardsToClaim);
         uint256 balAfter = usdc.balanceOf(alice);
 
-        // Should have claimed Common (20) + Epic (200) = 220 USDC
-        assertApproxEqAbs(claimed, 220e6, 2, "Claimed should be ~220 USDC");
-        assertApproxEqAbs(balAfter - balBefore, 220e6, 2, "Balance increase should be ~220 USDC");
+        assertApproxEqAbs(claimed, expClaimed, tol, "Claimed should be Common+Epic value share");
+        assertApproxEqAbs(balAfter - balBefore, expClaimed, tol, "Balance increase should match claimed");
 
-        // CARD_RARE yield (80 USDC) should still be pending
+        // CARD_RARE yield (its value share) should still be pending
         uint256 remaining = vault.pendingYield(alice);
-        assertApproxEqAbs(remaining, 80e6, 2, "Remaining pending should be ~80 USDC (Rare only)");
+        assertApproxEqAbs(remaining, expRemaining, tol, "Remaining pending should be Rare value share");
     }
 
     /**
@@ -182,31 +191,41 @@ contract CardGroupedVaultPartialClaimTest is Test {
         }
         vm.stopPrank();
 
-        // Distribute yield to each rarity
+        // Distribute yield citing each rarity. Global value-weighted routing spreads the full
+        // 545 USDC across the whole pool by value, regardless of the cited tier.
         vm.startPrank(economyManager);
         for (uint256 i = 0; i < 5; i++) {
             vault.distributeYield(yieldAmounts[i], rarities[i]);
         }
         vm.stopPrank();
 
-        // Total pending: 5 + 10 + 30 + 100 + 400 = 545 USDC
-        uint256 totalPending = vault.pendingYield(alice);
-        assertApproxEqAbs(totalPending, 545e6, 5, "Total pending should be ~545 USDC");
+        uint256 totalValue; // 10 + 50 + 100 + 500 + 2000 = 2660e18
+        for (uint256 i = 0; i < 5; i++) {
+            totalValue += prices[i];
+        }
+        uint256 totalYield = 545e6;
+        uint256 tol = 5 * (totalValue / 1e18) + 20; // 5 distributions of flooring dust
 
-        // Claim only Epic (index 3) and Legendary (index 4)
+        // Total pending conserves to ~545 USDC.
+        uint256 totalPending = vault.pendingYield(alice);
+        assertApproxEqAbs(totalPending, totalYield, tol, "Total pending should be ~545 USDC");
+
+        // Claim only Epic (index 3) and Legendary (index 4) — each card earns its value share.
         bytes32[] memory claimCards = new bytes32[](2);
         claimCards[0] = CARD_EPIC;
         claimCards[1] = CARD_LEGENDARY;
 
+        uint256 claimedValue = prices[3] + prices[4]; // 2500e18
+        uint256 expClaimed = (totalYield * claimedValue) / totalValue; // ~512.22 USDC
+
         vm.prank(alice);
         uint256 claimed = vault.claimYieldForCards(alice, claimCards);
+        assertApproxEqAbs(claimed, expClaimed, tol, "Should claim Epic+Legendary value share");
 
-        // Claimed = Epic (100) + Legendary (400) = 500
-        assertApproxEqAbs(claimed, 500e6, 2, "Should claim ~500 USDC (Epic + Legendary)");
-
-        // Remaining = Common (5) + Uncommon (10) + Rare (30) = 45 USDC
+        // Remaining = Common + Uncommon + Rare value share.
+        uint256 expRemaining = (totalYield * (prices[0] + prices[1] + prices[2])) / totalValue; // ~32.78
         uint256 remaining = vault.pendingYield(alice);
-        assertApproxEqAbs(remaining, 45e6, 3, "Remaining should be ~45 USDC");
+        assertApproxEqAbs(remaining, expRemaining, tol, "Remaining should be low-tier value share");
     }
 
     /**
@@ -990,7 +1009,7 @@ contract QueuedYieldProcessingTest is Test {
      *         When NFTs are deposited into some rarities, only those rarities' queues
      *         are flushed; the others remain queued.
      */
-    function test_queuedYield_multipleRarities_partialFlush() public {
+    function test_queuedYield_multipleRarities_flushOnAnyDeposit() public {
         uint256 revenueCommon = 1000e6;
         uint256 revenueUncommon = 2000e6;
         uint256 revenueRare = 3000e6;
@@ -999,7 +1018,7 @@ contract QueuedYieldProcessingTest is Test {
         uint256 queuedUncommon = (revenueUncommon * DEPOSITOR_SHARE_BPS) / 10_000;
         uint256 queuedRare = (revenueRare * DEPOSITOR_SHARE_BPS) / 10_000;
 
-        // Queue yield for 3 rarities (all pools empty)
+        // Queue yield for 3 rarities (whole pool empty, so distribution reverts and queues).
         _spinRevenue(revenueCommon, COMMON);
         _spinRevenue(revenueUncommon, UNCOMMON);
         _spinRevenue(revenueRare, RARE);
@@ -1008,29 +1027,33 @@ contract QueuedYieldProcessingTest is Test {
         assertEq(economy.queuedYieldByRarity(UNCOMMON), queuedUncommon, "Uncommon queued");
         assertEq(economy.queuedYieldByRarity(RARE), queuedRare, "Rare queued");
 
-        // Deposit into only Common and Rare pools
+        // Deposit into only Common and Rare pools.
         vm.startPrank(vaultTreasury);
         vault.registerCardDeposit(CARD_COMMON, alice, 10e18, COMMON, 1);
         vault.registerCardDeposit(CARD_RARE, bob, 100e18, RARE, 1);
         vm.stopPrank();
 
-        // Mint extra usdc to economy so flush can transfer
+        // Mint extra usdc to economy so flush can transfer.
         vm.prank(economyOwner);
         usdc.mint(address(economy), queuedCommon + queuedUncommon + queuedRare + 10_000e6);
 
-        // Next spin revenue call for COMMON rarity — flush loop should clear Common and Rare
-        // (Uncommon pool is still empty, so its queue stays)
+        // Next spin revenue call. Under global value-weighted routing, distribution succeeds as
+        // soon as the pool holds value ANYWHERE, so the flush loop clears EVERY queued rarity —
+        // including Uncommon, whose own tier has no depositor: its queued yield flows globally to
+        // the pool (alice + bob) by value rather than staying stuck.
         uint256 spinRevenue = 500e6;
+        uint256 spinShare = (spinRevenue * DEPOSITOR_SHARE_BPS) / 10_000;
         _spinRevenue(spinRevenue, COMMON);
 
-        // Common queue should be flushed (now has depositor)
         assertEq(economy.queuedYieldByRarity(COMMON), 0, "Common queue should be flushed");
-
-        // Rare queue should be flushed (now has depositor)
         assertEq(economy.queuedYieldByRarity(RARE), 0, "Rare queue should be flushed");
+        assertEq(economy.queuedYieldByRarity(UNCOMMON), 0, "Uncommon queue also flushes under global routing");
 
-        // Uncommon queue should still be pending (no depositors)
-        assertEq(economy.queuedYieldByRarity(UNCOMMON), queuedUncommon, "Uncommon queue should remain");
+        // All queued yield + this spin's share is now distributed across the pool (alice + bob).
+        uint256 totalToPool = queuedCommon + queuedUncommon + queuedRare + spinShare;
+        uint256 poolPending = vault.pendingYield(alice) + vault.pendingYield(bob);
+        uint256 tol = 4 * ((10e18 + 100e18) / 1e18) + 10; // 4 distributions of flooring dust
+        assertApproxEqAbs(poolPending, totalToPool, tol, "all queued + new yield distributed to pool");
     }
 
     /**
@@ -1401,17 +1424,21 @@ contract CardGroupedVaultReDepositTest is Test {
         assertEq(vault.rarityTotalValue(EPIC), newPrice, "Epic value reflects new deposit");
         assertEq(vault.rarityTotalValue(COMMON), 0, "Common value unchanged");
 
-        // Step 4: distribute yield to Epic — alice must receive it all
+        // Step 4: distribute citing Epic — alice (sole depositor) receives it all
         vm.prank(economyMgr);
         vault.distributeYield(100e6, EPIC);
 
         assertApproxEqAbs(vault.pendingYield(alice), 100e6, 1, "alice should receive Epic yield after re-deposit");
 
-        // Step 5: distribute yield to Common — alice must NOT receive it
-        // (Common pool is empty, so distributeYield would revert with NoValueInPool)
+        // Step 5: distribute citing Common. Under global value-weighted routing the cited rarity
+        // is analytics only, so the yield flows to the whole pool by value. It does NOT revert
+        // (the pool is globally non-empty via alice's Epic card); alice receives the 50, taking
+        // her pending from 100 to 150.
         vm.prank(economyMgr);
-        vm.expectRevert(CardGroupedVault.NoValueInPool.selector);
         vault.distributeYield(50e6, COMMON);
+        assertApproxEqAbs(
+            vault.pendingYield(alice), 150e6, 2, "alice receives globally-routed yield regardless of cited rarity"
+        );
     }
 
     /**

@@ -20,6 +20,16 @@ interface IGachaTreasuryYieldTracker {
  * @title CardGroupedVault
  * @notice Card-grouped yield vault with per-rarity accumulators and O(1) price updates.
  *
+ * ## Yield routing
+ *
+ *   Distribution is GLOBAL value-weighted: {distributeYield} credits every card in proportion to
+ *   its own value share of the WHOLE pool, independent of which rarity the spin hit (the `rarity`
+ *   argument is analytics only). This keeps expected depositor P&L value-neutral across tiers — a
+ *   card of value V draws with probability 1/N and thus risks V/N per spin, exactly the V/totalValue
+ *   share of the fee it earns. The per-rarity accumulators below remain the accounting substrate
+ *   (each is bumped by the same per-USD increment); only the increment's denominator is the whole
+ *   pool's value rather than a single tier's.
+ *
  * ## Data Model
  *
  *   RarityPool[]              — N per-rarity accumulators (numRarities set at init)
@@ -371,6 +381,22 @@ contract CardGroupedVault is
     // ─── Yield distribution ─────────────────────────────────────────────
 
     /// @inheritdoc ICardGroupedVault
+    /// @dev Global value-weighted distribution. The `rarity` argument identifies the tier the
+    ///      spin hit (retained for analytics and the emitted event) but does NOT scope the
+    ///      payout: every card in the pool accrues yield in proportion to its own value share of
+    ///      the WHOLE pool, regardless of which tier was drawn.
+    ///
+    ///      Rationale: a card of value V draws with probability 1/N, so it risks V/N of value per
+    ///      spin. Paying it the V/totalValue share of the fee credits exactly V/N in expectation,
+    ///      making expected depositor P&L value-neutral across tiers. The prior per-hit-rarity
+    ///      routing instead paid every card ~fee/N regardless of value, leaving above-mean cards
+    ///      (Epic/Legendary) structurally underwater. Since draws are uniform-over-pool, the hit
+    ///      tier carries no merit signal that would justify concentrating yield there.
+    ///
+    ///      Implemented by bumping every non-empty pool's accumulator by the SAME per-USD amount
+    ///      (amount/totalValue). A card's pending formula is unchanged, so the correction and
+    ///      rarity-migration machinery all keep working; only the increment's denominator changed
+    ///      from one pool's value to the whole pool's value.
     function distributeYield(uint256 amount, uint8 rarity)
         external
         override
@@ -381,16 +407,28 @@ contract CardGroupedVault is
         if (amount == 0) revert ZeroAmount();
         if (rarity >= numRarities) revert InvalidRarity();
 
-        RarityPool storage pool = rarityPools[rarity];
-        if (pool.totalValueUSD == 0) revert NoValueInPool();
+        uint8 n = numRarities;
+        uint256 totalValueUSD;
+        for (uint8 i; i < n; ++i) {
+            totalValueUSD += rarityPools[i].totalValueUSD;
+        }
+        if (totalValueUSD == 0) revert NoValueInPool();
 
-        // increment = amount × PRECISION / totalValueUSD
-        uint256 increment = FixedPointMathLib.mulDiv(amount, PRECISION, pool.totalValueUSD);
+        // increment = amount × PRECISION / totalValueUSD  (shared across all pools)
+        uint256 increment = FixedPointMathLib.mulDiv(amount, PRECISION, totalValueUSD);
         if (increment == 0) revert YieldTooSmall();
 
         address(asset).safeTransferFrom(msg.sender, address(this), amount);
 
-        pool.accYieldPerUSD += increment;
+        // Apply the same per-USD increment to every pool that holds value. Empty pools are
+        // skipped (they hold no cards; a future deposit snapshots baseAcc at deposit time, so
+        // skipping them changes nothing). Yield credited sums to `increment × totalValueUSD`,
+        // i.e. `amount` less the usual flooring dust, matching the previous single-pool behaviour.
+        for (uint8 i; i < n; ++i) {
+            if (rarityPools[i].totalValueUSD > 0) {
+                rarityPools[i].accYieldPerUSD += increment;
+            }
+        }
         totalYieldDistributed += amount;
 
         emit YieldDistributed(msg.sender, amount, rarity);

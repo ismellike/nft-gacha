@@ -88,7 +88,7 @@ forge create <contract> --rpc-url <url> --private-key <key>
 **CardGroupedVault Contract** (`src/economy/CardGroupedVault.sol`)
 - Card-grouped yield vault using correction accumulator pattern for O(1) price updates
 - Tracks deposits at the card level (all tokens of the same card share one CardNode)
-- Per-rarity yield distribution: spin revenue routes to the rarity tier that generated it
+- Global value-weighted yield distribution: each spin's depositor cut is spread across the whole pool by appraisal value (the hit rarity is analytics only), keeping expected depositor P&L value-neutral across tiers
 - Correction accumulator enables O(1) price updates without iterating depositors
 - Rarity migration settles old-tier yield and moves card to new pool atomically
 - Backward-compatible view functions (`sharesOf`, `pendingYield`, `totalShares`, `claimYield`, `asset`)
@@ -139,7 +139,7 @@ DepositorPosition[cardId][depositor]  ← per depositor per card
 - `removeCardDeposit(cardId, depositor, count)`: Removes deposit, auto-claims if count reaches 0
 - `updateCardPrice(cardId, newPriceUSD)`: O(1) price update via correction accumulator
 - `migrateCardRarity(cardId, newRarity, newPriceUSD)`: O(1) rarity migration with yield settlement
-- `distributeYield(amount, rarity)`: O(1) yield distribution to a specific rarity pool
+- `distributeYield(amount, rarity)`: yield distribution spread globally across the pool by value (O(numRarities); the `rarity` arg is analytics only)
 - `claimYield(account)`: Iterates depositor's card list, claims accumulated yield
 
 **Correction Accumulator (O(1) price updates):**
@@ -159,13 +159,13 @@ baseAcc = accYieldPerUSD[newR]; correctionPerUnit = 0
 ### Rewards Integration
 
 Multi-tier rewards system integrated with the CardGroupedVault:
-1. **Rarity-level rewards**: Spin revenue routes to the rarity tier that generated it via `distributeYield(amount, rarity)`
+1. **Pool-level rewards**: Spin revenue is spread globally across all deposited cards by appraisal value via `distributeYield(amount, rarity)` (the hit rarity is analytics only)
 2. **Card-level rewards**: Value-weighted rewards based on card appraisal within each rarity pool
 3. **Depositor-level rewards**: Individual rewards calculated as `depositValue / totalRarityValue × rarityRewards`
 
 **GachaEconomyManager** handles intelligent fee distribution from spin operations:
 - Splits spin revenue between depositors (95%) and protocol (5%)
-- Routes depositor yield to the specific rarity pool via `distributeYield(amount, rarity)`
+- Routes depositor yield to the vault via `distributeYield(amount, rarity)`, which spreads it globally across the pool by value
 - Queues depositor yield when the rarity pool has no deposits (totalValueUSD == 0)
 - Processes queued yield automatically when deposits arrive
 - Only auto-claims protocol yield when protocol has meaningful shares

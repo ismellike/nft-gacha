@@ -883,7 +883,7 @@ contract CardGroupedVaultFuzz is Test {
     /**
      * @notice Fuzz: Yield routed to correct rarity — cross-rarity isolation.
      */
-    function testFuzz_RarityIsolation(
+    function testFuzz_GlobalValueWeighting(
         uint256 priceCommon,
         uint256 priceRare,
         uint256 yieldCommon,
@@ -896,23 +896,35 @@ contract CardGroupedVaultFuzz is Test {
         countCommon = bound(countCommon, MIN_COUNT, MAX_COUNT);
         countRare = bound(countRare, MIN_COUNT, MAX_COUNT);
 
-        uint256 safeCommon = _safeMinYield(countCommon * priceCommon);
-        uint256 safeRare = _safeMinYield(countRare * priceRare);
-        yieldCommon = bound(yieldCommon, safeCommon > 1e4 ? safeCommon : 1e4, MAX_YIELD / 2);
-        yieldRare = bound(yieldRare, safeRare > 1e4 ? safeRare : 1e4, MAX_YIELD / 2);
+        uint256 valCommon = countCommon * priceCommon;
+        uint256 valRare = countRare * priceRare;
+        uint256 totalVal = valCommon + valRare;
+
+        // Distribution now uses the WHOLE pool as denominator, so yields must clear the global floor.
+        uint256 safe = _safeMinYield(totalVal);
+        yieldCommon = bound(yieldCommon, safe > 1e4 ? safe : 1e4, MAX_YIELD / 2);
+        yieldRare = bound(yieldRare, safe > 1e4 ? safe : 1e4, MAX_YIELD / 2);
 
         _deposit(CARD_A, alice, priceCommon, COMMON, countCommon);
         _deposit(CARD_B, bob, priceRare, RARE, countRare);
 
+        // Global value-weighted routing: the cited rarity is analytics only. Each depositor earns
+        // their value fraction of the TOTAL distributed, so alice=valCommon/totalVal and
+        // bob=valRare/totalVal of (yieldCommon + yieldRare) — regardless of which tier was cited.
         _distribute(yieldCommon, COMMON);
-        uint256 tolC = _tolerance(countCommon, priceCommon, 1);
-        assertApproxEqAbs(vault.pendingYield(alice), yieldCommon, tolC, "isolation: alice should get common yield");
-        assertEq(vault.pendingYield(bob), 0, "isolation: bob should not get common yield");
-
         _distribute(yieldRare, RARE);
-        uint256 tolR = _tolerance(countRare, priceRare, 1);
-        assertApproxEqAbs(vault.pendingYield(bob), yieldRare, tolR, "isolation: bob should get rare yield");
-        assertApproxEqAbs(vault.pendingYield(alice), yieldCommon, tolC, "isolation: alice unchanged by rare yield");
+
+        uint256 totalYield = yieldCommon + yieldRare;
+        uint256 expAlice = Math.mulDiv(totalYield, valCommon, totalVal);
+        uint256 expBob = Math.mulDiv(totalYield, valRare, totalVal);
+        // Dust bound: 2 distributions, each up to ~totalVal/PRECISION of accumulator flooring.
+        uint256 tol = 2 * (totalVal / PRECISION) + 4;
+
+        assertApproxEqAbs(vault.pendingYield(alice), expAlice, tol, "alice = value share of total yield");
+        assertApproxEqAbs(vault.pendingYield(bob), expBob, tol, "bob = value share of total yield");
+        assertApproxEqAbs(
+            vault.pendingYield(alice) + vault.pendingYield(bob), totalYield, tol, "yield is conserved across pool"
+        );
     }
 
     /**
@@ -931,10 +943,11 @@ contract CardGroupedVaultFuzz is Test {
         countA = bound(countA, MIN_COUNT, MAX_COUNT);
         countB = bound(countB, MIN_COUNT, MAX_COUNT);
 
-        uint256 safeA = _safeMinYield(countA * priceA);
-        uint256 safeB = _safeMinYield(countB * priceB);
-        yieldA = bound(yieldA, safeA > 1e4 ? safeA : 1e4, MAX_YIELD / 2);
-        yieldB = bound(yieldB, safeB > 1e4 ? safeB : 1e4, MAX_YIELD / 2);
+        uint256 totalVal = countA * priceA + countB * priceB;
+        // Global denominator: yields must clear the whole-pool floor.
+        uint256 safe = _safeMinYield(totalVal);
+        yieldA = bound(yieldA, safe > 1e4 ? safe : 1e4, MAX_YIELD / 2);
+        yieldB = bound(yieldB, safe > 1e4 ? safe : 1e4, MAX_YIELD / 2);
 
         _deposit(CARD_A, alice, priceA, COMMON, countA);
         _deposit(CARD_B, alice, priceB, RARE, countB);
@@ -942,8 +955,10 @@ contract CardGroupedVaultFuzz is Test {
         _distribute(yieldA, COMMON);
         _distribute(yieldB, RARE);
 
+        // Alice is the sole depositor, so global-by-value routing still credits her ~all of both
+        // distributions. Dust scales with the whole pool value (2 distributions).
         uint256 pending = vault.pendingYield(alice);
-        uint256 tol = _tolerance(countA > countB ? countA : countB, priceA > priceB ? priceA : priceB, 1) * 2;
+        uint256 tol = 2 * (totalVal / PRECISION) + 4;
         assertApproxEqAbs(pending, yieldA + yieldB, tol, "multi-card: aggregated pending wrong");
 
         uint256 claimed = _claim(alice);
@@ -966,10 +981,13 @@ contract CardGroupedVaultFuzz is Test {
         countA = bound(countA, MIN_COUNT, MAX_COUNT);
         countB = bound(countB, MIN_COUNT, MAX_COUNT);
 
-        uint256 safeA = _safeMinYield(countA * priceA);
-        uint256 safeB = _safeMinYield(countB * priceB);
-        yieldA = bound(yieldA, safeA > 1e4 ? safeA : 1e4, MAX_YIELD / 2);
-        yieldB = bound(yieldB, safeB > 1e4 ? safeB : 1e4, MAX_YIELD / 2);
+        uint256 valA = countA * priceA;
+        uint256 valB = countB * priceB;
+        uint256 totalVal = valA + valB;
+        // Global denominator: yields must clear the whole-pool floor.
+        uint256 safe = _safeMinYield(totalVal);
+        yieldA = bound(yieldA, safe > 1e4 ? safe : 1e4, MAX_YIELD / 2);
+        yieldB = bound(yieldB, safe > 1e4 ? safe : 1e4, MAX_YIELD / 2);
 
         _deposit(CARD_A, alice, priceA, COMMON, countA);
         _deposit(CARD_B, alice, priceB, RARE, countB);
@@ -977,20 +995,35 @@ contract CardGroupedVaultFuzz is Test {
         _distribute(yieldA, COMMON);
         _distribute(yieldB, RARE);
 
+        // Global-by-value routing: each card earns its value share of BOTH distributions, not just
+        // the one that cited its tier. So CARD_A gets valA/totalVal of (yieldA+yieldB), and CARD_B's
+        // valB/totalVal share stays pending after the partial claim.
+        uint256 totalYield = yieldA + yieldB;
+        uint256 expA = Math.mulDiv(totalYield, valA, totalVal);
+        uint256 expB = Math.mulDiv(totalYield, valB, totalVal);
+        uint256 tol = 2 * (totalVal / PRECISION) + 4;
+
         bytes32[] memory toClaimA = new bytes32[](1);
         toClaimA[0] = CARD_A;
 
         uint256 balBefore = usdc.balanceOf(alice);
         vm.prank(alice);
-        vault.claimYieldForCards(alice, toClaimA);
-        uint256 balAfter = usdc.balanceOf(alice);
+        // When CARD_A's value is a tiny fraction of the pool its share can round to zero, in which
+        // case a single-card claim correctly reverts NothingToClaim — handle both outcomes.
+        try vault.claimYieldForCards(alice, toClaimA) returns (uint256 amt) {
+            assertApproxEqAbs(amt, expA, tol, "partial claim: CARD_A value share");
+            assertApproxEqAbs(balAfterMinusBefore(balBefore), expA, tol, "partial claim: CARD_A balance delta");
+            assertApproxEqAbs(vault.pendingYield(alice), expB, tol, "partial claim: CARD_B value share remains");
+        } catch {
+            assertLe(expA, tol, "claim only reverts when CARD_A share is within dust of zero");
+            // Nothing was claimed, so the full amount is still pending.
+            assertApproxEqAbs(vault.pendingYield(alice), totalYield, tol, "partial claim: all yield still pending");
+        }
+    }
 
-        uint256 claimedA = balAfter - balBefore;
-        uint256 tolA = _tolerance(countA, priceA, 1);
-        assertApproxEqAbs(claimedA, yieldA, tolA, "partial claim: CARD_A wrong amount");
-
-        uint256 tolB = _tolerance(countB, priceB, 1);
-        assertApproxEqAbs(vault.pendingYield(alice), yieldB, tolB, "partial claim: CARD_B yield missing");
+    /// @dev Helper: current alice balance minus a prior snapshot (keeps the try-branch readable).
+    function balAfterMinusBefore(uint256 balBefore) internal view returns (uint256) {
+        return usdc.balanceOf(alice) - balBefore;
     }
 
     // ========================================================================
