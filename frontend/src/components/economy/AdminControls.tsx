@@ -62,7 +62,7 @@ const adminSections: AdminSection[] = [
 	{
 		id: "rates",
 		title: "Rarity Rates",
-		description: "Configure reference distribution targets (not live odds)",
+		description: "View live draw odds (current pool composition)",
 		icon: "dice",
 	},
 	{

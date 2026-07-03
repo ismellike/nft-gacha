@@ -360,15 +360,6 @@ contract DeployMainnet is Script {
         Gacha(d.gachaProxy).setGachaServiceHandler(d.gachaServiceHandler);
         Gacha(d.gachaProxy).setEconomyManager(d.economyManagerProxy);
 
-        // Configure default rarity weights
-        uint256[] memory defaultTargets = new uint256[](5);
-        defaultTargets[0] = 7000;
-        defaultTargets[1] = 2000;
-        defaultTargets[2] = 600;
-        defaultTargets[3] = 300;
-        defaultTargets[4] = 100;
-        Gacha(d.gachaProxy).setDynamicWeightsConfig(defaultTargets);
-
         console.log("Economy wiring complete.");
     }
 

@@ -305,16 +305,5 @@ contract TimeoutMechanism is Test {
             treasury.depositNFT(address(nftCollection), tokenId);
         }
         vm.stopPrank();
-
-        // Set weights to 100% Common for simplicity
-        vm.startPrank(owner);
-        uint256[] memory targetWeights = new uint256[](5);
-        targetWeights[0] = 10_000;
-        targetWeights[1] = 0;
-        targetWeights[2] = 0;
-        targetWeights[3] = 0;
-        targetWeights[4] = 0;
-        gacha.setDynamicWeightsConfig(targetWeights); // 100% Common, others 0
-        vm.stopPrank();
     }
 }

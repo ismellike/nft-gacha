@@ -1,106 +1,62 @@
 "use client";
 
-import { CheckIcon } from "@heroicons/react/24/outline";
-import { useEffect, useState } from "react";
-import { useReadContract, useWriteContract } from "wagmi";
+import { useReadContract } from "wagmi";
 import type { GachaConfig } from "@/lib/gacha-config";
 import { DEFAULT_RARITY_CONFIG } from "@/lib/rarityConfig";
 import { formatPercentage } from "@/lib/utils";
-import { Button, Card, Chip, Input } from "../../../ui";
+import { Card, Chip } from "../../../ui";
 
 export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
-	const [weights, setWeights] = useState([7000, 2000, 600, 300, 100]);
-
+	// Live odds from the gacha contract: draws are uniform-over-pool, so
+	// `getCurrentRarityWeights()` returns the honest, real-time probability of
+	// drawing each rarity tier (counts[i]/total), verifiable on-chain. There is
+	// no separate "reference"/target configuration anymore - this is read-only.
 	const { data: currentWeights } = useReadContract({
 		address: gacha.address as `0x${string}`,
 		abi: [
 			{
 				type: "function",
-				name: "getTargetRarityBps",
+				name: "getCurrentRarityWeights",
 				stateMutability: "view",
 				inputs: [],
-				outputs: [{ name: "targetBps", type: "uint256[]" }],
+				outputs: [{ name: "weights", type: "uint256[]" }],
 			},
 		],
-		functionName: "getTargetRarityBps",
+		functionName: "getCurrentRarityWeights",
 	});
-	const targetWeights = currentWeights as unknown as
-		| readonly bigint[]
-		| undefined;
+	const weights = currentWeights as unknown as readonly bigint[] | undefined;
 
-	const {
-		writeContract: setRarityWeights,
-		isPending,
-		isError,
-		error: writeError,
-	} = useWriteContract();
-
-	useEffect(() => {
-		if (targetWeights) {
-			setWeights(targetWeights.map((w: bigint) => Number(w)));
-		}
-	}, [targetWeights]);
-
-	const handleWeightChange = (index: number, value: string) => {
-		const newWeights = [...weights];
-		newWeights[index] = parseInt(value, 10) || 0;
-		setWeights(newWeights);
-	};
-
-	const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-	const isValidTotal = totalWeight === 10000;
-
-	const handleSave = () => {
-		if (!isValidTotal) return;
-
-		setRarityWeights({
-			address: gacha.address as `0x${string}`,
-			abi: [
-				{
-					type: "function",
-					name: "setDynamicWeightsConfig",
-					stateMutability: "nonpayable",
-					inputs: [{ name: "targetBps", type: "uint256[]" }],
-					outputs: [],
-				},
-			],
-			functionName: "setDynamicWeightsConfig",
-			args: [weights.map((w: number) => BigInt(w))],
-		});
-	};
+	const totalWeight = (weights ?? []).reduce(
+		(sum, w) => sum + Number(w),
+		0,
+	);
 
 	return (
 		<Card className="p-4 sm:p-8 bg-content1/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
 			<div className="flex items-center justify-between mb-8">
 				<div>
 					<h2 className="text-2xl font-bold text-foreground mb-2">
-						Rarity Drop Rates{" "}
+						Live Draw Odds{" "}
 						<span className="text-sm font-normal text-foreground/50">
-							(reference only)
+							(current pool composition)
 						</span>
 					</h2>
 					<p className="text-foreground/70">
-						Configure the designed/reference distribution for each rarity tier.
-						Total must equal 10,000.
-					</p>
-					<p className="mt-2 text-xs text-warning">
-						Draws are uniform-over-pool: real player odds always equal the live
-						pool composition (see Rarity Breakdown), not these values. This
-						reference distribution only guides restocking and does not affect
-						draw probabilities or pricing.
+						Draws are uniform-over-pool: player odds always equal the live pool
+						composition below, read directly from the contract. There is no
+						separate configurable target distribution.
 					</p>
 				</div>
-				<Chip
-					className={`px-3 py-1.5 rounded-xl backdrop-blur-xl ${isValidTotal ? "bg-success/20 border border-success/30 text-success" : "bg-danger/20 border border-danger/30 text-danger"}`}
-				>
+				<Chip className="px-3 py-1.5 rounded-xl backdrop-blur-xl bg-success/20 border border-success/30 text-success">
 					Total: {totalWeight.toLocaleString()}/10,000
 				</Chip>
 			</div>
 
-			<div className="grid gap-6 mb-8 lg:grid-cols-2">
-				{weights.map((weight, index) => {
+			<div className="grid gap-6 lg:grid-cols-2">
+				{(weights ?? []).map((weight, index) => {
 					const rarity = DEFAULT_RARITY_CONFIG[index];
-					const percentage = formatPercentage(weight / 100, 2, true);
+					if (!rarity) return null;
+					const percentage = formatPercentage(Number(weight) / 100, 2, true);
 
 					return (
 						<div key={rarity.name} className="space-y-3">
@@ -112,55 +68,14 @@ export function RarityRatesSection({ gacha }: { gacha: GachaConfig }) {
 											{rarity.name}
 										</div>
 										<div className="text-sm text-foreground/60">
-											{percentage} reference target
+											{percentage} live odds
 										</div>
 									</div>
 								</div>
 							</div>
-
-							<Input
-								type="number"
-								value={weight}
-								onChange={(e) => handleWeightChange(index, e.target.value)}
-								placeholder="Weight (0-10000)"
-								min="0"
-								max="10000"
-								rightIcon={
-									<span className="text-sm text-foreground/60">/ 10,000</span>
-								}
-							/>
 						</div>
 					);
 				})}
-			</div>
-
-			{isError && (
-				<div className="mb-4 bg-danger/10 border border-danger/20 rounded-xl p-4 text-danger text-sm">
-					Transaction failed: {writeError?.message?.slice(0, 200)}
-				</div>
-			)}
-
-			<div className="flex justify-end gap-4">
-				<Button
-					color="glass"
-					isDisabled={isPending}
-					onPress={() =>
-						currentWeights &&
-						setWeights(currentWeights.map((w: bigint) => Number(w)))
-					}
-				>
-					Reset to Current
-				</Button>
-				<Button
-					color="glassPrimary"
-					onPress={handleSave}
-					isDisabled={!isValidTotal}
-					isLoading={isPending}
-				>
-					<span className="inline-flex items-center gap-2">
-						<CheckIcon className="w-4 h-4" /> Save Changes
-					</span>
-				</Button>
 			</div>
 		</Card>
 	);

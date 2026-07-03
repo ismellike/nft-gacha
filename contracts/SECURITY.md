@@ -289,9 +289,9 @@ No partial payments or fee residuals remain in the Gacha contract after fulfillm
 
 #### I-G-7: Rarity Weights Always Sum to TOTAL_WEIGHT
 
-`_getCurrentRarityWeights` ensures the returned weights sum to `TOTAL_WEIGHT` (10,000) via the
-remainder assignment loop. `setDynamicWeightsConfig` enforces `targetRarityBps` sums to
-`TOTAL_WEIGHT` at write time.
+`getCurrentRarityWeights` (the live pool-composition odds) ensures the returned weights sum to
+`TOTAL_WEIGHT` (10,000) via the remainder-to-largest-tier assignment. There is no configurable
+rarity-weight setter — odds are derived purely from current inventory.
 
 #### I-G-8: Pause Is Asymmetric by Design
 
@@ -441,7 +441,6 @@ EOAs or non-whitelisted contracts require manual `migrateNFTRarity` calls.
 | `fulfillRandomness(triggerId, randomness)` | SvcHandler(G) only | `spinRequests.statusFlags`, counters, forwards fee, calls Treasury | Yes |
 | `reclaimFailedSpin(triggerId)` | SpinReq only (always callable, no pause) | `spinRequests.statusFlags`, counters, refunds feeToken | Yes |
 | `setPricingConfig(premiumBps,minFee,maxFee)` | Owner | `pricingPremiumBps`, `minSpinFee`, `maxSpinFee` | No |
-| `setDynamicWeightsConfig(targetBps)` | Owner | `targetRarityBps[5]` | No |
 | `setGachaServiceHandler(handler)` | Owner | `gachaServiceHandler` | No |
 | `setEconomyManager(manager)` | Owner | `economyManager` | No |
 | `setFeeTokenDecimals(decimals)` | Owner | `feeTokenDecimals`, `feeTokenScalar` | No |
@@ -626,7 +625,6 @@ Custom Gacha state (starting ~slot 103):
   pricingPremiumBps     (uint256)
   minSpinFee            (uint256)
   maxSpinFee            (uint256)
-  targetRarityBps       (uint256[5]) — 5 slots
   __gap                 (uint256[44]) — 44 reserved slots
 ```
 

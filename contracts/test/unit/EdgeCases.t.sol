@@ -673,8 +673,7 @@ contract GachaRarityWeightRoundingTest is Test {
     /**
      * @notice One NFT at each of the 5 rarities → equal counts. Under uniform-over-pool selection
      *         the draw odds ARE the pool composition, so each tier gets an equal 1/5 share
-     *         (2000 bps), NOT the configured targetRarityBps [7000, 2000, 600, 300, 100].
-     *         10000/5 = 2000 exactly, so there is no rounding remainder.
+     *         (2000 bps). 10000/5 = 2000 exactly, so there is no rounding remainder.
      */
     function test_rarityWeights_oneNFTPerRarity_uniformComposition() public {
         uint256[5] memory prices = [uint256(10e18), 50e18, 100e18, 500e18, 2000e18];
@@ -721,42 +720,6 @@ contract GachaRarityWeightRoundingTest is Test {
         // Rare weight should be boosted (fewer NFTs → higher weight in _getCurrentRarityWeights)
         assertGt(weights[2], 0, "Rare should have non-zero weight");
         assertGt(weights[0], 0, "Common should have non-zero weight");
-    }
-
-    /**
-     * @notice Since the switch to uniform-over-pool selection, targetRarityBps is display-only and
-     *         does NOT affect draw odds. Setting a tier's target to 0 while it still holds
-     *         inventory must NOT zero out its draw weight — the odds remain the live pool
-     *         composition. With one NFT per rarity that is an equal 2000 bps per tier.
-     */
-    function test_rarityWeights_targetBpsDoesNotAffectDrawWeights() public {
-        // Deposit one NFT per rarity (equal counts)
-        uint256[5] memory prices = [uint256(10e18), 50e18, 100e18, 500e18, 2000e18];
-        for (uint256 i = 0; i < 5; i++) {
-            _depositNFT(prices[i]);
-        }
-
-        // Set Common (index 0) reference target to 0. This is now display-only metadata.
-        uint256[] memory newWeights = new uint256[](5);
-        newWeights[0] = 0;
-        newWeights[1] = 8000;
-        newWeights[2] = 1400;
-        newWeights[3] = 500;
-        newWeights[4] = 100;
-        // Sum = 0+8000+1400+500+100 = 10000 ✓ (required by setDynamicWeightsConfig)
-
-        vm.prank(gachaOwner);
-        gacha.setDynamicWeightsConfig(newWeights);
-
-        // Draw odds ignore targetRarityBps entirely: Common still gets its inventory share.
-        uint256[] memory weights = gacha.getCurrentRarityWeights();
-        assertEq(weights[0], 2000, "target 0 must NOT zero out draw weight under uniform-over-pool");
-
-        uint256 sum;
-        for (uint256 i = 0; i < 5; i++) {
-            sum += weights[i];
-        }
-        assertEq(sum, TOTAL_WEIGHT, "Composition weights must still sum to 10000");
     }
 
     /**
@@ -829,17 +792,9 @@ contract GachaRarityWeightRoundingTest is Test {
     }
 
     /**
-     * @notice Rarity selection respects weights: a rarity with weight 0 is never selected.
-     *         We set targetBps so only Common (rarity 0) and Rare (rarity 2) are eligible.
-     *         Deposit 3 Common and 0 Rare NFTs so that:
-     *           - Common has weight > 0 and has NFTs
-     *           - Rare has weight > 0 but has NO NFTs → spin() reverts with NoNFTsAvailable
-     *         This confirms that zero-target rarities are excluded but non-zero rarities
-     *         without inventory cause the spin to fail (expected contract behavior).
-     *
-     *         To test that zero-weight rarities are SKIPPED in selection:
-     *         deposit 5 Common NFTs and 1 Rare NFT with target weights [9000, 0, 1000, 0, 0].
-     *         Run 5 spins and verify only Common and Rare win (never Uncommon/Epic/Legendary).
+     * @notice Uniform-over-pool selection never picks an empty tier: only tiers that hold inventory
+     *         can be drawn. Deposit 5 Common + 1 Rare (Uncommon/Epic/Legendary empty); their live
+     *         composition weight is 0 and they never win across many spins.
      */
     function test_rarityWeights_selectRarity_respectsZeroWeight() public {
         // Deposit 5 Common NFTs and 1 Rare NFT
@@ -849,23 +804,11 @@ contract GachaRarityWeightRoundingTest is Test {
         }
         _depositNFT(100e18); // Rare
 
-        // Set target weights: only Common and Rare are eligible
-        // Uncommon (1), Epic (3), Legendary (4) get weight 0
-        uint256[] memory targetWeights = new uint256[](5);
-        targetWeights[0] = 9000; // Common
-        targetWeights[1] = 0; // Uncommon (zero target)
-        targetWeights[2] = 1000; // Rare
-        targetWeights[3] = 0; // Epic (zero target)
-        targetWeights[4] = 0; // Legendary (zero target)
-
-        vm.prank(gachaOwner);
-        gacha.setDynamicWeightsConfig(targetWeights);
-
-        // Verify zero-weight rarities produce zero computed weight
+        // Empty tiers have zero composition weight; stocked tiers are non-zero.
         uint256[] memory computed = gacha.getCurrentRarityWeights();
-        assertEq(computed[1], 0, "Uncommon with target 0 should compute to zero weight");
-        assertEq(computed[3], 0, "Epic with target 0 should compute to zero weight");
-        assertEq(computed[4], 0, "Legendary with target 0 should compute to zero weight");
+        assertEq(computed[1], 0, "empty Uncommon tier has zero draw weight");
+        assertEq(computed[3], 0, "empty Epic tier has zero draw weight");
+        assertEq(computed[4], 0, "empty Legendary tier has zero draw weight");
         assertGt(computed[0], 0, "Common should have non-zero computed weight");
         assertGt(computed[2], 0, "Rare should have non-zero computed weight");
 
@@ -1304,24 +1247,12 @@ contract GachaRefundedSpinCounterTest is Test {
      *
      * Setup:
      *   - Only a Common NFT is deposited so the treasury is non-empty (spin allowed).
-     *   - Weights are set to 100% Common (10000 bps) so the spin validation passes.
-     *   - After the spin is created, the depositor withdraws the NFT, leaving Common empty.
+     *   - After the spin is created, the depositor withdraws the NFT, leaving the pool empty.
      *   - fulfillRandomness is called with randomness that selects Common (roll = 0).
      *   - The treasury has 0 Common NFTs → refund path is taken.
      *   - Neither userSpinCount[spinner] nor totalSpinCount must have increased.
      */
     function test_refundedSpin_doesNotInflateSpinCounters() public {
-        // Set all weight on Common so the spin validation passes when Common is non-empty
-        vm.startPrank(gachaOwner);
-        uint256[] memory weights = new uint256[](5);
-        weights[0] = 10_000; // 100% Common
-        weights[1] = 0;
-        weights[2] = 0;
-        weights[3] = 0;
-        weights[4] = 0;
-        gacha.setDynamicWeightsConfig(weights);
-        vm.stopPrank();
-
         // Deposit one Common NFT so spin validation passes
         vm.startPrank(treasuryOwner);
         treasury.addToWhitelist(address(nft));

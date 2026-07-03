@@ -355,15 +355,6 @@ contract DeployLocal is Script {
         Gacha(d.gachaProxy).setGachaServiceHandler(d.serviceHandler);
         Gacha(d.gachaProxy).setEconomyManager(d.economyManagerProxy);
 
-        // Configure system with default values
-        uint256[] memory defaultTargets = new uint256[](5);
-        defaultTargets[0] = 7000;
-        defaultTargets[1] = 2000;
-        defaultTargets[2] = 600;
-        defaultTargets[3] = 300;
-        defaultTargets[4] = 100;
-        Gacha(d.gachaProxy).setDynamicWeightsConfig(defaultTargets);
-
         // Price ranges are now set during initialization and immutable:
         // Common: $0-$15, Uncommon: $25-$60, Rare: $70-$250, Epic: $300-$1,200, Legendary: $1,500+
         console.log("Using immutable price ranges set during treasury initialization");

@@ -51,8 +51,8 @@ forge create <contract> --rpc-url <url> --private-key <key>
 - Uniform-over-pool selection: every NFT in the treasury is equally likely to be drawn
   (a tier is chosen with probability `counts[i]/totalCount`, then a uniform NFT within it).
   Draw odds ARE the live pool composition (`getCurrentRarityWeights()`), verifiable on-chain;
-  rarity is a descriptive label, not a probability input. `targetRarityBps`/`getTargetRarityBps()`
-  is display-only reference metadata and does NOT affect draws or pricing.
+  rarity is a descriptive label, not a probability input. There is no configurable rarity-weight
+  knob — odds are purely a function of current inventory.
 - Spin fee = pool-average expected value (`getExpectedValueUSD()`) × pricing premium
 - Manages spin fees and automatic refunds when the pool is empty at fulfillment
 - Comprehensive analytics tracking for spins, wins, and refunds

@@ -1736,15 +1736,6 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'getTargetRarityBps',
-    outputs: [
-      { name: 'targetBps', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [],
     name: 'getTotalValueLocked',
     outputs: [
       { name: 'totalValueUSD', internalType: 'uint256', type: 'uint256' },
@@ -1900,15 +1891,6 @@ export const gachaAbi = [
   {
     type: 'function',
     inputs: [
-      { name: 'targetBps', internalType: 'uint256[]', type: 'uint256[]' },
-    ],
-    name: 'setDynamicWeightsConfig',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
       { name: '_economyManager', internalType: 'address', type: 'address' },
     ],
     name: 'setEconomyManager',
@@ -1996,13 +1978,6 @@ export const gachaAbi = [
   },
   {
     type: 'function',
-    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    name: 'targetRarityBps',
-    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     inputs: [],
     name: 'totalReclaimCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
@@ -2078,19 +2053,6 @@ export const gachaAbi = [
     name: 'userSpinCount',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
-  },
-  {
-    type: 'event',
-    anonymous: false,
-    inputs: [
-      {
-        name: 'targetBps',
-        internalType: 'uint256[]',
-        type: 'uint256[]',
-        indexed: false,
-      },
-    ],
-    name: 'DynamicWeightsUpdated',
   },
   {
     type: 'event',
@@ -2470,7 +2432,6 @@ export const gachaAbi = [
   { type: 'error', inputs: [], name: 'InvalidSpinTimeout' },
   { type: 'error', inputs: [], name: 'InvalidTreasuryContract' },
   { type: 'error', inputs: [], name: 'InvalidTriggerId' },
-  { type: 'error', inputs: [], name: 'InvalidWeightsLength' },
   {
     type: 'error',
     inputs: [
@@ -2507,7 +2468,6 @@ export const gachaAbi = [
     name: 'UUPSUnsupportedProxiableUUID',
   },
   { type: 'error', inputs: [], name: 'UnauthorizedServiceHandler' },
-  { type: 'error', inputs: [], name: 'WeightsMustSumToTotal' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -8826,15 +8786,6 @@ export const useReadGachaGetSpinRequest = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getTargetRarityBps"`
- */
-export const useReadGachaGetTargetRarityBps =
-  /*#__PURE__*/ createUseReadContract({
-    abi: gachaAbi,
-    functionName: 'getTargetRarityBps',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"getTotalValueLocked"`
  */
 export const useReadGachaGetTotalValueLocked =
@@ -8974,14 +8925,6 @@ export const useReadGachaSpinTimeout = /*#__PURE__*/ createUseReadContract({
 })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"targetRarityBps"`
- */
-export const useReadGachaTargetRarityBps = /*#__PURE__*/ createUseReadContract({
-  abi: gachaAbi,
-  functionName: 'targetRarityBps',
-})
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"totalReclaimCount"`
  */
 export const useReadGachaTotalReclaimCount =
@@ -9100,15 +9043,6 @@ export const useWriteGachaRenounceOwnership =
   /*#__PURE__*/ createUseWriteContract({
     abi: gachaAbi,
     functionName: 'renounceOwnership',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setDynamicWeightsConfig"`
- */
-export const useWriteGachaSetDynamicWeightsConfig =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: gachaAbi,
-    functionName: 'setDynamicWeightsConfig',
   })
 
 /**
@@ -9249,15 +9183,6 @@ export const useSimulateGachaRenounceOwnership =
   })
 
 /**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setDynamicWeightsConfig"`
- */
-export const useSimulateGachaSetDynamicWeightsConfig =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: gachaAbi,
-    functionName: 'setDynamicWeightsConfig',
-  })
-
-/**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link gachaAbi}__ and `functionName` set to `"setEconomyManager"`
  */
 export const useSimulateGachaSetEconomyManager =
@@ -9343,15 +9268,6 @@ export const useSimulateGachaUpgradeToAndCall =
 export const useWatchGachaContract = /*#__PURE__*/ createUseWatchContractEvent({
   abi: gachaAbi,
 })
-
-/**
- * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"DynamicWeightsUpdated"`
- */
-export const useWatchGachaDynamicWeightsUpdated =
-  /*#__PURE__*/ createUseWatchContractEvent({
-    abi: gachaAbi,
-    eventName: 'DynamicWeightsUpdated',
-  })
 
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link gachaAbi}__ and `eventName` set to `"EconomyManagerUpdated"`

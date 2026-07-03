@@ -39,7 +39,6 @@ contract Gacha is
     error InvalidTriggerId();
     error AlreadyFulfilled();
     error InvalidRecipient();
-    error WeightsMustSumToTotal();
     error NoNFTsAvailable(uint8 rarity);
     error UnauthorizedServiceHandler();
     error InvalidTreasuryContract();
@@ -53,7 +52,6 @@ contract Gacha is
     error InvalidFeeTokenDecimals();
     error MaxFeeExceeded(uint256 currentFee, uint256 maxFee);
     error InvalidSpinTimeout();
-    error InvalidWeightsLength();
     error InvalidImplementation();
 
     /// @notice Represents a spin request with requester and fulfillment status
@@ -93,13 +91,12 @@ contract Gacha is
     /// @notice Default pricing premium over EV (5%)
     uint256 public constant DEFAULT_PRICING_PREMIUM_BPS = 500;
 
-    /// @notice Dynamic pricing and weights configuration
+    /// @notice Dynamic pricing configuration
     uint8 public feeTokenDecimals;
     uint256 public feeTokenScalar;
     uint256 public pricingPremiumBps;
     uint256 public minSpinFee;
     uint256 public maxSpinFee;
-    uint256[] public targetRarityBps;
 
     /// @notice Number of rarity tiers (read from treasury at init)
     uint8 public numRarities;
@@ -120,7 +117,6 @@ contract Gacha is
     event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
 
     event PricingConfigUpdated(uint256 premiumBps, uint256 minFee, uint256 maxFee);
-    event DynamicWeightsUpdated(uint256[] targetBps);
     event FeeTokenDecimalsUpdated(uint8 previousDecimals, uint8 newDecimals);
 
     event GachaServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
@@ -190,27 +186,6 @@ contract Gacha is
 
         // Read numRarities from treasury
         numRarities = treasury.numRarities();
-
-        // Set default target weights (distribute proportionally)
-        // For backward compat with 5 rarities: 70%, 20%, 6%, 3%, 1%
-        if (numRarities == 5) {
-            targetRarityBps.push(7_000);
-            targetRarityBps.push(2_000);
-            targetRarityBps.push(600);
-            targetRarityBps.push(300);
-            targetRarityBps.push(100);
-        } else {
-            // Distribute evenly with remainder to first rarity
-            uint256 perRarity = TOTAL_WEIGHT / numRarities;
-            uint256 assigned;
-            for (uint8 i = 0; i < numRarities; i++) {
-                targetRarityBps.push(perRarity);
-                assigned += perRarity;
-            }
-            if (assigned < TOTAL_WEIGHT) {
-                targetRarityBps[0] += TOTAL_WEIGHT - assigned;
-            }
-        }
     }
 
     /**
@@ -475,35 +450,6 @@ contract Gacha is
         emit PricingConfigUpdated(premiumBps, minFee, maxFee);
     }
 
-    /// @notice Updates the originally-designed reference rarity distribution (display only).
-    /// @dev Weights must sum to exactly TOTAL_WEIGHT (10,000 basis points). Since the switch to
-    ///      uniform-over-pool selection these values NO LONGER affect draw odds or pricing —
-    ///      real odds are the live pool composition (`getCurrentRarityWeights`). Retained for
-    ///      UI reference and storage-layout stability.
-    /// @param targetBps Array of reference weights in basis points, one per rarity tier
-    function setDynamicWeightsConfig(uint256[] calldata targetBps) external onlyOwner {
-        if (targetBps.length != numRarities) revert InvalidWeightsLength();
-        uint256 total;
-        uint8 _numRarities = numRarities;
-        for (uint256 i = 0; i < _numRarities; i++) {
-            total += targetBps[i];
-        }
-        if (total != TOTAL_WEIGHT) revert WeightsMustSumToTotal();
-
-        // Resize if needed and copy
-        while (targetRarityBps.length > _numRarities) {
-            targetRarityBps.pop();
-        }
-        for (uint256 i = 0; i < _numRarities; i++) {
-            if (i < targetRarityBps.length) {
-                targetRarityBps[i] = targetBps[i];
-            } else {
-                targetRarityBps.push(targetBps[i]);
-            }
-        }
-        emit DynamicWeightsUpdated(targetBps);
-    }
-
     /// @notice Returns the current spin fee based on expected value, premium, and min/max bounds
     /// @return fee The fee amount in fee token units
     function getCurrentSpinFee() public view returns (uint256 fee) {
@@ -542,17 +488,6 @@ contract Gacha is
         // Assign the rounding remainder to the largest (non-empty) tier so weights sum to TOTAL_WEIGHT.
         if (assigned < TOTAL_WEIGHT) {
             weights[largestIdx] += TOTAL_WEIGHT - assigned;
-        }
-    }
-
-    /// @notice Returns the originally-designed reference rarity distribution, in basis points.
-    /// @dev Display/reference only. Since the switch to uniform-over-pool selection, draw odds
-    ///      are the live pool composition (see `getCurrentRarityWeights`), NOT these values.
-    /// @return targetBps Array of reference weights in basis points, one per rarity tier
-    function getTargetRarityBps() external view returns (uint256[] memory targetBps) {
-        targetBps = new uint256[](numRarities);
-        for (uint256 i = 0; i < numRarities; i++) {
-            targetBps[i] = targetRarityBps[i];
         }
     }
 
@@ -903,5 +838,5 @@ contract Gacha is
     }
 
     /// @notice Custom gap for future storage variables
-    uint256[43] private __gap;
+    uint256[44] private __gap;
 }

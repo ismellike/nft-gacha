@@ -48,9 +48,9 @@ const RarityBreakdown = forwardRef<RarityBreakdownRef>((_props, ref) => {
 
 	// Live odds from the gacha contract: draws are uniform-over-pool, so
 	// `getCurrentRarityWeights()` returns the honest, real-time probability of
-	// drawing each rarity tier (counts[i]/total), verifiable on-chain. This is
-	// NOT the same as `getTargetRarityBps()`, which is display-only reference
-	// metadata for admins and does not reflect real odds.
+	// drawing each rarity tier (counts[i]/total), verifiable on-chain. There is
+	// no separate configurable target/reference distribution - this is the
+	// single source of truth for draw probabilities.
 	const rarityWeightsQuery = useReadContract({
 		address: contracts.gacha as `0x${string}` | undefined,
 		abi: [

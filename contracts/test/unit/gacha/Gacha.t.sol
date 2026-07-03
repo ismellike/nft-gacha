@@ -441,44 +441,6 @@ contract GachaTest is StandardTest {
         assertEq(gacha.maxSpinFee(), newMaxFee, "Max fee should be updated");
     }
 
-    /**
-     * @notice Test setting dynamic weights
-     * @dev Verifies that owner can update rarity weights
-     */
-    function testSetDynamicWeightsConfig() public {
-        uint256[] memory newWeights = new uint256[](5);
-        newWeights[0] = 6000;
-        newWeights[1] = 2500;
-        newWeights[2] = 1000;
-        newWeights[3] = 400;
-        newWeights[4] = 100; // Sum to 10000
-
-        vm.prank(gachaOwner);
-        gacha.setDynamicWeightsConfig(newWeights);
-
-        uint256[] memory targetBps = gacha.getTargetRarityBps();
-        for (uint256 i = 0; i < 5; i++) {
-            assertEq(targetBps[i], newWeights[i], "Weight should be updated");
-        }
-    }
-
-    /**
-     * @notice Test setting invalid weights (don't sum to TOTAL_WEIGHT)
-     * @dev Verifies that invalid weight configurations are rejected
-     */
-    function testSetDynamicWeightsFailsWithInvalidWeights() public {
-        uint256[] memory invalidWeights = new uint256[](5);
-        invalidWeights[0] = 6000;
-        invalidWeights[1] = 2500;
-        invalidWeights[2] = 1000;
-        invalidWeights[3] = 400;
-        invalidWeights[4] = 99; // Sum to 9999
-
-        vm.prank(gachaOwner);
-        vm.expectRevert(abi.encodeWithSelector(Gacha.WeightsMustSumToTotal.selector));
-        gacha.setDynamicWeightsConfig(invalidWeights);
-    }
-
     // ========================================================================
     // ACCESS CONTROL TESTS
     // ========================================================================

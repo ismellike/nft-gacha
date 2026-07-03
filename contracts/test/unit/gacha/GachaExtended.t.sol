@@ -60,7 +60,6 @@ contract GachaExtendedTest is StandardTest {
     event SpinReclaimed(uint256 indexed triggerId, address indexed requester, uint256 refundAmount);
     event SpinStatusUpdate(uint256 indexed triggerId, address indexed requester, string status, uint256 timestamp);
     event PricingConfigUpdated(uint256 premiumBps, uint256 minFee, uint256 maxFee);
-    event DynamicWeightsUpdated(uint256[] targetBps);
     event GachaServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
     event EconomyManagerUpdated(address indexed oldManager, address indexed newManager);
     event SpinTimeoutUpdated(uint256 oldTimeout, uint256 newTimeout);
@@ -342,24 +341,6 @@ contract GachaExtendedTest is StandardTest {
     }
 
     // ========================================================================
-    // EVENT: DynamicWeightsUpdated (named DynamicWeightsUpdated in contract)
-    // ========================================================================
-
-    function testEventDynamicWeightsUpdated() public {
-        uint256[] memory newWeights = new uint256[](5);
-        newWeights[0] = 6000;
-        newWeights[1] = 2500;
-        newWeights[2] = 1000;
-        newWeights[3] = 400;
-        newWeights[4] = 100;
-
-        vm.expectEmit(false, false, false, true);
-        emit DynamicWeightsUpdated(newWeights);
-        vm.prank(gachaOwner);
-        gacha.setDynamicWeightsConfig(newWeights);
-    }
-
-    // ========================================================================
     // EVENT: GachaServiceHandlerUpdated
     // ========================================================================
 
@@ -473,7 +454,7 @@ contract GachaExtendedTest is StandardTest {
         vm.prank(gameSpinner);
         gacha.reclaimFailedSpin(triggerId);
 
-        (,bool fulfilled, bool reclaimed,,) = gacha.getSpinRequest(triggerId);
+        (, bool fulfilled, bool reclaimed,,) = gacha.getSpinRequest(triggerId);
         assertTrue(fulfilled, "Reclaimed spin should be marked fulfilled");
         assertTrue(reclaimed, "Reclaimed spin should be marked reclaimed");
     }
@@ -577,7 +558,7 @@ contract GachaExtendedTest is StandardTest {
         vm.prank(gameSpinner);
         gacha.reclaimFailedSpin(1);
 
-        (, , uint256 totalReclaims,) = gacha.getUserAnalytics(gameSpinner);
+        (,, uint256 totalReclaims,) = gacha.getUserAnalytics(gameSpinner);
         assertEq(totalReclaims, 1, "User should have 1 reclaim");
     }
 
@@ -689,7 +670,7 @@ contract GachaExtendedTest is StandardTest {
         vm.prank(gachaOwner);
         gacha.emergencyPause();
 
-        (, , bool isPaused, , ,) = gacha.getGachaConfigBatch();
+        (,, bool isPaused,,,) = gacha.getGachaConfigBatch();
         assertTrue(isPaused, "Should report paused");
     }
 
@@ -716,8 +697,7 @@ contract GachaExtendedTest is StandardTest {
     function testGetUserGachaBatchAfterSpin() public {
         _doFullSpin(bytes32(uint256(22222)));
 
-        (uint256 totalSpins,,, uint256[] memory rarityWins, uint256 spinCount) =
-            gacha.getUserGachaBatch(gameSpinner);
+        (uint256 totalSpins,,, uint256[] memory rarityWins, uint256 spinCount) = gacha.getUserGachaBatch(gameSpinner);
 
         assertEq(totalSpins, 1);
         assertEq(spinCount, totalSpins, "spinCount should equal totalSpins");
@@ -747,46 +727,6 @@ contract GachaExtendedTest is StandardTest {
             totalWins += gacha.getUserRarityWinCount(gameSpinner, i);
         }
         assertEq(totalWins, 1, "Should have 1 win total across all rarities");
-    }
-
-    // ========================================================================
-    // getTargetRarityBps
-    // ========================================================================
-
-    function testGetTargetRarityBpsDefaultValues() public view {
-        uint256[] memory targetBps = gacha.getTargetRarityBps();
-        assertEq(targetBps.length, 5);
-
-        // Default for 5 rarities: [7000, 2000, 600, 300, 100]
-        assertEq(targetBps[0], 7000, "Common weight should be 7000");
-        assertEq(targetBps[1], 2000, "Uncommon weight should be 2000");
-        assertEq(targetBps[2], 600, "Rare weight should be 600");
-        assertEq(targetBps[3], 300, "Epic weight should be 300");
-        assertEq(targetBps[4], 100, "Legendary weight should be 100");
-
-        // Sum must equal TOTAL_WEIGHT
-        uint256 total;
-        for (uint256 i = 0; i < 5; i++) {
-            total += targetBps[i];
-        }
-        assertEq(total, gacha.TOTAL_WEIGHT(), "Target bps should sum to TOTAL_WEIGHT");
-    }
-
-    function testGetTargetRarityBpsAfterUpdate() public {
-        uint256[] memory newWeights = new uint256[](5);
-        newWeights[0] = 5000;
-        newWeights[1] = 3000;
-        newWeights[2] = 1000;
-        newWeights[3] = 700;
-        newWeights[4] = 300;
-
-        vm.prank(gachaOwner);
-        gacha.setDynamicWeightsConfig(newWeights);
-
-        uint256[] memory targetBps = gacha.getTargetRarityBps();
-        for (uint256 i = 0; i < 5; i++) {
-            assertEq(targetBps[i], newWeights[i], "Updated weight should match");
-        }
     }
 
     // ========================================================================
