@@ -1,66 +1,65 @@
-## Foundry
+# SPINFI Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Solidity smart contracts for the SPINFI provably-fair NFT gacha, built with [Foundry](https://book.getfoundry.sh/).
 
-Foundry consists of:
+These contracts run the on-chain half of the system: they take spin fees, request
+cryptographic randomness from the WAVS-DRAND AVS, draw an NFT from a rarity-tiered
+treasury, and route revenue to the depositors who supplied the inventory.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Layout
 
-## Documentation
+```
+src/
+├── gacha/         # Gacha.sol, GachaTreasury.sol, GachaTreasuryReader.sol, service handler
+├── economy/       # GachaEconomyManager, CardGroupedVault, ProtocolTreasury
+├── appraisal/     # NFTAppraisal.sol + WAVS service handler (price → rarity)
+├── governance/    # GachaTimelock.sol
+├── tokens/        # Base ERC20/ERC721, GachaPFP, testnet helpers
+├── interfaces/    # Contract interfaces and shared types
+└── utils/         # ERC20BatchQuery and helpers
 
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+script/            # DeployLocal / DeployTestnet / DeployMainnet
+test/              # Unit, integration, and invariant tests (+ mocks/)
 ```
 
-### Test
+## Odds model
 
-```shell
-$ forge test
+Draw odds are **uniform-over-pool**: a tier is chosen with probability
+`counts[i] / totalCount`, then a uniform NFT within it, so every NFT in the treasury
+has an equal `1 / totalCount` chance of being drawn. There is no configurable
+rarity-weight knob — the live odds *are* the current pool composition
+(`getCurrentRarityWeights()`), fully verifiable on-chain. Rarity is a descriptive
+label derived from each NFT's USD appraisal, not a probability input.
+
+## Development
+
+```bash
+forge build                     # Compile
+forge test                      # Run all tests
+forge test --match-test <name>  # Run a specific test
+forge fmt                       # Format
+forge snapshot                  # Gas snapshots
+forge coverage                  # Coverage report
 ```
 
-### Format
+Compiler: Solidity `^0.8.27` with the optimizer (200 runs) and IR-based codegen
+(`via_ir = true`). See `foundry.toml` for the full profile set.
 
-```shell
-$ forge fmt
-```
+## Deployment
 
-### Gas Snapshots
+- **Local** — `forge script script/DeployLocal.s.sol` (or `task contracts:deploy`)
+- **Testnet / mainnet** — see [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md) for the full
+  end-to-end deploy (WAVS infrastructure, contracts, operators, and frontend), including
+  contract verification and failed-deploy recovery. Scripts: `DeployTestnet.s.sol`,
+  `DeployMainnet.s.sol`.
 
-```shell
-$ forge snapshot
-```
+## Security
 
-### Anvil
+The full trust model, invariants, and known considerations prepared for audit live
+in [SECURITY.md](./SECURITY.md). Analysis config for [Slither](https://github.com/crytic/slither)
+is in `slither.config.json`.
 
-```shell
-$ anvil
-```
+## More
 
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Architecture and economic design: [docs/DESIGN.md](../docs/DESIGN.md).
+Working notes for contributors: [CLAUDE.md](./CLAUDE.md).

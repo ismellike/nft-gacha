@@ -180,7 +180,7 @@ type: brief description
 ```
 
 Examples:
-- `feat: add support for custom rarity weights`
+- `feat: add per-rarity yield analytics to the vault`
 - `fix: handle empty pool refunds correctly`
 - `docs: update contributing guidelines`
 
@@ -228,10 +228,11 @@ git branch -d feature/your-feature-name
 ## Additional Resources
 
 - **Project Overview**: [CLAUDE.md](./CLAUDE.md)
-- **Technical Architecture**: [DESIGN.md](./DESIGN.md)
+- **Technical Architecture**: [docs/DESIGN.md](./docs/DESIGN.md)
+- **Deployment Guide**: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
 - **Task Commands**: See [Taskfile.yml](./Taskfile.yml) for available automation
 - **Frontend Guide**: [frontend/README.md](./frontend/README.md)
-- **Contract Development**: See [contracts/README.md](./contracts/README.md) (if available)
+- **Contract Development**: [contracts/README.md](./contracts/README.md)
 
 ## Getting Help
 

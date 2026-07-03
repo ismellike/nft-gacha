@@ -1,6 +1,6 @@
 # Frontend (Next.js)
 
-This app is the UI for the NFT Gacha system. It uses Next.js, React, TypeScript, Wagmi, and RainbowKit with a glassmorphism UI system.
+This app is the UI for the SPINFI NFT gacha. It uses Next.js, React, TypeScript, wagmi, and Reown AppKit with a glassmorphism UI system.
 
 ## Setup
 
@@ -31,5 +31,5 @@ Run `pnpm codegen` after contract changes to keep `frontend/src/generated.ts` cu
 ## Notes
 
 - Do not run `pnpm dev` or `pnpm build` here. Use `pnpm tsc` for validation.
-- UI and interaction guidelines live in `DESIGN.md`.
+- The reusable glassmorphism primitives live in `src/ui/`; system architecture is in [`../docs/DESIGN.md`](../docs/DESIGN.md).
 - For agent-focused instructions, see `frontend/CLAUDE.md`.

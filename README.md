@@ -40,7 +40,7 @@ Whether you're spinning for NFTs or earning yield by contributing NFTs to pools,
 </td>
 <td valign="top">
 
-- All rarity weights public on-chain
+- Live draw odds = the on-chain pool composition
 - Cryptographic randomness (WAVS-DRAND)
 - Verify any spin on-chain
 - **95% of revenue to contributors**
@@ -74,7 +74,7 @@ Whether you're spinning for NFTs or earning yield by contributing NFTs to pools,
 
 **Earn 95% of all spin fees**
 - Build passive income with your NFTs
-- Rarity multipliers boost your rewards
+- Higher-value cards earn a larger yield share
 - Withdraw anytime, no lock-ups
 - Transparent yield distribution
 
@@ -97,36 +97,45 @@ Whether you're spinning for NFTs or earning yield by contributing NFTs to pools,
 
 <table>
 <tr>
-<th width="50%" align="center">Rarity Weights</th>
+<th width="50%" align="center">Draw Odds</th>
 <th width="50%" align="center">Reward Distribution</th>
 </tr>
 <tr>
 <td valign="top">
 
 ```
-Every spin (0-9999):
+Odds = live pool composition.
 
-  0-6999  (70%)  Common
-  7000-8999 (20%)  Uncommon
-  9000-9599 (6%)   Rare
-  9600-9899 (3%)   Epic
-  9900-9999 (1%)   Legendary
+Every NFT has an equal
+1 / (total NFTs) chance, so a
+tier's odds are just its share
+of inventory. A pool holding
+
+  700 Common
+  200 Uncommon
+   60 Rare
+   30 Epic
+   10 Legendary
+
+draws Common 70% of the time —
+purely because it is 70% of the
+pool. No hidden weights.
 ```
 
 </td>
 <td valign="top">
 
 ```
-Per 100 token spin:
+Per 100 tokens spun:
 
-95 tokens -> Contributors
-  1.0x  Common holders
-  1.2x  Uncommon holders
-  1.5x  Rare holders
-  2.0x  Epic holders
-  3.0x  Legendary holders
+95 -> Contributors
+  Paid to the rarity tier that
+  produced the spin, split by
+  appraisal value across that
+  tier's cards.
 
-5 tokens -> Protocol
+ 5 -> Protocol
+  Treasury, buybacks, ops.
 ```
 
 </td>
@@ -237,8 +246,8 @@ nft-gacha/
 │   ├── wavs-drand/         # Cryptographic randomness from DRAND
 │   ├── nft-appraisal/      # Off-chain NFT price oracle
 │   └── aggregator-simple/  # Operator submission aggregator
-├── Taskfile.yml            # Task runner automation
-└── DESIGN.md               # Detailed technical design document
+├── docs/                   # DESIGN.md, DEPLOYMENT.md
+└── Taskfile.yml            # Task runner automation
 ```
 
 ---
@@ -299,7 +308,16 @@ SPINFI is open source and community-driven. See [CONTRIBUTING.md](./CONTRIBUTING
 
 ## Learn More
 
-- [DESIGN.md](./DESIGN.md) — Detailed technical architecture and WAVS-DRAND integration
+- [docs/DESIGN.md](./docs/DESIGN.md) — Technical architecture, economics, and WAVS-DRAND integration
+- [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) — End-to-end testnet deployment guide
 - [`/contracts`](./contracts) — Smart contracts with Foundry tests
 - [`/frontend`](./frontend) — Next.js frontend application
 - [`/packages`](./packages) — Rust/WASI off-chain compute components
+
+---
+
+## License
+
+SPINFI is licensed under the [GNU AGPL-3.0](./LICENSE). The on-chain contracts
+(`contracts/`) and off-chain WASI components (`packages/`) stay under the MIT license
+declared in their source headers, so they can be integrated and reused permissively.

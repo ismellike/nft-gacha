@@ -1,6 +1,6 @@
 ---
 name: nft-gacha-frontend
-description: Next.js frontend with React, RainbowKit wallet, wagmi v3, Zustand state, glassmorphism UI. Use when editing frontend/, components, state management, or web3 integration. Triggers on "build a component", "fix the UI", "add a page", "connect wallet", "update the store", or "type check frontend".
+description: Next.js frontend with React, Reown AppKit wallet, wagmi v3, Zustand state, glassmorphism UI. Use when editing frontend/, components, state management, or web3 integration. Triggers on "build a component", "fix the UI", "add a page", "connect wallet", "update the store", or "type check frontend".
 metadata:
   author: ismellike
   version: 1.0.0
@@ -12,7 +12,7 @@ metadata:
 
 - **Next.js 16** with App Router
 - **React 19** + TypeScript
-- **RainbowKit 2.2** - Wallet connection
+- **Reown AppKit 1.8** - Wallet connection
 - **wagmi v3** + Viem 2.42 - Web3 hooks
 - **Zustand 5.0** - State with localStorage persistence
 - **Tailwind CSS 4** - Styling

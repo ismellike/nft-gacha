@@ -29,4 +29,3 @@ skills/
 .claude/*
 !.claude/skills/
 !.claude/agents/
-DEPLOYMENT.md
