@@ -203,7 +203,9 @@ contract GachaPFPTest is Test {
     function testWithdrawSendsBalanceToOwner() public {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
-        pfp.mint{value: MINT_PRICE}();
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+        // Fees are escrowed until reveal; reveal releases them for withdrawal.
+        _fulfill(tokenId, bytes32(uint256(1)));
 
         uint256 ownerBalanceBefore = owner.balance;
         vm.prank(owner);
@@ -211,6 +213,24 @@ contract GachaPFPTest is Test {
 
         assertEq(owner.balance, ownerBalanceBefore + MINT_PRICE);
         assertEq(address(pfp).balance, 0);
+    }
+
+    function testWithdrawExcludesEscrowedUnrevealedFees() public {
+        vm.deal(alice, 1 ether);
+        vm.startPrank(alice);
+        pfp.mint{value: MINT_PRICE}(); // unrevealed -> escrowed
+        uint256 revealed = pfp.mint{value: MINT_PRICE}();
+        vm.stopPrank();
+        _fulfill(revealed, bytes32(uint256(1))); // releases one fee
+
+        uint256 ownerBalanceBefore = owner.balance;
+        vm.prank(owner);
+        pfp.withdraw();
+
+        // Only the revealed mint's fee is withdrawable; the unrevealed one stays escrowed.
+        assertEq(owner.balance, ownerBalanceBefore + MINT_PRICE);
+        assertEq(address(pfp).balance, MINT_PRICE, "escrowed unrevealed fee stays in contract");
+        assertEq(pfp.refundsEscrowed(), MINT_PRICE);
     }
 
     function testWithdrawRevertsForNonOwner() public {
@@ -228,9 +248,11 @@ contract GachaPFPTest is Test {
         vm.deal(bob, 1 ether);
 
         vm.prank(alice);
-        pfp.mint{value: MINT_PRICE}();
+        uint256 t1 = pfp.mint{value: MINT_PRICE}();
         vm.prank(bob);
-        pfp.mint{value: MINT_PRICE}();
+        uint256 t2 = pfp.mint{value: MINT_PRICE}();
+        _fulfill(t1, bytes32(uint256(1)));
+        _fulfill(t2, bytes32(uint256(2)));
 
         uint256 ownerBalanceBefore = owner.balance;
         vm.prank(owner);
@@ -338,6 +360,80 @@ contract GachaPFPTest is Test {
         vm.prank(alice);
         vm.expectRevert(GachaPFP.RarityAlreadyRevealed.selector);
         pfp.requestReveal(tokenId);
+    }
+
+    function testRequestRevealRevertsForNonOwner() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+        vm.warp(block.timestamp + pfp.REVEAL_REREQUEST_COOLDOWN());
+
+        // Non-owner (not approved) cannot re-request — prevents WAVS griefing.
+        vm.prank(bob);
+        vm.expectRevert(GachaPFP.NotTokenOwnerOrApproved.selector);
+        pfp.requestReveal(tokenId);
+
+        // Approved operator can.
+        vm.prank(alice);
+        pfp.approve(bob, tokenId);
+        vm.prank(bob);
+        pfp.requestReveal(tokenId);
+    }
+
+    // ========================================================================
+    // TERMINAL RECLAIM (reveal-timeout escape hatch)
+    // ========================================================================
+
+    function testReclaimUnrevealedMintBurnsAndRefunds() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+        assertEq(pfp.refundsEscrowed(), MINT_PRICE);
+
+        vm.warp(block.timestamp + pfp.MINT_REVEAL_TIMEOUT());
+
+        uint256 aliceBefore = alice.balance;
+        vm.prank(alice);
+        pfp.reclaimUnrevealedMint(tokenId);
+
+        assertEq(alice.balance, aliceBefore + MINT_PRICE, "mint price refunded");
+        assertEq(pfp.refundsEscrowed(), 0, "escrow released");
+        // Token burned.
+        vm.expectRevert();
+        pfp.ownerOf(tokenId);
+    }
+
+    function testReclaimRevertsBeforeTimeout() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+
+        vm.prank(alice);
+        vm.expectRevert(GachaPFP.RevealNotTimedOut.selector);
+        pfp.reclaimUnrevealedMint(tokenId);
+    }
+
+    function testReclaimRevertsIfAlreadyRevealed() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+        _fulfill(tokenId, bytes32(uint256(1)));
+
+        vm.warp(block.timestamp + pfp.MINT_REVEAL_TIMEOUT());
+        vm.prank(alice);
+        vm.expectRevert(GachaPFP.RarityAlreadyRevealed.selector);
+        pfp.reclaimUnrevealedMint(tokenId);
+    }
+
+    function testReclaimRevertsForNonOwner() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 tokenId = pfp.mint{value: MINT_PRICE}();
+        vm.warp(block.timestamp + pfp.MINT_REVEAL_TIMEOUT());
+
+        vm.prank(bob);
+        vm.expectRevert(GachaPFP.NotTokenOwnerOrApproved.selector);
+        pfp.reclaimUnrevealedMint(tokenId);
     }
 
     function testUnmintedTokenHasDefaultRarity() public view {

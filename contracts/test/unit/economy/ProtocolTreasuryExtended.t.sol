@@ -147,8 +147,10 @@ contract ProtocolTreasuryExtendedTest is StandardTest {
         // Use appraisalUSD = 1 (1 wei of USD, effectively zero after integer division)
         (uint256 tokenId,) = _setupRedeemableNFT(1);
 
+        // A payout that rounds to 0 (appraisal below ~$0.00000125) is treated as no meaningful
+        // appraisal by the shared _quoteRedemption path → AppraisalMissing.
         vm.prank(redeemer);
-        vm.expectRevert(abi.encodeWithSelector(ProtocolTreasury.InvalidAmount.selector));
+        vm.expectRevert(abi.encodeWithSelector(ProtocolTreasury.AppraisalMissing.selector));
         protoTreasury.executeRedemption(address(nft), tokenId);
     }
 

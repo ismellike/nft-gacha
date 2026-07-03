@@ -343,6 +343,9 @@ contract DeployMainnet is Script {
         GachaTreasury(d.treasuryProxy).setGachaContract(d.gachaProxy);
         GachaTreasury(d.treasuryProxy).setCardGroupedVault(d.cardGroupedVaultProxy);
         GachaTreasury(d.treasuryProxy).setProtocolTreasury(d.protocolTreasuryProxy);
+        // Minimum-appraisal deposit floor (protects the pool-average spin fee from junk deposits).
+        // Defaults to a conservative $1; override with MIN_DEPOSIT_APPRAISAL_USD (18 decimals).
+        GachaTreasury(d.treasuryProxy).setMinDepositAppraisalUSD(vm.envOr("MIN_DEPOSIT_APPRAISAL_USD", uint256(1e18)));
 
         // Economy manager links
         GachaEconomyManager(d.economyManagerProxy).setGacha(d.gachaProxy);

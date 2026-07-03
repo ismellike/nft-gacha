@@ -865,6 +865,20 @@ export const cardGroupedVaultAbi = [
   {
     type: 'function',
     inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'claimYieldPaginated',
+    outputs: [
+      { name: 'withdrawn', internalType: 'uint256', type: 'uint256' },
+      { name: 'nextOffset', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
       { name: 'amount', internalType: 'uint256', type: 'uint256' },
       { name: 'rarity', internalType: 'uint8', type: 'uint8' },
     ],
@@ -877,6 +891,13 @@ export const cardGroupedVaultAbi = [
     inputs: [],
     name: 'economyManager',
     outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
+    name: 'getDepositorCardCount',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -943,6 +964,20 @@ export const cardGroupedVaultAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'pendingYield',
     outputs: [{ name: 'total', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'pendingYieldPaginated',
+    outputs: [
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'nextOffset', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -1034,6 +1069,20 @@ export const cardGroupedVaultAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'sharesOf',
     outputs: [{ name: 'total', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'account', internalType: 'address', type: 'address' },
+      { name: 'offset', internalType: 'uint256', type: 'uint256' },
+      { name: 'limit', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'sharesOfPaginated',
+    outputs: [
+      { name: 'total', internalType: 'uint256', type: 'uint256' },
+      { name: 'nextOffset', internalType: 'uint256', type: 'uint256' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -8001,6 +8050,15 @@ export const useReadCardGroupedVaultEconomyManager =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultAbi}__ and `functionName` set to `"getDepositorCardCount"`
+ */
+export const useReadCardGroupedVaultGetDepositorCardCount =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultAbi,
+    functionName: 'getDepositorCardCount',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultAbi}__ and `functionName` set to `"getDepositorCards"`
  */
 export const useReadCardGroupedVaultGetDepositorCards =
@@ -8041,6 +8099,15 @@ export const useReadCardGroupedVaultPendingYield =
   /*#__PURE__*/ createUseReadContract({
     abi: cardGroupedVaultAbi,
     functionName: 'pendingYield',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultAbi}__ and `functionName` set to `"pendingYieldPaginated"`
+ */
+export const useReadCardGroupedVaultPendingYieldPaginated =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultAbi,
+    functionName: 'pendingYieldPaginated',
   })
 
 /**
@@ -8086,6 +8153,15 @@ export const useReadCardGroupedVaultSharesOf =
   /*#__PURE__*/ createUseReadContract({
     abi: cardGroupedVaultAbi,
     functionName: 'sharesOf',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link cardGroupedVaultAbi}__ and `functionName` set to `"sharesOfPaginated"`
+ */
+export const useReadCardGroupedVaultSharesOfPaginated =
+  /*#__PURE__*/ createUseReadContract({
+    abi: cardGroupedVaultAbi,
+    functionName: 'sharesOfPaginated',
   })
 
 /**
@@ -8146,6 +8222,15 @@ export const useWriteCardGroupedVaultClaimYieldForCards =
   /*#__PURE__*/ createUseWriteContract({
     abi: cardGroupedVaultAbi,
     functionName: 'claimYieldForCards',
+  })
+
+/**
+ * Wraps __{@link useWriteContract}__ with `abi` set to __{@link cardGroupedVaultAbi}__ and `functionName` set to `"claimYieldPaginated"`
+ */
+export const useWriteCardGroupedVaultClaimYieldPaginated =
+  /*#__PURE__*/ createUseWriteContract({
+    abi: cardGroupedVaultAbi,
+    functionName: 'claimYieldPaginated',
   })
 
 /**
@@ -8287,6 +8372,15 @@ export const useSimulateCardGroupedVaultClaimYieldForCards =
   /*#__PURE__*/ createUseSimulateContract({
     abi: cardGroupedVaultAbi,
     functionName: 'claimYieldForCards',
+  })
+
+/**
+ * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link cardGroupedVaultAbi}__ and `functionName` set to `"claimYieldPaginated"`
+ */
+export const useSimulateCardGroupedVaultClaimYieldPaginated =
+  /*#__PURE__*/ createUseSimulateContract({
+    abi: cardGroupedVaultAbi,
+    functionName: 'claimYieldPaginated',
   })
 
 /**

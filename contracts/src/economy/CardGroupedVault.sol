@@ -474,18 +474,13 @@ contract CardGroupedVault is
         if (msg.sender != account && msg.sender != economyManager) revert UnauthorizedClaim();
         if (limit == 0) revert ZeroAmount();
 
-        // Pay out any yield materialized during prior position changes once, on the first page.
-        if (offset == 0) {
-            withdrawn = accruedYield[account];
-            if (withdrawn > 0) {
-                accruedYield[account] = 0;
-            }
-        }
-
         bytes32[] storage cards = _depositorCards[account];
         uint256 len = cards.length;
         uint256 end = offset + limit;
         if (end > len) end = len;
+        // 0 signals "done" (end of list reached this page). offset==0 on an empty list also
+        // returns 0, which callers treat as complete.
+        nextOffset = end >= len ? 0 : end;
 
         for (uint256 i = offset; i < end; ++i) {
             bytes32 cardId = cards[i];
@@ -496,9 +491,16 @@ contract CardGroupedVault is
             }
         }
 
-        // 0 signals "done"; because indices are 1-based-free here, offset==0 on an empty list also
-        // returns 0 (nothing more to do), which callers treat as complete.
-        nextOffset = end >= len ? 0 : end;
+        // Pay the pre-materialized accruedYield bucket on the FINAL page (nextOffset == 0), not the
+        // first. removeCardDeposit / auto-claim may add to accruedYield during a multi-page walk;
+        // draining it at the end captures whatever materialized before the last page.
+        if (nextOffset == 0) {
+            uint256 bucket = accruedYield[account];
+            if (bucket > 0) {
+                accruedYield[account] = 0;
+                withdrawn += bucket;
+            }
+        }
 
         // Tolerate empty pages so a pagination loop doesn't revert mid-walk; only pay when non-zero.
         if (withdrawn > 0) {
@@ -522,12 +524,12 @@ contract CardGroupedVault is
     }
 
     /// @notice Paginated {pendingYield} for depositors with many cards (bounded-gas view).
-    /// @dev Includes the `accruedYield` bucket only on the first page (offset == 0), mirroring
+    /// @dev Includes the `accruedYield` bucket only on the final page (nextOffset == 0), mirroring
     ///      {claimYieldPaginated}, so summing all pages equals {pendingYield}.
     /// @param account Address to query
     /// @param offset  Starting index into the depositor's card list
     /// @param limit   Maximum number of cards to sum this page (must be > 0)
-    /// @return total      Pending USDC accrued across this page's cards (plus the bucket on page 0)
+    /// @return total      Pending USDC accrued across this page's cards (plus the bucket on the last page)
     /// @return nextOffset Index to resume from, or 0 when the end of the list was reached
     function pendingYieldPaginated(address account, uint256 offset, uint256 limit)
         external
@@ -535,17 +537,17 @@ contract CardGroupedVault is
         returns (uint256 total, uint256 nextOffset)
     {
         if (limit == 0) revert ZeroAmount();
-        if (offset == 0) {
-            total = accruedYield[account];
-        }
         bytes32[] storage cards = _depositorCards[account];
         uint256 len = cards.length;
         uint256 end = offset + limit;
         if (end > len) end = len;
+        nextOffset = end >= len ? 0 : end;
         for (uint256 i = offset; i < end; ++i) {
             total += _pendingForCard(cards[i], account);
         }
-        nextOffset = end >= len ? 0 : end;
+        if (nextOffset == 0) {
+            total += accruedYield[account];
+        }
     }
 
     /// @notice Paginated {sharesOf} for depositors with many cards (bounded-gas view).
@@ -565,8 +567,8 @@ contract CardGroupedVault is
         uint256 end = offset + limit;
         if (end > len) end = len;
         for (uint256 i = offset; i < end; ++i) {
-            DepositorPosition storage pos = positions[cards[i]][account];
-            total += pos.count * cardNodes[cards[i]].cardPriceUSD;
+            bytes32 cardId = cards[i];
+            total += positions[cardId][account].count * cardNodes[cardId].cardPriceUSD;
         }
         nextOffset = end >= len ? 0 : end;
     }

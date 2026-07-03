@@ -136,40 +136,14 @@ contract ProtocolTreasury is
     {
         if (collection == address(0)) revert ZeroAddress("collection");
 
-        (uint256 appraisalUSD, NFTAppraisal.AppraisalStatus status) =
-            appraisalOracle.getAppraisedPrice(collection, tokenId);
-        if (
-            appraisalUSD == 0
-                || (status != NFTAppraisal.AppraisalStatus.Completed
-                    && status != NFTAppraisal.AppraisalStatus.OwnerOverride)
-        ) {
-            revert AppraisalMissing();
+        (uint8 reason, uint256 quotedPayout, uint256 appraisalUSD) = _quoteRedemption(collection, tokenId);
+        if (reason != REDEEM_OK) {
+            if (reason == REDEEM_APPRAISAL_MISSING) revert AppraisalMissing();
+            if (reason == REDEEM_WINDOW_EXPIRED) revert RedemptionWindowExpired();
+            if (reason == REDEEM_INSUFFICIENT_LIQUIDITY) revert InsufficientLiquidity();
+            revert PayoutExceedsTreasuryCap(); // REDEEM_EXCEEDS_CAP
         }
-
-        // Pay against min(win-time snapshot, live appraisal). Capping by the snapshot stops a
-        // redeemer from inflating the appraisal after winning to over-extract; capping by the
-        // live price means the protocol never overpays if the card's market value has fallen.
-        // A zero snapshot (e.g. an NFT won before this snapshotting was introduced) falls back
-        // to the live appraisal.
-        uint256 snapshotUSD = _treasury.getNFTRedemptionPriceSnapshot(collection, tokenId);
-        uint256 basisUSD = (snapshotUSD > 0 && snapshotUSD < appraisalUSD) ? snapshotUSD : appraisalUSD;
-
-        payout = FixedPointMathLib.mulDiv(basisUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
-        if (payout == 0) revert InvalidAmount();
-
-        // Check redemption window using snapshot deadline
-        uint256 deadline = _treasury.getNFTRedemptionDeadline(collection, tokenId);
-        if (deadline == 0 || block.timestamp > deadline) {
-            revert RedemptionWindowExpired();
-        }
-
-        uint256 balance = IERC20(_asset).balanceOf(address(this));
-        if (balance < payout) revert InsufficientLiquidity();
-
-        uint256 _maxPayoutBps = maxPayoutBps;
-        if (_maxPayoutBps > 0 && payout > FixedPointMathLib.mulDiv(balance, _maxPayoutBps, 10_000)) {
-            revert PayoutExceedsTreasuryCap();
-        }
+        payout = quotedPayout;
 
         // Emit window enforcement only after all checks pass so event order matches state changes.
         uint256 receiveTime = _treasury.getNFTReceiveTime(collection, tokenId);
@@ -196,10 +170,60 @@ contract ProtocolTreasury is
     uint8 public constant REDEEM_EXCEEDS_CAP = 4;
 
     /**
+     * @dev Shared read-only redemption eligibility + payout computation used by BOTH
+     *      {executeRedemption} and {isRedeemable} so the on-chain money path and the UI preview can
+     *      never drift. Pays against min(win-time snapshot, live appraisal): capping by the snapshot
+     *      stops a redeemer inflating the appraisal after winning; capping by live means the protocol
+     *      never overpays if the market fell. A zero snapshot falls back to the live appraisal.
+     * @return reason A REDEEM_* code (REDEEM_OK iff a redemption would currently succeed)
+     * @return payout USDC (6 decimals) the redemption would pay out (0 when appraisal is missing)
+     * @return appraisalUSD The live appraisal (18 decimals), needed by executeRedemption to restock
+     */
+    function _quoteRedemption(address collection, uint256 tokenId)
+        internal
+        view
+        returns (uint8 reason, uint256 payout, uint256 appraisalUSD)
+    {
+        NFTAppraisal.AppraisalStatus status;
+        (appraisalUSD, status) = appraisalOracle.getAppraisedPrice(collection, tokenId);
+        if (
+            appraisalUSD == 0
+                || (status != NFTAppraisal.AppraisalStatus.Completed
+                    && status != NFTAppraisal.AppraisalStatus.OwnerOverride)
+        ) {
+            return (REDEEM_APPRAISAL_MISSING, 0, appraisalUSD);
+        }
+
+        uint256 snapshotUSD = _treasury.getNFTRedemptionPriceSnapshot(collection, tokenId);
+        uint256 basisUSD = (snapshotUSD > 0 && snapshotUSD < appraisalUSD) ? snapshotUSD : appraisalUSD;
+        payout = FixedPointMathLib.mulDiv(basisUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
+        if (payout == 0) {
+            return (REDEEM_APPRAISAL_MISSING, 0, appraisalUSD);
+        }
+
+        uint256 deadline = _treasury.getNFTRedemptionDeadline(collection, tokenId);
+        if (deadline == 0 || block.timestamp > deadline) {
+            return (REDEEM_WINDOW_EXPIRED, payout, appraisalUSD);
+        }
+
+        uint256 balance = IERC20(_asset).balanceOf(address(this));
+        if (balance < payout) {
+            return (REDEEM_INSUFFICIENT_LIQUIDITY, payout, appraisalUSD);
+        }
+
+        uint256 _maxPayoutBps = maxPayoutBps;
+        if (_maxPayoutBps > 0 && payout > FixedPointMathLib.mulDiv(balance, _maxPayoutBps, 10_000)) {
+            return (REDEEM_EXCEEDS_CAP, payout, appraisalUSD);
+        }
+
+        return (REDEEM_OK, payout, appraisalUSD);
+    }
+
+    /**
      * @notice Reports whether an NFT can be redeemed right now, and the exact payout it would receive.
      * @dev Lets the UI show "redeemable now / treasury low / window expired" before a user submits,
-     *      since a buyback is best-effort while treasury funds last (not a hard guarantee). Mirrors
-     *      the checks in {executeRedemption} in the same order.
+     *      since a buyback is best-effort while treasury funds last (not a hard guarantee). Delegates
+     *      to the same {_quoteRedemption} helper that {executeRedemption} uses.
      * @param collection NFT contract address
      * @param tokenId NFT identifier
      * @return ok True only if a redemption would currently succeed
@@ -211,35 +235,8 @@ contract ProtocolTreasury is
         view
         returns (bool ok, uint8 reason, uint256 payout)
     {
-        (uint256 appraisalUSD, NFTAppraisal.AppraisalStatus status) =
-            appraisalOracle.getAppraisedPrice(collection, tokenId);
-        if (
-            appraisalUSD == 0
-                || (status != NFTAppraisal.AppraisalStatus.Completed
-                    && status != NFTAppraisal.AppraisalStatus.OwnerOverride)
-        ) {
-            return (false, REDEEM_APPRAISAL_MISSING, 0);
-        }
-
-        uint256 snapshotUSD = _treasury.getNFTRedemptionPriceSnapshot(collection, tokenId);
-        uint256 basisUSD = (snapshotUSD > 0 && snapshotUSD < appraisalUSD) ? snapshotUSD : appraisalUSD;
-        payout = FixedPointMathLib.mulDiv(basisUSD, REDEMPTION_PAYOUT_BPS, 10_000 * USD_TO_USDC_CONVERSION);
-        if (payout == 0) return (false, REDEEM_APPRAISAL_MISSING, 0);
-
-        uint256 deadline = _treasury.getNFTRedemptionDeadline(collection, tokenId);
-        if (deadline == 0 || block.timestamp > deadline) {
-            return (false, REDEEM_WINDOW_EXPIRED, payout);
-        }
-
-        uint256 balance = IERC20(_asset).balanceOf(address(this));
-        if (balance < payout) return (false, REDEEM_INSUFFICIENT_LIQUIDITY, payout);
-
-        uint256 _maxPayoutBps = maxPayoutBps;
-        if (_maxPayoutBps > 0 && payout > FixedPointMathLib.mulDiv(balance, _maxPayoutBps, 10_000)) {
-            return (false, REDEEM_EXCEEDS_CAP, payout);
-        }
-
-        return (true, REDEEM_OK, payout);
+        (reason, payout,) = _quoteRedemption(collection, tokenId);
+        ok = reason == REDEEM_OK;
     }
 
     /// @inheritdoc IProtocolTreasury

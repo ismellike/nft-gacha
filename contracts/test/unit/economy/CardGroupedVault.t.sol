@@ -695,6 +695,40 @@ contract CardGroupedVaultTest is Test {
         assertEq(sharesSum, sharesFull, "paged shares must equal full shares");
     }
 
+    function test_paginatedClaim_capturesAccruedYieldMaterializedMidWalk() public {
+        _registerManyCards(alice, 4, 10e18);
+        vm.prank(economyManager);
+        vault.distributeYield(40e6, COMMON);
+
+        uint256 expected = vault.pendingYield(alice);
+
+        // Page 1: claim cards [0,1].
+        vm.prank(alice);
+        (uint256 got1, uint256 next1) = vault.claimYieldPaginated(alice, 0, 2);
+        assertEq(next1, 2, "more pages remain");
+
+        // Between pages, a withdraw of a not-yet-claimed card materializes its yield into
+        // accruedYield (the bucket). Removing card index 3 (swap-pops it out of the list).
+        vm.prank(treasury);
+        vault.removeCardDeposit(keccak256(abi.encode("pagcard", alice, uint256(3))), alice, 1);
+
+        // Finish the walk. accruedYield must be paid on the final page (nextOffset == 0), so the
+        // total captures the mid-walk-materialized yield rather than stranding it.
+        uint256 got2;
+        uint256 offset = next1;
+        uint256 guard;
+        do {
+            vm.prank(alice);
+            (uint256 g, uint256 n) = vault.claimYieldPaginated(alice, offset, 2);
+            got2 += g;
+            offset = n;
+            require(guard++ < 10, "no terminate");
+        } while (offset != 0);
+
+        assertApproxEqAbs(got1 + got2, expected, 100, "paged walk must capture all yield incl. mid-walk accrual");
+        assertEq(vault.pendingYield(alice), 0, "nothing stranded");
+    }
+
     function test_paginatedViews_zeroLimitReverts() public {
         _registerManyCards(alice, 2, 10e18);
         vm.expectRevert(CardGroupedVault.ZeroAmount.selector);

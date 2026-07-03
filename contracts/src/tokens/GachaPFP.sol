@@ -26,6 +26,9 @@ contract GachaPFP is ERC721, Ownable {
     error NotServiceHandler();
     error RarityAlreadyRevealed();
     error RevealRequestCooldown();
+    error NotTokenOwnerOrApproved();
+    error RevealNotTimedOut();
+    error RefundFailed();
 
     enum Rarity {
         Common, // 40%
@@ -47,8 +50,15 @@ contract GachaPFP is ERC721, Ownable {
     /// @notice Minimum delay before a stuck (unfulfilled) reveal can be re-requested
     uint256 public constant REVEAL_REREQUEST_COOLDOWN = 5 minutes;
 
+    /// @notice How long a mint may remain unrevealed before the owner can reclaim (burn + refund)
+    uint256 public constant MINT_REVEAL_TIMEOUT = 1 days;
+
     /// @notice Authorized WAVS service handler permitted to fulfill rarity randomness
     address public serviceHandler;
+
+    /// @notice Mint fees held against still-unrevealed tokens; refundable via reclaimUnrevealedMint
+    ///         and therefore NOT withdrawable by the owner until those tokens are revealed.
+    uint256 public refundsEscrowed;
 
     /// @notice Rarity assigned to each token once its randomness has been fulfilled
     mapping(uint256 => Rarity) public tokenRarity;
@@ -62,6 +72,7 @@ contract GachaPFP is ERC721, Ownable {
     event ServiceHandlerUpdated(address indexed oldHandler, address indexed newHandler);
     event RarityRequested(uint256 indexed tokenId, address indexed to);
     event RarityRevealed(uint256 indexed tokenId, Rarity rarity);
+    event MintReclaimed(uint256 indexed tokenId, address indexed to, uint256 refund);
 
     modifier onlyServiceHandler() {
         if (msg.sender != serviceHandler) revert NotServiceHandler();
@@ -89,6 +100,8 @@ contract GachaPFP is ERC721, Ownable {
         tokenId = _nextId++;
         if (tokenId > maxSupply) revert MaxSupplyReached();
         _mint(msg.sender, tokenId);
+        // Escrow the mint price so it stays refundable until this token is revealed.
+        refundsEscrowed += mintPrice;
         revealRequestedAt[tokenId] = block.timestamp;
         emit RarityRequested(tokenId, msg.sender);
         emit RandomnessRequested(tokenId);
@@ -99,14 +112,46 @@ contract GachaPFP is ERC721, Ownable {
     ///      to avoid spamming the WAVS trigger. Reverts if the token is already revealed.
     /// @param tokenId Token to re-request randomness for
     function requestReveal(uint256 tokenId) external {
-        _requireOwned(tokenId);
+        address tokenOwner = _requireOwned(tokenId);
+        // Restrict to the owner (or an approved operator) so re-requests can't be used to grief the
+        // WAVS-DRAND operators by forcing beacon fetches + fulfillment txs for arbitrary tokens.
+        if (!_isAuthorized(tokenOwner, msg.sender, tokenId)) revert NotTokenOwnerOrApproved();
         if (rarityRevealed[tokenId]) revert RarityAlreadyRevealed();
         if (block.timestamp < revealRequestedAt[tokenId] + REVEAL_REREQUEST_COOLDOWN) {
             revert RevealRequestCooldown();
         }
         revealRequestedAt[tokenId] = block.timestamp;
-        emit RarityRequested(tokenId, _ownerOf(tokenId));
+        emit RarityRequested(tokenId, tokenOwner);
         emit RandomnessRequested(tokenId);
+    }
+
+    /// @notice Burns a still-unrevealed token after the reveal timeout and refunds its mint price.
+    /// @dev Terminal escape hatch if the WAVS-DRAND service never fulfills (e.g. prolonged outage),
+    ///      so a paid mint can't be stranded inert forever. Callable by the token owner/approved once
+    ///      MINT_REVEAL_TIMEOUT has elapsed since the last request. The refund is paid from the
+    ///      escrowed mint fee, which withdraw() cannot touch while the token is unrevealed.
+    /// @param tokenId Token to reclaim
+    function reclaimUnrevealedMint(uint256 tokenId) external {
+        address tokenOwner = _requireOwned(tokenId);
+        if (!_isAuthorized(tokenOwner, msg.sender, tokenId)) revert NotTokenOwnerOrApproved();
+        if (rarityRevealed[tokenId]) revert RarityAlreadyRevealed();
+        if (block.timestamp < revealRequestedAt[tokenId] + MINT_REVEAL_TIMEOUT) {
+            revert RevealNotTimedOut();
+        }
+
+        uint256 refund = mintPrice;
+        // Effects before interaction (CEI): release escrow and burn before sending funds.
+        if (refund > 0) {
+            refundsEscrowed -= refund;
+        }
+        _burn(tokenId);
+
+        emit MintReclaimed(tokenId, tokenOwner, refund);
+
+        if (refund > 0) {
+            (bool success,) = tokenOwner.call{value: refund}("");
+            if (!success) revert RefundFailed();
+        }
     }
 
     /// @notice Fulfills a token's rarity using randomness from the WAVS-DRAND service.
@@ -119,6 +164,8 @@ contract GachaPFP is ERC721, Ownable {
         Rarity r = _rollToRarity(uint256(randomness) % 10000);
         tokenRarity[tokenId] = r;
         rarityRevealed[tokenId] = true;
+        // The mint is now final; its fee is protocol revenue and no longer refundable.
+        refundsEscrowed -= mintPrice;
         emit RarityRevealed(tokenId, r);
     }
 
@@ -127,9 +174,11 @@ contract GachaPFP is ERC721, Ownable {
         return _nextId - 1;
     }
 
-    /// @notice Withdraw collected mint fees to the owner
+    /// @notice Withdraw collected mint fees to the owner, excluding fees still escrowed against
+    ///         unrevealed (reclaimable) tokens.
     function withdraw() external onlyOwner {
-        (bool success,) = owner().call{value: address(this).balance}("");
+        uint256 amount = address(this).balance - refundsEscrowed;
+        (bool success,) = owner().call{value: amount}("");
         if (!success) revert WithdrawFailed();
     }
 
