@@ -111,6 +111,11 @@ contract CardGroupedVault is
     uint256 public totalYieldDistributed;
     uint256 public totalYieldClaimed;
 
+    /// @notice Carried-forward distribution remainder in PRECISION×USD units (numerator not yet
+    ///         evenly divisible by pool value). Rolled into the next {distributeYield} so flooring
+    ///         dust is never permanently stranded. Always < totalValueUSD at that time.
+    uint256 public yieldRemainder;
+
     /// @dev Per-rarity yield accumulator
     struct RarityPool {
         uint256 accYieldPerUSD; // Cumulative yield per $1 of value (scaled × PRECISION)
@@ -414,16 +419,22 @@ contract CardGroupedVault is
         }
         if (totalValueUSD == 0) revert NoValueInPool();
 
-        // increment = amount × PRECISION / totalValueUSD  (shared across all pools)
-        uint256 increment = FixedPointMathLib.mulDiv(amount, PRECISION, totalValueUSD);
+        // increment = (amount × PRECISION + carried remainder) / totalValueUSD, shared across pools.
+        // The remainder (numerator not evenly divisible by totalValueUSD) is carried into the next
+        // distribution rather than stranded: without it, every round would floor away up to
+        // ~totalValueUSD/PRECISION of yield permanently, accumulating unclaimable USDC in the vault.
+        // Carrying it forward bounds the total un-distributed amount to a single remainder
+        // (< totalValueUSD/PRECISION) regardless of how many distributions occur.
+        uint256 numerator = amount * PRECISION + yieldRemainder;
+        uint256 increment = numerator / totalValueUSD;
         if (increment == 0) revert YieldTooSmall();
+        yieldRemainder = numerator - increment * totalValueUSD;
 
         address(asset).safeTransferFrom(msg.sender, address(this), amount);
 
         // Apply the same per-USD increment to every pool that holds value. Empty pools are
         // skipped (they hold no cards; a future deposit snapshots baseAcc at deposit time, so
-        // skipping them changes nothing). Yield credited sums to `increment × totalValueUSD`,
-        // i.e. `amount` less the usual flooring dust, matching the previous single-pool behaviour.
+        // skipping them changes nothing).
         for (uint8 i; i < n; ++i) {
             if (rarityPools[i].totalValueUSD > 0) {
                 rarityPools[i].accYieldPerUSD += increment;
@@ -865,5 +876,5 @@ contract CardGroupedVault is
         if (newImplementation.code.length == 0) revert InvalidImplementation();
     }
 
-    uint256[40] private __gap;
+    uint256[39] private __gap;
 }

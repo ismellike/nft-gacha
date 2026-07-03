@@ -121,6 +121,40 @@ contract CardGroupedVaultTest is Test {
         assertApproxEqAbs(vault.pendingYield(bob), 40e6, 1); // 25 + 15
     }
 
+    /// @notice Carry-forward keeps flooring dust from accumulating: over many distributions with
+    ///         an amount that never divides the pool value evenly, the total un-distributed dust
+    ///         stays bounded by a single remainder (< totalValue/PRECISION), NOT rounds × dust.
+    function test_yieldDistribution_dustDoesNotAccumulate() public {
+        // Awkward pool value so amount×PRECISION rarely divides totalValue evenly.
+        vm.startPrank(treasury);
+        vault.registerCardDeposit(CARD_A, alice, 10e18, COMMON, 1);
+        vault.registerCardDeposit(CARD_B, bob, 100e18, RARE, 1);
+        vault.registerCardDeposit(CARD_C, alice, 333e18, EPIC, 1);
+        vm.stopPrank();
+
+        uint256 totalValue = 10e18 + 100e18 + 333e18; // 443e18
+        uint256 amount = 1_000_001; // ~$1, deliberately not a clean divisor
+        uint256 rounds = 200;
+
+        vm.startPrank(economyManager);
+        for (uint256 i = 0; i < rounds; i++) {
+            vault.distributeYield(amount, COMMON);
+        }
+        vm.stopPrank();
+
+        uint256 totalDistributed = amount * rounds;
+        uint256 totalPending = vault.pendingYield(alice) + vault.pendingYield(bob);
+
+        // Bound is a single outstanding remainder (< totalValue/PRECISION) plus per-card floor —
+        // independent of `rounds`. Without carry-forward the shortfall would be ~rounds × that,
+        // i.e. ~200× larger, and this assertion would fail.
+        uint256 bound = totalValue / 1e18 + 5; // ~448 units of 6-dec USDC
+        assertApproxEqAbs(totalPending, totalDistributed, bound, "dust must not accumulate across rounds");
+
+        // The carried remainder is always strictly less than the pool value (PRECISION×USD units).
+        assertLt(vault.yieldRemainder(), totalValue, "remainder stays bounded by pool value");
+    }
+
     // ================================================================
     // Correction accumulator: price change within same rarity
     // ================================================================
@@ -225,11 +259,11 @@ contract CardGroupedVaultTest is Test {
         vm.stopPrank();
 
         // Alice is the sole depositor, so global-by-value routing still sends her essentially
-        // all of both distributions (110 USDC). Tolerance covers accumulator flooring dust,
-        // which is bounded by ~totalValue/PRECISION per distribution (~1050 units of 6-dec USDC
-        // here, over two distributions) and stays as un-claimed dust in the vault.
+        // all of both distributions (110 USDC). Carry-forward means only a single outstanding
+        // remainder (< totalValue/PRECISION ≈ 1050 units of 6-dec USDC) can be undistributed — the
+        // dust does not scale with the number of distributions.
         uint256 pending = vault.pendingYield(alice);
-        assertApproxEqAbs(pending, 110e6, 2200);
+        assertApproxEqAbs(pending, 110e6, 1100);
     }
 
     // ================================================================

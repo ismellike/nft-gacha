@@ -95,7 +95,9 @@ contract CardGroupedVaultPartialClaimTest is Test {
         uint256 claimedValue = commonPrice + epicPrice; // 510e18
         uint256 expClaimed = (totalYield * claimedValue) / totalValue; // ~250.82 USDC
         uint256 expRemaining = (totalYield * rarePrice) / totalValue; // ~49.18 USDC
-        uint256 tol = 3 * (totalValue / 1e18) + 10; // 3 distributions of accumulator flooring dust
+        // Carry-forward: only a single outstanding remainder (< totalValue/PRECISION) plus per-card
+        // floor is undistributed — dust does NOT scale with the number of distributions.
+        uint256 tol = totalValue / 1e18 + 10;
 
         // Total pending still conserves to ~300 USDC (global routing only reallocates across cards).
         uint256 totalPending = vault.pendingYield(alice);
@@ -204,7 +206,7 @@ contract CardGroupedVaultPartialClaimTest is Test {
             totalValue += prices[i];
         }
         uint256 totalYield = 545e6;
-        uint256 tol = 5 * (totalValue / 1e18) + 20; // 5 distributions of flooring dust
+        uint256 tol = totalValue / 1e18 + 20; // single carried remainder (carry-forward), not 5×
 
         // Total pending conserves to ~545 USDC.
         uint256 totalPending = vault.pendingYield(alice);
@@ -1052,7 +1054,7 @@ contract QueuedYieldProcessingTest is Test {
         // All queued yield + this spin's share is now distributed across the pool (alice + bob).
         uint256 totalToPool = queuedCommon + queuedUncommon + queuedRare + spinShare;
         uint256 poolPending = vault.pendingYield(alice) + vault.pendingYield(bob);
-        uint256 tol = 4 * ((10e18 + 100e18) / 1e18) + 10; // 4 distributions of flooring dust
+        uint256 tol = (10e18 + 100e18) / 1e18 + 10; // single carried remainder (carry-forward), not 4×
         assertApproxEqAbs(poolPending, totalToPool, tol, "all queued + new yield distributed to pool");
     }
 
