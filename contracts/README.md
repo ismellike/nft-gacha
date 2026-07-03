@@ -13,7 +13,6 @@ src/
 ├── gacha/         # Gacha.sol, GachaTreasury.sol, GachaTreasuryReader.sol, service handler
 ├── economy/       # GachaEconomyManager, CardGroupedVault, ProtocolTreasury
 ├── appraisal/     # NFTAppraisal.sol + WAVS service handler (price → rarity)
-├── governance/    # GachaTimelock.sol
 ├── tokens/        # Base ERC20/ERC721, GachaPFP, testnet helpers
 ├── interfaces/    # Contract interfaces and shared types
 └── utils/         # ERC20BatchQuery and helpers

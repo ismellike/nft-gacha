@@ -19,7 +19,6 @@ export default defineConfig({
 				"BaseERC20.sol/*.json",
 				"BaseERC721.sol/*.json",
 				"ERC20BatchQuery.sol/*.json",
-				"GachaTimelock.sol/*.json",
 			],
 		}),
 		react({
