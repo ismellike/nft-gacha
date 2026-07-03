@@ -113,7 +113,7 @@ mod tests {
     fn all_zero_source() {
         let zeros = [0u8; 32];
         let out = RandomDerivation::from_sources(&[&zeros]);
-        let expected = keccak256(&zeros);
+        let expected = keccak256(zeros);
         assert_eq!(out, expected);
     }
 
@@ -121,7 +121,7 @@ mod tests {
     fn all_max_byte_source() {
         let maxes = [0xFFu8; 32];
         let out = RandomDerivation::from_sources(&[&maxes]);
-        let expected = keccak256(&maxes);
+        let expected = keccak256(maxes);
         assert_eq!(out, expected);
     }
 

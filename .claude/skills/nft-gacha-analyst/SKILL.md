@@ -239,10 +239,10 @@ Analysis:
 ### Example 2: Tracing a rarity migration edge case
 User says: "what if an NFT's price changes during an active spin?"
 Analysis:
-1. Spin selects rarity at fulfillment time using current weights/counts
+1. Spin selects a tier at fulfillment time from the live pool counts (uniform-over-pool)
 2. Migration happens via `onCardPriceUpdated` callback from oracle
 3. If migration occurs between `spin()` and `fulfillRandomness()`:
-   - Rarity weights reflect new state at fulfillment time
+   - Draw odds (pool composition) reflect the new state at fulfillment time
    - Random selection uses updated pool counts
    - No inconsistency: spin always sees atomic state at fulfillment
 4. If the specific NFT selected was just migrated out of the rarity:

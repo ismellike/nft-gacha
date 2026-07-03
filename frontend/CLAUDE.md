@@ -43,7 +43,7 @@ The gacha spinning flow is driven by the XState v5 machine in `src/machines/gach
 ### Contract Integration
 - **Type Generation**: `wagmi generate` creates TypeScript bindings from Foundry artifacts
 - **Multi-Environment**: Config system supports local/testnet/mainnet with different contract addresses
-- **Generated Hooks**: Auto-generated hooks like `useReadGachaGetRarityWeights()`
+- **Generated Hooks**: Auto-generated hooks like `useReadGachaGetCurrentRarityWeights()`
 
 ### Component Architecture
 - **Glass UI System**: Reusable glassmorphism components in `src/ui/`

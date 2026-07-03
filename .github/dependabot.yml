@@ -1,0 +1,47 @@
+version: 2
+updates:
+  # Frontend (pnpm)
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      frontend-minor:
+        update-types: [minor, patch]
+
+  # Contracts tooling (pnpm)
+  - package-ecosystem: npm
+    directory: /contracts
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Indexer (npm)
+  - package-ecosystem: npm
+    directory: /indexer
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Rust / WASI workspace
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      cargo-minor:
+        update-types: [minor, patch]
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Git submodules (forge-std, OpenZeppelin, solady)
+  - package-ecosystem: gitsubmodule
+    directory: /
+    schedule:
+      interval: monthly
