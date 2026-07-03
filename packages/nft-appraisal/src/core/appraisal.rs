@@ -115,41 +115,37 @@ impl AppraisalProcessor {
     }
 }
 
-/// Length of a price epoch in seconds. All operators bucket the trigger event's block time into
+/// Number of blocks per price epoch. All operators bucket the trigger event's block NUMBER into
 /// epochs of this size so a cached price is pinned to a shared window (see [`price_epoch_of`]).
-/// Defaults to one day, matching graded-card price cadence; override with `WAVS_ENV_PRICE_EPOCH_SECS`.
-fn price_epoch_secs() -> u64 {
-    std::env::var("WAVS_ENV_PRICE_EPOCH_SECS")
-        .ok()
-        .and_then(|v| v.trim().parse::<u64>().ok())
-        .filter(|&v| v > 0)
-        .unwrap_or(86_400)
+///
+/// Block number is used rather than block timestamp deliberately: it is always present in the
+/// trigger log and identical across operators, whereas `block_timestamp` is omitted by some nodes'
+/// log responses — a per-operator variance that would let operators bucket the same event into
+/// different epochs and diverge on price (breaking AVS quorum). Default ~1 day of 2s blocks; override
+/// with `WAVS_ENV_PRICE_EPOCH_BLOCKS`. All operators MUST use the same value. Read once and cached.
+fn price_epoch_blocks() -> u64 {
+    static CACHED: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *CACHED.get_or_init(|| {
+        std::env::var("WAVS_ENV_PRICE_EPOCH_BLOCKS")
+            .ok()
+            .and_then(|v| v.trim().parse::<u64>().ok())
+            .filter(|&v| v > 0)
+            .unwrap_or(43_200)
+    })
 }
-
-/// Number of blocks per epoch when falling back to block-number bucketing (~1 day of 2s blocks).
-const FALLBACK_BLOCKS_PER_EPOCH: u64 = 43_200;
 
 /// Derive a deterministic price epoch from a trigger event. Every operator handling the same event
-/// computes the same value regardless of when it actually runs, so a cached price resolved for that
-/// epoch is identical across operators (removing per-operator wall-clock cache drift, the main
-/// source of AVS quorum disagreement on appraisals).
+/// computes the same value regardless of when it actually runs (block number is identical for all),
+/// so a cached price resolved for that epoch is identical across operators — removing the
+/// cross-operator cache drift that is the main source of AVS quorum disagreement on appraisals.
 fn price_epoch_of(evm_event: &TriggerDataEvmContractEvent) -> u64 {
-    epoch_from(
-        evm_event.log.block_timestamp,
-        evm_event.log.block_number,
-        price_epoch_secs(),
-    )
+    epoch_from(evm_event.log.block_number, price_epoch_blocks())
 }
 
-/// Pure epoch math. Uses the on-chain block timestamp when present (bucketed into `epoch_secs`);
-/// otherwise falls back to the always-present, identical-across-operators block number so the value
-/// is still shared and deterministic.
-fn epoch_from(block_timestamp: Option<u64>, block_number: u64, epoch_secs: u64) -> u64 {
-    let epoch_secs = epoch_secs.max(1);
-    match block_timestamp {
-        Some(ts) if ts > 0 => ts / epoch_secs,
-        _ => block_number / FALLBACK_BLOCKS_PER_EPOCH,
-    }
+/// Pure epoch math: bucket the block number. Deterministic across operators because block_number is
+/// always present in the trigger log and identical for the same event.
+fn epoch_from(block_number: u64, blocks_per_epoch: u64) -> u64 {
+    block_number / blocks_per_epoch.max(1)
 }
 
 #[derive(Debug)]
@@ -193,48 +189,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn epoch_from_buckets_by_timestamp() {
-        // Daily epochs: two timestamps within the same UTC day share an epoch; the next day differs.
-        let day = 86_400;
-        assert_eq!(epoch_from(Some(day * 100), 0, day), 100);
+    fn epoch_from_buckets_by_block_number() {
+        // Blocks within the same window share an epoch; the next window differs.
+        let per = 43_200;
+        assert_eq!(epoch_from(per * 100, per), 100);
         assert_eq!(
-            epoch_from(Some(day * 100 + 3_600), 0, day),
+            epoch_from(per * 100 + 5_000, per),
             100,
-            "same day → same epoch"
+            "same window → same epoch"
         );
-        assert_eq!(
-            epoch_from(Some(day * 101), 0, day),
-            101,
-            "next day → next epoch"
-        );
+        assert_eq!(epoch_from(per * 101, per), 101, "next window → next epoch");
     }
 
     #[test]
     fn epoch_from_is_deterministic_across_operators() {
-        // The same event (identical timestamp/block) always yields the same epoch, independent of
-        // when an operator evaluates it — this is what keeps operators in consensus.
-        let e1 = epoch_from(Some(1_700_000_123), 5_000_000, 86_400);
-        let e2 = epoch_from(Some(1_700_000_123), 5_000_000, 86_400);
-        assert_eq!(e1, e2);
-    }
-
-    #[test]
-    fn epoch_from_falls_back_to_block_number_when_no_timestamp() {
-        // No block timestamp (or zero): bucket the block number instead, still shared/deterministic.
+        // The same event (identical block number) always yields the same epoch, independent of when
+        // an operator evaluates it — this is what keeps operators in consensus.
         assert_eq!(
-            epoch_from(None, FALLBACK_BLOCKS_PER_EPOCH * 3 + 10, 86_400),
-            3
-        );
-        assert_eq!(
-            epoch_from(Some(0), FALLBACK_BLOCKS_PER_EPOCH * 2, 86_400),
-            2
+            epoch_from(60_000_123, 43_200),
+            epoch_from(60_000_123, 43_200)
         );
     }
 
     #[test]
-    fn epoch_from_guards_zero_epoch_secs() {
+    fn epoch_from_guards_zero_blocks_per_epoch() {
         // A misconfigured epoch length must not divide-by-zero panic.
-        let _ = epoch_from(Some(123_456), 0, 0);
+        let _ = epoch_from(123_456, 0);
     }
     use crate::resolvers::ResolverRegistry;
     use crate::types::ResolverRoute;

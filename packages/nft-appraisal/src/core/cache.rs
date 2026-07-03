@@ -29,11 +29,11 @@ struct CachedResolverQuote {
     timestamp: u64,
     #[serde(default)]
     ttl_secs: u64,
-    /// Deterministic price epoch (derived from the trigger event's block time) this entry was
-    /// resolved for. Positive entries are valid only for their own epoch — this pins the price
-    /// across ALL operators for the whole epoch and removes per-operator wall-clock cache drift,
-    /// which is the main source of cross-operator (AVS quorum) disagreement. Defaults to 0 for
-    /// entries written before epoch anchoring existed (treated as a miss on read).
+    /// Deterministic price epoch (derived from the trigger event's block number) this entry was
+    /// resolved for. Entries are valid only for their own epoch — this pins the result across ALL
+    /// operators for the whole epoch and removes per-operator cache drift, the main source of
+    /// cross-operator (AVS quorum) disagreement. Defaults to 0 for entries written before epoch
+    /// anchoring existed.
     #[serde(default)]
     price_epoch: u64,
 }
@@ -63,24 +63,14 @@ impl CachedResolverQuote {
 
     /// Whether this entry is still usable for a request in `expected_epoch`.
     ///
-    /// Positive (priced) entries are **epoch-pinned**: valid iff resolved for the same epoch, with
-    /// no wall-clock component, so every operator serving from cache returns an identical price for
-    /// the entire epoch. Negative (no-price) entries instead keep a short wall-clock TTL so a
-    /// transient upstream failure doesn't poison the whole epoch — a subsequent request re-fetches.
+    /// BOTH priced and negative (no-price) entries are **epoch-pinned**: valid iff resolved for the
+    /// same epoch, with no wall-clock component anywhere. This keeps every operator consistent for
+    /// the whole epoch on both outcomes — a price *and* a "no price found" result. It is safe to pin
+    /// negatives because only genuine no-price results are cached: transient upstream failures
+    /// surface as `Err` and propagate (never cached), while a card genuinely having no price for a
+    /// grade is stable within an epoch just like a price is.
     fn is_valid(&self, expected_epoch: u64) -> bool {
-        match self.price {
-            Some(_) => self.price_epoch == expected_epoch,
-            None => {
-                if self.ttl_secs == 0 {
-                    return false;
-                }
-                let now = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs();
-                now.saturating_sub(self.timestamp) <= self.ttl_secs
-            }
-        }
+        self.price_epoch == expected_epoch
     }
 
     fn into_quote(self) -> Option<ResolverQuote> {
@@ -140,10 +130,11 @@ impl AppraisalCache {
         price_epoch: u64,
     ) -> Result<()> {
         if let Some(ref bucket) = self.bucket {
+            // ttl_secs is retained only to reconstruct ResolverQuote.ttl for priced entries; it no
+            // longer governs cache validity (epoch does). Negatives carry a nominal value.
             let fallback_ttl = if quote.is_some() {
                 self.default_ttl
             } else {
-                // Keep negative lookups short-lived to avoid sticking on transient failures
                 Duration::from_secs(300)
             };
 
@@ -206,22 +197,25 @@ mod tests {
     }
 
     #[test]
-    fn test_negative_ttl_expiration() {
-        // Negative (no-price) entries keep a wall-clock TTL so transient failures don't stick.
-        let mut cached = CachedResolverQuote::from_quote(None, Duration::from_secs(3600), 0);
-        assert!(cached.is_valid(0));
+    fn negative_entry_is_epoch_pinned_not_wall_clock() {
+        // Negative (no-price) entries are epoch-pinned like priced ones: valid for their own epoch
+        // regardless of wall-clock age, invalid for any other epoch.
+        let mut cached = CachedResolverQuote::from_quote(None, Duration::from_secs(3600), 42);
+        assert!(
+            cached.is_valid(42),
+            "negative entry valid for its own epoch"
+        );
+        assert!(
+            !cached.is_valid(43),
+            "negative entry invalid for a different epoch"
+        );
 
-        // Set timestamp to past
-        cached.timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            - 7200; // 2 hours ago
-
-        assert!(!cached.is_valid(0));
-
-        cached.ttl_secs = 86_400;
-        assert!(cached.is_valid(0));
+        // Wall-clock age no longer affects validity.
+        cached.timestamp = 0;
+        assert!(
+            cached.is_valid(42),
+            "negative entry ignores wall-clock age within its epoch"
+        );
     }
 
     #[test]
@@ -312,37 +306,21 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
-    // CachedResolverQuote::is_valid — negative entry with ttl_secs == 0 is invalid
+    // CachedResolverQuote::is_valid — negative entries are invalid for other epochs
     // -----------------------------------------------------------------------
 
     #[test]
-    fn negative_entry_with_zero_ttl_is_invalid() {
-        // A zero TTL negative entry should immediately be considered invalid regardless of timestamp.
+    fn negative_entry_invalid_for_other_epoch() {
+        // ttl_secs no longer affects validity; only the epoch does. A negative entry from epoch 5
+        // is invalid once the request epoch moves on, forcing a re-fetch in the new epoch.
         let cached = CachedResolverQuote {
             price: None,
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            timestamp: u64::MAX, // wall-clock is irrelevant now
             ttl_secs: 0,
-            price_epoch: 0,
+            price_epoch: 5,
         };
-        assert!(
-            !cached.is_valid(0),
-            "ttl_secs == 0 negative entry should always be invalid"
-        );
-    }
-
-    #[test]
-    fn negative_entry_with_zero_ttl_and_future_timestamp_is_still_invalid() {
-        // Even if the timestamp is in the future, ttl_secs == 0 forces invalidity.
-        let cached = CachedResolverQuote {
-            price: None,
-            timestamp: u64::MAX, // impossibly far future
-            ttl_secs: 0,
-            price_epoch: 0,
-        };
-        assert!(!cached.is_valid(0));
+        assert!(cached.is_valid(5), "valid for its own epoch");
+        assert!(!cached.is_valid(6), "invalid once the epoch moves on");
     }
 
     // -----------------------------------------------------------------------
