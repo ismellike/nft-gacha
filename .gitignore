@@ -29,3 +29,7 @@ skills/
 .claude/*
 !.claude/skills/
 !.claude/agents/
+# Economic evaluation harness — generated artifacts
+analysis/economics/__pycache__/
+analysis/economics/report.md
+analysis/economics/report-deep.md

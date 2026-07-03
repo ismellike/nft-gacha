@@ -1,0 +1,61 @@
+version: "3"
+
+#####################################################################
+# ECONOMIC EVALUATION
+# Monte-Carlo evaluation of the gacha economic design. Pure-stdlib
+# Python (no deps); models the on-chain spin/split/redeem flow.
+# Source: analysis/economics/
+#####################################################################
+
+vars:
+    ECON_DIR: ./analysis/economics
+    # Defaults; override on the CLI, e.g. `task econ:eval SPINS=50000 SCENARIO=open-liquidity`
+    SPINS: '{{.SPINS | default "20000"}}'
+    RUNS: '{{.RUNS | default "5"}}'
+    SEED: '{{.SEED | default "0"}}'
+    SCENARIO: '{{.SCENARIO | default "all"}}'
+
+tasks:
+    eval:
+        desc: "Evaluate gacha economics (console table). Vars: SCENARIO, SPINS, RUNS, SEED"
+        dir: "{{.ECON_DIR}}"
+        cmds:
+            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --format table
+
+    report:
+        desc: "Write a full markdown economic report to analysis/economics/report.md"
+        dir: "{{.ECON_DIR}}"
+        cmds:
+            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --format markdown --out report.md
+
+    deep:
+        desc: "Write an in-depth report (per-rarity + trajectories) to analysis/economics/report-deep.md"
+        dir: "{{.ECON_DIR}}"
+        cmds:
+            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --deep --format markdown --out report-deep.md
+
+    sweep:
+        desc: "Sensitivity sweep on one lever. PARAM=premium_bps|protocol_seed_usd|max_payout_bps|deposit_rate|redeem_prob|depositor_share_bps"
+        dir: "{{.ECON_DIR}}"
+        vars:
+            PARAM: '{{.PARAM | default "premium_bps"}}'
+        cmds:
+            - python3 __main__.py --sweep {{.PARAM}} --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --format table
+
+    json:
+        desc: "Emit raw simulation metrics as JSON (for downstream tooling)"
+        dir: "{{.ECON_DIR}}"
+        cmds:
+            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --format json
+
+    yield-compare:
+        desc: "Compare per-rarity vs global-value yield routing (per-tier LP break-even). Vars: SCENARIO, SPINS, RUNS"
+        dir: "{{.ECON_DIR}}"
+        cmds:
+            - python3 __main__.py --compare-yield --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --format table
+
+    scenarios:
+        desc: "List available economic scenarios"
+        dir: "{{.ECON_DIR}}"
+        cmds:
+            - python3 -c "from scenarios import SCENARIOS; [print(f'{n:<18} {s.description}') for n, s in SCENARIOS.items()]"

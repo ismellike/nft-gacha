@@ -36,6 +36,8 @@ includes:
         taskfile: ./taskfile/cli.yml
     indexer:
         taskfile: ./taskfile/indexer.yml
+    econ:
+        taskfile: ./taskfile/economics.yml
 
 #####################################################################
 # PROJECT VARIABLES
