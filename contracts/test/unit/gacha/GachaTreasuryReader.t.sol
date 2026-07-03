@@ -120,8 +120,7 @@ contract GachaTreasuryReaderTest is StandardTest {
         assertEq(page1.length, 3, "first page should have 3");
         assertTrue(hasMore, "should have more");
 
-        (IGachaTreasuryRead.UserCardDeposit[] memory page2,, bool hasMore2) =
-            reader.getUserCardDepositsPage(user, 3, 3);
+        (IGachaTreasuryRead.UserCardDeposit[] memory page2,, bool hasMore2) = reader.getUserCardDepositsPage(user, 3, 3);
 
         assertEq(page2.length, 2, "second page should have remaining 2");
         assertFalse(hasMore2, "no more after page 2");
@@ -232,8 +231,7 @@ contract GachaTreasuryReaderTest is StandardTest {
         assertEq(page1.length, 2);
         assertTrue(hasMore);
 
-        (IGachaTreasuryRead.NFTItem[] memory page2,, bool hasMore2) =
-            reader.getUserDepositedNFTsPaginated(user, 2, 2);
+        (IGachaTreasuryRead.NFTItem[] memory page2,, bool hasMore2) = reader.getUserDepositedNFTsPaginated(user, 2, 2);
 
         assertEq(page2.length, 2);
         assertFalse(hasMore2);
@@ -255,8 +253,7 @@ contract GachaTreasuryReaderTest is StandardTest {
         _depositNFTAs(user, TestConstants.COMMON_PRICE);
         _depositNFTAs(other, TestConstants.COMMON_PRICE);
 
-        (IGachaTreasuryRead.NFTItem[] memory items, uint256 total,) =
-            reader.getUserDepositedNFTsPaginated(user, 0, 10);
+        (IGachaTreasuryRead.NFTItem[] memory items, uint256 total,) = reader.getUserDepositedNFTsPaginated(user, 0, 10);
 
         assertEq(total, 1);
         assertEq(items.length, 1);
@@ -485,8 +482,13 @@ contract GachaTreasuryReaderTest is StandardTest {
     // ========================================================================
 
     function test_GetPlatformOverviewBatch_EmptyTreasury() public view {
-        (uint256[] memory rarityCounts, uint256 totalItems, bool gachaAvailable, uint256 totalDeposited, uint256 totalClaimed)
-        = reader.getPlatformOverviewBatch();
+        (
+            uint256[] memory rarityCounts,
+            uint256 totalItems,
+            bool gachaAvailable,
+            uint256 totalDeposited,
+            uint256 totalClaimed
+        ) = reader.getPlatformOverviewBatch();
 
         assertEq(totalItems, 0);
         assertEq(rarityCounts.length, treasury.getNumRarities());
@@ -515,7 +517,7 @@ contract GachaTreasuryReaderTest is StandardTest {
         _depositNFTAs(user, TestConstants.UNCOMMON_PRICE);
         _depositNFTAs(user, TestConstants.RARE_PRICE);
 
-        (uint256[] memory rarityCounts, uint256 totalItems,,, ) = reader.getPlatformOverviewBatch();
+        (uint256[] memory rarityCounts, uint256 totalItems,,,) = reader.getPlatformOverviewBatch();
 
         uint256 sum;
         for (uint256 i = 0; i < rarityCounts.length; i++) {

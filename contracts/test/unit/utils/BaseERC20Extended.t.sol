@@ -87,7 +87,9 @@ contract BaseERC20ExtendedTest is Test {
 
     function test_DomainSeparator_DifferentForDifferentTokens() public {
         BaseERC20 token2 = new BaseERC20("Other Token", "OTH", owner);
-        assertNotEq(token.DOMAIN_SEPARATOR(), token2.DOMAIN_SEPARATOR(), "different tokens should have different separators");
+        assertNotEq(
+            token.DOMAIN_SEPARATOR(), token2.DOMAIN_SEPARATOR(), "different tokens should have different separators"
+        );
     }
 
     // ========================================================================

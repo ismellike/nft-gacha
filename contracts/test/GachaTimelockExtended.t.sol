@@ -338,11 +338,10 @@ contract GachaTimelockExtendedTest is Test {
      */
     function testTimelock_ExecuteGacha_SetPricingConfig() public {
         uint256 newPremiumBps = 1_000; // 10%
-        uint256 newMinFee = 2e6;       // 2 USDC
-        uint256 newMaxFee = 100e6;     // 100 USDC
+        uint256 newMinFee = 2e6; // 2 USDC
+        uint256 newMaxFee = 100e6; // 100 USDC
 
-        bytes memory data =
-            abi.encodeWithSelector(Gacha.setPricingConfig.selector, newPremiumBps, newMinFee, newMaxFee);
+        bytes memory data = abi.encodeWithSelector(Gacha.setPricingConfig.selector, newPremiumBps, newMinFee, newMaxFee);
 
         // Schedule
         vm.prank(PROPOSER);
