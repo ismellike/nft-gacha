@@ -1,0 +1,371 @@
+{
+  "scenario": "baseline",
+  "spins_requested": 3000,
+  "spins_fulfilled": 1018,
+  "refunds_empty_pool": 1982,
+  "total_fees_usd": 64011.9547776533,
+  "total_depositor_yield_usd": 60811.357038770664,
+  "total_protocol_fee_usd": 3200.597738882665,
+  "spinner_fees_paid_usd": 64011.9547776533,
+  "spinner_nft_value_received_usd": 49853.16389825481,
+  "spinner_redemption_cash_usd": 3161.200677834361,
+  "spinner_net_pnl_usd": -10997.590201564126,
+  "house_edge_pct": 17.180525481161226,
+  "redemptions_attempted": 265,
+  "redemptions_succeeded": 216,
+  "redemptions_insolvent": 49,
+  "redemptions_capped": 0,
+  "protocol_balance_final_usd": 39.39706104829987,
+  "protocol_balance_min_usd": 0.0,
+  "pool_size_initial": 802,
+  "pool_size_final": 0,
+  "pool_size_min": 0,
+  "ev_initial_usd": 62.16105224221301,
+  "ev_final_usd": 0.0,
+  "spins_to_first_refund": 1018,
+  "spins_to_depletion": 1017,
+  "depositor_pnl_p05_usd": -119.94054645013371,
+  "depositor_pnl_median_usd": 20.697087381080333,
+  "depositor_pnl_p95_usd": 233.67933870625924,
+  "depositor_pnl_mean_usd": 13.663582469470999,
+  "depositors_in_profit_pct": 68.45386533665835,
+  "tiers": [
+    {
+      "name": "Common",
+      "initial_count": 500,
+      "final_count": 0,
+      "draws": 657,
+      "redeem_attempted": 159,
+      "redeem_succeeded": 157,
+      "redeem_unfunded": 2,
+      "depositor_pnl_mean_usd": 68.72930895616764,
+      "depositors_in_profit_pct": 86.4
+    },
+    {
+      "name": "Uncommon",
+      "initial_count": 200,
+      "final_count": 0,
+      "draws": 255,
+      "redeem_attempted": 76,
+      "redeem_succeeded": 55,
+      "redeem_unfunded": 21,
+      "depositor_pnl_mean_usd": 36.2775005738142,
+      "depositors_in_profit_pct": 55.50000000000001
+    },
+    {
+      "name": "Rare",
+      "initial_count": 80,
+      "final_count": 0,
+      "draws": 84,
+      "redeem_attempted": 28,
+      "redeem_succeeded": 4,
+      "redeem_unfunded": 24,
+      "depositor_pnl_mean_usd": -85.4693979893979,
+      "depositors_in_profit_pct": 7.5
+    },
+    {
+      "name": "Epic",
+      "initial_count": 18,
+      "final_count": 0,
+      "draws": 18,
+      "redeem_attempted": 2,
+      "redeem_succeeded": 0,
+      "redeem_unfunded": 2,
+      "depositor_pnl_mean_usd": -656.8516496953713,
+      "depositors_in_profit_pct": 0.0
+    },
+    {
+      "name": "Legendary",
+      "initial_count": 4,
+      "final_count": 0,
+      "draws": 4,
+      "redeem_attempted": 0,
+      "redeem_succeeded": 0,
+      "redeem_unfunded": 0,
+      "depositor_pnl_mean_usd": -3000.269979665602,
+      "depositors_in_profit_pct": 0.0
+    }
+  ],
+  "trajectory": [
+    {
+      "spin": 0,
+      "pool_size": 802,
+      "ev_usd": 62.16105224221301,
+      "treasury_usd": 0.0,
+      "cum_house_edge_pct": 0.0
+    },
+    {
+      "spin": 75,
+      "pool_size": 740,
+      "ev_usd": 62.82153603723495,
+      "treasury_usd": 67.52233918050355,
+      "cum_house_edge_pct": 27.293425285541577
+    },
+    {
+      "spin": 150,
+      "pool_size": 686,
+      "ev_usd": 63.65092525202665,
+      "treasury_usd": 46.950892171930036,
+      "cum_house_edge_pct": 32.64259371661654
+    },
+    {
+      "spin": 225,
+      "pool_size": 629,
+      "ev_usd": 65.19074649272203,
+      "treasury_usd": 38.41675383696558,
+      "cum_house_edge_pct": 35.95807908679111
+    },
+    {
+      "spin": 300,
+      "pool_size": 568,
+      "ev_usd": 61.68726930237169,
+      "treasury_usd": 41.31746897128017,
+      "cum_house_edge_pct": 20.49532059239474
+    },
+    {
+      "spin": 375,
+      "pool_size": 511,
+      "ev_usd": 63.61305748816111,
+      "treasury_usd": 73.12283193938265,
+      "cum_house_edge_pct": 25.050988922389166
+    },
+    {
+      "spin": 450,
+      "pool_size": 455,
+      "ev_usd": 64.68212288472493,
+      "treasury_usd": 66.39269906213377,
+      "cum_house_edge_pct": 26.58381664566638
+    },
+    {
+      "spin": 525,
+      "pool_size": 393,
+      "ev_usd": 61.366002513775584,
+      "treasury_usd": 169.14884619556702,
+      "cum_house_edge_pct": 21.73227802412015
+    },
+    {
+      "spin": 600,
+      "pool_size": 336,
+      "ev_usd": 62.58863263711961,
+      "treasury_usd": 89.05366608385037,
+      "cum_house_edge_pct": 22.67277722072607
+    },
+    {
+      "spin": 675,
+      "pool_size": 277,
+      "ev_usd": 68.82405316628406,
+      "treasury_usd": 35.31694851667592,
+      "cum_house_edge_pct": 26.464822213442563
+    },
+    {
+      "spin": 750,
+      "pool_size": 221,
+      "ev_usd": 55.13374743740069,
+      "treasury_usd": 29.183482778864246,
+      "cum_house_edge_pct": 19.703511533819412
+    },
+    {
+      "spin": 825,
+      "pool_size": 158,
+      "ev_usd": 57.84114297786644,
+      "treasury_usd": 19.78961577315227,
+      "cum_house_edge_pct": 20.064898702429712
+    },
+    {
+      "spin": 900,
+      "pool_size": 99,
+      "ev_usd": 69.08609895243482,
+      "treasury_usd": 42.646536842245865,
+      "cum_house_edge_pct": 22.525501802144294
+    },
+    {
+      "spin": 975,
+      "pool_size": 36,
+      "ev_usd": 21.516101162191656,
+      "treasury_usd": 38.244376202822316,
+      "cum_house_edge_pct": 16.5489121520801
+    },
+    {
+      "spin": 1050,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1125,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1200,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1275,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1350,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1425,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1500,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1575,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1650,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1725,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1800,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1875,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 1950,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2025,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2100,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2175,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2250,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2325,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2400,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2475,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2550,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2625,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2700,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2775,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2850,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    },
+    {
+      "spin": 2925,
+      "pool_size": 0,
+      "ev_usd": 0.0,
+      "treasury_usd": 39.39706104829987,
+      "cum_house_edge_pct": 17.180525481161226
+    }
+  ]
+}

@@ -12,6 +12,39 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class StratSpec:
+    """Names one strategy for one seam plus its scalar params.
+
+    The composable unit stored in :class:`VariationConfig` and parsed from the
+    CLI ``name:k=v,...`` form. Non-frozen so ``sweep.py`` can deep-copy / mutate
+    it per grid point. ``params`` are scalars only (JSON-serialisable).
+    """
+
+    name: str
+    params: dict = field(default_factory=dict)
+
+
+@dataclass
+class VariationConfig:
+    """Per-seam strategy selection carried on a :class:`Scenario`.
+
+    All-defaults reproduces today's behaviour exactly, so every existing
+    scenario (which omits ``variations``) is byte-identical. ``yield_`` is a
+    sentinel: ``None`` means "derive the yield router from ``scenario.yield_mode``"
+    (-> ``per_rarity`` / ``global_value``), keeping ``--compare-yield`` untouched.
+    An explicit ``yield_`` spec wins if set.
+    """
+
+    topology: StratSpec = field(default_factory=lambda: StratSpec("single"))
+    draw: StratSpec = field(default_factory=lambda: StratSpec("uniform"))
+    pricing: StratSpec = field(default_factory=lambda: StratSpec("premium_clamp"))
+    demand: StratSpec = field(default_factory=lambda: StratSpec("inelastic"))
+    supply: StratSpec = field(default_factory=lambda: StratSpec("poisson"))
+    redemption: StratSpec = field(default_factory=lambda: StratSpec("flat"))
+    yield_: StratSpec | None = None
+
+
+@dataclass
 class RarityBand:
     """One rarity tier: a USD value range and how many cards start in it."""
 
@@ -60,6 +93,11 @@ class Scenario:
     #                     ignoring which tier was hit. Yield then scales with
     #                     value-at-risk, so all tiers break even in expectation.
     yield_mode: str = "per_rarity"
+
+    # Pluggable strategy selection. Omitted by every existing scenario, so it
+    # resolves to the all-default VariationConfig == current behaviour. Set a
+    # non-default StratSpec on any seam to enable a variation.
+    variations: VariationConfig = field(default_factory=VariationConfig)
 
     def total_cards(self) -> int:
         return sum(b.count for b in self.bands)

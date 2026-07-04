@@ -33,3 +33,4 @@ skills/
 analysis/economics/__pycache__/
 analysis/economics/report.md
 analysis/economics/report-deep.md
+analysis/economics/**/__pycache__/
