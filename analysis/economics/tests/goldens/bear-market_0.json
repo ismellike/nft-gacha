@@ -29,6 +29,9 @@
   "depositor_pnl_p95_usd": 113.19138408591931,
   "depositor_pnl_mean_usd": 5.542402615474977,
   "depositors_in_profit_pct": 71.66077738515901,
+  "spins_balked": 0,
+  "withdrawals": 0,
+  "deposits_added": 0,
   "tiers": [
     {
       "name": "Common",

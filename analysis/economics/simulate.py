@@ -119,6 +119,12 @@ class SimResult:
     depositor_pnl_mean_usd: float
     depositors_in_profit_pct: float
 
+    # Endogenous variation metrics (0 on the default path, so goldens gain three
+    # always-zero fields and every existing field stays byte-identical).
+    spins_balked: int = 0  # elastic demand: ticks that declined to spin
+    withdrawals: int = 0  # supply feedback: LP exits
+    deposits_added: int = 0  # supply feedback: cards added post-init
+
     tiers: list = field(default_factory=list)  # list[TierStats]
     trajectory: list = field(default_factory=list)  # list[TrajPoint]
 
@@ -372,6 +378,9 @@ def simulate(scenario: Scenario, spins: int, seed: int = 0) -> SimResult:
         depositor_pnl_p95_usd=pnl_p95,
         depositor_pnl_mean_usd=pnl_mean,
         depositors_in_profit_pct=in_profit,
+        spins_balked=st.metrics.spins_balked,
+        withdrawals=st.metrics.withdrawals,
+        deposits_added=st.metrics.deposits_added,
         tiers=tiers,
         trajectory=trajectory,
     )

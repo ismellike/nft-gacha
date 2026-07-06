@@ -56,6 +56,14 @@ def print_summary_table(results: list[SimResult]) -> None:
             f"{_redeem_pct(r):>9.1f} {r.protocol_balance_min_usd:>12,.0f} "
             f"{r.pool_size_final:>9,} {deplete:>10}"
         )
+    # Guarded variation-activity row(s): only shown when a variation actually fired,
+    # so the default (no-variation) output is unchanged.
+    active = [r for r in results if r.spins_balked or r.withdrawals or r.deposits_added]
+    if active:
+        print("\nvariation activity (endogenous demand/supply):")
+        print(f"{'scenario':<18} {'balked':>10} {'withdrawn':>10} {'deposits+':>10}")
+        for r in active:
+            print(f"{r.scenario:<18} {r.spins_balked:>10,} {r.withdrawals:>10,} {r.deposits_added:>10,}")
 
 
 # --- Deep markdown ---------------------------------------------------------
