@@ -96,7 +96,10 @@ class SegmentedPools:
         if c == 0:
             return 0.0  # never target an empty banner while depth exists
         if self._choice_weights is not None:
-            return self._choice_weights.get(seg, 0.0)
+            # Fall back to depth for any non-empty banner the caller omitted, so a
+            # partial choice_weights map doesn't silently strand inventory (a banner
+            # with cards but no listed weight would otherwise never be spun).
+            return float(self._choice_weights.get(seg, c))
         return float(c)  # depth-weighted default
 
     def choose_segment(self, st):

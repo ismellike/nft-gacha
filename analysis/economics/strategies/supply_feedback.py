@@ -74,6 +74,7 @@ class FeedbackSupply:
         max_withdraw_prob: float = 1.0,
         pnl_hazard: float = 0.5,
         warmup_ticks: int = 10,
+        max_inflow_boost: float = 4.0,
         eps: float = 1e-9,
     ) -> None:
         self.base_rate = None if base_rate is None else float(base_rate)
@@ -81,6 +82,10 @@ class FeedbackSupply:
         self.attract_apr = float(attract_apr)
         self.sensitivity = float(sensitivity)
         self.ticks_per_year = float(ticks_per_year)
+        # Ceiling on the APR-driven inflow multiplier. Without it, the early-tick
+        # annualisation spike (ticks_per_year/elapsed with tiny elapsed) can blow
+        # the boost — and thus the pool — up unboundedly. >= 1.0.
+        self.max_inflow_boost = max(1.0, float(max_inflow_boost))
         self.max_withdraw_prob = float(max_withdraw_prob)
         self.pnl_hazard = float(pnl_hazard)
         self.warmup_ticks = int(warmup_ticks)
@@ -184,8 +189,14 @@ class FeedbackSupply:
         base = sc.deposit_rate if self.base_rate is None else self.base_rate
         if base <= 0:
             return
-        observed_apr = self._observed_apr(st)
-        boost = 1.0 + self.sensitivity * max(0.0, observed_apr - self.attract_apr)
+        # Ignore the early-tick annualisation spike (elapsed tiny -> APR explodes):
+        # only let realised APR steer inflow after the warmup, and cap the boost so
+        # a transient APR reading can't blow the pool up.
+        if st.tick >= self.warmup_ticks:
+            boost = 1.0 + self.sensitivity * max(0.0, self._observed_apr(st) - self.attract_apr)
+            boost = min(boost, self.max_inflow_boost)
+        else:
+            boost = 1.0
         effective_rate = base * boost
         if effective_rate <= 0:
             return

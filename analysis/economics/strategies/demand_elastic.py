@@ -75,9 +75,13 @@ class ElasticDemand:
     def __init__(
         self,
         beta: float = 1.0,
-        form: str = "power",
+        form: str = "exp",
         reference_price: float = 0.0,
     ) -> None:
+        # Default form is 'exp' (not 'power'): power form with beta=1 is unit-elastic,
+        # giving revenue == EV *exactly constant* across premium (a degenerate demo with
+        # no interior optimum). 'exp' has curvature at every beta, so the natural
+        # `--variation demand=elastic` sweep reveals the revenue-maximizing premium.
         self.beta = float(beta)
         if self.beta < 0.0:
             raise ValueError(f"ElasticDemand.beta must be >= 0, got {self.beta}")

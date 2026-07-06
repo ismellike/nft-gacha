@@ -60,7 +60,10 @@ class PityDraw:
 
     def __init__(self, pity_n: int = 90, floor_tier=None, base: str = "",
                  spinner_pop: int = 1, **_ignored):
-        self.pity_n = int(pity_n)
+        # Clamp to >= 1: pity_n <= 0 would make draw() force a floor pull every
+        # time while expected_value() prices at base EV -> mispricing. (Mirrors
+        # BundleDemand's max(1, ...).)
+        self.pity_n = max(1, int(pity_n))
         self.floor_tier = None if floor_tier is None else int(floor_tier)
         self._base_name = str(base) if base else ""
         self._base = None  # lazily built registered draw, or None => internal uniform
@@ -126,9 +129,11 @@ class PityDraw:
         return self._base_draw(st, seg, spinner)
 
     def observe(self, st: "SimState", spinner: "SpinnerState", won: "NFT") -> None:
-        # Counter is advanced/reset inside draw(); nothing to do post-award.
-        # (A registered base draw already observed via its own draw() call.)
-        return None
+        # Pity's own counter is advanced/reset inside draw(). Forward the post-award
+        # hook to a composed stateful base draw so pity-over-pity (or any stateful
+        # base) still bookkeeps correctly.
+        if self._base is not None:
+            self._base.observe(st, spinner, won)
 
 
 @register("demand", "bundle")

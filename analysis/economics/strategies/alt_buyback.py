@@ -188,7 +188,10 @@ class TieredReserveBuyback:
         # Insolvent if either the tier bucket OR the global treasury can't fund.
         if st.protocol_balance < payout or bucket < payout:
             return RedeemResult("insolvent", 0.0)
-        if st.scenario.max_payout_bps > 0 and payout > bucket * st.scenario.max_payout_bps / BPS_DENOM:
+        # maxPayoutBps caps against the TREASURY BALANCE (== on-chain
+        # ProtocolTreasury.maxPayoutBps), not the per-tier bucket. The bucket
+        # already gates solvency above; this cap mirrors the contract.
+        if st.scenario.max_payout_bps > 0 and payout > st.protocol_balance * st.scenario.max_payout_bps / BPS_DENOM:
             return RedeemResult("capped", 0.0)
         # Debit our OWN accounting bucket (engine debits st.protocol_balance).
         st.reserves[rarity] = bucket - payout
@@ -212,6 +215,11 @@ class VariableBpsBuyback:
     def __init__(self, min_bps=5_000, max_bps=REDEMPTION_PAYOUT_BPS, target_usd=50_000.0):
         self.min_bps = _f(min_bps)
         self.max_bps = _f(max_bps)
+        # Enforce min <= max so payout_bps is monotone NON-DECREASING in treasury
+        # health (the documented semantic). If a caller inverts them, swap rather
+        # than silently pay less when flush.
+        if self.min_bps > self.max_bps:
+            self.min_bps, self.max_bps = self.max_bps, self.min_bps
         self.target_usd = max(_f(target_usd), 1e-9)
 
     def _bps(self, balance: float) -> float:

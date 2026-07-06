@@ -158,7 +158,10 @@ class WeightedDraw:
             name = bands[rarity].name.lower()
             if name in self._named:
                 w = self._named[name]
-        return w
+        # A negative draw weight is economically meaningless (it makes a tier's
+        # award probability negative and silently breaks EV == realised-mean, i.e.
+        # edge == premium). Floor at 0 = "never drawn".
+        return max(0.0, w)
 
     def _aggregate(self, st: "SimState", cards):
         """Group live cards -> {rarity: (W_r, n_r, V_r)} over NON-EMPTY rarities."""
