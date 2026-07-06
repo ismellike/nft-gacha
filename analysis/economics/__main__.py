@@ -23,9 +23,40 @@ from report import (
     to_markdown,
     yield_compare_to_text,
 )
-from scenarios import SCENARIOS, get_scenario
+from scenarios import SCENARIOS, VariationConfig, get_scenario
 from simulate import SimResult, TierStats, TrajPoint, simulate
+from strategies.registry import parse_spec
 from sweep import SWEEPABLE, default_grid, run_sweep
+
+# CLI seam name -> VariationConfig field (yield uses a trailing underscore).
+_SEAM_FIELD = {
+    "topology": "topology", "draw": "draw", "pricing": "pricing", "demand": "demand",
+    "supply": "supply", "redemption": "redemption", "yield": "yield_",
+}
+
+
+def _variations_from_flags(flags):
+    """Build a VariationConfig from repeated ``--variation SEAM=name:k=v`` flags.
+
+    Returns None when no flags are given, so scenarios keep their all-default
+    (byte-identical) config. Raises ValueError on an unknown seam.
+    """
+    if not flags:
+        return None
+    vc = VariationConfig()
+    for flag in flags:
+        if "=" not in flag:
+            raise ValueError(f"--variation expects SEAM=name[:k=v,...], got '{flag}'")
+        seam, spec_text = flag.split("=", 1)
+        seam = seam.strip().lower()
+        if seam not in _SEAM_FIELD:
+            raise ValueError(f"unknown seam '{seam}' (choose from {', '.join(_SEAM_FIELD)})")
+        setattr(vc, _SEAM_FIELD[seam], parse_spec(spec_text))
+    return vc
+
+
+def _apply(scenario, vc):
+    return scenario if vc is None else _dc.replace(scenario, variations=vc)
 
 
 def _avg_value(vals):
@@ -74,10 +105,20 @@ def main(argv: list[str] | None = None) -> int:
                    help=f"sensitivity sweep on one param: {', '.join(sorted(SWEEPABLE))}")
     p.add_argument("--compare-yield", action="store_true",
                    help="run the scenario under per_rarity vs global_value yield routing")
+    p.add_argument("--variation", action="append", metavar="SEAM=name:k=v",
+                   help="enable a strategy variation (repeatable), e.g. "
+                        "--variation demand=elastic:beta=0.9 --variation redemption=dutch. "
+                        "Seams: topology, draw, pricing, demand, supply, redemption, yield.")
     p.add_argument("--values", help="comma-separated sweep values (default: built-in grid)")
     p.add_argument("--format", choices=["table", "markdown", "json"], default="table")
     p.add_argument("--out", help="write output to this file instead of stdout")
     args = p.parse_args(argv)
+
+    try:
+        variations = _variations_from_flags(getattr(args, "variation", None))
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 2
 
     # --- Yield-routing comparison -----------------------------------------
     if args.compare_yield:
@@ -110,6 +151,7 @@ def main(argv: list[str] | None = None) -> int:
         except KeyError as e:
             print(e, file=sys.stderr)
             return 2
+        scenario = _apply(scenario, variations)
         if args.values:
             grid = [float(v) for v in args.values.split(",")]
         else:
@@ -137,6 +179,7 @@ def main(argv: list[str] | None = None) -> int:
 
     results: list[SimResult] = []
     for sc in scenarios:
+        sc = _apply(sc, variations)
         runs = [simulate(sc, args.spins, seed=args.seed + i) for i in range(max(1, args.runs))]
         results.append(_average(runs))
 

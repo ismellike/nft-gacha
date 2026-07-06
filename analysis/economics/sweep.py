@@ -37,6 +37,8 @@ SWEEPABLE = {
 class SweepRow:
     value: float
     house_edge_pct: float
+    protocol_revenue_usd: float  # total protocol fee = revenue (the demand-sweep headline)
+    spins_fulfilled: int  # volume — falls under elastic demand as the fee rises
     depositor_pnl_median_usd: float
     depositors_in_profit_pct: float
     redeem_success_pct: float
@@ -45,7 +47,7 @@ class SweepRow:
     protocol_balance_min_usd: float
 
 
-def _mean_result(results: list[SimResult]) -> tuple[float, float, float, float, int, int, float]:
+def _mean_result(results: list[SimResult]):
     def m(attr):
         return statistics.fmean(getattr(r, attr) for r in results)
 
@@ -54,6 +56,8 @@ def _mean_result(results: list[SimResult]) -> tuple[float, float, float, float, 
     redeem_pct = (ok / att * 100.0) if att > 0 else 0.0
     return (
         m("house_edge_pct"),
+        m("total_protocol_fee_usd"),
+        int(round(m("spins_fulfilled"))),
         m("depositor_pnl_median_usd"),
         m("depositors_in_profit_pct"),
         redeem_pct,
@@ -79,11 +83,13 @@ def run_sweep(
         coerced = int(v) if param.endswith("_bps") else v
         sc = dataclasses.replace(scenario, **{param: coerced})
         results = [simulate(sc, spins, seed=seed + i) for i in range(max(1, runs))]
-        edge, dep_med, dep_prof, redeem, deplete, pool_fin, treas_min = _mean_result(results)
+        edge, rev, spins_ok, dep_med, dep_prof, redeem, deplete, pool_fin, treas_min = _mean_result(results)
         rows.append(
             SweepRow(
                 value=v,
                 house_edge_pct=edge,
+                protocol_revenue_usd=rev,
+                spins_fulfilled=spins_ok,
                 depositor_pnl_median_usd=dep_med,
                 depositors_in_profit_pct=dep_prof,
                 redeem_success_pct=redeem,

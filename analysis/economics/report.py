@@ -201,33 +201,40 @@ def _trajectory_block(r: SimResult) -> str:
 def sweep_to_markdown(scenario_name: str, param: str, rows: list[SweepRow]) -> str:
     L = [f"# Sensitivity Sweep — `{param}` on `{scenario_name}`", ""]
     L.append(
-        "| " + param + " | Edge % | Dep. median | In profit | Redeem % | Deplete @ | Pool final | Treas. min |"
+        "| " + param + " | Edge % | Protocol rev | Volume | Dep. median | In profit | "
+        "Redeem % | Deplete @ | Pool final | Treas. min |"
     )
-    L.append("|--:|--:|--:|--:|--:|--:|--:|--:|")
+    L.append("|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|")
+    peak = max((r.protocol_revenue_usd for r in rows), default=0.0)
     for row in rows:
         val = f"{row.value:g}"
         deplete = "never" if row.spins_to_depletion < 0 else f"{row.spins_to_depletion:,}"
+        rev = _usd(row.protocol_revenue_usd) + (" **←peak**" if row.protocol_revenue_usd == peak else "")
         L.append(
-            f"| {val} | {row.house_edge_pct:.2f} | {_usd(row.depositor_pnl_median_usd)} | "
-            f"{row.depositors_in_profit_pct:.0f}% | {row.redeem_success_pct:.0f}% | {deplete} | "
-            f"{row.pool_size_final:,} | {_usd(row.protocol_balance_min_usd)} |"
+            f"| {val} | {row.house_edge_pct:.2f} | {rev} | {row.spins_fulfilled:,} | "
+            f"{_usd(row.depositor_pnl_median_usd)} | {row.depositors_in_profit_pct:.0f}% | "
+            f"{row.redeem_success_pct:.0f}% | {deplete} | {row.pool_size_final:,} | "
+            f"{_usd(row.protocol_balance_min_usd)} |"
         )
     return "\n".join(L)
 
 
 def print_sweep_table(param: str, rows: list[SweepRow]) -> None:
     hdr = (
-        f"{param:>14} {'edge%':>7} {'dep.med':>9} {'prof%':>7} "
+        f"{param:>14} {'edge%':>7} {'protocol$':>11} {'volume':>7} {'dep.med':>9} {'prof%':>7} "
         f"{'redeem%':>8} {'deplete@':>10} {'pool.fin':>9} {'treas.min':>11}"
     )
     print(hdr)
     print("-" * len(hdr))
+    peak = max((r.protocol_revenue_usd for r in rows), default=0.0)
     for row in rows:
         deplete = "never" if row.spins_to_depletion < 0 else f"{row.spins_to_depletion:,}"
+        mark = " <=peak" if row.protocol_revenue_usd == peak else ""
         print(
-            f"{row.value:>14g} {row.house_edge_pct:>7.2f} {row.depositor_pnl_median_usd:>9,.0f} "
+            f"{row.value:>14g} {row.house_edge_pct:>7.2f} {row.protocol_revenue_usd:>11,.0f} "
+            f"{row.spins_fulfilled:>7,} {row.depositor_pnl_median_usd:>9,.0f} "
             f"{row.depositors_in_profit_pct:>7.1f} {row.redeem_success_pct:>8.1f} "
-            f"{deplete:>10} {row.pool_size_final:>9,} {row.protocol_balance_min_usd:>11,.0f}"
+            f"{deplete:>10} {row.pool_size_final:>9,} {row.protocol_balance_min_usd:>11,.0f}{mark}"
         )
 
 

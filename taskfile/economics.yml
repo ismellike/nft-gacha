@@ -14,33 +14,42 @@ vars:
     RUNS: '{{.RUNS | default "5"}}'
     SEED: '{{.SEED | default "0"}}'
     SCENARIO: '{{.SCENARIO | default "all"}}'
+    # Enable a strategy variation (repeat by chaining in one string not supported here;
+    # for multiple, call __main__.py directly). e.g. VARIATION='demand=elastic:beta=0.9'
+    VARIATION: '{{.VARIATION | default ""}}'
 
 tasks:
     eval:
-        desc: "Evaluate gacha economics (console table). Vars: SCENARIO, SPINS, RUNS, SEED"
+        desc: "Evaluate gacha economics (console table). Vars: SCENARIO, SPINS, RUNS, SEED, VARIATION"
         dir: "{{.ECON_DIR}}"
         cmds:
-            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --format table
+            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} {{if .VARIATION}}--variation {{.VARIATION}}{{end}} --format table
 
     report:
         desc: "Write a full markdown economic report to analysis/economics/report.md"
         dir: "{{.ECON_DIR}}"
         cmds:
-            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --format markdown --out report.md
+            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} {{if .VARIATION}}--variation {{.VARIATION}}{{end}} --format markdown --out report.md
 
     deep:
         desc: "Write an in-depth report (per-rarity + trajectories) to analysis/economics/report-deep.md"
         dir: "{{.ECON_DIR}}"
         cmds:
-            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --deep --format markdown --out report-deep.md
+            - python3 __main__.py --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} {{if .VARIATION}}--variation {{.VARIATION}}{{end}} --deep --format markdown --out report-deep.md
 
     sweep:
-        desc: "Sensitivity sweep on one lever. PARAM=premium_bps|protocol_seed_usd|max_payout_bps|deposit_rate|redeem_prob|depositor_share_bps"
+        desc: "Sensitivity sweep on one lever (reports protocol revenue + volume + edge). PARAM=premium_bps|protocol_seed_usd|max_payout_bps|deposit_rate|redeem_prob|depositor_share_bps. Combine with VARIATION='demand=elastic' to find the revenue-max premium."
         dir: "{{.ECON_DIR}}"
         vars:
             PARAM: '{{.PARAM | default "premium_bps"}}'
         cmds:
-            - python3 __main__.py --sweep {{.PARAM}} --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} --format table
+            - python3 __main__.py --sweep {{.PARAM}} --scenario {{.SCENARIO}} --spins {{.SPINS}} --runs {{.RUNS}} --seed {{.SEED}} {{if .VARIATION}}--variation {{.VARIATION}}{{end}} --format table
+
+    variations:
+        desc: "List the strategy variations registered per seam"
+        dir: "{{.ECON_DIR}}"
+        cmds:
+            - python3 -c "import strategies; from strategies.registry import available; [print(f'{s:12s} {available(s)}') for s in ['topology','draw','pricing','demand','supply','redemption']]"
 
     json:
         desc: "Emit raw simulation metrics as JSON (for downstream tooling)"
