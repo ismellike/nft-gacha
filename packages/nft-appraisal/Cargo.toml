@@ -23,7 +23,7 @@ alloy-rpc-types = { workspace = true }
 alloy-contract = { workspace = true }
 hex = "0.4"
 urlencoding = "2.1"
-sha3 = "0.10"
+sha3 = "0.12"
 regex = "1.0"
 wavs-wasi-utils = { workspace = true }
 http = "1.1"
