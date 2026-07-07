@@ -33,5 +33,5 @@ alloy-primitives = { version = "1.4.1", features = ["serde"] }
 alloy-network = "=1.0.42"
 alloy-provider = { version = "=1.0.42", features = ["ws", "pubsub"] }
 alloy-rpc-types = "=1.0.42"
-alloy-contract = "=1.0.42"
+alloy-contract = "=2.0.4"
 alloy-transport-http = "=1.0.42"
