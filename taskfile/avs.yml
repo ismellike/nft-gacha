@@ -45,6 +45,7 @@ tasks:
         cmds:
             - echo "Starting AVS bootstrap..."
             - task: prerequisites
+            - task: fund-deployer
             - task: middleware-deploy
             - task: components-build
             - task: components-upload
@@ -78,6 +79,28 @@ tasks:
             - echo "Checking prerequisites..."
             - task backend:start CHAINS="{{.CHAINS}}" OPERATORS="{{.OPERATORS}}"
             - echo "Backend infrastructure ready"
+
+    fund-deployer:
+        desc: "Fund the deployer account on the LOCAL Anvil chain (no-op on TESTNET/MAINNET)"
+        vars:
+            CHAIN_NUMBER: '{{.CHAIN_NUMBER | default "1"}}'
+            FUND_WEI: '{{.FUND_WEI | default "0x21E19E0C9BAB2400000"}}' # 10,000 ETH
+            DEPLOY_RPC_URL:
+                sh: task backend:get-evm-rpc-url-{{.CHAIN_NUMBER}}
+        cmds:
+            - |
+                if [ "{{.DEPLOY_ENV}}" != "LOCAL" ]; then
+                  echo "DEPLOY_ENV={{.DEPLOY_ENV}} — skipping deployer funding (only funds on LOCAL Anvil)"
+                  exit 0
+                fi
+                if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then
+                  echo "Error: DEPLOYER_PRIVATE_KEY is not set" >&2
+                  exit 1
+                fi
+                DEPLOYER_ADDR=$(cast wallet address "$DEPLOYER_PRIVATE_KEY")
+                echo "Funding deployer $DEPLOYER_ADDR on {{.DEPLOY_RPC_URL}}..."
+                cast rpc anvil_setBalance "$DEPLOYER_ADDR" "{{.FUND_WEI}}" --rpc-url "{{.DEPLOY_RPC_URL}}" >/dev/null
+                echo "Deployer balance: $(cast from-wei "$(cast balance "$DEPLOYER_ADDR" --rpc-url "{{.DEPLOY_RPC_URL}}")") ETH"
 
     register-operators:
         desc: "Register all running WAVS operators with POA middleware"
