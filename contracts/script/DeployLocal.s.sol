@@ -20,6 +20,8 @@ import {CardGroupedVault} from "../src/economy/CardGroupedVault.sol";
 import {ProtocolTreasury} from "../src/economy/ProtocolTreasury.sol";
 import {GachaEconomyManager} from "../src/economy/GachaEconomyManager.sol";
 import {BaseERC721} from "../src/tokens/BaseERC721.sol";
+import {GachaPFP} from "../src/tokens/GachaPFP.sol";
+import {PFPServiceHandler} from "../src/tokens/PFPServiceHandler.sol";
 
 /// @dev Simple 6-decimal test token to simulate USDC
 contract TestUSDC is ERC20, ERC20Permit, Ownable {
@@ -85,6 +87,8 @@ contract DeployLocal is Script {
         address serviceHandler;
         address appraisalServiceHandler;
         address collection;
+        address pfpCollection;
+        address pfpServiceHandler;
     }
 
     address constant TEMP_GACHA_ADDRESS = 0x1111111111111111111111111111111111111111;
@@ -142,6 +146,8 @@ contract DeployLocal is Script {
         console.log("Service Handler:       ", deployments.serviceHandler);
         console.log("Appraisal Handler:     ", deployments.appraisalServiceHandler);
         console.log("Demo Collection:       ", deployments.collection);
+        console.log("PFP Collection:        ", deployments.pfpCollection);
+        console.log("PFP Service Handler:   ", deployments.pfpServiceHandler);
     }
 
     function _deployStack(address deployer, address wavsServiceManager, DeployConfig memory cfg)
@@ -159,7 +165,7 @@ contract DeployLocal is Script {
         _configureEconomy(d);
 
         // Deploy collection and trackers
-        _deployCollectionAndTrackers(d, deployer);
+        _deployCollectionAndTrackers(d, deployer, wavsServiceManager);
 
         // Fund ProtocolTreasury only when we deployed TestUSDC (can mint)
         if (cfg.deployedTestUSDC) {
@@ -326,9 +332,25 @@ contract DeployLocal is Script {
         d.appraisalServiceHandler = address(appraisalServiceHandler);
     }
 
-    function _deployCollectionAndTrackers(Deployments memory d, address deployer) internal {
+    function _deployCollectionAndTrackers(Deployments memory d, address deployer, address wavsServiceManager)
+        internal
+    {
         _deployCollection(d, deployer);
         GachaTreasury(d.treasuryProxy).addToWhitelist(d.collection);
+        _deployPfpCollection(d, deployer, wavsServiceManager);
+    }
+
+    function _deployPfpCollection(Deployments memory d, address deployer, address wavsServiceManager) internal {
+        // Deploy PFP collection (free mint locally, supply cap 10,000)
+        GachaPFP pfp = new GachaPFP(0, 10_000, deployer);
+        d.pfpCollection = address(pfp);
+
+        // Deploy the PFP randomness service handler and authorize it to fulfill rarity.
+        PFPServiceHandler psh = new PFPServiceHandler(IWavsServiceManager(wavsServiceManager), d.pfpCollection);
+        d.pfpServiceHandler = address(psh);
+        pfp.setServiceHandler(d.pfpServiceHandler);
+
+        GachaTreasury(d.treasuryProxy).addToWhitelist(d.pfpCollection);
     }
 
     function _deployCollection(Deployments memory d, address deployer) internal {
@@ -700,7 +722,9 @@ contract DeployLocal is Script {
                 _envLine("GACHA_ADDRESS", vm.toString(deployments.gachaProxy)),
                 _envLine("GACHA_SERVICE_HANDLER_ADDRESS", vm.toString(deployments.serviceHandler)),
                 _envLine("APPRAISAL_SERVICE_HANDLER_ADDRESS", vm.toString(deployments.appraisalServiceHandler)),
-                _envLine("COLLECTION_ADDRESS", vm.toString(deployments.collection))
+                _envLine("COLLECTION_ADDRESS", vm.toString(deployments.collection)),
+                _envLine("PFP_COLLECTION_ADDRESS", vm.toString(deployments.pfpCollection)),
+                _envLine("PFP_SERVICE_HANDLER_ADDRESS", vm.toString(deployments.pfpServiceHandler))
             )
         );
     }
