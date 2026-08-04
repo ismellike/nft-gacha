@@ -23,7 +23,7 @@ jobs:
 
       - uses: foundry-rs/foundry-toolchain@v1
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.0.9
         with:
           version: 9
 
@@ -55,7 +55,7 @@ jobs:
 
       - uses: foundry-rs/foundry-toolchain@v1
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.0.9
         with:
           version: 9
 
@@ -84,7 +84,7 @@ jobs:
 
       - uses: foundry-rs/foundry-toolchain@v1
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.0.9
         with:
           version: 9
 
